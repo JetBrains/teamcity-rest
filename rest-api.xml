@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="rest-api" default="all">
+  
+  
+  <property file="rest-api.properties"/>
+  <!-- Uncomment the following property if no tests compilation is needed -->
+  <!-- 
+  <property name="skip.tests" value="true"/>
+   -->
+  
+  <!-- Compiler options -->
+  
+  <property name="compiler.debug" value="on"/>
+  <property name="compiler.generate.no.warnings" value="off"/>
+  <property name="compiler.args" value=""/>
+  <property name="compiler.max.memory" value="128m"/>
+  <patternset id="ignored.files">
+    <exclude name="**/CVS/**"/>
+    <exclude name="**/SCCS/**"/>
+    <exclude name="**/RCS/**"/>
+    <exclude name="**/rcs/**"/>
+    <exclude name="**/.DS_Store/**"/>
+    <exclude name="**/.svn/**"/>
+    <exclude name="**/.sbas/**"/>
+    <exclude name="**/.IJI.*/**"/>
+    <exclude name="**/vssver.scc/**"/>
+    <exclude name="**/vssver2.scc/**"/>
+    <exclude name="**/.pyc/**"/>
+    <exclude name="**/.pyo/**"/>
+    <exclude name="**/*.pyc/**"/>
+    <exclude name="**/*.pyo/**"/>
+    <exclude name="**/.git/**"/>
+  </patternset>
+  <patternset id="library.patterns">
+    <include name="*.zip"/>
+    <include name="*.war"/>
+    <include name="*.egg"/>
+    <include name="*.ear"/>
+    <include name="*.swc"/>
+    <include name="*.jar"/>
+  </patternset>
+  <patternset id="compiler.resources">
+    <include name="**/?*.properties"/>
+    <include name="**/?*.xml"/>
+    <include name="**/?*.gif"/>
+    <include name="**/?*.png"/>
+    <include name="**/?*.jpeg"/>
+    <include name="**/?*.jpg"/>
+    <include name="**/?*.html"/>
+    <include name="**/?*.dtd"/>
+    <include name="**/?*.tld"/>
+    <include name="**/?*.ftl"/>
+  </patternset>
+  
+  
+  <!-- Project Libraries -->
+  
+  <path id="library.teamcity_open_api_common.classpath">
+    <pathelement location="${path.variable.teamcitydistribution}/devPackage/common-api.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/devPackage/runtime-util.jar"/>
+  </path>
+  
+  <path id="library.teamcity_open_api_server.classpath">
+    <pathelement location="${path.variable.teamcitydistribution}/devPackage/server-api.jar"/>
+  </path>
+  
+  <path id="library.teamcity_third-party.classpath">
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/annotations.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/openapi.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/spring-webmvc.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/spring.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/util.jar"/>
+  </path>
+  
+  <path id="library.tomcat.classpath">
+    <pathelement location="${path.variable.teamcitydistribution}/lib/servlet-api.jar"/>
+  </path>
+  
+  
+  <!-- Application Server Libraries -->
+  
+  <!-- Modules -->
+  
+  
+  <!-- Module jersey-spring -->
+  
+  <dirname property="module.jersey-spring.basedir" file="${ant.file}"/>
+  
+  
+  
+  <property name="compiler.args.jersey-spring" value="${compiler.args}"/>
+  
+  <property name="jersey-spring.output.dir" value="${module.jersey-spring.basedir}/out/production/jersey-spring"/>
+  <property name="jersey-spring.testoutput.dir" value="${module.jersey-spring.basedir}/out/test/jersey-spring"/>
+  
+  <path id="jersey-spring.module.bootclasspath">
+    <!-- Paths to be included in compilation bootclasspath -->
+  </path>
+  
+  <path id="jersey-spring.module.classpath">
+    <pathelement location="${basedir}/lib/asm-3.1.jar"/>
+    <pathelement location="${basedir}/lib/jersey-core-1.0.2.jar"/>
+    <pathelement location="${basedir}/lib/jersey-server-1.0.2.jar"/>
+    <pathelement location="${basedir}/lib/jsr311-api-1.0.jar"/>
+    <path refid="library.tomcat.classpath"/>
+    <path refid="library.teamcity_third-party.classpath"/>
+  </path>
+  
+  <path id="jersey-spring.runtime.module.classpath">
+    <pathelement location="${jersey-spring.output.dir}"/>
+    <pathelement location="${jersey-spring.testoutput.dir}"/>
+    <pathelement location="${basedir}/lib/asm-3.1.jar"/>
+    <pathelement location="${basedir}/lib/jersey-core-1.0.2.jar"/>
+    <pathelement location="${basedir}/lib/jersey-server-1.0.2.jar"/>
+    <pathelement location="${basedir}/lib/jsr311-api-1.0.jar"/>
+    <path refid="library.tomcat.classpath"/>
+    <path refid="library.teamcity_third-party.classpath"/>
+  </path>
+  
+  
+  <patternset id="excluded.from.module.jersey-spring">
+    <patternset refid="ignored.files"/>
+  </patternset>
+  
+  <patternset id="excluded.from.compilation.jersey-spring">
+    <patternset refid="excluded.from.module.jersey-spring"/>
+  </patternset>
+  
+  <path id="jersey-spring.module.sourcepath">
+    <dirset dir="${module.jersey-spring.basedir}/../../../../Test/PublicProjects/Jersey/jersey/contribs/spring">
+      <include name="src/main/java"/>
+    </dirset>
+  </path>
+  
+  
+  <target name="compile.module.jersey-spring" depends="compile.module.jersey-spring.production,compile.module.jersey-spring.tests" description="Compile module jersey-spring"/>
+  
+  <target name="compile.module.jersey-spring.production" description="Compile module jersey-spring; production classes">
+    <mkdir dir="${jersey-spring.output.dir}"/>
+    <javac destdir="${jersey-spring.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true">
+      <compilerarg line="${compiler.args.jersey-spring}"/>
+      <bootclasspath refid="jersey-spring.module.bootclasspath"/>
+      <classpath refid="jersey-spring.module.classpath"/>
+      <src refid="jersey-spring.module.sourcepath"/>
+      <patternset refid="excluded.from.compilation.jersey-spring"/>
+    </javac>
+    
+    <copy todir="${jersey-spring.output.dir}">
+      <fileset dir="${module.jersey-spring.basedir}/../../../../Test/PublicProjects/Jersey/jersey/contribs/spring/src/main/java">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+    </copy>
+  </target>
+  
+  <target name="compile.module.jersey-spring.tests" depends="compile.module.jersey-spring.production" description="compile module jersey-spring; test classes" unless="skip.tests"/>
+  
+  <target name="clean.module.jersey-spring" description="cleanup module">
+    <delete dir="${jersey-spring.output.dir}"/>
+    <delete dir="${jersey-spring.testoutput.dir}"/>
+  </target>
+  
+  
+  <!-- Module rest-api -->
+  
+  <dirname property="module.rest-api.basedir" file="${ant.file}"/>
+  
+  
+  
+  <property name="compiler.args.rest-api" value="${compiler.args}"/>
+  
+  <property name="rest-api.output.dir" value="${module.rest-api.basedir}/out/production/rest-api"/>
+  <property name="rest-api.testoutput.dir" value="${module.rest-api.basedir}/out/test/rest-api"/>
+  
+  <path id="rest-api.module.bootclasspath">
+    <!-- Paths to be included in compilation bootclasspath -->
+  </path>
+  
+  <path id="rest-api.module.classpath">
+    <pathelement location="${basedir}/lib/asm-3.1.jar"/>
+    <pathelement location="${basedir}/lib/jersey-core-1.0.2.jar"/>
+    <pathelement location="${basedir}/lib/jersey-server-1.0.2.jar"/>
+    <pathelement location="${basedir}/lib/jsr311-api-1.0.jar"/>
+    <pathelement location="${basedir}/lib/grizzly-servlet-webserver-1.8.6.4.jar"/>
+    <path refid="library.teamcity_open_api_server.classpath"/>
+    <path refid="library.teamcity_open_api_common.classpath"/>
+    <path refid="library.teamcity_third-party.classpath"/>
+    <path refid="library.tomcat.classpath"/>
+    <pathelement location="${jersey-spring.output.dir}"/>
+    <pathelement location="${jersey-spring.testoutput.dir}"/>
+  </path>
+  
+  <path id="rest-api.runtime.module.classpath">
+    <pathelement location="${rest-api.output.dir}"/>
+    <pathelement location="${rest-api.testoutput.dir}"/>
+    <pathelement location="${basedir}/lib/asm-3.1.jar"/>
+    <pathelement location="${basedir}/lib/jersey-core-1.0.2.jar"/>
+    <pathelement location="${basedir}/lib/jersey-server-1.0.2.jar"/>
+    <pathelement location="${basedir}/lib/jsr311-api-1.0.jar"/>
+    <pathelement location="${basedir}/lib/grizzly-servlet-webserver-1.8.6.4.jar"/>
+    <path refid="library.teamcity_open_api_server.classpath"/>
+    <path refid="library.teamcity_open_api_common.classpath"/>
+    <path refid="library.teamcity_third-party.classpath"/>
+    <path refid="library.tomcat.classpath"/>
+    <path refid="jersey-spring.runtime.module.classpath"/>
+  </path>
+  
+  
+  <patternset id="excluded.from.module.rest-api">
+    <patternset refid="ignored.files"/>
+  </patternset>
+  
+  <patternset id="excluded.from.compilation.rest-api">
+    <patternset refid="excluded.from.module.rest-api"/>
+  </patternset>
+  
+  <path id="rest-api.module.sourcepath">
+    <dirset dir="${module.rest-api.basedir}">
+      <include name="src"/>
+    </dirset>
+  </path>
+  
+  
+  <target name="compile.module.rest-api" depends="compile.module.rest-api.production,compile.module.rest-api.tests" description="Compile module rest-api"/>
+  
+  <target name="compile.module.rest-api.production" depends="compile.module.jersey-spring" description="Compile module rest-api; production classes">
+    <mkdir dir="${rest-api.output.dir}"/>
+    <javac destdir="${rest-api.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true">
+      <compilerarg line="${compiler.args.rest-api}"/>
+      <bootclasspath refid="rest-api.module.bootclasspath"/>
+      <classpath refid="rest-api.module.classpath"/>
+      <src refid="rest-api.module.sourcepath"/>
+      <patternset refid="excluded.from.compilation.rest-api"/>
+    </javac>
+    
+    <copy todir="${rest-api.output.dir}">
+      <fileset dir="${module.rest-api.basedir}/src">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+    </copy>
+  </target>
+  
+  <target name="compile.module.rest-api.tests" depends="compile.module.rest-api.production" description="compile module rest-api; test classes" unless="skip.tests"/>
+  
+  <target name="clean.module.rest-api" description="cleanup module">
+    <delete dir="${rest-api.output.dir}"/>
+    <delete dir="${rest-api.testoutput.dir}"/>
+  </target>
+  
+  <target name="init" description="Build initialization">
+    <!-- Perform any build initialization in this target -->
+  </target>
+  
+  <target name="clean" depends="clean.module.jersey-spring, clean.module.rest-api" description="cleanup all"/>
+  
+  <target name="all" depends="init, clean, compile.module.jersey-spring, compile.module.rest-api" description="build all"/>
+</project>
