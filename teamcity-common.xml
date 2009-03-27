@@ -131,7 +131,7 @@
 
   <macrodef name="unpack.teamcity" description="TeamCity distribution unpacking">
     <attribute name="distribution.dir" default="${basedir}/teamcity-dist"
-               description="path to put unpacked TeamCIty distribution into. Warning: the content of the directory will be deleted!"/>
+               description="path to put unpacked TeamCity distribution into. Warning: the content of the directory will be deleted!"/>
     <attribute name="teamcity.data.path" default="${user.home}/.BuildServer" description="path to .BuildServer"/>
     <attribute name="teamcity.tar.gz-location" default="${basedir}" description="path where TeamCity-NNNN.tar.gz file resides"/>
 

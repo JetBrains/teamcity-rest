@@ -82,85 +82,6 @@
   <!-- Modules -->
   
   
-  <!-- Module jersey-spring -->
-  
-  <dirname property="module.jersey-spring.basedir" file="${ant.file}"/>
-  
-  
-  
-  <property name="compiler.args.jersey-spring" value="${compiler.args}"/>
-  
-  <property name="jersey-spring.output.dir" value="${module.jersey-spring.basedir}/out/production/jersey-spring"/>
-  <property name="jersey-spring.testoutput.dir" value="${module.jersey-spring.basedir}/out/test/jersey-spring"/>
-  
-  <path id="jersey-spring.module.bootclasspath">
-    <!-- Paths to be included in compilation bootclasspath -->
-  </path>
-  
-  <path id="jersey-spring.module.classpath">
-    <pathelement location="${basedir}/lib/asm-3.1.jar"/>
-    <pathelement location="${basedir}/lib/jersey-core-1.0.2.jar"/>
-    <pathelement location="${basedir}/lib/jersey-server-1.0.2.jar"/>
-    <pathelement location="${basedir}/lib/jsr311-api-1.0.jar"/>
-    <path refid="library.tomcat.classpath"/>
-    <path refid="library.teamcity_third-party.classpath"/>
-  </path>
-  
-  <path id="jersey-spring.runtime.module.classpath">
-    <pathelement location="${jersey-spring.output.dir}"/>
-    <pathelement location="${jersey-spring.testoutput.dir}"/>
-    <pathelement location="${basedir}/lib/asm-3.1.jar"/>
-    <pathelement location="${basedir}/lib/jersey-core-1.0.2.jar"/>
-    <pathelement location="${basedir}/lib/jersey-server-1.0.2.jar"/>
-    <pathelement location="${basedir}/lib/jsr311-api-1.0.jar"/>
-    <path refid="library.tomcat.classpath"/>
-    <path refid="library.teamcity_third-party.classpath"/>
-  </path>
-  
-  
-  <patternset id="excluded.from.module.jersey-spring">
-    <patternset refid="ignored.files"/>
-  </patternset>
-  
-  <patternset id="excluded.from.compilation.jersey-spring">
-    <patternset refid="excluded.from.module.jersey-spring"/>
-  </patternset>
-  
-  <path id="jersey-spring.module.sourcepath">
-    <dirset dir="${module.jersey-spring.basedir}/../../../../Test/PublicProjects/Jersey/jersey/contribs/spring">
-      <include name="src/main/java"/>
-    </dirset>
-  </path>
-  
-  
-  <target name="compile.module.jersey-spring" depends="compile.module.jersey-spring.production,compile.module.jersey-spring.tests" description="Compile module jersey-spring"/>
-  
-  <target name="compile.module.jersey-spring.production" description="Compile module jersey-spring; production classes">
-    <mkdir dir="${jersey-spring.output.dir}"/>
-    <javac destdir="${jersey-spring.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true">
-      <compilerarg line="${compiler.args.jersey-spring}"/>
-      <bootclasspath refid="jersey-spring.module.bootclasspath"/>
-      <classpath refid="jersey-spring.module.classpath"/>
-      <src refid="jersey-spring.module.sourcepath"/>
-      <patternset refid="excluded.from.compilation.jersey-spring"/>
-    </javac>
-    
-    <copy todir="${jersey-spring.output.dir}">
-      <fileset dir="${module.jersey-spring.basedir}/../../../../Test/PublicProjects/Jersey/jersey/contribs/spring/src/main/java">
-        <patternset refid="compiler.resources"/>
-        <type type="file"/>
-      </fileset>
-    </copy>
-  </target>
-  
-  <target name="compile.module.jersey-spring.tests" depends="compile.module.jersey-spring.production" description="compile module jersey-spring; test classes" unless="skip.tests"/>
-  
-  <target name="clean.module.jersey-spring" description="cleanup module">
-    <delete dir="${jersey-spring.output.dir}"/>
-    <delete dir="${jersey-spring.testoutput.dir}"/>
-  </target>
-  
-  
   <!-- Module rest-api -->
   
   <dirname property="module.rest-api.basedir" file="${ant.file}"/>
@@ -180,14 +101,13 @@
     <pathelement location="${basedir}/lib/asm-3.1.jar"/>
     <pathelement location="${basedir}/lib/jersey-core-1.0.2.jar"/>
     <pathelement location="${basedir}/lib/jersey-server-1.0.2.jar"/>
+    <pathelement location="${basedir}/lib/jersey-spring-1.0.2.jar"/>
     <pathelement location="${basedir}/lib/jsr311-api-1.0.jar"/>
     <pathelement location="${basedir}/lib/grizzly-servlet-webserver-1.8.6.4.jar"/>
     <path refid="library.teamcity_open_api_server.classpath"/>
     <path refid="library.teamcity_open_api_common.classpath"/>
     <path refid="library.teamcity_third-party.classpath"/>
     <path refid="library.tomcat.classpath"/>
-    <pathelement location="${jersey-spring.output.dir}"/>
-    <pathelement location="${jersey-spring.testoutput.dir}"/>
   </path>
   
   <path id="rest-api.runtime.module.classpath">
@@ -196,13 +116,13 @@
     <pathelement location="${basedir}/lib/asm-3.1.jar"/>
     <pathelement location="${basedir}/lib/jersey-core-1.0.2.jar"/>
     <pathelement location="${basedir}/lib/jersey-server-1.0.2.jar"/>
+    <pathelement location="${basedir}/lib/jersey-spring-1.0.2.jar"/>
     <pathelement location="${basedir}/lib/jsr311-api-1.0.jar"/>
     <pathelement location="${basedir}/lib/grizzly-servlet-webserver-1.8.6.4.jar"/>
     <path refid="library.teamcity_open_api_server.classpath"/>
     <path refid="library.teamcity_open_api_common.classpath"/>
     <path refid="library.teamcity_third-party.classpath"/>
     <path refid="library.tomcat.classpath"/>
-    <path refid="jersey-spring.runtime.module.classpath"/>
   </path>
   
   
@@ -223,7 +143,7 @@
   
   <target name="compile.module.rest-api" depends="compile.module.rest-api.production,compile.module.rest-api.tests" description="Compile module rest-api"/>
   
-  <target name="compile.module.rest-api.production" depends="compile.module.jersey-spring" description="Compile module rest-api; production classes">
+  <target name="compile.module.rest-api.production" description="Compile module rest-api; production classes">
     <mkdir dir="${rest-api.output.dir}"/>
     <javac destdir="${rest-api.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true">
       <compilerarg line="${compiler.args.rest-api}"/>
@@ -252,7 +172,7 @@
     <!-- Perform any build initialization in this target -->
   </target>
   
-  <target name="clean" depends="clean.module.jersey-spring, clean.module.rest-api" description="cleanup all"/>
+  <target name="clean" depends="clean.module.rest-api" description="cleanup all"/>
   
-  <target name="all" depends="init, clean, compile.module.jersey-spring, compile.module.rest-api" description="build all"/>
+  <target name="all" depends="init, clean, compile.module.rest-api" description="build all"/>
 </project>
