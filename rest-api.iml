@@ -20,6 +20,7 @@
         <SOURCES>
           <root url="jar://$MODULE_DIR$/lib/src/jersey-spring-1.0-sources.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/src/jersey-bundle-1.0.2-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jsr311-api-1.0-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
