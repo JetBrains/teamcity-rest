@@ -22,4 +22,7 @@
     <bean id="buildTypeRequest" class="jetbrains.buildServer.server.rest.BuildTypeRequest"/>
 
     <bean id="apiController" class="jetbrains.buildServer.server.rest.APIController"/> 
+
+    <bean id="notFoundExceptionMapper" class="jetbrains.buildServer.server.rest.NotFoundExceptionMapper"/>
+    <bean id="badRequestExceptionMapper" class="jetbrains.buildServer.server.rest.BadRequestExceptionMapper"/> 
 </beans>

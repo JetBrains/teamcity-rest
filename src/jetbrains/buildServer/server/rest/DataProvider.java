@@ -29,7 +29,7 @@ public class DataProvider {
   }
 
   @Nullable
-  public String getFieldValue(final SBuildType buildType, final String field) throws NotFoundException {
+  public String getFieldValue(final SBuildType buildType, final String field) {
     if ("id".equals(field)) {
       return buildType.getBuildTypeId();
     } else if ("description".equals(field)) {
@@ -41,7 +41,7 @@ public class DataProvider {
   }
 
   @Nullable
-  public String getFieldValue(final SProject project, final String field) throws NotFoundException {
+  public String getFieldValue(final SProject project, final String field) {
     if ("id".equals(field)) {
       return project.getProjectId();
     } else if ("description".equals(field)) {
@@ -53,7 +53,7 @@ public class DataProvider {
   }
 
   @Nullable
-  public String getFieldValue(@NotNull final SBuild build, @Nullable final String field) throws NotFoundException {
+  public String getFieldValue(@NotNull final SBuild build, @Nullable final String field) {
     if ("number".equals(field)) {
       return build.getBuildNumber();
     } else if ("status".equals(field)) {
@@ -66,20 +66,20 @@ public class DataProvider {
       return (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(build.getFinishDate());
     } else if ("buildTypeId".equals(field)) {
       return (build.getBuildTypeId());
-    } 
+    }
     throw new NotFoundException("Field '" + field + "' is not supported.");
   }
 
   @NotNull
-  public SBuild getBuild(@Nullable final SBuildType buildType, @Nullable final String buildLocator) throws NotFoundException, ErrorInRequestException {
+  public SBuild getBuild(@Nullable final SBuildType buildType, @Nullable final String buildLocator) {
     if (buildLocator == null) {
-      throw new ErrorInRequestException("Empty build locator is not supported.");
+      throw new BadRequestException("Empty build locator is not supported.");
     }
 
     if (!hasDimensions(buildLocator)) {
       // no dimensions found, assume it's a number
-      if (buildType == null){
-        throw new ErrorInRequestException("Cannot find build by number '" + buildLocator +"' without build type specified.");
+      if (buildType == null) {
+        throw new BadRequestException("Cannot find build by number '" + buildLocator + "' without build type specified.");
       }
       SBuild build = myServer.findBuildInstanceByBuildNumber(buildType.getBuildTypeId(), buildLocator);
       if (build == null) {
@@ -96,14 +96,14 @@ public class DataProvider {
       try {
         id = Long.parseLong(idString);
       } catch (NumberFormatException e) {
-        throw new ErrorInRequestException("Invalid build id '" + idString + "'. Should be a number.");
+        throw new BadRequestException("Invalid build id '" + idString + "'. Should be a number.");
       }
       SBuild build = myServer.findBuildInstanceById(id);
       if (build == null) {
         throw new NotFoundException("No build can be found by id '" + id + "'.");
       }
       if (buildType != null && !buildType.getBuildTypeId().equals(build.getBuildTypeId())) {
-        throw new NotFoundException("No build can be found by id '" + id + "' in build type" + buildType + ".");
+        throw new NotFoundException("No build can be found by id '" + id + "' in build type " + buildType + ".");
       }
       if (buildLocatorDimensions.keySet().size() > 1) {
         LOG.info("Build locator '" + buildLocator + "' has 'id' dimenstion and others. Others are ignored.");
@@ -111,8 +111,8 @@ public class DataProvider {
       return build;
     }
 
-    if (buildType == null){
-      throw new ErrorInRequestException("Cannot find build by other locator then 'id' without build type specified.");
+    if (buildType == null) {
+      throw new BadRequestException("Cannot find build by other locator then 'id' without build type specified.");
     }
 
     String number = getSingleDimensionValue(buildLocatorDimensions, "number");
@@ -150,16 +150,16 @@ public class DataProvider {
   }
 
   @NotNull
-  public SBuildType getBuildType(@Nullable final SProject project, @Nullable final String buildTypeLocator) throws NotFoundException, ErrorInRequestException {
+  public SBuildType getBuildType(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
     if (buildTypeLocator == null) {
-      throw new ErrorInRequestException("Empty build type locator is not supported.");
+      throw new BadRequestException("Empty build type locator is not supported.");
     }
 
     if (!hasDimensions(buildTypeLocator)) {
       // no dimensions found, assume it's a name
       SBuildType buildType = findBuildTypeByName(project, buildTypeLocator);
       if (buildType == null) {
-        throw new NotFoundException("Build type cannot be found by name '" + buildTypeLocator + "'.");
+        throw new NotFoundException("No build type is found by name '" + buildTypeLocator + "'.");
       }
       return buildType;
     }
@@ -170,7 +170,7 @@ public class DataProvider {
     if (id != null) {
       SBuildType buildType = myServer.getProjectManager().findBuildTypeById(id);
       if (buildType == null) {
-        throw new NotFoundException("Build type cannot be found by id '" + id + "'.");
+        throw new NotFoundException("No build type is found by id '" + id + "'.");
       }
       if (project != null && !buildType.getProject().equals(project)) {
         throw new NotFoundException("Build type with id '" + id + "' does not belog to project " + project + ".");
@@ -185,32 +185,32 @@ public class DataProvider {
     if (name != null) {
       SBuildType buildType = findBuildTypeByName(project, name);
       if (buildType == null) {
-        throw new NotFoundException("Build type cannot be found by name '" + name + "'.");
+        throw new NotFoundException("No build type is found by name '" + name + "'.");
       }
       if (buildTypeLocatorDimensions.keySet().size() > 1) {
         LOG.info("Build type locator '" + buildTypeLocator + "' has 'name' dimenstion and others. Others are ignored.");
       }
       return buildType;
     }
-    throw new ErrorInRequestException("Build type locator '" + buildTypeLocator + "' is not supported.");
+    throw new BadRequestException("Build type locator '" + buildTypeLocator + "' is not supported.");
   }
 
   @NotNull
-  public SBuildServer getServer(){
+  public SBuildServer getServer() {
     return myServer;
   }
 
   @NotNull
-  public SProject getProject(String projectLocator) throws NotFoundException, ErrorInRequestException {
+  public SProject getProject(String projectLocator) {
     if (projectLocator == null) {
-      throw new ErrorInRequestException("Empty project locator is not supported.");
+      throw new BadRequestException("Empty project locator is not supported.");
     }
 
     if (!hasDimensions(projectLocator)) {
       // no dimensions found, assume it's a name
       SProject project = myServer.getProjectManager().findProjectByName(projectLocator);
       if (project == null) {
-        throw new NotFoundException("Project cannot be found by name '" + projectLocator + "'.");
+        throw new NotFoundException("No project found by locator '" + projectLocator + "'. Project cannot be found by name '" + projectLocator + "'.");
       }
       return project;
     }
@@ -221,7 +221,7 @@ public class DataProvider {
     if (id != null) {
       SProject project = myServer.getProjectManager().findProjectById(id);
       if (project == null) {
-        throw new NotFoundException("Project cannot be found by id '" + id + "'.");
+        throw new NotFoundException("No project found by locator '" + projectLocator + ". Project cannot be found by id '" + id + "'.");
       }
       if (projectLocatorDimensions.keySet().size() > 1) {
         LOG.info("Project locator '" + projectLocator + "' has 'id' dimenstion and others. Others are ignored.");
@@ -233,36 +233,36 @@ public class DataProvider {
     if (name != null) {
       SProject project = myServer.getProjectManager().findProjectByName(name);
       if (project == null) {
-        throw new NotFoundException("Project cannot be found by name '" + name + "'.");
+        throw new NotFoundException("No project found by locator '" + projectLocator + ". Project cannot be found by name '" + name + "'.");
       }
       if (projectLocatorDimensions.keySet().size() > 1) {
         LOG.info("Project locator '" + projectLocator + "' has 'name' dimenstion and others. Others are ignored.");
       }
       return project;
     }
-    throw new ErrorInRequestException("Project locator '" + projectLocator + "' is not supported.");  }
+    throw new BadRequestException("Project locator '" + projectLocator + "' is not supported.");
+  }
 
   /**
-   *
    * @param project project to search build type in. Can be 'null' to search in all the build types on the server.
-   * @param name name of the build type to search for.
+   * @param name    name of the build type to search for.
    * @return build type with the name 'name'. If 'project' is not null, the search is performed only within 'project'.
-   * @throws ErrorInRequestException if several build types with the same name are found
+   * @throws BadRequestException if several build types with the same name are found
    */
   @Nullable
-  public SBuildType findBuildTypeByName(@Nullable final SProject project, @NotNull final String name) throws ErrorInRequestException {
-    if (project != null){
+  public SBuildType findBuildTypeByName(@Nullable final SProject project, @NotNull final String name) {
+    if (project != null) {
       return project.findBuildTypeByName(name);
     }
     List<SBuildType> allBuildTypes = myServer.getProjectManager().getAllBuildTypes();
     SBuildType foundBuildType = null;
     for (SBuildType buildType : allBuildTypes) {
       if (name.equalsIgnoreCase(buildType.getName())) {
-        if (foundBuildType == null){
-        foundBuildType = buildType;
-        }else{
+        if (foundBuildType == null) {
+          foundBuildType = buildType;
+        } else {
           //second match found
-          throw new ErrorInRequestException("Several matching build types found for name '" + name + "'.");
+          throw new BadRequestException("Several matching build types found for name '" + name + "'.");
         }
       }
     }
@@ -275,26 +275,26 @@ public class DataProvider {
    * @param dimensions    dimenstions to extract value from.
    * @param dimensionName the name of the dimension to extract value.
    * @return 'null' if no such dimension is found, value of the dimension otherwise.
-   * @throws ErrorInRequestException if there are more then a single dimension defiition for a 'dimensionName' name or the dimension has no value specified.
+   * @throws BadRequestException if there are more then a single dimension defiition for a 'dimensionName' name or the dimension has no value specified.
    */
   @Nullable
-  public String getSingleDimensionValue(@NotNull final MultiValuesMap<String, String> dimensions, @NotNull final String dimensionName) throws ErrorInRequestException {
+  public String getSingleDimensionValue(@NotNull final MultiValuesMap<String, String> dimensions, @NotNull final String dimensionName) {
     Collection<String> idDimension = dimensions.get(dimensionName);
     if (idDimension == null || idDimension.size() == 0) {
       return null;
     }
     if (idDimension.size() > 1) {
-      throw new ErrorInRequestException("Only single '" + dimensionName + "' dimension is supported in locator. Found: " + idDimension);
+      throw new BadRequestException("Only single '" + dimensionName + "' dimension is supported in locator. Found: " + idDimension);
     }
     String result = idDimension.iterator().next();
     if (result == null) {
-      throw new ErrorInRequestException("Value is empty for dimension '" + dimensionName + "'.");
+      throw new BadRequestException("Value is empty for dimension '" + dimensionName + "'.");
     }
     return result;
   }
 
   @NotNull
-  public MultiValuesMap<String, String> decodeLocator(@NotNull final String locator) throws NotFoundException {
+  public MultiValuesMap<String, String> decodeLocator(@NotNull final String locator) {
     MultiValuesMap<String, String> result = new MultiValuesMap<String, String>();
     for (String dimension : locator.split(DIMENSIONS_DELIMITER)) {
       int delimiterIndex = dimension.indexOf(DIMENSION_NAME_VALUE_DELIMITER);
