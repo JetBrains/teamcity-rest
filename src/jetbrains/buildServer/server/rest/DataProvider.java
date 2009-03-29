@@ -41,6 +41,18 @@ public class DataProvider {
   }
 
   @Nullable
+  public String getFieldValue(final SProject project, final String field) throws NotFoundException {
+    if ("id".equals(field)) {
+      return project.getProjectId();
+    } else if ("description".equals(field)) {
+      return project.getDescription();
+    } else if ("name".equals(field)) {
+      return project.getName();
+    }
+    throw new NotFoundException("Field '" + field + "' is not supported.");
+  }
+
+  @Nullable
   public String getFieldValue(@NotNull final SBuild build, @Nullable final String field) throws NotFoundException {
     if ("number".equals(field)) {
       return build.getBuildNumber();

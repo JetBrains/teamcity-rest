@@ -37,6 +37,20 @@
     <orderEntry type="library" name="TeamCity Open API common" level="project" />
     <orderEntry type="library" name="TeamCity Third-Party" level="project" />
     <orderEntry type="library" name="Tomcat" level="project" />
+    <orderEntry type="module-library">
+      <library name="JaxB">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/jsr173_1.0_api.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jaxb1-impl.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/activation.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jaxb-impl.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jaxb-xjc.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jaxb-api.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
   </component>
 </module>
 

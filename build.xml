@@ -15,7 +15,7 @@
 
   <target name="clean" depends="rest-api.clean"/>
 
-  <target name="deploy">
+  <target name="deploy" depends="dist">
     <deploy.teamcity.plugin name="${plugin.name}" />
   </target>
 </project>

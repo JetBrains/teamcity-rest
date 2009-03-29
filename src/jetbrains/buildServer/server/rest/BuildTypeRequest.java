@@ -17,18 +17,17 @@
 package jetbrains.buildServer.server.rest;
 
 import com.sun.jersey.spi.resource.Singleton;
-import com.intellij.openapi.util.MultiValuesMap;
 import com.intellij.openapi.diagnostic.Logger;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
 
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.util.ItemProcessor;
+import jetbrains.buildServer.server.rest.data.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -47,13 +46,52 @@ public class BuildTypeRequest {
   }
 
   @GET
+  @Path("/buildTypes/{btLocator}")
+  @Produces("application/xml")
+  public BuildType serveBuildTypeXML(@PathParam("btLocator") String buildTypeLocator) {
+    SBuildType buildType = getMandatoryBuildType(null, buildTypeLocator);
+    return new BuildType(buildType);
+  }
+
+  @GET
   @Path("/buildTypes/{btLocator}/{field}")
   @Produces("text/plain")
-  public String serveBuildTypeField(@PathParam("btLocator") String buildTypeLocator,
-                                    @PathParam("field") String fieldName) {
+  public String serveBuildTypeField(@PathParam("btLocator") String buildTypeLocator, @PathParam("field") String fieldName) {
     SBuildType buildType = getMandatoryBuildType(null, buildTypeLocator);
-
     return getMandatoryField(buildType, fieldName);
+  }
+
+  @GET
+  @Path("/projects/{projectLocator}")
+  @Produces("application/xml")
+  public Project serveProject(@PathParam("projectLocator") String projectLocator) {
+    return new Project(getMandatoryProject(projectLocator));
+  }
+
+  @GET
+  @Path("/projects/{projectLocator}/{field}")
+  @Produces("text/plain")
+  public String serveProjectFiled(@PathParam("projectLocator") String projectLocator,
+                                  @PathParam("field") String fieldName) {
+    return getMandatoryField(getMandatoryProject(projectLocator), fieldName);
+  }
+
+  @GET
+  @Path("/projects/{projectLocator}/buildTypes")
+  @Produces("application/xml")
+  public BuildTypes serveBuildTypesInProject(@PathParam("projectLocator") String projectLocator) {
+    SProject project = getMandatoryProject(projectLocator);
+    return new BuildTypes(project.getBuildTypes());
+  }
+
+  @GET
+  @Path("/projects/{projectLocator}/buildTypes/{btLocator}")
+  @Produces("application/xml")
+  public BuildType serveBuildType(@PathParam("projectLocator") String projectLocator,
+                                               @PathParam("btLocator") String buildTypeLocator) {
+    SBuildType buildType = getMandatoryBuildType(getMandatoryProject(projectLocator), buildTypeLocator);
+
+    return new BuildType(buildType);
   }
 
   @GET
@@ -77,6 +115,32 @@ public class BuildTypeRequest {
     SBuild build = getMandatoryBuild(buildType, buildLocator);
 
     return getMandatoryField(build, field);
+  }
+
+  @GET
+  @Path("/projects/{projectLocator}/buildTypes/{btLocator}/builds/{buildLocator}")
+  @Produces("application/xml")
+  public Build serveBuildWithProject(@PathParam("projectLocator") String projectLocator,
+                                           @PathParam("btLocator") String buildTypeLocator,
+                                           @PathParam("buildLocator") String buildLocator) {
+    SBuildType buildType = getMandatoryBuildType(getMandatoryProject(projectLocator), buildTypeLocator);
+    SBuild build = getMandatoryBuild(buildType, buildLocator);
+
+    return new Build(build);
+  }
+
+  //todo: separate methods to serve running builds
+
+
+  @GET
+  @Path("/projects/{projectLocator}/buildTypes/{btLocator}/builds")
+  @Produces("application/xml")
+  //todo: add qury params limiting range
+  public Builds serveBuilds(@PathParam("projectLocator") String projectLocator,
+                                           @PathParam("btLocator") String buildTypeLocator) {
+    SBuildType buildType = getMandatoryBuildType(getMandatoryProject(projectLocator), buildTypeLocator);
+
+    return new Builds(buildType.getHistory());
   }
 
   @GET
@@ -178,6 +242,17 @@ public class BuildTypeRequest {
       fieldValue = myDataProvider.getFieldValue(buildType, field);
     } catch (NotFoundException e) {
       reportError(Response.Status.NOT_FOUND, "No value for field " + field + " found in build configuration " + buildType + ".", e);
+    }
+    return fieldValue;
+  }
+
+  @Nullable
+  private String getMandatoryField(SProject project, String field) {
+    String fieldValue = null;
+    try {
+      fieldValue = myDataProvider.getFieldValue(project, field);
+    } catch (NotFoundException e) {
+      reportError(Response.Status.NOT_FOUND, "No value for field " + field + " found in project " + project + ".", e);
     }
     return fieldValue;
   }

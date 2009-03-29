@@ -23,6 +23,7 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
@@ -66,7 +67,7 @@ public class APIController extends BaseController implements ServletContextAware
 
         for (ApplicationContext ctx = getApplicationContext(); ctx != null; ctx = ctx.getParent()) {
           if (ctx instanceof WebApplicationContext) {
-            return ((WebApplicationContext)ctx).getServletContext();
+            return ((WebApplicationContext) ctx).getServletContext();
           }
         }
         throw new RuntimeException("WebApplication context was not found.");
@@ -89,17 +90,26 @@ public class APIController extends BaseController implements ServletContextAware
     //myWebComponent.doFilter(request, response, null);
     // workaround for http://jetbrains.net/tracker/issue2/TW-7656
 
-    if (myWebComponent == null) {
-      final ClassLoader cl = Thread.currentThread().getContextClassLoader();
-      Thread.currentThread().setContextClassLoader(myClassloader);
-      try {
-        init();
-      } finally {
-        Thread.currentThread().setContextClassLoader(cl);
+    //todo: check synchronization
+    synchronized (this) {
+      if (myWebComponent == null) {
+        final ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(myClassloader);
+        try {
+          init();
+        } finally {
+          Thread.currentThread().setContextClassLoader(cl);
+        }
       }
     }
 
-    myWebComponent.doFilter(request, response, null);
+    final ClassLoader cl = Thread.currentThread().getContextClassLoader();
+    Thread.currentThread().setContextClassLoader(myClassloader);
+    try {
+      myWebComponent.doFilter(request, response, null);
+    } finally {
+      Thread.currentThread().setContextClassLoader(cl);
+    }
     return null;
   }
 }
