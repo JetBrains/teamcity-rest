@@ -196,6 +196,11 @@ public class DataProvider {
   }
 
   @NotNull
+  public SBuildServer getServer(){
+    return myServer;
+  }
+
+  @NotNull
   public SProject getProject(String projectLocator) throws NotFoundException, ErrorInRequestException {
     if (projectLocator == null) {
       throw new ErrorInRequestException("Empty project locator is not supported.");

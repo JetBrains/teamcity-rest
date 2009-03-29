@@ -108,9 +108,9 @@
     <pathelement location="${basedir}/lib/activation.jar"/>
     <pathelement location="${basedir}/lib/jaxb-api.jar"/>
     <pathelement location="${basedir}/lib/jaxb-impl.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-xjc.jar"/>
     <pathelement location="${basedir}/lib/jaxb1-impl.jar"/>
     <pathelement location="${basedir}/lib/jsr173_1.0_api.jar"/>
+    <pathelement location="${basedir}/lib/jersey-json-1.0.2.jar"/>
   </path>
   
   <path id="rest-api.runtime.module.classpath">
@@ -129,9 +129,9 @@
     <pathelement location="${basedir}/lib/activation.jar"/>
     <pathelement location="${basedir}/lib/jaxb-api.jar"/>
     <pathelement location="${basedir}/lib/jaxb-impl.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-xjc.jar"/>
     <pathelement location="${basedir}/lib/jaxb1-impl.jar"/>
     <pathelement location="${basedir}/lib/jsr173_1.0_api.jar"/>
+    <pathelement location="${basedir}/lib/jersey-json-1.0.2.jar"/>
   </path>
   
   

@@ -44,8 +44,16 @@
           <root url="jar://$MODULE_DIR$/lib/jaxb1-impl.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/activation.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jaxb-impl.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jaxb-xjc.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jaxb-api.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="Jersey-JSON">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/jersey-json-1.0.2.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

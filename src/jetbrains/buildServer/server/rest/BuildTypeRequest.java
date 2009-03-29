@@ -47,7 +47,7 @@ public class BuildTypeRequest {
 
   @GET
   @Path("/buildTypes/{btLocator}")
-  @Produces("application/xml")
+  @Produces({"application/xml", "application/json"})
   public BuildType serveBuildTypeXML(@PathParam("btLocator") String buildTypeLocator) {
     SBuildType buildType = getMandatoryBuildType(null, buildTypeLocator);
     return new BuildType(buildType);
@@ -62,8 +62,15 @@ public class BuildTypeRequest {
   }
 
   @GET
+  @Path("/projects")
+  @Produces({"application/xml", "application/json"})
+  public Projects serveProjects() {
+    return new Projects(myDataProvider.getServer().getProjectManager().getProjects());
+  }
+
+  @GET
   @Path("/projects/{projectLocator}")
-  @Produces("application/xml")
+  @Produces({"application/xml", "application/json"})
   public Project serveProject(@PathParam("projectLocator") String projectLocator) {
     return new Project(getMandatoryProject(projectLocator));
   }
@@ -78,7 +85,7 @@ public class BuildTypeRequest {
 
   @GET
   @Path("/projects/{projectLocator}/buildTypes")
-  @Produces("application/xml")
+  @Produces({"application/xml", "application/json"})
   public BuildTypes serveBuildTypesInProject(@PathParam("projectLocator") String projectLocator) {
     SProject project = getMandatoryProject(projectLocator);
     return new BuildTypes(project.getBuildTypes());
@@ -86,7 +93,7 @@ public class BuildTypeRequest {
 
   @GET
   @Path("/projects/{projectLocator}/buildTypes/{btLocator}")
-  @Produces("application/xml")
+  @Produces({"application/xml", "application/json"})
   public BuildType serveBuildType(@PathParam("projectLocator") String projectLocator,
                                                @PathParam("btLocator") String buildTypeLocator) {
     SBuildType buildType = getMandatoryBuildType(getMandatoryProject(projectLocator), buildTypeLocator);
@@ -119,7 +126,7 @@ public class BuildTypeRequest {
 
   @GET
   @Path("/projects/{projectLocator}/buildTypes/{btLocator}/builds/{buildLocator}")
-  @Produces("application/xml")
+  @Produces({"application/xml", "application/json"})
   public Build serveBuildWithProject(@PathParam("projectLocator") String projectLocator,
                                            @PathParam("btLocator") String buildTypeLocator,
                                            @PathParam("buildLocator") String buildLocator) {
@@ -134,7 +141,7 @@ public class BuildTypeRequest {
 
   @GET
   @Path("/projects/{projectLocator}/buildTypes/{btLocator}/builds")
-  @Produces("application/xml")
+  @Produces({"application/xml", "application/json"})
   //todo: add qury params limiting range
   public Builds serveBuilds(@PathParam("projectLocator") String projectLocator,
                                            @PathParam("btLocator") String buildTypeLocator) {
