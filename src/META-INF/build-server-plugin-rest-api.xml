@@ -18,6 +18,7 @@
 
    <!-- <aop:aspectj-autoproxy/> -->
 
+    <bean id="restDataProvider" class="jetbrains.buildServer.server.rest.DataProvider"/>
     <bean id="buildTypeRequest" class="jetbrains.buildServer.server.rest.BuildTypeRequest"/>
 
     <bean id="apiController" class="jetbrains.buildServer.server.rest.APIController"/> 
