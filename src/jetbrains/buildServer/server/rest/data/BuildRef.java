@@ -11,6 +11,8 @@ import javax.xml.bind.annotation.XmlAttribute;
  */
 public class BuildRef {
   @XmlAttribute
+  public String number;
+  @XmlAttribute
   public String href;
 
   public BuildRef() {}
@@ -19,5 +21,6 @@ public class BuildRef {
     SBuildType buildType = build.getBuildType();
     //todo: possible NPE?
     this.href = "/httpAuth/api/projects/id:" + buildType.getProjectId() + "/buildTypes/id:" + buildType.getBuildTypeId() + "/builds/id:" + build.getBuildId();
+    this.number = build.getBuildNumber();
   }
 }

@@ -10,11 +10,14 @@ import javax.xml.bind.annotation.XmlAttribute;
  */
 public class ProjectRef {
   @XmlAttribute
+  public String name;
+  @XmlAttribute
   public String href;
 
   public ProjectRef() {}
 
   public ProjectRef(SProject project) {
     this.href = "/httpAuth/api/projects/id:" + project.getProjectId();
+    this.name = project.getName();
   }
 }

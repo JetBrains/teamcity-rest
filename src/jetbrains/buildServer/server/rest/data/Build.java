@@ -1,12 +1,10 @@
 package jetbrains.buildServer.server.rest.data;
 
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SBuild;
-
-import javax.xml.bind.annotation.XmlRootElement;
+import java.text.SimpleDateFormat;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
-import java.text.SimpleDateFormat;
+import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.serverSide.SBuild;
 
 /**
  * User: Yegor Yarko
@@ -18,6 +16,8 @@ import java.text.SimpleDateFormat;
 public class Build {
   @XmlAttribute
   public long id;
+  @XmlAttribute
+  public String number;
   @XmlAttribute
   public String status;
   @XmlElement
@@ -34,6 +34,7 @@ public class Build {
 
   public Build(SBuild build) {
     id = build.getBuildId();
+    number = build.getBuildNumber();
     status = build.getStatusDescriptor().getStatus().getText();
     startDate = (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(build.getStartDate());
     finishDate = (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(build.getFinishDate());
