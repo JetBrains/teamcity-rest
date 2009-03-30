@@ -56,7 +56,9 @@
           <root url="jar://$MODULE_DIR$/lib/jersey-json-1.0.2.jar!/" />
         </CLASSES>
         <JAVADOC />
-        <SOURCES />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/src/jersey-bundle-1.0.2-sources.jar!/" />
+        </SOURCES>
       </library>
     </orderEntry>
   </component>

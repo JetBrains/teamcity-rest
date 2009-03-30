@@ -47,7 +47,57 @@
     </wildcardResourcePatterns>
   </component>
   <component name="CopyrightManager" default="">
-    <module2copyright />
+    <copyright>
+      <option name="notice" value="Copyright 2000-&amp;#36;today.year JetBrains s.r.o.&#10;&#10;Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);&#10;you may not use this file except in compliance with the License.&#10;You may obtain a copy of the License at&#10;&#10;http://www.apache.org/licenses/LICENSE-2.0&#10;&#10;Unless required by applicable law or agreed to in writing, software&#10;distributed under the License is distributed on an &quot;AS IS&quot; BASIS,&#10;WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.&#10;See the License for the specific language governing permissions and&#10;limitations under the License." />
+      <option name="keyword" value="Copyright" />
+      <option name="myName" value="JetBrains open-surced" />
+      <option name="myLocal" value="true" />
+    </copyright>
+    <module2copyright>
+      <element module="All" copyright="JetBrains open-surced" />
+    </module2copyright>
+    <LanguageOptions name="JSPX">
+      <option name="fileTypeOverride" value="1" />
+      <option name="relativeBefore" value="true" />
+      <option name="addBlankAfter" value="true" />
+      <option name="fileLocation" value="1" />
+      <option name="block" value="true" />
+      <option name="separateBefore" value="false" />
+      <option name="separateAfter" value="false" />
+      <option name="prefixLines" value="true" />
+      <option name="lenBefore" value="80" />
+      <option name="lenAfter" value="80" />
+      <option name="box" value="false" />
+      <option name="filler" value=" " />
+    </LanguageOptions>
+    <LanguageOptions name="Properties">
+      <option name="fileTypeOverride" value="1" />
+      <option name="relativeBefore" value="true" />
+      <option name="addBlankAfter" value="true" />
+      <option name="fileLocation" value="1" />
+      <option name="block" value="true" />
+      <option name="separateBefore" value="false" />
+      <option name="separateAfter" value="false" />
+      <option name="prefixLines" value="true" />
+      <option name="lenBefore" value="80" />
+      <option name="lenAfter" value="80" />
+      <option name="box" value="false" />
+      <option name="filler" value=" " />
+    </LanguageOptions>
+    <LanguageOptions name="XML">
+      <option name="fileTypeOverride" value="1" />
+      <option name="relativeBefore" value="true" />
+      <option name="addBlankAfter" value="true" />
+      <option name="fileLocation" value="1" />
+      <option name="block" value="true" />
+      <option name="separateBefore" value="false" />
+      <option name="separateAfter" value="false" />
+      <option name="prefixLines" value="true" />
+      <option name="lenBefore" value="80" />
+      <option name="lenAfter" value="80" />
+      <option name="box" value="false" />
+      <option name="filler" value=" " />
+    </LanguageOptions>
   </component>
   <component name="DependencyValidationManager">
     <option name="SKIP_IMPORT_STATEMENTS" value="false" />
@@ -287,6 +337,17 @@
     <option name="ADDITIONAL_OPTIONS_STRING" value="" />
   </component>
   <component name="SvnBranchConfigurationManager">
+    <option name="myConfigurationMap">
+      <map>
+        <entry key="$PROJECT_DIR$">
+          <value>
+            <SvnBranchConfiguration>
+              <option name="trunkUrl" value="http://svn.jetbrains.org/teamcity/plugins/rest-api/trunk" />
+            </SvnBranchConfiguration>
+          </value>
+        </entry>
+      </map>
+    </option>
     <option name="myVersion" value="124" />
     <option name="mySupportsUserInfoFilter" value="true" />
   </component>

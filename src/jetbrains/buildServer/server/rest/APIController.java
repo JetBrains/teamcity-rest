@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package jetbrains.buildServer.server.rest;
 
 import java.util.Collections;
@@ -23,12 +24,11 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.web.context.ServletContextAware;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.ModelAndView;
@@ -67,7 +67,7 @@ public class APIController extends BaseController implements ServletContextAware
 
         for (ApplicationContext ctx = getApplicationContext(); ctx != null; ctx = ctx.getParent()) {
           if (ctx instanceof WebApplicationContext) {
-            return ((WebApplicationContext) ctx).getServletContext();
+            return ((WebApplicationContext)ctx).getServletContext();
           }
         }
         throw new RuntimeException("WebApplication context was not found.");
