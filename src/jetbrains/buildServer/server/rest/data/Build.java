@@ -17,10 +17,15 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.text.SimpleDateFormat;
+import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Collection;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 
 /**
  * User: Yegor Yarko
@@ -36,6 +41,9 @@ public class Build {
   public String number;
   @XmlAttribute
   public String status;
+  @XmlAttribute
+  public boolean pinned;
+
   @XmlElement
   public BuildTypeRef buildType;
 
@@ -45,6 +53,15 @@ public class Build {
   @XmlElement
   public String finishDate;
 
+  @XmlElement
+  public List<String> tags;
+
+  @XmlElement(name = "property")
+  public List<BuildProperty> properties;
+
+  @XmlElement(name = "dependencyBuild")
+  public List<BuildRef> buildDependencies;
+
   public Build() {
   }
 
@@ -52,9 +69,46 @@ public class Build {
     id = build.getBuildId();
     number = build.getBuildNumber();
     status = build.getStatusDescriptor().getStatus().getText();
+    pinned = build.isPinned();
     startDate = (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(build.getStartDate());
     finishDate = (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(build.getFinishDate());
     buildType = new BuildTypeRef(build.getBuildType());
+    properties = getProperties(build.getBuildPromotion().getBuildParameters());
+    tags=build.getTags();
+    buildDependencies = getBuildRefs(build.getBuildPromotion().getDependencies());
+  }
+
+  private List<BuildRef> getBuildRefs(Collection<? extends BuildDependency> dependencies) {
+    List<BuildRef> result = new ArrayList<BuildRef>(dependencies.size());
+    for(BuildDependency dependency:dependencies){
+      result.add(new BuildRef(dependency.getDependOn().getAssociatedBuild()));
+    }
+    return result;
+  }
+
+  private List<BuildProperty> getProperties(Map<String, String> buildParameters) {
+    List<BuildProperty> result = new ArrayList<BuildProperty>(buildParameters.size());
+    for (Map.Entry<String, String> entry : buildParameters.entrySet()) {
+      result.add(new BuildProperty(entry.getKey(), entry.getValue()));
+    }
+    return result;
+  }
+
+
+
+  public static class BuildProperty {
+    @XmlAttribute
+    public String name;
+    @XmlAttribute
+    public String value;
+
+    public BuildProperty() {
+    }
+
+    public BuildProperty(String nameP, String valueP) {
+      name = nameP;
+      value = valueP;
+    }
   }
 }
 

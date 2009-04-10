@@ -32,7 +32,6 @@ import jetbrains.buildServer.server.rest.data.*;
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
     - too long number passed as finish for builds produses 404
-    - classNotFound for JaxB classes causes class ignoring?
 */
 
 @Path("/httpAuth/api")
