@@ -85,6 +85,21 @@ public class DataProvider {
     throw new NotFoundException("Field '" + field + "' is not supported.");
   }
 
+  @Nullable
+  public String getServerFieldValue(@Nullable final String field) {
+    if ("version".equals(field)) {
+      return myServer.getFullServerVersion();
+    } else if ("build".equals(field)) {
+      return myServer.getBuildNumber();
+    } else if ("majorVersion".equals(field)) {
+      return Byte.toString(myServer.getServerMajorVersion());
+    } else if ("minorVersion".equals(field)) {
+      return Byte.toString(myServer.getServerMinorVersion());
+    }
+    throw new NotFoundException("Field '" + field + "' is not supported.");
+  }
+
+
   @NotNull
   public SBuild getBuild(@Nullable final SBuildType buildType, @Nullable final String buildLocator) {
     if (buildLocator == null) {
