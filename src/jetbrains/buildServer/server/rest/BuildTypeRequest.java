@@ -29,6 +29,12 @@ import jetbrains.buildServer.server.rest.data.*;
  * Date: 22.03.2009
  */
 
+/* todo: investigate logging issues:
+    - disable initialization lines into stdout
+    - too long number passed as finish for builds produses 404
+    - classNotFound for JaxB classes causes class ignoring?
+*/
+
 @Path("/httpAuth/api")
 @Singleton
 public class BuildTypeRequest {
@@ -73,9 +79,9 @@ public class BuildTypeRequest {
   @Path("/buildTypes/{btLocator}/builds")
   @Produces({"application/xml", "application/json"})
   //todo: add qury params limiting range
-  public Builds serveBuilds(@PathParam("btLocator") String buildTypeLocator) {
+  public Builds serveBuilds(@PathParam("btLocator") String buildTypeLocator, @QueryParam("start") Long start, @QueryParam("finish") Long finish) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return new Builds(buildType.getHistory());
+    return new Builds(myDataProvider.getBuilds(buildType, null, false, true, false, start, finish));
   }
 
   @GET

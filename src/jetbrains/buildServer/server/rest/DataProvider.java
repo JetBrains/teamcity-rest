@@ -21,8 +21,11 @@ import com.intellij.openapi.util.MultiValuesMap;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.List;
+import java.util.ArrayList;
+
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.ItemProcessor;
+import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -343,4 +346,43 @@ public class DataProvider {
   public boolean hasDimensions(@NotNull final String locator) {
     return locator.indexOf(DIMENSION_NAME_VALUE_DELIMITER) != -1;
   }
+
+
+  /**
+   * Finds builds by the specified criteria within specified range
+   * @param buildType
+   * @param user
+   * @param includePersonalBuildsIfUserNotSpecified
+   * @param includeCanceled
+   * @param orderByChanges
+   * @param start the index of the first build to return (begins with 0)
+   * @param finish the index up to which (excluding) the builds will be returned
+   * @return the builds found
+   */
+  public List<SFinishedBuild> getBuilds(final SBuildType buildType,
+                                        @Nullable final User user,
+                                        final boolean includePersonalBuildsIfUserNotSpecified,
+                                        final boolean includeCanceled,
+                                        final boolean orderByChanges,
+                                        @Nullable final Long start,
+                                        @Nullable final Long finish) {
+    final ArrayList<SFinishedBuild> list = new ArrayList<SFinishedBuild>();
+    myServer.getHistory().processEntries(buildType.getBuildTypeId(), user,
+            includePersonalBuildsIfUserNotSpecified,
+            includeCanceled,
+            orderByChanges,
+            new ItemProcessor<SFinishedBuild>() {
+              long currentIndex = 0;
+
+              public boolean processItem(final SFinishedBuild item) {
+                if ((start == null || currentIndex >= start) && (finish == null || currentIndex < finish)) {
+                  list.add(item);
+                }
+                ++currentIndex;
+                return finish == null || currentIndex <= finish;
+              }
+            });
+    return list;
+  }
+
 }
