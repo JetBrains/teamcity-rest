@@ -18,11 +18,17 @@
 
    <!-- <aop:aspectj-autoproxy/> -->
 
-    <bean id="restDataProvider" class="jetbrains.buildServer.server.rest.DataProvider"/>
-    <bean id="buildTypeRequest" class="jetbrains.buildServer.server.rest.BuildTypeRequest"/>
-
-    <bean id="apiController" class="jetbrains.buildServer.server.rest.APIController"/> 
-
     <bean id="notFoundExceptionMapper" class="jetbrains.buildServer.server.rest.NotFoundExceptionMapper"/>
-    <bean id="badRequestExceptionMapper" class="jetbrains.buildServer.server.rest.BadRequestExceptionMapper"/> 
+    <bean id="badRequestExceptionMapper" class="jetbrains.buildServer.server.rest.BadRequestExceptionMapper"/>
+
+    <bean id="apiController" class="jetbrains.buildServer.server.rest.APIController"/>
+
+    <bean id="restDataProvider" class="jetbrains.buildServer.server.rest.DataProvider"/>
+
+    <bean id="serverRequest" class="jetbrains.buildServer.server.rest.ServerRequest"/>
+    <bean id="projectRequest" class="jetbrains.buildServer.server.rest.ProjectRequest"/>
+    <bean id="buildTypeRequest" class="jetbrains.buildServer.server.rest.BuildTypeRequest"/>
+    <bean id="buildRequest" class="jetbrains.buildServer.server.rest.BuildRequest"/>
+
+
 </beans>

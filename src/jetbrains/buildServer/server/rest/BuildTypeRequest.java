@@ -34,10 +34,9 @@ import jetbrains.buildServer.server.rest.data.*;
     - too long number passed as finish for builds produses 404
 */
 
-@Path("/httpAuth/api")
+@Path("/httpAuth/api/buildTypes")
 @Singleton
 public class BuildTypeRequest {
-  private static final Logger LOG = Logger.getInstance(BuildTypeRequest.class.getName());
   private final DataProvider myDataProvider;
 
   public BuildTypeRequest(DataProvider myDataProvider) {
@@ -45,21 +44,13 @@ public class BuildTypeRequest {
   }
 
   @GET
-  @Path("/server/{field}")
-  @Produces({"text/plain"})
-  public String serveServerVersion(@PathParam("field") String fieldName) {
-    return myDataProvider.getServerFieldValue(fieldName);
-  }
-
-  @GET
-  @Path("/buildTypes")
   @Produces({"application/xml", "application/json"})
   public BuildTypes serveBuildTypesXML() {
     return new BuildTypes(myDataProvider.getServer().getProjectManager().getAllBuildTypes());
   }
 
   @GET
-  @Path("/buildTypes/{btLocator}")
+  @Path("/{btLocator}")
   @Produces({"application/xml", "application/json"})
   public BuildType serveBuildTypeXML(@PathParam("btLocator") String buildTypeLocator) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
@@ -67,7 +58,7 @@ public class BuildTypeRequest {
   }
 
   @GET
-  @Path("/buildTypes/{btLocator}/{field}")
+  @Path("/{btLocator}/{field}")
   @Produces("text/plain")
   public String serveBuildTypeField(@PathParam("btLocator") String buildTypeLocator, @PathParam("field") String fieldName) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
@@ -75,7 +66,7 @@ public class BuildTypeRequest {
   }
 
   @GET
-  @Path("/buildTypes/{btLocator}/builds")
+  @Path("/{btLocator}/builds")
   @Produces({"application/xml", "application/json"})
   //todo: add qury params limiting range
   public Builds serveBuilds(@PathParam("btLocator") String buildTypeLocator, @QueryParam("start") Long start, @QueryParam("finish") Long finish) {
@@ -84,7 +75,7 @@ public class BuildTypeRequest {
   }
 
   @GET
-  @Path("/buildTypes/{btLocator}/builds/{buildLocator}")
+  @Path("/{btLocator}/builds/{buildLocator}")
   @Produces({"application/xml", "application/json"})
   public Build serveBuildWithProject(@PathParam("btLocator") String buildTypeLocator,
                                      @PathParam("buildLocator") String buildLocator) {
@@ -95,137 +86,13 @@ public class BuildTypeRequest {
 
 
   @GET
-  @Path("/buildTypes/{btLocator}/builds/{buildLocator}/{field}")
+  @Path("/{btLocator}/builds/{buildLocator}/{field}")
   @Produces("text/plain")
   public String serveBuildField(@PathParam("btLocator") String buildTypeLocator,
                                 @PathParam("buildLocator") String buildLocator,
                                 @PathParam("field") String field) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     SBuild build = myDataProvider.getBuild(buildType, buildLocator);
-
-    return myDataProvider.getFieldValue(build, field);
-  }
-
-
-
-
-  @GET
-  @Path("/projects")
-  @Produces({"application/xml", "application/json"})
-  public Projects serveProjects() {
-    return new Projects(myDataProvider.getServer().getProjectManager().getProjects());
-  }
-
-  @GET
-  @Path("/projects/{projectLocator}")
-  @Produces({"application/xml", "application/json"})
-  public Project serveProject(@PathParam("projectLocator") String projectLocator) {
-    return new Project(myDataProvider.getProject(projectLocator));
-  }
-
-  @GET
-  @Path("/projects/{projectLocator}/{field}")
-  @Produces("text/plain")
-  public String serveProjectFiled(@PathParam("projectLocator") String projectLocator,
-                                  @PathParam("field") String fieldName) {
-    return myDataProvider.getFieldValue(myDataProvider.getProject(projectLocator), fieldName);
-  }
-
-  @GET
-  @Path("/projects/{projectLocator}/buildTypes")
-  @Produces({"application/xml", "application/json"})
-  public BuildTypes serveBuildTypesInProject(@PathParam("projectLocator") String projectLocator) {
-    SProject project = myDataProvider.getProject(projectLocator);
-    return new BuildTypes(project.getBuildTypes());
-  }
-
-  @GET
-  @Path("/projects/{projectLocator}/buildTypes/{btLocator}")
-  @Produces({"application/xml", "application/json"})
-  public BuildType serveBuildType(@PathParam("projectLocator") String projectLocator,
-                                  @PathParam("btLocator") String buildTypeLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
-
-    return new BuildType(buildType);
-  }
-
-  @GET
-  @Path("/projects/{projectLocator}/buildTypes/{btLocator}/{field}")
-  @Produces("text/plain")
-  public String serveBuildTypeFieldWithProject(@PathParam("projectLocator") String projectLocator,
-                                               @PathParam("btLocator") String buildTypeLocator,
-                                               @PathParam("field") String fieldName) {
-    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
-
-    return myDataProvider.getFieldValue(buildType, fieldName);
-  }
-
-  //todo: separate methods to serve running builds
-
-  @GET
-  @Path("/projects/{projectLocator}/buildTypes/{btLocator}/builds")
-  @Produces({"application/xml", "application/json"})
-  //todo: add qury params limiting range
-  public Builds serveBuilds(@PathParam("projectLocator") String projectLocator,
-                            @PathParam("btLocator") String buildTypeLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
-
-    return new Builds(buildType.getHistory());
-  }
-
-  @GET
-  @Path("/projects/{projectLocator}/buildTypes/{btLocator}/builds/{buildLocator}")
-  @Produces({"application/xml", "application/json"})
-  public Build serveBuildWithProject(@PathParam("projectLocator") String projectLocator,
-                                     @PathParam("btLocator") String buildTypeLocator,
-                                     @PathParam("buildLocator") String buildLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
-    SBuild build = myDataProvider.getBuild(buildType, buildLocator);
-
-    return new Build(build);
-  }
-
-  @GET
-  @Path("/projects/{projectLocator}/buildTypes/{btLocator}/builds/{buildLocator}/{field}")
-  @Produces("text/plain")
-  public String serveBuildFieldWithProject(@PathParam("projectLocator") String projectLocator,
-                                           @PathParam("btLocator") String buildTypeLocator,
-                                           @PathParam("buildLocator") String buildLocator,
-                                           @PathParam("field") String field) {
-    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
-    SBuild build = myDataProvider.getBuild(buildType, buildLocator);
-
-    return myDataProvider.getFieldValue(build, field);
-  }
-
-
-  @GET
-  @Path("/{projectLocator}/{btLocator}/{buildLocator}/{field}")
-  @Produces("text/plain")
-  public String serveBuildFieldShort(@PathParam("projectLocator") String projectLocator,
-                                     @PathParam("btLocator") String buildTypeLocator,
-                                     @PathParam("buildLocator") String buildLocator,
-                                     @PathParam("field") String field) {
-    SProject project = myDataProvider.getProject(projectLocator);
-    SBuildType buildType = myDataProvider.getBuildType(project, buildTypeLocator);
-    SBuild build = myDataProvider.getBuild(buildType, buildLocator);
-
-    return myDataProvider.getFieldValue(build, field);
-  }
-
-  @GET
-  @Path("/builds/{buildLocator}")
-  @Produces("text/plain")
-  public Build serveBuild(@PathParam("buildLocator") String buildLocator) {
-    return new Build (myDataProvider.getBuild(null, buildLocator));
-  }
-
-  @GET
-  @Path("/builds/{buildLocator}/{field}")
-  @Produces("text/plain")
-  public String serveBuildFieldByBuildOnly(@PathParam("buildLocator") String buildLocator,
-                                           @PathParam("field") String field) {
-    SBuild build = myDataProvider.getBuild(null, buildLocator);
 
     return myDataProvider.getFieldValue(build, field);
   }
