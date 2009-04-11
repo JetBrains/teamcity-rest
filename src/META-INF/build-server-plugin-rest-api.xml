@@ -29,6 +29,6 @@
     <bean id="projectRequest" class="jetbrains.buildServer.server.rest.ProjectRequest"/>
     <bean id="buildTypeRequest" class="jetbrains.buildServer.server.rest.BuildTypeRequest"/>
     <bean id="buildRequest" class="jetbrains.buildServer.server.rest.BuildRequest"/>
-
+    <bean id="userRequest" class="jetbrains.buildServer.server.rest.UserRequest"/>
 
 </beans>

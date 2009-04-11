@@ -24,8 +24,13 @@ import java.util.List;
 import java.util.ArrayList;
 
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.Role;
+import jetbrains.buildServer.serverSide.auth.RoleScope;
+import jetbrains.buildServer.serverSide.auth.RolesManager;
 import jetbrains.buildServer.util.ItemProcessor;
 import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.users.UserModel;
+import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,12 +43,19 @@ public class DataProvider {
 
   private SBuildServer myServer;
   private BuildHistory myBuildHistory;
+  private UserModel myUserModel;
+  private RolesManager myRolesManager;
   private static final String DIMENSION_NAME_VALUE_DELIMITER = ":";
   private static final String DIMENSIONS_DELIMITER = ";";
 
-  public DataProvider(SBuildServer myServer, BuildHistory myBuildHistory) {
+  public DataProvider(SBuildServer myServer,
+                      BuildHistory myBuildHistory,
+                      UserModel userModel,
+                      final RolesManager rolesManager) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
+    this.myUserModel = userModel;
+    myRolesManager = rolesManager;
   }
 
   @Nullable
@@ -139,7 +151,7 @@ public class DataProvider {
         throw new NotFoundException("No build can be found by id '" + id + "' in build type " + buildType + ".");
       }
       if (buildLocatorDimensions.keySet().size() > 1) {
-        LOG.info("Build locator '" + buildLocator + "' has 'id' dimenstion and others. Others are ignored.");
+        LOG.info("Build locator '" + buildLocator + "' has 'id' dimension and others. Others are ignored.");
       }
       return build;
     }
@@ -155,7 +167,7 @@ public class DataProvider {
         throw new NotFoundException("No build can be found by number '" + number + "' in build configuration " + buildType + ".");
       }
       if (buildLocatorDimensions.keySet().size() > 1) {
-        LOG.info("Build locator '" + buildLocator + "' has 'number' dimenstion and others. Others are ignored.");
+        LOG.info("Build locator '" + buildLocator + "' has 'number' dimension and others. Others are ignored.");
       }
       return build;
     }
@@ -209,7 +221,7 @@ public class DataProvider {
         throw new NotFoundException("Build type with id '" + id + "' does not belog to project " + project + ".");
       }
       if (buildTypeLocatorDimensions.keySet().size() > 1) {
-        LOG.info("Build type locator '" + buildTypeLocator + "' has 'id' dimenstion and others. Others are ignored.");
+        LOG.info("Build type locator '" + buildTypeLocator + "' has 'id' dimension and others. Others are ignored.");
       }
       return buildType;
     }
@@ -221,7 +233,7 @@ public class DataProvider {
         throw new NotFoundException("No build type is found by name '" + name + "'.");
       }
       if (buildTypeLocatorDimensions.keySet().size() > 1) {
-        LOG.info("Build type locator '" + buildTypeLocator + "' has 'name' dimenstion and others. Others are ignored.");
+        LOG.info("Build type locator '" + buildTypeLocator + "' has 'name' dimension and others. Others are ignored.");
       }
       return buildType;
     }
@@ -258,7 +270,7 @@ public class DataProvider {
         throw new NotFoundException("No project found by locator '" + projectLocator + ". Project cannot be found by id '" + id + "'.");
       }
       if (projectLocatorDimensions.keySet().size() > 1) {
-        LOG.info("Project locator '" + projectLocator + "' has 'id' dimenstion and others. Others are ignored.");
+        LOG.info("Project locator '" + projectLocator + "' has 'id' dimension and others. Others are ignored.");
       }
       return project;
     }
@@ -270,7 +282,7 @@ public class DataProvider {
         throw new NotFoundException("No project found by locator '" + projectLocator + ". Project cannot be found by name '" + name + "'.");
       }
       if (projectLocatorDimensions.keySet().size() > 1) {
-        LOG.info("Project locator '" + projectLocator + "' has 'name' dimenstion and others. Others are ignored.");
+        LOG.info("Project locator '" + projectLocator + "' has 'name' dimension and others. Others are ignored.");
       }
       return project;
     }
@@ -306,7 +318,7 @@ public class DataProvider {
   /**
    * Extracts the single dimension value from dimensions.
    *
-   * @param dimensions    dimenstions to extract value from.
+   * @param dimensions    dimensions to extract value from.
    * @param dimensionName the name of the dimension to extract value.
    * @return 'null' if no such dimension is found, value of the dimension otherwise.
    * @throws BadRequestException if there are more then a single dimension defiition for a 'dimensionName' name or the dimension has no value specified.
@@ -385,4 +397,78 @@ public class DataProvider {
     return list;
   }
 
+  @NotNull
+  public SUser getUser(String userLocator) {
+    if (userLocator == null) {
+      throw new BadRequestException("Empty user locator is not supported.");
+    }
+
+    if (!hasDimensions(userLocator)) {
+      // no dimensions found, assume it's username
+      SUser user = myUserModel.findUserAccount(null, userLocator);
+      if (user == null) {
+        throw new NotFoundException("No user can be found by username '" + userLocator + "'.");
+      }
+      return user;
+    }
+
+    MultiValuesMap<String, String> userLocatorDimensions = decodeLocator(userLocator);
+
+    String idString = getSingleDimensionValue(userLocatorDimensions, "id");
+    if (idString != null) {
+      Long id;
+      try {
+        id = Long.parseLong(idString);
+      } catch (NumberFormatException e) {
+        throw new BadRequestException("Invalid user id '" + idString + "'. Should be a number.");
+      }
+      SUser user = myUserModel.findUserById(id);
+      if (user == null) {
+        throw new NotFoundException("No user can be found by id '" + id + "'.");
+      }
+      if (userLocatorDimensions.keySet().size() > 1) {
+        LOG.info("User locator '" + userLocator + "' has 'id' dimension and others. Others are ignored.");
+      }
+      return user;
+    }
+
+    String username = getSingleDimensionValue(userLocatorDimensions, "username");
+    if (username != null) {
+      SUser user = myUserModel.findUserAccount(null, username);
+      if (user == null) {
+        throw new NotFoundException("No user can be found by username '" + username + "'.");
+      }
+      return user;
+    }
+    throw new NotFoundException("User locator '" + userLocator + "' is not supported.");
+  }
+
+  @NotNull
+  public Role getRoleById(String roleId) {
+    if (roleId == null) {
+      throw new BadRequestException("Cannot file role by empty id.");
+    }
+    Role role = myRolesManager.findRoleById(roleId);
+    if (role == null){
+      throw new NotFoundException("Cannot find role by id '" + roleId + "'.");
+    }
+    return role;
+  }
+
+  @NotNull
+  public RoleScope getScope(String scopeData) {
+    if (scopeData == null) {
+      return RoleScope.globalScope();
+    }
+    RoleScope scope = RoleScope.projectScope(scopeData);
+    if (scope == null){
+      throw new NotFoundException("Cannot find scope by '" + scopeData + "'.");
+    }
+    return scope;
+  }
+
+
+  public Collection<SUser> getAllUsers() {
+    return myUserModel.getAllUsers().getUsers();
+  }
 }

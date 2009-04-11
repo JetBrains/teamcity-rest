@@ -21,15 +21,15 @@
     <exclude name="**/rcs/**"/>
     <exclude name="**/.DS_Store/**"/>
     <exclude name="**/.svn/**"/>
-    <exclude name="**/.sbas/**"/>
-    <exclude name="**/.IJI.*/**"/>
-    <exclude name="**/vssver.scc/**"/>
-    <exclude name="**/vssver2.scc/**"/>
     <exclude name="**/.pyc/**"/>
     <exclude name="**/.pyo/**"/>
     <exclude name="**/*.pyc/**"/>
     <exclude name="**/*.pyo/**"/>
     <exclude name="**/.git/**"/>
+    <exclude name="**/.sbas/**"/>
+    <exclude name="**/.IJI.*/**"/>
+    <exclude name="**/vssver.scc/**"/>
+    <exclude name="**/vssver2.scc/**"/>
   </patternset>
   <patternset id="library.patterns">
     <include name="*.zip"/>
@@ -76,9 +76,6 @@
     <pathelement location="${path.variable.teamcitydistribution}/lib/servlet-api.jar"/>
   </path>
   
-  
-  <!-- Application Server Libraries -->
-  
   <!-- Modules -->
   
   
@@ -114,6 +111,7 @@
     <pathelement location="${basedir}/lib/jaxb1-impl.jar"/>
     <pathelement location="${basedir}/lib/jsr173_1.0_api.jar"/>
     <pathelement location="${basedir}/lib/jersey-json-1.0.2.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/server.jar"/>
   </path>
   
   <path id="rest-api.runtime.module.classpath">
@@ -135,6 +133,7 @@
     <pathelement location="${basedir}/lib/jaxb1-impl.jar"/>
     <pathelement location="${basedir}/lib/jsr173_1.0_api.jar"/>
     <pathelement location="${basedir}/lib/jersey-json-1.0.2.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/server.jar"/>
   </path>
   
   

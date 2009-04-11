@@ -41,7 +41,7 @@ public class BuildRequest {
 
   @GET
   @Path("/{buildLocator}")
-  @Produces("text/plain")
+  @Produces({"application/xml", "application/json"})
   public Build serveBuild(@PathParam("buildLocator") String buildLocator) {
     return new Build (myDataProvider.getBuild(null, buildLocator));
   }

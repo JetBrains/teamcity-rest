@@ -16,9 +16,10 @@
 
 package jetbrains.buildServer.server.rest;
 
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.Vector;
+import java.util.*;
+import java.lang.reflect.Field;
+import java.net.URLEncoder;
+import java.io.UnsupportedEncodingException;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -32,16 +33,19 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.web.context.ServletContextAware;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.ModelAndView;
+import com.intellij.openapi.diagnostic.Logger;
 
 /**
  * @author Yegor.Yarko
  *         Date: 23.03.2009
  */
 public class APIController extends BaseController implements ServletContextAware {
+  Logger LOG = Logger.getInstance(APIController.class.getName());
   private JerseyWebComponent myWebComponent;
   private ConfigurableApplicationContext myConfigurableApplicationContext;
 
   private final ClassLoader myClassloader;
+  private String myAuthToken;
 
   public APIController(final SBuildServer server,
                        WebControllerManager webControllerManager,
@@ -51,6 +55,13 @@ public class APIController extends BaseController implements ServletContextAware
     webControllerManager.registerController("/api/**", this);
 
     myClassloader = getClass().getClassLoader();
+
+    try {
+      myAuthToken = URLEncoder.encode(UUID.randomUUID().toString() + (new Date()).toString().hashCode(), "UTF-8");
+      LOG.info("Authentication token for superuser generated: '" + myAuthToken + "'.");
+    } catch (UnsupportedEncodingException e) {
+      e.printStackTrace();
+    }
   }
 
   private void init() throws ServletException {
@@ -103,6 +114,32 @@ public class APIController extends BaseController implements ServletContextAware
       }
     }
 
+
+
+
+    String authToken = request.getParameter("authToken");
+
+    if (authToken != null) {
+      if (myAuthToken != null && myAuthToken.equals(authToken)) {
+        //todo: procees with superuser...
+      } else {
+        synchronized (this) {
+          Thread.sleep(3000); //to prevent bruteforcing
+        }
+        response.sendError(401, "Wrong authToken specified");
+        return null;
+      }
+    }
+
+    //todo: check if user context is present. if not: auth error!
+//    response.sendError(400, "authToken is not specified");
+//    return null;
+
+
+
+
+
+
     final ClassLoader cl = Thread.currentThread().getContextClassLoader();
     Thread.currentThread().setContextClassLoader(myClassloader);
     try {
@@ -112,4 +149,10 @@ public class APIController extends BaseController implements ServletContextAware
     }
     return null;
   }
+
+  private String getAuthToken() {
+    return myAuthToken;
+  }
+
+
 }
