@@ -16,10 +16,10 @@
 
 package jetbrains.buildServer.server.rest;
 
-import java.util.*;
-import java.lang.reflect.Field;
-import java.net.URLEncoder;
+import com.intellij.openapi.diagnostic.Logger;
 import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.*;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -27,13 +27,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.serverSide.SBuildServer;
+import jetbrains.buildServer.serverSide.SecurityContextEx;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.web.context.ServletContextAware;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.ModelAndView;
-import com.intellij.openapi.diagnostic.Logger;
 
 /**
  * @author Yegor.Yarko
@@ -43,15 +43,18 @@ public class APIController extends BaseController implements ServletContextAware
   Logger LOG = Logger.getInstance(APIController.class.getName());
   private JerseyWebComponent myWebComponent;
   private ConfigurableApplicationContext myConfigurableApplicationContext;
+  private SecurityContextEx mySecurityContext;
 
   private final ClassLoader myClassloader;
   private String myAuthToken;
 
   public APIController(final SBuildServer server,
                        WebControllerManager webControllerManager,
-                       final ConfigurableApplicationContext configurableApplicationContext) throws ServletException {
+                       final ConfigurableApplicationContext configurableApplicationContext,
+                       final SecurityContextEx securityContext) throws ServletException {
     super(server);
     myConfigurableApplicationContext = configurableApplicationContext;
+    mySecurityContext = securityContext;
     webControllerManager.registerController("/api/**", this);
 
     myClassloader = getClass().getClassLoader();
@@ -60,7 +63,7 @@ public class APIController extends BaseController implements ServletContextAware
       myAuthToken = URLEncoder.encode(UUID.randomUUID().toString() + (new Date()).toString().hashCode(), "UTF-8");
       LOG.info("Authentication token for superuser generated: '" + myAuthToken + "'.");
     } catch (UnsupportedEncodingException e) {
-      e.printStackTrace();
+      LOG.warn(e);
     }
   }
 
@@ -75,7 +78,6 @@ public class APIController extends BaseController implements ServletContextAware
       public ServletContext getServletContext() {
         //return APIController.this.getServletContext();
         // workaround for http://jetbrains.net/tracker/issue2/TW-7656
-
         for (ApplicationContext ctx = getApplicationContext(); ctx != null; ctx = ctx.getParent()) {
           if (ctx instanceof WebApplicationContext) {
             return ((WebApplicationContext)ctx).getServletContext();
@@ -95,14 +97,10 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   protected ModelAndView doHandle(final HttpServletRequest request, final HttpServletResponse response) throws Exception {
-    //if (myWebComponent == null) {
-    //  init();
-    //}
-    //myWebComponent.doFilter(request, response, null);
-    // workaround for http://jetbrains.net/tracker/issue2/TW-7656
 
     //todo: check synchronization
     synchronized (this) {
+      // workaround for http://jetbrains.net/tracker/issue2/TW-7656
       if (myWebComponent == null) {
         final ClassLoader cl = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(myClassloader);
@@ -115,35 +113,39 @@ public class APIController extends BaseController implements ServletContextAware
     }
 
 
-
-
+    boolean runAsSystem = false;
     String authToken = request.getParameter("authToken");
-
     if (authToken != null) {
-      if (myAuthToken != null && myAuthToken.equals(authToken)) {
-        //todo: procees with superuser...
+      if (authToken.equals(getAuthToken())) {
+        runAsSystem = true;
       } else {
         synchronized (this) {
-          Thread.sleep(3000); //to prevent bruteforcing
+          Thread.sleep(10000); //to prevent bruteforcing
         }
-        response.sendError(401, "Wrong authToken specified");
+        response.sendError(403, "Wrong authToken specified");
         return null;
       }
     }
 
-    //todo: check if user context is present. if not: auth error!
-//    response.sendError(400, "authToken is not specified");
-//    return null;
-
-
-
-
-
-
+    // workaround for http://jetbrains.net/tracker/issue2/TW-7656
     final ClassLoader cl = Thread.currentThread().getContextClassLoader();
     Thread.currentThread().setContextClassLoader(myClassloader);
+
     try {
-      myWebComponent.doFilter(request, response, null);
+      if (runAsSystem) {
+        try {
+          mySecurityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
+            public void run() throws Throwable {
+              myWebComponent.doFilter(request, response, null);
+            }
+          });
+        } catch (Throwable throwable) {
+          LOG.debug(throwable);
+          response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable.getMessage());
+        }
+      } else {
+        myWebComponent.doFilter(request, response, null);
+      }
     } finally {
       Thread.currentThread().setContextClassLoader(cl);
     }
@@ -153,6 +155,5 @@ public class APIController extends BaseController implements ServletContextAware
   private String getAuthToken() {
     return myAuthToken;
   }
-
 
 }
