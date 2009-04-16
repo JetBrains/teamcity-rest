@@ -30,6 +30,6 @@ public class BadRequestExceptionMapper extends ExceptionMapperUtil implements Ex
   protected static final Logger LOG = Logger.getInstance(BadRequestExceptionMapper.class.getName());
 
   public Response toResponse(BadRequestException exception) {
-    return reportError(Response.Status.NOT_FOUND, exception);
+    return reportError(Response.Status.BAD_REQUEST, exception);
   }
 }

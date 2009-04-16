@@ -17,9 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import javax.xml.bind.annotation.XmlAttribute;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.User;
 
 /**
  * User: Yegor Yarko
@@ -34,8 +32,10 @@ public class UserRef {
   public UserRef() {
   }
 
-  public UserRef(SUser user) {
-    this.href = "/httpAuth/api/users/" + user.getUsername();
+  public UserRef(User user) {
+    //todo: investigate why "DOMAIN username" does not work as query parameter
+//    this.href = "/httpAuth/api/users/" + user.getUsername();
+    this.href = "/httpAuth/api/users/id:" + user.getId();
     this.username = user.getUsername();
   }
 }

@@ -19,18 +19,20 @@ package jetbrains.buildServer.server.rest;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.MultiValuesMap;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.ArrayList;
-
+import jetbrains.buildServer.groups.SUserGroup;
+import jetbrains.buildServer.groups.UserGroup;
+import jetbrains.buildServer.groups.UserGroupManager;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Role;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.serverSide.auth.RolesManager;
-import jetbrains.buildServer.util.ItemProcessor;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
-import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.ItemProcessor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -45,17 +47,20 @@ public class DataProvider {
   private BuildHistory myBuildHistory;
   private UserModel myUserModel;
   private RolesManager myRolesManager;
+  private UserGroupManager myGroupManager;
   private static final String DIMENSION_NAME_VALUE_DELIMITER = ":";
   private static final String DIMENSIONS_DELIMITER = ";";
 
   public DataProvider(SBuildServer myServer,
                       BuildHistory myBuildHistory,
                       UserModel userModel,
-                      final RolesManager rolesManager) {
+                      final RolesManager rolesManager,
+                      final UserGroupManager groupManager) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
     this.myUserModel = userModel;
     myRolesManager = rolesManager;
+    myGroupManager = groupManager;
   }
 
   @Nullable
@@ -362,13 +367,15 @@ public class DataProvider {
 
   /**
    * Finds builds by the specified criteria within specified range
+   *
    * @param buildType
    * @param user
    * @param includePersonalBuildsIfUserNotSpecified
+   *
    * @param includeCanceled
    * @param orderByChanges
-   * @param start the index of the first build to return (begins with 0)
-   * @param finish the index up to which (excluding) the builds will be returned
+   * @param start           the index of the first build to return (begins with 0)
+   * @param finish          the index up to which (excluding) the builds will be returned
    * @return the builds found
    */
   public List<SFinishedBuild> getBuilds(final SBuildType buildType,
@@ -380,20 +387,20 @@ public class DataProvider {
                                         @Nullable final Long finish) {
     final ArrayList<SFinishedBuild> list = new ArrayList<SFinishedBuild>();
     myServer.getHistory().processEntries(buildType.getBuildTypeId(), user,
-            includePersonalBuildsIfUserNotSpecified,
-            includeCanceled,
-            orderByChanges,
-            new ItemProcessor<SFinishedBuild>() {
-              long currentIndex = 0;
+                                         includePersonalBuildsIfUserNotSpecified,
+                                         includeCanceled,
+                                         orderByChanges,
+                                         new ItemProcessor<SFinishedBuild>() {
+                                           long currentIndex = 0;
 
-              public boolean processItem(final SFinishedBuild item) {
-                if ((start == null || currentIndex >= start) && (finish == null || currentIndex < finish)) {
-                  list.add(item);
-                }
-                ++currentIndex;
-                return finish == null || currentIndex <= finish;
-              }
-            });
+                                           public boolean processItem(final SFinishedBuild item) {
+                                             if ((start == null || currentIndex >= start) && (finish == null || currentIndex < finish)) {
+                                               list.add(item);
+                                             }
+                                             ++currentIndex;
+                                             return finish == null || currentIndex <= finish;
+                                           }
+                                         });
     return list;
   }
 
@@ -449,7 +456,7 @@ public class DataProvider {
       throw new BadRequestException("Cannot file role by empty id.");
     }
     Role role = myRolesManager.findRoleById(roleId);
-    if (role == null){
+    if (role == null) {
       throw new NotFoundException("Cannot find role by id '" + roleId + "'.");
     }
     return role;
@@ -461,14 +468,66 @@ public class DataProvider {
       return RoleScope.globalScope();
     }
     RoleScope scope = RoleScope.projectScope(scopeData);
-    if (scope == null){
+    if (scope == null) {
       throw new NotFoundException("Cannot find scope by '" + scopeData + "'.");
     }
     return scope;
   }
 
 
-  public Collection<SUser> getAllUsers() {
-    return myUserModel.getAllUsers().getUsers();
+  @NotNull
+  public SUserGroup getGroup(final String groupLocator) {
+    if (groupLocator == null) {
+      throw new BadRequestException("Empty group locator is not supported.");
+    }
+
+    if (!hasDimensions(groupLocator)) {
+      // no dimensions found, assume it's group key
+      SUserGroup group = myGroupManager.findUserGroupByCode(groupLocator);
+      if (group == null) {
+        throw new NotFoundException("No group can be found by key '" + groupLocator + "'.");
+      }
+      return group;
+    }
+
+    MultiValuesMap<String, String> groupLocatorDimensions = decodeLocator(groupLocator);
+
+    String groupKey = getSingleDimensionValue(groupLocatorDimensions, "key");
+    if (groupKey != null) {
+      SUserGroup group = myGroupManager.findUserGroupByCode(groupKey);
+      if (group == null) {
+        throw new NotFoundException("No group can be found by key '" + groupKey + "'.");
+      }
+      return group;
+    }
+
+    String groupName = getSingleDimensionValue(groupLocatorDimensions, "name");
+    if (groupName != null) {
+      SUserGroup group = myGroupManager.findUserGroupByName(groupName);
+      if (group == null) {
+        throw new NotFoundException("No group can be found by name '" + groupName + "'.");
+      }
+      return group;
+    }
+    throw new NotFoundException("Group locator '" + groupLocator + "' is not supported.");
+  }
+
+
+  public Collection<User> getAllUsers() {
+    final Collection<SUser> serverUsers = myUserModel.getAllUsers().getUsers();
+    final Collection<User> result = new ArrayList<User>(serverUsers.size());
+    for (SUser group : serverUsers) {
+      result.add(group);
+    }
+    return result;
+  }
+
+  public Collection<UserGroup> getAllGroups() {
+    final Collection<SUserGroup> serverUserGroups = myGroupManager.getUserGroups();
+    final Collection<UserGroup> result = new ArrayList<UserGroup>(serverUserGroups.size());
+    for (SUserGroup group : serverUserGroups) {
+      result.add(group);
+    }
+    return result;
   }
 }

@@ -16,47 +16,43 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.groups.SUserGroup;
 
 /**
- * User: Yegor Yarko
- * Date: 12.04.2009
+ * @author Yegor.Yarko
+ *         Date: 16.04.2009
  */
-@XmlRootElement(name = "user")
-public class User {
+@XmlRootElement(name = "group")
+public class Group {
   @XmlAttribute
-  public Long id;
+  public String id;
   @XmlAttribute
   public String name;
-  @XmlAttribute
-  public String username;
-  @XmlAttribute
-  public String lastLogin;
-  @XmlAttribute
-  public String email;
+
+  @XmlElement(name = "parent-groups")
+  public Groups parentGroups;
+
+  @XmlElement(name = "child-groups")
+  public Groups childGroups;
+
+  @XmlElement(name = "users")
+  public Users users;
+
   @XmlElement(name = "roles")
   public RoleAssignments roleAssignments;
-  @XmlElement(name = "groups")
-  public Groups groups;
 
-  public User() {
+  public Group() {
   }
 
-  public User(jetbrains.buildServer.users.SUser user) {
-    id = user.getId();
-    name = user.getName();
-    username = user.getUsername();
-    Date lastLoginTimestamp = user.getLastLoginTimestamp();
-    if (lastLoginTimestamp != null) {
-      lastLogin = (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(lastLoginTimestamp);
-    }
-    email = user.getEmail();
-    roleAssignments = new RoleAssignments(user.getRoles());
-    groups = new Groups(user.getUserGroups());
+  public Group(SUserGroup userGroup) {
+    id = userGroup.getCode();
+    name = userGroup.getName();
+    parentGroups = new Groups(userGroup.getParentGroups());
+    childGroups = new Groups(userGroup.getDirectSubgroups());
+    users = new Users(userGroup.getDirectUsers());
+    roleAssignments = new RoleAssignments(userGroup.getRoles());
   }
 }
-

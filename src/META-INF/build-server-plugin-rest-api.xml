@@ -9,26 +9,27 @@
                            http://www.springframework.org/schema/lang/spring-lang-2.0.xsd http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-2.0.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd"
        default-autowire="constructor">
 
-    <!--
-        The AutowiredAnnotationBeanPostProcessor and CommonAnnotationBeanPostProcessor are both
-        included implicitly when using the component-scan element.
-        That means that the two components are autodetected and  wired together
-    -->
-    <context:component-scan base-package="jetbrains.buildServer.server.rest"/>
+  <!--
+      The AutowiredAnnotationBeanPostProcessor and CommonAnnotationBeanPostProcessor are both
+      included implicitly when using the component-scan element.
+      That means that the two components are autodetected and  wired together
+  -->
+  <context:component-scan base-package="jetbrains.buildServer.server.rest"/>
 
-   <!-- <aop:aspectj-autoproxy/> -->
+  <!-- <aop:aspectj-autoproxy/> -->
 
-    <bean id="notFoundExceptionMapper" class="jetbrains.buildServer.server.rest.NotFoundExceptionMapper"/>
-    <bean id="badRequestExceptionMapper" class="jetbrains.buildServer.server.rest.BadRequestExceptionMapper"/>
+  <bean id="notFoundExceptionMapper" class="jetbrains.buildServer.server.rest.NotFoundExceptionMapper"/>
+  <bean id="badRequestExceptionMapper" class="jetbrains.buildServer.server.rest.BadRequestExceptionMapper"/>
 
-    <bean id="apiController" class="jetbrains.buildServer.server.rest.APIController"/>
+  <bean id="apiController" class="jetbrains.buildServer.server.rest.APIController"/>
 
-    <bean id="restDataProvider" class="jetbrains.buildServer.server.rest.DataProvider"/>
+  <bean id="restDataProvider" class="jetbrains.buildServer.server.rest.DataProvider"/>
 
-    <bean id="serverRequest" class="jetbrains.buildServer.server.rest.ServerRequest"/>
-    <bean id="projectRequest" class="jetbrains.buildServer.server.rest.ProjectRequest"/>
-    <bean id="buildTypeRequest" class="jetbrains.buildServer.server.rest.BuildTypeRequest"/>
-    <bean id="buildRequest" class="jetbrains.buildServer.server.rest.BuildRequest"/>
-    <bean id="userRequest" class="jetbrains.buildServer.server.rest.UserRequest"/>
+  <bean id="serverRequest" class="jetbrains.buildServer.server.rest.ServerRequest"/>
+  <bean id="projectRequest" class="jetbrains.buildServer.server.rest.ProjectRequest"/>
+  <bean id="buildTypeRequest" class="jetbrains.buildServer.server.rest.BuildTypeRequest"/>
+  <bean id="buildRequest" class="jetbrains.buildServer.server.rest.BuildRequest"/>
+  <bean id="userRequest" class="jetbrains.buildServer.server.rest.UserRequest"/>
+  <bean id="groupRequest" class="jetbrains.buildServer.server.rest.GroupRequest"/>
 
 </beans>

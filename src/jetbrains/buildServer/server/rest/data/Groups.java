@@ -21,24 +21,24 @@ import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.groups.UserGroup;
 
 /**
- * User: Yegor Yarko
- * Date: 29.03.2009
+ * @author Yegor.Yarko
+ *         Date: 16.04.2009
  */
-@XmlRootElement(name = "users")
-public class Users {
-  @XmlElement(name = "user")
-  public List<UserRef> users;
+@XmlRootElement(name = "groups")
+public class Groups {
+  @XmlElement(name = "group")
+  public List<GroupRef> groups;
 
-  public Users() {
+  public Groups() {
   }
 
-  public Users(Collection<User> userObjects) {
-    users = new ArrayList<UserRef>(userObjects.size());
-    for (User user : userObjects) {
-      users.add(new UserRef(user));
+  public Groups(Collection<UserGroup> userGroups) {
+    groups = new ArrayList<GroupRef>(userGroups.size());
+    for (UserGroup userGroup : userGroups) {
+      groups.add(new GroupRef(userGroup));
     }
   }
 }
