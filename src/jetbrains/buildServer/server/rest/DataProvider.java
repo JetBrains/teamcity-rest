@@ -33,6 +33,10 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.ItemProcessor;
+import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.vcs.VcsManager;
+import jetbrains.buildServer.vcs.VcsModification;
+import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -48,19 +52,22 @@ public class DataProvider {
   private UserModel myUserModel;
   private RolesManager myRolesManager;
   private UserGroupManager myGroupManager;
+  private VcsManager myVcsManager;
   private static final String DIMENSION_NAME_VALUE_DELIMITER = ":";
-  private static final String DIMENSIONS_DELIMITER = ";";
+  private static final String DIMENSIONS_DELIMITER = ",";
 
   public DataProvider(SBuildServer myServer,
                       BuildHistory myBuildHistory,
                       UserModel userModel,
                       final RolesManager rolesManager,
-                      final UserGroupManager groupManager) {
+                      final UserGroupManager groupManager,
+                      final VcsManager vcsManager) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
     this.myUserModel = userModel;
     myRolesManager = rolesManager;
     myGroupManager = groupManager;
+    myVcsManager = vcsManager;
   }
 
   @Nullable
@@ -223,7 +230,7 @@ public class DataProvider {
         throw new NotFoundException("No build type is found by id '" + id + "'.");
       }
       if (project != null && !buildType.getProject().equals(project)) {
-        throw new NotFoundException("Build type with id '" + id + "' does not belog to project " + project + ".");
+        throw new NotFoundException("Build type with id '" + id + "' does not belong to project " + project + ".");
       }
       if (buildTypeLocatorDimensions.keySet().size() > 1) {
         LOG.info("Build type locator '" + buildTypeLocator + "' has 'id' dimension and others. Others are ignored.");
@@ -529,5 +536,128 @@ public class DataProvider {
       result.add(group);
     }
     return result;
+  }
+
+  public Collection<VcsRoot> getAllVcsRoots() {
+    final Collection<SVcsRoot> serverVcsRoots = myVcsManager.getAllRegisteredVcsRoots();
+    final Collection<VcsRoot> result = new ArrayList<VcsRoot>(serverVcsRoots.size());
+    for (SVcsRoot root : serverVcsRoots) {
+      result.add(root);
+    }
+    return result;
+  }
+
+  @NotNull
+  public SVcsRoot getVcsRoot(final String vcsRootLocator) {
+    if (vcsRootLocator == null) {
+      throw new BadRequestException("Empty VCS root locator is not supported.");
+    }
+
+    if (!hasDimensions(vcsRootLocator)) {
+      // no dimensions found, assume it's root id
+      Long id;
+      try {
+        id = Long.parseLong(vcsRootLocator);
+      } catch (NumberFormatException e) {
+        throw new BadRequestException("Invalid VCS root id '" + vcsRootLocator + "'. Should be a number.");
+      }
+      SVcsRoot root = myVcsManager.findRootById(id);
+      if (root == null) {
+        throw new NotFoundException("No root can be found by id '" + vcsRootLocator + "'.");
+      }
+      return root;
+    }
+
+    MultiValuesMap<String, String> rootLocatorDimensions = decodeLocator(vcsRootLocator);
+
+
+    String stringId = getSingleDimensionValue(rootLocatorDimensions, "id");
+    if (stringId != null) {
+      Long id;
+      try {
+        id = Long.parseLong(stringId);
+      } catch (NumberFormatException e) {
+        throw new BadRequestException("Invalid VCS root id '" + stringId + "'. Should be a number.");
+      }
+
+      String stringVersion = getSingleDimensionValue(rootLocatorDimensions, "ver");
+      if (stringVersion != null) {
+        Long version;
+        try {
+          version = Long.parseLong(stringVersion);
+        } catch (NumberFormatException e) {
+          throw new BadRequestException("Invalid VCS root version '" + stringVersion + "'. Should be a number.");
+        }
+        SVcsRoot root = myVcsManager.findRootByIdAndVersion(id, version);
+        if (root == null) {
+          throw new NotFoundException("No root can be found by id '" + stringId + "' and version '" + version + "'.");
+        }
+        if (rootLocatorDimensions.keySet().size() > 2) {
+          LOG.info("VCS root locator '" + vcsRootLocator + "' has 'id' and 'ver' dimensions and others. Others are ignored.");
+        }
+        return root;
+      }
+
+      SVcsRoot root = myVcsManager.findRootById(id);
+      if (rootLocatorDimensions.keySet().size() > 1) {
+        LOG.info("VCS root locator '" + vcsRootLocator + "' has 'id' dimension and others. Others are ignored.");
+      }
+      return root;
+    }
+
+
+    String rootName = getSingleDimensionValue(rootLocatorDimensions, "name");
+    if (rootName != null) {
+      SVcsRoot root = myVcsManager.findRootByName(rootName);
+      if (root == null) {
+        throw new NotFoundException("No root can be found by name '" + rootName + "'.");
+      }
+      if (rootLocatorDimensions.keySet().size() > 1) {
+        LOG.info("VCS root locator '" + vcsRootLocator + "' has 'name' dimension and others. Others are ignored.");
+      }
+      return root;
+    }
+
+    throw new NotFoundException("VCS root locator '" + vcsRootLocator + "' is not supported.");
+  }
+
+  @NotNull
+  public VcsModification getChange(final String changeLocator) {
+    if (changeLocator == null) {
+      throw new BadRequestException("Empty change locator is not supported.");
+    }
+
+    if (!hasDimensions(changeLocator)) {
+      // no dimensions found, assume it's id
+      Long id;
+      try {
+        id = Long.parseLong(changeLocator);
+      } catch (NumberFormatException e) {
+        throw new BadRequestException("Invalid change id '" + changeLocator + "'. Should be a number.");
+      }
+      VcsModification modification = myVcsManager.findModificationById(id, false);
+      if (modification == null) {
+        throw new NotFoundException("No change can be found by id '" + changeLocator + "'.");
+      }
+      return modification;
+    }
+
+    MultiValuesMap<String, String> rootLocatorDimensions = decodeLocator(changeLocator);
+    String changeId = getSingleDimensionValue(rootLocatorDimensions, "id");
+
+    if (changeId != null) {
+      Long id;
+      try {
+        id = Long.parseLong(changeId);
+      } catch (NumberFormatException e) {
+        throw new BadRequestException("Invalid change id '" + changeId + "'. Should be a number.");
+      }
+      VcsModification modification = myVcsManager.findModificationById(id, false);
+      if (modification == null) {
+        throw new NotFoundException("No change can be found by id '" + changeId + "'.");
+      }
+      return modification;
+    }
+    throw new NotFoundException("VCS root locator '" + changeLocator + "' is not supported.");
   }
 }

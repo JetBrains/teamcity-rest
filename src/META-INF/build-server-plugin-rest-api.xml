@@ -31,5 +31,7 @@
   <bean id="buildRequest" class="jetbrains.buildServer.server.rest.BuildRequest"/>
   <bean id="userRequest" class="jetbrains.buildServer.server.rest.UserRequest"/>
   <bean id="groupRequest" class="jetbrains.buildServer.server.rest.GroupRequest"/>
+  <bean id="vcsRootRequest" class="jetbrains.buildServer.server.rest.VcsRootRequest"/>
+  <bean id="changeRequest" class="jetbrains.buildServer.server.rest.ChangeRequest"/>
 
 </beans>

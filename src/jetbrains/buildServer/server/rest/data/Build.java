@@ -17,13 +17,13 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.text.SimpleDateFormat;
-import java.util.Map;
-import java.util.List;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 
@@ -56,11 +56,17 @@ public class Build {
   @XmlElement
   public List<String> tags;
 
-  @XmlElement(name = "property")
-  public List<BuildProperty> properties;
+  @XmlElement
+  public Properties properties;
 
-  @XmlElement(name = "dependencyBuild")
+  @XmlElement(name = "dependency-build")
   public List<BuildRef> buildDependencies;
+
+  @XmlElement(name = "revisions")
+  public Revisions revisions;
+
+  @XmlElement(name = "changes")
+  public Changes changes;
 
   public Build() {
   }
@@ -73,41 +79,52 @@ public class Build {
     startDate = (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(build.getStartDate());
     finishDate = (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(build.getFinishDate());
     buildType = new BuildTypeRef(build.getBuildType());
-    properties = getProperties(build.getBuildPromotion().getBuildParameters());
-    tags=build.getTags();
+    properties = new Properties(build.getBuildPromotion().getBuildParameters());
+    tags = build.getTags();
     buildDependencies = getBuildRefs(build.getBuildPromotion().getDependencies());
+    revisions = new Revisions(build.getRevisions());
+    changes = new Changes(build.getContainingChanges());
   }
 
   private List<BuildRef> getBuildRefs(Collection<? extends BuildDependency> dependencies) {
     List<BuildRef> result = new ArrayList<BuildRef>(dependencies.size());
-    for(BuildDependency dependency:dependencies){
+    for (BuildDependency dependency : dependencies) {
       result.add(new BuildRef(dependency.getDependOn().getAssociatedBuild()));
     }
     return result;
   }
 
-  private List<BuildProperty> getProperties(Map<String, String> buildParameters) {
-    List<BuildProperty> result = new ArrayList<BuildProperty>(buildParameters.size());
-    for (Map.Entry<String, String> entry : buildParameters.entrySet()) {
-      result.add(new BuildProperty(entry.getKey(), entry.getValue()));
+  /**
+   * @author Yegor.Yarko
+   *         Date: 16.04.2009
+   */
+  public static class Revision {
+    @XmlAttribute(name = "display-version")
+    public String displayRevision;
+    @XmlElement(name = "vcs-root")
+    public VcsRoot.VcsRootRef vcsRoot;
+
+    public Revision() {
     }
-    return result;
+
+    public Revision(BuildRevision revision) {
+      displayRevision = revision.getRevisionDisplayName();
+      vcsRoot = new VcsRoot.VcsRootRef(revision.getRoot());
+    }
+  }
+}
+
+class Revisions {
+  @XmlElement(name = "revision")
+  public List<Build.Revision> revisoins;
+
+  public Revisions() {
   }
 
-
-
-  public static class BuildProperty {
-    @XmlAttribute
-    public String name;
-    @XmlAttribute
-    public String value;
-
-    public BuildProperty() {
-    }
-
-    public BuildProperty(String nameP, String valueP) {
-      name = nameP;
-      value = valueP;
+  public Revisions(final List<BuildRevision> buildRevisions) {
+    revisoins = new ArrayList<Build.Revision>(buildRevisions.size());
+    for (BuildRevision revision : buildRevisions) {
+      revisoins.add(new Build.Revision(revision));
     }
   }
 }

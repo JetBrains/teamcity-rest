@@ -16,31 +16,28 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import javax.xml.bind.annotation.XmlAttribute;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.serverSide.SBuildType;
 
 /**
- * User: Yegor Yarko
- * Date: 29.03.2009
+ * @author Yegor.Yarko
+ *         Date: 16.04.2009
  */
-@XmlRootElement(name = "buildType")
-public class BuildType {
-  @XmlAttribute public String id;
-  @XmlAttribute public String name;
-  @XmlAttribute public String description;
-  @XmlElement public ProjectRef project;
-  @XmlElement(name = "vcs-root") public VcsRootEntries vcsRootEntries;
+@XmlRootElement(name = "vcs-roots")
+public class VcsRoots {
+  @XmlElement(name = "vcs-root")
+  public List<VcsRoot.VcsRootRef> vcsRoots;
 
-  public BuildType() {
+  public VcsRoots() {
   }
 
-  public BuildType(SBuildType buildType) {
-    id = buildType.getBuildTypeId();
-    name = buildType.getName();
-    description = buildType.getDescription();
-    project = new ProjectRef(buildType.getProject());
-    vcsRootEntries = new VcsRootEntries(buildType.getVcsRootEntries());
+  public VcsRoots(final Collection<jetbrains.buildServer.vcs.VcsRoot> serverVcsRoots) {
+    vcsRoots = new ArrayList<VcsRoot.VcsRootRef>(serverVcsRoots.size());
+    for (jetbrains.buildServer.vcs.VcsRoot root : serverVcsRoots) {
+      vcsRoots.add(new VcsRoot.VcsRootRef(root));
+    }
   }
 }

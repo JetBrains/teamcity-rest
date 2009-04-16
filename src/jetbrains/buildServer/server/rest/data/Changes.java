@@ -16,31 +16,28 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import javax.xml.bind.annotation.XmlAttribute;
+import java.util.ArrayList;
+import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.vcs.SVcsModification;
 
 /**
- * User: Yegor Yarko
- * Date: 29.03.2009
+ * @author Yegor.Yarko
+ *         Date: 16.04.2009
  */
-@XmlRootElement(name = "buildType")
-public class BuildType {
-  @XmlAttribute public String id;
-  @XmlAttribute public String name;
-  @XmlAttribute public String description;
-  @XmlElement public ProjectRef project;
-  @XmlElement(name = "vcs-root") public VcsRootEntries vcsRootEntries;
+@XmlRootElement(name = "changes")
+public class Changes {
+  @XmlElement(name = "change")
+  public List<ChangeRef> changes;
 
-  public BuildType() {
+  public Changes() {
   }
 
-  public BuildType(SBuildType buildType) {
-    id = buildType.getBuildTypeId();
-    name = buildType.getName();
-    description = buildType.getDescription();
-    project = new ProjectRef(buildType.getProject());
-    vcsRootEntries = new VcsRootEntries(buildType.getVcsRootEntries());
+  public Changes(final List<SVcsModification> modifications) {
+    changes = new ArrayList<ChangeRef>(modifications.size());
+    for (SVcsModification root : modifications) {
+      changes.add(new ChangeRef(root));
+    }
   }
 }

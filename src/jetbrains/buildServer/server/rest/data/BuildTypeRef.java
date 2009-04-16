@@ -34,6 +34,6 @@ public class BuildTypeRef {
 
   public BuildTypeRef(SBuildType buildType) {
     this.href = "/httpAuth/api/projects/id:" + buildType.getProjectId() + "/buildTypes/id:" + buildType.getBuildTypeId();
-    this.name = buildType.getName();
+    this.name = buildType.getFullName();
   }
 }
