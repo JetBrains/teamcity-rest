@@ -2,13 +2,14 @@
 
   <property file="build.properties"/>
   <property name="plugin.name" value="rest-api"/>
+  <property name="javac2.home" value="${basedir}/lib-compile"/>
 
   <import file="rest-api.xml"/>
   <import file="teamcity-common.xml"/>
 
   <target name="package">
     <package.teamcity.plugin name="${plugin.name}" server.output="${rest-api.output.dir}"
-        server.lib.dir="lib" server.lib.includes="*.jar"/>
+                             server.lib.dir="lib" server.lib.includes="*.jar"/>
   </target>
 
   <target name="dist" depends="check.teamcitydistribution,all,package"/>
@@ -16,7 +17,7 @@
   <target name="clean" depends="rest-api.clean"/>
 
   <target name="deploy" depends="dist">
-    <deploy.teamcity.plugin name="${plugin.name}" />
+    <deploy.teamcity.plugin name="${plugin.name}"/>
   </target>
 </project>
 
