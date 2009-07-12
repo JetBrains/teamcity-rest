@@ -26,21 +26,26 @@ import jetbrains.buildServer.serverSide.SBuildType;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "buildType")
-public class BuildType {
-  @XmlAttribute public String id;
-  @XmlAttribute public String name;
-  @XmlAttribute public String description;
-  @XmlElement public ProjectRef project;
-  @XmlElement(name = "vcs-root") public VcsRootEntries vcsRootEntries;
-
+public class BuildType extends BuildTypeRef {
   public BuildType() {
   }
 
   public BuildType(SBuildType buildType) {
-    id = buildType.getBuildTypeId();
-    name = buildType.getName();
-    description = buildType.getDescription();
-    project = new ProjectRef(buildType.getProject());
-    vcsRootEntries = new VcsRootEntries(buildType.getVcsRootEntries());
+    myBuildType = buildType;
+  }
+
+  @XmlAttribute
+  public String getDescription() {
+    return myBuildType.getDescription();
+  }
+
+  @XmlElement
+  public ProjectRef getProject() {
+    return new ProjectRef(myBuildType.getProject());
+  }
+
+  @XmlElement(name = "vcs-root")
+  public VcsRootEntries getVcsRootEntries() {
+    return new VcsRootEntries(myBuildType.getVcsRootEntries());
   }
 }

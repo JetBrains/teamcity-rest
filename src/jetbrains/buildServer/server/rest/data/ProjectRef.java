@@ -17,23 +17,36 @@
 package jetbrains.buildServer.server.rest.data;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import jetbrains.buildServer.server.rest.ProjectRequest;
 import jetbrains.buildServer.serverSide.SProject;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
 public class ProjectRef {
-  @XmlAttribute
-  public String name;
-  @XmlAttribute
-  public String href;
+  @NotNull protected SProject myProject;
 
   public ProjectRef() {
   }
 
   public ProjectRef(SProject project) {
-    this.href = "/httpAuth/api/projects/id:" + project.getProjectId();
-    this.name = project.getName();
+    myProject = project;
+  }
+
+  @XmlAttribute
+  public String getHref() {
+    return ProjectRequest.getProjectHref(myProject);
+  }
+
+  @XmlAttribute
+  public String getId() {
+    return myProject.getProjectId();
+  }
+
+  @XmlAttribute
+  public String getName() {
+    return myProject.getName();
   }
 }

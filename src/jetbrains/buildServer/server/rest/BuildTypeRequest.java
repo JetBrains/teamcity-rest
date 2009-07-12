@@ -17,12 +17,13 @@
 package jetbrains.buildServer.server.rest;
 
 import com.sun.jersey.spi.resource.Singleton;
-import com.intellij.openapi.diagnostic.Logger;
-
 import javax.ws.rs.*;
-
-import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.Build;
+import jetbrains.buildServer.server.rest.data.BuildType;
+import jetbrains.buildServer.server.rest.data.BuildTypes;
+import jetbrains.buildServer.server.rest.data.Builds;
+import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SBuildType;
 
 /**
  * User: Yegor Yarko
@@ -41,6 +42,10 @@ public class BuildTypeRequest {
 
   public BuildTypeRequest(DataProvider myDataProvider) {
     this.myDataProvider = myDataProvider;
+  }
+
+  public static String getBuildTypeHref(SBuildType buildType) {
+    return "/httpAuth/api/buildTypes/id:" + buildType.getBuildTypeId();
   }
 
   @GET
@@ -69,7 +74,9 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/builds")
   @Produces({"application/xml", "application/json"})
   //todo: add qury params limiting range
-  public Builds serveBuilds(@PathParam("btLocator") String buildTypeLocator, @QueryParam("start") Long start, @QueryParam("finish") Long finish) {
+  public Builds serveBuilds(@PathParam("btLocator") String buildTypeLocator,
+                            @QueryParam("start") Long start,
+                            @QueryParam("finish") Long finish) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     return new Builds(myDataProvider.getBuilds(buildType, null, false, true, false, start, finish));
   }

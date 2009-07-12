@@ -29,15 +29,15 @@ import jetbrains.buildServer.serverSide.SProject;
 @XmlRootElement(name = "projects")
 public class Projects {
   @XmlElement(name = "project")
-  public List<Project> projects;
+  public List<ProjectRef> projects;
 
   public Projects() {
   }
 
   public Projects(List<SProject> projectObjects) {
-    projects = new ArrayList<Project>(projectObjects.size());
+    projects = new ArrayList<ProjectRef>(projectObjects.size());
     for (SProject project : projectObjects) {
-      projects.add(new Project(project));
+      projects.add(new ProjectRef(project));
     }
   }
 }

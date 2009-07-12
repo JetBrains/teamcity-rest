@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import jetbrains.buildServer.server.rest.BuildTypeRequest;
 import jetbrains.buildServer.serverSide.SBuildType;
 
 /**
@@ -24,16 +25,27 @@ import jetbrains.buildServer.serverSide.SBuildType;
  * Date: 29.03.2009
  */
 public class BuildTypeRef {
-  @XmlAttribute
-  public String name;
-  @XmlAttribute
-  public String href;
+  protected SBuildType myBuildType;
 
   public BuildTypeRef() {
   }
 
   public BuildTypeRef(SBuildType buildType) {
-    this.href = "/httpAuth/api/projects/id:" + buildType.getProjectId() + "/buildTypes/id:" + buildType.getBuildTypeId();
-    this.name = buildType.getFullName();
+    myBuildType = buildType;
+  }
+
+  @XmlAttribute
+  public String getHref() {
+    return BuildTypeRequest.getBuildTypeHref(myBuildType);
+  }
+
+  @XmlAttribute
+  public String getId() {
+    return myBuildType.getBuildTypeId();
+  }
+
+  @XmlAttribute
+  public String getName() {
+    return myBuildType.getName();
   }
 }

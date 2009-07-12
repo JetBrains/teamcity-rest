@@ -17,18 +17,16 @@
 package jetbrains.buildServer.server.rest.data;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.server.rest.ProjectRequest;
 import jetbrains.buildServer.serverSide.SProject;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "project")
-public class Project {
-  @NotNull private SProject myProject;
+public class Project extends ProjectRef {
 
   public Project() {
   }
@@ -38,22 +36,12 @@ public class Project {
   }
 
   @XmlAttribute
-  public String getHref() {
-    return ProjectRequest.getProjectHref(myProject);
-  }
-
-  @XmlAttribute
-  public String getId() {
-    return myProject.getProjectId();
-  }
-
-  @XmlAttribute
-  public String getName() {
-    return myProject.getName();
-  }
-
-  @XmlAttribute
   public String getDescription() {
     return myProject.getDescription();
+  }
+
+  @XmlElement
+  public BuildTypes getBuildTypes() {
+    return new BuildTypes(myProject.getBuildTypes());
   }
 }
