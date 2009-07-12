@@ -18,7 +18,9 @@ package jetbrains.buildServer.server.rest.data;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.ProjectRequest;
 import jetbrains.buildServer.serverSide.SProject;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
@@ -26,20 +28,32 @@ import jetbrains.buildServer.serverSide.SProject;
  */
 @XmlRootElement(name = "project")
 public class Project {
-  @XmlAttribute
-  public String id;
-  @XmlAttribute
-  public String name;
-  @XmlAttribute
-  public String description;
+  @NotNull private SProject myProject;
 
   public Project() {
   }
 
   public Project(SProject project) {
-    id = project.getProjectId();
-    name = project.getName();
-    description = project.getDescription();
+    myProject = project;
   }
 
+  @XmlAttribute
+  public String getHref() {
+    return ProjectRequest.getProjectHref(myProject);
+  }
+
+  @XmlAttribute
+  public String getId() {
+    return myProject.getProjectId();
+  }
+
+  @XmlAttribute
+  public String getName() {
+    return myProject.getName();
+  }
+
+  @XmlAttribute
+  public String getDescription() {
+    return myProject.getDescription();
+  }
 }

@@ -17,16 +17,14 @@
 package jetbrains.buildServer.server.rest;
 
 import com.sun.jersey.spi.resource.Singleton;
-
-import javax.ws.rs.Path;
 import javax.ws.rs.GET;
-import javax.ws.rs.Produces;
+import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
-
+import javax.ws.rs.Produces;
 import jetbrains.buildServer.server.rest.data.*;
-import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.SProject;
 
 /**
  * User: Yegor Yarko
@@ -39,6 +37,10 @@ public class ProjectRequest {
 
   public ProjectRequest(DataProvider myDataProvider) {
     this.myDataProvider = myDataProvider;
+  }
+
+  public static String getProjectHref(SProject project) {
+    return "/httpAuth/api/projects/id:" + project.getProjectId();
   }
 
   @GET
