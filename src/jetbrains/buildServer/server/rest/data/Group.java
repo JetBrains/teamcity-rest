@@ -48,7 +48,7 @@ public class Group {
   }
 
   public Group(SUserGroup userGroup) {
-    id = userGroup.getCode();
+    id = userGroup.getKey();
     name = userGroup.getName();
     parentGroups = new Groups(userGroup.getParentGroups());
     childGroups = new Groups(userGroup.getDirectSubgroups());

@@ -36,6 +36,6 @@ public class GroupRef {
 
   public GroupRef(UserGroup userGroup) {
     this.name = userGroup.getName();
-    this.href = "/httpAuth/api/userGroups/key:" + userGroup.getCode();
+    this.href = "/httpAuth/api/userGroups/key:" + userGroup.getKey();
   }
 }

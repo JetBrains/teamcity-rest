@@ -490,7 +490,7 @@ public class DataProvider {
 
     if (!hasDimensions(groupLocator)) {
       // no dimensions found, assume it's group key
-      SUserGroup group = myGroupManager.findUserGroupByCode(groupLocator);
+      SUserGroup group = myGroupManager.findUserGroupByKey(groupLocator);
       if (group == null) {
         throw new NotFoundException("No group can be found by key '" + groupLocator + "'.");
       }
@@ -501,7 +501,7 @@ public class DataProvider {
 
     String groupKey = getSingleDimensionValue(groupLocatorDimensions, "key");
     if (groupKey != null) {
-      SUserGroup group = myGroupManager.findUserGroupByCode(groupKey);
+      SUserGroup group = myGroupManager.findUserGroupByKey(groupKey);
       if (group == null) {
         throw new NotFoundException("No group can be found by key '" + groupKey + "'.");
       }
