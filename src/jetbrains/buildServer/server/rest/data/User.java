@@ -21,6 +21,7 @@ import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.users.SUser;
 
 /**
  * User: Yegor Yarko
@@ -28,35 +29,64 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement(name = "user")
 public class User {
-  @XmlAttribute
-  public Long id;
-  @XmlAttribute
-  public String name;
-  @XmlAttribute
-  public String username;
-  @XmlAttribute
-  public String lastLogin;
-  @XmlAttribute
-  public String email;
-  @XmlElement(name = "roles")
-  public RoleAssignments roleAssignments;
-  @XmlElement(name = "groups")
-  public Groups groups;
+  private SUser myUser;
 
   public User() {
   }
 
   public User(jetbrains.buildServer.users.SUser user) {
-    id = user.getId();
-    name = user.getName();
-    username = user.getUsername();
-    Date lastLoginTimestamp = user.getLastLoginTimestamp();
+    this.myUser = user;
+  }
+
+  @XmlAttribute
+  public Long getId() {
+    return myUser.getId();
+  }
+
+  @XmlAttribute
+  public String getName() {
+    return myUser.getName();
+  }
+
+  @XmlAttribute
+  public String getUsername() {
+    return myUser.getUsername();
+  }
+
+  @XmlAttribute
+  public String getLastLogin() {
+    Date lastLoginTimestamp = myUser.getLastLoginTimestamp();
     if (lastLoginTimestamp != null) {
-      lastLogin = (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(lastLoginTimestamp);
+      return (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(lastLoginTimestamp);
     }
-    email = user.getEmail();
-    roleAssignments = new RoleAssignments(user.getRoles());
-    groups = new Groups(user.getUserGroups());
+    return null;
+  }
+
+  @XmlAttribute
+  public String getEmail() {
+    return myUser.getEmail();
+  }
+
+  @XmlElement(name = "roles")
+  public RoleAssignments getRoleAssignments() {
+    return new RoleAssignments(myUser.getRoles());
+  }
+
+  @XmlElement(name = "groups")
+  public Groups getGroups() {
+    return new Groups(myUser.getUserGroups());
+  }
+
+  @XmlAttribute
+  public String getRealm() {
+    return myUser.getRealm();
+  }
+
+  @XmlElement(name = "properties")
+  public Properties getProperties() {
+    Properties result = new Properties();
+    result.init(myUser.getProperties());
+    return result;
   }
 }
 

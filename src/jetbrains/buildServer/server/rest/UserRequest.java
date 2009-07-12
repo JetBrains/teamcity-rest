@@ -17,14 +17,12 @@
 package jetbrains.buildServer.server.rest;
 
 import com.sun.jersey.spi.resource.Singleton;
-import com.intellij.openapi.diagnostic.Logger;
-
 import javax.ws.rs.*;
-
-import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.auth.Role;
+import jetbrains.buildServer.server.rest.data.RoleAssignment;
+import jetbrains.buildServer.server.rest.data.User;
+import jetbrains.buildServer.server.rest.data.UserData;
+import jetbrains.buildServer.server.rest.data.Users;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
-import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.users.SUser;
 
 /* todo: investigate logging issues:
@@ -36,9 +34,11 @@ import jetbrains.buildServer.users.SUser;
 @Singleton
 public class UserRequest {
   private final DataProvider myDataProvider;
+  private DataUpdater myDataUpdater;
 
-  public UserRequest(DataProvider myDataProvider) {
+  public UserRequest(DataProvider myDataProvider, DataUpdater dataUpdater) {
     this.myDataProvider = myDataProvider;
+    myDataUpdater = dataUpdater;
   }
 
   @GET
@@ -54,26 +54,14 @@ public class UserRequest {
     return new User(myDataProvider.getUser(userLocator));
   }
 
-  @PUT
+  //TODO
+  //@PUT
+  @POST
   @Path("/{userLocator}")
   @Consumes({"application/xml", "application/json"})
-  public void updateUser(@PathParam("userLocator") String userLocator, User userData) {
+  public void updateUser(@PathParam("userLocator") String userLocator, UserData userData) {
     SUser user = myDataProvider.getUser(userLocator);
-    if (userData.id != null && userData.id != user.getId()) {
-      throw new BadRequestException("User id is specified and does not match with user locator.");
-    }
-
-    String username = userData.username != null ? userData.username : user.getUsername();
-    String name = userData.name != null ? userData.name : user.getName();
-    String email = userData.email != null ? userData.email : user.getEmail();
-    if (userData.username != null ||
-            userData.name != null ||
-            userData.email != null) {
-      user.updateUserAccount(username, name, email);
-    }
-//    if (userData.roleAssignments != null){
-//      user.removeRole
-//    }
+    myDataUpdater.modify(user, userData);
   }
 
   @PUT
@@ -90,7 +78,9 @@ public class UserRequest {
 
   @POST
   @Path("/{userLocator}/addRole/{roleId}/{scope}")
-  public void addRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId, @PathParam("scope") String scopeValue) {
+  public void addRole(@PathParam("userLocator") String userLocator,
+                      @PathParam("roleId") String roleId,
+                      @PathParam("scope") String scopeValue) {
     SUser user = myDataProvider.getUser(userLocator);
     user.addRole(myDataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
   }

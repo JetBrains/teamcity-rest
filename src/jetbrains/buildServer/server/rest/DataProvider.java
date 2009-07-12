@@ -470,7 +470,7 @@ public class DataProvider {
   }
 
   @NotNull
-  public RoleScope getScope(String scopeData) {
+  public static RoleScope getScope(String scopeData) {
     if (scopeData == null) {
       return RoleScope.globalScope();
     }
