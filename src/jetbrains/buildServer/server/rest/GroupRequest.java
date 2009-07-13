@@ -21,8 +21,11 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.data.Group;
 import jetbrains.buildServer.server.rest.data.Groups;
+import jetbrains.buildServer.serverSide.auth.RoleEntry;
+import jetbrains.buildServer.serverSide.auth.RoleScope;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
@@ -33,6 +36,17 @@ import jetbrains.buildServer.server.rest.data.Groups;
 @Singleton
 public class GroupRequest {
   private final DataProvider myDataProvider;
+
+
+  public static String getGroupHref(UserGroup userGroup) {
+    return "/httpAuth/api/userGroups/key:" + userGroup.getKey();
+  }
+
+  public static String getRoleAssignmentHref(final RoleEntry roleEntry, final UserGroup group) {
+    final RoleScope roleScope = roleEntry.getScope();
+    return getGroupHref(group) + "/roles/" + roleEntry.getRole().getId() +
+           (roleScope.isGlobal() ? "/" + roleScope.getProjectId() : "");
+  }
 
   public GroupRequest(DataProvider myDataProvider) {
     this.myDataProvider = myDataProvider;

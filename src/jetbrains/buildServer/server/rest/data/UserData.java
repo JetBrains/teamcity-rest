@@ -45,9 +45,6 @@ public class UserData {
   @XmlElement(name = "groups")
   public Groups groups;
 
-  @XmlAttribute
-  public String realm;
-
   @XmlElement(name = "properties")
   public Properties properties;
 

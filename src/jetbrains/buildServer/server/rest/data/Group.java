@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.groups.SUserGroup;
@@ -26,12 +25,7 @@ import jetbrains.buildServer.groups.SUserGroup;
  *         Date: 16.04.2009
  */
 @XmlRootElement(name = "group")
-public class Group {
-  @XmlAttribute
-  public String id;
-  @XmlAttribute
-  public String name;
-
+public class Group extends GroupRef {
   @XmlElement(name = "parent-groups")
   public Groups parentGroups;
 
@@ -48,8 +42,7 @@ public class Group {
   }
 
   public Group(SUserGroup userGroup) {
-    id = userGroup.getKey();
-    name = userGroup.getName();
+    super(userGroup);
     parentGroups = new Groups(userGroup.getParentGroups());
     childGroups = new Groups(userGroup.getDirectSubgroups());
     users = new Users(userGroup.getDirectUsers());

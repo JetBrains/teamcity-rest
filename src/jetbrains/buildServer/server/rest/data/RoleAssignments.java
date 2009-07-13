@@ -16,18 +16,20 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import jetbrains.buildServer.serverSide.auth.RoleEntry;
-
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlElement;
-import java.util.List;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.groups.UserGroup;
+import jetbrains.buildServer.serverSide.auth.RoleEntry;
+import jetbrains.buildServer.users.SUser;
 
 /**
  * User: Yegor Yarko
  * Date: 12.04.2009
  */
+@XmlRootElement(name = "roles")
 public class RoleAssignments {
   @XmlElement(name = "role")
   public List<RoleAssignment> roleAssignments;
@@ -39,6 +41,20 @@ public class RoleAssignments {
     roleAssignments = new ArrayList<RoleAssignment>(roleEntries.size());
     for (RoleEntry roleEntry : roleEntries) {
       roleAssignments.add(new RoleAssignment(roleEntry));
+    }
+  }
+
+  public RoleAssignments(Collection<RoleEntry> roleEntries, SUser user) {
+    roleAssignments = new ArrayList<RoleAssignment>(roleEntries.size());
+    for (RoleEntry roleEntry : roleEntries) {
+      roleAssignments.add(new RoleAssignment(roleEntry, user));
+    }
+  }
+
+  public RoleAssignments(Collection<RoleEntry> roleEntries, UserGroup group) {
+    roleAssignments = new ArrayList<RoleAssignment>(roleEntries.size());
+    for (RoleEntry roleEntry : roleEntries) {
+      roleAssignments.add(new RoleAssignment(roleEntry, group));
     }
   }
 }

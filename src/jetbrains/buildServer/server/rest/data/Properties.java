@@ -17,27 +17,35 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.users.PropertyKey;
 
 /**
- * User: Yegor Yarko
- * Date: 29.03.2009
+ * @author Yegor.Yarko
+ *         Date: 13.07.2009
  */
-@XmlRootElement(name = "users")
-public class Users {
-  @XmlElement(name = "user")
-  public List<UserRef> users;
+@XmlRootElement(name = "properties")
+public class Properties {
+  @XmlElement(name = "property")
+  public List<Property> properties;
 
-  public Users() {
+  public Properties() {
   }
 
-  public Users(Collection<jetbrains.buildServer.users.User> userObjects) {
-    users = new ArrayList<UserRef>(userObjects.size());
-    for (jetbrains.buildServer.users.User user : userObjects) {
-      users.add(new UserRef(user));
+  public Properties(final Map<String, String> propertiesP) {
+    properties = new ArrayList<Property>(propertiesP.size());
+    for (Map.Entry<String, String> prop : propertiesP.entrySet()) {
+      properties.add(new Property(prop.getKey(), prop.getValue()));
+    }
+  }
+
+  public void init(final Map<PropertyKey, String> propertiesP) {
+    properties = new ArrayList<Property>(propertiesP.size());
+    for (Map.Entry<PropertyKey, String> prop : propertiesP.entrySet()) {
+      properties.add(new Property(prop.getKey().getKey(), prop.getValue()));
     }
   }
 }

@@ -17,17 +17,16 @@
 package jetbrains.buildServer.server.rest;
 
 import com.sun.jersey.spi.resource.Singleton;
+import java.util.Collection;
 import javax.ws.rs.*;
-import jetbrains.buildServer.server.rest.data.RoleAssignment;
-import jetbrains.buildServer.server.rest.data.User;
-import jetbrains.buildServer.server.rest.data.UserData;
-import jetbrains.buildServer.server.rest.data.Users;
+import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.users.SUser;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
-    - too long number passed as finish for builds produses 404
+    - too long number passed as finish for builds produces 404 error
 */
 
 @Path("/httpAuth/api/users")
@@ -39,6 +38,18 @@ public class UserRequest {
   public UserRequest(DataProvider myDataProvider, DataUpdater dataUpdater) {
     this.myDataProvider = myDataProvider;
     myDataUpdater = dataUpdater;
+  }
+
+  public static String getUserHref(final jetbrains.buildServer.users.User user) {
+    //todo: investigate why "DOMAIN username" does not work as query parameter
+//    this.href = "/httpAuth/api/users/" + user.getUsername();
+    return "/httpAuth/api/users/id:" + user.getId();
+  }
+
+  public static String getRoleAssignmentHref(final RoleEntry roleEntry, final SUser user) {
+    final RoleScope roleScope = roleEntry.getScope();
+    return getUserHref(user) + "/roles/" + roleEntry.getRole().getId() +
+           (roleScope.isGlobal() ? "/" + roleScope.getProjectId() : "");
   }
 
   @GET
@@ -64,31 +75,66 @@ public class UserRequest {
     myDataUpdater.modify(user, userData);
   }
 
-  @PUT
-  @Path("/{userLocator}/addRole")
+  @GET
+  @Path("/{userLocator}/roles")
+  @Produces({"application/xml", "application/json"})
+  public RoleAssignments listRoles(@PathParam("userLocator") String userLocator) {
+    SUser user = myDataProvider.getUser(userLocator);
+    return new RoleAssignments(user.getRoles(), user);
+  }
+
+
+  //TODO
+  //@PUT
+  @POST
+  @Path("/{userLocator}/roles")
   @Consumes({"application/xml", "application/json"})
   public void addRole(@PathParam("userLocator") String userLocator, RoleAssignment roleAssignment) {
     SUser user = myDataProvider.getUser(userLocator);
     user.addRole(myDataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
   }
 
-
-  //todo: rework this
-
-
-  @POST
-  @Path("/{userLocator}/addRole/{roleId}/{scope}")
-  public void addRole(@PathParam("userLocator") String userLocator,
-                      @PathParam("roleId") String roleId,
-                      @PathParam("scope") String scopeValue) {
+  @GET
+  @Path("/{userLocator}/roles/{roleId}/{scope}")
+  //TODO
+  public RoleAssignment listRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
+                                 @PathParam("scope") String scopeValue) {
     SUser user = myDataProvider.getUser(userLocator);
-    user.addRole(myDataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
+    return new RoleAssignment(getUserRoleEntry(user, roleId, scopeValue), user);
   }
 
+  private RoleEntry getUserRoleEntry(final SUser user, final String roleId, final String scopeValue) {
+    if (roleId == null) {
+      throw new BadRequestException("Expected roleId is not specified");
+    }
+    final RoleScope roleScope = myDataProvider.getScope(scopeValue);
+    final Collection<RoleEntry> roles = user.getRoles();
+    for (RoleEntry roleEntry : roles) {
+      if (roleScope.equals(roleEntry.getScope()) && roleId.equals(roleEntry.getRole().getId())) {
+        return roleEntry;
+      }
+    }
+    throw new NotFoundException("User " + user + " does not have role with id: " + roleId + " and scope " + scopeValue);
+  }
+
+  //TODO
+  //@DELETE
   @POST
-  @Path("/{userLocator}/addRole/{roleId}")
-  public void addRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId) {
+  @Path("/{userLocator}/roles/{roleId}/{scope}/delete")
+  //TODO
+  public void deleteRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
+                         @PathParam("scope") String scopeValue) {
     SUser user = myDataProvider.getUser(userLocator);
-    user.addRole(RoleScope.globalScope(), myDataProvider.getRoleById(roleId));
+    user.removeRole(myDataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
+  }
+
+
+  @POST
+  @Path("/{userLocator}/roles/{roleId}/{scope}")
+  public void addRoleSimple(@PathParam("userLocator") String userLocator,
+                            @PathParam("roleId") String roleId,
+                            @PathParam("scope") String scopeValue) {
+    SUser user = myDataProvider.getUser(userLocator);
+    user.addRole(myDataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
   }
 }

@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.groups.UserGroup;
+import jetbrains.buildServer.server.rest.GroupRequest;
 
 /**
  * @author Yegor.Yarko
@@ -26,6 +27,8 @@ import jetbrains.buildServer.groups.UserGroup;
  */
 @XmlRootElement(name = "group")
 public class GroupRef {
+  @XmlAttribute
+  public String key;
   @XmlAttribute
   public String name;
   @XmlAttribute
@@ -35,7 +38,8 @@ public class GroupRef {
   }
 
   public GroupRef(UserGroup userGroup) {
+    this.key = userGroup.getKey();
     this.name = userGroup.getName();
-    this.href = "/httpAuth/api/userGroups/key:" + userGroup.getKey();
+    this.href = GroupRequest.getGroupHref(userGroup);
   }
 }

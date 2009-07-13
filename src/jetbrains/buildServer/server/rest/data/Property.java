@@ -16,13 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.users.PropertyKey;
 
 /**
  * @author Yegor.Yarko
@@ -43,25 +37,3 @@ public class Property {
   }
 }
 
-@XmlRootElement(name = "properties")
-class Properties {
-  @XmlElement(name = "property")
-  public List<Property> properties;
-
-  public Properties() {
-  }
-
-  public Properties(final Map<String, String> propertiesP) {
-    properties = new ArrayList<Property>(propertiesP.size());
-    for (Map.Entry<String, String> prop : propertiesP.entrySet()) {
-      properties.add(new Property(prop.getKey(), prop.getValue()));
-    }
-  }
-
-  public void init(final Map<PropertyKey, String> propertiesP) {
-    properties = new ArrayList<Property>(propertiesP.size());
-    for (Map.Entry<PropertyKey, String> prop : propertiesP.entrySet()) {
-      properties.add(new Property(prop.getKey().getKey(), prop.getValue()));
-    }
-  }
-}

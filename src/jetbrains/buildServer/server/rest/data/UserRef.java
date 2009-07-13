@@ -17,25 +17,39 @@
 package jetbrains.buildServer.server.rest.data;
 
 import javax.xml.bind.annotation.XmlAttribute;
-import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.server.rest.UserRequest;
 
 /**
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
 public class UserRef {
-  @XmlAttribute
-  public String username;
-  @XmlAttribute
-  public String href;
+  private jetbrains.buildServer.users.User myUser;
 
   public UserRef() {
   }
 
-  public UserRef(User user) {
-    //todo: investigate why "DOMAIN username" does not work as query parameter
-//    this.href = "/httpAuth/api/users/" + user.getUsername();
-    this.href = "/httpAuth/api/users/id:" + user.getId();
-    this.username = user.getUsername();
+  public UserRef(jetbrains.buildServer.users.User user) {
+    myUser = user;
+  }
+
+  @XmlAttribute
+  public Long getId() {
+    return myUser.getId();
+  }
+
+  @XmlAttribute
+  public String getName() {
+    return myUser.getName();
+  }
+
+  @XmlAttribute
+  public String getUsername() {
+    return myUser.getUsername();
+  }
+
+  @XmlAttribute
+  public String getHref() {
+    return UserRequest.getUserHref(myUser);
   }
 }

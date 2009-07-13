@@ -16,11 +16,16 @@
 
 package jetbrains.buildServer.server.rest;
 
-import jetbrains.buildServer.server.rest.data.RoleAssignment;
-import jetbrains.buildServer.server.rest.data.RoleAssignments;
-import jetbrains.buildServer.server.rest.data.UserData;
+import java.util.HashMap;
+import java.util.Map;
+import jetbrains.buildServer.groups.SUserGroup;
+import jetbrains.buildServer.groups.UserGroup;
+import jetbrains.buildServer.groups.UserGroupManager;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
+import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.SimplePropertyKey;
 
 /**
  * @author Yegor.Yarko
@@ -28,9 +33,11 @@ import jetbrains.buildServer.users.SUser;
  */
 public class DataUpdater {
   private DataProvider myDataProvider;
+  private UserGroupManager myGroupManager;
 
-  public DataUpdater(DataProvider dataProvider) {
+  public DataUpdater(DataProvider dataProvider, UserGroupManager groupManager) {
     myDataProvider = dataProvider;
+    myGroupManager = groupManager;
   }
 
   public void modify(SUser user, UserData userData) {
@@ -52,6 +59,46 @@ public class DataUpdater {
       addRoles(user, userData.roles);
     }
 
+    if (userData.properties != null) {
+      removeAllProperties(user);
+      addProperties(user, userData.properties);
+    }
+
+    if (userData.groups != null) {
+      removeAllGroups(user);
+      addGroups(user, userData.groups);
+    }
+  }
+
+  private void addGroups(final SUser user, final Groups groups) {
+    for (GroupRef group : groups.groups) {
+      final SUserGroup foundGroup = myGroupManager.findUserGroupByKey(group.key);
+      if (foundGroup != null) {
+        foundGroup.addUser(user);
+      } else {
+        throw new BadRequestException("Can't find group by key'" + group.key + "'");
+      }
+    }
+  }
+
+  private void removeAllGroups(final SUser user) {
+    for (UserGroup group : user.getUserGroups()) {
+      ((SUserGroup)group).removeUser(user);
+    }
+  }
+
+  private void addProperties(final SUser user, final Properties properties) {
+    Map<PropertyKey, String> convertedProperties = new HashMap<PropertyKey, String>(properties.properties.size());
+    for (Property listItem : properties.properties) {
+      convertedProperties.put(new SimplePropertyKey(listItem.name), listItem.value);
+    }
+    user.setUserProperties(convertedProperties);
+  }
+
+  private void removeAllProperties(final SUser user) {
+    for (Map.Entry<PropertyKey, String> propertyKey : user.getProperties().entrySet()) {
+      user.deleteUserProperty(propertyKey.getKey());
+    }
   }
 
   private void removeAllRoles(final SUser user) {
