@@ -16,36 +16,26 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import javax.xml.bind.annotation.XmlAttribute;
-import jetbrains.buildServer.server.rest.BuildRequest;
-import jetbrains.buildServer.serverSide.SBuild;
+import java.util.ArrayList;
+import java.util.List;
+import javax.xml.bind.annotation.XmlElement;
+import jetbrains.buildServer.serverSide.BuildRevision;
 
 /**
- * User: Yegor Yarko
- * Date: 29.03.2009
+ * @author Yegor.Yarko
+ *         Date: 21.07.2009
  */
-public class BuildRef {
-  protected SBuild myBuild;
+public class Revisions {
+  @XmlElement(name = "revision")
+  public List<Revision> revisoins;
 
-  public BuildRef() {
+  public Revisions() {
   }
 
-  public BuildRef(SBuild build) {
-    myBuild = build;
-  }
-
-  @XmlAttribute
-  public long getId() {
-    return myBuild.getBuildId();
-  }
-
-  @XmlAttribute
-  public String getNumber() {
-    return myBuild.getBuildNumber();
-  }
-
-  @XmlAttribute
-  public String getHref() {
-    return BuildRequest.getBuildHref(myBuild);
+  public Revisions(final List<BuildRevision> buildRevisions) {
+    revisoins = new ArrayList<Revision>(buildRevisions.size());
+    for (BuildRevision revision : buildRevisions) {
+      revisoins.add(new Revision(revision));
+    }
   }
 }

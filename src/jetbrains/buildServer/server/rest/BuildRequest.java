@@ -17,12 +17,10 @@
 package jetbrains.buildServer.server.rest;
 
 import com.sun.jersey.spi.resource.Singleton;
-
-import javax.ws.rs.Path;
 import javax.ws.rs.GET;
-import javax.ws.rs.Produces;
+import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
-
+import javax.ws.rs.Produces;
 import jetbrains.buildServer.server.rest.data.Build;
 import jetbrains.buildServer.serverSide.SBuild;
 
@@ -39,11 +37,16 @@ public class BuildRequest {
     this.myDataProvider = myDataProvider;
   }
 
+  public static String getBuildHref(SBuild build) {
+    return "/httpAuth/api/builds/id:" + build.getBuildId();
+  }
+
+
   @GET
   @Path("/{buildLocator}")
   @Produces({"application/xml", "application/json"})
   public Build serveBuild(@PathParam("buildLocator") String buildLocator) {
-    return new Build (myDataProvider.getBuild(null, buildLocator));
+    return new Build(myDataProvider.getBuild(null, buildLocator));
   }
 
   @GET

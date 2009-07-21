@@ -23,7 +23,6 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 
@@ -34,56 +33,74 @@ import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 //todo: add changes
 //todo: reuse fields code from DataProvider
 @XmlRootElement(name = "build")
-public class Build {
-  @XmlAttribute
-  public long id;
-  @XmlAttribute
-  public String number;
-  @XmlAttribute
-  public String status;
-  @XmlAttribute
-  public boolean pinned;
-
-  @XmlElement
-  public BuildTypeRef buildType;
-
-  //todo: investigate common date formats approach in REST
-  @XmlElement
-  public String startDate;
-  @XmlElement
-  public String finishDate;
-
-  @XmlElement
-  public List<String> tags;
-
-  @XmlElement
-  public Properties properties;
-
-  @XmlElement(name = "dependency-build")
-  public List<BuildRef> buildDependencies;
-
-  @XmlElement(name = "revisions")
-  public Revisions revisions;
-
-  @XmlElement(name = "changes")
-  public Changes changes;
+public class Build extends BuildRef {
 
   public Build() {
   }
 
   public Build(SBuild build) {
-    id = build.getBuildId();
-    number = build.getBuildNumber();
-    status = build.getStatusDescriptor().getStatus().getText();
-    pinned = build.isPinned();
-    startDate = (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(build.getStartDate());
-    finishDate = (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(build.getFinishDate());
-    buildType = new BuildTypeRef(build.getBuildType());
-    properties = new Properties(build.getBuildPromotion().getBuildParameters());
-    tags = build.getTags();
-    buildDependencies = getBuildRefs(build.getBuildPromotion().getDependencies());
-    revisions = new Revisions(build.getRevisions());
-    changes = new Changes(build.getContainingChanges());
+    super(build);
+  }
+
+  @XmlAttribute
+  public String getStatus() {
+    return myBuild.getStatusDescriptor().getStatus().getText();
+  }
+
+  @XmlAttribute
+  public boolean isPinned() {
+    return myBuild.isPinned();
+  }
+
+  @XmlElement
+  public BuildTypeRef getBuildType() {
+    return new BuildTypeRef(myBuild.getBuildType());
+  }
+
+  //todo: investigate common date formats approach
+  @XmlElement
+  public String getStartDate() {
+    return (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(myBuild.getStartDate());
+  }
+
+  @XmlElement
+  public String getFinishDate() {
+    return (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(myBuild.getFinishDate());
+  }
+
+  @XmlElement
+  public Comment getComment() {
+    return new Comment(myBuild.getBuildComment());
+  }
+
+  @XmlElement(name = "tag")
+  public List<String> getTags() {
+    return myBuild.getTags();
+  }
+
+  @XmlElement
+  public Properties getProperties() {
+    return new Properties(myBuild.getBuildPromotion().getBuildParameters());
+  }
+
+  @XmlElement(name = "dependency-build")
+  public List<BuildRef> getBuildDependencies() {
+    return getBuildRefs(myBuild.getBuildPromotion().getDependencies());
+  }
+
+  @XmlElement(name = "revisions")
+  public Revisions getRevisions() {
+    return new Revisions(myBuild.getRevisions());
+  }
+
+  @XmlElement(name = "changes")
+  public Changes getChanges() {
+    return new Changes(myBuild.getContainingChanges());
+  }
+
+  @XmlElement(name = "relatedIssues")
+  public Issues getIssues() {
+    return new Issues(myBuild.getRelatedIssues());
   }
 
   private List<BuildRef> getBuildRefs(Collection<? extends BuildDependency> dependencies) {
@@ -94,38 +111,4 @@ public class Build {
     return result;
   }
 
-  /**
-   * @author Yegor.Yarko
-   *         Date: 16.04.2009
-   */
-  public static class Revision {
-    @XmlAttribute(name = "display-version")
-    public String displayRevision;
-    @XmlElement(name = "vcs-root")
-    public VcsRoot.VcsRootRef vcsRoot;
-
-    public Revision() {
-    }
-
-    public Revision(BuildRevision revision) {
-      displayRevision = revision.getRevisionDisplayName();
-      vcsRoot = new VcsRoot.VcsRootRef(revision.getRoot());
-    }
-  }
 }
-
-class Revisions {
-  @XmlElement(name = "revision")
-  public List<Build.Revision> revisoins;
-
-  public Revisions() {
-  }
-
-  public Revisions(final List<BuildRevision> buildRevisions) {
-    revisoins = new ArrayList<Build.Revision>(buildRevisions.size());
-    for (BuildRevision revision : buildRevisions) {
-      revisoins.add(new Build.Revision(revision));
-    }
-  }
-}
-

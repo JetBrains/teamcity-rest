@@ -21,7 +21,8 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import jetbrains.buildServer.server.rest.data.Change;
+import jetbrains.buildServer.server.rest.data.change.Change;
+import jetbrains.buildServer.vcs.VcsModification;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
@@ -35,6 +36,10 @@ public class ChangeRequest {
 
   public ChangeRequest(DataProvider myDataProvider) {
     this.myDataProvider = myDataProvider;
+  }
+
+  public static String getChangeHref(VcsModification modification) {
+    return "/httpAuth/api/changes/id:" + modification.getId();
   }
 
   @GET

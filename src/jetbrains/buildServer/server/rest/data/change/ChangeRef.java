@@ -14,38 +14,39 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data;
+package jetbrains.buildServer.server.rest.data.change;
 
 import javax.xml.bind.annotation.XmlAttribute;
-import jetbrains.buildServer.server.rest.BuildRequest;
-import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.server.rest.ChangeRequest;
+import jetbrains.buildServer.vcs.SVcsModification;
+import jetbrains.buildServer.vcs.VcsModification;
 
 /**
- * User: Yegor Yarko
- * Date: 29.03.2009
+ * @author Yegor.Yarko
+ *         Date: 21.07.2009
  */
-public class BuildRef {
-  protected SBuild myBuild;
+public class ChangeRef {
+  protected VcsModification myModification;
 
-  public BuildRef() {
+  public ChangeRef() {
   }
 
-  public BuildRef(SBuild build) {
-    myBuild = build;
+  public ChangeRef(SVcsModification modification) {
+    myModification = modification;
+  }
+
+  @XmlAttribute
+  public String getVersion() {
+    return myModification.getDisplayVersion();
   }
 
   @XmlAttribute
   public long getId() {
-    return myBuild.getBuildId();
-  }
-
-  @XmlAttribute
-  public String getNumber() {
-    return myBuild.getBuildNumber();
+    return myModification.getId();
   }
 
   @XmlAttribute
   public String getHref() {
-    return BuildRequest.getBuildHref(myBuild);
+    return ChangeRequest.getChangeHref(myModification);
   }
 }

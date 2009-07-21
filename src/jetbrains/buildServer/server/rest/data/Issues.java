@@ -16,41 +16,29 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import javax.xml.bind.annotation.XmlAttribute;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.issueTracker.Issue;
 
 /**
- * User: Yegor Yarko
- * Date: 29.03.2009
+ * @author Yegor.Yarko
+ *         Date: 21.07.2009
  */
-@XmlRootElement(name = "buildType")
-public class BuildType extends BuildTypeRef {
-  public BuildType() {
+@XmlRootElement(name = "issues")
+public class Issues {
+  @XmlElement(name = "issue")
+  public List<jetbrains.buildServer.server.rest.data.Issue> issues;
+
+  public Issues() {
   }
 
-  public BuildType(SBuildType buildType) {
-    myBuildType = buildType;
-  }
-
-  @XmlAttribute
-  public String getDescription() {
-    return myBuildType.getDescription();
-  }
-
-  @XmlAttribute
-  public boolean isPaused() {
-    return myBuildType.isPaused();
-  }
-
-  @XmlElement
-  public ProjectRef getProject() {
-    return new ProjectRef(myBuildType.getProject());
-  }
-
-  @XmlElement(name = "vcs-root")
-  public VcsRootEntries getVcsRootEntries() {
-    return new VcsRootEntries(myBuildType.getVcsRootEntries());
+  public Issues(Collection<Issue> buildIssues) {
+    issues = new ArrayList<jetbrains.buildServer.server.rest.data.Issue>(buildIssues.size());
+    for (Issue buildIssue : buildIssues) {
+      issues.add(new jetbrains.buildServer.server.rest.data.Issue(buildIssue));
+    }
   }
 }

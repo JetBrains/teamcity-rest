@@ -14,43 +14,49 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data;
+package jetbrains.buildServer.server.rest.data.change;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.serverSide.SBuildType;
 
 /**
  * User: Yegor Yarko
- * Date: 29.03.2009
+ * Date: 12.04.2009
  */
-@XmlRootElement(name = "buildType")
-public class BuildType extends BuildTypeRef {
-  public BuildType() {
+@XmlRootElement(name = "change")
+public class Change extends ChangeRef {
+
+  public Change() {
   }
 
-  public BuildType(SBuildType buildType) {
-    myBuildType = buildType;
-  }
-
-  @XmlAttribute
-  public String getDescription() {
-    return myBuildType.getDescription();
+  public Change(jetbrains.buildServer.vcs.SVcsModification modification) {
+    super(modification);
   }
 
   @XmlAttribute
-  public boolean isPaused() {
-    return myBuildType.isPaused();
+  public String getUsername() {
+    return myModification.getUserName();
+  }
+
+  @XmlAttribute
+  public String getDate() {
+    final Date vcsDate = myModification.getVcsDate();
+    if (vcsDate != null) {
+      return (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(vcsDate);
+    }
+    return null;
   }
 
   @XmlElement
-  public ProjectRef getProject() {
-    return new ProjectRef(myBuildType.getProject());
+  public String getComment() {
+    return myModification.getDescription();
   }
 
-  @XmlElement(name = "vcs-root")
-  public VcsRootEntries getVcsRootEntries() {
-    return new VcsRootEntries(myBuildType.getVcsRootEntries());
+  @XmlElement(name = "files")
+  public FileChanges getFileChanges() {
+    return new FileChanges(myModification.getChanges());
   }
 }

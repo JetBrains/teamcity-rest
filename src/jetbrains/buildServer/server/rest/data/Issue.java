@@ -17,35 +17,29 @@
 package jetbrains.buildServer.server.rest.data;
 
 import javax.xml.bind.annotation.XmlAttribute;
-import jetbrains.buildServer.server.rest.BuildRequest;
-import jetbrains.buildServer.serverSide.SBuild;
+import org.jetbrains.annotations.NotNull;
 
 /**
- * User: Yegor Yarko
- * Date: 29.03.2009
+ * @author Yegor.Yarko
+ *         Date: 21.07.2009
  */
-public class BuildRef {
-  protected SBuild myBuild;
+public class Issue {
+  @NotNull protected jetbrains.buildServer.issueTracker.Issue myIssue;
 
-  public BuildRef() {
+  public Issue() {
   }
 
-  public BuildRef(SBuild build) {
-    myBuild = build;
-  }
-
-  @XmlAttribute
-  public long getId() {
-    return myBuild.getBuildId();
+  public Issue(@NotNull final jetbrains.buildServer.issueTracker.Issue issue) {
+    myIssue = issue;
   }
 
   @XmlAttribute
-  public String getNumber() {
-    return myBuild.getBuildNumber();
+  public String getId() {
+    return myIssue.getId();
   }
 
   @XmlAttribute
-  public String getHref() {
-    return BuildRequest.getBuildHref(myBuild);
+  public String getUrl() {
+    return myIssue.getUrl();
   }
 }

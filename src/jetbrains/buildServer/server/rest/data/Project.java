@@ -32,12 +32,17 @@ public class Project extends ProjectRef {
   }
 
   public Project(SProject project) {
-    myProject = project;
+    super(project);
   }
 
   @XmlAttribute
   public String getDescription() {
     return myProject.getDescription();
+  }
+
+  @XmlAttribute
+  public boolean isArchived() {
+    return myProject.isArchived();
   }
 
   @XmlElement

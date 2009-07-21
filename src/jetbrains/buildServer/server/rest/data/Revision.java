@@ -18,39 +18,23 @@ package jetbrains.buildServer.server.rest.data;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.BuildRevision;
 
 /**
- * User: Yegor Yarko
- * Date: 29.03.2009
+ * @author Yegor.Yarko
+ *         Date: 16.04.2009
  */
-@XmlRootElement(name = "buildType")
-public class BuildType extends BuildTypeRef {
-  public BuildType() {
-  }
-
-  public BuildType(SBuildType buildType) {
-    myBuildType = buildType;
-  }
-
-  @XmlAttribute
-  public String getDescription() {
-    return myBuildType.getDescription();
-  }
-
-  @XmlAttribute
-  public boolean isPaused() {
-    return myBuildType.isPaused();
-  }
-
-  @XmlElement
-  public ProjectRef getProject() {
-    return new ProjectRef(myBuildType.getProject());
-  }
-
+public class Revision {
+  @XmlAttribute(name = "display-version")
+  public String displayRevision;
   @XmlElement(name = "vcs-root")
-  public VcsRootEntries getVcsRootEntries() {
-    return new VcsRootEntries(myBuildType.getVcsRootEntries());
+  public VcsRoot.VcsRootRef vcsRoot;
+
+  public Revision() {
+  }
+
+  public Revision(BuildRevision revision) {
+    displayRevision = revision.getRevisionDisplayName();
+    vcsRoot = new VcsRoot.VcsRootRef(revision.getRoot());
   }
 }

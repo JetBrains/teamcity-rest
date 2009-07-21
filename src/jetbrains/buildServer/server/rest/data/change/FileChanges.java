@@ -14,31 +14,28 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data;
+package jetbrains.buildServer.server.rest.data.change;
 
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.server.rest.data.change.ChangeRef;
-import jetbrains.buildServer.vcs.SVcsModification;
+import jetbrains.buildServer.vcs.VcsFileModification;
 
 /**
  * @author Yegor.Yarko
- *         Date: 16.04.2009
+ *         Date: 21.07.2009
  */
-@XmlRootElement(name = "changes")
-public class Changes {
-  @XmlElement(name = "change")
-  public List<ChangeRef> changes;
+public class FileChanges {
+  @XmlElement(name = "file")
+  public List<FileChange> files;
 
-  public Changes() {
+  public FileChanges() {
   }
 
-  public Changes(final List<SVcsModification> modifications) {
-    changes = new ArrayList<ChangeRef>(modifications.size());
-    for (SVcsModification root : modifications) {
-      changes.add(new ChangeRef(root));
+  public FileChanges(final List<VcsFileModification> fileChanges) {
+    files = new ArrayList<FileChange>(fileChanges.size());
+    for (VcsFileModification file : fileChanges) {
+      files.add(new FileChange(file));
     }
   }
 }

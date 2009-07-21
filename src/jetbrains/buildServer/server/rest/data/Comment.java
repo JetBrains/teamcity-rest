@@ -16,41 +16,36 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import java.text.SimpleDateFormat;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.serverSide.SBuildType;
 
 /**
- * User: Yegor Yarko
- * Date: 29.03.2009
+ * @author Yegor.Yarko
+ *         Date: 21.07.2009
  */
-@XmlRootElement(name = "buildType")
-public class BuildType extends BuildTypeRef {
-  public BuildType() {
+public class Comment {
+  private jetbrains.buildServer.serverSide.comments.Comment myBuildComment;
+
+  public Comment() {
   }
 
-  public BuildType(SBuildType buildType) {
-    myBuildType = buildType;
-  }
-
-  @XmlAttribute
-  public String getDescription() {
-    return myBuildType.getDescription();
+  public Comment(jetbrains.buildServer.serverSide.comments.Comment buildComment) {
+    myBuildComment = buildComment;
   }
 
   @XmlAttribute
-  public boolean isPaused() {
-    return myBuildType.isPaused();
+  public UserRef getUser() {
+    return new UserRef(myBuildComment.getUser());
   }
 
   @XmlElement
-  public ProjectRef getProject() {
-    return new ProjectRef(myBuildType.getProject());
+  public String getTimestamp() {
+    return (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(myBuildComment.getTimestamp());
   }
 
-  @XmlElement(name = "vcs-root")
-  public VcsRootEntries getVcsRootEntries() {
-    return new VcsRootEntries(myBuildType.getVcsRootEntries());
+  @XmlElement
+  public String getText() {
+    return myBuildComment.getComment();
   }
 }

@@ -33,9 +33,9 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.ItemProcessor;
+import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsManager;
-import jetbrains.buildServer.vcs.VcsModification;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -622,7 +622,7 @@ public class DataProvider {
   }
 
   @NotNull
-  public VcsModification getChange(final String changeLocator) {
+  public SVcsModification getChange(final String changeLocator) {
     if (changeLocator == null) {
       throw new BadRequestException("Empty change locator is not supported.");
     }
@@ -635,7 +635,7 @@ public class DataProvider {
       } catch (NumberFormatException e) {
         throw new BadRequestException("Invalid change id '" + changeLocator + "'. Should be a number.");
       }
-      VcsModification modification = myVcsManager.findModificationById(id, false);
+      SVcsModification modification = myVcsManager.findModificationById(id, false);
       if (modification == null) {
         throw new NotFoundException("No change can be found by id '" + changeLocator + "'.");
       }
@@ -652,7 +652,7 @@ public class DataProvider {
       } catch (NumberFormatException e) {
         throw new BadRequestException("Invalid change id '" + changeId + "'. Should be a number.");
       }
-      VcsModification modification = myVcsManager.findModificationById(id, false);
+      SVcsModification modification = myVcsManager.findModificationById(id, false);
       if (modification == null) {
         throw new NotFoundException("No change can be found by id '" + changeId + "'.");
       }
