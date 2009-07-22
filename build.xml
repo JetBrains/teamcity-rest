@@ -7,9 +7,19 @@
   <import file="rest-api.xml"/>
   <import file="teamcity-common.xml"/>
 
-  <target name="package">
+  <target name="package" depends="define.version">
     <package.teamcity.plugin name="${plugin.name}" server.output="${rest-api.output.dir}"
-                             server.lib.dir="lib" server.lib.includes="*.jar"/>
+                             server.lib.dir="lib" server.lib.includes="*.jar"
+                             plugin.descriptor.file="${basedir}/teamcity-plugin.xml"
+                             plugin.version="${plugin.version}"/>
+  </target>
+
+  <target name="define.version" depends="define.version.if.under.teamcity">
+    <property name="plugin.version" value="SNAPSHOT-$Revision$"/>
+  </target>
+
+  <target name="define.version.if.under.teamcity" if="build.number">
+    <property name="plugin.version" value="${build.number}"/>
   </target>
 
   <target name="dist" depends="check.teamcitydistribution,all,package"/>

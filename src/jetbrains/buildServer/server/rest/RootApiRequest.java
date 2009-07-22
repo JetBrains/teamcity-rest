@@ -24,6 +24,7 @@ import javax.ws.rs.Produces;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.web.plugins.bean.ServerPluginInfo;
 
 /**
  * @author Yegor.Yarko
@@ -34,17 +35,19 @@ import jetbrains.buildServer.serverSide.SProject;
 public class RootApiRequest {
 
   private final DataProvider myDataProvider;
+  private ServerPluginInfo myPluginInfo;
 
-  public RootApiRequest(DataProvider myDataProvider) {
+  public RootApiRequest(DataProvider myDataProvider, ServerPluginInfo pluginInfo) {
     this.myDataProvider = myDataProvider;
+    //todo: ensure this is accessible via openAPI
+    myPluginInfo = pluginInfo;
   }
 
   @GET
   @Path("/version")
   @Produces("text/plain")
   public String serveApiVersion() {
-    final String svn_revision = "$Revision$";
-    return "rev." + svn_revision.substring("$Revision: ".length(), svn_revision.length() - 2);
+    return myPluginInfo.getPluginXml().getInfo().getVersion();
   }
 
   @GET
