@@ -43,7 +43,8 @@ public class RootApiRequest {
   @Path("/version")
   @Produces("text/plain")
   public String serveApiVersion() {
-    return "rev.$Revision$";
+    final String svn_revision = "$Revision$";
+    return "rev." + svn_revision.substring("$Revision: ".length(), svn_revision.length() - 2);
   }
 
   @GET
