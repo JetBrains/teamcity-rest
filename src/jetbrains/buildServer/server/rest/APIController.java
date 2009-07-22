@@ -97,21 +97,7 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   protected ModelAndView doHandle(final HttpServletRequest request, final HttpServletResponse response) throws Exception {
-
-    //todo: check synchronization
-    synchronized (this) {
-      // workaround for http://jetbrains.net/tracker/issue2/TW-7656
-      if (myWebComponent == null) {
-        final ClassLoader cl = Thread.currentThread().getContextClassLoader();
-        Thread.currentThread().setContextClassLoader(myClassloader);
-        try {
-          init();
-        } finally {
-          Thread.currentThread().setContextClassLoader(cl);
-        }
-      }
-    }
-
+    ensureInitialized();
 
     boolean runAsSystem = false;
     String authToken = request.getParameter("authToken");
@@ -150,6 +136,22 @@ public class APIController extends BaseController implements ServletContextAware
       Thread.currentThread().setContextClassLoader(cl);
     }
     return null;
+  }
+
+  private void ensureInitialized() throws ServletException {
+    //todo: check synchronization
+    synchronized (this) {
+      // workaround for http://jetbrains.net/tracker/issue2/TW-7656
+      if (myWebComponent == null) {
+        final ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(myClassloader);
+        try {
+          init();
+        } finally {
+          Thread.currentThread().setContextClassLoader(cl);
+        }
+      }
+    }
   }
 
   private String getAuthToken() {
