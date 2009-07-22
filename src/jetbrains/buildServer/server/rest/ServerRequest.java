@@ -17,21 +17,16 @@
 package jetbrains.buildServer.server.rest;
 
 import com.sun.jersey.spi.resource.Singleton;
-
-import javax.ws.rs.Path;
 import javax.ws.rs.GET;
-import javax.ws.rs.Produces;
+import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
-
-import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SBuild;
+import javax.ws.rs.Produces;
 
 /**
  * User: Yegor Yarko
  * Date: 11.04.2009
  */
-@Path("/httpAuth/api")
+@Path("/httpAuth/api/server")
 @Singleton
 public class ServerRequest {
   private final DataProvider myDataProvider;
@@ -41,24 +36,9 @@ public class ServerRequest {
   }
 
   @GET
-  @Path("/server/{field}")
+  @Path("/{field}")
   @Produces({"text/plain"})
   public String serveServerVersion(@PathParam("field") String fieldName) {
     return myDataProvider.getServerFieldValue(fieldName);
-  }
-
-
-  @GET
-  @Path("/{projectLocator}/{btLocator}/{buildLocator}/{field}")
-  @Produces("text/plain")
-  public String serveBuildFieldShort(@PathParam("projectLocator") String projectLocator,
-                                     @PathParam("btLocator") String buildTypeLocator,
-                                     @PathParam("buildLocator") String buildLocator,
-                                     @PathParam("field") String field) {
-    SProject project = myDataProvider.getProject(projectLocator);
-    SBuildType buildType = myDataProvider.getBuildType(project, buildTypeLocator);
-    SBuild build = myDataProvider.getBuild(buildType, buildLocator);
-
-    return myDataProvider.getFieldValue(build, field);
   }
 }

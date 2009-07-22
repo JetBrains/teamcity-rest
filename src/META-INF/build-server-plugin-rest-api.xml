@@ -26,6 +26,7 @@
   <bean id="restDataProvider" class="jetbrains.buildServer.server.rest.DataProvider"/>
   <bean id="restDataUpdater" class="jetbrains.buildServer.server.rest.DataUpdater"/>
 
+  <bean id="rootApiRequest" class="jetbrains.buildServer.server.rest.RootApiRequest"/>
   <bean id="serverRequest" class="jetbrains.buildServer.server.rest.ServerRequest"/>
   <bean id="projectRequest" class="jetbrains.buildServer.server.rest.ProjectRequest"/>
   <bean id="buildTypeRequest" class="jetbrains.buildServer.server.rest.BuildTypeRequest"/>
