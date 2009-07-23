@@ -411,6 +411,30 @@ public class DataProvider {
     return list;
   }
 
+  /**
+   * Finds builds by the specified criteria within specified range
+   *
+   * @param start  the index of the first build to return (begins with 0)
+   * @param finish the index up to which (excluding) the builds will be returned
+   * @return the builds found
+   */
+  public List<SFinishedBuild> getAllBuilds(@Nullable final Long start,
+                                           @Nullable final Long finish) {
+    final ArrayList<SFinishedBuild> list = new ArrayList<SFinishedBuild>();
+    myServer.getHistory().processEntries(new ItemProcessor<SFinishedBuild>() {
+      long currentIndex = 0;
+
+      public boolean processItem(final SFinishedBuild item) {
+        if ((start == null || currentIndex >= start) && (finish == null || currentIndex < finish)) {
+          list.add(item);
+        }
+        ++currentIndex;
+        return finish == null || currentIndex <= finish;
+      }
+    });
+    return list;
+  }
+
   @NotNull
   public SUser getUser(String userLocator) {
     if (userLocator == null) {

@@ -17,11 +17,9 @@
 package jetbrains.buildServer.server.rest;
 
 import com.sun.jersey.spi.resource.Singleton;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import jetbrains.buildServer.server.rest.data.Build;
+import jetbrains.buildServer.server.rest.data.Builds;
 import jetbrains.buildServer.serverSide.SBuild;
 
 /**
@@ -41,6 +39,14 @@ public class BuildRequest {
     return "/httpAuth/api/builds/id:" + build.getBuildId();
   }
 
+
+  @GET
+  @Produces({"application/xml", "application/json"})
+  public Builds serveAllBuilds(@PathParam("buildLocator") String buildLocator,
+                               @QueryParam("start") Long start,
+                               @QueryParam("finish") Long finish) {
+    return new Builds(myDataProvider.getAllBuilds(start, finish));
+  }
 
   @GET
   @Path("/{buildLocator}")
