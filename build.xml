@@ -29,6 +29,4 @@
   <target name="deploy" depends="dist">
     <deploy.teamcity.plugin name="${plugin.name}"/>
   </target>
-</project>
-
-        
+</project>        
