@@ -18,18 +18,19 @@ package jetbrains.buildServer.server.rest.data;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import jetbrains.buildServer.server.rest.UserRequest;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
 public class UserRef {
-  private jetbrains.buildServer.users.User myUser;
+  @NotNull private jetbrains.buildServer.users.User myUser;
 
   public UserRef() {
   }
 
-  public UserRef(jetbrains.buildServer.users.User user) {
+  public UserRef(@NotNull jetbrains.buildServer.users.User user) {
     myUser = user;
   }
 

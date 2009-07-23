@@ -17,26 +17,34 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.text.SimpleDateFormat;
-import javax.xml.bind.annotation.XmlAttribute;
+import java.util.ArrayList;
+import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
  *         Date: 21.07.2009
  */
 public class Comment {
-  private jetbrains.buildServer.serverSide.comments.Comment myBuildComment;
+  @NotNull private jetbrains.buildServer.serverSide.comments.Comment myBuildComment;
 
   public Comment() {
   }
 
-  public Comment(jetbrains.buildServer.serverSide.comments.Comment buildComment) {
+  public Comment(@NotNull jetbrains.buildServer.serverSide.comments.Comment buildComment) {
     myBuildComment = buildComment;
   }
 
-  @XmlAttribute
-  public UserRef getUser() {
-    return new UserRef(myBuildComment.getUser());
+  //todo: is it OK to handle possible missing value?
+  @XmlElement
+  public List<UserRef> getUser() {
+    final ArrayList<UserRef> result = new ArrayList<UserRef>();
+    final jetbrains.buildServer.users.User user = myBuildComment.getUser();
+    if (user != null) {
+      result.add(new UserRef(user));
+    }
+    return result;
   }
 
   @XmlElement
@@ -46,6 +54,7 @@ public class Comment {
 
   @XmlElement
   public String getText() {
-    return myBuildComment.getComment();
+    final String commentText = myBuildComment.getComment();
+    return commentText != null ? commentText : "<none>";
   }
 }

@@ -68,9 +68,15 @@ public class Build extends BuildRef {
     return (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(myBuild.getFinishDate());
   }
 
+  //todo: investigate empty comment case
   @XmlElement
-  public Comment getComment() {
-    return new Comment(myBuild.getBuildComment());
+  public List<Comment> getComment() {
+    ArrayList<Comment> result = new ArrayList<Comment>();
+    final jetbrains.buildServer.serverSide.comments.Comment comment = myBuild.getBuildComment();
+    if (comment != null) {
+      result.add(new Comment(comment));
+    }
+    return result;
   }
 
   @XmlElement(name = "tag")
