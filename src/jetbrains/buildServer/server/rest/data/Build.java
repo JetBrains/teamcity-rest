@@ -52,6 +52,11 @@ public class Build extends BuildRef {
     return myBuild.isPinned();
   }
 
+  @XmlAttribute
+  public boolean isPersonal() {
+    return myBuild.isPersonal();
+  }
+
   @XmlElement
   public BuildTypeRef getBuildType() {
     return new BuildTypeRef(myBuild.getBuildType());

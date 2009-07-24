@@ -412,19 +412,52 @@ public class DataProvider {
   }
 
   /**
-   * Finds builds by the specified criteria within specified range
+   * Finds finished builds by the specified criteria within specified range
+   * This is slow!
    *
-   * @param start  the index of the first build to return (begins with 0)
-   * @param finish the index up to which (excluding) the builds will be returned
-   * @return the builds found
+   * @param buildTypeId     id of the build type to return builds from, can be null to return all builds
+   * @param username        limit builds to those triggered by user
+   * @param includePersonal limit builds to non-personal
+   * @param includeCanceled limit builds to non-canceled
+   * @param onlyPinned      limit builds to pinned
+   * @param agentName       limit builds to those ran on specified agent
+   * @param start           the index of the first build to return (begins with 0)
+   * @param finish          the index up to which (excluding) the builds will be returned   @return the builds found
    */
-  public List<SFinishedBuild> getAllBuilds(@Nullable final Long start,
+  public List<SFinishedBuild> getAllBuilds(@Nullable final String buildTypeId,
+                                           @Nullable final String username,
+                                           final boolean includePersonal,
+                                           final boolean includeCanceled,
+                                           final boolean onlyPinned,
+                                           @Nullable final String agentName,
+                                           @Nullable final Long start,
                                            @Nullable final Long finish) {
     final ArrayList<SFinishedBuild> list = new ArrayList<SFinishedBuild>();
     myServer.getHistory().processEntries(new ItemProcessor<SFinishedBuild>() {
       long currentIndex = 0;
 
       public boolean processItem(final SFinishedBuild item) {
+        if (agentName != null && !agentName.equals(item.getAgentName())) {
+          return true;
+        }
+        if (buildTypeId != null && !buildTypeId.equals(item.getBuildTypeId())) {
+          return true;
+        }
+        if (!includePersonal && item.isPersonal()) {
+          return true;
+        }
+        if (!includeCanceled && (item.getCanceledInfo() != null)) {
+          return true;
+        }
+        if (onlyPinned && !item.isPinned()) {
+          return true;
+        }
+        if (username != null) {
+          final SUser user = myUserModel.findUserAccount(null, username);
+          if ((!item.getTriggeredBy().isTriggeredByUser() || user == null || !user.equals(item.getTriggeredBy().getUser()))) {
+            return true;
+          }
+        }
         if ((start == null || currentIndex >= start) && (finish == null || currentIndex < finish)) {
           list.add(item);
         }
