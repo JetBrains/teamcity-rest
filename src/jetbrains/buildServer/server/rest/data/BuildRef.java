@@ -50,9 +50,4 @@ public class BuildRef {
   public String getHref() {
     return BuildRequest.getBuildHref(myBuild);
   }
-
-  @XmlAttribute
-  public String getBuildTypeName() {
-    return myBuild.getBuildTypeName();
-  }
 }
