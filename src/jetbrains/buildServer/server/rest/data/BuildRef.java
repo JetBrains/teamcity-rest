@@ -25,7 +25,7 @@ import jetbrains.buildServer.serverSide.SBuild;
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
-@XmlType(propOrder = {"href", "buildTypeName", "number", "id"})
+@XmlType(propOrder = {"href", "number", "id"})
 public class BuildRef {
   protected SBuild myBuild;
 
