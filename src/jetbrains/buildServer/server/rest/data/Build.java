@@ -20,9 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.*;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 
@@ -33,6 +31,9 @@ import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 //todo: add changes
 //todo: reuse fields code from DataProvider
 @XmlRootElement(name = "build")
+@XmlType(propOrder = {"personal", "pinned", "status",
+  "buildType", "startDate", "finishDate", "comment", "tags", "properties",
+  "buildDependencies", "revisions", "changes", "issues"})
 public class Build extends BuildRef {
 
   public Build() {
@@ -73,17 +74,16 @@ public class Build extends BuildRef {
     return (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(myBuild.getFinishDate());
   }
 
-  //todo: investigate empty comment case
-  @XmlElement
-  public List<Comment> getComment() {
-    ArrayList<Comment> result = new ArrayList<Comment>();
+  @XmlElement(defaultValue = "")
+  public Comment getComment() {
     final jetbrains.buildServer.serverSide.comments.Comment comment = myBuild.getBuildComment();
     if (comment != null) {
-      result.add(new Comment(comment));
+      return new Comment(comment);
     }
-    return result;
+    return null;
   }
 
+  @XmlElementWrapper(name = "tags")
   @XmlElement(name = "tag")
   public List<String> getTags() {
     return myBuild.getTags();

@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.BuildRequest;
 import jetbrains.buildServer.serverSide.SBuild;
 
@@ -24,6 +25,7 @@ import jetbrains.buildServer.serverSide.SBuild;
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
+@XmlType(propOrder = {"href", "buildTypeName", "number", "id"})
 public class BuildRef {
   protected SBuild myBuild;
 
