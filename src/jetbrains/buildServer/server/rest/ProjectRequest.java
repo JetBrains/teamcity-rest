@@ -17,10 +17,7 @@
 package jetbrains.buildServer.server.rest;
 
 import com.sun.jersey.spi.resource.Singleton;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -100,10 +97,13 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   //todo: add qury params limiting range
   public Builds serveBuilds(@PathParam("projectLocator") String projectLocator,
-                            @PathParam("btLocator") String buildTypeLocator) {
+                            @PathParam("btLocator") String buildTypeLocator,
+                            @QueryParam("status") String status,
+                            @QueryParam("start") Long start,
+                            @QueryParam("finish") Long finish) {
     SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
 
-    return new Builds(buildType.getHistory());
+    return new Builds(myDataProvider.getBuilds(buildType, null, false, true, false, status, start, finish));
   }
 
   @GET

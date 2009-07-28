@@ -390,6 +390,7 @@ public class DataProvider {
                                         final boolean includePersonalBuildsIfUserNotSpecified,
                                         final boolean includeCanceled,
                                         final boolean orderByChanges,
+                                        @Nullable final String status,
                                         @Nullable final Long start,
                                         @Nullable final Long finish) {
     final ArrayList<SFinishedBuild> list = new ArrayList<SFinishedBuild>();
@@ -401,6 +402,10 @@ public class DataProvider {
                                            long currentIndex = 0;
 
                                            public boolean processItem(final SFinishedBuild item) {
+                                             if (status != null &&
+                                                 !status.equalsIgnoreCase(item.getStatusDescriptor().getStatus().getText())) {
+                                               return true;
+                                             }
                                              if ((start == null || currentIndex >= start) && (finish == null || currentIndex < finish)) {
                                                list.add(item);
                                              }
@@ -425,6 +430,7 @@ public class DataProvider {
    * @param finish          the index up to which (excluding) the builds will be returned   @return the builds found
    */
   public List<SFinishedBuild> getAllBuilds(@Nullable final String buildTypeId,
+                                           @Nullable final String status,
                                            @Nullable final String username,
                                            final boolean includePersonal,
                                            final boolean includeCanceled,
@@ -441,6 +447,9 @@ public class DataProvider {
           return true;
         }
         if (buildTypeId != null && !buildTypeId.equals(item.getBuildTypeId())) {
+          return true;
+        }
+        if (status != null && !status.equalsIgnoreCase(item.getStatusDescriptor().getStatus().getText())) {
           return true;
         }
         if (!includePersonal && item.isPersonal()) {

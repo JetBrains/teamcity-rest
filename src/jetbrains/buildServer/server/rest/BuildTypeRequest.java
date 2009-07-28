@@ -75,10 +75,11 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   //todo: add qury params limiting range
   public Builds serveBuilds(@PathParam("btLocator") String buildTypeLocator,
+                            @QueryParam("status") String status,
                             @QueryParam("start") Long start,
                             @QueryParam("finish") Long finish) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return new Builds(myDataProvider.getBuilds(buildType, null, false, true, false, start, finish));
+    return new Builds(myDataProvider.getBuilds(buildType, null, false, true, false, status, start, finish));
   }
 
   @GET

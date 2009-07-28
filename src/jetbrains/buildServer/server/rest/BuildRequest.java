@@ -43,6 +43,7 @@ public class BuildRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public Builds serveAllBuilds(@QueryParam("buildTypeId") String buildTypeId,
+                               @QueryParam("status") String status,
                                @QueryParam("username") String username,
                                @QueryParam("includePersonal") boolean includePersonal,
                                @QueryParam("includeCanceled") boolean includeCanceled,
@@ -51,7 +52,7 @@ public class BuildRequest {
                                @QueryParam("start") Long start,
                                @QueryParam("finish") Long finish) {
     return new Builds(
-      myDataProvider.getAllBuilds(buildTypeId, username, includePersonal, includeCanceled, onlyPinned, agentName, start, finish));
+      myDataProvider.getAllBuilds(buildTypeId, status, username, includePersonal, includeCanceled, onlyPinned, agentName, start, finish));
   }
 
   @GET
