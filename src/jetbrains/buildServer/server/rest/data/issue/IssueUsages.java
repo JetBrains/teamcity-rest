@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data;
+package jetbrains.buildServer.server.rest.data.issue;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,23 +22,31 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.issueTracker.Issue;
+import jetbrains.buildServer.serverSide.SBuild;
 
 /**
  * @author Yegor.Yarko
- *         Date: 21.07.2009
+ *         Date: 28.07.2009
  */
-@XmlRootElement(name = "issues")
-public class Issues {
-  @XmlElement(name = "issue")
-  public List<jetbrains.buildServer.server.rest.data.Issue> issues;
+@XmlRootElement(name = "issuesUsages")
+public class IssueUsages {
+  private Collection<Issue> myIssues;
+  private SBuild myBuild;
 
-  public Issues() {
+  public IssueUsages() {
   }
 
-  public Issues(Collection<Issue> buildIssues) {
-    issues = new ArrayList<jetbrains.buildServer.server.rest.data.Issue>(buildIssues.size());
-    for (Issue buildIssue : buildIssues) {
-      issues.add(new jetbrains.buildServer.server.rest.data.Issue(buildIssue));
+  public IssueUsages(final Collection<Issue> issues, final SBuild build) {
+    myIssues = issues;
+    myBuild = build;
+  }
+
+  @XmlElement(name = "issueUsage")
+  public List<IssueUsage> getIssueUsages() {
+    List<IssueUsage> result = new ArrayList<IssueUsage>(myIssues.size());
+    for (Issue issue : myIssues) {
+      result.add(new IssueUsage(issue, myBuild));
     }
+    return result;
   }
 }

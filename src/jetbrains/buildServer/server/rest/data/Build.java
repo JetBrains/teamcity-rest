@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.*;
+import jetbrains.buildServer.server.rest.data.issue.IssueUsages;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 
@@ -110,8 +111,8 @@ public class Build extends BuildRef {
   }
 
   @XmlElement(name = "relatedIssues")
-  public Issues getIssues() {
-    return new Issues(myBuild.getRelatedIssues());
+  public IssueUsages getIssues() {
+    return new IssueUsages(myBuild.getRelatedIssues(), myBuild);
   }
 
   private List<BuildRef> getBuildRefs(Collection<? extends BuildDependency> dependencies) {

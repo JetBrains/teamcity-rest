@@ -14,32 +14,30 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data;
+package jetbrains.buildServer.server.rest.data.issue;
 
-import javax.xml.bind.annotation.XmlAttribute;
-import org.jetbrains.annotations.NotNull;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Yegor.Yarko
  *         Date: 21.07.2009
  */
-public class Issue {
-  @NotNull protected jetbrains.buildServer.issueTracker.Issue myIssue;
+@XmlRootElement(name = "issues")
+public class Issues {
+  @XmlElement(name = "issue")
+  public List<Issue> issues;
 
-  public Issue() {
+  public Issues() {
   }
 
-  public Issue(@NotNull final jetbrains.buildServer.issueTracker.Issue issue) {
-    myIssue = issue;
-  }
-
-  @XmlAttribute
-  public String getId() {
-    return myIssue.getId();
-  }
-
-  @XmlAttribute
-  public String getUrl() {
-    return myIssue.getUrl();
+  public Issues(Collection<jetbrains.buildServer.issueTracker.Issue> buildIssues) {
+    issues = new ArrayList<Issue>(buildIssues.size());
+    for (jetbrains.buildServer.issueTracker.Issue buildIssue : buildIssues) {
+      issues.add(new Issue(buildIssue));
+    }
   }
 }
