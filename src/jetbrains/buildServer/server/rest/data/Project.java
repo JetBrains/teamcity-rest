@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.serverSide.SProject;
 
 /**
@@ -27,12 +28,14 @@ import jetbrains.buildServer.serverSide.SProject;
  */
 @XmlRootElement(name = "project")
 public class Project extends ProjectRef {
+  private DataProvider myDataProvider;
 
   public Project() {
   }
 
-  public Project(SProject project) {
+  public Project(final SProject project, final DataProvider dataProvider) {
     super(project);
+    myDataProvider = dataProvider;
   }
 
   @XmlAttribute
@@ -43,6 +46,11 @@ public class Project extends ProjectRef {
   @XmlAttribute
   public boolean isArchived() {
     return myProject.isArchived();
+  }
+
+  @XmlAttribute
+  public String getWebUrl() {
+    return myDataProvider.getProjectUrl(myProject);
   }
 
   @XmlElement

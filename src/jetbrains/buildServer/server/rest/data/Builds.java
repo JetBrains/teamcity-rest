@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.serverSide.SBuild;
 
 /**
@@ -34,10 +35,10 @@ public class Builds {
   public Builds() {
   }
 
-  public Builds(List buildsObjects) {
-    builds = new ArrayList<BuildRef>(buildsObjects.size());
-    for (Object build : buildsObjects) {
-      builds.add(new BuildRef((SBuild)build));
+  public Builds(final List buildObjects, final DataProvider dataProvider) {
+    builds = new ArrayList<BuildRef>(buildObjects.size());
+    for (Object build : buildObjects) {
+      builds.add(new BuildRef((SBuild)build, dataProvider));
     }
   }
 }

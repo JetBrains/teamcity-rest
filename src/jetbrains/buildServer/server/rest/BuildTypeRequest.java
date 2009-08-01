@@ -59,7 +59,7 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public BuildType serveBuildTypeXML(@PathParam("btLocator") String buildTypeLocator) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return new BuildType(buildType);
+    return new BuildType(buildType, myDataProvider);
   }
 
   @GET
@@ -79,7 +79,7 @@ public class BuildTypeRequest {
                             @QueryParam("start") Long start,
                             @QueryParam("finish") Long finish) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return new Builds(myDataProvider.getBuilds(buildType, null, false, true, false, status, start, finish));
+    return new Builds(myDataProvider.getBuilds(buildType, null, false, true, false, status, start, finish), myDataProvider);
   }
 
   @GET
@@ -89,7 +89,7 @@ public class BuildTypeRequest {
                                      @PathParam("buildLocator") String buildLocator) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     SBuild build = myDataProvider.getBuild(buildType, buildLocator);
-    return new Build(build);
+    return new Build(build, myDataProvider);
   }
 
 

@@ -50,7 +50,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}")
   @Produces({"application/xml", "application/json"})
   public Project serveProject(@PathParam("projectLocator") String projectLocator) {
-    return new Project(myDataProvider.getProject(projectLocator));
+    return new Project(myDataProvider.getProject(projectLocator), myDataProvider);
   }
 
   @GET
@@ -76,7 +76,7 @@ public class ProjectRequest {
                                   @PathParam("btLocator") String buildTypeLocator) {
     SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
 
-    return new BuildType(buildType);
+    return new BuildType(buildType, myDataProvider);
   }
 
   @GET
@@ -103,7 +103,7 @@ public class ProjectRequest {
                             @QueryParam("finish") Long finish) {
     SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
 
-    return new Builds(myDataProvider.getBuilds(buildType, null, false, true, false, status, start, finish));
+    return new Builds(myDataProvider.getBuilds(buildType, null, false, true, false, status, start, finish), myDataProvider);
   }
 
   @GET
@@ -115,7 +115,7 @@ public class ProjectRequest {
     SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
     SBuild build = myDataProvider.getBuild(buildType, buildLocator);
 
-    return new Build(build);
+    return new Build(build, myDataProvider);
   }
 
   @GET

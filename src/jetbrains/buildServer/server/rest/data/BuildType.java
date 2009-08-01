@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.serverSide.SBuildType;
 
 /**
@@ -27,11 +28,14 @@ import jetbrains.buildServer.serverSide.SBuildType;
  */
 @XmlRootElement(name = "buildType")
 public class BuildType extends BuildTypeRef {
+  private DataProvider myDataProvider;
+
   public BuildType() {
   }
 
-  public BuildType(SBuildType buildType) {
-    myBuildType = buildType;
+  public BuildType(final SBuildType buildType, final DataProvider dataProvider) {
+    super(buildType);
+    myDataProvider = dataProvider;
   }
 
   @XmlAttribute
@@ -42,6 +46,11 @@ public class BuildType extends BuildTypeRef {
   @XmlAttribute
   public boolean isPaused() {
     return myBuildType.isPaused();
+  }
+
+  @XmlAttribute
+  public String getWebUrl() {
+    return myDataProvider.getBuildTypeUrl(myBuildType);
   }
 
   @XmlElement

@@ -53,6 +53,7 @@ public class DataProvider {
   private RolesManager myRolesManager;
   private UserGroupManager myGroupManager;
   private VcsManager myVcsManager;
+  private WebLinks myWebLinks;
   private static final String DIMENSION_NAME_VALUE_DELIMITER = ":";
   private static final String DIMENSIONS_DELIMITER = ",";
 
@@ -61,13 +62,15 @@ public class DataProvider {
                       UserModel userModel,
                       final RolesManager rolesManager,
                       final UserGroupManager groupManager,
-                      final VcsManager vcsManager) {
+                      final VcsManager vcsManager,
+                      final WebLinks webLinks) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
     this.myUserModel = userModel;
     myRolesManager = rolesManager;
     myGroupManager = groupManager;
     myVcsManager = vcsManager;
+    myWebLinks = webLinks;
   }
 
   @Nullable
@@ -725,5 +728,20 @@ public class DataProvider {
       return modification;
     }
     throw new NotFoundException("VCS root locator '" + changeLocator + "' is not supported.");
+  }
+
+  @NotNull
+  public String getBuildUrl(SBuild build) {
+    return myWebLinks.getViewResultsUrl(build);
+  }
+
+  @NotNull
+  public String getBuildTypeUrl(SBuildType buildType) {
+    return myWebLinks.getConfigurationHomePageUrl(buildType);
+  }
+
+  @NotNull
+  public String getProjectUrl(final SProject project) {
+    return myWebLinks.getProjectPageUrl(project.getProjectId());
   }
 }

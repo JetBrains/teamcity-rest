@@ -52,14 +52,15 @@ public class BuildRequest {
                                @QueryParam("start") Long start,
                                @QueryParam("finish") Long finish) {
     return new Builds(
-      myDataProvider.getAllBuilds(buildTypeId, status, username, includePersonal, includeCanceled, onlyPinned, agentName, start, finish));
+      myDataProvider.getAllBuilds(buildTypeId, status, username, includePersonal, includeCanceled, onlyPinned, agentName, start, finish),
+      myDataProvider);
   }
 
   @GET
   @Path("/{buildLocator}")
   @Produces({"application/xml", "application/json"})
   public Build serveBuild(@PathParam("buildLocator") String buildLocator) {
-    return new Build(myDataProvider.getBuild(null, buildLocator));
+    return new Build(myDataProvider.getBuild(null, buildLocator), myDataProvider);
   }
 
   @GET

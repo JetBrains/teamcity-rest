@@ -19,21 +19,24 @@ package jetbrains.buildServer.server.rest.data;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.BuildRequest;
+import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.serverSide.SBuild;
 
 /**
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
-@XmlType(propOrder = {"href", "number", "id"})
+@XmlType(propOrder = {"webUrl", "href", "buildTypeId", "status", "number", "id"})
 public class BuildRef {
   protected SBuild myBuild;
+  private DataProvider myDataProvider;
 
   public BuildRef() {
   }
 
-  public BuildRef(SBuild build) {
+  public BuildRef(final SBuild build, final DataProvider dataProvider) {
     myBuild = build;
+    myDataProvider = dataProvider;
   }
 
   @XmlAttribute
@@ -47,7 +50,22 @@ public class BuildRef {
   }
 
   @XmlAttribute
+  public String getStatus() {
+    return myBuild.getStatusDescriptor().getStatus().getText();
+  }
+
+  @XmlAttribute
+  public String getBuildTypeId() {
+    return myBuild.getBuildTypeId();
+  }
+
+  @XmlAttribute
   public String getHref() {
     return BuildRequest.getBuildHref(myBuild);
+  }
+
+  @XmlAttribute
+  public String getWebUrl() {
+    return myDataProvider.getBuildUrl(myBuild);
   }
 }

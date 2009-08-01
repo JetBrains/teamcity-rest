@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.*;
+import jetbrains.buildServer.server.rest.BuildRequest;
+import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.issue.IssueUsages;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
@@ -32,16 +34,34 @@ import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 //todo: add changes
 //todo: reuse fields code from DataProvider
 @XmlRootElement(name = "build")
-@XmlType(propOrder = {"personal", "pinned", "status",
-  "buildType", "startDate", "finishDate", "comment", "tags", "properties",
+@XmlType(propOrder = {"pinned", "personal", "webUrl", "href", "status", "number", "id",
+  "statusText", "buildType", "startDate", "finishDate", "comment", "tags", "properties",
   "buildDependencies", "revisions", "changes", "issues"})
-public class Build extends BuildRef {
+public class Build {
+  protected SBuild myBuild;
+  private DataProvider myDataProvider;
 
   public Build() {
   }
 
-  public Build(SBuild build) {
-    super(build);
+  public Build(final SBuild build, final DataProvider dataProvider) {
+    myBuild = build;
+    myDataProvider = dataProvider;
+  }
+
+  @XmlAttribute
+  public long getId() {
+    return myBuild.getBuildId();
+  }
+
+  @XmlAttribute
+  public String getNumber() {
+    return myBuild.getBuildNumber();
+  }
+
+  @XmlAttribute
+  public String getHref() {
+    return BuildRequest.getBuildHref(myBuild);
   }
 
   @XmlAttribute
@@ -57,6 +77,16 @@ public class Build extends BuildRef {
   @XmlAttribute
   public boolean isPersonal() {
     return myBuild.isPersonal();
+  }
+
+  @XmlAttribute
+  public String getWebUrl() {
+    return myDataProvider.getBuildUrl(myBuild);
+  }
+
+  @XmlElement
+  public String getStatusText() {
+    return myBuild.getStatusDescriptor().getText();
   }
 
   @XmlElement
@@ -97,7 +127,7 @@ public class Build extends BuildRef {
 
   @XmlElement(name = "dependency-build")
   public List<BuildRef> getBuildDependencies() {
-    return getBuildRefs(myBuild.getBuildPromotion().getDependencies());
+    return getBuildRefs(myBuild.getBuildPromotion().getDependencies(), myDataProvider);
   }
 
   @XmlElement(name = "revisions")
@@ -115,10 +145,10 @@ public class Build extends BuildRef {
     return new IssueUsages(myBuild.getRelatedIssues(), myBuild);
   }
 
-  private List<BuildRef> getBuildRefs(Collection<? extends BuildDependency> dependencies) {
+  private List<BuildRef> getBuildRefs(Collection<? extends BuildDependency> dependencies, final DataProvider dataProvider) {
     List<BuildRef> result = new ArrayList<BuildRef>(dependencies.size());
     for (BuildDependency dependency : dependencies) {
-      result.add(new BuildRef(dependency.getDependOn().getAssociatedBuild()));
+      result.add(new BuildRef(dependency.getDependOn().getAssociatedBuild(), dataProvider));
     }
     return result;
   }
