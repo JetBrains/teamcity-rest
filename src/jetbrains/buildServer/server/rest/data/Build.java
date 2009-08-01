@@ -23,8 +23,10 @@ import java.util.List;
 import javax.xml.bind.annotation.*;
 import jetbrains.buildServer.server.rest.BuildRequest;
 import jetbrains.buildServer.server.rest.DataProvider;
+import jetbrains.buildServer.server.rest.data.agent.AgentRef;
 import jetbrains.buildServer.server.rest.data.issue.IssueUsages;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 
 /**
@@ -35,7 +37,7 @@ import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 //todo: reuse fields code from DataProvider
 @XmlRootElement(name = "build")
 @XmlType(propOrder = {"pinned", "personal", "webUrl", "href", "status", "number", "id",
-  "statusText", "buildType", "startDate", "finishDate", "comment", "tags", "properties",
+  "statusText", "buildType", "startDate", "finishDate", "agent", "comment", "tags", "properties",
   "buildDependencies", "revisions", "changes", "issues"})
 public class Build {
   protected SBuild myBuild;
@@ -87,6 +89,15 @@ public class Build {
   @XmlElement
   public String getStatusText() {
     return myBuild.getStatusDescriptor().getText();
+  }
+
+  @XmlElement
+  public AgentRef getAgent() {
+    final SBuildAgent agent = myDataProvider.findAgentByName(myBuild.getAgentName());
+    if (agent == null) {
+      return new AgentRef(myBuild.getAgentName());
+    }
+    return new AgentRef(agent);
   }
 
   @XmlElement

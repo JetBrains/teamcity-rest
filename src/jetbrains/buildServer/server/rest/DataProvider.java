@@ -33,6 +33,7 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.ItemProcessor;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsManager;
@@ -53,6 +54,7 @@ public class DataProvider {
   private RolesManager myRolesManager;
   private UserGroupManager myGroupManager;
   private VcsManager myVcsManager;
+  private BuildAgentManager myAgentManager;
   private WebLinks myWebLinks;
   private static final String DIMENSION_NAME_VALUE_DELIMITER = ":";
   private static final String DIMENSIONS_DELIMITER = ",";
@@ -63,6 +65,7 @@ public class DataProvider {
                       final RolesManager rolesManager,
                       final UserGroupManager groupManager,
                       final VcsManager vcsManager,
+                      final BuildAgentManager agentManager,
                       final WebLinks webLinks) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
@@ -70,6 +73,7 @@ public class DataProvider {
     myRolesManager = rolesManager;
     myGroupManager = groupManager;
     myVcsManager = vcsManager;
+    myAgentManager = agentManager;
     myWebLinks = webLinks;
   }
 
@@ -132,7 +136,7 @@ public class DataProvider {
 
   @NotNull
   public SBuild getBuild(@Nullable final SBuildType buildType, @Nullable final String buildLocator) {
-    if (buildLocator == null) {
+    if (StringUtil.isEmpty(buildLocator)) {
       throw new BadRequestException("Empty build locator is not supported.");
     }
 
@@ -211,23 +215,19 @@ public class DataProvider {
 
   @NotNull
   public SBuildType getBuildType(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
-    if (buildTypeLocator == null) {
+    if (StringUtil.isEmpty(buildTypeLocator)) {
       throw new BadRequestException("Empty build type locator is not supported.");
     }
 
     if (!hasDimensions(buildTypeLocator)) {
       // no dimensions found, assume it's a name
-      SBuildType buildType = findBuildTypeByName(project, buildTypeLocator);
-      if (buildType == null) {
-        throw new NotFoundException("No build type is found by name '" + buildTypeLocator + "'.");
-      }
-      return buildType;
+      return findBuildTypeByName(project, buildTypeLocator);
     }
 
     MultiValuesMap<String, String> buildTypeLocatorDimensions = decodeLocator(buildTypeLocator);
 
     String id = getSingleDimensionValue(buildTypeLocatorDimensions, "id");
-    if (id != null) {
+    if (!StringUtil.isEmpty(id)) {
       SBuildType buildType = myServer.getProjectManager().findBuildTypeById(id);
       if (buildType == null) {
         throw new NotFoundException("No build type is found by id '" + id + "'.");
@@ -243,14 +243,10 @@ public class DataProvider {
 
     String name = getSingleDimensionValue(buildTypeLocatorDimensions, "name");
     if (name != null) {
-      SBuildType buildType = findBuildTypeByName(project, name);
-      if (buildType == null) {
-        throw new NotFoundException("No build type is found by name '" + name + "'.");
-      }
       if (buildTypeLocatorDimensions.keySet().size() > 1) {
         LOG.info("Build type locator '" + buildTypeLocator + "' has 'name' dimension and others. Others are ignored.");
       }
-      return buildType;
+      return findBuildTypeByName(project, name);
     }
     throw new BadRequestException("Build type locator '" + buildTypeLocator + "' is not supported.");
   }
@@ -262,7 +258,7 @@ public class DataProvider {
 
   @NotNull
   public SProject getProject(String projectLocator) {
-    if (projectLocator == null) {
+    if (StringUtil.isEmpty(projectLocator)) {
       throw new BadRequestException("Empty project locator is not supported.");
     }
 
@@ -310,10 +306,14 @@ public class DataProvider {
    * @return build type with the name 'name'. If 'project' is not null, the search is performed only within 'project'.
    * @throws BadRequestException if several build types with the same name are found
    */
-  @Nullable
+  @NotNull
   public SBuildType findBuildTypeByName(@Nullable final SProject project, @NotNull final String name) {
     if (project != null) {
-      return project.findBuildTypeByName(name);
+      final SBuildType buildType = project.findBuildTypeByName(name);
+      if (buildType == null) {
+        throw new NotFoundException("No build type is found by name '" + name + "' in project " + project.getName() + ".");
+      }
+      return buildType;
     }
     List<SBuildType> allBuildTypes = myServer.getProjectManager().getAllBuildTypes();
     SBuildType foundBuildType = null;
@@ -326,6 +326,9 @@ public class DataProvider {
           throw new BadRequestException("Several matching build types found for name '" + name + "'.");
         }
       }
+    }
+    if (foundBuildType == null) {
+      throw new NotFoundException("No build type is found by name '" + name + "'.");
     }
     return foundBuildType;
   }
@@ -348,7 +351,7 @@ public class DataProvider {
       throw new BadRequestException("Only single '" + dimensionName + "' dimension is supported in locator. Found: " + idDimension);
     }
     String result = idDimension.iterator().next();
-    if (result == null) {
+    if (StringUtil.isEmpty(result)) {
       throw new BadRequestException("Value is empty for dimension '" + dimensionName + "'.");
     }
     return result;
@@ -482,7 +485,7 @@ public class DataProvider {
 
   @NotNull
   public SUser getUser(String userLocator) {
-    if (userLocator == null) {
+    if (StringUtil.isEmpty(userLocator)) {
       throw new BadRequestException("Empty user locator is not supported.");
     }
 
@@ -528,7 +531,7 @@ public class DataProvider {
 
   @NotNull
   public Role getRoleById(String roleId) {
-    if (roleId == null) {
+    if (StringUtil.isEmpty(roleId)) {
       throw new BadRequestException("Cannot file role by empty id.");
     }
     Role role = myRolesManager.findRoleById(roleId);
@@ -553,7 +556,7 @@ public class DataProvider {
 
   @NotNull
   public SUserGroup getGroup(final String groupLocator) {
-    if (groupLocator == null) {
+    if (StringUtil.isEmpty(groupLocator)) {
       throw new BadRequestException("Empty group locator is not supported.");
     }
 
@@ -618,7 +621,7 @@ public class DataProvider {
 
   @NotNull
   public SVcsRoot getVcsRoot(final String vcsRootLocator) {
-    if (vcsRootLocator == null) {
+    if (StringUtil.isEmpty(vcsRootLocator)) {
       throw new BadRequestException("Empty VCS root locator is not supported.");
     }
 
@@ -692,7 +695,7 @@ public class DataProvider {
 
   @NotNull
   public SVcsModification getChange(final String changeLocator) {
-    if (changeLocator == null) {
+    if (StringUtil.isEmpty(changeLocator)) {
       throw new BadRequestException("Empty change locator is not supported.");
     }
 
@@ -714,7 +717,7 @@ public class DataProvider {
     MultiValuesMap<String, String> rootLocatorDimensions = decodeLocator(changeLocator);
     String changeId = getSingleDimensionValue(rootLocatorDimensions, "id");
 
-    if (changeId != null) {
+    if (!StringUtil.isEmpty(changeId)) {
       Long id;
       try {
         id = Long.parseLong(changeId);
@@ -731,6 +734,45 @@ public class DataProvider {
   }
 
   @NotNull
+  public SBuildAgent getAgent(@Nullable final String locator) {
+    if (StringUtil.isEmpty(locator)) {
+      throw new BadRequestException("Empty agent locator is not supported.");
+    }
+
+    if (!hasDimensions(locator)) {
+      // no dimensions found, assume it's name
+      final SBuildAgent agent = findAgentByName(locator);
+      if (agent == null) {
+        throw new NotFoundException("No agent can be found by name '" + locator + "'.");
+      }
+      return agent;
+    }
+
+    MultiValuesMap<String, String> rootLocatorDimensions = decodeLocator(locator);
+    String idString = getSingleDimensionValue(rootLocatorDimensions, "id");
+
+    if (!StringUtil.isEmpty(idString)) {
+      Integer id;
+      try {
+        id = Integer.parseInt(idString);
+      } catch (NumberFormatException e) {
+        throw new BadRequestException("Invalid agent id '" + idString + "'. Should be a number.");
+      }
+      final SBuildAgent agent = myAgentManager.findAgentById(id, true);
+      if (agent == null) {
+        throw new NotFoundException("No agent can be found by id '" + idString + "'.");
+      }
+      return agent;
+    }
+    throw new NotFoundException("Agent locator '" + locator + "' is not supported.");
+  }
+
+  @Nullable
+  public SBuildAgent findAgentByName(final String agentName) {
+    return myAgentManager.findAgentByName(agentName, true);
+  }
+
+  @NotNull
   public String getBuildUrl(SBuild build) {
     return myWebLinks.getViewResultsUrl(build);
   }
@@ -743,5 +785,18 @@ public class DataProvider {
   @NotNull
   public String getProjectUrl(final SProject project) {
     return myWebLinks.getProjectPageUrl(project.getProjectId());
+  }
+
+  @NotNull
+  public Collection<SBuildAgent> getAllAgents() {
+    return getAllAgents(new AgentsSearchFields(true, true));
+  }
+
+  public Collection<SBuildAgent> getAllAgents(final AgentsSearchFields agentsSearchFields) {
+    final List<SBuildAgent> result = myAgentManager.getRegisteredAgents(agentsSearchFields.isIncludeUnauthorized());
+    if (agentsSearchFields.isIncludeDisconnected()) {
+      result.addAll(myAgentManager.getUnregisteredAgents());
+    }
+    return result;
   }
 }
