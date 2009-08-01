@@ -18,10 +18,10 @@ package jetbrains.buildServer.server.rest;
 
 import com.sun.jersey.spi.resource.Singleton;
 import javax.ws.rs.*;
-import jetbrains.buildServer.server.rest.data.Build;
 import jetbrains.buildServer.server.rest.data.BuildType;
 import jetbrains.buildServer.server.rest.data.BuildTypes;
-import jetbrains.buildServer.server.rest.data.Builds;
+import jetbrains.buildServer.server.rest.data.build.Build;
+import jetbrains.buildServer.server.rest.data.build.Builds;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
 

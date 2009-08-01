@@ -21,7 +21,12 @@ import com.sun.jersey.api.json.JSONJAXBContext;
 import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
 import javax.xml.bind.JAXBContext;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.BuildType;
+import jetbrains.buildServer.server.rest.data.BuildTypes;
+import jetbrains.buildServer.server.rest.data.Project;
+import jetbrains.buildServer.server.rest.data.Projects;
+import jetbrains.buildServer.server.rest.data.build.Build;
+import jetbrains.buildServer.server.rest.data.build.Builds;
 
 /**
  * User: Yegor Yarko

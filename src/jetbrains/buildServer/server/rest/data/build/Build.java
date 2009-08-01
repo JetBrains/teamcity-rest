@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data;
+package jetbrains.buildServer.server.rest.data.build;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -23,6 +23,7 @@ import java.util.List;
 import javax.xml.bind.annotation.*;
 import jetbrains.buildServer.server.rest.BuildRequest;
 import jetbrains.buildServer.server.rest.DataProvider;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.agent.AgentRef;
 import jetbrains.buildServer.server.rest.data.issue.IssueUsages;
 import jetbrains.buildServer.serverSide.SBuild;
