@@ -14,40 +14,39 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest;
+package jetbrains.buildServer.server.rest.request;
 
 import com.sun.jersey.spi.resource.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import jetbrains.buildServer.server.rest.data.VcsRoot;
-import jetbrains.buildServer.server.rest.data.VcsRoots;
+import jetbrains.buildServer.server.rest.DataProvider;
+import jetbrains.buildServer.server.rest.data.change.Change;
+import jetbrains.buildServer.vcs.VcsModification;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
     - too long number passed as finish for builds produses 404
 */
 
-@Path("/httpAuth/api/vcs-roots")
+@Path("/httpAuth/api/changes")
 @Singleton
-public class VcsRootRequest {
+public class ChangeRequest {
   private final DataProvider myDataProvider;
 
-  public VcsRootRequest(DataProvider myDataProvider) {
+  public ChangeRequest(DataProvider myDataProvider) {
     this.myDataProvider = myDataProvider;
   }
 
-  @GET
-  @Produces({"application/xml", "application/json"})
-  public VcsRoots serveRoots() {
-    return new VcsRoots(myDataProvider.getAllVcsRoots());
+  public static String getChangeHref(VcsModification modification) {
+    return "/httpAuth/api/changes/id:" + modification.getId();
   }
 
   @GET
-  @Path("/{vcsRootLocator}")
+  @Path("/{changeLocator}")
   @Produces({"application/xml", "application/json"})
-  public VcsRoot servRoot(@PathParam("vcsRootLocator") String vcsRootLocator) {
-    return new VcsRoot(myDataProvider.getVcsRoot(vcsRootLocator));
+  public Change servRoot(@PathParam("changeLocator") String changeLocator) {
+    return new Change(myDataProvider.getChange(changeLocator));
   }
 }

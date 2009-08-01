@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest;
+package jetbrains.buildServer.server.rest.request;
 
 import com.sun.jersey.spi.resource.Singleton;
 import javax.ws.rs.*;
+import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.BuildType;
 import jetbrains.buildServer.server.rest.data.BuildTypes;
 import jetbrains.buildServer.server.rest.data.Project;

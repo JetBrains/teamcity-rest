@@ -17,7 +17,7 @@
 package jetbrains.buildServer.server.rest.data.agent;
 
 import javax.xml.bind.annotation.XmlAttribute;
-import jetbrains.buildServer.server.rest.AgentRequest;
+import jetbrains.buildServer.server.rest.request.AgentRequest;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 
 /**

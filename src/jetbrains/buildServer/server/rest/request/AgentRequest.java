@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest;
+package jetbrains.buildServer.server.rest.request;
 
 import com.sun.jersey.spi.resource.Singleton;
 import java.util.ArrayList;
@@ -22,6 +22,8 @@ import java.util.Collection;
 import java.util.List;
 import javax.ws.rs.*;
 import javax.xml.bind.annotation.XmlElementWrapper;
+import jetbrains.buildServer.server.rest.AgentsSearchFields;
+import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.agent.Agent;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import org.jetbrains.annotations.NotNull;

@@ -26,15 +26,15 @@
   <bean id="restDataProvider" class="jetbrains.buildServer.server.rest.DataProvider"/>
   <bean id="restDataUpdater" class="jetbrains.buildServer.server.rest.DataUpdater"/>
 
-  <bean id="rootApiRequest" class="jetbrains.buildServer.server.rest.RootApiRequest"/>
-  <bean id="serverRequest" class="jetbrains.buildServer.server.rest.ServerRequest"/>
-  <bean id="projectRequest" class="jetbrains.buildServer.server.rest.ProjectRequest"/>
-  <bean id="buildTypeRequest" class="jetbrains.buildServer.server.rest.BuildTypeRequest"/>
-  <bean id="buildRequest" class="jetbrains.buildServer.server.rest.BuildRequest"/>
-  <bean id="userRequest" class="jetbrains.buildServer.server.rest.UserRequest"/>
-  <bean id="groupRequest" class="jetbrains.buildServer.server.rest.GroupRequest"/>
-  <bean id="vcsRootRequest" class="jetbrains.buildServer.server.rest.VcsRootRequest"/>
-  <bean id="changeRequest" class="jetbrains.buildServer.server.rest.ChangeRequest"/>
-  <bean id="agentRequest" class="jetbrains.buildServer.server.rest.AgentRequest"/>
+  <bean id="rootApiRequest" class="jetbrains.buildServer.server.rest.request.RootApiRequest"/>
+  <bean id="serverRequest" class="jetbrains.buildServer.server.rest.request.ServerRequest"/>
+  <bean id="projectRequest" class="jetbrains.buildServer.server.rest.request.ProjectRequest"/>
+  <bean id="buildTypeRequest" class="jetbrains.buildServer.server.rest.request.BuildTypeRequest"/>
+  <bean id="buildRequest" class="jetbrains.buildServer.server.rest.request.BuildRequest"/>
+  <bean id="userRequest" class="jetbrains.buildServer.server.rest.request.UserRequest"/>
+  <bean id="groupRequest" class="jetbrains.buildServer.server.rest.request.GroupRequest"/>
+  <bean id="vcsRootRequest" class="jetbrains.buildServer.server.rest.request.VcsRootRequest"/>
+  <bean id="changeRequest" class="jetbrains.buildServer.server.rest.request.ChangeRequest"/>
+  <bean id="agentRequest" class="jetbrains.buildServer.server.rest.request.AgentRequest"/>
 
 </beans>

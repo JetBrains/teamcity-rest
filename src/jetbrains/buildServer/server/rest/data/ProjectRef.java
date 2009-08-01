@@ -17,7 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import javax.xml.bind.annotation.XmlAttribute;
-import jetbrains.buildServer.server.rest.ProjectRequest;
+import jetbrains.buildServer.server.rest.request.ProjectRequest;
 import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
 

@@ -14,54 +14,41 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest;
+package jetbrains.buildServer.server.rest.request;
 
 import com.sun.jersey.spi.resource.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import jetbrains.buildServer.groups.UserGroup;
-import jetbrains.buildServer.server.rest.data.Group;
-import jetbrains.buildServer.server.rest.data.Groups;
-import jetbrains.buildServer.serverSide.auth.RoleEntry;
-import jetbrains.buildServer.serverSide.auth.RoleScope;
+import jetbrains.buildServer.server.rest.DataProvider;
+import jetbrains.buildServer.server.rest.data.VcsRoot;
+import jetbrains.buildServer.server.rest.data.VcsRoots;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
     - too long number passed as finish for builds produses 404
 */
 
-@Path("/httpAuth/api/userGroups")
+@Path("/httpAuth/api/vcs-roots")
 @Singleton
-public class GroupRequest {
+public class VcsRootRequest {
   private final DataProvider myDataProvider;
 
-
-  public static String getGroupHref(UserGroup userGroup) {
-    return "/httpAuth/api/userGroups/key:" + userGroup.getKey();
-  }
-
-  public static String getRoleAssignmentHref(final RoleEntry roleEntry, final UserGroup group) {
-    final RoleScope roleScope = roleEntry.getScope();
-    return getGroupHref(group) + "/roles/" + roleEntry.getRole().getId() +
-           (roleScope.isGlobal() ? "/" + roleScope.getProjectId() : "");
-  }
-
-  public GroupRequest(DataProvider myDataProvider) {
+  public VcsRootRequest(DataProvider myDataProvider) {
     this.myDataProvider = myDataProvider;
   }
 
   @GET
   @Produces({"application/xml", "application/json"})
-  public Groups serveGroups() {
-    return new Groups(myDataProvider.getAllGroups());
+  public VcsRoots serveRoots() {
+    return new VcsRoots(myDataProvider.getAllVcsRoots());
   }
 
   @GET
-  @Path("/{groupLocator}")
+  @Path("/{vcsRootLocator}")
   @Produces({"application/xml", "application/json"})
-  public Group serveGroup(@PathParam("groupLocator") String groupLocator) {
-    return new Group(myDataProvider.getGroup(groupLocator));
+  public VcsRoot servRoot(@PathParam("vcsRootLocator") String vcsRootLocator) {
+    return new VcsRoot(myDataProvider.getVcsRoot(vcsRootLocator));
   }
 }

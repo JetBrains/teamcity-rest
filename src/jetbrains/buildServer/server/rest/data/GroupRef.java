@@ -19,7 +19,7 @@ package jetbrains.buildServer.server.rest.data;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.groups.UserGroup;
-import jetbrains.buildServer.server.rest.GroupRequest;
+import jetbrains.buildServer.server.rest.request.GroupRequest;
 
 /**
  * @author Yegor.Yarko

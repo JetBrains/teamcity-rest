@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest;
+package jetbrains.buildServer.server.rest.request;
 
 import com.sun.jersey.spi.resource.Singleton;
 import java.util.Collection;
 import javax.ws.rs.*;
+import jetbrains.buildServer.server.rest.BadRequestException;
+import jetbrains.buildServer.server.rest.DataProvider;
+import jetbrains.buildServer.server.rest.DataUpdater;
+import jetbrains.buildServer.server.rest.NotFoundException;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.serverSide.auth.RoleScope;

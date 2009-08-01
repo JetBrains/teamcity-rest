@@ -17,7 +17,7 @@
 package jetbrains.buildServer.server.rest.data.change;
 
 import javax.xml.bind.annotation.XmlAttribute;
-import jetbrains.buildServer.server.rest.ChangeRequest;
+import jetbrains.buildServer.server.rest.request.ChangeRequest;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModification;
 

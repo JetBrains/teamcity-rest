@@ -14,38 +14,32 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest;
+package jetbrains.buildServer.server.rest.request;
 
 import com.sun.jersey.spi.resource.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import jetbrains.buildServer.server.rest.data.change.Change;
-import jetbrains.buildServer.vcs.VcsModification;
+import jetbrains.buildServer.server.rest.DataProvider;
 
-/* todo: investigate logging issues:
-    - disable initialization lines into stdout
-    - too long number passed as finish for builds produses 404
-*/
-
-@Path("/httpAuth/api/changes")
+/**
+ * User: Yegor Yarko
+ * Date: 11.04.2009
+ */
+@Path("/httpAuth/api/server")
 @Singleton
-public class ChangeRequest {
+public class ServerRequest {
   private final DataProvider myDataProvider;
 
-  public ChangeRequest(DataProvider myDataProvider) {
+  public ServerRequest(DataProvider myDataProvider) {
     this.myDataProvider = myDataProvider;
   }
 
-  public static String getChangeHref(VcsModification modification) {
-    return "/httpAuth/api/changes/id:" + modification.getId();
-  }
-
   @GET
-  @Path("/{changeLocator}")
-  @Produces({"application/xml", "application/json"})
-  public Change servRoot(@PathParam("changeLocator") String changeLocator) {
-    return new Change(myDataProvider.getChange(changeLocator));
+  @Path("/{field}")
+  @Produces({"text/plain"})
+  public String serveServerVersion(@PathParam("field") String fieldName) {
+    return myDataProvider.getServerFieldValue(fieldName);
   }
 }

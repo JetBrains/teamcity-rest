@@ -19,8 +19,8 @@ package jetbrains.buildServer.server.rest.data.build;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.BuildRequest;
 import jetbrains.buildServer.server.rest.DataProvider;
+import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.serverSide.SBuild;
 
 /**
