@@ -40,10 +40,10 @@ import org.springframework.web.servlet.ModelAndView;
  *         Date: 23.03.2009
  */
 public class APIController extends BaseController implements ServletContextAware {
-  Logger LOG = Logger.getInstance(APIController.class.getName());
+  final Logger LOG = Logger.getInstance(APIController.class.getName());
   private JerseyWebComponent myWebComponent;
-  private ConfigurableApplicationContext myConfigurableApplicationContext;
-  private SecurityContextEx mySecurityContext;
+  private final ConfigurableApplicationContext myConfigurableApplicationContext;
+  private final SecurityContextEx mySecurityContext;
 
   private final ClassLoader myClassloader;
   private String myAuthToken;

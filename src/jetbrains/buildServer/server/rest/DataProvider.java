@@ -48,14 +48,14 @@ import org.jetbrains.annotations.Nullable;
 public class DataProvider {
   private static final Logger LOG = Logger.getInstance(DataProvider.class.getName());
 
-  private SBuildServer myServer;
-  private BuildHistory myBuildHistory;
-  private UserModel myUserModel;
-  private RolesManager myRolesManager;
-  private UserGroupManager myGroupManager;
-  private VcsManager myVcsManager;
-  private BuildAgentManager myAgentManager;
-  private WebLinks myWebLinks;
+  private final SBuildServer myServer;
+  private final BuildHistory myBuildHistory;
+  private final UserModel myUserModel;
+  private final RolesManager myRolesManager;
+  private final UserGroupManager myGroupManager;
+  private final VcsManager myVcsManager;
+  private final BuildAgentManager myAgentManager;
+  private final WebLinks myWebLinks;
   private static final String DIMENSION_NAME_VALUE_DELIMITER = ":";
   private static final String DIMENSIONS_DELIMITER = ",";
 

@@ -21,8 +21,8 @@ package jetbrains.buildServer.server.rest;
  *         Date: 01.08.2009
  */
 public class AgentsSearchFields {
-  private boolean myIncludeDisconnected;
-  private boolean myIncludeUnauthorized;
+  private final boolean myIncludeDisconnected;
+  private final boolean myIncludeUnauthorized;
 
   public AgentsSearchFields(boolean includeDisconnected, boolean includeUnauthorized) {
     myIncludeDisconnected = includeDisconnected;

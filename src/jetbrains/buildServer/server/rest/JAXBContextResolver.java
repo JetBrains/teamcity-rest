@@ -30,6 +30,7 @@ import jetbrains.buildServer.server.rest.data.*;
 @Provider
 public class JAXBContextResolver implements ContextResolver<JAXBContext> {
   private JAXBContext context;
+  //todo: what it needed to be listed here?
   private Class[] types = {Build.class, BuildType.class, Project.class, Builds.class, BuildTypes.class, Projects.class};
 
   public JAXBContextResolver() throws Exception {

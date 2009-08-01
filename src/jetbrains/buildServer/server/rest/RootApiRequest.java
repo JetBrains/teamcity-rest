@@ -35,7 +35,7 @@ import jetbrains.buildServer.web.plugins.bean.ServerPluginInfo;
 public class RootApiRequest {
 
   private final DataProvider myDataProvider;
-  private ServerPluginInfo myPluginInfo;
+  private final ServerPluginInfo myPluginInfo;
 
   public RootApiRequest(DataProvider myDataProvider, ServerPluginInfo pluginInfo) {
     this.myDataProvider = myDataProvider;

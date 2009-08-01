@@ -32,8 +32,8 @@ import jetbrains.buildServer.users.SimplePropertyKey;
  *         Date: 12.07.2009
  */
 public class DataUpdater {
-  private DataProvider myDataProvider;
-  private UserGroupManager myGroupManager;
+  private final DataProvider myDataProvider;
+  private final UserGroupManager myGroupManager;
 
   public DataUpdater(DataProvider dataProvider, UserGroupManager groupManager) {
     myDataProvider = dataProvider;

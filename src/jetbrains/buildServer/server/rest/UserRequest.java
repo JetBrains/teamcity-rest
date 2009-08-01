@@ -33,7 +33,7 @@ import jetbrains.buildServer.users.SUser;
 @Singleton
 public class UserRequest {
   private final DataProvider myDataProvider;
-  private DataUpdater myDataUpdater;
+  private final DataUpdater myDataUpdater;
 
   public UserRequest(DataProvider myDataProvider, DataUpdater dataUpdater) {
     this.myDataProvider = myDataProvider;
@@ -91,7 +91,7 @@ public class UserRequest {
   @Consumes({"application/xml", "application/json"})
   public void addRole(@PathParam("userLocator") String userLocator, RoleAssignment roleAssignment) {
     SUser user = myDataProvider.getUser(userLocator);
-    user.addRole(myDataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
+    user.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
   }
 
   @GET
@@ -107,7 +107,7 @@ public class UserRequest {
     if (roleId == null) {
       throw new BadRequestException("Expected roleId is not specified");
     }
-    final RoleScope roleScope = myDataProvider.getScope(scopeValue);
+    final RoleScope roleScope = DataProvider.getScope(scopeValue);
     final Collection<RoleEntry> roles = user.getRoles();
     for (RoleEntry roleEntry : roles) {
       if (roleScope.equals(roleEntry.getScope()) && roleId.equals(roleEntry.getRole().getId())) {
@@ -125,7 +125,7 @@ public class UserRequest {
   public void deleteRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
                          @PathParam("scope") String scopeValue) {
     SUser user = myDataProvider.getUser(userLocator);
-    user.removeRole(myDataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
+    user.removeRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
   }
 
 
@@ -135,6 +135,6 @@ public class UserRequest {
                             @PathParam("roleId") String roleId,
                             @PathParam("scope") String scopeValue) {
     SUser user = myDataProvider.getUser(userLocator);
-    user.addRole(myDataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
+    user.addRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
   }
 }
