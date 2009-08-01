@@ -48,6 +48,11 @@ public class BuildTypeRequest {
     return "/httpAuth/api/buildTypes/id:" + buildType.getBuildTypeId();
   }
 
+
+  public static String getBuildsHref(final SBuildType buildType) {
+    return getBuildTypeHref(buildType) + "/builds/";
+  }
+
   @GET
   @Produces({"application/xml", "application/json"})
   public BuildTypes serveBuildTypesXML() {
