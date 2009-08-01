@@ -387,8 +387,8 @@ public class DataProvider {
    *
    * @param includeCanceled
    * @param orderByChanges
-   * @param start           the index of the first build to return (begins with 0)
-   * @param finish          the index up to which (excluding) the builds will be returned
+   * @param start           the index of the first build to return (begins with 0), 0 by default
+   * @param count           the number of builds to return, all by default
    * @return the builds found
    */
   public List<SFinishedBuild> getBuilds(final SBuildType buildType,
@@ -398,8 +398,9 @@ public class DataProvider {
                                         final boolean orderByChanges,
                                         @Nullable final String status,
                                         @Nullable final Long start,
-                                        @Nullable final Long finish) {
+                                        @Nullable final Long count) {
     final ArrayList<SFinishedBuild> list = new ArrayList<SFinishedBuild>();
+    final long actualStart = start == null ? 0 : start;
     myServer.getHistory().processEntries(buildType.getBuildTypeId(), user,
                                          includePersonalBuildsIfUserNotSpecified,
                                          includeCanceled,
@@ -412,11 +413,11 @@ public class DataProvider {
                                                  !status.equalsIgnoreCase(item.getStatusDescriptor().getStatus().getText())) {
                                                return true;
                                              }
-                                             if ((start == null || currentIndex >= start) && (finish == null || currentIndex < finish)) {
+                                             if ((currentIndex >= actualStart) && (count == null || currentIndex < actualStart + count)) {
                                                list.add(item);
                                              }
                                              ++currentIndex;
-                                             return finish == null || currentIndex <= finish;
+                                             return count == null || currentIndex <= actualStart + count;
                                            }
                                          });
     return list;
@@ -432,8 +433,9 @@ public class DataProvider {
    * @param includeCanceled limit builds to non-canceled
    * @param onlyPinned      limit builds to pinned
    * @param agentName       limit builds to those ran on specified agent
-   * @param start           the index of the first build to return (begins with 0)
-   * @param finish          the index up to which (excluding) the builds will be returned   @return the builds found
+   * @param start           the index of the first build to return (begins with 0), 0 by default
+   * @param count           the number of builds to return, all by default
+   * @return the builds found
    */
   public List<SFinishedBuild> getAllBuilds(@Nullable final String buildTypeId,
                                            @Nullable final String status,
@@ -443,8 +445,9 @@ public class DataProvider {
                                            final boolean onlyPinned,
                                            @Nullable final String agentName,
                                            @Nullable final Long start,
-                                           @Nullable final Long finish) {
+                                           @Nullable final Long count) {
     final ArrayList<SFinishedBuild> list = new ArrayList<SFinishedBuild>();
+    final long actualStart = start == null ? 0 : start;
     myServer.getHistory().processEntries(new ItemProcessor<SFinishedBuild>() {
       long currentIndex = 0;
 
@@ -473,11 +476,11 @@ public class DataProvider {
             return true;
           }
         }
-        if ((start == null || currentIndex >= start) && (finish == null || currentIndex < finish)) {
+        if ((currentIndex >= actualStart) && (count == null || currentIndex < actualStart + count)) {
           list.add(item);
         }
         ++currentIndex;
-        return finish == null || currentIndex <= finish;
+        return count == null || currentIndex <= actualStart + count;
       }
     });
     return list;

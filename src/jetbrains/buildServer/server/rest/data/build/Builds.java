@@ -18,10 +18,13 @@ package jetbrains.buildServer.server.rest.data.build;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.DataProvider;
+import jetbrains.buildServer.server.rest.data.PagerData;
 import jetbrains.buildServer.serverSide.SBuild;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * User: Yegor Yarko
@@ -32,13 +35,29 @@ public class Builds {
   @XmlElement(name = "build")
   public List<BuildRef> builds;
 
+  @XmlAttribute
+  public long count;
+
+  @XmlAttribute(required = false)
+  @Nullable
+  public String nextHref;
+
+  @XmlAttribute(required = false)
+  @Nullable
+  public String prevHref;
+
   public Builds() {
   }
 
-  public Builds(final List buildObjects, final DataProvider dataProvider) {
+  public Builds(final List buildObjects,
+                final DataProvider dataProvider,
+                @Nullable final PagerData pagerData) {
     builds = new ArrayList<BuildRef>(buildObjects.size());
     for (Object build : buildObjects) {
       builds.add(new BuildRef((SBuild)build, dataProvider));
     }
+    nextHref = pagerData.getNextHref();
+    prevHref = pagerData.getPrevHref();
+    count = builds.size();
   }
 }

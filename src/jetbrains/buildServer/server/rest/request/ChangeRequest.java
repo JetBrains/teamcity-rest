@@ -46,7 +46,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}")
   @Produces({"application/xml", "application/json"})
-  public Change servRoot(@PathParam("changeLocator") String changeLocator) {
+  public Change serveChange(@PathParam("changeLocator") String changeLocator) {
     return new Change(myDataProvider.getChange(changeLocator));
   }
 }

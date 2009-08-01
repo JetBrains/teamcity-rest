@@ -17,16 +17,15 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.sun.jersey.spi.resource.Singleton;
+import java.util.List;
 import javax.ws.rs.*;
 import jetbrains.buildServer.server.rest.DataProvider;
-import jetbrains.buildServer.server.rest.data.BuildType;
-import jetbrains.buildServer.server.rest.data.BuildTypes;
-import jetbrains.buildServer.server.rest.data.Project;
-import jetbrains.buildServer.server.rest.data.Projects;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.Build;
 import jetbrains.buildServer.server.rest.data.build.Builds;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SProject;
 
 /**
@@ -105,11 +104,16 @@ public class ProjectRequest {
   public Builds serveBuilds(@PathParam("projectLocator") String projectLocator,
                             @PathParam("btLocator") String buildTypeLocator,
                             @QueryParam("status") String status,
-                            @QueryParam("start") Long start,
-                            @QueryParam("finish") Long finish) {
+                            @QueryParam("start") @DefaultValue(value = "0") Long start,
+                            @QueryParam("count") @DefaultValue(value = "100") Long count) {
     SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
 
-    return new Builds(myDataProvider.getBuilds(buildType, null, false, true, false, status, start, finish), myDataProvider);
+    final List<SFinishedBuild> buildsList = myDataProvider.getBuilds(buildType, null, false, true, false, status, start, count);
+    return new Builds(buildsList, myDataProvider,
+                      new PagerData("/httpAuth/api/projects/" + projectLocator + "/buildTypes/" + buildTypeLocator + "/builds",
+                                    start,
+                                    count,
+                                    buildsList.size()));
   }
 
   @GET

@@ -17,11 +17,14 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.sun.jersey.spi.resource.Singleton;
+import java.util.List;
 import javax.ws.rs.*;
 import jetbrains.buildServer.server.rest.DataProvider;
+import jetbrains.buildServer.server.rest.data.PagerData;
 import jetbrains.buildServer.server.rest.data.build.Build;
 import jetbrains.buildServer.server.rest.data.build.Builds;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SFinishedBuild;
 
 /**
  * User: Yegor Yarko
@@ -50,11 +53,11 @@ public class BuildRequest {
                                @QueryParam("includeCanceled") boolean includeCanceled,
                                @QueryParam("onlyPinned") boolean onlyPinned,
                                @QueryParam("agentName") String agentName,
-                               @QueryParam("start") Long start,
-                               @QueryParam("finish") Long finish) {
-    return new Builds(
-      myDataProvider.getAllBuilds(buildTypeId, status, username, includePersonal, includeCanceled, onlyPinned, agentName, start, finish),
-      myDataProvider);
+                               @QueryParam("start") @DefaultValue(value = "0") Long start,
+                               @QueryParam("count") @DefaultValue(value = "100") Long count) {
+    final List<SFinishedBuild> buildsList =
+      myDataProvider.getAllBuilds(buildTypeId, status, username, includePersonal, includeCanceled, onlyPinned, agentName, start, count);
+    return new Builds(buildsList, myDataProvider, new PagerData("/httpAuth/api/builds/", start, count, buildsList.size()));
   }
 
   @GET
