@@ -14,31 +14,30 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data;
+package jetbrains.buildServer.server.rest.data.project;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.groups.UserGroup;
+import jetbrains.buildServer.serverSide.SProject;
 
 /**
- * @author Yegor.Yarko
- *         Date: 16.04.2009
+ * User: Yegor Yarko
+ * Date: 29.03.2009
  */
-@XmlRootElement(name = "groups")
-public class Groups {
-  @XmlElement(name = "group")
-  public List<GroupRef> groups;
+@XmlRootElement(name = "projects")
+public class Projects {
+  @XmlElement(name = "project")
+  public List<ProjectRef> projects;
 
-  public Groups() {
+  public Projects() {
   }
 
-  public Groups(Collection<UserGroup> userGroups) {
-    groups = new ArrayList<GroupRef>(userGroups.size());
-    for (UserGroup userGroup : userGroups) {
-      groups.add(new GroupRef(userGroup));
+  public Projects(List<SProject> projectObjects) {
+    projects = new ArrayList<ProjectRef>(projectObjects.size());
+    for (SProject project : projectObjects) {
+      projects.add(new ProjectRef(project));
     }
   }
 }

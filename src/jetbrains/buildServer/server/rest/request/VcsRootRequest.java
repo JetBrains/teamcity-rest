@@ -22,8 +22,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import jetbrains.buildServer.server.rest.DataProvider;
-import jetbrains.buildServer.server.rest.data.VcsRoot;
-import jetbrains.buildServer.server.rest.data.VcsRoots;
+import jetbrains.buildServer.server.rest.data.change.VcsRoot;
+import jetbrains.buildServer.server.rest.data.change.VcsRoots;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout

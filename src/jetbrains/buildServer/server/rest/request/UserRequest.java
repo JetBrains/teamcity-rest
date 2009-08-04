@@ -23,7 +23,7 @@ import jetbrains.buildServer.server.rest.BadRequestException;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.DataUpdater;
 import jetbrains.buildServer.server.rest.NotFoundException;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.user.*;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.users.SUser;

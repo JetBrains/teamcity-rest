@@ -14,30 +14,38 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data;
+package jetbrains.buildServer.server.rest.data.buildType;
 
-import java.util.ArrayList;
-import java.util.List;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlAttribute;
+import jetbrains.buildServer.server.rest.request.BuildTypeRequest;
 import jetbrains.buildServer.serverSide.SBuildType;
 
 /**
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
-@XmlRootElement(name = "buildTypes")
-public class BuildTypes {
-  @XmlElement(name = "buildType")
-  public List<BuildTypeRef> buildTypes;
+public class BuildTypeRef {
+  protected SBuildType myBuildType;
 
-  public BuildTypes() {
+  public BuildTypeRef() {
   }
 
-  public BuildTypes(List<SBuildType> buildTypesObjects) {
-    buildTypes = new ArrayList<BuildTypeRef>(buildTypesObjects.size());
-    for (SBuildType buildType : buildTypesObjects) {
-      buildTypes.add(new BuildTypeRef(buildType));
-    }
+  public BuildTypeRef(SBuildType buildType) {
+    myBuildType = buildType;
+  }
+
+  @XmlAttribute
+  public String getHref() {
+    return BuildTypeRequest.getBuildTypeHref(myBuildType);
+  }
+
+  @XmlAttribute
+  public String getId() {
+    return myBuildType.getBuildTypeId();
+  }
+
+  @XmlAttribute
+  public String getName() {
+    return myBuildType.getName();
   }
 }

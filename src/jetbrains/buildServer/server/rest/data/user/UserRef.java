@@ -14,32 +14,43 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data;
+package jetbrains.buildServer.server.rest.data.user;
 
 import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.groups.UserGroup;
-import jetbrains.buildServer.server.rest.request.GroupRequest;
+import jetbrains.buildServer.server.rest.request.UserRequest;
+import org.jetbrains.annotations.NotNull;
 
 /**
- * @author Yegor.Yarko
- *         Date: 16.04.2009
+ * User: Yegor Yarko
+ * Date: 29.03.2009
  */
-@XmlRootElement(name = "group")
-public class GroupRef {
-  @XmlAttribute
-  public String key;
-  @XmlAttribute
-  public String name;
-  @XmlAttribute
-  public String href;
+public class UserRef {
+  @NotNull private jetbrains.buildServer.users.User myUser;
 
-  public GroupRef() {
+  public UserRef() {
   }
 
-  public GroupRef(UserGroup userGroup) {
-    this.key = userGroup.getKey();
-    this.name = userGroup.getName();
-    this.href = GroupRequest.getGroupHref(userGroup);
+  public UserRef(@NotNull jetbrains.buildServer.users.User user) {
+    myUser = user;
+  }
+
+  @XmlAttribute
+  public Long getId() {
+    return myUser.getId();
+  }
+
+  @XmlAttribute
+  public String getName() {
+    return myUser.getName();
+  }
+
+  @XmlAttribute
+  public String getUsername() {
+    return myUser.getUsername();
+  }
+
+  @XmlAttribute
+  public String getHref() {
+    return UserRequest.getUserHref(myUser);
   }
 }

@@ -14,38 +14,31 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data;
+package jetbrains.buildServer.server.rest.data.group;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.groups.SUserGroup;
+import jetbrains.buildServer.groups.UserGroup;
 
 /**
  * @author Yegor.Yarko
  *         Date: 16.04.2009
  */
-@XmlRootElement(name = "group")
-public class Group extends GroupRef {
-  @XmlElement(name = "parent-groups")
-  public Groups parentGroups;
+@XmlRootElement(name = "groups")
+public class Groups {
+  @XmlElement(name = "group")
+  public List<GroupRef> groups;
 
-  @XmlElement(name = "child-groups")
-  public Groups childGroups;
-
-  @XmlElement(name = "users")
-  public Users users;
-
-  @XmlElement(name = "roles")
-  public RoleAssignments roleAssignments;
-
-  public Group() {
+  public Groups() {
   }
 
-  public Group(SUserGroup userGroup) {
-    super(userGroup);
-    parentGroups = new Groups(userGroup.getParentGroups());
-    childGroups = new Groups(userGroup.getDirectSubgroups());
-    users = new Users(userGroup.getDirectUsers());
-    roleAssignments = new RoleAssignments(userGroup.getRoles());
+  public Groups(Collection<UserGroup> userGroups) {
+    groups = new ArrayList<GroupRef>(userGroups.size());
+    for (UserGroup userGroup : userGroups) {
+      groups.add(new GroupRef(userGroup));
+    }
   }
 }

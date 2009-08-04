@@ -20,6 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
+import jetbrains.buildServer.server.rest.data.user.UserRef;
 import org.jetbrains.annotations.NotNull;
 
 /**

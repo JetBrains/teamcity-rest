@@ -14,40 +14,39 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data;
+package jetbrains.buildServer.server.rest.data.project;
 
 import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.request.ProjectRequest;
+import jetbrains.buildServer.serverSide.SProject;
+import org.jetbrains.annotations.NotNull;
 
 /**
- * @author Yegor.Yarko
- *         Date: 12.07.2009
+ * User: Yegor Yarko
+ * Date: 29.03.2009
  */
-@XmlRootElement(name = "user")
-public class UserData {
+public class ProjectRef {
+  @NotNull protected SProject myProject;
+
+  public ProjectRef() {
+  }
+
+  public ProjectRef(SProject project) {
+    myProject = project;
+  }
 
   @XmlAttribute
-  public String name;
+  public String getHref() {
+    return ProjectRequest.getProjectHref(myProject);
+  }
 
   @XmlAttribute
-  public String username;
+  public String getId() {
+    return myProject.getProjectId();
+  }
 
   @XmlAttribute
-  public String email;
-
-  @XmlAttribute
-  public String password;
-
-  @XmlElement(name = "roles")
-  public RoleAssignments roles;
-
-  @XmlElement(name = "groups")
-  public Groups groups;
-
-  @XmlElement(name = "properties")
-  public Properties properties;
-
-  public UserData() {
+  public String getName() {
+    return myProject.getName();
   }
 }

@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data;
+package jetbrains.buildServer.server.rest.data.change;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Yegor.Yarko
@@ -41,19 +37,3 @@ public class VcsRootEntry {
   }
 }
 
-@XmlRootElement(name = "vcs-roots-entries")
-class VcsRootEntries {
-  @XmlElement(name = "vcs-root-entry")
-  public List<VcsRootEntry> vcsRootAssignments;
-
-  public VcsRootEntries() {
-  }
-
-  public VcsRootEntries(final Collection<jetbrains.buildServer.vcs.VcsRootEntry> vcsRootEntries) {
-    vcsRootAssignments = new ArrayList<VcsRootEntry>(vcsRootEntries.size());
-    for (jetbrains.buildServer.vcs.VcsRootEntry entry : vcsRootEntries) {
-      vcsRootAssignments.add(new VcsRootEntry(entry));
-    }
-  }
-
-}

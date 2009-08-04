@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data;
+package jetbrains.buildServer.server.rest.data.user;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -23,21 +23,21 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * @author Yegor.Yarko
- *         Date: 16.04.2009
+ * User: Yegor Yarko
+ * Date: 29.03.2009
  */
-@XmlRootElement(name = "vcs-roots")
-public class VcsRoots {
-  @XmlElement(name = "vcs-root")
-  public List<VcsRoot.VcsRootRef> vcsRoots;
+@XmlRootElement(name = "users")
+public class Users {
+  @XmlElement(name = "user")
+  public List<UserRef> users;
 
-  public VcsRoots() {
+  public Users() {
   }
 
-  public VcsRoots(final Collection<jetbrains.buildServer.vcs.VcsRoot> serverVcsRoots) {
-    vcsRoots = new ArrayList<VcsRoot.VcsRootRef>(serverVcsRoots.size());
-    for (jetbrains.buildServer.vcs.VcsRoot root : serverVcsRoots) {
-      vcsRoots.add(new VcsRoot.VcsRootRef(root));
+  public Users(Collection<jetbrains.buildServer.users.User> userObjects) {
+    users = new ArrayList<UserRef>(userObjects.size());
+    for (jetbrains.buildServer.users.User user : userObjects) {
+      users.add(new UserRef(user));
     }
   }
 }

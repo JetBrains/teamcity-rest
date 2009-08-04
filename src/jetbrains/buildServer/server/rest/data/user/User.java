@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data;
+package jetbrains.buildServer.server.rest.data.user;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.data.Properties;
+import jetbrains.buildServer.server.rest.data.group.Groups;
 import jetbrains.buildServer.users.SUser;
 
 /**

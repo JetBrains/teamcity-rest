@@ -14,30 +14,28 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data;
+package jetbrains.buildServer.server.rest.data.change;
 
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.BuildRevision;
 
 /**
- * User: Yegor Yarko
- * Date: 29.03.2009
+ * @author Yegor.Yarko
+ *         Date: 21.07.2009
  */
-@XmlRootElement(name = "projects")
-public class Projects {
-  @XmlElement(name = "project")
-  public List<ProjectRef> projects;
+public class Revisions {
+  @XmlElement(name = "revision")
+  public List<Revision> revisoins;
 
-  public Projects() {
+  public Revisions() {
   }
 
-  public Projects(List<SProject> projectObjects) {
-    projects = new ArrayList<ProjectRef>(projectObjects.size());
-    for (SProject project : projectObjects) {
-      projects.add(new ProjectRef(project));
+  public Revisions(final List<BuildRevision> buildRevisions) {
+    revisoins = new ArrayList<Revision>(buildRevisions.size());
+    for (BuildRevision revision : buildRevisions) {
+      revisoins.add(new Revision(revision));
     }
   }
 }

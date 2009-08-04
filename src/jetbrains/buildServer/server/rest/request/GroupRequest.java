@@ -23,8 +23,8 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.DataProvider;
-import jetbrains.buildServer.server.rest.data.Group;
-import jetbrains.buildServer.server.rest.data.Groups;
+import jetbrains.buildServer.server.rest.data.group.Group;
+import jetbrains.buildServer.server.rest.data.group.Groups;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 

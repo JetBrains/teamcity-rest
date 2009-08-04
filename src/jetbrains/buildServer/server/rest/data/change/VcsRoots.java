@@ -14,28 +14,30 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data;
+package jetbrains.buildServer.server.rest.data.change;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
-import jetbrains.buildServer.serverSide.BuildRevision;
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Yegor.Yarko
- *         Date: 21.07.2009
+ *         Date: 16.04.2009
  */
-public class Revisions {
-  @XmlElement(name = "revision")
-  public List<Revision> revisoins;
+@XmlRootElement(name = "vcs-roots")
+public class VcsRoots {
+  @XmlElement(name = "vcs-root")
+  public List<VcsRoot.VcsRootRef> vcsRoots;
 
-  public Revisions() {
+  public VcsRoots() {
   }
 
-  public Revisions(final List<BuildRevision> buildRevisions) {
-    revisoins = new ArrayList<Revision>(buildRevisions.size());
-    for (BuildRevision revision : buildRevisions) {
-      revisoins.add(new Revision(revision));
+  public VcsRoots(final Collection<jetbrains.buildServer.vcs.VcsRoot> serverVcsRoots) {
+    vcsRoots = new ArrayList<VcsRoot.VcsRootRef>(serverVcsRoots.size());
+    for (jetbrains.buildServer.vcs.VcsRoot root : serverVcsRoots) {
+      vcsRoots.add(new VcsRoot.VcsRootRef(root));
     }
   }
 }

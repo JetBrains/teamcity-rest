@@ -19,7 +19,7 @@ package jetbrains.buildServer.server.rest.data.issue;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
-import jetbrains.buildServer.server.rest.data.Changes;
+import jetbrains.buildServer.server.rest.data.change.Changes;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.vcs.SVcsModification;
 
