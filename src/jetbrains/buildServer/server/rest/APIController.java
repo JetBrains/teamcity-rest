@@ -53,6 +53,8 @@ public class APIController extends BaseController implements ServletContextAware
                        final ConfigurableApplicationContext configurableApplicationContext,
                        final SecurityContextEx securityContext) throws ServletException {
     super(server);
+    setSupportedMethods(new String[]{METHOD_GET, METHOD_HEAD, METHOD_POST, "PUT", "OPTIONS", "DELETE"});
+
     myConfigurableApplicationContext = configurableApplicationContext;
     mySecurityContext = securityContext;
     webControllerManager.registerController("/api/**", this);
