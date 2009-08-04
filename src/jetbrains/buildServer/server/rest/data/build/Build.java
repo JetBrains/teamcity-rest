@@ -29,6 +29,7 @@ import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
@@ -41,13 +42,15 @@ import jetbrains.buildServer.serverSide.dependency.BuildDependency;
   "statusText", "buildType", "startDate", "finishDate", "agent", "comment", "tags", "properties",
   "buildDependencies", "revisions", "changes", "issues"})
 public class Build {
+  @NotNull
   protected SBuild myBuild;
+  @NotNull
   private DataProvider myDataProvider;
 
   public Build() {
   }
 
-  public Build(final SBuild build, final DataProvider dataProvider) {
+  public Build(@NotNull final SBuild build, @NotNull final DataProvider dataProvider) {
     myBuild = build;
     myDataProvider = dataProvider;
   }
@@ -157,10 +160,14 @@ public class Build {
     return new IssueUsages(myBuild.getRelatedIssues(), myBuild);
   }
 
-  private List<BuildRef> getBuildRefs(Collection<? extends BuildDependency> dependencies, final DataProvider dataProvider) {
+  private List<BuildRef> getBuildRefs(@NotNull Collection<? extends BuildDependency> dependencies,
+                                      @NotNull final DataProvider dataProvider) {
     List<BuildRef> result = new ArrayList<BuildRef>(dependencies.size());
     for (BuildDependency dependency : dependencies) {
-      result.add(new BuildRef(dependency.getDependOn().getAssociatedBuild(), dataProvider));
+      final SBuild dependOnBuild = dependency.getDependOn().getAssociatedBuild();
+      if (dependOnBuild != null) {
+        result.add(new BuildRef(dependOnBuild, dataProvider));
+      }
     }
     return result;
   }

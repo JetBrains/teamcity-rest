@@ -24,6 +24,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagerData;
 import jetbrains.buildServer.serverSide.SBuild;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -49,9 +50,9 @@ public class Builds {
   public Builds() {
   }
 
-  public Builds(final List buildObjects,
-                final DataProvider dataProvider,
-                @Nullable final PagerData pagerData) {
+  public Builds(@NotNull final List buildObjects,
+                @NotNull final DataProvider dataProvider,
+                @NotNull final PagerData pagerData) {
     builds = new ArrayList<BuildRef>(buildObjects.size());
     for (Object build : buildObjects) {
       builds.add(new BuildRef((SBuild)build, dataProvider));

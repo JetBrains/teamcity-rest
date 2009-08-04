@@ -25,6 +25,7 @@ import jetbrains.buildServer.server.rest.data.build.Build;
 import jetbrains.buildServer.server.rest.data.build.Builds;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
@@ -33,9 +34,10 @@ import jetbrains.buildServer.serverSide.SFinishedBuild;
 @Path("/httpAuth/api/builds")
 @Singleton
 public class BuildRequest {
+  @NotNull
   private final DataProvider myDataProvider;
 
-  public BuildRequest(DataProvider myDataProvider) {
+  public BuildRequest(@NotNull DataProvider myDataProvider) {
     this.myDataProvider = myDataProvider;
   }
 

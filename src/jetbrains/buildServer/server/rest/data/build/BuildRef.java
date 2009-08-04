@@ -22,6 +22,7 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.serverSide.SBuild;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
@@ -36,7 +37,7 @@ public class BuildRef {
   public BuildRef() {
   }
 
-  public BuildRef(final SBuild build, final DataProvider dataProvider) {
+  public BuildRef(@NotNull final SBuild build, @NotNull final DataProvider dataProvider) {
     myBuild = build;
     myDataProvider = dataProvider;
   }
