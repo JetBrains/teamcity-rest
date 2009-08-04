@@ -17,12 +17,15 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.sun.jersey.spi.resource.Singleton;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
+import java.util.List;
+import javax.ws.rs.*;
 import jetbrains.buildServer.server.rest.DataProvider;
+import jetbrains.buildServer.server.rest.data.PagerData;
 import jetbrains.buildServer.server.rest.data.change.Change;
+import jetbrains.buildServer.server.rest.data.change.Changes;
+import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModification;
 
 /* todo: investigate logging issues:
@@ -30,9 +33,10 @@ import jetbrains.buildServer.vcs.VcsModification;
     - too long number passed as finish for builds produses 404
 */
 
-@Path("/httpAuth/api/changes")
+@Path(ChangeRequest.API_CHANGES_URL)
 @Singleton
 public class ChangeRequest {
+  public static final String API_CHANGES_URL = "/httpAuth/api/changes";
   private final DataProvider myDataProvider;
 
   public ChangeRequest(DataProvider myDataProvider) {
@@ -40,7 +44,31 @@ public class ChangeRequest {
   }
 
   public static String getChangeHref(VcsModification modification) {
-    return "/httpAuth/api/changes/id:" + modification.getId();
+    return API_CHANGES_URL + "/id:" + modification.getId();
+  }
+
+  public static String getBuildChangesHref(SBuild build) {
+    return API_CHANGES_URL + "?build=id:" + build.getBuildId();
+  }
+
+  @GET
+  @Produces({"application/xml", "application/json"})
+  public Changes serveChanges(@QueryParam("build") String buildLocator,
+                              @QueryParam("start") @DefaultValue(value = "0") Long start,
+                              @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count) {
+    List<SVcsModification> buildModifications;
+    //todo investigate how to get current URL
+    String requestUrlForPager;
+    if (!StringUtil.isEmpty(buildLocator)) {
+      final SBuild build = myDataProvider.getBuild(null, buildLocator);
+      buildModifications = myDataProvider.getBuildModifications(build, start, count);
+      requestUrlForPager = API_CHANGES_URL + "?build=" + buildLocator;
+    } else {
+      buildModifications = myDataProvider.getAllModifications(start, count);
+      requestUrlForPager = API_CHANGES_URL;
+    }
+    return new Changes(buildModifications,
+                       new PagerData(requestUrlForPager, start, count, buildModifications.size()));
   }
 
   @GET

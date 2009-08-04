@@ -56,7 +56,7 @@ public class BuildRequest {
                                @QueryParam("onlyPinned") boolean onlyPinned,
                                @QueryParam("agentName") String agentName,
                                @QueryParam("start") @DefaultValue(value = "0") Long start,
-                               @QueryParam("count") @DefaultValue(value = "100") Long count) {
+                               @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count) {
     final List<SFinishedBuild> buildsList =
       myDataProvider.getAllBuilds(buildTypeId, status, username, includePersonal, includeCanceled, onlyPinned, agentName, start, count);
     return new Builds(buildsList, myDataProvider, new PagerData("/httpAuth/api/builds/", start, count, buildsList.size()));

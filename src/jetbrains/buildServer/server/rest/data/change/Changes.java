@@ -18,9 +18,13 @@ package jetbrains.buildServer.server.rest.data.change;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.data.PagerData;
 import jetbrains.buildServer.vcs.SVcsModification;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -31,13 +35,35 @@ public class Changes {
   @XmlElement(name = "change")
   public List<ChangeRef> changes;
 
+  @XmlAttribute
+  public long count;
+
+  @XmlAttribute(required = false)
+  @Nullable
+  public String nextHref;
+
+  @XmlAttribute(required = false)
+  @Nullable
+  public String prevHref;
+
   public Changes() {
   }
 
   public Changes(final List<SVcsModification> modifications) {
+    init(modifications, new PagerData());
+  }
+
+  public Changes(@NotNull final List<SVcsModification> modifications, @NotNull final PagerData pagerData) {
+    init(modifications, pagerData);
+  }
+
+  private void init(final List<SVcsModification> modifications, final PagerData pagerData) {
     changes = new ArrayList<ChangeRef>(modifications.size());
     for (SVcsModification root : modifications) {
       changes.add(new ChangeRef(root));
     }
+    nextHref = pagerData.getNextHref();
+    prevHref = pagerData.getPrevHref();
+    count = modifications.size();
   }
 }

@@ -398,7 +398,7 @@ public class DataProvider {
                                         final boolean orderByChanges,
                                         @Nullable final String status,
                                         @Nullable final Long start,
-                                        @Nullable final Long count) {
+                                        @Nullable final Integer count) {
     final ArrayList<SFinishedBuild> list = new ArrayList<SFinishedBuild>();
     final long actualStart = start == null ? 0 : start;
     myServer.getHistory().processEntries(buildType.getBuildTypeId(), user,
@@ -445,7 +445,7 @@ public class DataProvider {
                                            final boolean onlyPinned,
                                            @Nullable final String agentName,
                                            @Nullable final Long start,
-                                           @Nullable final Long count) {
+                                           @Nullable final Integer count) {
     final ArrayList<SFinishedBuild> list = new ArrayList<SFinishedBuild>();
     final long actualStart = start == null ? 0 : start;
     myServer.getHistory().processEntries(new ItemProcessor<SFinishedBuild>() {
@@ -802,4 +802,32 @@ public class DataProvider {
     }
     return result;
   }
+
+  @NotNull
+  public List<SVcsModification> getAllModifications(final Long start, final Integer count) {
+    //todo highly inefficient!
+    return filterPage(myVcsManager.getVcsHistory().getAllModifications(), start, count);
+  }
+
+  public List<SVcsModification> getBuildModifications(final SBuild build, final Long start, final Integer count) {
+    return filterPage(build.getContainingChanges(), start, count);
+  }
+
+  private List<SVcsModification> filterPage(final List<SVcsModification> containingChanges, final Long start, final Integer count) {
+    final List<SVcsModification> result = new ArrayList<SVcsModification>();
+    int currentIndex = 0;
+    final long actualStart = start == null ? 0 : start;
+    for (SVcsModification item : containingChanges) {
+      if ((currentIndex >= actualStart)) {
+        if ((count == null || currentIndex < actualStart + count)) {
+          result.add(item);
+        } else {
+          break;
+        }
+      }
+      currentIndex++;
+    }
+    return result;
+  }
+
 }

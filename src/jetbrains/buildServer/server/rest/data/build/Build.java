@@ -26,7 +26,7 @@ import jetbrains.buildServer.server.rest.data.Comment;
 import jetbrains.buildServer.server.rest.data.Properties;
 import jetbrains.buildServer.server.rest.data.agent.AgentRef;
 import jetbrains.buildServer.server.rest.data.buildType.BuildTypeRef;
-import jetbrains.buildServer.server.rest.data.change.Changes;
+import jetbrains.buildServer.server.rest.data.change.ChangesRef;
 import jetbrains.buildServer.server.rest.data.change.Revisions;
 import jetbrains.buildServer.server.rest.data.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
@@ -155,8 +155,8 @@ public class Build {
   }
 
   @XmlElement(name = "changes")
-  public Changes getChanges() {
-    return new Changes(myBuild.getContainingChanges());
+  public ChangesRef getChanges() {
+    return new ChangesRef(myBuild);
   }
 
   @XmlElement(name = "relatedIssues")

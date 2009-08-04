@@ -27,10 +27,14 @@ import org.jetbrains.annotations.Nullable;
  * Provides Href for next and previous pages of paged data
  */
 public class PagerData {
+
   @Nullable
   private String myNextHref;
   @Nullable
   private String myPrevHref;
+
+  public PagerData() {
+  }
 
   /**
    * @param allHref              relative URL for listing all items.
@@ -38,7 +42,7 @@ public class PagerData {
    * @param count                count of the items on a page
    * @param currentPageRealCount number of items on the current page
    */
-  public PagerData(final String allHref, @Nullable final Long start, @Nullable final Long count, long currentPageRealCount) {
+  public PagerData(final String allHref, @Nullable final Long start, @Nullable final Integer count, long currentPageRealCount) {
     if (start == null || start == 0) {
       myPrevHref = null;
       if (count == null || currentPageRealCount < count) {

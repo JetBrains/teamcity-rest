@@ -86,7 +86,7 @@ public class BuildTypeRequest {
   public Builds serveBuilds(@PathParam("btLocator") String buildTypeLocator,
                             @QueryParam("status") String status,
                             @QueryParam("start") @DefaultValue(value = "0") Long start,
-                            @QueryParam("count") @DefaultValue(value = "100") Long count) {
+                            @QueryParam("count") @DefaultValue(value = "100") Integer count) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     final List<SFinishedBuild> buildsList = myDataProvider.getBuilds(buildType, null, false, true, false, status, start, count);
     return new Builds(buildsList,
