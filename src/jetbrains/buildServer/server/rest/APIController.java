@@ -145,7 +145,7 @@ public class APIController extends BaseController implements ServletContextAware
     }
     if (LOG.isDebugEnabled()) {
       final long requestFinishProcessing = System.nanoTime();
-      LOG.debug("REST API request processing finished in " + (requestFinishProcessing - requestStartProcessing) / 100000 + " ms");
+      LOG.debug("REST API request processing finished in " + (requestFinishProcessing - requestStartProcessing) / 1000000 + " ms");
     }
     return null;
   }
