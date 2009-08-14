@@ -29,6 +29,7 @@ import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SecurityContextEx;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
+import jetbrains.buildServer.web.util.WebUtil;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.web.context.ServletContextAware;
@@ -99,6 +100,11 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   protected ModelAndView doHandle(final HttpServletRequest request, final HttpServletResponse response) throws Exception {
+    final long requestStartProcessing = System.nanoTime();
+    if (LOG.isDebugEnabled()) {
+      LOG
+        .debug("REST API request received: " + WebUtil.createPathWithParameters(request) + " , remote address: " + request.getRemoteAddr());
+    }
     ensureInitialized();
 
     boolean runAsSystem = false;
@@ -136,6 +142,10 @@ public class APIController extends BaseController implements ServletContextAware
       }
     } finally {
       Thread.currentThread().setContextClassLoader(cl);
+    }
+    if (LOG.isDebugEnabled()) {
+      final long requestFinishProcessing = System.nanoTime();
+      LOG.debug("REST API request processing finished in " + (requestFinishProcessing - requestStartProcessing) / 100000 + " ms");
     }
     return null;
   }
