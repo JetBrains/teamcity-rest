@@ -16,12 +16,14 @@
 
 package jetbrains.buildServer.server.rest;
 
+import java.util.ArrayList;
 import java.util.List;
 import jetbrains.buildServer.serverSide.BuildHistory;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
+import jetbrains.buildServer.util.ItemProcessor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,6 +40,7 @@ public class BuildsFilterSettings {
 
   /**
    * @param buildTypeId     id of the build type to return builds from, can be null to return all builds
+   * @param status          status of the builds to include
    * @param username        limit builds to those triggered by user, can be null to return all builds
    * @param includePersonal limit builds to non-personal
    * @param includeCanceled limit builds to non-canceled
@@ -66,49 +69,7 @@ public class BuildsFilterSettings {
     myCount = count;
   }
 
-  @Nullable
-  public String getBuildTypeId() {
-    return myBuildTypeId;
-  }
-
-  @Nullable
-  public String getStatus() {
-    return myStatus;
-  }
-
-  @Nullable
-  public String getUsername() {
-    return myUsername;
-  }
-
-  public boolean isIncludePersonal() {
-    return myIncludePersonal;
-  }
-
-  public boolean isIncludeCanceled() {
-    return myIncludeCanceled;
-  }
-
-  public boolean isOnlyPinned() {
-    return myOnlyPinned;
-  }
-
-  @Nullable
-  public String getAgentName() {
-    return myAgentName;
-  }
-
-  @NotNull
-  public Long getStart() {
-    return myStart == null ? 0 : myStart;
-  }
-
-  @Nullable
-  public Integer getCount() {
-    return myCount;
-  }
-
-  public boolean isIncluded(final SFinishedBuild build) {
+  private boolean isIncluded(final SFinishedBuild build) {
     if (myAgentName != null && !myAgentName.equals(build.getAgentName())) {
       return false;
     }
@@ -136,12 +97,12 @@ public class BuildsFilterSettings {
     return true;
   }
 
-  public boolean isIncludedByRange(final long index) {
+  private boolean isIncludedByRange(final long index) {
     final long actualStart = myStart == null ? 0 : myStart;
     return (index >= actualStart) && (myCount == null || index < actualStart + myCount);
   }
 
-  public boolean isBelowUpperRangeLimit(final long index) {
+  private boolean isBelowUpperRangeLimit(final long index) {
     final long actualStart = myStart == null ? 0 : myStart;
     return myCount == null || index < actualStart + myCount;
   }
@@ -158,5 +119,30 @@ public class BuildsFilterSettings {
       buildHistory.processEntries(buildsFilterItemProcessor);
     }
     return buildsFilterItemProcessor.getResult();
+  }
+
+  private static class BuildsFilterItemProcessor implements ItemProcessor<SFinishedBuild> {
+    long myCurrentIndex = 0;
+    private final BuildsFilterSettings myBuildsFilterSettings;
+    private final ArrayList<SFinishedBuild> myList = new ArrayList<SFinishedBuild>();
+
+    public BuildsFilterItemProcessor(final BuildsFilterSettings buildsFilterSettings) {
+      myBuildsFilterSettings = buildsFilterSettings;
+    }
+
+    public boolean processItem(final SFinishedBuild item) {
+      if (!myBuildsFilterSettings.isIncluded(item)) {
+        return true;
+      }
+      if (myBuildsFilterSettings.isIncludedByRange(myCurrentIndex)) {
+        myList.add(item);
+      }
+      ++myCurrentIndex;
+      return myBuildsFilterSettings.isBelowUpperRangeLimit(myCurrentIndex);
+    }
+
+    public ArrayList<SFinishedBuild> getResult() {
+      return myList;
+    }
   }
 }
