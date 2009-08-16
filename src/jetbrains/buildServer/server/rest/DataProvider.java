@@ -377,113 +377,15 @@ public class DataProvider {
     return locator.indexOf(DIMENSION_NAME_VALUE_DELIMITER) != -1;
   }
 
-
-  /**
-   * Finds builds by the specified criteria within specified range
-   *
-   * @param buildType
-   * @param user
-   * @param includePersonalBuildsIfUserNotSpecified
-   *
-   * @param includeCanceled
-   * @param orderByChanges
-   * @param start           the index of the first build to return (begins with 0), 0 by default
-   * @param count           the number of builds to return, all by default
-   * @return the builds found
-   */
-  public List<SFinishedBuild> getBuilds(final SBuildType buildType,
-                                        @Nullable final User user,
-                                        final boolean includePersonalBuildsIfUserNotSpecified,
-                                        final boolean includeCanceled,
-                                        final boolean orderByChanges,
-                                        @Nullable final String status,
-                                        @Nullable final Long start,
-                                        @Nullable final Integer count) {
-    final ArrayList<SFinishedBuild> list = new ArrayList<SFinishedBuild>();
-    final long actualStart = start == null ? 0 : start;
-    myServer.getHistory().processEntries(buildType.getBuildTypeId(), user,
-                                         includePersonalBuildsIfUserNotSpecified,
-                                         includeCanceled,
-                                         orderByChanges,
-                                         new ItemProcessor<SFinishedBuild>() {
-                                           long currentIndex = 0;
-
-                                           public boolean processItem(final SFinishedBuild item) {
-                                             if (status != null &&
-                                                 !status.equalsIgnoreCase(item.getStatusDescriptor().getStatus().getText())) {
-                                               return true;
-                                             }
-                                             if ((currentIndex >= actualStart) && (count == null || currentIndex < actualStart + count)) {
-                                               list.add(item);
-                                             }
-                                             ++currentIndex;
-                                             return count == null || currentIndex <= actualStart + count;
-                                           }
-                                         });
-    return list;
-  }
-
   /**
    * Finds finished builds by the specified criteria within specified range
    * This is slow!
    *
-   * @param buildTypeId     id of the build type to return builds from, can be null to return all builds
-   * @param username        limit builds to those triggered by user
-   * @param includePersonal limit builds to non-personal
-   * @param includeCanceled limit builds to non-canceled
-   * @param onlyPinned      limit builds to pinned
-   * @param agentName       limit builds to those ran on specified agent
-   * @param start           the index of the first build to return (begins with 0), 0 by default
-   * @param count           the number of builds to return, all by default
+   * @param buildsFilterSettings the filter for the builds to find
    * @return the builds found
    */
-  public List<SFinishedBuild> getAllBuilds(@Nullable final String buildTypeId,
-                                           @Nullable final String status,
-                                           @Nullable final String username,
-                                           final boolean includePersonal,
-                                           final boolean includeCanceled,
-                                           final boolean onlyPinned,
-                                           @Nullable final String agentName,
-                                           @Nullable final Long start,
-                                           @Nullable final Integer count) {
-    final ArrayList<SFinishedBuild> list = new ArrayList<SFinishedBuild>();
-    final long actualStart = start == null ? 0 : start;
-    myServer.getHistory().processEntries(new ItemProcessor<SFinishedBuild>() {
-      long currentIndex = 0;
-
-      public boolean processItem(final SFinishedBuild item) {
-        if (agentName != null && !agentName.equals(item.getAgentName())) {
-          return true;
-        }
-        if (buildTypeId != null && !buildTypeId.equals(item.getBuildTypeId())) {
-          return true;
-        }
-        if (status != null && !status.equalsIgnoreCase(item.getStatusDescriptor().getStatus().getText())) {
-          return true;
-        }
-        if (!includePersonal && item.isPersonal()) {
-          return true;
-        }
-        if (!includeCanceled && (item.getCanceledInfo() != null)) {
-          return true;
-        }
-        if (onlyPinned && !item.isPinned()) {
-          return true;
-        }
-        if (username != null) {
-          final SUser user = myUserModel.findUserAccount(null, username);
-          if ((!item.getTriggeredBy().isTriggeredByUser() || user == null || !user.equals(item.getTriggeredBy().getUser()))) {
-            return true;
-          }
-        }
-        if ((currentIndex >= actualStart) && (count == null || currentIndex < actualStart + count)) {
-          list.add(item);
-        }
-        ++currentIndex;
-        return count == null || currentIndex <= actualStart + count;
-      }
-    });
-    return list;
+  public List<SFinishedBuild> getBuilds(final BuildsFilterSettings buildsFilterSettings) {
+    return buildsFilterSettings.getMatchingBuilds(myBuildHistory, myUserModel);
   }
 
   @NotNull

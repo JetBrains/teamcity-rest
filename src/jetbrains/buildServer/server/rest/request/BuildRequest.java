@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.request;
 import com.sun.jersey.spi.resource.Singleton;
 import java.util.List;
 import javax.ws.rs.*;
+import jetbrains.buildServer.server.rest.BuildsFilterSettings;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagerData;
 import jetbrains.buildServer.server.rest.data.build.Build;
@@ -58,7 +59,8 @@ public class BuildRequest {
                                @QueryParam("start") @DefaultValue(value = "0") Long start,
                                @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count) {
     final List<SFinishedBuild> buildsList =
-      myDataProvider.getAllBuilds(buildTypeId, status, username, includePersonal, includeCanceled, onlyPinned, agentName, start, count);
+      myDataProvider.getBuilds(
+        new BuildsFilterSettings(buildTypeId, status, username, includePersonal, includeCanceled, onlyPinned, agentName, start, count));
     return new Builds(buildsList, myDataProvider, new PagerData("/httpAuth/api/builds/", start, count, buildsList.size()));
   }
 

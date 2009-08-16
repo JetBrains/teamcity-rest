@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.request;
 import com.sun.jersey.spi.resource.Singleton;
 import java.util.List;
 import javax.ws.rs.*;
+import jetbrains.buildServer.server.rest.BuildsFilterSettings;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagerData;
 import jetbrains.buildServer.server.rest.data.build.Build;
@@ -108,11 +109,18 @@ public class ProjectRequest {
   public Builds serveBuilds(@PathParam("projectLocator") String projectLocator,
                             @PathParam("btLocator") String buildTypeLocator,
                             @QueryParam("status") String status,
+                            @QueryParam("username") String username,
+                            @QueryParam("includePersonal") boolean includePersonal,
+                            @QueryParam("includeCanceled") boolean includeCanceled,
+                            @QueryParam("onlyPinned") boolean onlyPinned,
+                            @QueryParam("agentName") String agentName,
                             @QueryParam("start") @DefaultValue(value = "0") Long start,
-                            @QueryParam("count") @DefaultValue(value = "100") Integer count) {
+                            @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count) {
     SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
 
-    final List<SFinishedBuild> buildsList = myDataProvider.getBuilds(buildType, null, false, true, false, status, start, count);
+    final List<SFinishedBuild> buildsList = myDataProvider.getBuilds(
+      new BuildsFilterSettings(buildType.getBuildTypeId(), status, username, includePersonal,
+                               includeCanceled, onlyPinned, agentName, start, count));
     return new Builds(buildsList, myDataProvider,
                       new PagerData("/httpAuth/api/projects/" + projectLocator + "/buildTypes/" + buildTypeLocator + "/builds",
                                     start,
