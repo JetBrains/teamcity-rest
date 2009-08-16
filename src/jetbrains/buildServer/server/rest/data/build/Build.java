@@ -42,7 +42,7 @@ import org.jetbrains.annotations.NotNull;
 //todo: add changes
 //todo: reuse fields code from DataProvider
 @XmlRootElement(name = "build")
-@XmlType(propOrder = {"pinned", "personal", "webUrl", "href", "status", "number", "id",
+@XmlType(propOrder = {"pinned", "history", "personal", "webUrl", "href", "status", "number", "id",
   "statusText", "buildType", "startDate", "finishDate", "agent", "comment", "tags", "properties",
   "buildDependencies", "revisions", "changes", "issues"})
 public class Build {
@@ -77,6 +77,11 @@ public class Build {
   @XmlAttribute
   public String getStatus() {
     return myBuild.getStatusDescriptor().getStatus().getText();
+  }
+
+  @XmlAttribute
+  public boolean isHistory() {
+    return myBuild.isOutOfChangesSequence();
   }
 
   @XmlAttribute
