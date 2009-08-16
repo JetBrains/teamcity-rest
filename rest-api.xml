@@ -109,10 +109,12 @@
 
   <path id="rest-api.module.classpath">
     <pathelement location="${basedir}/lib/asm-3.1.jar"/>
-    <pathelement location="${basedir}/lib/jersey-core-1.0.2.jar"/>
-    <pathelement location="${basedir}/lib/jersey-server-1.0.2.jar"/>
-    <pathelement location="${basedir}/lib/jersey-spring-1.0.2.jar"/>
+    <pathelement location="${basedir}/lib/jersey-core-1.0.3.jar"/>
+    <pathelement location="${basedir}/lib/jersey-json-1.0.3.jar"/>
+    <pathelement location="${basedir}/lib/jersey-server-1.0.3.jar"/>
+    <pathelement location="${basedir}/lib/jersey-spring-1.0.3.jar"/>
     <pathelement location="${basedir}/lib/jsr311-api-1.0.jar"/>
+    <pathelement location="${basedir}/lib/wadl-resourcedoc-doclet-1.0.3.jar"/>
     <pathelement location="${basedir}/lib/grizzly-servlet-webserver-1.8.6.4.jar"/>
     <path refid="library.teamcity_open_api_server.classpath"/>
     <path refid="library.teamcity_open_api_common.classpath"/>
@@ -132,10 +134,12 @@
     <pathelement location="${rest-api.output.dir}"/>
     <pathelement location="${rest-api.testoutput.dir}"/>
     <pathelement location="${basedir}/lib/asm-3.1.jar"/>
-    <pathelement location="${basedir}/lib/jersey-core-1.0.2.jar"/>
-    <pathelement location="${basedir}/lib/jersey-server-1.0.2.jar"/>
-    <pathelement location="${basedir}/lib/jersey-spring-1.0.2.jar"/>
+    <pathelement location="${basedir}/lib/jersey-core-1.0.3.jar"/>
+    <pathelement location="${basedir}/lib/jersey-json-1.0.3.jar"/>
+    <pathelement location="${basedir}/lib/jersey-server-1.0.3.jar"/>
+    <pathelement location="${basedir}/lib/jersey-spring-1.0.3.jar"/>
     <pathelement location="${basedir}/lib/jsr311-api-1.0.jar"/>
+    <pathelement location="${basedir}/lib/wadl-resourcedoc-doclet-1.0.3.jar"/>
     <pathelement location="${basedir}/lib/grizzly-servlet-webserver-1.8.6.4.jar"/>
     <path refid="library.teamcity_open_api_server.classpath"/>
     <path refid="library.teamcity_open_api_common.classpath"/>

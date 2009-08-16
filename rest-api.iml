@@ -21,17 +21,21 @@
     <orderEntry type="module-library">
       <library name="Jersey">
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/jersey-server-1.0.2.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/asm-3.1.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jsr311-api-1.0.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jersey-core-1.0.2.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jersey-spring-1.0.2.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jersey-server-1.0.3.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jersey-core-1.0.3.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/wadl-resourcedoc-doclet-1.0.3.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jersey-json-1.0.3.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jersey-spring-1.0.3.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="jar://$MODULE_DIR$/lib/src/jersey-spring-1.0-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jersey-bundle-1.0.2-sources.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/src/jsr311-api-1.0-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jersey-server-1.0.3-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jersey-core-1.0.3-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jersey-json-1.0.3-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jersey-spring-1.0.3-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
