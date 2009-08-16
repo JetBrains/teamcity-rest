@@ -30,8 +30,18 @@ public class ExceptionMapperUtil {
   protected static Response reportError(@NotNull final Response.Status responseStatus, @NotNull final Exception e) {
     Response.ResponseBuilder builder = Response.status(responseStatus);
     builder.type("text/plain");
-    builder.entity(e.getMessage());
+    builder.entity(getMessageWithCauses(e));
     LOG.debug("Sending " + responseStatus + " error in response.", e);
     return builder.build();
+  }
+
+  private static String getMessageWithCauses(Throwable e) {
+    final String message = e.getMessage();
+    String result = e.getClass().getName() + (message != null ? ": " + message : "");
+    final Throwable cause = e.getCause();
+    if (cause != null && cause != e) {
+      result += ", caused by: " + getMessageWithCauses(cause);
+    }
+    return result;
   }
 }
