@@ -16,12 +16,11 @@
 
 package jetbrains.buildServer.server.rest;
 
+import com.intellij.openapi.diagnostic.Logger;
 import com.sun.jersey.api.core.ResourceConfig;
 import com.sun.jersey.spi.container.WebApplication;
 import com.sun.jersey.spi.spring.container.SpringComponentProviderFactory;
 import com.sun.jersey.spi.spring.container.servlet.SpringServlet;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.springframework.context.ConfigurableApplicationContext;
 
 /**
@@ -33,7 +32,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 public class JerseyWebComponent extends SpringServlet {
   private static final long serialVersionUID = 5686455305749079671L;
 
-  private static final Logger LOGGER = Logger.getLogger(JerseyWebComponent.class.getName());
+  private static final Logger LOG = Logger.getInstance(JerseyWebComponent.class.getName());
   private ConfigurableApplicationContext myWebApplicationContext;
 
   @Override
@@ -43,7 +42,7 @@ public class JerseyWebComponent extends SpringServlet {
 
       wa.initiate(rc, new SpringComponentProviderFactory(rc, springContext));
     } catch (RuntimeException e) {
-      LOGGER.log(Level.SEVERE, "Exception occurred when intialization", e);
+      LOG.error("Exception occurred during REST API initialization", e);
       throw e;
     }
   }
