@@ -16,16 +16,37 @@
 
 package jetbrains.buildServer.server.rest;
 
+import java.util.Date;
+import jetbrains.buildServer.serverSide.SBuild;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 /**
- * User: Yegor Yarko
- * Date: 29.03.2009
+ * @author Yegor.Yarko
+ *         Date: 16.08.2009
  */
-public class BadRequestException extends RuntimeException {
-  public BadRequestException(String message) {
-    super(message);
+public class RangeLimit {
+  @Nullable private SBuild myBuild;
+  @NotNull private Date myDate;
+
+  public RangeLimit(@NotNull final SBuild build) {
+    myBuild = build;
   }
 
-  public BadRequestException(String message, Throwable cause) {
-    super(message, cause);
+  public RangeLimit(@NotNull final Date date) {
+    myDate = date;
+  }
+
+  @Nullable
+  public SBuild getBuild() {
+    return myBuild;
+  }
+
+  @NotNull
+  public Date getDate() {
+    if (myBuild != null) {
+      return myBuild.getStartDate();
+    }
+    return myDate;
   }
 }

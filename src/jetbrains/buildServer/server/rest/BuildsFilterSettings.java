@@ -19,52 +19,57 @@ package jetbrains.buildServer.server.rest;
 import java.util.ArrayList;
 import java.util.List;
 import jetbrains.buildServer.serverSide.BuildHistory;
+import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
-import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.ItemProcessor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class BuildsFilterSettings {
-  @Nullable private final String myBuildTypeId;
   @Nullable private final String myStatus;
-  @Nullable private final String myUsername;
   private final boolean myIncludePersonal;
   private final boolean myIncludeCanceled;
   private final boolean myOnlyPinned;
   @Nullable private final String myAgentName;
+  @Nullable private final RangeLimit mySince;
   @Nullable private final Long myStart;
   @Nullable private final Integer myCount;
+  @Nullable private final SUser myUser;
+  @Nullable private final SBuildType myBuildType;
 
   /**
-   * @param buildTypeId     id of the build type to return builds from, can be null to return all builds
+   * @param buildType       build type to return builds from, can be null to return all builds
    * @param status          status of the builds to include
-   * @param username        limit builds to those triggered by user, can be null to return all builds
+   * @param user            limit builds to those triggered by user, can be null to return all builds
    * @param includePersonal limit builds to non-personal
    * @param includeCanceled limit builds to non-canceled
    * @param onlyPinned      limit builds to pinned
    * @param agentName       limit builds to those ran on specified agent, can be null to return all builds
+   * @param since           the RangeLimit to return only the builds since the limit. If contains build, it is not included, if contains the date, the builds that were started at and later then the date are included
    * @param start           the index of the first build to return (begins with 0), 0 by default
    * @param count           the number of builds to return, all by default
    */
-  public BuildsFilterSettings(@Nullable final String buildTypeId,
+  public BuildsFilterSettings(@Nullable final SBuildType buildType,
                               @Nullable final String status,
-                              @Nullable final String username,
+                              @Nullable final SUser user,
                               final boolean includePersonal,
                               final boolean includeCanceled,
                               final boolean onlyPinned,
                               @Nullable final String agentName,
+                              @Nullable final RangeLimit since,
                               @Nullable final Long start,
                               @Nullable final Integer count) {
-    myBuildTypeId = buildTypeId;
+    myBuildType = buildType;
     myStatus = status;
-    myUsername = username;
+    myUser = user;
     myIncludePersonal = includePersonal;
     myIncludeCanceled = includeCanceled;
     myOnlyPinned = onlyPinned;
     myAgentName = agentName;
+    mySince = since;
     myStart = start;
     myCount = count;
   }
@@ -73,7 +78,7 @@ public class BuildsFilterSettings {
     if (myAgentName != null && !myAgentName.equals(build.getAgentName())) {
       return false;
     }
-    if (myBuildTypeId != null && !myBuildTypeId.equals(build.getBuildTypeId())) {
+    if (myBuildType != null && !myBuildType.getBuildTypeId().equals(build.getBuildTypeId())) {
       return false;
     }
     if (myStatus != null && !myStatus.equalsIgnoreCase(build.getStatusDescriptor().getStatus().getText())) {
@@ -88,10 +93,21 @@ public class BuildsFilterSettings {
     if (myOnlyPinned && !build.isPinned()) {
       return false;
     }
-    if (myUsername != null) {
-      final SUser triggeredByUser = build.getTriggeredBy().getUser();
-      if (!build.getTriggeredBy().isTriggeredByUser() || (triggeredByUser != null && !myUsername.equals(triggeredByUser.getUsername()))) {
+    if (myUser != null) {
+      final SUser userWhoTriggered = build.getTriggeredBy().getUser();
+      if (!build.getTriggeredBy().isTriggeredByUser() || (userWhoTriggered != null && myUser.getId() != userWhoTriggered.getId())) {
         return false;
+      }
+    }
+    if (mySince != null) {
+      if (mySince.getDate().after(build.getStartDate())) {
+        return false;
+      } else {
+        //filter out the build itself (see BuildHistory.getEntriesSince )
+        final SBuild sinceBuild = mySince.getBuild();
+        if (sinceBuild != null && sinceBuild.getBuildId() == build.getBuildId()) {
+          return false;
+        }
       }
     }
     return true;
@@ -107,18 +123,35 @@ public class BuildsFilterSettings {
     return myCount == null || index < actualStart + myCount;
   }
 
-  public List<SFinishedBuild> getMatchingBuilds(@NotNull final BuildHistory buildHistory, @NotNull final UserModel userModel) {
+  public List<SFinishedBuild> getMatchingBuilds(@NotNull final BuildHistory buildHistory) {
     final BuildsFilterItemProcessor buildsFilterItemProcessor = new BuildsFilterItemProcessor(this);
-    if (myBuildTypeId != null) {
-      User user = null;
-      if (myIncludePersonal && myUsername != null) {
-        user = userModel.findUserAccount(null, myUsername);
+    if (myBuildType != null) {
+      SBuild sinceBuild;
+      if (mySince != null && (sinceBuild = mySince.getBuild()) != null) {
+        processList(buildHistory.getEntriesSince(sinceBuild, myBuildType), buildsFilterItemProcessor);
+        //todo: and filter by current settings
+      } else {
+        buildHistory.processEntries(myBuildType.getBuildTypeId(), getUserForProcessEntries(), myIncludePersonal, myIncludeCanceled, false,
+                                    buildsFilterItemProcessor);
       }
-      buildHistory.processEntries(myBuildTypeId, user, myIncludePersonal, myIncludeCanceled, false, buildsFilterItemProcessor);
     } else {
       buildHistory.processEntries(buildsFilterItemProcessor);
     }
     return buildsFilterItemProcessor.getResult();
+  }
+
+  private void processList(final List<SFinishedBuild> entriesSince,
+                           final ItemProcessor<SFinishedBuild> processor) {
+    for (SFinishedBuild entry : entriesSince) {
+      processor.processItem(entry);
+    }
+  }
+
+  private User getUserForProcessEntries() {
+    if (myIncludePersonal && myUser != null) {
+      return myUser;
+    }
+    return null;
   }
 
   private static class BuildsFilterItemProcessor implements ItemProcessor<SFinishedBuild> {

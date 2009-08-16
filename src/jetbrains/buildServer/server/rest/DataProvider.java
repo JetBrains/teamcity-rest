@@ -18,9 +18,11 @@ package jetbrains.buildServer.server.rest;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.MultiValuesMap;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
@@ -58,6 +60,7 @@ public class DataProvider {
   private final WebLinks myWebLinks;
   private static final String DIMENSION_NAME_VALUE_DELIMITER = ":";
   private static final String DIMENSIONS_DELIMITER = ",";
+  private static final String DATE_FORMAT = "yyyyMMdd'T'HHmmssZ";
 
   public DataProvider(SBuildServer myServer,
                       BuildHistory myBuildHistory,
@@ -110,9 +113,9 @@ public class DataProvider {
     } else if ("id".equals(field)) {
       return (new Long(build.getBuildId())).toString();
     } else if ("startDate".equals(field)) {
-      return (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(build.getStartDate());
+      return (new SimpleDateFormat(DATE_FORMAT)).format(build.getStartDate());
     } else if ("finishDate".equals(field)) {
-      return (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(build.getFinishDate());
+      return (new SimpleDateFormat(DATE_FORMAT)).format(build.getFinishDate());
     } else if ("buildTypeId".equals(field)) {
       return (build.getBuildTypeId());
     }
@@ -218,20 +221,25 @@ public class DataProvider {
     if (StringUtil.isEmpty(buildTypeLocator)) {
       throw new BadRequestException("Empty build type locator is not supported.");
     }
+    assert buildTypeLocator != null;
 
     if (!hasDimensions(buildTypeLocator)) {
-      // no dimensions found, assume it's a name
-      return findBuildTypeByName(project, buildTypeLocator);
+      // no dimensions found
+      if (project != null) {
+        // assume it's a name
+        return findBuildTypeByName(project, buildTypeLocator);
+      } else {
+        //assume it's id
+        return findBuildTypeById(buildTypeLocator);
+      }
     }
 
     MultiValuesMap<String, String> buildTypeLocatorDimensions = decodeLocator(buildTypeLocator);
 
     String id = getSingleDimensionValue(buildTypeLocatorDimensions, "id");
     if (!StringUtil.isEmpty(id)) {
-      SBuildType buildType = myServer.getProjectManager().findBuildTypeById(id);
-      if (buildType == null) {
-        throw new NotFoundException("No build type is found by id '" + id + "'.");
-      }
+      assert id != null;
+      SBuildType buildType = findBuildTypeById(id);
       if (project != null && !buildType.getProject().equals(project)) {
         throw new NotFoundException("Build type with id '" + id + "' does not belong to project " + project + ".");
       }
@@ -249,6 +257,15 @@ public class DataProvider {
       return findBuildTypeByName(project, name);
     }
     throw new BadRequestException("Build type locator '" + buildTypeLocator + "' is not supported.");
+  }
+
+  @NotNull
+  private SBuildType findBuildTypeById(@NotNull final String id) {
+    SBuildType buildType = myServer.getProjectManager().findBuildTypeById(id);
+    if (buildType == null) {
+      throw new NotFoundException("No build type is found by id '" + id + "'.");
+    }
+    return buildType;
   }
 
   @NotNull
@@ -385,7 +402,7 @@ public class DataProvider {
    * @return the builds found
    */
   public List<SFinishedBuild> getBuilds(final BuildsFilterSettings buildsFilterSettings) {
-    return buildsFilterSettings.getMatchingBuilds(myBuildHistory, myUserModel);
+    return buildsFilterSettings.getMatchingBuilds(myBuildHistory);
   }
 
   @NotNull
@@ -732,4 +749,39 @@ public class DataProvider {
     return result;
   }
 
+  @Nullable
+  public SBuildType getBuildTypeIfNotNull(@Nullable final String buildTypeLocator) {
+    return buildTypeLocator == null ? null : getBuildType(null, buildTypeLocator);
+  }
+
+  @Nullable
+  public SUser getUserIfNotNull(@Nullable final String userLocator) {
+    return userLocator == null ? null : getUser(userLocator);
+  }
+
+  @Nullable
+  public RangeLimit getRangeLimit(@Nullable final SBuildType buildType, @Nullable final String buildLocator, @Nullable final Date date) {
+    if (buildLocator == null && date == null) {
+      return null;
+    }
+    if (buildLocator != null) {
+      if (date != null) {
+        throw new BadRequestException("Both build and date are specified for a build rage limit");
+      }
+      return new RangeLimit(getBuild(buildType, buildLocator));
+    }
+    return new RangeLimit(date);
+  }
+
+  @Nullable
+  public static Date parseDate(@Nullable final String dateString) {
+    if (dateString == null) {
+      return null;
+    }
+    try {
+      return new SimpleDateFormat(DATE_FORMAT).parse(dateString);
+    } catch (ParseException e) {
+      throw new BadRequestException("Could not parse date from value '" + dateString + "'", e);
+    }
+  }
 }

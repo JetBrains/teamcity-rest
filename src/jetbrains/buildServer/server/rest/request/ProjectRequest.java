@@ -109,23 +109,31 @@ public class ProjectRequest {
   public Builds serveBuilds(@PathParam("projectLocator") String projectLocator,
                             @PathParam("btLocator") String buildTypeLocator,
                             @QueryParam("status") String status,
-                            @QueryParam("username") String username,
+                            @QueryParam("triggeredByUser") String userLocator,
                             @QueryParam("includePersonal") boolean includePersonal,
                             @QueryParam("includeCanceled") boolean includeCanceled,
                             @QueryParam("onlyPinned") boolean onlyPinned,
                             @QueryParam("agentName") String agentName,
+                            @QueryParam("sinceBuild") String sinceBuildLocator,
+                            @QueryParam("sinceDate") String sinceDate,
                             @QueryParam("start") @DefaultValue(value = "0") Long start,
                             @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count) {
     SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
-
     final List<SFinishedBuild> buildsList = myDataProvider.getBuilds(
-      new BuildsFilterSettings(buildType.getBuildTypeId(), status, username, includePersonal,
-                               includeCanceled, onlyPinned, agentName, start, count));
+      new BuildsFilterSettings(buildType, status, myDataProvider.getUserIfNotNull(userLocator),
+                               includePersonal, includeCanceled, onlyPinned, agentName,
+                               myDataProvider.getRangeLimit(buildType, sinceBuildLocator, myDataProvider.parseDate(sinceDate)), start,
+                               count));
     return new Builds(buildsList, myDataProvider,
-                      new PagerData("/httpAuth/api/projects/" + projectLocator + "/buildTypes/" + buildTypeLocator + "/builds",
+                      new PagerData(getUrl("/httpAuth/api/projects/" + projectLocator + "/buildTypes/" + buildTypeLocator + "/builds"),
                                     start,
                                     count,
                                     buildsList.size()));
+  }
+
+  //todo: should contain all parameters of the original request
+  private String getUrl(final String s) {
+    return s;
   }
 
   @GET

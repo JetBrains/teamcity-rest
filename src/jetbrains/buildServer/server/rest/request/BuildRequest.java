@@ -49,19 +49,28 @@ public class BuildRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
-  public Builds serveAllBuilds(@QueryParam("buildTypeId") String buildTypeId,
+  public Builds serveAllBuilds(@QueryParam("buildType") String buildTypeLocator,
                                @QueryParam("status") String status,
-                               @QueryParam("username") String username,
+                               @QueryParam("triggeredByUser") String userLocator,
                                @QueryParam("includePersonal") boolean includePersonal,
                                @QueryParam("includeCanceled") boolean includeCanceled,
                                @QueryParam("onlyPinned") boolean onlyPinned,
                                @QueryParam("agentName") String agentName,
+                               @QueryParam("sinceBuild") String sinceBuildLocator,
+                               @QueryParam("sinceDate") String sinceDate,
                                @QueryParam("start") @DefaultValue(value = "0") Long start,
                                @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count) {
-    final List<SFinishedBuild> buildsList =
-      myDataProvider.getBuilds(
-        new BuildsFilterSettings(buildTypeId, status, username, includePersonal, includeCanceled, onlyPinned, agentName, start, count));
-    return new Builds(buildsList, myDataProvider, new PagerData("/httpAuth/api/builds/", start, count, buildsList.size()));
+    final List<SFinishedBuild> buildsList = myDataProvider.getBuilds(
+      new BuildsFilterSettings(myDataProvider.getBuildTypeIfNotNull(buildTypeLocator),
+                               status, myDataProvider.getUserIfNotNull(userLocator),
+                               includePersonal, includeCanceled, onlyPinned, agentName,
+                               myDataProvider.getRangeLimit(null, sinceBuildLocator, myDataProvider.parseDate(sinceDate)), start, count));
+    return new Builds(buildsList, myDataProvider, new PagerData(getUrl("/httpAuth/api/builds/"), start, count, buildsList.size()));
+  }
+
+  //todo: should contain all parameters of the original request
+  private String getUrl(final String s) {
+    return s;
   }
 
   @GET
