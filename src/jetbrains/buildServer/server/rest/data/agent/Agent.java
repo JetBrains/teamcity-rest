@@ -17,7 +17,9 @@
 package jetbrains.buildServer.server.rest.data.agent;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.data.Properties;
 import jetbrains.buildServer.server.rest.request.AgentRequest;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 
@@ -34,6 +36,11 @@ public class Agent {
 
   public Agent(final SBuildAgent agent) {
     myAgent = agent;
+  }
+
+  @XmlAttribute
+  public String getHref() {
+    return AgentRequest.getAgentHref(myAgent);
   }
 
   @XmlAttribute
@@ -67,7 +74,12 @@ public class Agent {
   }
 
   @XmlAttribute
-  public String getHref() {
-    return AgentRequest.getAgentHref(myAgent);
+  public String getIp() {
+    return myAgent.getHostAddress();
+  }
+
+  @XmlElement
+  public Properties getProperties() {
+    return new Properties(myAgent.getAvailableParameters());
   }
 }

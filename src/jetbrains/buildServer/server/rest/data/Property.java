@@ -17,11 +17,13 @@
 package jetbrains.buildServer.server.rest.data;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlType;
 
 /**
  * @author Yegor.Yarko
  *         Date: 16.04.2009
  */
+@XmlType(propOrder = {"value", "name"})
 public class Property {
   @XmlAttribute
   public String name;

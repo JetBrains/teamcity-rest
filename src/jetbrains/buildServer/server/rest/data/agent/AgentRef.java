@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data.agent;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.request.AgentRequest;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 
@@ -24,6 +25,7 @@ import jetbrains.buildServer.serverSide.SBuildAgent;
  * @author Yegor.Yarko
  *         Date: 01.08.2009
  */
+@XmlRootElement(name = "agent")
 public class AgentRef {
   private SBuildAgent myAgent;
   private String myAgentName;
