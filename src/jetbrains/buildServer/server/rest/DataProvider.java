@@ -144,10 +144,15 @@ public class DataProvider {
     }
 
     if (!hasDimensions(buildLocator)) {
-      // no dimensions found, assume it's a number
       if (buildType == null) {
-        throw new BadRequestException("Cannot find build by number '" + buildLocator + "' without build type specified.");
+        // no dimensions found and no build type, assume it's build id
+        SBuild build = getBuildById(buildLocator);
+        if (build == null) {
+          throw new BadRequestException("Cannot find build by id '" + buildLocator + "'.");
+        }
+        return build;
       }
+      // no dimensions found and build type is specified, assume it's build number
       SBuild build = myServer.findBuildInstanceByBuildNumber(buildType.getBuildTypeId(), buildLocator);
       if (build == null) {
         throw new NotFoundException("No build can be found by number '" + buildLocator + "' in build configuration " + buildType + ".");
@@ -159,18 +164,9 @@ public class DataProvider {
 
     String idString = getSingleDimensionValue(buildLocatorDimensions, "id");
     if (idString != null) {
-      Long id;
-      try {
-        id = Long.parseLong(idString);
-      } catch (NumberFormatException e) {
-        throw new BadRequestException("Invalid build id '" + idString + "'. Should be a number.");
-      }
-      SBuild build = myServer.findBuildInstanceById(id);
-      if (build == null) {
-        throw new NotFoundException("No build can be found by id '" + id + "'.");
-      }
+      SBuild build = getBuildById(idString);
       if (buildType != null && !buildType.getBuildTypeId().equals(build.getBuildTypeId())) {
-        throw new NotFoundException("No build can be found by id '" + id + "' in build type " + buildType + ".");
+        throw new NotFoundException("No build can be found by id '" + idString + "' in build type " + buildType + ".");
       }
       if (buildLocatorDimensions.keySet().size() > 1) {
         LOG.info("Build locator '" + buildLocator + "' has 'id' dimension and others. Others are ignored.");
@@ -214,6 +210,20 @@ public class DataProvider {
     }
 
     throw new NotFoundException("Build locator '" + buildLocator + "' is not supported");
+  }
+
+  private SBuild getBuildById(@NotNull final String idString) {
+    Long id;
+    try {
+      id = Long.parseLong(idString);
+    } catch (NumberFormatException e) {
+      throw new BadRequestException("Invalid build id '" + idString + "'. Should be a number.");
+    }
+    SBuild build = myServer.findBuildInstanceById(id);
+    if (build == null) {
+      throw new NotFoundException("No build can be found by id '" + id + "'.");
+    }
+    return build;
   }
 
   @NotNull
@@ -783,5 +793,9 @@ public class DataProvider {
     } catch (ParseException e) {
       throw new BadRequestException("Could not parse date from value '" + dateString + "'", e);
     }
+  }
+
+  public void deleteBuild(final SBuild build) {
+    myBuildHistory.removeEntry(build.getBuildId());
   }
 }
