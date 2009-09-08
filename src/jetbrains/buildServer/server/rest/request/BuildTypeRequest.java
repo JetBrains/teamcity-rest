@@ -40,17 +40,18 @@ import jetbrains.buildServer.serverSide.SFinishedBuild;
     - too long number passed as finish for builds produses 404
 */
 
-@Path("/httpAuth/api/buildTypes")
+@Path(BuildTypeRequest.API_BUILD_TYPES_URL)
 @Singleton
 public class BuildTypeRequest {
   private final DataProvider myDataProvider;
+  public static final String API_BUILD_TYPES_URL = Constants.API_URL + "/buildTypes";
 
   public BuildTypeRequest(DataProvider myDataProvider) {
     this.myDataProvider = myDataProvider;
   }
 
   public static String getBuildTypeHref(SBuildType buildType) {
-    return "/httpAuth/api/buildTypes/id:" + buildType.getBuildTypeId();
+    return API_BUILD_TYPES_URL + "/id:" + buildType.getBuildTypeId();
   }
 
 
@@ -83,7 +84,6 @@ public class BuildTypeRequest {
   @GET
   @Path("/{btLocator}/builds")
   @Produces({"application/xml", "application/json"})
-  //todo: add qury params limiting range
   public Builds serveBuilds(@PathParam("btLocator") String buildTypeLocator,
                             @QueryParam("status") String status,
                             @QueryParam("triggeredByUser") String userLocator,
@@ -104,7 +104,7 @@ public class BuildTypeRequest {
                                count));
     return new Builds(buildsList,
                       myDataProvider,
-                      new PagerData(getUrl("/httpAuth/api/buildTypes/" + buildTypeLocator + "/builds"), start, count, buildsList.size()));
+                      new PagerData(getUrl(API_BUILD_TYPES_URL + "/" + buildTypeLocator + "/builds"), start, count, buildsList.size()));
   }
 
   //todo: should contain all parameters of the original request

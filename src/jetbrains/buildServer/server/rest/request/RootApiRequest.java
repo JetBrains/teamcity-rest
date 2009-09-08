@@ -31,7 +31,7 @@ import jetbrains.buildServer.web.plugins.bean.ServerPluginInfo;
  * @author Yegor.Yarko
  *         Date: 22.07.2009
  */
-@Path("/httpAuth/api")
+@Path(Constants.API_URL)
 @Singleton
 public class RootApiRequest {
 

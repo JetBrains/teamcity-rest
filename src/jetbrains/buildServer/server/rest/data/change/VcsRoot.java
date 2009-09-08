@@ -20,6 +20,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.data.Properties;
+import jetbrains.buildServer.server.rest.request.VcsRootRequest;
 
 /**
  * @author Yegor.Yarko
@@ -68,7 +69,7 @@ public class VcsRoot {
     }
 
     public VcsRootRef(jetbrains.buildServer.vcs.VcsRoot root) {
-      this.href = "/httpAuth/api/vcs-roots/id:" + root.getId() + ",ver:" + root.getRootVersion();
+      this.href = VcsRootRequest.getVcsRootHref(root);
       this.name = root.getName();
     }
   }

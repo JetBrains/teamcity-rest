@@ -36,7 +36,7 @@ import jetbrains.buildServer.vcs.VcsModification;
 @Path(ChangeRequest.API_CHANGES_URL)
 @Singleton
 public class ChangeRequest {
-  public static final String API_CHANGES_URL = "/httpAuth/api/changes";
+  public static final String API_CHANGES_URL = Constants.API_URL + "/changes";
   private final DataProvider myDataProvider;
 
   public ChangeRequest(DataProvider myDataProvider) {

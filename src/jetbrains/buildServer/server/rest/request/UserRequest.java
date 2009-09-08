@@ -33,11 +33,12 @@ import jetbrains.buildServer.users.SUser;
     - too long number passed as finish for builds produces 404 error
 */
 
-@Path("/httpAuth/api/users")
+@Path(UserRequest.API_USERS_URL)
 @Singleton
 public class UserRequest {
   private final DataProvider myDataProvider;
   private final DataUpdater myDataUpdater;
+  public static final String API_USERS_URL = Constants.API_URL + "/users";
 
   public UserRequest(DataProvider myDataProvider, DataUpdater dataUpdater) {
     this.myDataProvider = myDataProvider;
@@ -47,7 +48,7 @@ public class UserRequest {
   public static String getUserHref(final jetbrains.buildServer.users.User user) {
     //todo: investigate why "DOMAIN username" does not work as query parameter
 //    this.href = "/httpAuth/api/users/" + user.getUsername();
-    return "/httpAuth/api/users/id:" + user.getId();
+    return API_USERS_URL + "/id:" + user.getId();
   }
 
   public static String getRoleAssignmentHref(final RoleEntry roleEntry, final SUser user) {

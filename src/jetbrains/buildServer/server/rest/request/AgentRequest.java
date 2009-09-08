@@ -29,17 +29,18 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 01.08.2009
  */
-@Path("/httpAuth/api/agents")
+@Path(AgentRequest.API_AGENTS_URL)
 @Singleton
 public class AgentRequest {
   private final DataProvider myDataProvider;
+  public static final String API_AGENTS_URL = Constants.API_URL + "/agents";
 
   public AgentRequest(final DataProvider dataProvider) {
     myDataProvider = dataProvider;
   }
 
   public static String getAgentHref(@NotNull final SBuildAgent agent) {
-    return "/httpAuth/api/agents/id:" + agent.getId();
+    return API_AGENTS_URL + "/id:" + agent.getId();
   }
 
   @GET

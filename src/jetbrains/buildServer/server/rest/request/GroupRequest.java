@@ -33,14 +33,15 @@ import jetbrains.buildServer.serverSide.auth.RoleScope;
     - too long number passed as finish for builds produses 404
 */
 
-@Path("/httpAuth/api/userGroups")
+@Path(GroupRequest.API_USER_GROUPS_URL)
 @Singleton
 public class GroupRequest {
   private final DataProvider myDataProvider;
+  public static final String API_USER_GROUPS_URL = Constants.API_URL + "/userGroups";
 
 
   public static String getGroupHref(UserGroup userGroup) {
-    return "/httpAuth/api/userGroups/key:" + userGroup.getKey();
+    return API_USER_GROUPS_URL + "/key:" + userGroup.getKey();
   }
 
   public static String getRoleAssignmentHref(final RoleEntry roleEntry, final UserGroup group) {

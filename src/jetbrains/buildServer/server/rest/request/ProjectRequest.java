@@ -37,17 +37,18 @@ import jetbrains.buildServer.serverSide.SProject;
  * User: Yegor Yarko
  * Date: 11.04.2009
  */
-@Path("/httpAuth/api/projects")
+@Path(ProjectRequest.API_PROJECTS_URL)
 @Singleton
 public class ProjectRequest {
   private final DataProvider myDataProvider;
+  public static final String API_PROJECTS_URL = Constants.API_URL + "/projects";
 
   public ProjectRequest(DataProvider myDataProvider) {
     this.myDataProvider = myDataProvider;
   }
 
   public static String getProjectHref(SProject project) {
-    return "/httpAuth/api/projects/id:" + project.getProjectId();
+    return API_PROJECTS_URL + "/id:" + project.getProjectId();
   }
 
   @GET
@@ -125,7 +126,7 @@ public class ProjectRequest {
                                myDataProvider.getRangeLimit(buildType, sinceBuildLocator, myDataProvider.parseDate(sinceDate)), start,
                                count));
     return new Builds(buildsList, myDataProvider,
-                      new PagerData(getUrl("/httpAuth/api/projects/" + projectLocator + "/buildTypes/" + buildTypeLocator + "/builds"),
+                      new PagerData(getUrl(API_PROJECTS_URL + "/" + projectLocator + "/buildTypes/" + buildTypeLocator + "/builds"),
                                     start,
                                     count,
                                     buildsList.size()));

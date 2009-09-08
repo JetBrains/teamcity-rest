@@ -30,13 +30,18 @@ import jetbrains.buildServer.server.rest.data.change.VcsRoots;
     - too long number passed as finish for builds produses 404
 */
 
-@Path("/httpAuth/api/vcs-roots")
+@Path(VcsRootRequest.API_VCS_ROOTS_URL)
 @Singleton
 public class VcsRootRequest {
   private final DataProvider myDataProvider;
+  public static final String API_VCS_ROOTS_URL = Constants.API_URL + "/vcs-roots";
 
   public VcsRootRequest(DataProvider myDataProvider) {
     this.myDataProvider = myDataProvider;
+  }
+
+  public static String getVcsRootHref(final jetbrains.buildServer.vcs.VcsRoot root) {
+    return API_VCS_ROOTS_URL + "/id:" + root.getId() + ",ver:" + root.getRootVersion();
   }
 
   @GET

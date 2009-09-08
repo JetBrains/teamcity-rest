@@ -32,18 +32,19 @@ import org.jetbrains.annotations.NotNull;
  * User: Yegor Yarko
  * Date: 11.04.2009
  */
-@Path("/httpAuth/api/builds")
+@Path(BuildRequest.API_BUILDS_URL)
 @Singleton
 public class BuildRequest {
   @NotNull
   private final DataProvider myDataProvider;
+  public static final String API_BUILDS_URL = Constants.API_URL + "/builds";
 
   public BuildRequest(@NotNull DataProvider myDataProvider) {
     this.myDataProvider = myDataProvider;
   }
 
   public static String getBuildHref(SBuild build) {
-    return "/httpAuth/api/builds/id:" + build.getBuildId();
+    return API_BUILDS_URL + "/id:" + build.getBuildId();
   }
 
 
@@ -65,7 +66,7 @@ public class BuildRequest {
                                status, myDataProvider.getUserIfNotNull(userLocator),
                                includePersonal, includeCanceled, onlyPinned, agentName,
                                myDataProvider.getRangeLimit(null, sinceBuildLocator, myDataProvider.parseDate(sinceDate)), start, count));
-    return new Builds(buildsList, myDataProvider, new PagerData(getUrl("/httpAuth/api/builds/"), start, count, buildsList.size()));
+    return new Builds(buildsList, myDataProvider, new PagerData(getUrl(API_BUILDS_URL + "/"), start, count, buildsList.size()));
   }
 
   //todo: should contain all parameters of the original request
@@ -89,4 +90,15 @@ public class BuildRequest {
 
     return myDataProvider.getFieldValue(build, field);
   }
+
+  //TODO: check permissions!
+  /*
+  @DELETE
+  @Path("/{buildLocator}")
+  @Produces("text/plain")
+  public void deleteBuild(@PathParam("buildLocator") String buildLocator) {
+    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    myDataProvider.deleteBuild(build);
+  }
+  */
 }
