@@ -26,9 +26,12 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import jetbrains.buildServer.controllers.BaseController;
+import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SecurityContextEx;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
+import jetbrains.buildServer.web.util.SessionUser;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -58,7 +61,7 @@ public class APIController extends BaseController implements ServletContextAware
 
     myConfigurableApplicationContext = configurableApplicationContext;
     mySecurityContext = securityContext;
-    webControllerManager.registerController("/api/**", this);
+    webControllerManager.registerController(Constants.API_URL_SUFFIX + "/**", this);
 
     myClassloader = getClass().getClassLoader();
 
@@ -74,6 +77,12 @@ public class APIController extends BaseController implements ServletContextAware
     myWebComponent = new JerseyWebComponent();
     myWebComponent.setWebApplicationContext(myConfigurableApplicationContext);
     myWebComponent.init(new FilterConfig() {
+      Map<String, String> initParameters = new HashMap<String, String>();
+
+      {
+//        initParameters.put("com.sun.jersey.config.property.WadlGeneratorConfig", "jetbrains.buildServer.server.rest.WadlGenerator");
+      }
+
       public String getFilterName() {
         return "jerseyFilter";
       }
@@ -90,11 +99,11 @@ public class APIController extends BaseController implements ServletContextAware
       }
 
       public String getInitParameter(final String s) {
-        return null;
+        return initParameters.get(s);
       }
 
       public Enumeration getInitParameterNames() {
-        return new Vector<String>(Collections.<String>emptySet()).elements();
+        return new Vector<String>(initParameters.keySet()).elements();
       }
     });
   }
@@ -102,8 +111,9 @@ public class APIController extends BaseController implements ServletContextAware
   protected ModelAndView doHandle(final HttpServletRequest request, final HttpServletResponse response) throws Exception {
     final long requestStartProcessing = System.nanoTime();
     if (LOG.isDebugEnabled()) {
-      LOG
-        .debug("REST API request received: " + WebUtil.createPathWithParameters(request) + " , remote address: " + request.getRemoteAddr());
+      LOG.debug("REST API " + request.getMethod() + " request received: " +
+                WebUtil.createPathWithParameters(request) + " , remote address: " + request.getRemoteAddr() +
+                ", by user: " + LogUtil.describe(SessionUser.getUser(request)));
     }
     ensureInitialized();
 
@@ -159,7 +169,12 @@ public class APIController extends BaseController implements ServletContextAware
         Thread.currentThread().setContextClassLoader(myClassloader);
         try {
           init();
-        } finally {
+        } catch (RuntimeException e) {
+          //otherwise exception here is swallowed and logged nowhere
+          LOG.error("Error initializing REST API: ", e);
+          throw e;
+        }
+        finally {
           Thread.currentThread().setContextClassLoader(cl);
         }
       }

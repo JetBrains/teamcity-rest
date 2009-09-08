@@ -27,7 +27,7 @@ import jetbrains.buildServer.server.rest.DataProvider;
  * User: Yegor Yarko
  * Date: 11.04.2009
  */
-@Path("/httpAuth/api/server")
+@Path(Constants.API_URL + "/server")
 @Singleton
 public class ServerRequest {
   private final DataProvider myDataProvider;
