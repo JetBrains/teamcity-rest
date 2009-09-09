@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest;
 
-import java.util.ArrayList;
 import java.util.List;
 import jetbrains.buildServer.serverSide.BuildHistory;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -28,15 +27,13 @@ import jetbrains.buildServer.util.ItemProcessor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class BuildsFilterSettings {
+public class BuildsFilter extends AbstractFilter<SFinishedBuild> {
   @Nullable private final String myStatus;
   private final boolean myIncludePersonal;
   private final boolean myIncludeCanceled;
   private final boolean myOnlyPinned;
   @Nullable private final String myAgentName;
   @Nullable private final RangeLimit mySince;
-  @Nullable private final Long myStart;
-  @Nullable private final Integer myCount;
   @Nullable private final SUser myUser;
   @Nullable private final SBuildType myBuildType;
 
@@ -52,16 +49,17 @@ public class BuildsFilterSettings {
    * @param start           the index of the first build to return (begins with 0), 0 by default
    * @param count           the number of builds to return, all by default
    */
-  public BuildsFilterSettings(@Nullable final SBuildType buildType,
-                              @Nullable final String status,
-                              @Nullable final SUser user,
-                              final boolean includePersonal,
-                              final boolean includeCanceled,
-                              final boolean onlyPinned,
-                              @Nullable final String agentName,
-                              @Nullable final RangeLimit since,
-                              @Nullable final Long start,
-                              @Nullable final Integer count) {
+  public BuildsFilter(@Nullable final SBuildType buildType,
+                      @Nullable final String status,
+                      @Nullable final SUser user,
+                      final boolean includePersonal,
+                      final boolean includeCanceled,
+                      final boolean onlyPinned,
+                      @Nullable final String agentName,
+                      @Nullable final RangeLimit since,
+                      @Nullable final Long start,
+                      @Nullable final Integer count) {
+    super(start, count);
     myBuildType = buildType;
     myStatus = status;
     myUser = user;
@@ -70,11 +68,9 @@ public class BuildsFilterSettings {
     myOnlyPinned = onlyPinned;
     myAgentName = agentName;
     mySince = since;
-    myStart = start;
-    myCount = count;
   }
 
-  private boolean isIncluded(final SFinishedBuild build) {
+  protected boolean isIncluded(final SFinishedBuild build) {
     if (myAgentName != null && !myAgentName.equals(build.getAgentName())) {
       return false;
     }
@@ -113,18 +109,8 @@ public class BuildsFilterSettings {
     return true;
   }
 
-  private boolean isIncludedByRange(final long index) {
-    final long actualStart = myStart == null ? 0 : myStart;
-    return (index >= actualStart) && (myCount == null || index < actualStart + myCount);
-  }
-
-  private boolean isBelowUpperRangeLimit(final long index) {
-    final long actualStart = myStart == null ? 0 : myStart;
-    return myCount == null || index < actualStart + myCount;
-  }
-
   public List<SFinishedBuild> getMatchingBuilds(@NotNull final BuildHistory buildHistory) {
-    final BuildsFilterItemProcessor buildsFilterItemProcessor = new BuildsFilterItemProcessor(this);
+    final FilterItemProcessor<SFinishedBuild> buildsFilterItemProcessor = new FilterItemProcessor<SFinishedBuild>(this);
     if (myBuildType != null) {
       SBuild sinceBuild;
       if (mySince != null && (sinceBuild = mySince.getBuild()) != null) {
@@ -152,30 +138,5 @@ public class BuildsFilterSettings {
       return myUser;
     }
     return null;
-  }
-
-  private static class BuildsFilterItemProcessor implements ItemProcessor<SFinishedBuild> {
-    long myCurrentIndex = 0;
-    private final BuildsFilterSettings myBuildsFilterSettings;
-    private final ArrayList<SFinishedBuild> myList = new ArrayList<SFinishedBuild>();
-
-    public BuildsFilterItemProcessor(final BuildsFilterSettings buildsFilterSettings) {
-      myBuildsFilterSettings = buildsFilterSettings;
-    }
-
-    public boolean processItem(final SFinishedBuild item) {
-      if (!myBuildsFilterSettings.isIncluded(item)) {
-        return true;
-      }
-      if (myBuildsFilterSettings.isIncludedByRange(myCurrentIndex)) {
-        myList.add(item);
-      }
-      ++myCurrentIndex;
-      return myBuildsFilterSettings.isBelowUpperRangeLimit(myCurrentIndex);
-    }
-
-    public ArrayList<SFinishedBuild> getResult() {
-      return myList;
-    }
   }
 }

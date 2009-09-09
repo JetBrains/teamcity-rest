@@ -411,7 +411,7 @@ public class DataProvider {
    * @param buildsFilterSettings the filter for the builds to find
    * @return the builds found
    */
-  public List<SFinishedBuild> getBuilds(final BuildsFilterSettings buildsFilterSettings) {
+  public List<SFinishedBuild> getBuilds(final BuildsFilter buildsFilterSettings) {
     return buildsFilterSettings.getMatchingBuilds(myBuildHistory);
   }
 
