@@ -23,7 +23,6 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
-import jetbrains.buildServer.util.ItemProcessor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -70,7 +69,7 @@ public class BuildsFilter extends AbstractFilter<SFinishedBuild> {
     mySince = since;
   }
 
-  protected boolean isIncluded(final SFinishedBuild build) {
+  protected boolean isIncluded(@NotNull final SFinishedBuild build) {
     if (myAgentName != null && !myAgentName.equals(build.getAgentName())) {
       return false;
     }
@@ -115,7 +114,6 @@ public class BuildsFilter extends AbstractFilter<SFinishedBuild> {
       SBuild sinceBuild;
       if (mySince != null && (sinceBuild = mySince.getBuild()) != null) {
         processList(buildHistory.getEntriesSince(sinceBuild, myBuildType), buildsFilterItemProcessor);
-        //todo: and filter by current settings
       } else {
         buildHistory.processEntries(myBuildType.getBuildTypeId(), getUserForProcessEntries(), myIncludePersonal, myIncludeCanceled, false,
                                     buildsFilterItemProcessor);
@@ -124,13 +122,6 @@ public class BuildsFilter extends AbstractFilter<SFinishedBuild> {
       buildHistory.processEntries(buildsFilterItemProcessor);
     }
     return buildsFilterItemProcessor.getResult();
-  }
-
-  private void processList(final List<SFinishedBuild> entriesSince,
-                           final ItemProcessor<SFinishedBuild> processor) {
-    for (SFinishedBuild entry : entriesSince) {
-      processor.processItem(entry);
-    }
   }
 
   private User getUserForProcessEntries() {

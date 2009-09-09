@@ -17,7 +17,9 @@
 package jetbrains.buildServer.server.rest;
 
 import java.util.ArrayList;
+import java.util.List;
 import jetbrains.buildServer.util.ItemProcessor;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -44,7 +46,13 @@ public abstract class AbstractFilter<T> {
   }
 
 
-  protected abstract boolean isIncluded(final T item);
+  protected abstract boolean isIncluded(@NotNull final T item);
+
+  protected void processList(final List<T> entries, final ItemProcessor<T> processor) {
+    for (T entry : entries) {
+      processor.processItem(entry);
+    }
+  }
 
 
   protected static class FilterItemProcessor<T> implements ItemProcessor<T> {

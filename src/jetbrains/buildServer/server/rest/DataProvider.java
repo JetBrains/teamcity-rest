@@ -166,7 +166,7 @@ public class DataProvider {
     if (idString != null) {
       SBuild build = getBuildById(idString);
       if (buildType != null && !buildType.getBuildTypeId().equals(build.getBuildTypeId())) {
-        throw new NotFoundException("No build can be found by id '" + idString + "' in build type " + buildType + ".");
+        throw new NotFoundException("No build can be found by id '" + idString + "' in build type '" + buildType + "'.");
       }
       if (buildLocatorDimensions.keySet().size() > 1) {
         LOG.info("Build locator '" + buildLocator + "' has 'id' dimension and others. Others are ignored.");
@@ -408,11 +408,11 @@ public class DataProvider {
    * Finds finished builds by the specified criteria within specified range
    * This is slow!
    *
-   * @param buildsFilterSettings the filter for the builds to find
+   * @param buildsFilter the filter for the builds to find
    * @return the builds found
    */
-  public List<SFinishedBuild> getBuilds(final BuildsFilter buildsFilterSettings) {
-    return buildsFilterSettings.getMatchingBuilds(myBuildHistory);
+  public List<SFinishedBuild> getBuilds(final BuildsFilter buildsFilter) {
+    return buildsFilter.getMatchingBuilds(myBuildHistory);
   }
 
   @NotNull
@@ -738,6 +738,11 @@ public class DataProvider {
     return filterPage(myVcsManager.getVcsHistory().getAllModifications(), start, count);
   }
 
+  @NotNull
+  public List<SVcsModification> getModifications(ChangesFilter changesFilter) {
+    return changesFilter.getMatchingChanges(myVcsManager.getVcsHistory());
+  }
+
   public List<SVcsModification> getBuildModifications(final SBuild build, final Long start, final Integer count) {
     return filterPage(build.getContainingChanges(), start, count);
   }
@@ -767,6 +772,21 @@ public class DataProvider {
   @Nullable
   public SUser getUserIfNotNull(@Nullable final String userLocator) {
     return userLocator == null ? null : getUser(userLocator);
+  }
+
+  @Nullable
+  public SBuild getBuildIfNotNull(@Nullable final SBuildType buildType, @Nullable final String buildLocator) {
+    return buildLocator == null ? null : getBuild(buildType, buildLocator);
+  }
+
+  @Nullable
+  public SVcsRoot getVcsRootIfNotNull(@Nullable final String vcsRootLocator) {
+    return vcsRootLocator == null ? null : getVcsRoot(vcsRootLocator);
+  }
+
+  @Nullable
+  public SVcsModification getChangeIfNotNull(@Nullable final String ChangeLocator) {
+    return ChangeLocator == null ? null : getChange(ChangeLocator);
   }
 
   @Nullable
