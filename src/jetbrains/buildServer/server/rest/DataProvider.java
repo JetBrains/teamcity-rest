@@ -733,35 +733,8 @@ public class DataProvider {
   }
 
   @NotNull
-  public List<SVcsModification> getAllModifications(final Long start, final Integer count) {
-    //todo highly inefficient!
-    return filterPage(myVcsManager.getVcsHistory().getAllModifications(), start, count);
-  }
-
-  @NotNull
   public List<SVcsModification> getModifications(ChangesFilter changesFilter) {
     return changesFilter.getMatchingChanges(myVcsManager.getVcsHistory());
-  }
-
-  public List<SVcsModification> getBuildModifications(final SBuild build, final Long start, final Integer count) {
-    return filterPage(build.getContainingChanges(), start, count);
-  }
-
-  private List<SVcsModification> filterPage(final List<SVcsModification> containingChanges, final Long start, final Integer count) {
-    final List<SVcsModification> result = new ArrayList<SVcsModification>();
-    int currentIndex = 0;
-    final long actualStart = start == null ? 0 : start;
-    for (SVcsModification item : containingChanges) {
-      if ((currentIndex >= actualStart)) {
-        if ((count == null || currentIndex < actualStart + count)) {
-          result.add(item);
-        } else {
-          break;
-        }
-      }
-      currentIndex++;
-    }
-    return result;
   }
 
   @Nullable
