@@ -16,6 +16,9 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import java.net.URI;
+import javax.ws.rs.core.UriBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -29,46 +32,46 @@ import org.jetbrains.annotations.Nullable;
 public class PagerData {
 
   @Nullable
-  private String myNextHref;
+  private URI myNextHref;
   @Nullable
-  private String myPrevHref;
+  private URI myPrevHref;
 
   public PagerData() {
   }
 
   /**
-   * @param allHref              relative URL for listing all items.
+   * @param uriBuilder           UriBuilder for the current Url
    * @param start                number of the starting item on the current page
    * @param count                count of the items on a page
    * @param currentPageRealCount number of items on the current page
    */
-  public PagerData(final String allHref, @Nullable final Long start, @Nullable final Integer count, long currentPageRealCount) {
+  public PagerData(@NotNull final UriBuilder uriBuilder,
+                   @Nullable final Long start,
+                   @Nullable final Integer count,
+                   long currentPageRealCount) {
     if (start == null || start == 0) {
       myPrevHref = null;
       if (count == null || currentPageRealCount < count) {
         myNextHref = null;
       } else {
-        myNextHref = addQueryParam(addQueryParam(allHref, "start", Long.toString(0 + count)), "count", Long.toString(count));
+        myNextHref = uriBuilder.replaceQueryParam("start", 0 + count).replaceQueryParam("count", count).build();
       }
     } else {
       if (count == null) {
         myNextHref = null;
 
-        myPrevHref = addQueryParam(allHref, "start", Long.toString(0));
-        myPrevHref = addQueryParam(myPrevHref, "count", Long.toString(start));
+        myPrevHref = uriBuilder.replaceQueryParam("start", 0).replaceQueryParam("count", start).build();
       } else {
         if (currentPageRealCount < count) {
           myNextHref = null;
         } else {
-          myNextHref = addQueryParam(addQueryParam(allHref, "start", Long.toString(start + count)), "count", Long.toString(count));
+          myNextHref = uriBuilder.replaceQueryParam("start", start + count).replaceQueryParam("count", count).build();
         }
         final long itemsFromStart = start - count;
         if (itemsFromStart < 0) {
-          myPrevHref = addQueryParam(allHref, "start", Long.toString(0));
-          myPrevHref = addQueryParam(myPrevHref, "count", Long.toString(start));
+          myPrevHref = uriBuilder.replaceQueryParam("start", 0).replaceQueryParam("count", start).build();
         } else {
-          myPrevHref = addQueryParam(allHref, "start", Long.toString(itemsFromStart));
-          myPrevHref = addQueryParam(myPrevHref, "count", Long.toString(count));
+          myPrevHref = uriBuilder.replaceQueryParam("start", itemsFromStart).replaceQueryParam("count", count).build();
         }
       }
     }
@@ -89,11 +92,29 @@ public class PagerData {
 
   @Nullable
   public String getNextHref() {
-    return myNextHref;
+    return myNextHref == null ? null : getRelativePath(myNextHref, null);
   }
 
   @Nullable
   public String getPrevHref() {
-    return myPrevHref;
+    return myPrevHref == null ? null : getRelativePath(myPrevHref, null);
+  }
+
+  private static String getRelativePath(@NotNull final URI uri, @Nullable final String pathPrefixToExclude) {
+    String path = uri.getPath();
+    assert path != null;
+    StringBuffer sb = new StringBuffer();
+
+    if (pathPrefixToExclude != null && path.startsWith(pathPrefixToExclude)) {
+      path = path.substring(pathPrefixToExclude.length());
+    }
+    sb.append(path);
+    if (uri.getQuery() != null) {
+      sb.append('?').append(uri.getQuery());
+    }
+    if (uri.getFragment() != null) {
+      sb.append('#').append(uri.getFragment());
+    }
+    return sb.toString();
   }
 }

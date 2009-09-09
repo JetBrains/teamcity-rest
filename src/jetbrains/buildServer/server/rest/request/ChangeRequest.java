@@ -31,11 +31,6 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModification;
 
-/* todo: investigate logging issues:
-    - disable initialization lines into stdout
-    - too long number passed as finish for builds produses 404
-*/
-
 @Path(ChangeRequest.API_CHANGES_URL)
 @Singleton
 public class ChangeRequest {
@@ -64,8 +59,6 @@ public class ChangeRequest {
                               @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count,
                               @Context UriInfo uriInfo) {
     List<SVcsModification> buildModifications;
-    //todo investigate how to get current URL
-    String requestUrlForPager = API_CHANGES_URL;
 
     final SBuildType buildType = myDataProvider.getBuildTypeIfNotNull(buildTypeLocator);
     buildModifications = myDataProvider.getModifications(
@@ -77,7 +70,7 @@ public class ChangeRequest {
                         count));
 
     return new Changes(buildModifications,
-                       new PagerData(requestUrlForPager, start, count, buildModifications.size()));
+                       new PagerData(uriInfo.getRequestUriBuilder(), start, count, buildModifications.size()));
   }
 
   @GET

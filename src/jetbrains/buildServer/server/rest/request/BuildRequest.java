@@ -19,6 +19,8 @@ package jetbrains.buildServer.server.rest.request;
 import com.sun.jersey.spi.resource.Singleton;
 import java.util.List;
 import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.server.rest.BuildsFilter;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagerData;
@@ -60,18 +62,14 @@ public class BuildRequest {
                                @QueryParam("sinceBuild") String sinceBuildLocator,
                                @QueryParam("sinceDate") String sinceDate,
                                @QueryParam("start") @DefaultValue(value = "0") Long start,
-                               @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count) {
+                               @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count,
+                               @Context UriInfo uriInfo) {
     final List<SFinishedBuild> buildsList = myDataProvider.getBuilds(
       new BuildsFilter(myDataProvider.getBuildTypeIfNotNull(buildTypeLocator),
                        status, myDataProvider.getUserIfNotNull(userLocator),
                        includePersonal, includeCanceled, onlyPinned, agentName,
                        myDataProvider.getRangeLimit(null, sinceBuildLocator, myDataProvider.parseDate(sinceDate)), start, count));
-    return new Builds(buildsList, myDataProvider, new PagerData(getUrl(API_BUILDS_URL + "/"), start, count, buildsList.size()));
-  }
-
-  //todo: should contain all parameters of the original request
-  private String getUrl(final String s) {
-    return s;
+    return new Builds(buildsList, myDataProvider, new PagerData(uriInfo.getRequestUriBuilder(), start, count, buildsList.size()));
   }
 
   @GET
