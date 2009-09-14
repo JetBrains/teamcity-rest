@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest;
 
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.util.text.StringUtil;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.*;
@@ -24,6 +25,7 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.server.rest.request.Constants;
@@ -135,12 +137,15 @@ public class APIController extends BaseController implements ServletContextAware
     final ClassLoader cl = Thread.currentThread().getContextClassLoader();
     Thread.currentThread().setContextClassLoader(myClassloader);
 
+    // ugly hack for debug
+    final HttpServletRequest actualRequest = patchRequest(request, "Accept", "overrideAccept");
+
     try {
       if (runAsSystem) {
         try {
           mySecurityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
             public void run() throws Throwable {
-              myWebComponent.doFilter(request, response, null);
+              myWebComponent.doFilter(actualRequest, response, null);
             }
           });
         } catch (Throwable throwable) {
@@ -148,7 +153,7 @@ public class APIController extends BaseController implements ServletContextAware
           response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable.getMessage());
         }
       } else {
-        myWebComponent.doFilter(request, response, null);
+        myWebComponent.doFilter(actualRequest, response, null);
       }
     } finally {
       Thread.currentThread().setContextClassLoader(cl);
@@ -158,6 +163,34 @@ public class APIController extends BaseController implements ServletContextAware
       LOG.debug("REST API request processing finished in " + (requestFinishProcessing - requestStartProcessing) / 1000000 + " ms");
     }
     return null;
+  }
+
+  private HttpServletRequest patchRequest(final HttpServletRequest request, final String headerName, final String parameterName) {
+    final String newValue = request.getParameter(parameterName);
+    if (!StringUtil.isEmpty(newValue)) {
+      return modifyRequestHeader(request, headerName, newValue);
+    }
+    return request;
+  }
+
+  private HttpServletRequest modifyRequestHeader(final HttpServletRequest request, final String headerName, final String newValue) {
+    return new HttpServletRequestWrapper(request) {
+      @Override
+      public String getHeader(final String name) {
+        if (headerName.equalsIgnoreCase(name)) {
+          return newValue;
+        }
+        return super.getHeader(name);
+      }
+
+      @Override
+      public Enumeration getHeaders(final String name) {
+        if (headerName.equalsIgnoreCase(name)) {
+          return Collections.enumeration(Collections.singletonList(newValue));
+        }
+        return super.getHeaders(name);
+      }
+    };
   }
 
   private void ensureInitialized() throws ServletException {
