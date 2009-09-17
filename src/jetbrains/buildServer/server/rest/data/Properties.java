@@ -22,6 +22,8 @@ import java.util.Map;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.users.PropertyKey;
+import jetbrains.buildServer.vcs.SVcsRoot;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
@@ -38,7 +40,10 @@ public class Properties {
   public Properties(final Map<String, String> propertiesP) {
     properties = new ArrayList<Property>(propertiesP.size());
     for (Map.Entry<String, String> prop : propertiesP.entrySet()) {
-      properties.add(new Property(prop.getKey(), prop.getValue()));
+      final String key = prop.getKey();
+      if (!isSecureProperty(key)) {
+        properties.add(new Property(key, prop.getValue()));
+      }
     }
   }
 
@@ -47,5 +52,9 @@ public class Properties {
     for (Map.Entry<PropertyKey, String> prop : propertiesP.entrySet()) {
       properties.add(new Property(prop.getKey().getKey(), prop.getValue()));
     }
+  }
+
+  private boolean isSecureProperty(@NotNull final String key) {
+    return key.startsWith(SVcsRoot.SECURE_PROPERTY_PREFIX);
   }
 }
