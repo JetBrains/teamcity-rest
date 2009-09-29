@@ -79,8 +79,12 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
     } else if (myBuildType != null) {
       processList(vcsHistory.getAllModifications(myBuildType), filterItemProcessor);
     } else if (myVcsRoot != null) {
-      //todo: highly inefficient!
-      processList(vcsHistory.getAllModifications(myVcsRoot), filterItemProcessor);
+      if (mySinceChange != null) {
+        processList(vcsHistory.getModificationsInRange(myVcsRoot, mySinceChange.getId(), null), filterItemProcessor);
+      } else {
+        //todo: highly inefficient!
+        processList(vcsHistory.getAllModifications(myVcsRoot), filterItemProcessor);
+      }
     } else {
       //todo: highly inefficient!
       processList(vcsHistory.getAllModifications(), filterItemProcessor);
