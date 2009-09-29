@@ -16,9 +16,12 @@
 
 package jetbrains.buildServer.server.rest;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
@@ -30,18 +33,21 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 09.09.2009
  */
 public class ChangesFilter extends AbstractFilter<SVcsModification> {
+  @Nullable private SProject myProject;
   @Nullable private SBuildType myBuildType;
   @Nullable private SBuild myBuild;
   @Nullable private SVcsRoot myVcsRoot;
   @Nullable private SVcsModification mySinceChange;
 
-  public ChangesFilter(@Nullable final SBuildType buildType,
+  public ChangesFilter(@Nullable final SProject project,
+                       @Nullable final SBuildType buildType,
                        @Nullable final SBuild build,
                        @Nullable final SVcsRoot vcsRoot,
                        @Nullable final SVcsModification sinceChange,
                        @Nullable final Long start,
                        @Nullable final Integer count) {
     super(start, count);
+    myProject = project;
     myBuildType = buildType;
     myBuild = build;
     myVcsRoot = vcsRoot;
@@ -70,7 +76,9 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
     return true;
   }
 
-  public List<SVcsModification> getMatchingChanges(final VcsModificationHistory vcsHistory) {
+  //todo: BuiltType is ignored if VCS root is specified; sometimes we return filtered changes by checkout rules and sometimes not
+  //todo: sometimes with panding sometimes not?
+  public List<SVcsModification> getMatchingChanges(@NotNull final VcsModificationHistory vcsHistory) {
 
 
     final FilterItemProcessor<SVcsModification> filterItemProcessor = new FilterItemProcessor<SVcsModification>(this);
@@ -85,11 +93,30 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
         //todo: highly inefficient!
         processList(vcsHistory.getAllModifications(myVcsRoot), filterItemProcessor);
       }
+    } else if (myProject != null) {
+      processList(getProjectChanges(vcsHistory, myProject, mySinceChange), filterItemProcessor);
     } else {
       //todo: highly inefficient!
       processList(vcsHistory.getAllModifications(), filterItemProcessor);
     }
 
     return filterItemProcessor.getResult();
+  }
+
+  static private List<SVcsModification> getProjectChanges(@NotNull final VcsModificationHistory vcsHistory,
+                                                          @NotNull final SProject project,
+                                                          @Nullable final SVcsModification sinceChange) {
+    final List<SVcsRoot> vcsRoots = project.getVcsRoots();
+    final List<SVcsModification> result = new ArrayList<SVcsModification>();
+    for (SVcsRoot root : vcsRoots) {
+      if (sinceChange != null) {
+        result.addAll(vcsHistory.getModificationsInRange(root, sinceChange.getId(), null));
+      } else {
+        //todo: highly inefficient!
+        result.addAll(vcsHistory.getAllModifications(root));
+      }
+    }
+    Collections.sort(result);
+    return result;
   }
 }

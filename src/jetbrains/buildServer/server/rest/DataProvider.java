@@ -738,6 +738,11 @@ public class DataProvider {
   }
 
   @Nullable
+  public SProject getProjectIfNotNull(@Nullable final String projectLocator) {
+    return projectLocator == null ? null : getProject(projectLocator);
+  }
+
+  @Nullable
   public SBuildType getBuildTypeIfNotNull(@Nullable final String buildTypeLocator) {
     return buildTypeLocator == null ? null : getBuildType(null, buildTypeLocator);
   }

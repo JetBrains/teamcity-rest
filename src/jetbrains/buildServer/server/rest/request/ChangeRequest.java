@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.data.change.Change;
 import jetbrains.buildServer.server.rest.data.change.Changes;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModification;
 
@@ -51,7 +52,8 @@ public class ChangeRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
-  public Changes serveChanges(@QueryParam("buildType") String buildTypeLocator,
+  public Changes serveChanges(@QueryParam("project") String projectLocator,
+                              @QueryParam("buildType") String buildTypeLocator,
                               @QueryParam("build") String buildLocator,
                               @QueryParam("vcsRoot") String vcsRootLocator,
                               @QueryParam("sinceChange") String sinceChangeLocator,
@@ -60,9 +62,11 @@ public class ChangeRequest {
                               @Context UriInfo uriInfo) {
     List<SVcsModification> buildModifications;
 
+    final SProject project = myDataProvider.getProjectIfNotNull(projectLocator);
     final SBuildType buildType = myDataProvider.getBuildTypeIfNotNull(buildTypeLocator);
     buildModifications = myDataProvider.getModifications(
-      new ChangesFilter(buildType,
+      new ChangesFilter(project,
+                        buildType,
                         myDataProvider.getBuildIfNotNull(buildType, buildLocator),
                         myDataProvider.getVcsRootIfNotNull(vcsRootLocator),
                         myDataProvider.getChangeIfNotNull(sinceChangeLocator),
