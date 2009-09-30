@@ -20,6 +20,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.DataProvider;
+import jetbrains.buildServer.server.rest.data.Properties;
 import jetbrains.buildServer.server.rest.data.build.BuildsRef;
 import jetbrains.buildServer.server.rest.data.change.VcsRootEntries;
 import jetbrains.buildServer.server.rest.data.project.ProjectRef;
@@ -69,5 +70,15 @@ public class BuildType extends BuildTypeRef {
   @XmlElement
   public BuildsRef getBuilds() {
     return new BuildsRef(myBuildType);
+  }
+
+  @XmlElement
+  public Properties getParameters() {
+    return new Properties(myBuildType.getBuildParameters());
+  }
+
+  @XmlElement
+  public Properties getRunParameters() {
+    return new Properties(myBuildType.getRunParameters());
   }
 }

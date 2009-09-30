@@ -21,8 +21,10 @@ import java.util.List;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import jetbrains.buildServer.server.rest.BadRequestException;
 import jetbrains.buildServer.server.rest.BuildsFilter;
 import jetbrains.buildServer.server.rest.DataProvider;
+import jetbrains.buildServer.server.rest.NotFoundException;
 import jetbrains.buildServer.server.rest.data.PagerData;
 import jetbrains.buildServer.server.rest.data.build.Build;
 import jetbrains.buildServer.server.rest.data.build.Builds;
@@ -31,6 +33,8 @@ import jetbrains.buildServer.server.rest.data.buildType.BuildTypes;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
+import jetbrains.buildServer.serverSide.SimpleParameter;
+import jetbrains.buildServer.util.StringUtil;
 
 /**
  * User: Yegor Yarko
@@ -81,6 +85,67 @@ public class BuildTypeRequest {
   public String serveBuildTypeField(@PathParam("btLocator") String buildTypeLocator, @PathParam("field") String fieldName) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     return myDataProvider.getFieldValue(buildType, fieldName);
+  }
+
+  @GET
+  @Path("/{btLocator}/parameters/{name}")
+  @Produces("text/plain")
+  public String serveBuildTypeParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("name") String parameterName) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    if (StringUtil.isEmpty(parameterName)) {
+      throw new BadRequestException("Parameter name cannot be empty.");
+    }
+    if (!buildType.getBuildParameters().containsKey(parameterName)) {
+      throw new NotFoundException("No parameter with name '" + parameterName + "' is found.");
+    }
+    return buildType.getBuildParameter(parameterName);
+  }
+
+  @PUT
+  @Path("/{btLocator}/parameters/{name}")
+  @Produces("text/plain")
+  public void putBuildTypeParameter(@PathParam("btLocator") String buildTypeLocator,
+                                    @PathParam("name") String parameterName,
+                                    String newValue) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    if (StringUtil.isEmpty(parameterName)) {
+      throw new BadRequestException("Parameter name cannot be empty.");
+    }
+    if (StringUtil.isEmpty(newValue)) {
+      throw new BadRequestException("Parameter value cannot be empty.");
+    }
+    buildType.addBuildParameter(new SimpleParameter(parameterName, newValue));
+    buildType.getProject().persist();
+  }
+
+  @DELETE
+  @Path("/{btLocator}/parameters/{name}")
+  @Produces("text/plain")
+  public void deleteBuildTypeParameter(@PathParam("btLocator") String buildTypeLocator,
+                                       @PathParam("name") String parameterName) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    if (StringUtil.isEmpty(parameterName)) {
+      throw new BadRequestException("Parameter name cannot be empty.");
+    }
+    buildType.removeBuildParameter(parameterName);
+    buildType.getProject().persist();
+  }
+
+  @PUT
+  @Path("/{btLocator}/runParameters/{name}")
+  @Produces("text/plain")
+  public void putBuildTypeRunParameter(@PathParam("btLocator") String buildTypeLocator,
+                                       @PathParam("name") String parameterName,
+                                       String newValue) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    if (StringUtil.isEmpty(parameterName)) {
+      throw new BadRequestException("Parameter name cannot be empty.");
+    }
+    if (StringUtil.isEmpty(newValue)) {
+      throw new BadRequestException("Parameter value cannot be empty.");
+    }
+    buildType.addRunParameter(new SimpleParameter(parameterName, newValue));
+    buildType.getProject().persist();
   }
 
   @GET

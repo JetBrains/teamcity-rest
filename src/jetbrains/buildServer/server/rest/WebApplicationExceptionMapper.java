@@ -34,6 +34,7 @@ public class WebApplicationExceptionMapper extends ExceptionMapperUtil implement
 
   public Response toResponse(WebApplicationException exception) {
     assert false;
-    return reportError(Response.Status.fromStatusCode(exception.getResponse().getStatus()), exception);
+    final Response.Status status = Response.Status.fromStatusCode(exception.getResponse().getStatus());
+    return reportError(status != null ? status : Response.Status.INTERNAL_SERVER_ERROR, exception);
   }
 }
