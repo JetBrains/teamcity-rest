@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.data.group.Groups;
 import jetbrains.buildServer.server.rest.data.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.data.user.RoleAssignments;
 import jetbrains.buildServer.server.rest.data.user.UserData;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;

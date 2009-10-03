@@ -27,6 +27,8 @@ import java.util.List;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.groups.UserGroupManager;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Role;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
@@ -331,7 +333,8 @@ public class DataProvider {
    * @param project project to search build type in. Can be 'null' to search in all the build types on the server.
    * @param name    name of the build type to search for.
    * @return build type with the name 'name'. If 'project' is not null, the search is performed only within 'project'.
-   * @throws BadRequestException if several build types with the same name are found
+   * @throws jetbrains.buildServer.server.rest.errors.BadRequestException
+   *          if several build types with the same name are found
    */
   @NotNull
   public SBuildType findBuildTypeByName(@Nullable final SProject project, @NotNull final String name) {

@@ -14,14 +14,18 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest;
+package jetbrains.buildServer.server.rest.errors;
 
 /**
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
-public class NotFoundException extends RuntimeException {
-  public NotFoundException(String message) {
+public class BadRequestException extends RuntimeException {
+  public BadRequestException(String message) {
     super(message);
+  }
+
+  public BadRequestException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

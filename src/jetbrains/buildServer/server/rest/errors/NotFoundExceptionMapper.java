@@ -14,22 +14,23 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest;
+package jetbrains.buildServer.server.rest.errors;
 
 import com.intellij.openapi.diagnostic.Logger;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
+import jetbrains.buildServer.server.rest.ExceptionMapperUtil;
 
 /**
  * User: Yegor Yarko
  * Date: 30.03.2009
  */
 @Provider
-public class BadRequestExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<BadRequestException> {
-  protected static final Logger LOG = Logger.getInstance(BadRequestExceptionMapper.class.getName());
+public class NotFoundExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<NotFoundException> {
+  protected static final Logger LOG = Logger.getInstance(NotFoundExceptionMapper.class.getName());
 
-  public Response toResponse(BadRequestException exception) {
-    return reportError(Response.Status.BAD_REQUEST, exception);
+  public Response toResponse(NotFoundException exception) {
+    return reportError(Response.Status.NOT_FOUND, exception);
   }
 }
