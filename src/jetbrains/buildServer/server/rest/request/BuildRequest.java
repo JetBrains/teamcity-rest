@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.request;
 
 import com.sun.jersey.spi.resource.Singleton;
 import java.util.List;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
@@ -29,6 +30,7 @@ import jetbrains.buildServer.server.rest.data.build.Builds;
 import jetbrains.buildServer.server.rest.data.build.Tags;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
+import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -109,21 +111,36 @@ public class BuildRequest {
   @POST
   @Path("/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
-  public void addTags(@PathParam("buildLocator") String buildLocator, Tags tags) {
+  public void addTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
     final List<String> resutlingTags = build.getTags();
     resutlingTags.addAll(tags.tags);
-    build.setTags(resutlingTags); //todo: set user
+    build.setTags(SessionUser.getUser(request), resutlingTags);
   }
 
   @POST
   @Path("/{buildLocator}/tags/")
   @Consumes({"text/plain"})
-  public void addTag(@PathParam("buildLocator") String buildLocator, String tagName) {
+  public void addTag(@PathParam("buildLocator") String buildLocator, String tagName, @Context HttpServletRequest request) {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
     final List<String> tags = build.getTags();
     tags.add(tagName);
-    build.setTags(tags); //todo: set user
+    build.setTags(SessionUser.getUser(request), tags);
+  }
+
+  @PUT
+  @Path("/{buildLocator}/comment")
+  @Consumes({"text/plain"})
+  public void replaceComment(@PathParam("buildLocator") String buildLocator, String text, @Context HttpServletRequest request) {
+    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    build.setBuildComment(SessionUser.getUser(request), text);
+  }
+
+  @DELETE
+  @Path("/{buildLocator}/comment")
+  public void deleteComment(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
+    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    build.setBuildComment(SessionUser.getUser(request), null);
   }
 
   //TODO: check permissions!
