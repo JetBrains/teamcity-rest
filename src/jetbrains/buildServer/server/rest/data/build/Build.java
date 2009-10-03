@@ -20,7 +20,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import javax.xml.bind.annotation.*;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.Comment;
 import jetbrains.buildServer.server.rest.data.Properties;
@@ -138,10 +141,9 @@ public class Build {
     return null;
   }
 
-  @XmlElementWrapper(name = "tags")
-  @XmlElement(name = "tag")
-  public List<String> getTags() {
-    return myBuild.getTags();
+  @XmlElement
+  public Tags getTags() {
+    return new Tags(myBuild.getTags());
   }
 
   @XmlElement

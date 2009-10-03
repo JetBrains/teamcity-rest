@@ -26,6 +26,7 @@ import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagerData;
 import jetbrains.buildServer.server.rest.data.build.Build;
 import jetbrains.buildServer.server.rest.data.build.Builds;
+import jetbrains.buildServer.server.rest.data.build.Tags;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import org.jetbrains.annotations.NotNull;
@@ -87,6 +88,42 @@ public class BuildRequest {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
 
     return myDataProvider.getFieldValue(build, field);
+  }
+
+  @GET
+  @Path("/{buildLocator}/tags/")
+  @Produces({"application/xml", "application/json"})
+  public Tags serveTags(@PathParam("buildLocator") String buildLocator) {
+    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    return new Tags(build.getTags());
+  }
+
+  @PUT
+  @Path("/{buildLocator}/tags/")
+  @Consumes({"application/xml", "application/json"})
+  public void replaceTags(@PathParam("buildLocator") String buildLocator, Tags tags) {
+    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    build.setTags(tags.tags); //todo: set user
+  }
+
+  @POST
+  @Path("/{buildLocator}/tags/")
+  @Consumes({"application/xml", "application/json"})
+  public void addTags(@PathParam("buildLocator") String buildLocator, Tags tags) {
+    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    final List<String> resutlingTags = build.getTags();
+    resutlingTags.addAll(tags.tags);
+    build.setTags(resutlingTags); //todo: set user
+  }
+
+  @POST
+  @Path("/{buildLocator}/tags/")
+  @Consumes({"text/plain"})
+  public void addTag(@PathParam("buildLocator") String buildLocator, String tagName) {
+    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    final List<String> tags = build.getTags();
+    tags.add(tagName);
+    build.setTags(tags); //todo: set user
   }
 
   //TODO: check permissions!
