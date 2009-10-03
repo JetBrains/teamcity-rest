@@ -20,6 +20,8 @@
 
   <bean id="notFoundExceptionMapper" class="jetbrains.buildServer.server.rest.NotFoundExceptionMapper"/>
   <bean id="badRequestExceptionMapper" class="jetbrains.buildServer.server.rest.BadRequestExceptionMapper"/>
+  <bean id="authorizationFailedExceptionMapper" class="jetbrains.buildServer.server.rest.errors.AuthorizationFailedExceptionMapper"/>
+  <bean id="accessDeniedExceptionMapper" class="jetbrains.buildServer.server.rest.errors.AccessDeniedExceptionMapper"/>
   <bean id="webApplicationExceptionMapper" class="jetbrains.buildServer.server.rest.WebApplicationExceptionMapper"/>
 
   <bean id="apiController" class="jetbrains.buildServer.server.rest.APIController"/>

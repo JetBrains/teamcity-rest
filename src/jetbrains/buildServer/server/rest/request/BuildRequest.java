@@ -22,14 +22,18 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import jetbrains.buildServer.server.rest.BadRequestException;
 import jetbrains.buildServer.server.rest.BuildsFilter;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagerData;
 import jetbrains.buildServer.server.rest.data.build.Build;
 import jetbrains.buildServer.server.rest.data.build.Builds;
 import jetbrains.buildServer.server.rest.data.build.Tags;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
 
@@ -103,9 +107,9 @@ public class BuildRequest {
   @PUT
   @Path("/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
-  public void replaceTags(@PathParam("buildLocator") String buildLocator, Tags tags) {
+  public void replaceTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
-    build.setTags(tags.tags); //todo: set user
+    build.setTags(SessionUser.getUser(request), tags.tags);
   }
 
   @POST
@@ -143,14 +147,25 @@ public class BuildRequest {
     build.setBuildComment(SessionUser.getUser(request), null);
   }
 
-  //TODO: check permissions!
-  /*
   @DELETE
   @Path("/{buildLocator}")
   @Produces("text/plain")
-  public void deleteBuild(@PathParam("buildLocator") String buildLocator) {
+  public void deleteBuild(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
-    myDataProvider.deleteBuild(build);
+    final SUser user = SessionUser.getUser(request);  //todo: support "run as system" case
+    if (user == null) {
+      throw new BadRequestException("No current user.");
+    }
+    final String projectId = build.getProjectId();
+    if (user.isPermissionGrantedForProject(projectId, Permission.EDIT_PROJECT) || isPersonalUserBuild(build, user)) {
+      myDataProvider.deleteBuild(build);
+    } else {
+      throw new AuthorizationFailedException("User " + user + " cannot delete build " + build +
+                                             ": The user does not have EDIT_PROJECT permission and it is not user's personal build");
+    }
   }
-  */
+
+  private boolean isPersonalUserBuild(final SBuild build, @NotNull final SUser user) {
+    return user.equals(build.getOwner());
+  }
 }
