@@ -20,7 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.serverSide.SBuildType;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
@@ -34,10 +36,10 @@ public class BuildTypes {
   public BuildTypes() {
   }
 
-  public BuildTypes(List<SBuildType> buildTypesObjects) {
+  public BuildTypes(List<SBuildType> buildTypesObjects, @NotNull final DataProvider dataProvider) {
     buildTypes = new ArrayList<BuildTypeRef>(buildTypesObjects.size());
     for (SBuildType buildType : buildTypesObjects) {
-      buildTypes.add(new BuildTypeRef(buildType));
+      buildTypes.add(new BuildTypeRef(buildType, dataProvider));
     }
   }
 }

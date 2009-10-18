@@ -17,26 +17,29 @@
 package jetbrains.buildServer.server.rest.data.buildType;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.request.BuildTypeRequest;
 import jetbrains.buildServer.serverSide.SBuildType;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
+@XmlRootElement(name = "buildType")
+@XmlType(propOrder = {"webUrl", "projectId", "href", "name", "id"})
 public class BuildTypeRef {
   protected SBuildType myBuildType;
+  private DataProvider myDataProvider;
 
   public BuildTypeRef() {
   }
 
-  public BuildTypeRef(SBuildType buildType) {
+  public BuildTypeRef(SBuildType buildType, @NotNull final DataProvider dataProvider) {
     myBuildType = buildType;
-  }
-
-  @XmlAttribute
-  public String getHref() {
-    return BuildTypeRequest.getBuildTypeHref(myBuildType);
+    myDataProvider = dataProvider;
   }
 
   @XmlAttribute
@@ -47,5 +50,20 @@ public class BuildTypeRef {
   @XmlAttribute
   public String getName() {
     return myBuildType.getName();
+  }
+
+  @XmlAttribute
+  public String getHref() {
+    return BuildTypeRequest.getBuildTypeHref(myBuildType);
+  }
+
+  @XmlAttribute
+  public String getProjectId() {
+    return myBuildType.getProjectId();
+  }
+
+  @XmlAttribute
+  public String getWebUrl() {
+    return myDataProvider.getBuildTypeUrl(myBuildType);
   }
 }

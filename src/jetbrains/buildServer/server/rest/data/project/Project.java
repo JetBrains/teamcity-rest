@@ -56,6 +56,6 @@ public class Project extends ProjectRef {
 
   @XmlElement
   public BuildTypes getBuildTypes() {
-    return new BuildTypes(myProject.getBuildTypes());
+    return new BuildTypes(myProject.getBuildTypes(), myDataProvider);
   }
 }

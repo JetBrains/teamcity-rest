@@ -19,11 +19,13 @@ package jetbrains.buildServer.server.rest.data.buildType;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.Properties;
 import jetbrains.buildServer.server.rest.data.build.BuildsRef;
 import jetbrains.buildServer.server.rest.data.change.VcsRootEntries;
 import jetbrains.buildServer.server.rest.data.project.ProjectRef;
+import jetbrains.buildServer.server.rest.request.BuildTypeRequest;
 import jetbrains.buildServer.serverSide.SBuildType;
 
 /**
@@ -31,15 +33,33 @@ import jetbrains.buildServer.serverSide.SBuildType;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "buildType")
-public class BuildType extends BuildTypeRef {
+@XmlType(propOrder = {"paused", "description", "webUrl", "href", "name", "id",
+  "project", "vcsRootEntries", "builds", "parameters", "runParameters"})
+public class BuildType {
+  protected SBuildType myBuildType;
   private DataProvider myDataProvider;
 
   public BuildType() {
   }
 
   public BuildType(final SBuildType buildType, final DataProvider dataProvider) {
-    super(buildType);
+    myBuildType = buildType;
     myDataProvider = dataProvider;
+  }
+
+  @XmlAttribute
+  public String getId() {
+    return myBuildType.getBuildTypeId();
+  }
+
+  @XmlAttribute
+  public String getName() {
+    return myBuildType.getName();
+  }
+
+  @XmlAttribute
+  public String getHref() {
+    return BuildTypeRequest.getBuildTypeHref(myBuildType);
   }
 
   @XmlAttribute

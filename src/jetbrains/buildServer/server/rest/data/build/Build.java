@@ -118,7 +118,7 @@ public class Build {
 
   @XmlElement
   public BuildTypeRef getBuildType() {
-    return new BuildTypeRef(myBuild.getBuildType());
+    return new BuildTypeRef(myBuild.getBuildType(), myDataProvider);
   }
 
   //todo: investigate common date formats approach

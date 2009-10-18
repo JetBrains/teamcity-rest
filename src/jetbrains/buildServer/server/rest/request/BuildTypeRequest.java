@@ -68,7 +68,7 @@ public class BuildTypeRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public BuildTypes serveBuildTypesXML() {
-    return new BuildTypes(myDataProvider.getServer().getProjectManager().getAllBuildTypes());
+    return new BuildTypes(myDataProvider.getServer().getProjectManager().getAllBuildTypes(), myDataProvider);
   }
 
   @GET
