@@ -4,8 +4,8 @@
   <property name="plugin.name" value="rest-api"/>
   <property name="javac2.home" value="${basedir}/lib-compile"/>
 
-  <import file="rest-api.xml"/>
   <import file="teamcity-common.xml"/>
+  <import file="rest-api.xml"/>
 
   <target name="package" depends="define.version">
     <package.teamcity.plugin name="${plugin.name}" server.output="${rest-api.output.dir}"

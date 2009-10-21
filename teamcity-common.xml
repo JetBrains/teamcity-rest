@@ -134,7 +134,7 @@
 
   <target name="check.teamcitydistribution" description="checks whether TeamCity distribution ready to be used by IDEA-generated build">
     <check.property name="path.variable.teamcitydistribution"
-                    fail-message="Please define 'teamcity.distribution' or 'path.variable.teamcitydistribution' property in build.properties file (see build.properties.dist). The property should point to unpacked TeamCity .tar.gz or .exe distribution."
+                    fail-message="Please define 'teamcity.distribution' or 'path.variable.teamcitydistribution' property (e.g. in build.properties file). The property should point to unpacked TeamCity .tar.gz or .exe distribution."
         />
 
     <condition property="teamcity.distribution.not.present">
