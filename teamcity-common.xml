@@ -33,7 +33,8 @@
     <attribute name="plugin.version" default="SNAPSHOT"
                description="the version of the plugin to put into teamcity-plugin.xml instead of '@version@'"/>
 
-    <element name="additional-files" optional="yes" description="fileset of the files to pack into root of the plugin"/>
+    <element name="server-additional-files" optional="yes" description="fileset of the files to pack into root of the server plugin part"/>
+    <element name="agent-additional-files" optional="yes" description="fileset of the files to pack into root of the agent plugin part"/>
 
     <sequential>
 
@@ -91,6 +92,18 @@
         <param name="common.jar.path" value="${teamcity.internal.distrib.prep.common}/@{common.jar.name}"/>
       </antcall>
 
+      <!-- copy additional agent files -->
+      <mkdir dir="${teamcity.internal.distrib.prep.agent.jars}/@{name}" />
+      <copy todir="${teamcity.internal.distrib.prep.agent.jars}/@{name}">
+        <fileset dir="${basedir}" excludes="**"/>
+        <agent-additional-files/>
+      </copy>
+
+      <antcall target="pack.agent.part">
+        <param name="out.unpacked" value="@{out.unpacked}"/>
+        <param name="name" value="@{name}"/>
+      </antcall>
+
       <!-- copy teamcity-plugin.xml -->
       <antcall target="prepare.plugin.descriptor.file">
         <param name="source" value="@{plugin.descriptor.file}"/>
@@ -98,10 +111,10 @@
         <param name="plugin.version" value="@{plugin.version}"/>
       </antcall>
 
-      <!-- copy additional files -->
-      <copy todir="@{out.unpacked}" failonerror="false">
-        <fileset dir="${basedir}" excludes="**/*"/>
-        <additional-files/>
+      <!-- copy additional server plugin files -->
+      <copy todir="@{out.unpacked}">
+        <fileset dir="${basedir}" excludes="**"/>
+        <server-additional-files/>
       </copy>
 
       <!-- clean -->
@@ -133,6 +146,7 @@
     </condition>
     <fail if="teamcity.distribution.not.present"
           message="Cannot find TeamCity distribution at path '${path.variable.teamcitydistribution}'. The property 'teamcity.distribution' or 'path.variable.teamcitydistribution' should point to unpacked TeamCity .tar.gz or .exe distribution."/>
+    <echo message="Using ${path.variable.teamcitydistribution} as TeamCity distribution" />
   </target>
 
   <macrodef name="deploy.teamcity.plugin">
@@ -223,6 +237,11 @@
     </copy>
   </target>
 
+  <target name="pack.agent.part" if="agent.needed">
+    <zip destfile="${out.unpacked}/agent/${name}.zip">
+      <fileset dir="${teamcity.internal.distrib.prep.agent.jars}"/>
+    </zip>
+  </target>
 
   <target name="prepare.agent.part" if="agent.needed">
     <!-- prepare.agent.part -->
@@ -237,10 +256,6 @@
     <copy todir="${teamcity.internal.distrib.prep.agent.jars}/${name}/lib" failonerror="false">
       <fileset file="${common.jar.path}"/>
     </copy>
-
-    <zip destfile="${out.unpacked}/agent/${name}.zip">
-      <fileset dir="${teamcity.internal.distrib.prep.agent.jars}"/>
-    </zip>
   </target>
 
   <target name="prepare.plugin.descriptor.file" if="plugin.descriptor.file.needed">
