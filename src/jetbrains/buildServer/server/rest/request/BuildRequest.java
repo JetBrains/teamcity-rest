@@ -65,6 +65,7 @@ public class BuildRequest {
                                @QueryParam("includePersonal") boolean includePersonal,
                                @QueryParam("includeCanceled") boolean includeCanceled,
                                @QueryParam("onlyPinned") boolean onlyPinned,
+                               @QueryParam("tag") List<String> tags,
                                @QueryParam("agentName") String agentName,
                                @QueryParam("sinceBuild") String sinceBuildLocator,
                                @QueryParam("sinceDate") String sinceDate,
@@ -74,7 +75,7 @@ public class BuildRequest {
     final List<SFinishedBuild> buildsList = myDataProvider.getBuilds(
       new BuildsFilter(myDataProvider.getBuildTypeIfNotNull(buildTypeLocator),
                        status, myDataProvider.getUserIfNotNull(userLocator),
-                       includePersonal, includeCanceled, onlyPinned, agentName,
+                       includePersonal, includeCanceled, onlyPinned, tags, agentName,
                        myDataProvider.getRangeLimit(null, sinceBuildLocator, myDataProvider.parseDate(sinceDate)), start, count));
     return new Builds(buildsList, myDataProvider, new PagerData(uriInfo.getRequestUriBuilder(), start, count, buildsList.size()));
   }

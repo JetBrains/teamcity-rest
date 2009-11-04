@@ -116,6 +116,7 @@ public class ProjectRequest {
                             @QueryParam("includePersonal") boolean includePersonal,
                             @QueryParam("includeCanceled") boolean includeCanceled,
                             @QueryParam("onlyPinned") boolean onlyPinned,
+                            @QueryParam("tag") List<String> tags,
                             @QueryParam("agentName") String agentName,
                             @QueryParam("sinceBuild") String sinceBuildLocator,
                             @QueryParam("sinceDate") String sinceDate,
@@ -125,7 +126,7 @@ public class ProjectRequest {
     SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
     final List<SFinishedBuild> buildsList = myDataProvider.getBuilds(
       new BuildsFilter(buildType, status, myDataProvider.getUserIfNotNull(userLocator),
-                       includePersonal, includeCanceled, onlyPinned, agentName,
+                       includePersonal, includeCanceled, onlyPinned, tags, agentName,
                        myDataProvider.getRangeLimit(buildType, sinceBuildLocator, myDataProvider.parseDate(sinceDate)), start,
                        count));
     return new Builds(buildsList,

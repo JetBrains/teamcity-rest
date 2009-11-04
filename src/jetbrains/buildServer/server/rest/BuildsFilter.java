@@ -31,6 +31,7 @@ public class BuildsFilter extends AbstractFilter<SFinishedBuild> {
   private final boolean myIncludePersonal;
   private final boolean myIncludeCanceled;
   private final boolean myOnlyPinned;
+  private List<String> myTags;
   @Nullable private final String myAgentName;
   @Nullable private final RangeLimit mySince;
   @Nullable private final SUser myUser;
@@ -54,6 +55,7 @@ public class BuildsFilter extends AbstractFilter<SFinishedBuild> {
                       final boolean includePersonal,
                       final boolean includeCanceled,
                       final boolean onlyPinned,
+                      @Nullable final List<String> tags,
                       @Nullable final String agentName,
                       @Nullable final RangeLimit since,
                       @Nullable final Long start,
@@ -65,6 +67,7 @@ public class BuildsFilter extends AbstractFilter<SFinishedBuild> {
     myIncludePersonal = includePersonal;
     myIncludeCanceled = includeCanceled;
     myOnlyPinned = onlyPinned;
+    myTags = tags;
     myAgentName = agentName;
     mySince = since;
   }
@@ -86,6 +89,9 @@ public class BuildsFilter extends AbstractFilter<SFinishedBuild> {
       return false;
     }
     if (myOnlyPinned && !build.isPinned()) {
+      return false;
+    }
+    if (myTags != null && !build.getTags().containsAll(myTags)) {
       return false;
     }
     if (myUser != null) {
