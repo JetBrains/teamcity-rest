@@ -18,7 +18,9 @@ package jetbrains.buildServer.server.rest.data.change;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.serverSide.BuildRevision;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
@@ -33,8 +35,8 @@ public class Revision {
   public Revision() {
   }
 
-  public Revision(BuildRevision revision) {
+  public Revision(BuildRevision revision, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     displayRevision = revision.getRevisionDisplayName();
-    vcsRoot = new VcsRoot.VcsRootRef(revision.getRoot());
+    vcsRoot = new VcsRoot.VcsRootRef(revision.getRoot(), apiUrlBuilder);
   }
 }

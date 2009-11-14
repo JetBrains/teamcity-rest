@@ -22,6 +22,8 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.groups.UserGroup;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
@@ -35,10 +37,10 @@ public class Groups {
   public Groups() {
   }
 
-  public Groups(Collection<UserGroup> userGroups) {
+  public Groups(Collection<UserGroup> userGroups, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     groups = new ArrayList<GroupRef>(userGroups.size());
     for (UserGroup userGroup : userGroups) {
-      groups.add(new GroupRef(userGroup));
+      groups.add(new GroupRef(userGroup, apiUrlBuilder));
     }
   }
 }

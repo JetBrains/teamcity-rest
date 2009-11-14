@@ -33,6 +33,7 @@ import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SecurityContextEx;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
+import jetbrains.buildServer.web.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.web.util.SessionUser;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.springframework.context.ApplicationContext;
@@ -53,17 +54,32 @@ public class APIController extends BaseController implements ServletContextAware
 
   private final ClassLoader myClassloader;
   private String myAuthToken;
+  private RequestTranslator myRequestTranslator;
 
   public APIController(final SBuildServer server,
                        WebControllerManager webControllerManager,
                        final ConfigurableApplicationContext configurableApplicationContext,
-                       final SecurityContextEx securityContext) throws ServletException {
+                       final SecurityContextEx securityContext,
+                       final RequestTranslator requestTranslator,
+                       final ServerPluginInfo pluginDescriptor) throws ServletException {
     super(server);
     setSupportedMethods(new String[]{METHOD_GET, METHOD_HEAD, METHOD_POST, "PUT", "OPTIONS", "DELETE"});
 
     myConfigurableApplicationContext = configurableApplicationContext;
     mySecurityContext = securityContext;
-    webControllerManager.registerController(Constants.API_URL_SUFFIX + "/**", this);
+    myRequestTranslator = requestTranslator;
+
+    String bindPath = pluginDescriptor.getParameterValue(Constants.BIND_PATH_PROPERTY_NAME);
+    if (bindPath == null) {
+      bindPath = Constants.API_URL_SUFFIX;
+    }
+    if (!Constants.API_URL.equals(Constants.URL_PREFIX + bindPath)) {
+      myRequestTranslator.setOriginalRequestPath(Constants.URL_PREFIX + bindPath);
+      myRequestTranslator.setNewRequestPath(Constants.API_URL);
+    }
+
+    webControllerManager.registerController(bindPath + "/**", this);
+    LOG.info("Binding REST API to path '" + bindPath + "'");
 
     myClassloader = getClass().getClassLoader();
 
@@ -137,8 +153,8 @@ public class APIController extends BaseController implements ServletContextAware
     final ClassLoader cl = Thread.currentThread().getContextClassLoader();
     Thread.currentThread().setContextClassLoader(myClassloader);
 
-    // ugly hack for debug
-    final HttpServletRequest actualRequest = patchRequest(request, "Accept", "overrideAccept");
+    // patching request
+    final HttpServletRequest actualRequest = myRequestTranslator.getPathPatchedRequest(patchRequest(request, "Accept", "overrideAccept"));
 
     try {
       if (runAsSystem) {

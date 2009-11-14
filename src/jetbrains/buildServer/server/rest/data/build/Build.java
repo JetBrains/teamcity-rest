@@ -32,7 +32,6 @@ import jetbrains.buildServer.server.rest.data.buildType.BuildTypeRef;
 import jetbrains.buildServer.server.rest.data.change.ChangesRef;
 import jetbrains.buildServer.server.rest.data.change.Revisions;
 import jetbrains.buildServer.server.rest.data.issue.IssueUsages;
-import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
@@ -74,7 +73,7 @@ public class Build {
 
   @XmlAttribute
   public String getHref() {
-    return BuildRequest.getBuildHref(myBuild);
+    return myDataProvider.getApiUrlBuilder().getHref(myBuild);
   }
 
   @XmlAttribute
@@ -113,7 +112,7 @@ public class Build {
     if (agent == null) {
       return new AgentRef(myBuild.getAgentName());
     }
-    return new AgentRef(agent);
+    return new AgentRef(agent, myDataProvider.getApiUrlBuilder());
   }
 
   @XmlElement
@@ -136,7 +135,7 @@ public class Build {
   public Comment getComment() {
     final jetbrains.buildServer.serverSide.comments.Comment comment = myBuild.getBuildComment();
     if (comment != null) {
-      return new Comment(comment);
+      return new Comment(comment, myDataProvider.getApiUrlBuilder());
     }
     return null;
   }
@@ -158,17 +157,17 @@ public class Build {
 
   @XmlElement(name = "revisions")
   public Revisions getRevisions() {
-    return new Revisions(myBuild.getRevisions());
+    return new Revisions(myBuild.getRevisions(), myDataProvider.getApiUrlBuilder());
   }
 
   @XmlElement(name = "changes")
   public ChangesRef getChanges() {
-    return new ChangesRef(myBuild);
+    return new ChangesRef(myBuild, myDataProvider.getApiUrlBuilder());
   }
 
   @XmlElement(name = "relatedIssues")
   public IssueUsages getIssues() {
-    return new IssueUsages(myBuild.getRelatedIssues(), myBuild);
+    return new IssueUsages(myBuild.getRelatedIssues(), myBuild, myDataProvider.getApiUrlBuilder());
   }
 
   private List<BuildRef> getBuildRefs(@NotNull Collection<? extends BuildDependency> dependencies,

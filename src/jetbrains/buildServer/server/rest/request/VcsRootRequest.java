@@ -47,7 +47,7 @@ public class VcsRootRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public VcsRoots serveRoots() {
-    return new VcsRoots(myDataProvider.getAllVcsRoots());
+    return new VcsRoots(myDataProvider.getAllVcsRoots(), myDataProvider.getApiUrlBuilder());
   }
 
   @GET

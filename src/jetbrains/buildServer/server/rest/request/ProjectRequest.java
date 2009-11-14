@@ -56,7 +56,7 @@ public class ProjectRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public Projects serveProjects() {
-    return new Projects(myDataProvider.getServer().getProjectManager().getProjects());
+    return new Projects(myDataProvider.getServer().getProjectManager().getProjects(), myDataProvider.getApiUrlBuilder());
   }
 
   @GET

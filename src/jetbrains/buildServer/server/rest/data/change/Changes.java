@@ -21,6 +21,7 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PagerData;
 import jetbrains.buildServer.vcs.SVcsModification;
 import org.jetbrains.annotations.NotNull;
@@ -45,22 +46,27 @@ public class Changes {
   @XmlAttribute(required = false)
   @Nullable
   public String prevHref;
+  private ApiUrlBuilder myApiUrlBuilder;
 
   public Changes() {
   }
 
-  public Changes(final List<SVcsModification> modifications) {
+  public Changes(final List<SVcsModification> modifications, final ApiUrlBuilder apiUrlBuilder) {
+    myApiUrlBuilder = apiUrlBuilder;
     init(modifications, new PagerData());
   }
 
-  public Changes(@NotNull final List<SVcsModification> modifications, @NotNull final PagerData pagerData) {
+  public Changes(@NotNull final List<SVcsModification> modifications,
+                 @NotNull final PagerData pagerData,
+                 final ApiUrlBuilder apiUrlBuilder) {
+    myApiUrlBuilder = apiUrlBuilder;
     init(modifications, pagerData);
   }
 
   private void init(final List<SVcsModification> modifications, final PagerData pagerData) {
     changes = new ArrayList<ChangeRef>(modifications.size());
     for (SVcsModification root : modifications) {
-      changes.add(new ChangeRef(root));
+      changes.add(new ChangeRef(root, myApiUrlBuilder));
     }
     nextHref = pagerData.getNextHref();
     prevHref = pagerData.getPrevHref();

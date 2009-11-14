@@ -20,6 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.user.UserRef;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,12 +30,14 @@ import org.jetbrains.annotations.NotNull;
  */
 public class Comment {
   @NotNull private jetbrains.buildServer.serverSide.comments.Comment myBuildComment;
+  private ApiUrlBuilder myApiUrlBuilder;
 
   public Comment() {
   }
 
-  public Comment(@NotNull jetbrains.buildServer.serverSide.comments.Comment buildComment) {
+  public Comment(@NotNull jetbrains.buildServer.serverSide.comments.Comment buildComment, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     myBuildComment = buildComment;
+    myApiUrlBuilder = apiUrlBuilder;
   }
 
   //todo: is it OK to handle possible missing value?
@@ -43,7 +46,7 @@ public class Comment {
     final ArrayList<UserRef> result = new ArrayList<UserRef>();
     final jetbrains.buildServer.users.User user = myBuildComment.getUser();
     if (user != null) {
-      result.add(new UserRef(user));
+      result.add(new UserRef(user, myApiUrlBuilder));
     }
     return result;
   }

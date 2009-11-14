@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data.issue;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.change.Changes;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.vcs.SVcsModification;
@@ -30,13 +31,15 @@ import jetbrains.buildServer.vcs.SVcsModification;
 public class IssueUsage {
   private jetbrains.buildServer.issueTracker.Issue myIssue;
   private SBuild myBuild;
+  private ApiUrlBuilder myApiUrlBuilder;
 
   public IssueUsage() {
   }
 
-  public IssueUsage(jetbrains.buildServer.issueTracker.Issue issue, SBuild build) {
+  public IssueUsage(jetbrains.buildServer.issueTracker.Issue issue, SBuild build, final ApiUrlBuilder apiUrlBuilder) {
     myIssue = issue;
     myBuild = build;
+    myApiUrlBuilder = apiUrlBuilder;
   }
 
   @XmlElement
@@ -53,6 +56,6 @@ public class IssueUsage {
         relatedModifications.add(vcsModification);
       }
     }
-    return relatedModifications.isEmpty() ? null : new Changes(relatedModifications);
+    return relatedModifications.isEmpty() ? null : new Changes(relatedModifications, myApiUrlBuilder);
   }
 }

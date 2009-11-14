@@ -57,13 +57,13 @@ public class GroupRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public Groups serveGroups() {
-    return new Groups(myDataProvider.getAllGroups());
+    return new Groups(myDataProvider.getAllGroups(), myDataProvider.getApiUrlBuilder());
   }
 
   @GET
   @Path("/{groupLocator}")
   @Produces({"application/xml", "application/json"})
   public Group serveGroup(@PathParam("groupLocator") String groupLocator) {
-    return new Group(myDataProvider.getGroup(groupLocator));
+    return new Group(myDataProvider.getGroup(groupLocator), myDataProvider.getApiUrlBuilder());
   }
 }

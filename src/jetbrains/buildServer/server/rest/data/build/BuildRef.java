@@ -20,7 +20,6 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.DataProvider;
-import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.serverSide.SBuild;
 import org.jetbrains.annotations.NotNull;
 
@@ -64,7 +63,7 @@ public class BuildRef {
 
   @XmlAttribute
   public String getHref() {
-    return BuildRequest.getBuildHref(myBuild);
+    return myDataProvider.getApiUrlBuilder().getHref(myBuild);
   }
 
   @XmlAttribute

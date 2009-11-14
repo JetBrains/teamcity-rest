@@ -17,7 +17,7 @@
 package jetbrains.buildServer.server.rest.data.project;
 
 import javax.xml.bind.annotation.XmlAttribute;
-import jetbrains.buildServer.server.rest.request.ProjectRequest;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
 
@@ -27,17 +27,19 @@ import org.jetbrains.annotations.NotNull;
  */
 public class ProjectRef {
   @NotNull protected SProject myProject;
+  private ApiUrlBuilder myApiUrlBuilder;
 
   public ProjectRef() {
   }
 
-  public ProjectRef(SProject project) {
+  public ProjectRef(SProject project, final ApiUrlBuilder apiUrlBuilder) {
     myProject = project;
+    myApiUrlBuilder = apiUrlBuilder;
   }
 
   @XmlAttribute
   public String getHref() {
-    return ProjectRequest.getProjectHref(myProject);
+    return myApiUrlBuilder.getHref(myProject);
   }
 
   @XmlAttribute

@@ -22,6 +22,7 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.issueTracker.Issue;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.serverSide.SBuild;
 
 /**
@@ -32,20 +33,22 @@ import jetbrains.buildServer.serverSide.SBuild;
 public class IssueUsages {
   private Collection<Issue> myIssues;
   private SBuild myBuild;
+  private ApiUrlBuilder myApiUrlBuilder;
 
   public IssueUsages() {
   }
 
-  public IssueUsages(final Collection<Issue> issues, final SBuild build) {
+  public IssueUsages(final Collection<Issue> issues, final SBuild build, final ApiUrlBuilder apiUrlBuilder) {
     myIssues = issues;
     myBuild = build;
+    myApiUrlBuilder = apiUrlBuilder;
   }
 
   @XmlElement(name = "issueUsage")
   public List<IssueUsage> getIssueUsages() {
     List<IssueUsage> result = new ArrayList<IssueUsage>(myIssues.size());
     for (Issue issue : myIssues) {
-      result.add(new IssueUsage(issue, myBuild));
+      result.add(new IssueUsage(issue, myBuild, myApiUrlBuilder));
     }
     return result;
   }

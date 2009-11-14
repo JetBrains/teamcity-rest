@@ -63,6 +63,7 @@ public class DataProvider {
   private static final String DIMENSION_NAME_VALUE_DELIMITER = ":";
   private static final String DIMENSIONS_DELIMITER = ",";
   private static final String DATE_FORMAT = "yyyyMMdd'T'HHmmssZ";
+  private ApiUrlBuilder myApiUrlBuilder;
 
   public DataProvider(SBuildServer myServer,
                       BuildHistory myBuildHistory,
@@ -71,7 +72,8 @@ public class DataProvider {
                       final UserGroupManager groupManager,
                       final VcsManager vcsManager,
                       final BuildAgentManager agentManager,
-                      final WebLinks webLinks) {
+                      final WebLinks webLinks,
+                      @NotNull final ApiUrlBuilder apiUrlBuilder) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
     this.myUserModel = userModel;
@@ -80,6 +82,7 @@ public class DataProvider {
     myVcsManager = vcsManager;
     myAgentManager = agentManager;
     myWebLinks = webLinks;
+    myApiUrlBuilder = apiUrlBuilder;
   }
 
   @Nullable
@@ -799,4 +802,10 @@ public class DataProvider {
   public void deleteBuild(final SBuild build) {
     myBuildHistory.removeEntry(build.getBuildId());
   }
+
+  public ApiUrlBuilder getApiUrlBuilder() {
+    return myApiUrlBuilder;
+  }
+
+
 }

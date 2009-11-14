@@ -35,7 +35,7 @@ public class Project extends ProjectRef {
   }
 
   public Project(final SProject project, final DataProvider dataProvider) {
-    super(project);
+    super(project, dataProvider.getApiUrlBuilder());
     myDataProvider = dataProvider;
   }
 

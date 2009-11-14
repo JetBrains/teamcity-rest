@@ -21,6 +21,8 @@ import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
@@ -30,14 +32,16 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class Users {
   @XmlElement(name = "user")
   public List<UserRef> users;
+  private ApiUrlBuilder myApiUrlBuilder;
 
   public Users() {
   }
 
-  public Users(Collection<jetbrains.buildServer.users.User> userObjects) {
+  public Users(Collection<jetbrains.buildServer.users.User> userObjects, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    myApiUrlBuilder = apiUrlBuilder;
     users = new ArrayList<UserRef>(userObjects.size());
     for (jetbrains.buildServer.users.User user : userObjects) {
-      users.add(new UserRef(user));
+      users.add(new UserRef(user, myApiUrlBuilder));
     }
   }
 }

@@ -22,8 +22,10 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.groups.UserGroup;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.users.SUser;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
@@ -44,17 +46,17 @@ public class RoleAssignments {
     }
   }
 
-  public RoleAssignments(Collection<RoleEntry> roleEntries, SUser user) {
+  public RoleAssignments(Collection<RoleEntry> roleEntries, SUser user, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     roleAssignments = new ArrayList<RoleAssignment>(roleEntries.size());
     for (RoleEntry roleEntry : roleEntries) {
-      roleAssignments.add(new RoleAssignment(roleEntry, user));
+      roleAssignments.add(new RoleAssignment(roleEntry, user, apiUrlBuilder));
     }
   }
 
-  public RoleAssignments(Collection<RoleEntry> roleEntries, UserGroup group) {
+  public RoleAssignments(Collection<RoleEntry> roleEntries, UserGroup group, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     roleAssignments = new ArrayList<RoleAssignment>(roleEntries.size());
     for (RoleEntry roleEntry : roleEntries) {
-      roleAssignments.add(new RoleAssignment(roleEntry, group));
+      roleAssignments.add(new RoleAssignment(roleEntry, group, apiUrlBuilder));
     }
   }
 }

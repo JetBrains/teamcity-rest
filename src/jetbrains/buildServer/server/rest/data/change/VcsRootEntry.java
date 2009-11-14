@@ -17,6 +17,8 @@
 package jetbrains.buildServer.server.rest.data.change;
 
 import javax.xml.bind.annotation.XmlElement;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
@@ -31,8 +33,8 @@ public class VcsRootEntry {
   public VcsRootEntry() {
   }
 
-  public VcsRootEntry(jetbrains.buildServer.vcs.VcsRootEntry entry) {
-    vcsRootRef = new VcsRoot.VcsRootRef(entry.getVcsRoot());
+  public VcsRootEntry(jetbrains.buildServer.vcs.VcsRootEntry entry, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    vcsRootRef = new VcsRoot.VcsRootRef(entry.getVcsRoot(), apiUrlBuilder);
     checkoutRules = entry.getCheckoutRules().getAsString();
   }
 }

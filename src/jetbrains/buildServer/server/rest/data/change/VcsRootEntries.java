@@ -21,6 +21,8 @@ import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
@@ -34,10 +36,11 @@ public class VcsRootEntries {
   public VcsRootEntries() {
   }
 
-  public VcsRootEntries(final Collection<jetbrains.buildServer.vcs.VcsRootEntry> vcsRootEntries) {
+  public VcsRootEntries(final Collection<jetbrains.buildServer.vcs.VcsRootEntry> vcsRootEntries,
+                        @NotNull final ApiUrlBuilder apiUrlBuilder) {
     vcsRootAssignments = new ArrayList<VcsRootEntry>(vcsRootEntries.size());
     for (jetbrains.buildServer.vcs.VcsRootEntry entry : vcsRootEntries) {
-      vcsRootAssignments.add(new VcsRootEntry(entry));
+      vcsRootAssignments.add(new VcsRootEntry(entry, apiUrlBuilder));
     }
   }
 

@@ -25,7 +25,6 @@ import jetbrains.buildServer.server.rest.data.Properties;
 import jetbrains.buildServer.server.rest.data.build.BuildsRef;
 import jetbrains.buildServer.server.rest.data.change.VcsRootEntries;
 import jetbrains.buildServer.server.rest.data.project.ProjectRef;
-import jetbrains.buildServer.server.rest.request.BuildTypeRequest;
 import jetbrains.buildServer.serverSide.SBuildType;
 
 /**
@@ -59,7 +58,7 @@ public class BuildType {
 
   @XmlAttribute
   public String getHref() {
-    return BuildTypeRequest.getBuildTypeHref(myBuildType);
+    return myDataProvider.getApiUrlBuilder().getHref(myBuildType);
   }
 
   @XmlAttribute
@@ -79,17 +78,17 @@ public class BuildType {
 
   @XmlElement
   public ProjectRef getProject() {
-    return new ProjectRef(myBuildType.getProject());
+    return new ProjectRef(myBuildType.getProject(), myDataProvider.getApiUrlBuilder());
   }
 
   @XmlElement(name = "vcs-root")
   public VcsRootEntries getVcsRootEntries() {
-    return new VcsRootEntries(myBuildType.getVcsRootEntries());
+    return new VcsRootEntries(myBuildType.getVcsRootEntries(), myDataProvider.getApiUrlBuilder());
   }
 
   @XmlElement
   public BuildsRef getBuilds() {
-    return new BuildsRef(myBuildType);
+    return new BuildsRef(myBuildType, myDataProvider.getApiUrlBuilder());
   }
 
   @XmlElement

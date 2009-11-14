@@ -20,7 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.serverSide.SProject;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
@@ -34,10 +36,10 @@ public class Projects {
   public Projects() {
   }
 
-  public Projects(List<SProject> projectObjects) {
+  public Projects(List<SProject> projectObjects, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     projects = new ArrayList<ProjectRef>(projectObjects.size());
     for (SProject project : projectObjects) {
-      projects.add(new ProjectRef(project));
+      projects.add(new ProjectRef(project, apiUrlBuilder));
     }
   }
 }

@@ -21,6 +21,7 @@ import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 
 /**
  * User: Yegor Yarko
@@ -32,8 +33,8 @@ public class Change extends ChangeRef {
   public Change() {
   }
 
-  public Change(jetbrains.buildServer.vcs.SVcsModification modification) {
-    super(modification);
+  public Change(jetbrains.buildServer.vcs.SVcsModification modification, final ApiUrlBuilder apiUrlBuilder) {
+    super(modification, apiUrlBuilder);
   }
 
   @XmlAttribute

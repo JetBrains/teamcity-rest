@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.request;
 import com.sun.jersey.spi.resource.Singleton;
 import javax.ws.rs.*;
 import jetbrains.buildServer.server.rest.AgentsSearchFields;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.agent.Agent;
 import jetbrains.buildServer.server.rest.data.agent.Agents;
@@ -33,10 +34,12 @@ import org.jetbrains.annotations.NotNull;
 @Singleton
 public class AgentRequest {
   private final DataProvider myDataProvider;
+  private ApiUrlBuilder myApiUrlBuilder;
   public static final String API_AGENTS_URL = Constants.API_URL + "/agents";
 
-  public AgentRequest(final DataProvider dataProvider) {
+  public AgentRequest(final DataProvider dataProvider, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     myDataProvider = dataProvider;
+    myApiUrlBuilder = apiUrlBuilder;
   }
 
   public static String getAgentHref(@NotNull final SBuildAgent agent) {
@@ -52,13 +55,13 @@ public class AgentRequest {
   */
   public Agents serveAgents(@QueryParam("includeDisconnected") @DefaultValue("true") boolean includeDisconnected,
                             @QueryParam("includeUnauthorized") @DefaultValue("true") boolean includeUnauthorized) {
-    return new Agents(myDataProvider.getAllAgents(new AgentsSearchFields(includeDisconnected, includeUnauthorized)));
+    return new Agents(myDataProvider.getAllAgents(new AgentsSearchFields(includeDisconnected, includeUnauthorized)), myApiUrlBuilder);
   }
 
   @GET
   @Path("/{agentLocator}")
   @Produces({"application/xml", "application/json"})
   public Agent serveBuild(@PathParam("agentLocator") String agentLocator) {
-    return new Agent(myDataProvider.getAgent(agentLocator));
+    return new Agent(myDataProvider.getAgent(agentLocator), myApiUrlBuilder);
   }
 }

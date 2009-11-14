@@ -18,8 +18,9 @@ package jetbrains.buildServer.server.rest.data.agent;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.server.rest.request.AgentRequest;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.serverSide.SBuildAgent;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
@@ -28,13 +29,15 @@ import jetbrains.buildServer.serverSide.SBuildAgent;
 @XmlRootElement(name = "agent")
 public class AgentRef {
   private SBuildAgent myAgent;
+  private ApiUrlBuilder myApiUrlBuilder;
   private String myAgentName;
 
   public AgentRef() {
   }
 
-  public AgentRef(final SBuildAgent agent) {
+  public AgentRef(final SBuildAgent agent, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     myAgent = agent;
+    myApiUrlBuilder = apiUrlBuilder;
   }
 
   public AgentRef(final String agentName) {
@@ -59,6 +62,6 @@ public class AgentRef {
 
   @XmlAttribute(required = false)
   public String getHref() {
-    return myAgent == null ? null : AgentRequest.getAgentHref(myAgent);
+    return myAgent == null || myApiUrlBuilder == null ? null : myApiUrlBuilder.getHref(myAgent);
   }
 }

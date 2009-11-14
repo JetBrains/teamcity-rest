@@ -21,9 +21,11 @@ import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.Properties;
 import jetbrains.buildServer.server.rest.data.group.Groups;
 import jetbrains.buildServer.users.SUser;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
@@ -32,12 +34,14 @@ import jetbrains.buildServer.users.SUser;
 @XmlRootElement(name = "user")
 public class User {
   private SUser myUser;
+  private ApiUrlBuilder myApiUrlBuilder;
 
   public User() {
   }
 
-  public User(jetbrains.buildServer.users.SUser user) {
+  public User(jetbrains.buildServer.users.SUser user, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     this.myUser = user;
+    myApiUrlBuilder = apiUrlBuilder;
   }
 
   @XmlAttribute
@@ -71,12 +75,12 @@ public class User {
 
   @XmlElement(name = "roles")
   public RoleAssignments getRoleAssignments() {
-    return new RoleAssignments(myUser.getRoles(), myUser);
+    return new RoleAssignments(myUser.getRoles(), myUser, myApiUrlBuilder);
   }
 
   @XmlElement(name = "groups")
   public Groups getGroups() {
-    return new Groups(myUser.getUserGroups());
+    return new Groups(myUser.getUserGroups(), myApiUrlBuilder);
   }
 
   @XmlAttribute

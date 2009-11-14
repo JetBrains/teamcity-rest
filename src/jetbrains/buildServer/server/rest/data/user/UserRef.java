@@ -17,7 +17,7 @@
 package jetbrains.buildServer.server.rest.data.user;
 
 import javax.xml.bind.annotation.XmlAttribute;
-import jetbrains.buildServer.server.rest.request.UserRequest;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -26,12 +26,14 @@ import org.jetbrains.annotations.NotNull;
  */
 public class UserRef {
   @NotNull private jetbrains.buildServer.users.User myUser;
+  private ApiUrlBuilder myApiUrlBuilder;
 
   public UserRef() {
   }
 
-  public UserRef(@NotNull jetbrains.buildServer.users.User user) {
+  public UserRef(@NotNull jetbrains.buildServer.users.User user, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     myUser = user;
+    myApiUrlBuilder = apiUrlBuilder;
   }
 
   @XmlAttribute
@@ -51,6 +53,6 @@ public class UserRef {
 
   @XmlAttribute
   public String getHref() {
-    return UserRequest.getUserHref(myUser);
+    return myApiUrlBuilder.getHref(myUser);
   }
 }

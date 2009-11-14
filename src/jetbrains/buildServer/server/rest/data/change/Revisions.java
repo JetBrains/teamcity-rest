@@ -19,7 +19,9 @@ package jetbrains.buildServer.server.rest.data.change;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.serverSide.BuildRevision;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
@@ -32,10 +34,10 @@ public class Revisions {
   public Revisions() {
   }
 
-  public Revisions(final List<BuildRevision> buildRevisions) {
+  public Revisions(final List<BuildRevision> buildRevisions, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     revisoins = new ArrayList<Revision>(buildRevisions.size());
     for (BuildRevision revision : buildRevisions) {
-      revisoins.add(new Revision(revision));
+      revisoins.add(new Revision(revision, apiUrlBuilder));
     }
   }
 }

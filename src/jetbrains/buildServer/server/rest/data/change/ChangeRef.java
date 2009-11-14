@@ -17,7 +17,7 @@
 package jetbrains.buildServer.server.rest.data.change;
 
 import javax.xml.bind.annotation.XmlAttribute;
-import jetbrains.buildServer.server.rest.request.ChangeRequest;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModification;
 
@@ -27,12 +27,14 @@ import jetbrains.buildServer.vcs.VcsModification;
  */
 public class ChangeRef {
   protected VcsModification myModification;
+  private ApiUrlBuilder myApiUrlBuilder;
 
   public ChangeRef() {
   }
 
-  public ChangeRef(SVcsModification modification) {
+  public ChangeRef(SVcsModification modification, final ApiUrlBuilder apiUrlBuilder) {
     myModification = modification;
+    myApiUrlBuilder = apiUrlBuilder;
   }
 
   @XmlAttribute
@@ -47,6 +49,6 @@ public class ChangeRef {
 
   @XmlAttribute
   public String getHref() {
-    return ChangeRequest.getChangeHref(myModification);
+    return myApiUrlBuilder.getHref(myModification);
   }
 }

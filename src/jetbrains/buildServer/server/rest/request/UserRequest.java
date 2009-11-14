@@ -60,14 +60,14 @@ public class UserRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public Users serveUsers() {
-    return new Users(myDataProvider.getAllUsers());
+    return new Users(myDataProvider.getAllUsers(), myDataProvider.getApiUrlBuilder());
   }
 
   @GET
   @Path("/{userLocator}")
   @Produces({"application/xml", "application/json"})
   public User serveUser(@PathParam("userLocator") String userLocator) {
-    return new User(myDataProvider.getUser(userLocator));
+    return new User(myDataProvider.getUser(userLocator), myDataProvider.getApiUrlBuilder());
   }
 
   //TODO
@@ -85,7 +85,7 @@ public class UserRequest {
   @Produces({"application/xml", "application/json"})
   public RoleAssignments listRoles(@PathParam("userLocator") String userLocator) {
     SUser user = myDataProvider.getUser(userLocator);
-    return new RoleAssignments(user.getRoles(), user);
+    return new RoleAssignments(user.getRoles(), user, myDataProvider.getApiUrlBuilder());
   }
 
 
@@ -105,7 +105,7 @@ public class UserRequest {
   public RoleAssignment listRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
                                  @PathParam("scope") String scopeValue) {
     SUser user = myDataProvider.getUser(userLocator);
-    return new RoleAssignment(getUserRoleEntry(user, roleId, scopeValue), user);
+    return new RoleAssignment(getUserRoleEntry(user, roleId, scopeValue), user, myDataProvider.getApiUrlBuilder());
   }
 
   private RoleEntry getUserRoleEntry(final SUser user, final String roleId, final String scopeValue) {

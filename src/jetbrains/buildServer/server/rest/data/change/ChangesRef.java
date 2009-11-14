@@ -18,7 +18,7 @@ package jetbrains.buildServer.server.rest.data.change;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.server.rest.request.ChangeRequest;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.serverSide.SBuild;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,17 +29,19 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "changes")
 public class ChangesRef {
   @NotNull private SBuild myBuild;
+  private ApiUrlBuilder myApiUrlBuilder;
 
   public ChangesRef() {
   }
 
-  public ChangesRef(@NotNull final SBuild build) {
+  public ChangesRef(@NotNull final SBuild build, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     myBuild = build;
+    myApiUrlBuilder = apiUrlBuilder;
   }
 
   @XmlAttribute
   public String getHref() {
-    return ChangeRequest.getBuildChangesHref(myBuild);
+    return myApiUrlBuilder.getBuildChangesHref(myBuild);
   }
 
   @XmlAttribute

@@ -19,11 +19,11 @@ package jetbrains.buildServer.server.rest.data.user;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.groups.UserGroup;
-import jetbrains.buildServer.server.rest.request.GroupRequest;
-import jetbrains.buildServer.server.rest.request.UserRequest;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.users.SUser;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
@@ -47,19 +47,19 @@ public class RoleAssignment {
     scope = getScopeRepresentation(roleEntry.getScope());
   }
 
+  public RoleAssignment(RoleEntry roleEntry, SUser user, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    roleId = roleEntry.getRole().getId();
+    scope = getScopeRepresentation(roleEntry.getScope());
+    href = apiUrlBuilder.getHref(roleEntry, user);
+  }
+
+  public RoleAssignment(RoleEntry roleEntry, UserGroup group, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    roleId = roleEntry.getRole().getId();
+    scope = getScopeRepresentation(roleEntry.getScope());
+    href = apiUrlBuilder.getHref(roleEntry, group);
+  }
+
   private static String getScopeRepresentation(final RoleScope scope) {
     return scope.isGlobal() ? null : scope.getProjectId();
-  }
-
-  public RoleAssignment(RoleEntry roleEntry, SUser user) {
-    roleId = roleEntry.getRole().getId();
-    scope = getScopeRepresentation(roleEntry.getScope());
-    href = UserRequest.getRoleAssignmentHref(roleEntry, user);
-  }
-
-  public RoleAssignment(RoleEntry roleEntry, UserGroup group) {
-    roleId = roleEntry.getRole().getId();
-    scope = getScopeRepresentation(roleEntry.getScope());
-    href = GroupRequest.getRoleAssignmentHref(roleEntry, group);
   }
 }

@@ -21,7 +21,9 @@ import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.serverSide.SBuildAgent;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
@@ -35,10 +37,10 @@ public class Agents {
   public Agents() {
   }
 
-  public Agents(Collection<SBuildAgent> agentObjects) {
+  public Agents(Collection<SBuildAgent> agentObjects, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     agents = new ArrayList<AgentRef>(agentObjects.size());
-    for (SBuildAgent buildType : agentObjects) {
-      agents.add(new AgentRef(buildType));
+    for (SBuildAgent agent : agentObjects) {
+      agents.add(new AgentRef(agent, apiUrlBuilder));
     }
   }
 }
