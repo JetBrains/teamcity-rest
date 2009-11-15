@@ -18,33 +18,61 @@ package jetbrains.buildServer.server.rest;
 
 import com.sun.jersey.api.json.JSONConfiguration;
 import com.sun.jersey.api.json.JSONJAXBContext;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
 import javax.xml.bind.JAXBContext;
+import jetbrains.buildServer.server.rest.data.agent.Agent;
+import jetbrains.buildServer.server.rest.data.agent.Agents;
 import jetbrains.buildServer.server.rest.data.build.Build;
 import jetbrains.buildServer.server.rest.data.build.Builds;
 import jetbrains.buildServer.server.rest.data.buildType.BuildType;
 import jetbrains.buildServer.server.rest.data.buildType.BuildTypes;
+import jetbrains.buildServer.server.rest.data.change.*;
+import jetbrains.buildServer.server.rest.data.group.Group;
+import jetbrains.buildServer.server.rest.data.group.Groups;
+import jetbrains.buildServer.server.rest.data.issue.Issue;
+import jetbrains.buildServer.server.rest.data.issue.IssueUsage;
+import jetbrains.buildServer.server.rest.data.issue.IssueUsages;
+import jetbrains.buildServer.server.rest.data.issue.Issues;
 import jetbrains.buildServer.server.rest.data.project.Project;
 import jetbrains.buildServer.server.rest.data.project.Projects;
+import jetbrains.buildServer.server.rest.data.user.User;
+import jetbrains.buildServer.server.rest.data.user.UserData;
+import jetbrains.buildServer.server.rest.data.user.Users;
 
 /**
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
 @Provider
+//todo: add to spring to make it work:   <bean id="jAXBContextResolver" class="jetbrains.buildServer.server.rest.JAXBContextResolver"/>
 public class JAXBContextResolver implements ContextResolver<JAXBContext> {
   private JAXBContext context;
-  //todo: what it needed to be listed here?
-  private Class[] types = {Build.class, BuildType.class, Project.class, Builds.class, BuildTypes.class, Projects.class};
+
+  private final Set<Class> types;
+
+  //Root entities should be listed here 
+  private final Class[] cTypes = {
+    Agent.class, Agents.class,
+    Build.class, Builds.class,
+    BuildType.class, BuildTypes.class,
+    Change.class, FileChange.class, Revision.class, Revisions.class,
+    VcsRoot.class, VcsRoots.class, VcsRootEntry.class, VcsRootEntries.class,
+    Group.class, Groups.class,
+    Issue.class, Issues.class, IssueUsage.class, IssueUsages.class,
+    Project.class, Projects.class,
+    User.class, UserData.class, Users.class,
+  };
 
   public JAXBContextResolver() throws Exception {
-    this.context = new JSONJAXBContext(
-      JSONConfiguration.natural().build(),
-      types);
+    this.types = new HashSet<Class>(Arrays.asList(cTypes));
+    this.context = new JSONJAXBContext(JSONConfiguration.natural().build(), cTypes);
   }
 
   public JAXBContext getContext(Class<?> objectType) {
-    return (types[0].equals(objectType)) ? context : null;
+    return (types.contains(objectType)) ? context : null;
   }
 }
