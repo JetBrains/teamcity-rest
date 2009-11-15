@@ -54,32 +54,41 @@ public class APIController extends BaseController implements ServletContextAware
 
   private final ClassLoader myClassloader;
   private String myAuthToken;
-  private RequestTranslator myRequestTranslator;
+  private RequestPathTransformInfo myRequestPathTransformInfo;
 
   public APIController(final SBuildServer server,
                        WebControllerManager webControllerManager,
                        final ConfigurableApplicationContext configurableApplicationContext,
                        final SecurityContextEx securityContext,
-                       final RequestTranslator requestTranslator,
+                       final RequestPathTransformInfo requestPathTransformInfo,
                        final ServerPluginInfo pluginDescriptor) throws ServletException {
     super(server);
     setSupportedMethods(new String[]{METHOD_GET, METHOD_HEAD, METHOD_POST, "PUT", "OPTIONS", "DELETE"});
 
     myConfigurableApplicationContext = configurableApplicationContext;
     mySecurityContext = securityContext;
-    myRequestTranslator = requestTranslator;
+    myRequestPathTransformInfo = requestPathTransformInfo;
 
+    //todo: brush up
     String bindPath = pluginDescriptor.getParameterValue(Constants.BIND_PATH_PROPERTY_NAME);
     if (bindPath == null) {
       bindPath = Constants.API_URL_SUFFIX;
     }
-    if (!Constants.API_URL.equals(Constants.URL_PREFIX + bindPath)) {
-      myRequestTranslator.setOriginalRequestPath(Constants.URL_PREFIX + bindPath);
-      myRequestTranslator.setNewRequestPath(Constants.API_URL);
-    }
 
-    webControllerManager.registerController(bindPath + "/**", this);
-    LOG.info("Binding REST API to path '" + bindPath + "'");
+    //todo: error report if invalid
+    final String[] bindPaths = bindPath.split(",");
+
+    Set<String> resultBindPaths = new HashSet<String>(bindPaths.length);
+    for (String path : bindPaths) {
+      resultBindPaths.add(Constants.URL_PREFIX + path);
+    }
+    myRequestPathTransformInfo.setOriginalPathPrefixes(resultBindPaths);
+    myRequestPathTransformInfo.setNewPathPrefix(Constants.API_URL);
+
+    for (String controllerBindPath : bindPaths) {
+      webControllerManager.registerController(controllerBindPath + "/**", this);
+      LOG.info("Binding REST API to path '" + controllerBindPath + "'");
+    }
 
     myClassloader = getClass().getClassLoader();
 
@@ -154,7 +163,8 @@ public class APIController extends BaseController implements ServletContextAware
     Thread.currentThread().setContextClassLoader(myClassloader);
 
     // patching request
-    final HttpServletRequest actualRequest = myRequestTranslator.getPathPatchedRequest(patchRequest(request, "Accept", "overrideAccept"));
+    final HttpServletRequest actualRequest =
+      new RequestWrapper(patchRequest(request, "Accept", "overrideAccept"), myRequestPathTransformInfo);
 
     try {
       if (runAsSystem) {
@@ -181,6 +191,7 @@ public class APIController extends BaseController implements ServletContextAware
     return null;
   }
 
+  //todo: move to RequestWrapper
   private HttpServletRequest patchRequest(final HttpServletRequest request, final String headerName, final String parameterName) {
     final String newValue = request.getParameter(parameterName);
     if (!StringUtil.isEmpty(newValue)) {

@@ -29,8 +29,12 @@
   <bean id="restDataProvider" class="jetbrains.buildServer.server.rest.DataProvider"/>
   <bean id="restDataUpdater" class="jetbrains.buildServer.server.rest.DataUpdater"/>
 
-  <bean id="requestTranslator" class="jetbrains.buildServer.server.rest.RequestTranslator"/>
   <bean id="apiUrlBuilder" class="jetbrains.buildServer.server.rest.ApiUrlBuilder"/>
+
+  <bean id="requestPathTransformInfo" class="jetbrains.buildServer.server.rest.RequestPathTransformInfo"/>
+
+  <bean id="urlBuilderProvider" class="jetbrains.buildServer.server.rest.UrlBuilderProvider"/>
+
 
   <bean id="rootApiRequest" class="jetbrains.buildServer.server.rest.request.RootApiRequest"/>
   <bean id="serverRequest" class="jetbrains.buildServer.server.rest.request.ServerRequest"/>

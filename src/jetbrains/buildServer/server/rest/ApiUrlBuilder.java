@@ -16,76 +16,26 @@
 
 package jetbrains.buildServer.server.rest;
 
-import jetbrains.buildServer.groups.UserGroup;
-import jetbrains.buildServer.server.rest.request.*;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SBuildAgent;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.auth.RoleEntry;
-import jetbrains.buildServer.users.SUser;
-import jetbrains.buildServer.users.User;
-import jetbrains.buildServer.vcs.VcsModification;
-import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
  *         Date: 14.11.2009
  */
-public class ApiUrlBuilder {
-  private RequestTranslator myRequestTranslator;
+//temporary class for single prefix only
+public class ApiUrlBuilder extends ApiUrlBuilderWithContext {
 
-  public ApiUrlBuilder(@NotNull final RequestTranslator requestTranslator) {
-    myRequestTranslator = requestTranslator;
-  }
-
-  public String getHref(@NotNull final SBuildAgent agent) {
-    return myRequestTranslator.getOriginalPathByPatched(AgentRequest.getAgentHref(agent));
-  }
-
-
-  public String getHref(@NotNull final SBuild build) {
-    return myRequestTranslator.getOriginalPathByPatched(BuildRequest.getBuildHref(build));
-  }
-
-  public String getHref(final SBuildType buildType) {
-    return myRequestTranslator.getOriginalPathByPatched(BuildTypeRequest.getBuildTypeHref(buildType));
-  }
-
-  public String getBuildsHref(final SBuildType buildType) {
-    return myRequestTranslator.getOriginalPathByPatched(BuildTypeRequest.getBuildsHref(buildType));
-  }
-
-  public String getHref(final VcsModification modification) {
-    return myRequestTranslator.getOriginalPathByPatched(ChangeRequest.getChangeHref(modification));
-  }
-
-  public String getBuildChangesHref(final SBuild build) {
-    return myRequestTranslator.getOriginalPathByPatched(ChangeRequest.getBuildChangesHref(build));
-  }
-
-  public String getHref(final UserGroup userGroup) {
-    return myRequestTranslator.getOriginalPathByPatched(GroupRequest.getGroupHref(userGroup));
-  }
-
-  public String getHref(final RoleEntry roleEntry, final UserGroup group) {
-    return myRequestTranslator.getOriginalPathByPatched(GroupRequest.getRoleAssignmentHref(roleEntry, group));
-  }
-
-  public String getHref(final RoleEntry roleEntry, final SUser user) {
-    return myRequestTranslator.getOriginalPathByPatched(UserRequest.getRoleAssignmentHref(roleEntry, user));
-  }
-
-  public String getHref(final SProject project) {
-    return myRequestTranslator.getOriginalPathByPatched(ProjectRequest.getProjectHref(project));
-  }
-
-  public String getHref(final User user) {
-    return myRequestTranslator.getOriginalPathByPatched(UserRequest.getUserHref(user));
-  }
-
-  public String getHref(final VcsRoot root) {
-    return myRequestTranslator.getOriginalPathByPatched(VcsRootRequest.getVcsRootHref(root));
+  public ApiUrlBuilder(@NotNull final RequestPathTransformInfo requestPathTransformInfo) {
+    super(new PathTransformer() {
+      public String transform(final String path) {
+        //todo: error reporting if none or more then one
+        final String singlePrefix = requestPathTransformInfo.getOriginalPathPrefixes().iterator().next();
+        final String newPathPrefix = requestPathTransformInfo.getNewPathPrefix();
+        if (!path.startsWith(newPathPrefix)) {
+          throw new IllegalArgumentException("Path in new form: '" + path + "' does not contain new prefix: '" + newPathPrefix + "'");
+        }
+        return singlePrefix + path.substring(newPathPrefix.length());
+      }
+    });
   }
 }
