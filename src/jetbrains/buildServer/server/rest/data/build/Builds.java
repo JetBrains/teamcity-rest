@@ -21,6 +21,7 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagerData;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -52,10 +53,11 @@ public class Builds {
 
   public Builds(@NotNull final List buildObjects,
                 @NotNull final DataProvider dataProvider,
-                @NotNull final PagerData pagerData) {
+                @NotNull final PagerData pagerData,
+                final ApiUrlBuilder apiUrlBuilder) {
     builds = new ArrayList<BuildRef>(buildObjects.size());
     for (Object build : buildObjects) {
-      builds.add(new BuildRef((SBuild)build, dataProvider));
+      builds.add(new BuildRef((SBuild)build, dataProvider, apiUrlBuilder));
     }
     nextHref = pagerData.getNextHref();
     prevHref = pagerData.getPrevHref();

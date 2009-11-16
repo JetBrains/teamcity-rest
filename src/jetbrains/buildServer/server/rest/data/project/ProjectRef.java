@@ -27,7 +27,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class ProjectRef {
   @NotNull protected SProject myProject;
-  private ApiUrlBuilder myApiUrlBuilder;
+  protected ApiUrlBuilder myApiUrlBuilder;
 
   public ProjectRef() {
   }

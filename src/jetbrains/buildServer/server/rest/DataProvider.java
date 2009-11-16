@@ -42,6 +42,7 @@ import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsManager;
 import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.web.plugins.bean.ServerPluginInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -63,7 +64,7 @@ public class DataProvider {
   private static final String DIMENSION_NAME_VALUE_DELIMITER = ":";
   private static final String DIMENSIONS_DELIMITER = ",";
   private static final String DATE_FORMAT = "yyyyMMdd'T'HHmmssZ";
-  private ApiUrlBuilder myApiUrlBuilder;
+  private ServerPluginInfo myPluginInfo;
 
   public DataProvider(SBuildServer myServer,
                       BuildHistory myBuildHistory,
@@ -73,7 +74,7 @@ public class DataProvider {
                       final VcsManager vcsManager,
                       final BuildAgentManager agentManager,
                       final WebLinks webLinks,
-                      @NotNull final ApiUrlBuilder apiUrlBuilder) {
+                      final ServerPluginInfo pluginInfo) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
     this.myUserModel = userModel;
@@ -82,7 +83,7 @@ public class DataProvider {
     myVcsManager = vcsManager;
     myAgentManager = agentManager;
     myWebLinks = webLinks;
-    myApiUrlBuilder = apiUrlBuilder;
+    myPluginInfo = pluginInfo;
   }
 
   @Nullable
@@ -803,9 +804,7 @@ public class DataProvider {
     myBuildHistory.removeEntry(build.getBuildId());
   }
 
-  public ApiUrlBuilder getApiUrlBuilder() {
-    return myApiUrlBuilder;
+  public ServerPluginInfo getPluginInfo() {
+    return myPluginInfo;
   }
-
-
 }

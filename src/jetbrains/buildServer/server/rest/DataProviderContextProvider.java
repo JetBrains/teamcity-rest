@@ -22,46 +22,32 @@ import com.sun.jersey.spi.inject.Injectable;
 import com.sun.jersey.spi.inject.InjectableProvider;
 import java.lang.reflect.Type;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.ext.Provider;
-import jetbrains.buildServer.server.rest.request.Constants;
 
 /**
  * @author Yegor.Yarko
  *         Date: 15.11.2009
  */
 @Provider
-public class UrlBuilderProvider implements InjectableProvider<Context, java.lang.reflect.Type>, Injectable<ApiUrlBuilder> {
-  private RequestPathTransformInfo myRequestPathTransformInfo;
+public class DataProviderContextProvider implements InjectableProvider<Context, Type>, Injectable<DataProvider> {
+  private DataProvider myDataProvider;
 
-  @Context private HttpHeaders headers;
-
-  public UrlBuilderProvider(final RequestPathTransformInfo requestPathTransformInfo) {
-    myRequestPathTransformInfo = requestPathTransformInfo;
+  public DataProviderContextProvider(final DataProvider dataProvider) {
+    myDataProvider = dataProvider;
   }
 
   public ComponentScope getScope() {
-    return ComponentScope.PerRequest;
+    return ComponentScope.Singleton;
   }
 
   public Injectable getInjectable(final ComponentContext ic, final Context context, final Type type) {
-    if (type.equals(ApiUrlBuilder.class)) {
+    if (type.equals(DataProvider.class)) {
       return this;
     }
     return null;
   }
 
-  public ApiUrlBuilder getValue() {
-    return new ApiUrlBuilder(new PathTransformer() {
-      public String transform(final String path) {
-        return getRequestTranslator().transformNewFormPathToOriginalForm(path);
-      }
-    });
-  }
-
-  private RequestPathTransformator getRequestTranslator() {
-    final String originalRequestPath =
-      headers.getRequestHeader(Constants.ORIGINAL_REQUEST_URI_HEADER_NAME).get(0); //todo report appropriate message
-    return new RequestPathTransformator(originalRequestPath, myRequestPathTransformInfo, true);
+  public DataProvider getValue() {
+    return myDataProvider;
   }
 }

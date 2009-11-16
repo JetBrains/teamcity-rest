@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data.build;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.serverSide.SBuild;
 import org.jetbrains.annotations.NotNull;
@@ -32,13 +33,15 @@ import org.jetbrains.annotations.NotNull;
 public class BuildRef {
   protected SBuild myBuild;
   private DataProvider myDataProvider;
+  private ApiUrlBuilder myApiUrlBuilder;
 
   public BuildRef() {
   }
 
-  public BuildRef(@NotNull final SBuild build, @NotNull final DataProvider dataProvider) {
+  public BuildRef(@NotNull final SBuild build, @NotNull final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
     myBuild = build;
     myDataProvider = dataProvider;
+    myApiUrlBuilder = apiUrlBuilder;
   }
 
   @XmlAttribute
@@ -63,7 +66,7 @@ public class BuildRef {
 
   @XmlAttribute
   public String getHref() {
-    return myDataProvider.getApiUrlBuilder().getHref(myBuild);
+    return myApiUrlBuilder.getHref(myBuild);
   }
 
   @XmlAttribute

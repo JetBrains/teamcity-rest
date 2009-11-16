@@ -16,11 +16,11 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import com.sun.jersey.spi.resource.Singleton;
 import java.util.List;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.BuildsFilter;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagerData;
@@ -40,14 +40,13 @@ import jetbrains.buildServer.serverSide.SProject;
  * Date: 11.04.2009
  */
 @Path(ProjectRequest.API_PROJECTS_URL)
-@Singleton
 public class ProjectRequest {
-  private final DataProvider myDataProvider;
-  public static final String API_PROJECTS_URL = Constants.API_URL + "/projects";
+  @Context
+  private DataProvider myDataProvider;
+  @Context
+  private ApiUrlBuilder myApiUrlBuilder;
 
-  public ProjectRequest(DataProvider myDataProvider) {
-    this.myDataProvider = myDataProvider;
-  }
+  public static final String API_PROJECTS_URL = Constants.API_URL + "/projects";
 
   public static String getProjectHref(SProject project) {
     return API_PROJECTS_URL + "/id:" + project.getProjectId();
@@ -56,14 +55,14 @@ public class ProjectRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public Projects serveProjects() {
-    return new Projects(myDataProvider.getServer().getProjectManager().getProjects(), myDataProvider.getApiUrlBuilder());
+    return new Projects(myDataProvider.getServer().getProjectManager().getProjects(), myApiUrlBuilder);
   }
 
   @GET
   @Path("/{projectLocator}")
   @Produces({"application/xml", "application/json"})
   public Project serveProject(@PathParam("projectLocator") String projectLocator) {
-    return new Project(myDataProvider.getProject(projectLocator), myDataProvider);
+    return new Project(myDataProvider.getProject(projectLocator), myDataProvider, myApiUrlBuilder);
   }
 
   @GET
@@ -79,7 +78,7 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   public BuildTypes serveBuildTypesInProject(@PathParam("projectLocator") String projectLocator) {
     SProject project = myDataProvider.getProject(projectLocator);
-    return new BuildTypes(project.getBuildTypes(), myDataProvider);
+    return new BuildTypes(project.getBuildTypes(), myDataProvider, myApiUrlBuilder);
   }
 
   @GET
@@ -89,7 +88,7 @@ public class ProjectRequest {
                                   @PathParam("btLocator") String buildTypeLocator) {
     SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
 
-    return new BuildType(buildType, myDataProvider);
+    return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
   }
 
   @GET
@@ -131,7 +130,8 @@ public class ProjectRequest {
                        count));
     return new Builds(buildsList,
                       myDataProvider,
-                      new PagerData(uriInfo.getRequestUriBuilder(), start, count, buildsList.size()));
+                      new PagerData(uriInfo.getRequestUriBuilder(), start, count, buildsList.size()),
+                      myApiUrlBuilder);
   }
 
   @GET
@@ -143,7 +143,7 @@ public class ProjectRequest {
     SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
     SBuild build = myDataProvider.getBuild(buildType, buildLocator);
 
-    return new Build(build, myDataProvider);
+    return new Build(build, myDataProvider, myApiUrlBuilder);
   }
 
   @GET

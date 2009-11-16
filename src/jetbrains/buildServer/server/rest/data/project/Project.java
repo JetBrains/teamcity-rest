@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data.project;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.buildType.BuildTypes;
 import jetbrains.buildServer.serverSide.SProject;
@@ -34,8 +35,8 @@ public class Project extends ProjectRef {
   public Project() {
   }
 
-  public Project(final SProject project, final DataProvider dataProvider) {
-    super(project, dataProvider.getApiUrlBuilder());
+  public Project(final SProject project, final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
+    super(project, apiUrlBuilder);
     myDataProvider = dataProvider;
   }
 
@@ -56,6 +57,6 @@ public class Project extends ProjectRef {
 
   @XmlElement
   public BuildTypes getBuildTypes() {
-    return new BuildTypes(myProject.getBuildTypes(), myDataProvider);
+    return new BuildTypes(myProject.getBuildTypes(), myDataProvider, myApiUrlBuilder);
   }
 }

@@ -16,9 +16,10 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import com.sun.jersey.spi.resource.Singleton;
 import java.util.Collection;
 import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.DataUpdater;
 import jetbrains.buildServer.server.rest.data.user.*;
@@ -34,16 +35,15 @@ import jetbrains.buildServer.users.SUser;
 */
 
 @Path(UserRequest.API_USERS_URL)
-@Singleton
 public class UserRequest {
-  private final DataProvider myDataProvider;
-  private final DataUpdater myDataUpdater;
-  public static final String API_USERS_URL = Constants.API_URL + "/users";
+  @Context
+  private DataProvider myDataProvider;
+  @Context
+  private DataUpdater myDataUpdater;
+  @Context
+  private ApiUrlBuilder myApiUrlBuilder;
 
-  public UserRequest(DataProvider myDataProvider, DataUpdater dataUpdater) {
-    this.myDataProvider = myDataProvider;
-    myDataUpdater = dataUpdater;
-  }
+  public static final String API_USERS_URL = Constants.API_URL + "/users";
 
   public static String getUserHref(final jetbrains.buildServer.users.User user) {
     //todo: investigate why "DOMAIN username" does not work as query parameter
@@ -60,14 +60,14 @@ public class UserRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public Users serveUsers() {
-    return new Users(myDataProvider.getAllUsers(), myDataProvider.getApiUrlBuilder());
+    return new Users(myDataProvider.getAllUsers(), myApiUrlBuilder);
   }
 
   @GET
   @Path("/{userLocator}")
   @Produces({"application/xml", "application/json"})
   public User serveUser(@PathParam("userLocator") String userLocator) {
-    return new User(myDataProvider.getUser(userLocator), myDataProvider.getApiUrlBuilder());
+    return new User(myDataProvider.getUser(userLocator), myApiUrlBuilder);
   }
 
   //TODO
@@ -85,7 +85,7 @@ public class UserRequest {
   @Produces({"application/xml", "application/json"})
   public RoleAssignments listRoles(@PathParam("userLocator") String userLocator) {
     SUser user = myDataProvider.getUser(userLocator);
-    return new RoleAssignments(user.getRoles(), user, myDataProvider.getApiUrlBuilder());
+    return new RoleAssignments(user.getRoles(), user, myApiUrlBuilder);
   }
 
 
@@ -105,7 +105,7 @@ public class UserRequest {
   public RoleAssignment listRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
                                  @PathParam("scope") String scopeValue) {
     SUser user = myDataProvider.getUser(userLocator);
-    return new RoleAssignment(getUserRoleEntry(user, roleId, scopeValue), user, myDataProvider.getApiUrlBuilder());
+    return new RoleAssignment(getUserRoleEntry(user, roleId, scopeValue), user, myApiUrlBuilder);
   }
 
   private RoleEntry getUserRoleEntry(final SUser user, final String roleId, final String scopeValue) {

@@ -21,6 +21,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.DataProvider;
 
 /**
@@ -30,11 +31,8 @@ import jetbrains.buildServer.server.rest.DataProvider;
 @Path(Constants.API_URL + "/server")
 @Singleton
 public class ServerRequest {
-  private final DataProvider myDataProvider;
-
-  public ServerRequest(DataProvider myDataProvider) {
-    this.myDataProvider = myDataProvider;
-  }
+  @Context
+  private DataProvider myDataProvider;
 
   @GET
   @Path("/{field}")

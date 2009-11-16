@@ -16,12 +16,13 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import com.sun.jersey.spi.resource.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import jetbrains.buildServer.groups.UserGroup;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.group.Group;
 import jetbrains.buildServer.server.rest.data.group.Groups;
@@ -34,9 +35,12 @@ import jetbrains.buildServer.serverSide.auth.RoleScope;
 */
 
 @Path(GroupRequest.API_USER_GROUPS_URL)
-@Singleton
 public class GroupRequest {
-  private final DataProvider myDataProvider;
+  @Context
+  private DataProvider myDataProvider;
+  @Context
+  private ApiUrlBuilder myApiUrlBuilder;
+
   public static final String API_USER_GROUPS_URL = Constants.API_URL + "/userGroups";
 
 
@@ -50,20 +54,16 @@ public class GroupRequest {
            (roleScope.isGlobal() ? "/" + roleScope.getProjectId() : "");
   }
 
-  public GroupRequest(DataProvider myDataProvider) {
-    this.myDataProvider = myDataProvider;
-  }
-
   @GET
   @Produces({"application/xml", "application/json"})
   public Groups serveGroups() {
-    return new Groups(myDataProvider.getAllGroups(), myDataProvider.getApiUrlBuilder());
+    return new Groups(myDataProvider.getAllGroups(), myApiUrlBuilder);
   }
 
   @GET
   @Path("/{groupLocator}")
   @Produces({"application/xml", "application/json"})
   public Group serveGroup(@PathParam("groupLocator") String groupLocator) {
-    return new Group(myDataProvider.getGroup(groupLocator), myDataProvider.getApiUrlBuilder());
+    return new Group(myDataProvider.getGroup(groupLocator), myApiUrlBuilder);
   }
 }

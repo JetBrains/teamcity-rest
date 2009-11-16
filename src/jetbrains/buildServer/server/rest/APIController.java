@@ -108,6 +108,7 @@ public class APIController extends BaseController implements ServletContextAware
 
       {
 //        initParameters.put("com.sun.jersey.config.property.WadlGeneratorConfig", "jetbrains.buildServer.server.rest.WadlGenerator");
+        initParameters.put("com.sun.jersey.config.property.packages", "jetbrains.buildServer.server.rest.request");
       }
 
       public String getFilterName() {

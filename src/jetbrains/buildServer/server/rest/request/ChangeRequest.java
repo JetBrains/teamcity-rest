@@ -16,11 +16,11 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import com.sun.jersey.spi.resource.Singleton;
 import java.util.List;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.ChangesFilter;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagerData;
@@ -33,14 +33,12 @@ import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModification;
 
 @Path(ChangeRequest.API_CHANGES_URL)
-@Singleton
 public class ChangeRequest {
   public static final String API_CHANGES_URL = Constants.API_URL + "/changes";
-  private final DataProvider myDataProvider;
-
-  public ChangeRequest(DataProvider myDataProvider) {
-    this.myDataProvider = myDataProvider;
-  }
+  @Context
+  private DataProvider myDataProvider;
+  @Context
+  private ApiUrlBuilder myApiUrlBuilder;
 
   public static String getChangeHref(VcsModification modification) {
     return API_CHANGES_URL + "/id:" + modification.getId();
@@ -75,13 +73,13 @@ public class ChangeRequest {
 
     return new Changes(buildModifications,
                        new PagerData(uriInfo.getRequestUriBuilder(), start, count, buildModifications.size()),
-                       myDataProvider.getApiUrlBuilder());
+                       myApiUrlBuilder);
   }
 
   @GET
   @Path("/{changeLocator}")
   @Produces({"application/xml", "application/json"})
   public Change serveChange(@PathParam("changeLocator") String changeLocator) {
-    return new Change(myDataProvider.getChange(changeLocator), myDataProvider.getApiUrlBuilder());
+    return new Change(myDataProvider.getChange(changeLocator), myApiUrlBuilder);
   }
 }

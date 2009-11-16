@@ -16,39 +16,31 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import com.sun.jersey.spi.resource.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.web.plugins.bean.ServerPluginInfo;
 
 /**
  * @author Yegor.Yarko
  *         Date: 22.07.2009
  */
 @Path(Constants.API_URL)
-@Singleton
 public class RootApiRequest {
 
-  private final DataProvider myDataProvider;
-  private final ServerPluginInfo myPluginInfo;
-
-  public RootApiRequest(DataProvider myDataProvider, ServerPluginInfo pluginInfo) {
-    this.myDataProvider = myDataProvider;
-    //todo: ensure this is accessible via openAPI
-    myPluginInfo = pluginInfo;
-  }
+  @Context
+  private DataProvider myDataProvider;
 
   @GET
   @Path("/version")
   @Produces("text/plain")
   public String serveApiVersion() {
-    return myPluginInfo.getPluginXml().getInfo().getVersion();
+    return myDataProvider.getPluginInfo().getPluginXml().getInfo().getVersion();
   }
 
   @GET

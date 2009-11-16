@@ -16,11 +16,11 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import com.sun.jersey.spi.resource.Singleton;
 import java.util.List;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.BuildsFilter;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagerData;
@@ -47,14 +47,13 @@ import jetbrains.buildServer.util.StringUtil;
 */
 
 @Path(BuildTypeRequest.API_BUILD_TYPES_URL)
-@Singleton
 public class BuildTypeRequest {
-  private final DataProvider myDataProvider;
-  public static final String API_BUILD_TYPES_URL = Constants.API_URL + "/buildTypes";
+  @Context
+  private DataProvider myDataProvider;
+  @Context
+  private ApiUrlBuilder myApiUrlBuilder;
 
-  public BuildTypeRequest(DataProvider myDataProvider) {
-    this.myDataProvider = myDataProvider;
-  }
+  public static final String API_BUILD_TYPES_URL = Constants.API_URL + "/buildTypes";
 
   public static String getBuildTypeHref(SBuildType buildType) {
     return API_BUILD_TYPES_URL + "/id:" + buildType.getBuildTypeId();
@@ -68,7 +67,7 @@ public class BuildTypeRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public BuildTypes serveBuildTypesXML() {
-    return new BuildTypes(myDataProvider.getServer().getProjectManager().getAllBuildTypes(), myDataProvider);
+    return new BuildTypes(myDataProvider.getServer().getProjectManager().getAllBuildTypes(), myDataProvider, myApiUrlBuilder);
   }
 
   @GET
@@ -76,7 +75,7 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public BuildType serveBuildTypeXML(@PathParam("btLocator") String buildTypeLocator) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return new BuildType(buildType, myDataProvider);
+    return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
   }
 
   @GET
@@ -173,7 +172,8 @@ public class BuildTypeRequest {
                        count));
     return new Builds(buildsList,
                       myDataProvider,
-                      new PagerData(uriInfo.getRequestUriBuilder(), start, count, buildsList.size()));
+                      new PagerData(uriInfo.getRequestUriBuilder(), start, count, buildsList.size()),
+                      myApiUrlBuilder);
   }
 
   @GET
@@ -183,7 +183,7 @@ public class BuildTypeRequest {
                                      @PathParam("buildLocator") String buildLocator) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     SBuild build = myDataProvider.getBuild(buildType, buildLocator);
-    return new Build(build, myDataProvider);
+    return new Build(build, myDataProvider, myApiUrlBuilder);
   }
 
 

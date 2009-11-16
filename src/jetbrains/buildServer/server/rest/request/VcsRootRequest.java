@@ -16,11 +16,12 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import com.sun.jersey.spi.resource.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.change.VcsRoot;
 import jetbrains.buildServer.server.rest.data.change.VcsRoots;
@@ -31,14 +32,12 @@ import jetbrains.buildServer.server.rest.data.change.VcsRoots;
 */
 
 @Path(VcsRootRequest.API_VCS_ROOTS_URL)
-@Singleton
 public class VcsRootRequest {
-  private final DataProvider myDataProvider;
+  @Context
+  private DataProvider myDataProvider;
+  @Context
+  private ApiUrlBuilder myApiUrlBuilder;
   public static final String API_VCS_ROOTS_URL = Constants.API_URL + "/vcs-roots";
-
-  public VcsRootRequest(DataProvider myDataProvider) {
-    this.myDataProvider = myDataProvider;
-  }
 
   public static String getVcsRootHref(final jetbrains.buildServer.vcs.VcsRoot root) {
     return API_VCS_ROOTS_URL + "/id:" + root.getId() + ",ver:" + root.getRootVersion();
@@ -47,7 +46,7 @@ public class VcsRootRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public VcsRoots serveRoots() {
-    return new VcsRoots(myDataProvider.getAllVcsRoots(), myDataProvider.getApiUrlBuilder());
+    return new VcsRoots(myDataProvider.getAllVcsRoots(), myApiUrlBuilder);
   }
 
   @GET

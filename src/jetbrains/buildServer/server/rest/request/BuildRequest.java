@@ -16,12 +16,12 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import com.sun.jersey.spi.resource.Singleton;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.BuildsFilter;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagerData;
@@ -42,15 +42,14 @@ import org.jetbrains.annotations.NotNull;
  * Date: 11.04.2009
  */
 @Path(BuildRequest.API_BUILDS_URL)
-@Singleton
 public class BuildRequest {
+  @Context
   @NotNull
-  private final DataProvider myDataProvider;
+  private DataProvider myDataProvider;
   public static final String API_BUILDS_URL = Constants.API_URL + "/builds";
 
-  public BuildRequest(@NotNull DataProvider myDataProvider) {
-    this.myDataProvider = myDataProvider;
-  }
+  @Context
+  private ApiUrlBuilder myApiUrlBuilder;
 
   public static String getBuildHref(SBuild build) {
     return API_BUILDS_URL + "/id:" + build.getBuildId();
@@ -77,14 +76,15 @@ public class BuildRequest {
                        status, myDataProvider.getUserIfNotNull(userLocator),
                        includePersonal, includeCanceled, onlyPinned, tags, agentName,
                        myDataProvider.getRangeLimit(null, sinceBuildLocator, myDataProvider.parseDate(sinceDate)), start, count));
-    return new Builds(buildsList, myDataProvider, new PagerData(uriInfo.getRequestUriBuilder(), start, count, buildsList.size()));
+    return new Builds(buildsList, myDataProvider, new PagerData(uriInfo.getRequestUriBuilder(), start, count, buildsList.size()),
+                      myApiUrlBuilder);
   }
 
   @GET
   @Path("/{buildLocator}")
   @Produces({"application/xml", "application/json"})
   public Build serveBuild(@PathParam("buildLocator") String buildLocator) {
-    return new Build(myDataProvider.getBuild(null, buildLocator), myDataProvider);
+    return new Build(myDataProvider.getBuild(null, buildLocator), myDataProvider, myApiUrlBuilder);
   }
 
   @GET

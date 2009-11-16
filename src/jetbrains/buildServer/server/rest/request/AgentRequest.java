@@ -16,8 +16,8 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import com.sun.jersey.spi.resource.Singleton;
 import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.AgentsSearchFields;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.DataProvider;
@@ -31,16 +31,12 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 01.08.2009
  */
 @Path(AgentRequest.API_AGENTS_URL)
-@Singleton
 public class AgentRequest {
-  private final DataProvider myDataProvider;
+  @Context
+  private DataProvider myDataProvider;
+  @Context
   private ApiUrlBuilder myApiUrlBuilder;
   public static final String API_AGENTS_URL = Constants.API_URL + "/agents";
-
-  public AgentRequest(final DataProvider dataProvider, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    myDataProvider = dataProvider;
-    myApiUrlBuilder = apiUrlBuilder;
-  }
 
   public static String getAgentHref(@NotNull final SBuildAgent agent) {
     return API_AGENTS_URL + "/id:" + agent.getId();

@@ -24,6 +24,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.Comment;
 import jetbrains.buildServer.server.rest.data.Properties;
@@ -52,13 +53,15 @@ public class Build {
   protected SBuild myBuild;
   @NotNull
   private DataProvider myDataProvider;
+  private ApiUrlBuilder myApiUrlBuilder;
 
   public Build() {
   }
 
-  public Build(@NotNull final SBuild build, @NotNull final DataProvider dataProvider) {
+  public Build(@NotNull final SBuild build, @NotNull final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
     myBuild = build;
     myDataProvider = dataProvider;
+    myApiUrlBuilder = apiUrlBuilder;
   }
 
   @XmlAttribute
@@ -73,7 +76,7 @@ public class Build {
 
   @XmlAttribute
   public String getHref() {
-    return myDataProvider.getApiUrlBuilder().getHref(myBuild);
+    return myApiUrlBuilder.getHref(myBuild);
   }
 
   @XmlAttribute
@@ -112,12 +115,12 @@ public class Build {
     if (agent == null) {
       return new AgentRef(myBuild.getAgentName());
     }
-    return new AgentRef(agent, myDataProvider.getApiUrlBuilder());
+    return new AgentRef(agent, myApiUrlBuilder);
   }
 
   @XmlElement
   public BuildTypeRef getBuildType() {
-    return new BuildTypeRef(myBuild.getBuildType(), myDataProvider);
+    return new BuildTypeRef(myBuild.getBuildType(), myDataProvider, myApiUrlBuilder);
   }
 
   //todo: investigate common date formats approach
@@ -135,7 +138,7 @@ public class Build {
   public Comment getComment() {
     final jetbrains.buildServer.serverSide.comments.Comment comment = myBuild.getBuildComment();
     if (comment != null) {
-      return new Comment(comment, myDataProvider.getApiUrlBuilder());
+      return new Comment(comment, myApiUrlBuilder);
     }
     return null;
   }
@@ -157,17 +160,17 @@ public class Build {
 
   @XmlElement(name = "revisions")
   public Revisions getRevisions() {
-    return new Revisions(myBuild.getRevisions(), myDataProvider.getApiUrlBuilder());
+    return new Revisions(myBuild.getRevisions(), myApiUrlBuilder);
   }
 
   @XmlElement(name = "changes")
   public ChangesRef getChanges() {
-    return new ChangesRef(myBuild, myDataProvider.getApiUrlBuilder());
+    return new ChangesRef(myBuild, myApiUrlBuilder);
   }
 
   @XmlElement(name = "relatedIssues")
   public IssueUsages getIssues() {
-    return new IssueUsages(myBuild.getRelatedIssues(), myBuild, myDataProvider.getApiUrlBuilder());
+    return new IssueUsages(myBuild.getRelatedIssues(), myBuild, myApiUrlBuilder);
   }
 
   private List<BuildRef> getBuildRefs(@NotNull Collection<? extends BuildDependency> dependencies,
@@ -176,7 +179,7 @@ public class Build {
     for (BuildDependency dependency : dependencies) {
       final SBuild dependOnBuild = dependency.getDependOn().getAssociatedBuild();
       if (dependOnBuild != null) {
-        result.add(new BuildRef(dependOnBuild, dataProvider));
+        result.add(new BuildRef(dependOnBuild, dataProvider, myApiUrlBuilder));
       }
     }
     return result;
