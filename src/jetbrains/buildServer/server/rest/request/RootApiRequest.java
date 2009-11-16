@@ -22,6 +22,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.DataProvider;
+import jetbrains.buildServer.server.rest.data.plugin.PluginInfo;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
@@ -41,6 +42,13 @@ public class RootApiRequest {
   @Produces("text/plain")
   public String serveApiVersion() {
     return myDataProvider.getPluginInfo().getPluginXml().getInfo().getVersion();
+  }
+
+  @GET
+  @Path("/info")
+  @Produces("application/xml")
+  public PluginInfo servePluginInfo() {
+    return new PluginInfo(myDataProvider.getPluginInfo());
   }
 
   @GET
