@@ -31,6 +31,7 @@ public class ExceptionMapperUtil {
     Response.ResponseBuilder builder = Response.status(responseStatus);
     builder.type("text/plain");
     builder.entity(getMessageWithCauses(e));
+    LOG.warn("Sending " + responseStatus + " error in response: " + e.toString());
     LOG.debug("Sending " + responseStatus + " error in response.", e);
     return builder.build();
   }
