@@ -29,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "buildType")
-@XmlType(propOrder = {"webUrl", "projectId", "href", "name", "id"})
+@XmlType(propOrder = {"webUrl", "projectId", "projectName", "href", "name", "id"})
 public class BuildTypeRef {
   protected SBuildType myBuildType;
   private DataProvider myDataProvider;
@@ -62,6 +62,11 @@ public class BuildTypeRef {
   @XmlAttribute
   public String getProjectId() {
     return myBuildType.getProjectId();
+  }
+
+  @XmlAttribute
+  public String getProjectName() {
+    return myBuildType.getProjectName();
   }
 
   @XmlAttribute
