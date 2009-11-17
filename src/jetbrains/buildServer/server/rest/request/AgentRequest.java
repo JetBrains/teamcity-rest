@@ -18,9 +18,9 @@ package jetbrains.buildServer.server.rest.request;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
-import jetbrains.buildServer.server.rest.AgentsSearchFields;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.DataProvider;
+import jetbrains.buildServer.server.rest.data.AgentsSearchFields;
+import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.serverSide.SBuildAgent;

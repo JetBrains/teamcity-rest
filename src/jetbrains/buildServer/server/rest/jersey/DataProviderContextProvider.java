@@ -23,7 +23,7 @@ import com.sun.jersey.spi.inject.InjectableProvider;
 import java.lang.reflect.Type;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.ext.Provider;
-import jetbrains.buildServer.server.rest.DataProvider;
+import jetbrains.buildServer.server.rest.data.DataProvider;
 
 /**
  * @author Yegor.Yarko

@@ -18,7 +18,7 @@
 
   <!-- <aop:aspectj-autoproxy/> -->
 
-  <bean id="serverListener" class="jetbrains.buildServer.server.rest.ServerListener"/>
+  <bean id="serverListener" class="jetbrains.buildServer.server.rest.data.ServerListener"/>
 
   <bean id="notFoundExceptionMapper" class="jetbrains.buildServer.server.rest.errors.NotFoundExceptionMapper"/>
   <bean id="badRequestExceptionMapper" class="jetbrains.buildServer.server.rest.errors.BadRequestExceptionMapper"/>
@@ -28,8 +28,8 @@
 
   <bean id="apiController" class="jetbrains.buildServer.server.rest.APIController"/>
 
-  <bean id="restDataProvider" class="jetbrains.buildServer.server.rest.DataProvider"/>
-  <bean id="restDataUpdater" class="jetbrains.buildServer.server.rest.DataUpdater"/>
+  <bean id="restDataProvider" class="jetbrains.buildServer.server.rest.data.DataProvider"/>
+  <bean id="restDataUpdater" class="jetbrains.buildServer.server.rest.data.DataUpdater"/>
 
   <bean id="requestPathTransformInfo" class="jetbrains.buildServer.server.rest.RequestPathTransformInfo"/>
 

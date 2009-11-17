@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest;
+package jetbrains.buildServer.server.rest.data;
 
 import java.util.List;
 import jetbrains.buildServer.serverSide.BuildHistory;
