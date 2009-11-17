@@ -23,6 +23,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.DataProvider;
+import jetbrains.buildServer.server.rest.data.server.Server;
 
 /**
  * User: Yegor Yarko
@@ -33,6 +34,12 @@ import jetbrains.buildServer.server.rest.DataProvider;
 public class ServerRequest {
   @Context
   private DataProvider myDataProvider;
+
+  @GET
+  @Produces({"application/xml", "application/json"})
+  public Server serveServerInfo() {
+    return new Server(myDataProvider.getServer(), myDataProvider);
+  }
 
   @GET
   @Path("/{field}")

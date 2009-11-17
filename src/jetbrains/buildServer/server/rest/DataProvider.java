@@ -65,6 +65,7 @@ public class DataProvider {
   private static final String DIMENSIONS_DELIMITER = ",";
   private static final String DATE_FORMAT = "yyyyMMdd'T'HHmmssZ";
   private ServerPluginInfo myPluginInfo;
+  private ServerListener myServerListener;
 
   public DataProvider(SBuildServer myServer,
                       BuildHistory myBuildHistory,
@@ -74,7 +75,8 @@ public class DataProvider {
                       final VcsManager vcsManager,
                       final BuildAgentManager agentManager,
                       final WebLinks webLinks,
-                      final ServerPluginInfo pluginInfo) {
+                      final ServerPluginInfo pluginInfo,
+                      final ServerListener serverListener) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
     this.myUserModel = userModel;
@@ -84,6 +86,7 @@ public class DataProvider {
     myAgentManager = agentManager;
     myWebLinks = webLinks;
     myPluginInfo = pluginInfo;
+    myServerListener = serverListener;
   }
 
   @Nullable
@@ -806,5 +809,10 @@ public class DataProvider {
 
   public ServerPluginInfo getPluginInfo() {
     return myPluginInfo;
+  }
+
+  @Nullable
+  public Date getServerStartTime() {
+    return myServerListener.getServerStartTime();
   }
 }
