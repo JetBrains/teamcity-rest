@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest;
+package jetbrains.buildServer.server.rest.jersey;
 
 import com.sun.jersey.core.spi.component.ComponentContext;
 import com.sun.jersey.core.spi.component.ComponentScope;
@@ -23,6 +23,7 @@ import com.sun.jersey.spi.inject.InjectableProvider;
 import java.lang.reflect.Type;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.ext.Provider;
+import jetbrains.buildServer.server.rest.DataProvider;
 
 /**
  * @author Yegor.Yarko

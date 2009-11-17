@@ -24,7 +24,7 @@
   <bean id="badRequestExceptionMapper" class="jetbrains.buildServer.server.rest.errors.BadRequestExceptionMapper"/>
   <bean id="authorizationFailedExceptionMapper" class="jetbrains.buildServer.server.rest.errors.AuthorizationFailedExceptionMapper"/>
   <bean id="accessDeniedExceptionMapper" class="jetbrains.buildServer.server.rest.errors.AccessDeniedExceptionMapper"/>
-  <bean id="webApplicationExceptionMapper" class="jetbrains.buildServer.server.rest.WebApplicationExceptionMapper"/>
+  <bean id="webApplicationExceptionMapper" class="jetbrains.buildServer.server.rest.jersey.WebApplicationExceptionMapper"/>
 
   <bean id="apiController" class="jetbrains.buildServer.server.rest.APIController"/>
 
@@ -33,8 +33,8 @@
 
   <bean id="requestPathTransformInfo" class="jetbrains.buildServer.server.rest.RequestPathTransformInfo"/>
 
-  <bean id="urlBuilderProvider" class="jetbrains.buildServer.server.rest.UrlBuilderProvider"/>
-  <bean id="dataProviderContextProvider" class="jetbrains.buildServer.server.rest.DataProviderContextProvider"/>
-  <bean id="dataUpdaterContextProvider" class="jetbrains.buildServer.server.rest.DataUpdaterContextProvider"/>
+  <bean id="urlBuilderProvider" class="jetbrains.buildServer.server.rest.jersey.UrlBuilderProvider"/>
+  <bean id="dataProviderContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataProviderContextProvider"/>
+  <bean id="dataUpdaterContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataUpdaterContextProvider"/>
 
 </beans>

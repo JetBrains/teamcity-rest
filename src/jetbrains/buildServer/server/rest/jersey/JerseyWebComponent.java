@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest;
+package jetbrains.buildServer.server.rest.jersey;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.sun.jersey.api.core.ResourceConfig;

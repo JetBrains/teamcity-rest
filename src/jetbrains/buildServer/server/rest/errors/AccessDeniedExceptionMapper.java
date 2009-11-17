@@ -20,7 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
-import jetbrains.buildServer.server.rest.ExceptionMapperUtil;
+import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 
 /**

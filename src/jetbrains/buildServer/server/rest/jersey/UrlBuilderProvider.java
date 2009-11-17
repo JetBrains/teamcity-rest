@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest;
+package jetbrains.buildServer.server.rest.jersey;
 
 import com.sun.jersey.core.spi.component.ComponentContext;
 import com.sun.jersey.core.spi.component.ComponentScope;
@@ -24,6 +24,10 @@ import java.lang.reflect.Type;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.ext.Provider;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.PathTransformer;
+import jetbrains.buildServer.server.rest.RequestPathTransformInfo;
+import jetbrains.buildServer.server.rest.RequestPathTransformator;
 import jetbrains.buildServer.server.rest.request.Constants;
 
 /**

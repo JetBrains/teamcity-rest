@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest;
+package jetbrains.buildServer.server.rest.jersey;
 
 import com.intellij.openapi.diagnostic.Logger;
 import javax.ws.rs.core.Response;
@@ -30,7 +30,9 @@ public class ExceptionMapperUtil {
   protected static Response reportError(@NotNull final Response.Status responseStatus, @NotNull final Exception e) {
     Response.ResponseBuilder builder = Response.status(responseStatus);
     builder.type("text/plain");
-    builder.entity(getMessageWithCauses(e));
+    builder.entity("Error has occurred during request processing (" + responseStatus +
+                   "). Please check URL is correct. See details in the server log. Error: " +
+                   getMessageWithCauses(e));
     LOG.warn("Sending " + responseStatus + " error in response: " + e.toString());
     LOG.debug("Sending " + responseStatus + " error in response.", e);
     return builder.build();
