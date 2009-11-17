@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.data.build;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -28,6 +27,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.DataProvider;
 import jetbrains.buildServer.server.rest.data.Comment;
 import jetbrains.buildServer.server.rest.data.Properties;
+import jetbrains.buildServer.server.rest.data.Util;
 import jetbrains.buildServer.server.rest.data.agent.AgentRef;
 import jetbrains.buildServer.server.rest.data.buildType.BuildTypeRef;
 import jetbrains.buildServer.server.rest.data.change.ChangesRef;
@@ -126,12 +126,12 @@ public class Build {
   //todo: investigate common date formats approach
   @XmlElement
   public String getStartDate() {
-    return (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(myBuild.getStartDate());
+    return Util.formatTime(myBuild.getStartDate());
   }
 
   @XmlElement
   public String getFinishDate() {
-    return (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(myBuild.getFinishDate());
+    return Util.formatTime(myBuild.getFinishDate());
   }
 
   @XmlElement(defaultValue = "")
