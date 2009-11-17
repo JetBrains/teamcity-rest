@@ -69,26 +69,10 @@ public class APIController extends BaseController implements ServletContextAware
     mySecurityContext = securityContext;
     myRequestPathTransformInfo = requestPathTransformInfo;
 
-    //todo: brush up
-    String bindPath = pluginDescriptor.getParameterValue(Constants.BIND_PATH_PROPERTY_NAME);
-    if (bindPath == null) {
-      bindPath = Constants.API_URL_SUFFIX;
-    }
-
-    //todo: error report if invalid
-    final String[] bindPaths = bindPath.split(",");
-
-    Set<String> resultBindPaths = new HashSet<String>(bindPaths.length);
-    for (String path : bindPaths) {
-      resultBindPaths.add(Constants.URL_PREFIX + path);
-    }
-    myRequestPathTransformInfo.setOriginalPathPrefixes(resultBindPaths);
+    myRequestPathTransformInfo.setOriginalPathPrefixes(addPrefix(getBindPaths(pluginDescriptor), Constants.URL_PREFIX));
     myRequestPathTransformInfo.setNewPathPrefix(Constants.API_URL);
 
-    for (String controllerBindPath : bindPaths) {
-      webControllerManager.registerController(controllerBindPath + "/**", this);
-      LOG.info("Binding REST API to path '" + controllerBindPath + "'");
-    }
+    registerController(webControllerManager, getBindPaths(pluginDescriptor));
 
     myClassloader = getClass().getClassLoader();
 
@@ -98,6 +82,41 @@ public class APIController extends BaseController implements ServletContextAware
     } catch (UnsupportedEncodingException e) {
       LOG.warn(e);
     }
+  }
+
+  private List<String> addPrefix(final List<String> paths, final String prefix) {
+    List<String> result = new ArrayList<String>(paths.size());
+    for (String path : paths) {
+      result.add(prefix + path);
+    }
+    return result;
+  }
+
+  private void registerController(final WebControllerManager webControllerManager, final List<String> bindPaths) {
+    try {
+      for (String controllerBindPath : bindPaths) {
+        LOG.info("Binding REST API to path '" + controllerBindPath + "'");
+        webControllerManager.registerController(controllerBindPath + "/**", this);
+      }
+    } catch (Exception e) {
+      LOG.error("Error registering controller", e);
+    }
+  }
+
+  private List<String> getBindPaths(final ServerPluginInfo pluginDescriptor) {
+    String bindPath = pluginDescriptor.getParameterValue(Constants.BIND_PATH_PROPERTY_NAME);
+    if (bindPath == null) {
+      return Collections.singletonList(Constants.API_URL_SUFFIX);
+    }
+
+    final String[] bindPaths = bindPath.split(",");
+
+    if (bindPath.length() == 0) {
+      LOG.error("Invalid REST API bind path in plugin descriptor: '" + bindPath + "', using defaults");
+      return Collections.singletonList(Constants.API_URL_SUFFIX);
+    }
+
+    return Arrays.asList(bindPaths);
   }
 
   private void init() throws ServletException {

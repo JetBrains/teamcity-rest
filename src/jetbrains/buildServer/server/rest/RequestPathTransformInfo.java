@@ -17,7 +17,8 @@
 package jetbrains.buildServer.server.rest;
 
 import java.util.Collections;
-import java.util.Set;
+import java.util.Comparator;
+import java.util.List;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -25,14 +26,20 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 15.11.2009
  */
 public class RequestPathTransformInfo {
-  private Set<String> myOriginalPathPrefixes = Collections.emptySet();
+  private List<String> myOriginalPathPrefixes = Collections.emptyList();
   private String myNewPathPrefix = "";
 
   public RequestPathTransformInfo() {
   }
 
-  public void setOriginalPathPrefixes(@NotNull final Set<String> originalPathPrefixes) {
+  public void setOriginalPathPrefixes(@NotNull final List<String> originalPathPrefixes) {
     myOriginalPathPrefixes = originalPathPrefixes;
+    Collections.sort(myOriginalPathPrefixes, new Comparator<String>() {
+
+      public int compare(final String o1, final String o2) {
+        return o1.length() - o2.length();
+      }
+    });
   }
 
   public void setNewPathPrefix(@NotNull final String newPathPrefix) {
@@ -45,7 +52,7 @@ public class RequestPathTransformInfo {
   }
 
   @NotNull
-  public Set<String> getOriginalPathPrefixes() {
+  public List<String> getOriginalPathPrefixes() {
     return myOriginalPathPrefixes;
   }
 
