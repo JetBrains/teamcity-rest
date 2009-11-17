@@ -88,4 +88,8 @@ public class ApiUrlBuilder {
   public String getHref(final VcsRoot root) {
     return myPathTransformer.transform(VcsRootRequest.getVcsRootHref(root));
   }
+
+  public String transformRelativePath(final String internalRelativePath) {
+    return myPathTransformer.transform(internalRelativePath);
+  }
 }

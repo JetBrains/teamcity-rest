@@ -72,6 +72,7 @@ public class APIController extends BaseController implements ServletContextAware
 
     myRequestPathTransformInfo.setOriginalPathPrefixes(addPrefix(getBindPaths(pluginDescriptor), Constants.URL_PREFIX));
     myRequestPathTransformInfo.setNewPathPrefix(Constants.API_URL);
+    LOG.debug("Will use request mapping: " + myRequestPathTransformInfo);
 
     registerController(webControllerManager, getBindPaths(pluginDescriptor));
 

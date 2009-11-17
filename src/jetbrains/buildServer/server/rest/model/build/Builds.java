@@ -59,8 +59,8 @@ public class Builds {
     for (Object build : buildObjects) {
       builds.add(new BuildRef((SBuild)build, dataProvider, apiUrlBuilder));
     }
-    nextHref = pagerData.getNextHref();
-    prevHref = pagerData.getPrevHref();
+    nextHref = pagerData.getNextHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;
+    prevHref = pagerData.getPrevHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getPrevHref()) : null;
     count = builds.size();
   }
 }

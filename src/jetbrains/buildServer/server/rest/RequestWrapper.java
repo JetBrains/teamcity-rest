@@ -35,7 +35,7 @@ public class RequestWrapper extends HttpServletRequestWrapper {
   public RequestWrapper(HttpServletRequest request, RequestPathTransformInfo requestPathTransformInfo) {
     super(request);
     myRequestPathTransformInfo = requestPathTransformInfo;
-    LOG.debug("Establishing request mapping: " + requestPathTransformInfo);
+    LOG.debug("Establishing request mapping: '" + request.getRequestURI() + "' -> '" + getRequestURI() + "'");
   }
 
   @Override

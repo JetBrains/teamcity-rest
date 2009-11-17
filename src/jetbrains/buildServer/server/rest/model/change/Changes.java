@@ -68,8 +68,8 @@ public class Changes {
     for (SVcsModification root : modifications) {
       changes.add(new ChangeRef(root, myApiUrlBuilder));
     }
-    nextHref = pagerData.getNextHref();
-    prevHref = pagerData.getPrevHref();
+    nextHref = pagerData.getNextHref() != null ? myApiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;
+    prevHref = pagerData.getPrevHref() != null ? myApiUrlBuilder.transformRelativePath(pagerData.getPrevHref()) : null;
     count = modifications.size();
   }
 }
