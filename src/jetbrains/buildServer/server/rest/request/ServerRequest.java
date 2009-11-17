@@ -23,7 +23,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.DataProvider;
-import jetbrains.buildServer.server.rest.data.server.Server;
+import jetbrains.buildServer.server.rest.model.server.Server;
 
 /**
  * User: Yegor Yarko

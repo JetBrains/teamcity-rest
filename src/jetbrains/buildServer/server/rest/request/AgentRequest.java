@@ -21,8 +21,8 @@ import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.AgentsSearchFields;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.DataProvider;
-import jetbrains.buildServer.server.rest.data.agent.Agent;
-import jetbrains.buildServer.server.rest.data.agent.Agents;
+import jetbrains.buildServer.server.rest.model.agent.Agent;
+import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import org.jetbrains.annotations.NotNull;
 
