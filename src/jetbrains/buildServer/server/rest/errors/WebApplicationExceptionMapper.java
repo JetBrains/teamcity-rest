@@ -14,19 +14,20 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.jersey;
+package jetbrains.buildServer.server.rest.errors;
 
 import com.intellij.openapi.diagnostic.Logger;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
+import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
 
 /**
  * User: Yegor Yarko
  * Date: 30.03.2009
  * <p/>
- * This will jopefull report Jersey-originated errors with more details
+ * This will hopefully report Jersey-originated errors with more details
  */
 @Provider
 public class WebApplicationExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<WebApplicationException> {

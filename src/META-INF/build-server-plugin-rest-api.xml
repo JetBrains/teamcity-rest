@@ -24,7 +24,7 @@
   <bean id="badRequestExceptionMapper" class="jetbrains.buildServer.server.rest.errors.BadRequestExceptionMapper"/>
   <bean id="authorizationFailedExceptionMapper" class="jetbrains.buildServer.server.rest.errors.AuthorizationFailedExceptionMapper"/>
   <bean id="accessDeniedExceptionMapper" class="jetbrains.buildServer.server.rest.errors.AccessDeniedExceptionMapper"/>
-  <bean id="webApplicationExceptionMapper" class="jetbrains.buildServer.server.rest.jersey.WebApplicationExceptionMapper"/>
+  <bean id="webApplicationExceptionMapper" class="jetbrains.buildServer.server.rest.errors.WebApplicationExceptionMapper"/>
   <bean id="operationExceptionMapper" class="jetbrains.buildServer.server.rest.errors.OperationExceptionMapper"/>
 
   <bean id="apiController" class="jetbrains.buildServer.server.rest.APIController"/>
