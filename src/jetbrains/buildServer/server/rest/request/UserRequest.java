@@ -67,9 +67,7 @@ public class UserRequest {
     return new User(myDataProvider.getUser(userLocator), myApiUrlBuilder);
   }
 
-  //TODO
-  //@PUT
-  @POST
+  @PUT
   @Path("/{userLocator}")
   @Consumes({"application/xml", "application/json"})
   public void updateUser(@PathParam("userLocator") String userLocator, UserData userData) {
@@ -87,7 +85,6 @@ public class UserRequest {
 
 
   @PUT
-  @POST
   @Path("/{userLocator}/roles")
   @Consumes({"application/xml", "application/json"})
   public void addRole(@PathParam("userLocator") String userLocator, RoleAssignment roleAssignment) {
@@ -108,7 +105,6 @@ public class UserRequest {
   }
 
   @DELETE
-  @POST
   @Path("/{userLocator}/roles/{roleId}/{scope}")
   public void deleteRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
                          @PathParam("scope") String scopeValue) {
