@@ -119,7 +119,7 @@ public class UserRequest {
         return roleEntry;
       }
     }
-    throw new NotFoundException("User " + user + " does not have role with id: " + roleId + " and scope " + scopeValue);
+    throw new NotFoundException("User " + user + " does not have role with id: '" + roleId + "' and scope '" + scopeValue + "'");
   }
 
   //TODO
