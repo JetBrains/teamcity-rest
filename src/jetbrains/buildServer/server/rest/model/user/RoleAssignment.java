@@ -43,11 +43,6 @@ public class RoleAssignment {
   public RoleAssignment() {
   }
 
-  public RoleAssignment(RoleEntry roleEntry) {
-    roleId = roleEntry.getRole().getId();
-    scope = getScopeRepresentation(roleEntry.getScope());
-  }
-
   public RoleAssignment(RoleEntry roleEntry, SUser user, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     roleId = roleEntry.getRole().getId();
     scope = getScopeRepresentation(roleEntry.getScope());
