@@ -108,24 +108,25 @@
   </path>
 
   <path id="rest-api.module.classpath">
+    <pathelement location="${basedir}/lib"/>
     <pathelement location="${basedir}/lib/asm-3.1.jar"/>
-    <pathelement location="${basedir}/lib/jersey-core-1.0.3.jar"/>
-    <pathelement location="${basedir}/lib/jersey-json-1.0.3.jar"/>
-    <pathelement location="${basedir}/lib/jersey-server-1.0.3.jar"/>
-    <pathelement location="${basedir}/lib/jersey-spring-1.0.3.jar"/>
-    <pathelement location="${basedir}/lib/jsr311-api-1.0.jar"/>
-    <pathelement location="${basedir}/lib/wadl-resourcedoc-doclet-1.0.3.jar"/>
-    <pathelement location="${basedir}/lib/grizzly-servlet-webserver-1.8.6.4.jar"/>
+    <pathelement location="${basedir}/lib/jersey-core-1.1.4.jar"/>
+    <pathelement location="${basedir}/lib/jersey-json-1.1.4.jar"/>
+    <pathelement location="${basedir}/lib/jersey-server-1.1.4.jar"/>
+    <pathelement location="${basedir}/lib/jersey-spring-1.1.4.jar"/>
+    <pathelement location="${basedir}/lib/jsr311-api-1.1.jar"/>
+    <pathelement location="${basedir}/lib/wadl-resourcedoc-doclet-1.1.4.jar"/>
     <path refid="library.teamcity_open_api_server.classpath"/>
     <path refid="library.teamcity_open_api_common.classpath"/>
     <path refid="library.teamcity_third-party.classpath"/>
     <path refid="library.tomcat.classpath"/>
-    <pathelement location="${basedir}/lib/activation.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-api.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-impl.jar"/>
-    <pathelement location="${basedir}/lib/jaxb1-impl.jar"/>
+    <pathelement location="${basedir}/lib/activation-1.1.jar"/>
+    <pathelement location="${basedir}/lib/jackson-core-asl-1.1.1.jar"/>
+    <pathelement location="${basedir}/lib/jaxb-api-2.1.jar"/>
+    <pathelement location="${basedir}/lib/jaxb-impl-2.1.12.jar"/>
+    <pathelement location="${basedir}/lib/jettison-1.1.jar"/>
     <pathelement location="${basedir}/lib/jsr173_1.0_api.jar"/>
-    <pathelement location="${basedir}/lib/jersey-json-1.0.2.jar"/>
+    <pathelement location="${basedir}/lib/stax-api-1.0-2.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/server.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/web.jar"/>
   </path>
@@ -133,24 +134,25 @@
   <path id="rest-api.runtime.module.classpath">
     <pathelement location="${rest-api.output.dir}"/>
     <pathelement location="${rest-api.testoutput.dir}"/>
+    <pathelement location="${basedir}/lib"/>
     <pathelement location="${basedir}/lib/asm-3.1.jar"/>
-    <pathelement location="${basedir}/lib/jersey-core-1.0.3.jar"/>
-    <pathelement location="${basedir}/lib/jersey-json-1.0.3.jar"/>
-    <pathelement location="${basedir}/lib/jersey-server-1.0.3.jar"/>
-    <pathelement location="${basedir}/lib/jersey-spring-1.0.3.jar"/>
-    <pathelement location="${basedir}/lib/jsr311-api-1.0.jar"/>
-    <pathelement location="${basedir}/lib/wadl-resourcedoc-doclet-1.0.3.jar"/>
-    <pathelement location="${basedir}/lib/grizzly-servlet-webserver-1.8.6.4.jar"/>
+    <pathelement location="${basedir}/lib/jersey-core-1.1.4.jar"/>
+    <pathelement location="${basedir}/lib/jersey-json-1.1.4.jar"/>
+    <pathelement location="${basedir}/lib/jersey-server-1.1.4.jar"/>
+    <pathelement location="${basedir}/lib/jersey-spring-1.1.4.jar"/>
+    <pathelement location="${basedir}/lib/jsr311-api-1.1.jar"/>
+    <pathelement location="${basedir}/lib/wadl-resourcedoc-doclet-1.1.4.jar"/>
     <path refid="library.teamcity_open_api_server.classpath"/>
     <path refid="library.teamcity_open_api_common.classpath"/>
     <path refid="library.teamcity_third-party.classpath"/>
     <path refid="library.tomcat.classpath"/>
-    <pathelement location="${basedir}/lib/activation.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-api.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-impl.jar"/>
-    <pathelement location="${basedir}/lib/jaxb1-impl.jar"/>
+    <pathelement location="${basedir}/lib/activation-1.1.jar"/>
+    <pathelement location="${basedir}/lib/jackson-core-asl-1.1.1.jar"/>
+    <pathelement location="${basedir}/lib/jaxb-api-2.1.jar"/>
+    <pathelement location="${basedir}/lib/jaxb-impl-2.1.12.jar"/>
+    <pathelement location="${basedir}/lib/jettison-1.1.jar"/>
     <pathelement location="${basedir}/lib/jsr173_1.0_api.jar"/>
-    <pathelement location="${basedir}/lib/jersey-json-1.0.2.jar"/>
+    <pathelement location="${basedir}/lib/stax-api-1.0-2.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/server.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/web.jar"/>
   </path>
@@ -207,15 +209,7 @@
 
   <target name="clean" depends="clean.module.rest-api" description="cleanup all"/>
 
-  <target name="init.artifacts">
-    <property name="artifacts.temp.dir" value="${basedir}/artifactsTemp"/>
-  </target>
+  <target name="build.modules" depends="init, clean, compile.module.rest-api" description="build all modules"/>
 
-  <target name="build.all.artifacts" description="Build all artifacts">
-
-    <!-- Delete temporary files -->
-    <delete dir="${artifacts.temp.dir}"/>
-  </target>
-
-  <target name="all" depends="init, clean, compile.module.rest-api, build.all.artifacts" description="build all"/>
+  <target name="all" depends="build.modules" description="build all"/>
 </project>
