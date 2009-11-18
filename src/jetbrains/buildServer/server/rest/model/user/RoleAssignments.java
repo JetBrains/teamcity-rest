@@ -39,13 +39,6 @@ public class RoleAssignments {
   public RoleAssignments() {
   }
 
-  public RoleAssignments(Collection<RoleEntry> roleEntries) {
-    roleAssignments = new ArrayList<RoleAssignment>(roleEntries.size());
-    for (RoleEntry roleEntry : roleEntries) {
-      roleAssignments.add(new RoleAssignment(roleEntry));
-    }
-  }
-
   public RoleAssignments(Collection<RoleEntry> roleEntries, SUser user, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     roleAssignments = new ArrayList<RoleAssignment>(roleEntries.size());
     for (RoleEntry roleEntry : roleEntries) {

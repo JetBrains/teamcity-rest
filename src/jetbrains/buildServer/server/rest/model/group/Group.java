@@ -50,6 +50,6 @@ public class Group extends GroupRef {
     parentGroups = new Groups(userGroup.getParentGroups(), apiUrlBuilder);
     childGroups = new Groups(userGroup.getDirectSubgroups(), apiUrlBuilder);
     users = new Users(userGroup.getDirectUsers(), apiUrlBuilder);
-    roleAssignments = new RoleAssignments(userGroup.getRoles());
+    roleAssignments = new RoleAssignments(userGroup.getRoles(), userGroup, apiUrlBuilder);
   }
 }

@@ -16,14 +16,12 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import java.util.Collection;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.user.*;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
@@ -53,8 +51,7 @@ public class UserRequest {
 
   public static String getRoleAssignmentHref(final RoleEntry roleEntry, final SUser user) {
     final RoleScope roleScope = roleEntry.getScope();
-    return getUserHref(user) + "/roles/" + roleEntry.getRole().getId() +
-           (roleScope.isGlobal() ? "/" + roleScope.getProjectId() : "");
+    return getUserHref(user) + "/roles/" + roleEntry.getRole().getId() + "/" + DataProvider.getScopeRepresentation(roleScope);
   }
 
   @GET
@@ -89,48 +86,38 @@ public class UserRequest {
   }
 
 
-  //TODO
-  //@PUT
+  @PUT
   @POST
   @Path("/{userLocator}/roles")
   @Consumes({"application/xml", "application/json"})
   public void addRole(@PathParam("userLocator") String userLocator, RoleAssignment roleAssignment) {
     SUser user = myDataProvider.getUser(userLocator);
-    user.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
+    try {
+      user.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
+    } catch (Exception e) {
+      throw new OperationException("Cannot add role to user " + user, e);
+    }
   }
 
   @GET
   @Path("/{userLocator}/roles/{roleId}/{scope}")
-  //TODO
   public RoleAssignment listRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
                                  @PathParam("scope") String scopeValue) {
     SUser user = myDataProvider.getUser(userLocator);
-    return new RoleAssignment(getUserRoleEntry(user, roleId, scopeValue), user, myApiUrlBuilder);
+    return new RoleAssignment(myDataProvider.getUserRoleEntry(user, roleId, scopeValue), user, myApiUrlBuilder);
   }
 
-  private RoleEntry getUserRoleEntry(final SUser user, final String roleId, final String scopeValue) {
-    if (roleId == null) {
-      throw new BadRequestException("Expected roleId is not specified");
-    }
-    final RoleScope roleScope = DataProvider.getScope(scopeValue);
-    final Collection<RoleEntry> roles = user.getRoles();
-    for (RoleEntry roleEntry : roles) {
-      if (roleScope.equals(roleEntry.getScope()) && roleId.equals(roleEntry.getRole().getId())) {
-        return roleEntry;
-      }
-    }
-    throw new NotFoundException("User " + user + " does not have role with id: '" + roleId + "' and scope '" + scopeValue + "'");
-  }
-
-  //TODO
-  //@DELETE
+  @DELETE
   @POST
-  @Path("/{userLocator}/roles/{roleId}/{scope}/delete")
-  //TODO
+  @Path("/{userLocator}/roles/{roleId}/{scope}")
   public void deleteRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
                          @PathParam("scope") String scopeValue) {
     SUser user = myDataProvider.getUser(userLocator);
-    user.removeRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
+    try {
+      user.removeRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
+    } catch (Exception e) {
+      throw new OperationException("Cannot remove role from user " + user, e);
+    }
   }
 
 
@@ -140,6 +127,10 @@ public class UserRequest {
                             @PathParam("roleId") String roleId,
                             @PathParam("scope") String scopeValue) {
     SUser user = myDataProvider.getUser(userLocator);
-    user.addRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
+    try {
+      user.addRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
+    } catch (Exception e) {
+      throw new OperationException("Cannot add role to user " + user, e);
+    }
   }
 }

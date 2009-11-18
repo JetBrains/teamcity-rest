@@ -17,7 +17,9 @@
 package jetbrains.buildServer.server.rest.jersey;
 
 import com.intellij.openapi.diagnostic.Logger;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -27,13 +29,16 @@ import org.jetbrains.annotations.NotNull;
 public class ExceptionMapperUtil {
   protected static final Logger LOG = Logger.getInstance(ExceptionMapperUtil.class.getName());
 
-  protected static Response reportError(@NotNull final Response.Status responseStatus, @NotNull final Exception e) {
+  @Context
+  UriInfo myUriInfo;
+
+  protected Response reportError(@NotNull final Response.Status responseStatus, @NotNull final Exception e) {
     Response.ResponseBuilder builder = Response.status(responseStatus);
     builder.type("text/plain");
     builder.entity("Error has occurred during request processing (" + responseStatus +
                    "). Error: " + getMessageWithCauses(e) + "\nPlease check URL is correct. See details in the server log.");
-    LOG.warn("Sending " + responseStatus + " error in response: " + e.toString());
-    LOG.debug("Sending " + responseStatus + " error in response.", e);
+    LOG.warn("Error for request " + myUriInfo.getRequestUri() + ". Sending " + responseStatus + " error in response: " + e.toString());
+    LOG.debug("Error for request " + myUriInfo.getRequestUri() + ". Sending " + responseStatus + " error in response.", e);
     return builder.build();
   }
 

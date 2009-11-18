@@ -20,6 +20,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.users.SUser;
@@ -59,7 +60,7 @@ public class RoleAssignment {
     href = apiUrlBuilder.getHref(roleEntry, group);
   }
 
-  private static String getScopeRepresentation(final RoleScope scope) {
-    return scope.isGlobal() ? null : scope.getProjectId();
+  private static String getScopeRepresentation(@NotNull final RoleScope scope) {
+    return DataProvider.getScopeRepresentation(scope);
   }
 }

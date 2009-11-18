@@ -16,16 +16,17 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.group.Group;
 import jetbrains.buildServer.server.rest.model.group.Groups;
+import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
+import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 
@@ -50,8 +51,7 @@ public class GroupRequest {
 
   public static String getRoleAssignmentHref(final RoleEntry roleEntry, final UserGroup group) {
     final RoleScope roleScope = roleEntry.getScope();
-    return getGroupHref(group) + "/roles/" + roleEntry.getRole().getId() +
-           (roleScope.isGlobal() ? "/" + roleScope.getProjectId() : "");
+    return getGroupHref(group) + "/roles/" + roleEntry.getRole().getId() + "/" + DataProvider.getScopeRepresentation(roleScope);
   }
 
   @GET
@@ -65,5 +65,58 @@ public class GroupRequest {
   @Produces({"application/xml", "application/json"})
   public Group serveGroup(@PathParam("groupLocator") String groupLocator) {
     return new Group(myDataProvider.getGroup(groupLocator), myApiUrlBuilder);
+  }
+
+  @GET
+  @Path("/{groupLocator}/roles")
+  @Produces({"application/xml", "application/json"})
+  public RoleAssignments listRoles(@PathParam("groupLocator") String groupLocator) {
+    SUserGroup group = myDataProvider.getGroup(groupLocator);
+    return new RoleAssignments(group.getRoles(), group, myApiUrlBuilder);
+  }
+
+  @PUT
+  @Path("/{groupLocator}/roles")
+  @Consumes({"application/xml", "application/json"})
+  public void addRole(@PathParam("groupLocator") String groupLocator, RoleAssignment roleAssignment) {
+    SUserGroup group = myDataProvider.getGroup(groupLocator);
+    try {
+      group.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
+    } catch (Exception e) {
+      throw new OperationException("Cannot add role to group " + group, e);
+    }
+  }
+
+  @GET
+  @Path("/{groupLocator}/roles/{roleId}/{scope}")
+  public RoleAssignment listRole(@PathParam("groupLocator") String groupLocator, @PathParam("roleId") String roleId,
+                                 @PathParam("scope") String scopeValue) {
+    SUserGroup group = myDataProvider.getGroup(groupLocator);
+    return new RoleAssignment(myDataProvider.getGroupRoleEntry(group, roleId, scopeValue), group, myApiUrlBuilder);
+  }
+
+  @DELETE
+  @Path("/{groupLocator}/roles/{roleId}/{scope}")
+  public void deleteRole(@PathParam("groupLocator") String groupLocator, @PathParam("roleId") String roleId,
+                         @PathParam("scope") String scopeValue) {
+    SUserGroup group = myDataProvider.getGroup(groupLocator);
+    try {
+      group.removeRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
+    } catch (Exception e) {
+      throw new OperationException("Cannot remove role from group " + group, e);
+    }
+  }
+
+  @POST
+  @Path("/{groupLocator}/roles/{roleId}/{scope}")
+  public void addRoleSimple(@PathParam("groupLocator") String groupLocator,
+                            @PathParam("roleId") String roleId,
+                            @PathParam("scope") String scopeValue) {
+    SUserGroup group = myDataProvider.getGroup(groupLocator);
+    try {
+      group.addRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
+    } catch (Exception e) {
+      throw new OperationException("Cannot add role to group " + group, e);
+    }
   }
 }

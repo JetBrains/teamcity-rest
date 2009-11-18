@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Role;
+import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.serverSide.auth.RolesManager;
 import jetbrains.buildServer.users.SUser;
@@ -484,17 +485,24 @@ public class DataProvider {
   }
 
   @NotNull
-  public static RoleScope getScope(String scopeData) {
-    if (scopeData == null) {
+  public static RoleScope getScope(@NotNull String scopeData) {
+    if ("g".equalsIgnoreCase(scopeData)) {
       return RoleScope.globalScope();
     }
-    RoleScope scope = RoleScope.projectScope(scopeData);
-    if (scope == null) {
-      throw new NotFoundException("Cannot find scope by '" + scopeData + "'.");
+
+    if (!scopeData.startsWith("p:")) {
+      throw new NotFoundException("Cannot find scope by '" + scopeData + "' Valid formats are: 'g' or 'p:<projectId>'.");
     }
-    return scope;
+
+    return RoleScope.projectScope(scopeData.substring(2));
   }
 
+  public static String getScopeRepresentation(@NotNull final RoleScope scope) {
+    if (scope.isGlobal()) {
+      return "g";
+    }
+    return "p:" + scope.getProjectId();
+  }
 
   @NotNull
   public SUserGroup getGroup(final String groupLocator) {
@@ -814,5 +822,33 @@ public class DataProvider {
   @Nullable
   public Date getServerStartTime() {
     return myServerListener.getServerStartTime();
+  }
+
+  public RoleEntry getGroupRoleEntry(final SUserGroup group, final String roleId, final String scopeValue) {
+    if (roleId == null) {
+      throw new BadRequestException("Expected roleId is not specified");
+    }
+    final RoleScope roleScope = getScope(scopeValue);
+    final Collection<RoleEntry> roles = group.getRoles();
+    for (RoleEntry roleEntry : roles) {
+      if (roleScope.equals(roleEntry.getScope()) && roleId.equals(roleEntry.getRole().getId())) {
+        return roleEntry;
+      }
+    }
+    throw new NotFoundException("Group " + group + " does not have role with id: '" + roleId + "' and scope '" + scopeValue + "'");
+  }
+
+  public RoleEntry getUserRoleEntry(final SUser user, final String roleId, final String scopeValue) {
+    if (roleId == null) {
+      throw new BadRequestException("Expected roleId is not specified");
+    }
+    final RoleScope roleScope = getScope(scopeValue);
+    final Collection<RoleEntry> roles = user.getRoles();
+    for (RoleEntry roleEntry : roles) {
+      if (roleScope.equals(roleEntry.getScope()) && roleId.equals(roleEntry.getRole().getId())) {
+        return roleEntry;
+      }
+    }
+    throw new NotFoundException("User " + user + " does not have role with id: '" + roleId + "' and scope '" + scopeValue + "'");
   }
 }
