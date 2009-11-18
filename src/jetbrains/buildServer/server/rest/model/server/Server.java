@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.server;
 
+import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -62,5 +63,10 @@ public class Server {
   @XmlAttribute
   public String getStartTime() {
     return Util.formatTime(myDataProvider.getServerStartTime());
+  }
+
+  @XmlAttribute
+  public String getCurrentTime() {
+    return Util.formatTime(new Date());
   }
 }
