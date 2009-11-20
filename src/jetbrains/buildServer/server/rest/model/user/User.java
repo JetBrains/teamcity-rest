@@ -16,13 +16,13 @@
 
 package jetbrains.buildServer.server.rest.model.user;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
@@ -63,7 +63,7 @@ public class User {
   public String getLastLogin() {
     Date lastLoginTimestamp = myUser.getLastLoginTimestamp();
     if (lastLoginTimestamp != null) {
-      return (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(lastLoginTimestamp);
+      return Util.formatTime(lastLoginTimestamp);
     }
     return null;
   }

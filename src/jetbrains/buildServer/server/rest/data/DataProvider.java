@@ -29,6 +29,8 @@ import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.groups.UserGroupManager;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.Constants;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Role;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
@@ -64,7 +66,6 @@ public class DataProvider {
   private final WebLinks myWebLinks;
   private static final String DIMENSION_NAME_VALUE_DELIMITER = ":";
   private static final String DIMENSIONS_DELIMITER = ",";
-  private static final String DATE_FORMAT = "yyyyMMdd'T'HHmmssZ";
   private ServerPluginInfo myPluginInfo;
   private ServerListener myServerListener;
 
@@ -123,9 +124,9 @@ public class DataProvider {
     } else if ("id".equals(field)) {
       return (new Long(build.getBuildId())).toString();
     } else if ("startDate".equals(field)) {
-      return (new SimpleDateFormat(DATE_FORMAT)).format(build.getStartDate());
+      return Util.formatTime(build.getStartDate());
     } else if ("finishDate".equals(field)) {
-      return (new SimpleDateFormat(DATE_FORMAT)).format(build.getFinishDate());
+      return Util.formatTime(build.getFinishDate());
     } else if ("buildTypeId".equals(field)) {
       return (build.getBuildTypeId());
     }
@@ -805,7 +806,7 @@ public class DataProvider {
       return null;
     }
     try {
-      return new SimpleDateFormat(DATE_FORMAT).parse(dateString);
+      return new SimpleDateFormat(Constants.TIME_FORMAT).parse(dateString);
     } catch (ParseException e) {
       throw new BadRequestException("Could not parse date from value '" + dateString + "'", e);
     }

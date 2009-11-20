@@ -16,12 +16,12 @@
 
 package jetbrains.buildServer.server.rest.model.change;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.model.Util;
 
 /**
  * User: Yegor Yarko
@@ -46,7 +46,7 @@ public class Change extends ChangeRef {
   public String getDate() {
     final Date vcsDate = myModification.getVcsDate();
     if (vcsDate != null) {
-      return (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(vcsDate);
+      return Util.formatTime(vcsDate);
     }
     return null;
   }

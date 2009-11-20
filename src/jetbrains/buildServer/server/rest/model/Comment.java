@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.model;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
@@ -41,6 +40,7 @@ public class Comment {
   }
 
   //todo: is it OK to handle possible missing value?
+
   @XmlElement
   public List<UserRef> getUser() {
     final ArrayList<UserRef> result = new ArrayList<UserRef>();
@@ -53,7 +53,7 @@ public class Comment {
 
   @XmlElement
   public String getTimestamp() {
-    return (new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")).format(myBuildComment.getTimestamp());
+    return Util.formatTime(myBuildComment.getTimestamp());
   }
 
   @XmlElement
