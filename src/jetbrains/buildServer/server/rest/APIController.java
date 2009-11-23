@@ -33,6 +33,7 @@ import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SecurityContextEx;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.util.FuncThrow;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
 import jetbrains.buildServer.web.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.web.util.SessionUser;
@@ -180,32 +181,33 @@ public class APIController extends BaseController implements ServletContextAware
       }
     }
 
+    final boolean runAsSystemActual = runAsSystem;
     // workaround for http://jetbrains.net/tracker/issue2/TW-7656
-    final ClassLoader cl = Thread.currentThread().getContextClassLoader();
-    Thread.currentThread().setContextClassLoader(myClassloader);
+    jetbrains.buildServer.util.Util.doUnderContextClassLoader(getClass().getClassLoader(), new FuncThrow<Void, Exception>() {
+      public Void apply() throws Exception {
+        // patching request
+        final HttpServletRequest actualRequest =
+          new RequestWrapper(patchRequest(request, "Accept", "overrideAccept"), myRequestPathTransformInfo);
 
-    // patching request
-    final HttpServletRequest actualRequest =
-      new RequestWrapper(patchRequest(request, "Accept", "overrideAccept"), myRequestPathTransformInfo);
-
-    try {
-      if (runAsSystem) {
-        try {
-          mySecurityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
-            public void run() throws Throwable {
-              myWebComponent.doFilter(actualRequest, response, null);
-            }
-          });
-        } catch (Throwable throwable) {
-          LOG.debug(throwable);
-          response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable.getMessage());
+        if (runAsSystemActual) {
+          try {
+            LOG.debug("Executing request with system security level");
+            mySecurityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
+              public void run() throws Throwable {
+                myWebComponent.doFilter(actualRequest, response, null);
+              }
+            });
+          } catch (Throwable throwable) {
+            LOG.debug(throwable);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable.getMessage());
+          }
+        } else {
+          myWebComponent.doFilter(actualRequest, response, null);
         }
-      } else {
-        myWebComponent.doFilter(actualRequest, response, null);
+        return null;
       }
-    } finally {
-      Thread.currentThread().setContextClassLoader(cl);
-    }
+    });
+
     if (LOG.isDebugEnabled()) {
       final long requestFinishProcessing = System.nanoTime();
       LOG.debug("REST API request processing finished in " + (requestFinishProcessing - requestStartProcessing) / 1000000 + " ms");
