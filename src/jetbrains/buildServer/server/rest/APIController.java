@@ -214,6 +214,7 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   //todo: move to RequestWrapper
+
   private HttpServletRequest patchRequest(final HttpServletRequest request, final String headerName, final String parameterName) {
     final String newValue = request.getParameter(parameterName);
     if (!StringUtil.isEmpty(newValue)) {
@@ -254,6 +255,15 @@ public class APIController extends BaseController implements ServletContextAware
         } catch (RuntimeException e) {
           //otherwise exception here is swallowed and logged nowhere
           LOG.error("Error initializing REST API: ", e);
+          myWebComponent = null;
+          throw e;
+        } catch (Error e) {
+          LOG.error("Error initializing REST API: ", e);
+          myWebComponent = null;
+          throw e;
+        } catch (ServletException e) {
+          LOG.error("Error initializing REST API: ", e);
+          myWebComponent = null;
           throw e;
         }
         finally {
