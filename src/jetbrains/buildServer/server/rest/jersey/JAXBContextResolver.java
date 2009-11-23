@@ -24,6 +24,7 @@ import java.util.Set;
 import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
 import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.server.rest.model.build.Build;
@@ -42,6 +43,7 @@ import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.model.user.UserData;
 import jetbrains.buildServer.server.rest.model.user.Users;
+import jetbrains.buildServer.util.FuncThrow;
 
 /**
  * User: Yegor Yarko
@@ -52,7 +54,7 @@ import jetbrains.buildServer.server.rest.model.user.Users;
 public class JAXBContextResolver implements ContextResolver<JAXBContext> {
   private JAXBContext context;
 
-  private final Set<Class> types;
+  private Set<Class> types;
 
   //Root entities should be listed here 
   private final Class[] cTypes = {
@@ -68,8 +70,14 @@ public class JAXBContextResolver implements ContextResolver<JAXBContext> {
   };
 
   public JAXBContextResolver() throws Exception {
-    this.types = new HashSet<Class>(Arrays.asList(cTypes));
-    this.context = new JSONJAXBContext(JSONConfiguration.natural().build(), cTypes);
+    // necessary until http://youtrack.jetbrains.net/issue/TW-10204 is fixed
+    jetbrains.buildServer.util.Util.doUnderContextClassLoader(getClass().getClassLoader(), new FuncThrow<Void, JAXBException>() {
+      public Void apply() throws JAXBException {
+        types = new HashSet<Class>(Arrays.asList(cTypes));
+        context = new JSONJAXBContext(JSONConfiguration.natural().build(), cTypes);
+        return null;
+      }
+    });
   }
 
   public JAXBContext getContext(Class<?> objectType) {

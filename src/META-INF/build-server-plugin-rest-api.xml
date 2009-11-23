@@ -38,4 +38,5 @@
   <bean id="dataProviderContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataProviderContextProvider"/>
   <bean id="dataUpdaterContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataUpdaterContextProvider"/>
 
+  <bean id="jAXBContextResolver" class="jetbrains.buildServer.server.rest.jersey.JAXBContextResolver"/>
 </beans>
