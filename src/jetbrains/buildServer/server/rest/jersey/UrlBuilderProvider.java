@@ -66,6 +66,6 @@ public class UrlBuilderProvider implements InjectableProvider<Context, java.lang
   private RequestPathTransformator getRequestTranslator() {
     final String originalRequestPath =
       headers.getRequestHeader(Constants.ORIGINAL_REQUEST_URI_HEADER_NAME).get(0); //todo report appropriate message
-    return new RequestPathTransformator(originalRequestPath, myRequestPathTransformInfo, true);
+    return new RequestPathTransformator(originalRequestPath, myRequestPathTransformInfo, false);
   }
 }

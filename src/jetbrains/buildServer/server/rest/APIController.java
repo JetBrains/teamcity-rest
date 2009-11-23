@@ -71,11 +71,15 @@ public class APIController extends BaseController implements ServletContextAware
     mySecurityContext = securityContext;
     myRequestPathTransformInfo = requestPathTransformInfo;
 
-    myRequestPathTransformInfo.setOriginalPathPrefixes(addPrefix(getBindPaths(pluginDescriptor), Constants.URL_PREFIX));
+    final List<String> bindPaths = getBindPaths(pluginDescriptor);
+    List<String> transformBindPaths = new ArrayList<String>(bindPaths);
+    transformBindPaths.addAll(addPrefix(bindPaths, Constants.HTTP_AUTH_PREFIX));
+
+    myRequestPathTransformInfo.setOriginalPathPrefixes(transformBindPaths);
     myRequestPathTransformInfo.setNewPathPrefix(Constants.API_URL);
     LOG.debug("Will use request mapping: " + myRequestPathTransformInfo);
 
-    registerController(webControllerManager, getBindPaths(pluginDescriptor));
+    registerController(webControllerManager, bindPaths);
 
     myClassloader = getClass().getClassLoader();
 

@@ -40,12 +40,12 @@ public class RequestWrapper extends HttpServletRequestWrapper {
 
   @Override
   public String getPathInfo() {
-    return new RequestPathTransformator(super.getPathInfo(), myRequestPathTransformInfo, true).getNewPath();
+    return new RequestPathTransformator(super.getPathInfo(), myRequestPathTransformInfo, false).getNewPath();
   }
 
   @Override
   public String getRequestURI() {
-    return new RequestPathTransformator(super.getRequestURI(), myRequestPathTransformInfo, true).getNewPath();
+    return new RequestPathTransformator(super.getRequestURI(), myRequestPathTransformInfo, false).getNewPath();
   }
 
   @Override

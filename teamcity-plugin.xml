@@ -7,9 +7,7 @@
     <version>@version@</version>
   </info>
   <deployment use-separate-classloader="true"/>
-  <!--
   <parameters>
-    <parameter name="api.path">/api-latest</parameter>
+    <parameter name="api.path">/app/rest,/app/rest/latest,/app/rest/5.0,/api</parameter>
   </parameters>
-  -->
 </teamcity-plugin>
