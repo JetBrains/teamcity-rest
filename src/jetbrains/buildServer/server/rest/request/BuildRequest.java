@@ -70,13 +70,13 @@ public class BuildRequest {
                                @QueryParam("sinceDate") String sinceDate,
                                @QueryParam("start") @DefaultValue(value = "0") Long start,
                                @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count,
-                               @Context UriInfo uriInfo) {
+                               @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final List<SFinishedBuild> buildsList = myDataProvider.getBuilds(
       new BuildsFilter(myDataProvider.getBuildTypeIfNotNull(buildTypeLocator),
                        status, myDataProvider.getUserIfNotNull(userLocator),
                        includePersonal, includeCanceled, onlyPinned, tags, agentName,
                        myDataProvider.getRangeLimit(null, sinceBuildLocator, myDataProvider.parseDate(sinceDate)), start, count));
-    return new Builds(buildsList, myDataProvider, new PagerData(uriInfo.getRequestUriBuilder(), start, count, buildsList.size()),
+    return new Builds(buildsList, myDataProvider, new PagerData(uriInfo.getRequestUriBuilder(), request, start, count, buildsList.size()),
                       myApiUrlBuilder);
   }
 

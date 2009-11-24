@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import java.util.List;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
@@ -162,7 +163,7 @@ public class BuildTypeRequest {
                             @QueryParam("sinceDate") String sinceDate,
                             @QueryParam("start") @DefaultValue(value = "0") Long start,
                             @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count,
-                            @Context UriInfo uriInfo) {
+                            @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
 
     final List<SFinishedBuild> buildsList = myDataProvider.getBuilds(
@@ -172,7 +173,7 @@ public class BuildTypeRequest {
                        count));
     return new Builds(buildsList,
                       myDataProvider,
-                      new PagerData(uriInfo.getRequestUriBuilder(), start, count, buildsList.size()),
+                      new PagerData(uriInfo.getRequestUriBuilder(), request, start, count, buildsList.size()),
                       myApiUrlBuilder);
   }
 

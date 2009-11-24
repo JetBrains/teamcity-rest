@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model;
 
 import java.net.URI;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.UriBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -35,20 +36,24 @@ public class PagerData {
   private URI myNextHref;
   @Nullable
   private URI myPrevHref;
+  private String myContextPath;
 
   public PagerData() {
   }
 
   /**
    * @param uriBuilder           UriBuilder for the current Url
+   * @param request              Request in the scope of which the pagerData will be used
    * @param start                number of the starting item on the current page
    * @param count                count of the items on a page
    * @param currentPageRealCount number of items on the current page
    */
   public PagerData(@NotNull final UriBuilder uriBuilder,
+                   @NotNull final HttpServletRequest request,
                    @Nullable final Long start,
                    @Nullable final Integer count,
                    long currentPageRealCount) {
+    myContextPath = request.getContextPath();
     if (start == null || start == 0) {
       myPrevHref = null;
       if (count == null || currentPageRealCount < count) {
@@ -77,27 +82,14 @@ public class PagerData {
     }
   }
 
-  //todo: use some util to support quoting, etc.
-  // should replace params if they are already there
-  private static String addQueryParam(String baseUrl, final String paramName, final String paramValue) {
-    String result = baseUrl;
-    if (!result.contains("?")) {
-      result += "?";
-    } else if (!result.endsWith("?")) {
-      result += "&";
-    }
-    result = result + paramName + "=" + paramValue;
-    return result;
-  }
-
   @Nullable
   public String getNextHref() {
-    return myNextHref == null ? null : getRelativePath(myNextHref, null);
+    return myNextHref == null ? null : getRelativePath(myNextHref, myContextPath);
   }
 
   @Nullable
   public String getPrevHref() {
-    return myPrevHref == null ? null : getRelativePath(myPrevHref, null);
+    return myPrevHref == null ? null : getRelativePath(myPrevHref, myContextPath);
   }
 
   private static String getRelativePath(@NotNull final URI uri, @Nullable final String pathPrefixToExclude) {

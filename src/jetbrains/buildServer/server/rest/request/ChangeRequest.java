@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import java.util.List;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
@@ -57,7 +58,7 @@ public class ChangeRequest {
                               @QueryParam("sinceChange") String sinceChangeLocator,
                               @QueryParam("start") @DefaultValue(value = "0") Long start,
                               @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count,
-                              @Context UriInfo uriInfo) {
+                              @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     List<SVcsModification> buildModifications;
 
     final SProject project = myDataProvider.getProjectIfNotNull(projectLocator);
@@ -72,7 +73,7 @@ public class ChangeRequest {
                         count));
 
     return new Changes(buildModifications,
-                       new PagerData(uriInfo.getRequestUriBuilder(), start, count, buildModifications.size()),
+                       new PagerData(uriInfo.getRequestUriBuilder(), request, start, count, buildModifications.size()),
                        myApiUrlBuilder);
   }
 
