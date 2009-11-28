@@ -38,6 +38,12 @@ public class RootApiRequest {
   private DataProvider myDataProvider;
 
   @GET
+  @Produces("text/plain")
+  public String serveRoot() {
+    return "This is a root page of REST API. See documentation on the usage at " + myDataProvider.getHelpLink("REST API", null);
+  }
+
+  @GET
   @Path("/version")
   @Produces("text/plain")
   public String serveApiVersion() {

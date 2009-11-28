@@ -852,4 +852,8 @@ public class DataProvider {
     }
     throw new NotFoundException("User " + user + " does not have role with id: '" + roleId + "' and scope '" + scopeValue + "'");
   }
+
+  public String getHelpLink(@NotNull final String page, @Nullable final String anchor){
+    return myWebLinks.getHelp(page, anchor);
+  }
 }
