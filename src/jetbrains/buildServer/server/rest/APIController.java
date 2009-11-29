@@ -71,15 +71,18 @@ public class APIController extends BaseController implements ServletContextAware
     mySecurityContext = securityContext;
     myRequestPathTransformInfo = requestPathTransformInfo;
 
-    final List<String> bindPaths = getBindPaths(pluginDescriptor);
-    List<String> transformBindPaths = new ArrayList<String>(bindPaths);
-    transformBindPaths.addAll(addPrefix(bindPaths, Constants.HTTP_AUTH_PREFIX));
+    final List<String> originalBindPaths = getBindPaths(pluginDescriptor);
+    List<String> bindPaths = new ArrayList<String>(getBindPaths(pluginDescriptor));
+    bindPaths.addAll(addPrefix(bindPaths, Constants.HTTP_AUTH_PREFIX));
 
-    myRequestPathTransformInfo.setOriginalPathPrefixes(transformBindPaths);
-    myRequestPathTransformInfo.setNewPathPrefix(Constants.API_URL);
+    Map<String, String> transformBindPaths = new HashMap<String, String>();
+    addEntries(transformBindPaths, bindPaths, Constants.API_URL);
+    addEntries(transformBindPaths, addSuffix(bindPaths, "/application.wadl"), "/application.wadl");
+
+    myRequestPathTransformInfo.setPathMapping(transformBindPaths);
     LOG.debug("Will use request mapping: " + myRequestPathTransformInfo);
 
-    registerController(webControllerManager, bindPaths);
+    registerController(webControllerManager, originalBindPaths);
 
     myClassloader = getClass().getClassLoader();
 
@@ -91,10 +94,24 @@ public class APIController extends BaseController implements ServletContextAware
     }
   }
 
+  private static void addEntries(final Map<String, String> map, final List<String> keys, final String value) {
+    for (String key : keys) {
+      map.put(key, value);
+    }
+  }
+
   private List<String> addPrefix(final List<String> paths, final String prefix) {
     List<String> result = new ArrayList<String>(paths.size());
     for (String path : paths) {
       result.add(prefix + path);
+    }
+    return result;
+  }
+
+  private List<String> addSuffix(final List<String> paths, final String suffix) {
+    List<String> result = new ArrayList<String>(paths.size());
+    for (String path : paths) {
+      result.add(path + suffix);
     }
     return result;
   }
@@ -113,14 +130,14 @@ public class APIController extends BaseController implements ServletContextAware
   private List<String> getBindPaths(final ServerPluginInfo pluginDescriptor) {
     String bindPath = pluginDescriptor.getParameterValue(Constants.BIND_PATH_PROPERTY_NAME);
     if (bindPath == null) {
-      return Collections.singletonList(Constants.API_URL_SUFFIX);
+      return Collections.singletonList(Constants.API_URL);
     }
 
     final String[] bindPaths = bindPath.split(",");
 
     if (bindPath.length() == 0) {
       LOG.error("Invalid REST API bind path in plugin descriptor: '" + bindPath + "', using defaults");
-      return Collections.singletonList(Constants.API_URL_SUFFIX);
+      return Collections.singletonList(Constants.API_URL);
     }
 
     return Arrays.asList(bindPaths);

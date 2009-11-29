@@ -17,47 +17,80 @@
 package jetbrains.buildServer.server.rest;
 
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
  *         Date: 15.11.2009
  */
-public class RequestPathTransformInfo {
-  private List<String> myOriginalPathPrefixes = Collections.emptyList();
-  private String myNewPathPrefix = "";
+public class RequestPathTransformInfo implements PathTransformator {
+  @NotNull private Map<String, String> myPathMapping;
 
   public RequestPathTransformInfo() {
   }
 
-  public void setOriginalPathPrefixes(@NotNull final List<String> originalPathPrefixes) {
-    myOriginalPathPrefixes = originalPathPrefixes;
-    Collections.sort(myOriginalPathPrefixes, new Comparator<String>() {
-
-      public int compare(final String o1, final String o2) {
-        return o1.length() - o2.length();
-      }
-    });
-  }
-
-  public void setNewPathPrefix(@NotNull final String newPathPrefix) {
-    myNewPathPrefix = newPathPrefix;
-  }
-
-  @NotNull
-  public String getNewPathPrefix() {
-    return myNewPathPrefix;
-  }
-
-  @NotNull
-  public List<String> getOriginalPathPrefixes() {
-    return myOriginalPathPrefixes;
+  public void setPathMapping(@Nullable final Map<String, String> pathMapping) {
+    myPathMapping = pathMapping != null ? pathMapping : Collections.<String, String>emptyMap();
   }
 
   @Override
   public String toString() {
-    return "originalPrefixes: " + myOriginalPathPrefixes + ", newPrefix: '" + myNewPathPrefix + "'";
+    return "Path mapping: " + myPathMapping;
+  }
+
+  @NotNull
+  private static String getLargerstMatchingSubstring(@NotNull final String path, final Set<String> substrings) {
+    String result = "";
+    for (String substring : substrings) {
+      boolean matches = path.contains(substring);
+      if (matches && result.length() < substring.length()) {
+        result = substring;
+      }
+    }
+    return result;
+  }
+
+  @NotNull
+  public String getTransformedPath(@NotNull final String path) {
+    String matching = getLargerstMatchingSubstring(path, myPathMapping.keySet());
+    if (matching.length() == 0){
+      return path;
+    }
+
+    return replaceFirstSubstring(path, matching, myPathMapping.get(matching));
+  }
+
+  private static String replaceFirstSubstring(final String s, final String from, final String to) {
+    final int i = s.indexOf(from);
+    return s.substring(0, i) + to + s.substring(i+ from.length());
+  }
+
+  @NotNull
+  public PathTransformator getReverseTransformator(@NotNull final String originalPath, final boolean prefixSupported) {
+    final String matching = getLargerstMatchingSubstring(originalPath, myPathMapping.keySet());
+    if (matching.length() == 0){
+      return new PathTransformator(){
+        @NotNull
+        public String getTransformedPath(@NotNull final String path) {
+          return path;
+        }
+      };
+    }
+
+    final String prefix = prefixSupported ? originalPath.substring(0, originalPath.indexOf(matching)) : "";
+    final String prefixWithNewPart = prefix + myPathMapping.get(matching);
+    return new PathTransformator(){
+      @NotNull
+      public String getTransformedPath(@NotNull final String path) {
+        if (!path.startsWith(prefixWithNewPart)){
+          return path;
+        }
+        return prefix + matching + path.substring(prefixWithNewPart.length());
+      }
+    };
   }
 }

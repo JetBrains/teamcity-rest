@@ -89,6 +89,10 @@ public class ApiUrlBuilder {
     return myPathTransformer.transform(VcsRootRequest.getVcsRootHref(root));
   }
 
+  public String getGlobalWadlHref() {
+    return myPathTransformer.transform( Constants.API_URL + "/application.wadl");
+  }
+
   public String transformRelativePath(final String internalRelativePath) {
     return myPathTransformer.transform(internalRelativePath);
   }

@@ -21,6 +21,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.plugin.PluginInfo;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -33,14 +34,16 @@ import jetbrains.buildServer.serverSide.SProject;
  */
 @Path(Constants.API_URL)
 public class RootApiRequest {
-
   @Context
   private DataProvider myDataProvider;
+  @Context
+  private ApiUrlBuilder myApiUrlBuilder;
 
   @GET
   @Produces("text/plain")
   public String serveRoot() {
-    return "This is a root page of REST API. See documentation on the usage at " + myDataProvider.getHelpLink("REST API", null);
+    return "This is a root page of REST API. Try '" + myApiUrlBuilder.getGlobalWadlHref() +
+           "'. See also documentation on the usage at " + myDataProvider.getHelpLink("REST API", null);
   }
 
   @GET

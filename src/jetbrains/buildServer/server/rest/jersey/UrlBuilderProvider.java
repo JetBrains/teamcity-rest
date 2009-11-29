@@ -24,10 +24,7 @@ import java.lang.reflect.Type;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.ext.Provider;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.PathTransformer;
-import jetbrains.buildServer.server.rest.RequestPathTransformInfo;
-import jetbrains.buildServer.server.rest.RequestPathTransformator;
+import jetbrains.buildServer.server.rest.*;
 import jetbrains.buildServer.server.rest.request.Constants;
 
 /**
@@ -58,14 +55,14 @@ public class UrlBuilderProvider implements InjectableProvider<Context, java.lang
   public ApiUrlBuilder getValue() {
     return new ApiUrlBuilder(new PathTransformer() {
       public String transform(final String path) {
-        return getRequestTranslator().transformNewFormPathToOriginalForm(path);
+        return getRequestTranslator().getTransformedPath(path);
       }
     });
   }
 
-  private RequestPathTransformator getRequestTranslator() {
+  private PathTransformator getRequestTranslator() {
     final String originalRequestPath =
       headers.getRequestHeader(Constants.ORIGINAL_REQUEST_URI_HEADER_NAME).get(0); //todo report appropriate message
-    return new RequestPathTransformator(originalRequestPath, myRequestPathTransformInfo, false);
+    return myRequestPathTransformInfo.getReverseTransformator(originalRequestPath, false);
   }
 }
