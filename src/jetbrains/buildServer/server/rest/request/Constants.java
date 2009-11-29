@@ -27,4 +27,7 @@ public class Constants {
 
   public static final String BIND_PATH_PROPERTY_NAME = "api.path";
   public static final String ORIGINAL_REQUEST_URI_HEADER_NAME = "original-request-uri";
+
+  public static final String EXTERNAL_APPLICATION_WADL_NAME = "/application.wadl"; //name that user requests will use
+  public static final String JERSEY_APPLICATION_WADL_NAME = "/application.wadl";
 }

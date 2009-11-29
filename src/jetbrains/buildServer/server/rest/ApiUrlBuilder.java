@@ -90,7 +90,7 @@ public class ApiUrlBuilder {
   }
 
   public String getGlobalWadlHref() {
-    return myPathTransformer.transform( Constants.API_URL + "/application.wadl");
+    return myPathTransformer.transform( Constants.API_URL + Constants.EXTERNAL_APPLICATION_WADL_NAME);
   }
 
   public String transformRelativePath(final String internalRelativePath) {

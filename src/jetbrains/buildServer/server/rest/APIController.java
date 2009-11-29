@@ -77,7 +77,7 @@ public class APIController extends BaseController implements ServletContextAware
 
     Map<String, String> transformBindPaths = new HashMap<String, String>();
     addEntries(transformBindPaths, bindPaths, Constants.API_URL);
-    addEntries(transformBindPaths, addSuffix(bindPaths, "/application.wadl"), "/application.wadl");
+    addEntries(transformBindPaths, addSuffix(bindPaths, Constants.EXTERNAL_APPLICATION_WADL_NAME), Constants.JERSEY_APPLICATION_WADL_NAME);
 
     myRequestPathTransformInfo.setPathMapping(transformBindPaths);
     LOG.debug("Will use request mapping: " + myRequestPathTransformInfo);
