@@ -103,6 +103,10 @@ public class BuildRequest {
     return new Tags(build.getTags());
   }
 
+  /**
+   * Replaces build's tags.
+   * @param buildLocator build locator
+   */
   @PUT
   @Path("/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
@@ -111,6 +115,10 @@ public class BuildRequest {
     build.setTags(SessionUser.getUser(request), tags.tags);
   }
 
+  /**
+   * Adds a set of tags to a build
+   * @param buildLocator build locator
+   */
   @POST
   @Path("/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
@@ -121,6 +129,11 @@ public class BuildRequest {
     build.setTags(SessionUser.getUser(request), resutlingTags);
   }
 
+  /**
+   * Adds a single tag to a build
+   * @param buildLocator build locator
+   * @param tagName name of a tag to add
+   */
   @POST
   @Path("/{buildLocator}/tags/")
   @Consumes({"text/plain"})
