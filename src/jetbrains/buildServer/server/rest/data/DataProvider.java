@@ -27,15 +27,13 @@ import java.util.List;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.groups.UserGroupManager;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Constants;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.auth.Role;
-import jetbrains.buildServer.serverSide.auth.RoleEntry;
-import jetbrains.buildServer.serverSide.auth.RoleScope;
-import jetbrains.buildServer.serverSide.auth.RolesManager;
+import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
@@ -68,6 +66,7 @@ public class DataProvider {
   private static final String DIMENSIONS_DELIMITER = ",";
   private ServerPluginInfo myPluginInfo;
   private ServerListener myServerListener;
+  private SecurityContext mySecurityContext;
 
   public DataProvider(SBuildServer myServer,
                       BuildHistory myBuildHistory,
@@ -78,7 +77,8 @@ public class DataProvider {
                       final BuildAgentManager agentManager,
                       final WebLinks webLinks,
                       final ServerPluginInfo pluginInfo,
-                      final ServerListener serverListener) {
+                      final ServerListener serverListener,
+                      final SecurityContext securityContext) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
     this.myUserModel = userModel;
@@ -89,6 +89,7 @@ public class DataProvider {
     myWebLinks = webLinks;
     myPluginInfo = pluginInfo;
     myServerListener = serverListener;
+    mySecurityContext = securityContext;
   }
 
   @Nullable
@@ -853,7 +854,23 @@ public class DataProvider {
     throw new NotFoundException("User " + user + " does not have role with id: '" + roleId + "' and scope '" + scopeValue + "'");
   }
 
-  public String getHelpLink(@NotNull final String page, @Nullable final String anchor){
+  public String getHelpLink(@NotNull final String page, @Nullable final String anchor) {
     return myWebLinks.getHelp(page, anchor);
+  }
+
+  public void checkGlobalPermission(final Permission permission) throws AuthorizationFailedException{
+    final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
+    if (!authorityHolder.isPermissionGrantedForAnyProject(permission)) {
+      throw new AuthorizationFailedException(
+        "User " + authorityHolder.getAssociatedUser() + " does not have global permission " + permission);
+    }
+  }
+
+  public void checkProjectPermission(final Permission permission, final String projectId) throws AuthorizationFailedException{
+    final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
+    if (!authorityHolder.isPermissionGrantedForProject(projectId, permission)) {
+      throw new AuthorizationFailedException("User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission +
+                                             "in project with id: '" + projectId + "'");
+    }
   }
 }

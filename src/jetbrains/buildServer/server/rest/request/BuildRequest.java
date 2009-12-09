@@ -24,8 +24,6 @@ import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildsFilter;
 import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
@@ -151,19 +149,18 @@ public class BuildRequest {
   @DELETE
   @Path("/{buildLocator}")
   @Produces("text/plain")
+  /**
+   * May not work for non-personal builds: http://youtrack.jetbrains.net/issue/TW-9858
+   */
   public void deleteBuild(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
+
     final SUser user = SessionUser.getUser(request);  //todo: support "run as system" case
-    if (user == null) {
-      throw new BadRequestException("No current user.");
+    // workaround for http://youtrack.jetbrains.net/issue/TW-10538
+    if (!isPersonalUserBuild(build, user)) {
+      myDataProvider.checkProjectPermission(Permission.EDIT_PROJECT, build.getProjectId());
     }
-    final String projectId = build.getProjectId();
-    if (user.isPermissionGrantedForProject(projectId, Permission.EDIT_PROJECT) || isPersonalUserBuild(build, user)) {
-      myDataProvider.deleteBuild(build);
-    } else {
-      throw new AuthorizationFailedException("User " + user + " cannot delete build " + build +
-                                             ": The user does not have EDIT_PROJECT permission and it is not user's personal build");
-    }
+    myDataProvider.deleteBuild(build);
   }
 
   private boolean isPersonalUserBuild(final SBuild build, @NotNull final SUser user) {

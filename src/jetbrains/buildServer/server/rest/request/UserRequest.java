@@ -57,13 +57,20 @@ public class UserRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public Users serveUsers() {
+    checkViewUserPermisison();
     return new Users(myDataProvider.getAllUsers(), myApiUrlBuilder);
+  }
+
+  // workaround until http://youtrack.jetbrains.net/issue/TW-10534 is fixed
+  private void checkViewUserPermisison() {
+    myDataProvider.checkGlobalPermission(jetbrains.buildServer.serverSide.auth.Permission.CHANGE_USER);
   }
 
   @GET
   @Path("/{userLocator}")
   @Produces({"application/xml", "application/json"})
   public User serveUser(@PathParam("userLocator") String userLocator) {
+    checkViewUserPermisison();
     return new User(myDataProvider.getUser(userLocator), myApiUrlBuilder);
   }
 
@@ -71,6 +78,7 @@ public class UserRequest {
   @Path("/{userLocator}")
   @Consumes({"application/xml", "application/json"})
   public void updateUser(@PathParam("userLocator") String userLocator, UserData userData) {
+    checkViewUserPermisison();
     SUser user = myDataProvider.getUser(userLocator);
     myDataUpdater.modify(user, userData);
   }
@@ -79,6 +87,7 @@ public class UserRequest {
   @Path("/{userLocator}/roles")
   @Produces({"application/xml", "application/json"})
   public RoleAssignments listRoles(@PathParam("userLocator") String userLocator) {
+    checkViewUserPermisison();
     SUser user = myDataProvider.getUser(userLocator);
     return new RoleAssignments(user.getRoles(), user, myApiUrlBuilder);
   }
@@ -88,6 +97,7 @@ public class UserRequest {
   @Path("/{userLocator}/roles")
   @Consumes({"application/xml", "application/json"})
   public void addRole(@PathParam("userLocator") String userLocator, RoleAssignment roleAssignment) {
+    checkViewUserPermisison();
     SUser user = myDataProvider.getUser(userLocator);
     try {
       user.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
@@ -100,6 +110,7 @@ public class UserRequest {
   @Path("/{userLocator}/roles/{roleId}/{scope}")
   public RoleAssignment listRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
                                  @PathParam("scope") String scopeValue) {
+    checkViewUserPermisison();
     SUser user = myDataProvider.getUser(userLocator);
     return new RoleAssignment(myDataProvider.getUserRoleEntry(user, roleId, scopeValue), user, myApiUrlBuilder);
   }
@@ -108,6 +119,7 @@ public class UserRequest {
   @Path("/{userLocator}/roles/{roleId}/{scope}")
   public void deleteRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
                          @PathParam("scope") String scopeValue) {
+    checkViewUserPermisison();
     SUser user = myDataProvider.getUser(userLocator);
     try {
       user.removeRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
@@ -122,6 +134,7 @@ public class UserRequest {
   public void addRoleSimple(@PathParam("userLocator") String userLocator,
                             @PathParam("roleId") String roleId,
                             @PathParam("scope") String scopeValue) {
+    checkViewUserPermisison();
     SUser user = myDataProvider.getUser(userLocator);
     try {
       user.addRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
