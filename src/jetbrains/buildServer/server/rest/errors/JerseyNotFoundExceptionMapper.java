@@ -17,7 +17,6 @@
 package jetbrains.buildServer.server.rest.errors;
 
 import com.intellij.openapi.diagnostic.Logger;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
@@ -30,11 +29,11 @@ import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
  * This will hopefully report Jersey-originated errors with more details
  */
 @Provider
-public class WebApplicationExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<WebApplicationException> {
-  protected static final Logger LOG = Logger.getInstance(WebApplicationExceptionMapper.class.getName());
+public class JerseyNotFoundExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<com.sun.jersey.api.NotFoundException> {
+  protected static final Logger LOG = Logger.getInstance(JerseyNotFoundExceptionMapper.class.getName());
 
-  public Response toResponse(WebApplicationException exception) {
+  public Response toResponse(com.sun.jersey.api.NotFoundException exception) {
     final Response.Status status = Response.Status.fromStatusCode(exception.getResponse().getStatus());
-    return reportError(status != null ? status : Response.Status.INTERNAL_SERVER_ERROR, exception);
+    return reportError(status != null ? status : Response.Status.NOT_FOUND, exception);
   }
 }
