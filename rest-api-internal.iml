@@ -38,7 +38,6 @@
           <root url="jar://$MODULE_DIR$/lib/jersey-core-1.1.4.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jersey-server-1.1.4.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jersey-spring-1.1.4.jar!/" />
-          <root url="file://$MODULE_DIR$/lib" />
           <root url="jar://$MODULE_DIR$/lib/jersey-json-1.1.4.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/wadl-resourcedoc-doclet-1.1.4.jar!/" />
         </CLASSES>
