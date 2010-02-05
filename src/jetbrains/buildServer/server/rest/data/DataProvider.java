@@ -27,6 +27,8 @@ import java.util.List;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.groups.UserGroupManager;
+import jetbrains.buildServer.plugins.PluginManager;
+import jetbrains.buildServer.plugins.bean.PluginInfo;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -67,6 +69,8 @@ public class DataProvider {
   private ServerPluginInfo myPluginInfo;
   private ServerListener myServerListener;
   private SecurityContext mySecurityContext;
+  private SourceVersionProvider mySourceVersionProvider;
+  private PluginManager myPluginManager;
 
   public DataProvider(SBuildServer myServer,
                       BuildHistory myBuildHistory,
@@ -78,7 +82,10 @@ public class DataProvider {
                       final WebLinks webLinks,
                       final ServerPluginInfo pluginInfo,
                       final ServerListener serverListener,
-                      final SecurityContext securityContext) {
+                      final SecurityContext securityContext,
+                      final SourceVersionProvider sourceVersionProvider,
+                      final PluginManager pluginManager
+                      ) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
     this.myUserModel = userModel;
@@ -90,6 +97,8 @@ public class DataProvider {
     myPluginInfo = pluginInfo;
     myServerListener = serverListener;
     mySecurityContext = securityContext;
+    mySourceVersionProvider = sourceVersionProvider;
+    myPluginManager = pluginManager;
   }
 
   @Nullable
@@ -872,5 +881,22 @@ public class DataProvider {
       throw new AuthorizationFailedException("User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission +
                                              "in project with id: '" + projectId + "'");
     }
+  }
+
+  public VcsManager getVcsManager() {
+    return myVcsManager;
+  }
+
+  public SourceVersionProvider getSourceVersionProvider() {
+    return mySourceVersionProvider;
+  }
+
+  public Collection<ServerPluginInfo> getPlugins() {
+    final Collection<PluginInfo> detectedPlugins = myPluginManager.getDetectedPlugins();
+    Collection<ServerPluginInfo> result = new ArrayList<ServerPluginInfo>(detectedPlugins.size());
+    for (PluginInfo plugin : detectedPlugins) {
+      result.add((ServerPluginInfo)plugin);
+    }
+    return result;
   }
 }

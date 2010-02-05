@@ -23,7 +23,9 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.model.plugin.PluginInfos;
 import jetbrains.buildServer.server.rest.model.server.Server;
+import jetbrains.buildServer.serverSide.auth.Permission;
 
 /**
  * User: Yegor Yarko
@@ -46,5 +48,13 @@ public class ServerRequest {
   @Produces({"text/plain"})
   public String serveServerVersion(@PathParam("field") String fieldName) {
     return myDataProvider.getServerFieldValue(fieldName);
+  }
+
+  @GET
+  @Path("/plugins")
+  @Produces({"application/xml", "application/json"})
+  public PluginInfos servePlugins() {
+    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    return new PluginInfos(myDataProvider.getPlugins());
   }
 }

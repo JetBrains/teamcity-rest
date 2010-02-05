@@ -16,9 +16,11 @@
 
 package jetbrains.buildServer.server.rest.model.plugin;
 
+import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.web.plugins.bean.ServerPluginInfo;
 
@@ -27,6 +29,8 @@ import jetbrains.buildServer.web.plugins.bean.ServerPluginInfo;
  *         Date: 16.11.2009
  */
 @XmlRootElement(name = "plugin")
+@XmlType(propOrder = {"loadPath", "version", "displayName", "name",
+  "parameters"})
 public class PluginInfo {
   ServerPluginInfo myPluginInfo;
 
@@ -43,12 +47,27 @@ public class PluginInfo {
   }
 
   @XmlAttribute
+  public String getDisplayName() {
+    return myPluginInfo.getPluginXml().getInfo().getDisplayName();
+  }
+
+  @XmlAttribute
   public String getVersion() {
     return myPluginInfo.getPluginVersion();
   }
 
+  @XmlAttribute
+  public String getLoadPath() {
+    return myPluginInfo.getPluginRoot().getAbsolutePath();
+  }
+
   @XmlElement
   public Properties getParameters() {
-    return new Properties(myPluginInfo.getPluginXml().getInfo().getParameters());
+    final Map<String, String> params = myPluginInfo.getPluginXml().getInfo().getParameters();
+    if (params.size() > 0) {
+      return new Properties(params);
+    } else {
+      return null;
+    }
   }
 }
