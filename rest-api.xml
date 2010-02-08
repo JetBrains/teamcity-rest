@@ -129,6 +129,7 @@
     <pathelement location="${basedir}/lib/stax-api-1.0-2.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/server.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/web.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/common-impl.jar"/>
   </path>
 
   <path id="rest-api.runtime.module.classpath">
