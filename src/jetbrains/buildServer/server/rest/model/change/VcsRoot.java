@@ -21,6 +21,12 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.serverSide.RepositoryVersion;
+import jetbrains.buildServer.serverSide.SourceVersionProvider;
+import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.vcs.VcsManager;
+import jetbrains.buildServer.vcs.VcsRootStatus;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -44,15 +50,29 @@ public class VcsRoot {
   @XmlElement
   public Properties properties;
 
+  @XmlAttribute
+  public  String status;
+
+  @XmlAttribute
+  public  String lastChecked;
+
+  @XmlAttribute
+  private String currentVersion;
+
   public VcsRoot() {
   }
 
-  public VcsRoot(jetbrains.buildServer.vcs.VcsRoot root) {
+  public VcsRoot(final SVcsRoot root, final VcsManager vcsManager, final SourceVersionProvider sourceVersionProvider) {
     id = root.getId();
     name = root.getName();
     vcsName = root.getVcsName();
     version = root.getRootVersion();
     properties = new Properties(root.getProperties());
+    final VcsRootStatus rootStatus = vcsManager.getStatus(root);
+    status = rootStatus.getType().toString();
+    lastChecked = Util.formatTime(rootStatus.getTimestamp());
+    final RepositoryVersion revision = sourceVersionProvider.getRootCurrentRevision(root);
+    currentVersion = revision != null ? revision.getDisplayVersion() : null; //todo: consider using smth like "NONE" ?
   }
 
   /**
