@@ -4,7 +4,14 @@
   <info>
     <name>rest-api</name>
     <display-name>rest-api</display-name>
+    <description>Exposes TeamCity API via REST-like protocol</description>
+    <download-url>http://confluence.jetbrains.net/display/TW/REST+API+Plugin</download-url>
     <version>@version@</version>
+
+    <vendor>
+      <name>JetBrains, s.r.o.</name>
+      <url>http://www.jetbrains.com/teamcity</url>
+    </vendor>
   </info>
   <deployment use-separate-classloader="true"/>
   <parameters>
