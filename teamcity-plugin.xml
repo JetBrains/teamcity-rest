@@ -4,8 +4,8 @@
   <info>
     <name>rest-api</name>
     <display-name>rest-api</display-name>
-    <description>Exposes TeamCity API via REST-like protocol</description>
     <version>@version@</version>
+    <description>Exposes TeamCity API via REST-like protocol</description>
 
     <vendor>
       <name>JetBrains, s.r.o.</name>
