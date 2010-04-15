@@ -32,6 +32,7 @@ import jetbrains.buildServer.server.rest.jersey.JerseyWebComponent;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SecurityContextEx;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.FuncThrow;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
@@ -86,11 +87,13 @@ public class APIController extends BaseController implements ServletContextAware
 
     myClassloader = getClass().getClassLoader();
 
-    try {
-      myAuthToken = URLEncoder.encode(UUID.randomUUID().toString() + (new Date()).toString().hashCode(), "UTF-8");
-      LOG.info("Authentication token for superuser generated: '" + myAuthToken + "'.");
-    } catch (UnsupportedEncodingException e) {
-      LOG.warn(e);
+    if (TeamCityProperties.getBoolean("rest.use.authToken")) {
+      try {
+        myAuthToken = URLEncoder.encode(UUID.randomUUID().toString() + (new Date()).toString().hashCode(), "UTF-8");
+        LOG.info("Authentication token for superuser generated: '" + myAuthToken + "'.");
+      } catch (UnsupportedEncodingException e) {
+        LOG.warn(e);
+      }
     }
   }
 
@@ -119,7 +122,7 @@ public class APIController extends BaseController implements ServletContextAware
   private void registerController(final WebControllerManager webControllerManager, final List<String> bindPaths) {
     try {
       for (String controllerBindPath : bindPaths) {
-        LOG.info("Binding REST API to path '" + controllerBindPath + "'");
+        LOG.debug("Binding REST API to path '" + controllerBindPath + "'");
         webControllerManager.registerController(controllerBindPath + "/**", this);
       }
     } catch (Exception e) {
@@ -189,16 +192,18 @@ public class APIController extends BaseController implements ServletContextAware
     ensureInitialized();
 
     boolean runAsSystem = false;
-    String authToken = request.getParameter("authToken");
-    if (authToken != null) {
-      if (authToken.equals(getAuthToken())) {
-        runAsSystem = true;
-      } else {
-        synchronized (this) {
-          Thread.sleep(10000); //to prevent bruteforcing
+    if (TeamCityProperties.getBoolean("rest.use.authToken")) {
+      String authToken = request.getParameter("authToken");
+      if (StringUtil.isNotEmpty(authToken) && StringUtil.isNotEmpty(getAuthToken())) {
+        if (authToken.equals(getAuthToken())) {
+          runAsSystem = true;
+        } else {
+          synchronized (this) {
+            Thread.sleep(10000); //to prevent bruteforcing
+          }
+          response.sendError(403, "Wrong authToken specified");
+          return null;
         }
-        response.sendError(403, "Wrong authToken specified");
-        return null;
       }
     }
 
