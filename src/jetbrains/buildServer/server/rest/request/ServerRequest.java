@@ -16,16 +16,22 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import com.sun.jersey.spi.inject.Inject;
 import com.sun.jersey.spi.resource.Singleton;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
+import java.io.File;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.plugin.PluginInfos;
 import jetbrains.buildServer.server.rest.model.server.Server;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.maintenance.BackupConfig;
+import jetbrains.buildServer.serverSide.maintenance.BackupProcess;
+import jetbrains.buildServer.serverSide.maintenance.BackupProcessManager;
+import jetbrains.buildServer.serverSide.maintenance.MaintenanceProcessAlreadyRunningException;
+import jetbrains.buildServer.util.StringUtil;
 
 /**
  * User: Yegor Yarko
@@ -56,5 +62,66 @@ public class ServerRequest {
   public PluginInfos servePlugins() {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     return new PluginInfos(myDataProvider.getPlugins());
+  }
+
+  /**
+   *
+   * @param fileName relative file name to save backup to (will be saved into .BuildServer/backup)
+   * @param addTimestamp whether to add timestamp to the file or not
+   * @param includeConfigs whether to include configs into the backup or not
+   * @param includeDatabase whether to include database into the backup or not
+   * @param includeBuildLogs whether to include build logs into the backup or not
+   * @param includePersonalChanges whether to include personal chanegs into the backup or not
+   * @return the resulting file name that the backup will be saved to
+   */
+  @POST
+  @Path("/backup")
+  @Produces({"text/plain"})
+  public String startBackup(@QueryParam("fileName") String fileName,
+                            @QueryParam("addTimestamp") Boolean addTimestamp,
+                            @QueryParam("includeConfigs") Boolean includeConfigs,
+                            @QueryParam("includeDatabase") Boolean includeDatabase,
+                            @QueryParam("includeBuildLogs") Boolean includeBuildLogs,
+                            @QueryParam("includePersonalChanges") Boolean includePersonalChanges,
+                            @Inject BackupProcessManager backupManager) {
+    BackupConfig backupConfig = new BackupConfig();
+    if (StringUtil.isNotEmpty(fileName)) {
+      if (new File(fileName).isAbsolute()){
+        throw new BadRequestException("Target file name should be relative path.", null);
+      }
+      if (addTimestamp != null) {
+        backupConfig.setFileName(fileName, addTimestamp);
+      } else {
+        backupConfig.setFileName(fileName);
+      }
+    }else{
+      throw new BadRequestException("No target file name specified.", null);
+    }
+
+    if (includeConfigs != null) backupConfig.setIncludeConfiguration(includeConfigs);
+    if (includeDatabase != null) backupConfig.setIncludeDatabase(includeDatabase);
+    if (includeBuildLogs != null) backupConfig.setIncludeBuildLogs(includeBuildLogs);
+    if (includePersonalChanges != null) backupConfig.setIncludePersonalChanges(includePersonalChanges);
+
+    try {
+      backupManager.startBackup(backupConfig);
+    } catch (MaintenanceProcessAlreadyRunningException e) {
+      throw new OperationException("Cannot start backup becasue another maintenance process is in progress", e);
+    }
+    return backupConfig.getResultFileName();
+  }
+
+  /**
+   * @return current backup status
+   */
+  @GET
+  @Path("/backup")
+  @Produces({"text/plain"})
+  public String getBackupStatus(@Inject BackupProcessManager backupManager) {
+    final BackupProcess backupProcess = backupManager.getCurrentBackupProcess();
+    if (backupProcess == null) {
+      return "Idle";
+    }
+    return backupProcess.getProgressStatus().name();
   }
 }
