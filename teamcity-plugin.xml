@@ -4,7 +4,7 @@
   <info>
     <name>rest-api</name>
     <display-name>rest-api</display-name>
-    <version>@version@</version>
+    <version>@Plugin_Version@</version>
     <description>Exposes TeamCity API via REST-like protocol</description>
 
     <vendor>
