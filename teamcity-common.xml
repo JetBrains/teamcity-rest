@@ -31,7 +31,11 @@
     <attribute name="server.lib.dir" default="" description="directory to get libs for the server part"/>
     <attribute name="server.lib.includes" default="none should match" description="includes pattern of the files in the directory"/>
     <attribute name="plugin.version" default="SNAPSHOT"
-               description="the version of the plugin to put into teamcity-plugin.xml instead of '@version@'"/>
+               description="the version of the plugin to put into teamcity-plugin.xml instead of '@Plugin_Version@'"/>
+    <attribute name="plugin.vendor" default="Unknown vendor"
+               description="name of the vendor to put into teamcity-plugin.xml instead of '@Plugin_Vendor@'"/>
+    <attribute name="plugin.vendor.url" default=""
+               description="vendor URL to put into teamcity-plugin.xml instead of '@Plugin_Vendor_Url@'"/>
 
     <element name="server-additional-files" optional="yes" description="fileset of the files to pack into root of the server plugin part"/>
     <element name="agent-additional-files" optional="yes" description="fileset of the files to pack into root of the agent plugin part"/>
@@ -109,6 +113,8 @@
         <param name="source" value="@{plugin.descriptor.file}"/>
         <param name="dest" value="@{out.unpacked}/teamcity-plugin.xml"/>
         <param name="plugin.version" value="@{plugin.version}"/>
+        <param name="plugin.vendor" value="@{plugin.vendor}"/>
+        <param name="plugin.vendor.url" value="@{plugin.vendor.url}"/>
       </antcall>
 
       <!-- copy additional server plugin files -->
@@ -262,9 +268,12 @@
     <echo message="Copying plugin descriptor file '${source}' to '${dest}'."/>
     <copy file="${source}" tofile="${dest}" failonerror="false"/>
 
-    <echo message="Replacing '@version@' on '${plugin.version}' in the copied plugin descriptor file."/>
-    <replace file="${dest}" value="${plugin.version}">
-      <replacetoken><![CDATA[@version@]]></replacetoken>
+    <echo message="Replacing '@Plugin_Version@', '@Plugin_Vendor@' and '@Plugin_Vendor_Url@' in the copied plugin descriptor file."/>
+    <replace file="${dest}">
+      <replacefilter token="@version@" value="${plugin.version}"/>
+      <replacefilter token="@Plugin_Version@" value="${plugin.version}"/>
+      <replacefilter token="@Plugin_Vendor@" value="${plugin.vendor}"/>
+      <replacefilter token="@Plugin_Vendor_Url@" value="${plugin.vendor.url}"/>
     </replace>
   </target>
 
