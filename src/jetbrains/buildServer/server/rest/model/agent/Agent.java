@@ -83,6 +83,7 @@ public class Agent {
 
   @XmlElement
   public Properties getProperties() {
+    //TODO: review, if it should return all parameters on agent, use #getDefinedParameters()
     return new Properties(myAgent.getAvailableParameters());
   }
 }
