@@ -66,7 +66,9 @@ public class ServerRequest {
 
   /**
    *
-   * @param fileName relative file name to save backup to (will be saved into .BuildServer/backup)
+   * @param fileName relative file name to save backup to (will be saved into
+   *                 the default backup directory (<tt>.BuildServer/backup</tt>
+   *                 if not overriden in main-config.xml)
    * @param addTimestamp whether to add timestamp to the file or not
    * @param includeConfigs whether to include configs into the backup or not
    * @param includeDatabase whether to include database into the backup or not
