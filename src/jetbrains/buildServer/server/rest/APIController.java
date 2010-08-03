@@ -17,7 +17,6 @@
 package jetbrains.buildServer.server.rest;
 
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.util.text.StringUtil;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.*;
@@ -35,6 +34,7 @@ import jetbrains.buildServer.serverSide.SecurityContextEx;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.FuncThrow;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
 import jetbrains.buildServer.web.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.web.util.SessionUser;
@@ -73,8 +73,9 @@ public class APIController extends BaseController implements ServletContextAware
     myRequestPathTransformInfo = requestPathTransformInfo;
 
     final List<String> originalBindPaths = getBindPaths(pluginDescriptor);
-    List<String> bindPaths = new ArrayList<String>(getBindPaths(pluginDescriptor));
-    bindPaths.addAll(addPrefix(bindPaths, Constants.HTTP_AUTH_PREFIX));
+    List<String> bindPaths = new ArrayList<String>(originalBindPaths);
+    bindPaths.addAll(addPrefix(originalBindPaths, StringUtil.removeTailingSlash(WebUtil.HTTP_AUTH_PREFIX)));
+    bindPaths.addAll(addPrefix(originalBindPaths, StringUtil.removeTailingSlash(WebUtil.GUEST_AUTH_PREFIX)));
 
     Map<String, String> transformBindPaths = new HashMap<String, String>();
     addEntries(transformBindPaths, bindPaths, Constants.API_URL);

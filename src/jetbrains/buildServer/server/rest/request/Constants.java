@@ -22,7 +22,7 @@ package jetbrains.buildServer.server.rest.request;
  */
 public class Constants {
   static final String DEFAULT_PAGE_ITEMS_COUNT = "100";
-  public static final String HTTP_AUTH_PREFIX = "/httpAuth";
+
   public static final String API_URL = "/app/rest";
 
   public static final String BIND_PATH_PROPERTY_NAME = "api.path";
