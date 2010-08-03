@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest;
 
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.util.Function;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.*;
@@ -155,7 +156,16 @@ public class APIController extends BaseController implements ServletContextAware
 
       {
 //        initParameters.put("com.sun.jersey.config.property.WadlGeneratorConfig", "jetbrains.buildServer.server.rest.WadlGenerator");
-        initParameters.put("com.sun.jersey.config.property.packages", "jetbrains.buildServer.server.rest.request");
+        initParameters.put("com.sun.jersey.config.property.packages",
+                           "jetbrains.buildServer.server.rest.request;" + getPackagesFromExtensions());
+      }
+
+      private String getPackagesFromExtensions() {
+        return StringUtil.join(myServer.getExtensions(RESTControllerExtension.class), new Function<RESTControllerExtension, String>() {
+          public String fun(final RESTControllerExtension restControllerExtension) {
+            return restControllerExtension.getPackage();
+          }
+        }, ";");
       }
 
       public String getFilterName() {
