@@ -38,6 +38,8 @@
   <bean id="urlBuilderProvider" class="jetbrains.buildServer.server.rest.jersey.UrlBuilderProvider"/>
   <bean id="dataProviderContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataProviderContextProvider"/>
   <bean id="dataUpdaterContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataUpdaterContextProvider"/>
+  <bean id="serviceLocatorContextProvider"
+        class="jetbrains.buildServer.server.rest.jersey.ServiceLocatorContextProvider"/>
 
   <bean id="jAXBContextResolver" class="jetbrains.buildServer.server.rest.jersey.JAXBContextResolver"/>
 </beans>
