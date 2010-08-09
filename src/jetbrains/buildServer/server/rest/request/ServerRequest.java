@@ -26,6 +26,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.plugin.PluginInfos;
 import jetbrains.buildServer.server.rest.model.server.Server;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.maintenance.BackupConfig;
 import jetbrains.buildServer.serverSide.maintenance.BackupProcess;
@@ -43,10 +44,13 @@ public class ServerRequest {
   @Context
   private DataProvider myDataProvider;
 
+  @Context
+  private BeanFactory myFactory;
+
   @GET
   @Produces({"application/xml", "application/json"})
   public Server serveServerInfo() {
-    return new Server(myDataProvider.getServer(), myDataProvider);
+    return myFactory.create(Server.class);
   }
 
   @GET

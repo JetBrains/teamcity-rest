@@ -22,6 +22,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.SBuildServer;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author Yegor.Yarko
@@ -29,15 +30,12 @@ import jetbrains.buildServer.serverSide.SBuildServer;
  */
 @XmlRootElement(name = "server")
 public class Server {
+  @Autowired
   private SBuildServer myServer;
+  @Autowired
   private DataProvider myDataProvider;
 
   public Server() {
-  }
-
-  public Server(final SBuildServer server, final DataProvider dataProvider) {
-    myServer = server;
-    myDataProvider = dataProvider;
   }
 
   @XmlAttribute
