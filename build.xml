@@ -1,35 +1,55 @@
 <project name="rest-api-custom-build" default="dist" basedir=".">
 
-  <property file="build.properties"/>
-  <property name="plugin.name" value="rest-api"/>
-  <property name="javac2.home" value="${basedir}/lib-compile"/>
+    <property file="build.properties"/>
+    <property name="plugin.name" value="rest-api"/>
+    <property name="javac2.home" value="${basedir}/lib-compile"/>
 
-  <import file="teamcity-common.xml"/>
-  <import file="rest-api.xml"/>
+    <import file="teamcity-common.xml"/>
+    <import file="rest-api.xml"/>
 
-  <target name="package" depends="define.version">
-    <package.teamcity.plugin name="${plugin.name}" server.output="${rest-api.output.dir}"
-                             server.lib.dir="lib" server.lib.includes="*.jar"
-                             plugin.descriptor.file="${basedir}/teamcity-plugin.xml"
-                             plugin.version="${plugin.version}"/>
-  </target>
+    <target name="package" depends="define.version">
+        <package.teamcity.plugin name="${plugin.name}" server.output="${rest-api.output.dir}"
+                                 server.lib.dir="lib" server.lib.includes="*.jar"
+                                 plugin.descriptor.file="${basedir}/teamcity-plugin.xml"
+                                 plugin.version="${plugin.version}"/>
+    </target>
 
-  <target name="define.version" depends="define.version.if.under.teamcity">
-    <tstamp>
-      <format property="current.time" pattern="yyyyMMddHHmm"/>
-    </tstamp>
-    <property name="plugin.version" value="SNAPSHOT-${current.time}"/>
-  </target>
+    <target name="define.version" depends="define.version.if.under.teamcity">
+        <tstamp>
+            <format property="current.time" pattern="yyyyMMddHHmm"/>
+        </tstamp>
+        <property name="plugin.version" value="SNAPSHOT-${current.time}"/>
+    </target>
 
-  <target name="define.version.if.under.teamcity" if="build.number">
-    <property name="plugin.version" value="${build.number}"/>
-  </target>
+    <target name="define.version.if.under.teamcity" if="build.number">
+        <property name="plugin.version" value="${build.number}"/>
+    </target>
 
-  <target name="dist" depends="check.teamcitydistribution,all,package"/>
+    <target name="test">
+        <junit printsummary="on" fork="true" haltonfailure="false" haltonerror="false" failureproperty="failure_found"
+               showoutput="true">
+            <classpath>
+                <path refid="rest-api.runtime.module.classpath"/>
+            </classpath>
 
-  <target name="clean" depends="rest-api.clean"/>
+            <formatter type="xml"/>
 
-  <target name="deploy" depends="dist">
-    <deploy.teamcity.plugin name="${plugin.name}"/>
-  </target>
+            <batchtest>
+                <fileset dir="${rest-api.testoutput.dir}">
+                    <include name="**/*Test.class"/>
+                </fileset>
+            </batchtest>
+        </junit>
+
+        <fail message="Failures found" if="failure_found"/>
+
+    </target>
+
+    <target name="dist" depends="check.teamcitydistribution,all,package"/>
+
+    <target name="clean" depends="rest-api.clean"/>
+
+    <target name="deploy" depends="dist">
+        <deploy.teamcity.plugin name="${plugin.name}"/>
+    </target>
 </project>        
