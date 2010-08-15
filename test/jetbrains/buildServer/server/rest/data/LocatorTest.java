@@ -1,6 +1,6 @@
 package jetbrains.buildServer.server.rest.data;
 
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import junit.framework.TestCase;
 import org.junit.Test;
 
@@ -21,7 +21,7 @@ public class LocatorTest extends TestCase {
     try {
       locator.getSingleValueAsLong();
       fail();
-    } catch (BadRequestException ex) {
+    } catch (LocatorProcessException ex) {
     }
   }
 
@@ -38,7 +38,7 @@ public class LocatorTest extends TestCase {
     try {
       new Locator("");
       fail();
-    } catch (BadRequestException ex) {
+    } catch (LocatorProcessException ex) {
     }
   }
 
@@ -56,7 +56,7 @@ public class LocatorTest extends TestCase {
     try {
       locator.getSingleDimensionValueAsLong("name");
       fail();
-    } catch (BadRequestException ex) {
+    } catch (LocatorProcessException ex) {
     }
   }
 
@@ -93,4 +93,99 @@ public class LocatorTest extends TestCase {
     assertEquals(new Long(2), locator.getSingleDimensionValueAsLong("age"));
   }
 
+  @Test
+  public void testComplexValues1() {
+    final Locator locator = new Locator("name:(Bob:32(,age:2),mood:permissive");
+    assertEquals(false, locator.isSingleValue());
+    assertEquals(null, locator.getSingleValue());
+    assertEquals(2, locator.getDimensionsCount());
+    assertEquals(null, locator.getSingleDimensionValue("age"));
+    assertEquals("Bob:32(,age:2", locator.getSingleDimensionValue("name"));
+    assertEquals("permissive", locator.getSingleDimensionValue("mood"));
+  }
+
+  @Test
+  public void testComplexValues2() {
+    final Locator locator = new Locator("a:smth,name:(Bob:32(,age:2),mood:permissive");
+    assertEquals(false, locator.isSingleValue());
+    assertEquals(null, locator.getSingleValue());
+    assertEquals(3, locator.getDimensionsCount());
+    assertEquals("smth", locator.getSingleDimensionValue("a"));
+    assertEquals("Bob:32(,age:2", locator.getSingleDimensionValue("name"));
+    assertEquals("permissive", locator.getSingleDimensionValue("mood"));
+  }
+
+  @Test
+  public void testComplexValues3() {
+    final Locator locator = new Locator("name:(Bob:32(,age:2),mood:(permissive)");
+    assertEquals(false, locator.isSingleValue());
+    assertEquals(null, locator.getSingleValue());
+    assertEquals(2, locator.getDimensionsCount());
+    assertEquals("Bob:32(,age:2", locator.getSingleDimensionValue("name"));
+    assertEquals("permissive", locator.getSingleDimensionValue("mood"));
+  }
+
+  @Test
+  public void testComplexValues4() {
+    final Locator locator = new Locator("name:17,mood:(permiss:ive)");
+    assertEquals(false, locator.isSingleValue());
+    assertEquals(null, locator.getSingleValue());
+    assertEquals(2, locator.getDimensionsCount());
+    assertEquals("17", locator.getSingleDimensionValue("name"));
+    assertEquals("permiss:ive", locator.getSingleDimensionValue("mood"));
+  }
+
+  @Test
+  public void testEmptyValues() {
+    final Locator locator = new Locator("name:,y:aaa,x:");
+    assertEquals(3, locator.getDimensionsCount());
+    assertEquals("", locator.getSingleDimensionValue("name"));
+    assertEquals("aaa", locator.getSingleDimensionValue("y"));
+    assertEquals("", locator.getSingleDimensionValue("x"));
+  }
+
+  @Test
+  public void testComplexValuesParsingErrors() {
+    try {
+      new Locator("name:(");
+      fail();
+    } catch (LocatorProcessException ex) {
+    }
+
+    try {
+      new Locator("name:(value");
+      fail();
+    } catch (LocatorProcessException ex) {
+    }
+
+    try {
+      new Locator("name:,a");
+      fail();
+    } catch (LocatorProcessException ex) {
+    }
+
+    try {
+      new Locator(":value");
+      fail();
+    } catch (LocatorProcessException ex) {
+    }
+
+    try {
+      new Locator("name:value,:value2");
+      fail();
+    } catch (LocatorProcessException ex) {
+    }
+
+    try {
+      new Locator("name:value,(a:b)");
+      fail();
+    } catch (LocatorProcessException ex) {
+    }
+
+    try {
+      new Locator("name:(val)a");
+      fail();
+    } catch (LocatorProcessException ex) {
+    }
+  }
 }

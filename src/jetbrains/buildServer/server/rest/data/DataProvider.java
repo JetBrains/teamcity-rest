@@ -189,6 +189,17 @@ public class DataProvider {
       return build;
     }
 
+    String buildTypeLocator = locator.getSingleDimensionValue("buildType");
+    if (buildTypeLocator != null) {
+      final SBuildType buildTypeFromLocator = getBuildType(null, buildTypeLocator);
+      if (buildType == null) {
+        buildType = buildTypeFromLocator;
+      } else if (!buildType.getBuildTypeId().equals(buildTypeFromLocator.getBuildTypeId())) {
+        throw new BadRequestException("Explicit build type (" + buildType.getBuildTypeId() +
+                                      ") does not match build type in 'buildType' locator (" + buildTypeLocator + ").");
+      }
+    }
+
     Long id = locator.getSingleDimensionValueAsLong("id");
     if (id != null) {
       SBuild build = myServer.findBuildInstanceById(id);
