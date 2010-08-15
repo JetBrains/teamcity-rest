@@ -17,7 +17,6 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.util.MultiValuesMap;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -64,8 +63,6 @@ public class DataProvider {
   private final VcsManager myVcsManager;
   private final BuildAgentManager myAgentManager;
   private final WebLinks myWebLinks;
-  private static final String DIMENSION_NAME_VALUE_DELIMITER = ":";
-  private static final String DIMENSIONS_DELIMITER = ",";
   private ServerPluginInfo myPluginInfo;
   private ServerListener myServerListener;
   private SecurityContext mySecurityContext;
@@ -157,19 +154,30 @@ public class DataProvider {
     throw new NotFoundException("Field '" + field + "' is not supported.");
   }
 
-
+  /**
+   * Supported build locators:
+   *  213 - build with id=213
+   *  213 when buildType is specified - build in the specified buildType with build number 213
+   *  id:213 - build with id=213
+   *  buildType:bt37 - specify Build Configuration by internal id. If specified, other locator parts should select the build
+   *  number:213 when buildType is specified - build in the specified buildType with build number 213
+   *  status:SUCCESS when buildType is specified - last build with the specified status in the specified buildType
+   */
   @NotNull
-  public SBuild getBuild(@Nullable final SBuildType buildType, @Nullable final String buildLocator) {
+  public SBuild getBuild(@Nullable SBuildType buildType, @Nullable final String buildLocator) {
     if (StringUtil.isEmpty(buildLocator)) {
       throw new BadRequestException("Empty build locator is not supported.");
     }
 
-    if (!hasDimensions(buildLocator)) {
+    final Locator locator = new Locator(buildLocator);
+
+    if (locator.isSingleValue()) {
       if (buildType == null) {
         // no dimensions found and no build type, assume it's build id
-        SBuild build = getBuildById(buildLocator);
+
+        SBuild build = myServer.findBuildInstanceById(locator.getSingleValueAsLong());
         if (build == null) {
-          throw new BadRequestException("Cannot find build by id '" + buildLocator + "'.");
+          throw new BadRequestException("Cannot find build by id '" + locator.getSingleValue() + "'.");
         }
         return build;
       }
@@ -181,15 +189,16 @@ public class DataProvider {
       return build;
     }
 
-    MultiValuesMap<String, String> buildLocatorDimensions = decodeLocator(buildLocator);
-
-    String idString = getSingleDimensionValue(buildLocatorDimensions, "id");
-    if (idString != null) {
-      SBuild build = getBuildById(idString);
-      if (buildType != null && !buildType.getBuildTypeId().equals(build.getBuildTypeId())) {
-        throw new NotFoundException("No build can be found by id '" + idString + "' in build type '" + buildType + "'.");
+    Long id = locator.getSingleDimensionValueAsLong("id");
+    if (id != null) {
+      SBuild build = myServer.findBuildInstanceById(id);
+      if (build == null) {
+        throw new NotFoundException("No build can be found by id '" + id + "'.");
       }
-      if (buildLocatorDimensions.keySet().size() > 1) {
+      if (buildType != null && !buildType.getBuildTypeId().equals(build.getBuildTypeId())) {
+        throw new NotFoundException("No build can be found by id '" + locator.getSingleDimensionValue("id") + "' in build type '" + buildType + "'.");
+      }
+      if (locator.getDimensionsCount() > 1) {
         LOG.info("Build locator '" + buildLocator + "' has 'id' dimension and others. Others are ignored.");
       }
       return build;
@@ -199,19 +208,19 @@ public class DataProvider {
       throw new BadRequestException("Cannot find build by other locator then 'id' without build type specified.");
     }
 
-    String number = getSingleDimensionValue(buildLocatorDimensions, "number");
+    String number = locator.getSingleDimensionValue("number");
     if (number != null) {
       SBuild build = myServer.findBuildInstanceByBuildNumber(buildType.getBuildTypeId(), number);
       if (build == null) {
         throw new NotFoundException("No build can be found by number '" + number + "' in build configuration " + buildType + ".");
       }
-      if (buildLocatorDimensions.keySet().size() > 1) {
+      if (locator.getDimensionsCount() > 1) {
         LOG.info("Build locator '" + buildLocator + "' has 'number' dimension and others. Others are ignored.");
       }
       return build;
     }
 
-    final String status = getSingleDimensionValue(buildLocatorDimensions, "status");
+    final String status = locator.getSingleDimensionValue("status");
     if (status != null) {
       final SFinishedBuild[] foundBuild = new SFinishedBuild[1];
       //todo: support all the parameters from URL
@@ -233,20 +242,6 @@ public class DataProvider {
     throw new NotFoundException("Build locator '" + buildLocator + "' is not supported");
   }
 
-  private SBuild getBuildById(@NotNull final String idString) {
-    Long id;
-    try {
-      id = Long.parseLong(idString);
-    } catch (NumberFormatException e) {
-      throw new BadRequestException("Invalid build id '" + idString + "'. Should be a number.");
-    }
-    SBuild build = myServer.findBuildInstanceById(id);
-    if (build == null) {
-      throw new NotFoundException("No build can be found by id '" + id + "'.");
-    }
-    return build;
-  }
-
   @NotNull
   public SBuildType getBuildType(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
     if (StringUtil.isEmpty(buildTypeLocator)) {
@@ -254,7 +249,8 @@ public class DataProvider {
     }
     assert buildTypeLocator != null;
 
-    if (!hasDimensions(buildTypeLocator)) {
+    final Locator locator = new Locator(buildTypeLocator);
+    if (locator.isSingleValue()) {
       // no dimensions found
       if (project != null) {
         // assume it's a name
@@ -265,24 +261,22 @@ public class DataProvider {
       }
     }
 
-    MultiValuesMap<String, String> buildTypeLocatorDimensions = decodeLocator(buildTypeLocator);
-
-    String id = getSingleDimensionValue(buildTypeLocatorDimensions, "id");
+    String id = locator.getSingleDimensionValue("id");
     if (!StringUtil.isEmpty(id)) {
       assert id != null;
       SBuildType buildType = findBuildTypeById(id);
       if (project != null && !buildType.getProject().equals(project)) {
         throw new NotFoundException("Build type with id '" + id + "' does not belong to project " + project + ".");
       }
-      if (buildTypeLocatorDimensions.keySet().size() > 1) {
+      if (locator.getDimensionsCount() > 1) {
         LOG.info("Build type locator '" + buildTypeLocator + "' has 'id' dimension and others. Others are ignored.");
       }
       return buildType;
     }
 
-    String name = getSingleDimensionValue(buildTypeLocatorDimensions, "name");
+    String name = locator.getSingleDimensionValue("name");
     if (name != null) {
-      if (buildTypeLocatorDimensions.keySet().size() > 1) {
+      if (locator.getDimensionsCount() > 1) {
         LOG.info("Build type locator '" + buildTypeLocator + "' has 'name' dimension and others. Others are ignored.");
       }
       return findBuildTypeByName(project, name);
@@ -310,7 +304,9 @@ public class DataProvider {
       throw new BadRequestException("Empty project locator is not supported.");
     }
 
-    if (!hasDimensions(projectLocator)) {
+    final Locator locator = new Locator(projectLocator);
+
+    if (locator.isSingleValue()) {
       // no dimensions found, assume it's a name
       SProject project = myServer.getProjectManager().findProjectByName(projectLocator);
       if (project == null) {
@@ -320,27 +316,25 @@ public class DataProvider {
       return project;
     }
 
-    MultiValuesMap<String, String> projectLocatorDimensions = decodeLocator(projectLocator);
-
-    String id = getSingleDimensionValue(projectLocatorDimensions, "id");
+    String id = locator.getSingleDimensionValue("id");
     if (id != null) {
       SProject project = myServer.getProjectManager().findProjectById(id);
       if (project == null) {
         throw new NotFoundException("No project found by locator '" + projectLocator + ". Project cannot be found by id '" + id + "'.");
       }
-      if (projectLocatorDimensions.keySet().size() > 1) {
+      if (locator.getDimensionsCount() > 1) {
         LOG.info("Project locator '" + projectLocator + "' has 'id' dimension and others. Others are ignored.");
       }
       return project;
     }
 
-    String name = getSingleDimensionValue(projectLocatorDimensions, "name");
+    String name = locator.getSingleDimensionValue("name");
     if (name != null) {
       SProject project = myServer.getProjectManager().findProjectByName(name);
       if (project == null) {
         throw new NotFoundException("No project found by locator '" + projectLocator + ". Project cannot be found by name '" + name + "'.");
       }
-      if (projectLocatorDimensions.keySet().size() > 1) {
+      if (locator.getDimensionsCount() > 1) {
         LOG.info("Project locator '" + projectLocator + "' has 'name' dimension and others. Others are ignored.");
       }
       return project;
@@ -383,50 +377,6 @@ public class DataProvider {
   }
 
   /**
-   * Extracts the single dimension value from dimensions.
-   *
-   * @param dimensions    dimensions to extract value from.
-   * @param dimensionName the name of the dimension to extract value.
-   * @return 'null' if no such dimension is found, value of the dimension otherwise.
-   * @throws BadRequestException if there are more then a single dimension defiition for a 'dimensionName' name or the dimension has no value specified.
-   */
-  @Nullable
-  public String getSingleDimensionValue(@NotNull final MultiValuesMap<String, String> dimensions, @NotNull final String dimensionName) {
-    Collection<String> idDimension = dimensions.get(dimensionName);
-    if (idDimension == null || idDimension.size() == 0) {
-      return null;
-    }
-    if (idDimension.size() > 1) {
-      throw new BadRequestException("Only single '" + dimensionName + "' dimension is supported in locator. Found: " + idDimension);
-    }
-    String result = idDimension.iterator().next();
-    if (StringUtil.isEmpty(result)) {
-      throw new BadRequestException("Value is empty for dimension '" + dimensionName + "'.");
-    }
-    return result;
-  }
-
-  @NotNull
-  public MultiValuesMap<String, String> decodeLocator(@NotNull final String locator) {
-    MultiValuesMap<String, String> result = new MultiValuesMap<String, String>();
-    for (String dimension : locator.split(DIMENSIONS_DELIMITER)) {
-      int delimiterIndex = dimension.indexOf(DIMENSION_NAME_VALUE_DELIMITER);
-      if (delimiterIndex > 0) {
-        result.put(dimension.substring(0, delimiterIndex), dimension.substring(delimiterIndex + 1));
-      } else {
-        throw new NotFoundException(
-          "Bad locator syntax: '" + locator + "'. Can't find dimension name in dimension string '" + dimension + "'");
-      }
-    }
-    return result;
-  }
-
-
-  public boolean hasDimensions(@NotNull final String locator) {
-    return locator.indexOf(DIMENSION_NAME_VALUE_DELIMITER) != -1;
-  }
-
-  /**
    * Finds finished builds by the specified criteria within specified range
    * This is slow!
    *
@@ -443,7 +393,8 @@ public class DataProvider {
       throw new BadRequestException("Empty user locator is not supported.");
     }
 
-    if (!hasDimensions(userLocator)) {
+    final Locator locator = new Locator(userLocator);
+    if (locator.isSingleValue()) {
       // no dimensions found, assume it's username
       SUser user = myUserModel.findUserAccount(null, userLocator);
       if (user == null) {
@@ -452,27 +403,19 @@ public class DataProvider {
       return user;
     }
 
-    MultiValuesMap<String, String> userLocatorDimensions = decodeLocator(userLocator);
-
-    String idString = getSingleDimensionValue(userLocatorDimensions, "id");
-    if (idString != null) {
-      Long id;
-      try {
-        id = Long.parseLong(idString);
-      } catch (NumberFormatException e) {
-        throw new BadRequestException("Invalid user id '" + idString + "'. Should be a number.");
-      }
+    Long id = locator.getSingleDimensionValueAsLong("id");
+    if (id != null) {
       SUser user = myUserModel.findUserById(id);
       if (user == null) {
         throw new NotFoundException("No user can be found by id '" + id + "'.");
       }
-      if (userLocatorDimensions.keySet().size() > 1) {
+      if (locator.getDimensionsCount() > 1) {
         LOG.info("User locator '" + userLocator + "' has 'id' dimension and others. Others are ignored.");
       }
       return user;
     }
 
-    String username = getSingleDimensionValue(userLocatorDimensions, "username");
+    String username = locator.getSingleDimensionValue("username");
     if (username != null) {
       SUser user = myUserModel.findUserAccount(null, username);
       if (user == null) {
@@ -521,7 +464,8 @@ public class DataProvider {
       throw new BadRequestException("Empty group locator is not supported.");
     }
 
-    if (!hasDimensions(groupLocator)) {
+    final Locator locator = new Locator(groupLocator);
+    if (locator.isSingleValue()) {
       // no dimensions found, assume it's group key
       SUserGroup group = myGroupManager.findUserGroupByKey(groupLocator);
       if (group == null) {
@@ -530,9 +474,7 @@ public class DataProvider {
       return group;
     }
 
-    MultiValuesMap<String, String> groupLocatorDimensions = decodeLocator(groupLocator);
-
-    String groupKey = getSingleDimensionValue(groupLocatorDimensions, "key");
+    String groupKey = locator.getSingleDimensionValue("key");
     if (groupKey != null) {
       SUserGroup group = myGroupManager.findUserGroupByKey(groupKey);
       if (group == null) {
@@ -541,7 +483,7 @@ public class DataProvider {
       return group;
     }
 
-    String groupName = getSingleDimensionValue(groupLocatorDimensions, "name");
+    String groupName = locator.getSingleDimensionValue("name");
     if (groupName != null) {
       SUserGroup group = myGroupManager.findUserGroupByName(groupName);
       if (group == null) {
@@ -586,66 +528,46 @@ public class DataProvider {
       throw new BadRequestException("Empty VCS root locator is not supported.");
     }
 
-    if (!hasDimensions(vcsRootLocator)) {
+    final Locator locator = new Locator(vcsRootLocator);
+    if (locator.isSingleValue()) {
       // no dimensions found, assume it's root id
-      Long id;
-      try {
-        id = Long.parseLong(vcsRootLocator);
-      } catch (NumberFormatException e) {
-        throw new BadRequestException("Invalid VCS root id '" + vcsRootLocator + "'. Should be a number.");
-      }
-      SVcsRoot root = myVcsManager.findRootById(id);
+      SVcsRoot root = myVcsManager.findRootById(locator.getSingleValueAsLong());
       if (root == null) {
         throw new NotFoundException("No root can be found by id '" + vcsRootLocator + "'.");
       }
       return root;
     }
 
-    MultiValuesMap<String, String> rootLocatorDimensions = decodeLocator(vcsRootLocator);
+    Long id = locator.getSingleDimensionValueAsLong("id");
+    if (id != null) {
 
-
-    String stringId = getSingleDimensionValue(rootLocatorDimensions, "id");
-    if (stringId != null) {
-      Long id;
-      try {
-        id = Long.parseLong(stringId);
-      } catch (NumberFormatException e) {
-        throw new BadRequestException("Invalid VCS root id '" + stringId + "'. Should be a number.");
-      }
-
-      String stringVersion = getSingleDimensionValue(rootLocatorDimensions, "ver");
-      if (stringVersion != null) {
-        Long version;
-        try {
-          version = Long.parseLong(stringVersion);
-        } catch (NumberFormatException e) {
-          throw new BadRequestException("Invalid VCS root version '" + stringVersion + "'. Should be a number.");
-        }
+      Long version = locator.getSingleDimensionValueAsLong("ver");
+      if (version != null) {
         SVcsRoot root = myVcsManager.findRootByIdAndVersion(id, version);
         if (root == null) {
-          throw new NotFoundException("No root can be found by id '" + stringId + "' and version '" + version + "'.");
+          throw new NotFoundException("No root can be found by id '" + locator.getSingleDimensionValue("id") + "' and version '" + version + "'.");
         }
-        if (rootLocatorDimensions.keySet().size() > 2) {
+        if (locator.getDimensionsCount() > 2) {
           LOG.info("VCS root locator '" + vcsRootLocator + "' has 'id' and 'ver' dimensions and others. Others are ignored.");
         }
         return root;
       }
 
       SVcsRoot root = myVcsManager.findRootById(id);
-      if (rootLocatorDimensions.keySet().size() > 1) {
+      if (locator.getDimensionsCount() > 1) {
         LOG.info("VCS root locator '" + vcsRootLocator + "' has 'id' dimension and others. Others are ignored.");
       }
       return root;
     }
 
 
-    String rootName = getSingleDimensionValue(rootLocatorDimensions, "name");
+    String rootName = locator.getSingleDimensionValue("name");
     if (rootName != null) {
       SVcsRoot root = myVcsManager.findRootByName(rootName);
       if (root == null) {
         throw new NotFoundException("No root can be found by name '" + rootName + "'.");
       }
-      if (rootLocatorDimensions.keySet().size() > 1) {
+      if (locator.getDimensionsCount() > 1) {
         LOG.info("VCS root locator '" + vcsRootLocator + "' has 'name' dimension and others. Others are ignored.");
       }
       return root;
@@ -660,34 +582,22 @@ public class DataProvider {
       throw new BadRequestException("Empty change locator is not supported.");
     }
 
-    if (!hasDimensions(changeLocator)) {
+    final Locator locator = new Locator(changeLocator);
+    if (locator.isSingleValue()) {
       // no dimensions found, assume it's id
-      Long id;
-      try {
-        id = Long.parseLong(changeLocator);
-      } catch (NumberFormatException e) {
-        throw new BadRequestException("Invalid change id '" + changeLocator + "'. Should be a number.");
-      }
-      SVcsModification modification = myVcsManager.findModificationById(id, false);
+      SVcsModification modification = myVcsManager.findModificationById(locator.getSingleValueAsLong(), false);
       if (modification == null) {
         throw new NotFoundException("No change can be found by id '" + changeLocator + "'.");
       }
       return modification;
     }
 
-    MultiValuesMap<String, String> rootLocatorDimensions = decodeLocator(changeLocator);
-    String changeId = getSingleDimensionValue(rootLocatorDimensions, "id");
+    Long id = locator.getSingleDimensionValueAsLong("id");
 
-    if (!StringUtil.isEmpty(changeId)) {
-      Long id;
-      try {
-        id = Long.parseLong(changeId);
-      } catch (NumberFormatException e) {
-        throw new BadRequestException("Invalid change id '" + changeId + "'. Should be a number.");
-      }
+    if (id != null) {
       SVcsModification modification = myVcsManager.findModificationById(id, false);
       if (modification == null) {
-        throw new NotFoundException("No change can be found by id '" + changeId + "'.");
+        throw new NotFoundException("No change can be found by id '" + locator.getSingleDimensionValue("id") + "'.");
       }
       return modification;
     }
@@ -695,37 +605,31 @@ public class DataProvider {
   }
 
   @NotNull
-  public SBuildAgent getAgent(@Nullable final String locator) {
-    if (StringUtil.isEmpty(locator)) {
+  public SBuildAgent getAgent(@Nullable final String locatorString) {
+    if (StringUtil.isEmpty(locatorString)) {
       throw new BadRequestException("Empty agent locator is not supported.");
     }
 
-    if (!hasDimensions(locator)) {
+    final Locator locator = new Locator(locatorString);
+    if (locator.isSingleValue()) {
       // no dimensions found, assume it's name
-      final SBuildAgent agent = findAgentByName(locator);
+      final SBuildAgent agent = findAgentByName(locator.getSingleValue());
       if (agent == null) {
-        throw new NotFoundException("No agent can be found by name '" + locator + "'.");
+        throw new NotFoundException("No agent can be found by name '" + locator.getSingleValue() + "'.");
       }
       return agent;
     }
 
-    MultiValuesMap<String, String> rootLocatorDimensions = decodeLocator(locator);
-    String idString = getSingleDimensionValue(rootLocatorDimensions, "id");
+    Long id = locator.getSingleDimensionValueAsLong("id");
 
-    if (!StringUtil.isEmpty(idString)) {
-      Integer id;
-      try {
-        id = Integer.parseInt(idString);
-      } catch (NumberFormatException e) {
-        throw new BadRequestException("Invalid agent id '" + idString + "'. Should be a number.");
-      }
-      final SBuildAgent agent = myAgentManager.findAgentById(id, true);
+    if (id != null) {
+      final SBuildAgent agent = myAgentManager.findAgentById(id.intValue(), true);
       if (agent == null) {
-        throw new NotFoundException("No agent can be found by id '" + idString + "'.");
+        throw new NotFoundException("No agent can be found by id '" + locator.getSingleDimensionValue("id") + "'.");
       }
       return agent;
     }
-    throw new NotFoundException("Agent locator '" + locator + "' is not supported.");
+    throw new NotFoundException("Agent locator '" + locatorString + "' is not supported.");
   }
 
   @Nullable
