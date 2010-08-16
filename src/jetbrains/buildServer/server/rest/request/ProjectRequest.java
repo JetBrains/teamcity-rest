@@ -123,10 +123,12 @@ public class ProjectRequest {
                             @QueryParam("start") @DefaultValue(value = "0") Long start,
                             @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count,
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+    //todo: support locator parameter
     SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
     final List<SFinishedBuild> buildsList = myDataProvider.getBuilds(
+      // preserve 5.0 logic for personal/canceled/pinned builds
       new BuildsFilter(buildType, status, myDataProvider.getUserIfNotNull(userLocator),
-                       includePersonal, includeCanceled, onlyPinned, tags, agentName,
+                       includePersonal ? null : false, includeCanceled ? null : false, onlyPinned ? true : null, tags, agentName,
                        myDataProvider.getRangeLimit(buildType, sinceBuildLocator, myDataProvider.parseDate(sinceDate)), start,
                        count));
     return new Builds(buildsList,

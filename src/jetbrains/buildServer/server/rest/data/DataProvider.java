@@ -19,10 +19,7 @@ package jetbrains.buildServer.server.rest.data;
 import com.intellij.openapi.diagnostic.Logger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.groups.UserGroupManager;
@@ -38,7 +35,6 @@ import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
-import jetbrains.buildServer.util.ItemProcessor;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.SVcsRoot;
@@ -190,15 +186,7 @@ public class DataProvider {
     }
 
     String buildTypeLocator = locator.getSingleDimensionValue("buildType");
-    if (buildTypeLocator != null) {
-      final SBuildType buildTypeFromLocator = getBuildType(null, buildTypeLocator);
-      if (buildType == null) {
-        buildType = buildTypeFromLocator;
-      } else if (!buildType.getBuildTypeId().equals(buildTypeFromLocator.getBuildTypeId())) {
-        throw new BadRequestException("Explicit build type (" + buildType.getBuildTypeId() +
-                                      ") does not match build type in 'buildType' locator (" + buildTypeLocator + ").");
-      }
-    }
+    buildType = deriveBuildTypeFromLocator(buildType, buildTypeLocator);
 
     Long id = locator.getSingleDimensionValueAsLong("id");
     if (id != null) {
@@ -215,42 +203,71 @@ public class DataProvider {
       return build;
     }
 
-    if (buildType == null) {
-      throw new BadRequestException("Cannot find build by other locator then 'id' without build type specified.");
-    }
-
     String number = locator.getSingleDimensionValue("number");
     if (number != null) {
-      SBuild build = myServer.findBuildInstanceByBuildNumber(buildType.getBuildTypeId(), number);
-      if (build == null) {
-        throw new NotFoundException("No build can be found by number '" + number + "' in build configuration " + buildType + ".");
+      if (buildType != null) {
+        SBuild build = myServer.findBuildInstanceByBuildNumber(buildType.getBuildTypeId(), number);
+        if (build == null) {
+          throw new NotFoundException("No build can be found by number '" + number + "' in build configuration " + buildType + ".");
+        }
+        if (locator.getDimensionsCount() > 1) {
+          LOG.info("Build locator '" + buildLocator + "' has 'number' dimension and others. Others are ignored.");
+        }
+        return build;
+      }else{
+        throw new NotFoundException("Build number is specified without build configuraiton. Cannot find build by build number only.");
       }
-      if (locator.getDimensionsCount() > 1) {
-        LOG.info("Build locator '" + buildLocator + "' has 'number' dimension and others. Others are ignored.");
-      }
-      return build;
     }
 
-    final String status = locator.getSingleDimensionValue("status");
-    if (status != null) {
-      final SFinishedBuild[] foundBuild = new SFinishedBuild[1];
-      //todo: support all the parameters from URL
-      myBuildHistory.processEntries(buildType.getBuildTypeId(), null, false, true, true, new ItemProcessor<SFinishedBuild>() {
-        public boolean processItem(final SFinishedBuild build) {
-          if (status.equalsIgnoreCase(build.getStatusDescriptor().getStatus().getText())) {
-            foundBuild[0] = build;
-            return false;
-          }
-          return true;
-        }
-      });
-      if (foundBuild[0] != null) {
-        return foundBuild[0];
-      }
-      throw new NotFoundException("No build with status '" + status + "'can be found in build configuration " + buildType + ".");
+    final BuildsFilter buildsFilter = getBuildsFilterByLocator(buildType, locator);
+
+    final List<SFinishedBuild> filteredBuilds = getBuilds(buildsFilter);
+    if (filteredBuilds.size() == 0){
+      throw new NotFoundException("No build found by filter: " + buildsFilter.toString() + ".");
     }
+
+    if (filteredBuilds.size() == 1){
+      return filteredBuilds.get(0);
+    }
+
+    //todo: check for unknown dimension names
 
     throw new NotFoundException("Build locator '" + buildLocator + "' is not supported");
+  }
+
+  @Nullable
+  private SBuildType deriveBuildTypeFromLocator(@Nullable SBuildType contextBuildType, @Nullable final String buildTypeLocator) {
+    if (buildTypeLocator != null) {
+      final SBuildType buildTypeFromLocator = getBuildType(null, buildTypeLocator);
+      if (contextBuildType == null) {
+        return buildTypeFromLocator;
+      } else if (!contextBuildType.getBuildTypeId().equals(buildTypeFromLocator.getBuildTypeId())) {
+        throw new BadRequestException("Explicit build type (" + contextBuildType.getBuildTypeId() +
+                                      ") does not match build type in 'buildType' locator (" + buildTypeLocator + ").");
+      }
+    }
+    return contextBuildType;
+  }
+
+  @NotNull
+  public BuildsFilter getBuildsFilterByLocator(@Nullable final SBuildType buildType, @NotNull final Locator locator) {
+    final SBuildType actualBuildType = deriveBuildTypeFromLocator(buildType, locator.getSingleDimensionValue("buildType"));
+
+    final String userLocator = locator.getSingleDimensionValue("user");
+    final String tagsString = locator.getSingleDimensionValue("tags");
+    return new BuildsFilter(actualBuildType,
+                            locator.getSingleDimensionValue("status"),
+                            userLocator != null ? getUser(userLocator) : null,
+                            locator.getSingleDimensionValueAsBoolean("personal"),
+                            locator.getSingleDimensionValueAsBoolean("canceled"),
+                            locator.getSingleDimensionValueAsBoolean("pinned"),
+                            tagsString == null ? null : Arrays.asList(tagsString.split(",")),
+                            //todo: support agent locator here
+                            locator.getSingleDimensionValue("agentName"),
+                            getRangeLimit(actualBuildType, locator.getSingleDimensionValue("sinceBuild"),
+                                          parseDate(locator.getSingleDimensionValue("sinceDate"))),
+                            locator.getSingleDimensionValueAsLong("start"),
+                            1);
   }
 
   @NotNull
@@ -713,6 +730,7 @@ public class DataProvider {
 
   @Nullable
   public RangeLimit getRangeLimit(@Nullable final SBuildType buildType, @Nullable final String buildLocator, @Nullable final Date date) {
+    //todo: need buildType here?
     if (buildLocator == null && date == null) {
       return null;
     }

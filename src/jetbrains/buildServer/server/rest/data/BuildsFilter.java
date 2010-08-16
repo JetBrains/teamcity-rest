@@ -28,9 +28,9 @@ import org.jetbrains.annotations.Nullable;
 
 public class BuildsFilter extends AbstractFilter<SFinishedBuild> {
   @Nullable private final String myStatus;
-  private final boolean myIncludePersonal;
-  private final boolean myIncludeCanceled;
-  private final boolean myOnlyPinned;
+  private final Boolean myPersonal;
+  private final Boolean myCanceled;
+  private final Boolean myPinned;
   private List<String> myTags;
   @Nullable private final String myAgentName;
   @Nullable private final RangeLimit mySince;
@@ -41,9 +41,9 @@ public class BuildsFilter extends AbstractFilter<SFinishedBuild> {
    * @param buildType       build type to return builds from, can be null to return all builds
    * @param status          status of the builds to include
    * @param user            limit builds to those triggered by user, can be null to return all builds
-   * @param includePersonal limit builds to non-personal
-   * @param includeCanceled limit builds to non-canceled
-   * @param onlyPinned      limit builds to pinned
+   * @param personal        if set, limits the builds by personal status (return only personal if "true", only non-personal if "false")
+   * @param canceled        if set, limits the builds by canceled status (return only canceled if "true", only non-conceled if "false")
+   * @param pinned          if set, limits the builds by pinned status (return only pinned if "true", only non-pinned if "false")
    * @param agentName       limit builds to those ran on specified agent, can be null to return all builds
    * @param since           the RangeLimit to return only the builds since the limit. If contains build, it is not included, if contains the date, the builds that were started at and later then the date are included
    * @param start           the index of the first build to return (begins with 0), 0 by default
@@ -52,9 +52,9 @@ public class BuildsFilter extends AbstractFilter<SFinishedBuild> {
   public BuildsFilter(@Nullable final SBuildType buildType,
                       @Nullable final String status,
                       @Nullable final SUser user,
-                      final boolean includePersonal,
-                      final boolean includeCanceled,
-                      final boolean onlyPinned,
+                      @Nullable final Boolean personal,
+                      @Nullable final Boolean canceled,
+                      @Nullable final Boolean pinned,
                       @Nullable final List<String> tags,
                       @Nullable final String agentName,
                       @Nullable final RangeLimit since,
@@ -64,9 +64,9 @@ public class BuildsFilter extends AbstractFilter<SFinishedBuild> {
     myBuildType = buildType;
     myStatus = status;
     myUser = user;
-    myIncludePersonal = includePersonal;
-    myIncludeCanceled = includeCanceled;
-    myOnlyPinned = onlyPinned;
+    myPersonal = personal;
+    myCanceled = canceled;
+    myPinned = pinned;
     myTags = tags;
     myAgentName = agentName;
     mySince = since;
@@ -82,13 +82,13 @@ public class BuildsFilter extends AbstractFilter<SFinishedBuild> {
     if (myStatus != null && !myStatus.equalsIgnoreCase(build.getStatusDescriptor().getStatus().getText())) {
       return false;
     }
-    if (!myIncludePersonal && build.isPersonal()) {
+    if (!isIncludedByBooleanFilter(myPersonal, build.isPersonal())) {
       return false;
     }
-    if (!myIncludeCanceled && (build.getCanceledInfo() != null)) {
+    if (!isIncludedByBooleanFilter(myCanceled, build.getCanceledInfo() != null)) {
       return false;
     }
-    if (myOnlyPinned && !build.isPinned()) {
+    if (!isIncludedByBooleanFilter(myPinned, build.isPinned())) {
       return false;
     }
     if (myTags != null && !build.getTags().containsAll(myTags)) {
@@ -114,6 +114,10 @@ public class BuildsFilter extends AbstractFilter<SFinishedBuild> {
     return true;
   }
 
+  private boolean isIncludedByBooleanFilter(final Boolean filterValue, final boolean actualValue) {
+    return filterValue == null || (!(filterValue ^ actualValue));
+  }
+
   public List<SFinishedBuild> getMatchingBuilds(@NotNull final BuildHistory buildHistory) {
     final FilterItemProcessor<SFinishedBuild> buildsFilterItemProcessor = new FilterItemProcessor<SFinishedBuild>(this);
     if (myBuildType != null) {
@@ -121,7 +125,11 @@ public class BuildsFilter extends AbstractFilter<SFinishedBuild> {
       if (mySince != null && (sinceBuild = mySince.getBuild()) != null) {
         processList(buildHistory.getEntriesSince(sinceBuild, myBuildType), buildsFilterItemProcessor);
       } else {
-        buildHistory.processEntries(myBuildType.getBuildTypeId(), getUserForProcessEntries(), myIncludePersonal, myIncludeCanceled, false,
+        buildHistory.processEntries(myBuildType.getBuildTypeId(),
+                                    getUserForProcessEntries(),
+                                    myPersonal == null || myPersonal,
+                                    myCanceled == null || myCanceled,
+                                    false,
                                     buildsFilterItemProcessor);
       }
     } else {
@@ -131,9 +139,28 @@ public class BuildsFilter extends AbstractFilter<SFinishedBuild> {
   }
 
   private User getUserForProcessEntries() {
-    if (myIncludePersonal && myUser != null) {
+    if ((myPersonal == null || myPersonal) && myUser != null) {
       return myUser;
     }
     return null;
+  }
+
+  @Override
+  public String toString() {
+    final StringBuilder result = new StringBuilder();
+    result.append("Builds filter (");
+    if (myBuildType!= null) result.append("buildType:").append(myBuildType).append(", ");
+    if (myStatus!= null) result.append("status:").append(myStatus).append(", ");
+    if (myUser!= null) result.append("user:").append(myUser).append(", ");
+    if (myPersonal!= null) result.append("personal:").append(myPersonal).append(", ");
+    if (myCanceled!= null) result.append("canceled:").append(myCanceled).append(", ");
+    if (myPinned!= null) result.append("pinned:").append(myPinned).append(", ");
+    if (myTags!= null) result.append("tag:").append(myTags).append(", ");
+    if (myAgentName!= null) result.append("agentName:").append(myAgentName).append(", ");
+    if (mySince!= null) result.append("since:").append(mySince).append(", ");
+    if (myStart!= null) result.append("start:").append(myStart).append(", ");
+    if (myCount!= null) result.append("count:").append(myCount);
+    result.append(")");
+    return result.toString();
   }
 }

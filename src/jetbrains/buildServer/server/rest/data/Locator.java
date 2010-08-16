@@ -137,6 +137,21 @@ public class Locator {
     }
   }
 
+  @Nullable
+  public Boolean getSingleDimensionValueAsBoolean(@NotNull final String dimensionName) {
+    final String value = getSingleDimensionValue(dimensionName);
+    if (value == null || "all".equalsIgnoreCase(value) || "any".equalsIgnoreCase(value)){
+      return null;
+    }
+    if ("true".equalsIgnoreCase(value) || "on".equalsIgnoreCase(value) || "yes".equalsIgnoreCase(value) || "in".equalsIgnoreCase(value)){
+      return true;
+    }
+    if ("false".equalsIgnoreCase(value) || "off".equalsIgnoreCase(value) || "no".equalsIgnoreCase(value) || "out".equalsIgnoreCase(value)){
+      return false;
+    }
+    throw new LocatorProcessException("Invalid value of dimension '" + dimensionName + "': " + value + ". Should be 'true' or 'false'.");
+  }
+
   /**
    * Extracts the single dimension value from dimensions.
    *
