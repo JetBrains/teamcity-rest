@@ -21,6 +21,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildsFilter;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -50,10 +51,12 @@ public class BuildRequest {
   @Context
   private ApiUrlBuilder myApiUrlBuilder;
 
+  @Context
+  private ServiceLocator myServiceLocator;
+
   public static String getBuildHref(SBuild build) {
     return API_BUILDS_URL + "/id:" + build.getBuildId();
   }
-
 
   @GET
   @Produces({"application/xml", "application/json"})
@@ -94,7 +97,7 @@ public class BuildRequest {
   @Path("/{buildLocator}")
   @Produces({"application/xml", "application/json"})
   public Build serveBuild(@PathParam("buildLocator") String buildLocator) {
-    return new Build(myDataProvider.getBuild(null, buildLocator), myDataProvider, myApiUrlBuilder);
+    return new Build(myDataProvider.getBuild(null, buildLocator), myDataProvider, myApiUrlBuilder, myServiceLocator);
   }
 
   @GET

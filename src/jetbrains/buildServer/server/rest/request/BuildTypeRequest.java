@@ -21,6 +21,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildsFilter;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -53,6 +54,8 @@ public class BuildTypeRequest {
   private DataProvider myDataProvider;
   @Context
   private ApiUrlBuilder myApiUrlBuilder;
+  @Context
+  private ServiceLocator myServiceLocator;
 
   public static final String API_BUILD_TYPES_URL = Constants.API_URL + "/buildTypes";
 
@@ -186,7 +189,7 @@ public class BuildTypeRequest {
                                      @PathParam("buildLocator") String buildLocator) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     SBuild build = myDataProvider.getBuild(buildType, buildLocator);
-    return new Build(build, myDataProvider, myApiUrlBuilder);
+    return new Build(build, myDataProvider, myApiUrlBuilder, myServiceLocator);
   }
 
 

@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.Comment;
@@ -33,8 +34,10 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildTypeRef;
 import jetbrains.buildServer.server.rest.model.change.ChangesRef;
 import jetbrains.buildServer.server.rest.model.change.Revisions;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
+import jetbrains.buildServer.serverSide.RunningBuildsManager;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildAgent;
+import jetbrains.buildServer.serverSide.SRunningBuild;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import org.jetbrains.annotations.NotNull;
 
@@ -45,8 +48,8 @@ import org.jetbrains.annotations.NotNull;
 //todo: add changes
 //todo: reuse fields code from DataProvider
 @XmlRootElement(name = "build")
-@XmlType(propOrder = {"pinned", "history", "personal", "webUrl", "href", "status", "number", "id",
-  "statusText", "buildType", "startDate", "finishDate", "agent", "comment", "tags", "properties",
+@XmlType(propOrder = {"state", "pinned", "history", "personal", "webUrl", "href", "status", "number", "id",
+  "runningBuildInfo", "statusText", "buildType", "startDate", "finishDate", "agent", "comment", "tags", "properties",
   "buildDependencies", "revisions", "changes", "issues"})
 public class Build {
   @NotNull
@@ -55,13 +58,19 @@ public class Build {
   private DataProvider myDataProvider;
   private ApiUrlBuilder myApiUrlBuilder;
 
+  private ServiceLocator myServiceLocator;
+
   public Build() {
   }
 
-  public Build(@NotNull final SBuild build, @NotNull final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
+  public Build(@NotNull final SBuild build,
+               @NotNull final DataProvider dataProvider,
+               final ApiUrlBuilder apiUrlBuilder,
+               @NotNull final ServiceLocator serviceLocator) {
     myBuild = build;
     myDataProvider = dataProvider;
     myApiUrlBuilder = apiUrlBuilder;
+    myServiceLocator = serviceLocator;
   }
 
   @XmlAttribute
@@ -151,6 +160,27 @@ public class Build {
   @XmlElement
   public Properties getProperties() {
     return new Properties(myBuild.getBuildPromotion().getBuildParameters());
+  }
+
+  @XmlAttribute(name = "state")
+  public String getState() {
+    if (myBuild.isFinished()) {
+      return "finished";
+    } else {
+      return "running";
+    }
+  }
+
+  @XmlElement(name = "running-info")
+  public RunningBuildInfo getRunningBuildInfo() {
+    if (myBuild.isFinished()) {
+      return null;
+    }
+    SRunningBuild runningBuild = myServiceLocator.getSingletonService(RunningBuildsManager.class).findRunningBuildById(myBuild.getBuildId());
+    if (runningBuild == null){
+      return null;
+    }
+    return new RunningBuildInfo(runningBuild);
   }
 
   @XmlElement(name = "dependency-build")
