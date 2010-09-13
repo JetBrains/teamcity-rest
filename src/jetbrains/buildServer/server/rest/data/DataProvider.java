@@ -219,6 +219,7 @@ public class DataProvider {
       }
     }
 
+    locator.setDimension("count", "1");
     final BuildsFilter buildsFilter = getBuildsFilterByLocator(buildType, locator);
 
     final List<SFinishedBuild> filteredBuilds = getBuilds(buildsFilter);
@@ -257,10 +258,12 @@ public class DataProvider {
    */
   @NotNull
   public BuildsFilter getBuildsFilterByLocator(@Nullable final SBuildType buildType, @NotNull final Locator locator) {
+    //todo: report unknown locator dimensions
     final SBuildType actualBuildType = deriveBuildTypeFromLocator(buildType, locator.getSingleDimensionValue("buildType"));
 
     final String userLocator = locator.getSingleDimensionValue("user");
     final String tagsString = locator.getSingleDimensionValue("tags");
+    final Long count = locator.getSingleDimensionValueAsLong("count");
     return new BuildsFilter(actualBuildType,
                             locator.getSingleDimensionValue("status"),
                             userLocator != null ? getUser(userLocator) : null,
@@ -273,7 +276,7 @@ public class DataProvider {
                             getRangeLimit(actualBuildType, locator.getSingleDimensionValue("sinceBuild"),
                                           parseDate(locator.getSingleDimensionValue("sinceDate"))),
                             locator.getSingleDimensionValueAsLong("start"),
-                            1);
+                            count == null?null:count.intValue());
   }
 
   @NotNull

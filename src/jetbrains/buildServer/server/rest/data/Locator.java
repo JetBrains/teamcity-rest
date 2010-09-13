@@ -29,15 +29,14 @@ public class Locator {
   private static final String DIMENSION_COMPLEX_VALUE_END_DELIMITER = ")";
 
   private final MultiValuesMap<String, String> myDimensions;
-  private final boolean myHasDimentions;
   private final String mySingleValue;
 
   public Locator(@NotNull final String locator) {
     if (StringUtil.isEmpty(locator)) {
       throw new LocatorProcessException("Invalid locator. Cannot be empty.");
     }
-    myHasDimentions = locator.indexOf(DIMENSION_NAME_VALUE_DELIMITER) != -1;
-    if (!myHasDimentions) {
+    final boolean hasDimentions = locator.indexOf(DIMENSION_NAME_VALUE_DELIMITER) != -1;
+    if (!hasDimentions) {
       mySingleValue = locator;
       myDimensions = new MultiValuesMap<String, String>();
     } else {
@@ -104,7 +103,7 @@ public class Locator {
   }
 
   public boolean isSingleValue() {
-    return !myHasDimentions;
+    return mySingleValue != null;
   }
 
   @Nullable
@@ -175,5 +174,14 @@ public class Locator {
   @NotNull
   public int getDimensionsCount() {
     return myDimensions.keySet().size();
+  }
+
+  /**
+   * Should be used only for multi-dimention locators
+   * @param name
+   * @param value
+   */
+  public void setDimension(@NotNull final String name, @NotNull final String value) {
+    myDimensions.put(name, value);
   }
 }
