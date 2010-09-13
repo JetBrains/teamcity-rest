@@ -22,13 +22,14 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SRunningBuild;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
-@XmlType(propOrder = {"webUrl", "href", "buildTypeId", "status", "number", "id"})
+@XmlType(propOrder = {"webUrl", "href", "buildTypeId", "status", "percentageComplete", "running", "number", "id"})
 @XmlRootElement(name = "build")
 public class BuildRef {
   protected SBuild myBuild;
@@ -72,5 +73,23 @@ public class BuildRef {
   @XmlAttribute
   public String getWebUrl() {
     return myDataProvider.getBuildUrl(myBuild);
+  }
+
+  @XmlAttribute
+  public Boolean getRunning() {
+    if (myBuild.isFinished()) {
+      return null;
+    }else{
+      return true;
+    }
+  }
+
+  @XmlAttribute
+  public Integer getPercentageComplete() {
+    if (myBuild.isFinished()) {
+      return null;
+    }
+    SRunningBuild runningBuild = (SRunningBuild)myBuild;
+    return runningBuild.getCompletedPercent();
   }
 }

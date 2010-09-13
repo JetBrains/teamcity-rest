@@ -25,6 +25,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 17.11.2009
  */
 public class Util {
+  @Nullable
   public static String formatTime(@Nullable final Date time) {
     if (time == null) {
       return null;

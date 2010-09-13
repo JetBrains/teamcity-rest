@@ -34,7 +34,6 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.util.StringUtil;
 
@@ -170,10 +169,10 @@ public class BuildTypeRequest {
     //todo: support locator parameter
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
 
-    final List<SFinishedBuild> buildsList = myDataProvider.getBuilds(
+    final List<SBuild> buildsList = myDataProvider.getBuilds(
       // preserve 5.0 logic for personal/canceled/pinned builds
       new BuildsFilter(buildType, status, myDataProvider.getUserIfNotNull(userLocator),
-                       includePersonal ? null : false, includeCanceled ? null : false, onlyPinned ? true : null, tags, agentName,
+                       includePersonal ? null : false, includeCanceled ? null : false, false, onlyPinned ? true : null, tags, agentName,
                        myDataProvider.getRangeLimit(buildType, sinceBuildLocator, myDataProvider.parseDate(sinceDate)), start,
                        count));
     return new Builds(buildsList,

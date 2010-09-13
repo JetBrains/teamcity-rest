@@ -64,6 +64,7 @@ public class DataProvider {
   private SecurityContext mySecurityContext;
   private SourceVersionProvider mySourceVersionProvider;
   private PluginManager myPluginManager;
+  private RunningBuildsManager myRunningBuildsManager;
 
   public DataProvider(SBuildServer myServer,
                       BuildHistory myBuildHistory,
@@ -77,7 +78,8 @@ public class DataProvider {
                       final ServerListener serverListener,
                       final SecurityContext securityContext,
                       final SourceVersionProvider sourceVersionProvider,
-                      final PluginManager pluginManager
+                      final PluginManager pluginManager,
+                      final RunningBuildsManager runningBuildsManager
                       ) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
@@ -92,6 +94,7 @@ public class DataProvider {
     mySecurityContext = securityContext;
     mySourceVersionProvider = sourceVersionProvider;
     myPluginManager = pluginManager;
+    myRunningBuildsManager = runningBuildsManager;
   }
 
   @Nullable
@@ -222,7 +225,7 @@ public class DataProvider {
     locator.setDimension("count", "1");
     final BuildsFilter buildsFilter = getBuildsFilterByLocator(buildType, locator);
 
-    final List<SFinishedBuild> filteredBuilds = getBuilds(buildsFilter);
+    final List<SBuild> filteredBuilds = getBuilds(buildsFilter);
     if (filteredBuilds.size() == 0){
       throw new NotFoundException("No build found by filter: " + buildsFilter.toString() + ".");
     }
@@ -250,12 +253,6 @@ public class DataProvider {
     return contextBuildType;
   }
 
-  /**
-   * Returns filter that returns the first build if there are several matching
-   * @param buildType
-   * @param locator
-   * @return
-   */
   @NotNull
   public BuildsFilter getBuildsFilterByLocator(@Nullable final SBuildType buildType, @NotNull final Locator locator) {
     //todo: report unknown locator dimensions
@@ -269,6 +266,7 @@ public class DataProvider {
                             userLocator != null ? getUser(userLocator) : null,
                             locator.getSingleDimensionValueAsBoolean("personal"),
                             locator.getSingleDimensionValueAsBoolean("canceled"),
+                            locator.getSingleDimensionValueAsBoolean("running"),
                             locator.getSingleDimensionValueAsBoolean("pinned"),
                             tagsString == null ? null : Arrays.asList(tagsString.split(",")),
                             //todo: support agent locator here
@@ -420,8 +418,12 @@ public class DataProvider {
    * @param buildsFilter the filter for the builds to find
    * @return the builds found
    */
-  public List<SFinishedBuild> getBuilds(final BuildsFilter buildsFilter) {
-    return buildsFilter.getMatchingBuilds(myBuildHistory);
+  public List<SBuild> getBuilds(final BuildsFilter buildsFilter) {
+    final ArrayList<SBuild> result = new ArrayList<SBuild>();
+    //todo: sort and ensure there are no duplicates
+    result.addAll(buildsFilter.getMatchingRunningBuilds(myRunningBuildsManager));
+    result.addAll(buildsFilter.getMatchingFinishedBuilds(myBuildHistory));
+    return result;
   }
 
   @NotNull

@@ -31,7 +31,6 @@ import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
 import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.web.util.SessionUser;
@@ -83,12 +82,12 @@ public class BuildRequest {
                                       status,
                                       myDataProvider.getUserIfNotNull(userLocator),
                                       includePersonal ? null : false, includeCanceled ? null : false,
-                                      onlyPinned ? true : null, tags, agentName,
+                                      false, onlyPinned ? true : null, tags, agentName,
                                       myDataProvider
                                         .getRangeLimit(null, sinceBuildLocator, myDataProvider.parseDate(sinceDate)),
                                       start, count);
     }
-    final List<SFinishedBuild> buildsList = myDataProvider.getBuilds(buildsFilter);
+    final List<SBuild> buildsList = myDataProvider.getBuilds(buildsFilter);
     return new Builds(buildsList, myDataProvider, new PagerData(uriInfo.getRequestUriBuilder(), request, start, count, buildsList.size()),
                       myApiUrlBuilder);
   }

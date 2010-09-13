@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import java.util.ArrayList;
 import java.util.List;
 import jetbrains.buildServer.util.ItemProcessor;
 import org.jetbrains.annotations.NotNull;
@@ -48,35 +47,11 @@ public abstract class AbstractFilter<T> {
 
   protected abstract boolean isIncluded(@NotNull final T item);
 
-  protected void processList(final List<T> entries, final ItemProcessor<T> processor) {
-    for (T entry : entries) {
+  public static <P> void processList(final List<P> entries, final ItemProcessor<P> processor) {
+    for (P entry : entries) {
       processor.processItem(entry);
     }
   }
 
 
-  protected static class FilterItemProcessor<T> implements ItemProcessor<T> {
-    long myCurrentIndex = 0;
-    private final AbstractFilter<T> myFilter;
-    private final ArrayList<T> myList = new ArrayList<T>();
-
-    public FilterItemProcessor(final AbstractFilter<T> filter) {
-      myFilter = filter;
-    }
-
-    public boolean processItem(final T item) {
-      if (!myFilter.isIncluded(item)) {
-        return true;
-      }
-      if (myFilter.isIncludedByRange(myCurrentIndex)) {
-        myList.add(item);
-      }
-      ++myCurrentIndex;
-      return myFilter.isBelowUpperRangeLimit(myCurrentIndex);
-    }
-
-    public ArrayList<T> getResult() {
-      return myList;
-    }
-  }
 }
