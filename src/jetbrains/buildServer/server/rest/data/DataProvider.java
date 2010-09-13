@@ -249,6 +249,12 @@ public class DataProvider {
     return contextBuildType;
   }
 
+  /**
+   * Returns filter that returns the first build if there are several matching
+   * @param buildType
+   * @param locator
+   * @return
+   */
   @NotNull
   public BuildsFilter getBuildsFilterByLocator(@Nullable final SBuildType buildType, @NotNull final Locator locator) {
     final SBuildType actualBuildType = deriveBuildTypeFromLocator(buildType, locator.getSingleDimensionValue("buildType"));
