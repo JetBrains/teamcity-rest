@@ -222,8 +222,8 @@ public class DataProvider {
       }
     }
 
-    locator.setDimension("count", "1");
     final BuildsFilter buildsFilter = getBuildsFilterByLocator(buildType, locator);
+    buildsFilter.setCount(1);
 
     final List<SBuild> filteredBuilds = getBuilds(buildsFilter);
     if (filteredBuilds.size() == 0){
@@ -236,7 +236,7 @@ public class DataProvider {
 
     //todo: check for unknown dimension names
 
-    throw new NotFoundException("Build locator '" + buildLocator + "' is not supported");
+    throw new NotFoundException("Build locator '" + buildLocator + "' is not supported (" + filteredBuilds.size() + " builds found)");
   }
 
   @Nullable
@@ -266,7 +266,7 @@ public class DataProvider {
                             userLocator != null ? getUser(userLocator) : null,
                             locator.getSingleDimensionValueAsBoolean("personal"),
                             locator.getSingleDimensionValueAsBoolean("canceled"),
-                            locator.getSingleDimensionValueAsBoolean("running"),
+                            locator.getSingleDimensionValueAsBoolean("running", false),
                             locator.getSingleDimensionValueAsBoolean("pinned"),
                             tagsString == null ? null : Arrays.asList(tagsString.split(",")),
                             //todo: support agent locator here
@@ -418,11 +418,17 @@ public class DataProvider {
    * @param buildsFilter the filter for the builds to find
    * @return the builds found
    */
-  public List<SBuild> getBuilds(final BuildsFilter buildsFilter) {
+  public List<SBuild> getBuilds(@NotNull final BuildsFilter buildsFilter) {
     final ArrayList<SBuild> result = new ArrayList<SBuild>();
     //todo: sort and ensure there are no duplicates
     result.addAll(buildsFilter.getMatchingRunningBuilds(myRunningBuildsManager));
-    result.addAll(buildsFilter.getMatchingFinishedBuilds(myBuildHistory));
+    final Integer originalCount = buildsFilter.getCount();
+    if (originalCount == null || result.size() < originalCount) {
+      if (originalCount != null){
+        buildsFilter.setCount(originalCount - result.size());
+      }
+      result.addAll(buildsFilter.getMatchingFinishedBuilds(myBuildHistory));
+    }
     return result;
   }
 

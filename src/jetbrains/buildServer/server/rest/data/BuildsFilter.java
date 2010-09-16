@@ -25,7 +25,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class BuildsFilter{
   @Nullable protected final Long myStart;
-  @Nullable protected final Integer myCount;
+  @Nullable protected Integer myCount;
 
   @Nullable private final String myStatus;
   private final Boolean myPersonal;
@@ -76,6 +76,15 @@ public class BuildsFilter{
     myTags = tags;
     myAgentName = agentName;
     mySince = since;
+  }
+
+  @Nullable
+  public Integer getCount() {
+    return myCount;
+  }
+
+  public void setCount(@Nullable final Integer count) {
+    myCount = count;
   }
 
   protected boolean isIncluded(@NotNull final SBuild build) {

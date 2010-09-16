@@ -148,7 +148,16 @@ public class Locator {
     if ("false".equalsIgnoreCase(value) || "off".equalsIgnoreCase(value) || "no".equalsIgnoreCase(value) || "out".equalsIgnoreCase(value)){
       return false;
     }
-    throw new LocatorProcessException("Invalid value of dimension '" + dimensionName + "': " + value + ". Should be 'true' or 'false'.");
+    throw new LocatorProcessException("Invalid value of dimension '" + dimensionName + "': " + value + ". Should be 'true', 'false' or 'any'.");
+  }
+
+  @Nullable
+  public Boolean getSingleDimensionValueAsBoolean(@NotNull final String dimensionName, @Nullable Boolean defaultValue) {
+    final String value = getSingleDimensionValue(dimensionName);
+    if (value == null){
+      return defaultValue;
+    }
+    return getSingleDimensionValueAsBoolean(dimensionName);
   }
 
   /**
@@ -182,6 +191,7 @@ public class Locator {
    * @param value
    */
   public void setDimension(@NotNull final String name, @NotNull final String value) {
+    myDimensions.removeAll(name);
     myDimensions.put(name, value);
   }
 }
