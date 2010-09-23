@@ -66,6 +66,14 @@ public class UserRequest {
     myDataProvider.checkGlobalPermission(jetbrains.buildServer.serverSide.auth.Permission.CHANGE_USER);
   }
 
+  @POST
+  @Consumes({"application/xml", "application/json"})
+  public User createUser(UserData userData) {
+    final SUser user = myDataUpdater.createUser(userData.username);
+    myDataUpdater.modify(user, userData);
+    return new User(user, myApiUrlBuilder);
+  }
+
   @GET
   @Path("/{userLocator}")
   @Produces({"application/xml", "application/json"})

@@ -30,9 +30,9 @@ import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.server.rest.model.user.UserData;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
-import jetbrains.buildServer.users.PropertyKey;
-import jetbrains.buildServer.users.SUser;
-import jetbrains.buildServer.users.SimplePropertyKey;
+import jetbrains.buildServer.users.*;
+import jetbrains.buildServer.util.StringUtil;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -41,12 +41,29 @@ import jetbrains.buildServer.users.SimplePropertyKey;
 public class DataUpdater {
   private final DataProvider myDataProvider;
   private final UserGroupManager myGroupManager;
+  private final UserModel myUserModel;
 
-  public DataUpdater(DataProvider dataProvider, UserGroupManager groupManager) {
+  public DataUpdater(DataProvider dataProvider, UserGroupManager groupManager, UserModel userModel) {
     myDataProvider = dataProvider;
     myGroupManager = groupManager;
+    myUserModel = userModel;
   }
 
+  public SUser createUser(@Nullable final String username){
+    myDataProvider.checkGlobalPermission(jetbrains.buildServer.serverSide.auth.Permission.CREATE_USER);
+    if (StringUtil.isEmpty(username)){
+      throw new BadRequestException("Username must not be empty when creating user.");
+    }
+    try {
+      return myUserModel.createUserAccount(null, username); //realm is hardly ever used in the system
+    } catch (DuplicateUserAccountException e) {
+      throw new BadRequestException("Cannot create user as user with the same username already exists.", e);
+    } catch (MaxNumberOfUserAccountsReachedException e) {
+      throw new BadRequestException("Cannot create user as maximum user limit is reached.", e);
+    } catch (EmptyUsernameException e) {
+      throw new BadRequestException("Cannot create user with empty username.", e);
+    }
+  }
   public void modify(SUser user, UserData userData) {
     String newUsername = userData.username != null ? userData.username : user.getUsername();
     String newName = userData.name != null ? userData.name : user.getName();
