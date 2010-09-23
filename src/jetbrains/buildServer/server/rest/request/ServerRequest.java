@@ -23,7 +23,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.plugin.PluginInfos;
 import jetbrains.buildServer.server.rest.model.server.Server;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
@@ -112,7 +112,7 @@ public class ServerRequest {
     try {
       backupManager.startBackup(backupConfig);
     } catch (MaintenanceProcessAlreadyRunningException e) {
-      throw new OperationException("Cannot start backup becasue another maintenance process is in progress", e);
+      throw new InvalidStateException("Cannot start backup becasue another maintenance process is in progress", e);
     }
     return backupConfig.getResultFileName();
   }

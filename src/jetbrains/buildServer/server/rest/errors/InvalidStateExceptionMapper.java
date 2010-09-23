@@ -25,14 +25,12 @@ import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
 /**
  * User: Yegor Yarko
  * Date: 30.03.2009
- * <p/>
- * This will jopefull report Jersey-originated errors with more details
  */
 @Provider
-public class AuthorizationFailedExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<AuthorizationFailedException> {
-  protected static final Logger LOG = Logger.getInstance(AuthorizationFailedExceptionMapper.class.getName());
+public class InvalidStateExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<InvalidStateException> {
+  protected static final Logger LOG = Logger.getInstance(InvalidStateExceptionMapper.class.getName());
 
-  public Response toResponse(AuthorizationFailedException exception) {
-    return reportError(Response.Status.FORBIDDEN, exception, "Access denied. Check the user has enough permissions to perform the operation.");
+  public Response toResponse(InvalidStateException exception) {
+    return reportError(Response.Status.CONFLICT, exception, "Cannot process this request at this time. Repeat later.");
   }
 }

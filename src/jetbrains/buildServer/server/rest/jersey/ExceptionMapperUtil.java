@@ -33,12 +33,8 @@ public class ExceptionMapperUtil {
   @Context
   UriInfo myUriInfo;
 
-  protected Response reportError(@NotNull final Response.Status responseStatus, @NotNull final Exception e) {
-    return reportError(responseStatus.getStatusCode(), e, "Please check URL is correct. See details in the server log.");
-  }
-
-  protected Response reportError(final int statusCode, @NotNull final Exception e) {
-    return reportError(statusCode, e, "Please check URL is correct. See details in the server log.");
+  protected Response reportError(@NotNull final Response.Status responseStatus, @NotNull final Exception e, @Nullable final String message) {
+    return reportError(responseStatus.getStatusCode(), e, message);
   }
 
   protected Response reportError(final int statusCode, @NotNull final Exception e, @Nullable final String message) {

@@ -16,21 +16,16 @@
 
 package jetbrains.buildServer.server.rest.errors;
 
-import com.intellij.openapi.diagnostic.Logger;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
-import javax.ws.rs.ext.Provider;
-import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
-
 /**
  * User: Yegor Yarko
- * Date: 30.03.2009
+ * Date: 29.03.2009
  */
-@Provider
-public class OperationExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<OperationException> {
-  protected static final Logger LOG = Logger.getInstance(OperationExceptionMapper.class.getName());
+public class InvalidStateException extends RuntimeException {
+  public InvalidStateException(String message) {
+    super(message);
+  }
 
-  public Response toResponse(OperationException exception) {
-    return reportError(Response.Status.INTERNAL_SERVER_ERROR, exception, "This is probably TeamCity bug. Please report to JetBrains with server debug logs.");
+  public InvalidStateException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

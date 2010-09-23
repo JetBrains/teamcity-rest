@@ -31,6 +31,6 @@ public class LocatorProcessExceptionMapper extends ExceptionMapperUtil implement
   protected static final Logger LOG = Logger.getInstance(LocatorProcessExceptionMapper.class.getName());
 
   public Response toResponse(LocatorProcessException exception) {
-    return reportError(Response.Status.BAD_REQUEST, exception);
+    return reportError(Response.Status.BAD_REQUEST, exception, "Invalid request. Check locator is specified correctly.");
   }
 }

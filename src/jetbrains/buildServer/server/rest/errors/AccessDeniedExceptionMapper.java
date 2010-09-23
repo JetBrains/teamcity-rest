@@ -34,6 +34,6 @@ public class AccessDeniedExceptionMapper extends ExceptionMapperUtil implements 
   protected static final Logger LOG = Logger.getInstance(AccessDeniedExceptionMapper.class.getName());
 
   public Response toResponse(AccessDeniedException exception) {
-    return reportError(Response.Status.FORBIDDEN, exception);
+    return reportError(Response.Status.FORBIDDEN, exception, "Access denied. Check the user has enough permissions to perform the operation.");
   }
 }

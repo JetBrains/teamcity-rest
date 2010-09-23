@@ -31,6 +31,6 @@ public class NotFoundExceptionMapper extends ExceptionMapperUtil implements Exce
   protected static final Logger LOG = Logger.getInstance(NotFoundExceptionMapper.class.getName());
 
   public Response toResponse(NotFoundException exception) {
-    return reportError(Response.Status.NOT_FOUND, exception);
+    return reportError(Response.Status.NOT_FOUND, exception, "Could not find the entity requested. Check the reference is correct and the user has permissions to access the entity.");
   }
 }

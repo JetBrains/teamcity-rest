@@ -31,6 +31,6 @@ public class BadRequestExceptionMapper extends ExceptionMapperUtil implements Ex
   protected static final Logger LOG = Logger.getInstance(BadRequestExceptionMapper.class.getName());
 
   public Response toResponse(BadRequestException exception) {
-    return reportError(Response.Status.BAD_REQUEST, exception);
+    return reportError(Response.Status.BAD_REQUEST, exception, "Invalid request. Please check the request URL and data are correct.");
   }
 }
