@@ -29,6 +29,7 @@
   <bean id="webApplicationExceptionMapper" class="jetbrains.buildServer.server.rest.errors.WebApplicationExceptionMapper"/>
   <bean id="jerseyNotFoundExceptionMapper" class="jetbrains.buildServer.server.rest.errors.JerseyNotFoundExceptionMapper"/>
   <bean id="operationExceptionMapper" class="jetbrains.buildServer.server.rest.errors.OperationExceptionMapper"/>
+  <bean id="runtimeExceptionMapper" class="jetbrains.buildServer.server.rest.errors.RuntimeExceptionMapper"/>
 
   <bean id="apiController" class="jetbrains.buildServer.server.rest.APIController"/>
 
