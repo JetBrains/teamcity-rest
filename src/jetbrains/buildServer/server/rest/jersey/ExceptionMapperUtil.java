@@ -21,6 +21,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * User: Yegor Yarko
@@ -33,12 +34,24 @@ public class ExceptionMapperUtil {
   UriInfo myUriInfo;
 
   protected Response reportError(@NotNull final Response.Status responseStatus, @NotNull final Exception e) {
-    Response.ResponseBuilder builder = Response.status(responseStatus);
+    return reportError(responseStatus.getStatusCode(), e, "Please check URL is correct. See details in the server log.");
+  }
+
+  protected Response reportError(final int statusCode, @NotNull final Exception e) {
+    return reportError(statusCode, e, "Please check URL is correct. See details in the server log.");
+  }
+
+  protected Response reportError(final int statusCode, @NotNull final Exception e, @Nullable final String message) {
+    Response.Status status = Response.Status.fromStatusCode(statusCode);
+    final String statusDescription = (status != null) ? status.toString() : Integer.toString(statusCode);
+    Response.ResponseBuilder builder = Response.status(statusCode);
     builder.type("text/plain");
-    builder.entity("Error has occurred during request processing (" + responseStatus +
-                   "). Error: " + getMessageWithCauses(e) + "\nPlease check URL is correct. See details in the server log.");
-    LOG.warn("Error for request " + myUriInfo.getRequestUri() + ". Sending " + responseStatus + " error in response: " + e.toString());
-    LOG.debug("Error for request " + myUriInfo.getRequestUri() + ". Sending " + responseStatus + " error in response.", e);
+    builder.entity("Error has occurred during request processing (" + statusDescription +
+                   ").\nError: " + getMessageWithCauses(e) + (message != null ? "\n" + message : ""));
+    final String logMessage = "Error" + (message != null ? " '" + message + "'" : "") + " for request " + myUriInfo.getRequestUri() +
+                              ". Sending " + statusDescription + " error in response: " + e.toString();
+    LOG.warn(logMessage);
+    LOG.debug(logMessage, e);
     return builder.build();
   }
 

@@ -17,7 +17,10 @@
 package jetbrains.buildServer.server.rest.errors;
 
 import com.intellij.openapi.diagnostic.Logger;
+import java.util.List;
+import java.util.Map;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
@@ -34,7 +37,17 @@ public class WebApplicationExceptionMapper extends ExceptionMapperUtil implement
   protected static final Logger LOG = Logger.getInstance(WebApplicationExceptionMapper.class.getName());
 
   public Response toResponse(WebApplicationException exception) {
-    final Response.Status status = Response.Status.fromStatusCode(exception.getResponse().getStatus());
-    return reportError(status != null ? status : Response.Status.INTERNAL_SERVER_ERROR, exception);
+    final Response exceptionResponse = exception.getResponse();
+    final MultivaluedMap<String, Object> metadata = exceptionResponse.getMetadata();
+    StringBuffer dump = new StringBuffer();
+    if (metadata != null && metadata.size() != 0) {
+      dump.append("metadata: [");
+      for (Map.Entry<String, List<Object>> entry : metadata.entrySet()) {
+        dump.append(entry.getKey()).append(":").append(entry.getValue()).append(",");
+      }
+      dump.append("]");
+    }
+    return reportError(exceptionResponse.getStatus(), exception,
+                       "Not supported request. Please check URL, HTTP method and transfered data are correct. " + dump);
   }
 }
