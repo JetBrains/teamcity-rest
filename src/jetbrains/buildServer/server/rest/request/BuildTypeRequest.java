@@ -32,6 +32,7 @@ import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SimpleParameter;
@@ -49,12 +50,10 @@ import jetbrains.buildServer.util.StringUtil;
 
 @Path(BuildTypeRequest.API_BUILD_TYPES_URL)
 public class BuildTypeRequest {
-  @Context
-  private DataProvider myDataProvider;
-  @Context
-  private ApiUrlBuilder myApiUrlBuilder;
-  @Context
-  private ServiceLocator myServiceLocator;
+  @Context private DataProvider myDataProvider;
+  @Context private ApiUrlBuilder myApiUrlBuilder;
+  @Context private ServiceLocator myServiceLocator;
+  @Context private BeanFactory myFactory;
 
   public static final String API_BUILD_TYPES_URL = Constants.API_URL + "/buildTypes";
 
@@ -188,7 +187,7 @@ public class BuildTypeRequest {
                                      @PathParam("buildLocator") String buildLocator) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     SBuild build = myDataProvider.getBuild(buildType, buildLocator);
-    return new Build(build, myDataProvider, myApiUrlBuilder, myServiceLocator);
+    return myFactory.create(Build.class, build, myDataProvider, myApiUrlBuilder, myServiceLocator);
   }
 
 

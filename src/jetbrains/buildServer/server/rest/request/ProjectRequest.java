@@ -32,6 +32,7 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.Projects;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
@@ -42,12 +43,10 @@ import jetbrains.buildServer.serverSide.SProject;
  */
 @Path(ProjectRequest.API_PROJECTS_URL)
 public class ProjectRequest {
-  @Context
-  private DataProvider myDataProvider;
-  @Context
-  private ApiUrlBuilder myApiUrlBuilder;
-  @Context
-  private ServiceLocator myServiceLocator;
+  @Context private DataProvider myDataProvider;
+  @Context private ApiUrlBuilder myApiUrlBuilder;
+  @Context private ServiceLocator myServiceLocator;
+  @Context private BeanFactory myFactory;
 
   public static final String API_PROJECTS_URL = Constants.API_URL + "/projects";
 
@@ -148,7 +147,7 @@ public class ProjectRequest {
     SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
     SBuild build = myDataProvider.getBuild(buildType, buildLocator);
 
-    return new Build(build, myDataProvider, myApiUrlBuilder, myServiceLocator);
+    return myFactory.create(Build.class, build, myDataProvider, myApiUrlBuilder, myServiceLocator);
   }
 
   @GET

@@ -27,6 +27,7 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.change.Change;
 import jetbrains.buildServer.server.rest.model.change.Changes;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
@@ -40,6 +41,8 @@ public class ChangeRequest {
   private DataProvider myDataProvider;
   @Context
   private ApiUrlBuilder myApiUrlBuilder;
+  @Context
+  private BeanFactory myFactory;
 
   public static String getChangeHref(VcsModification modification) {
     return API_CHANGES_URL + "/id:" + modification.getId();
@@ -72,7 +75,7 @@ public class ChangeRequest {
                         start,
                         count));
 
-    return new Changes(buildModifications,
+    return myFactory.create(Changes.class, buildModifications,
                        new PagerData(uriInfo.getRequestUriBuilder(), request, start, count, buildModifications.size()),
                        myApiUrlBuilder);
   }
@@ -81,6 +84,6 @@ public class ChangeRequest {
   @Path("/{changeLocator}")
   @Produces({"application/xml", "application/json"})
   public Change serveChange(@PathParam("changeLocator") String changeLocator) {
-    return new Change(myDataProvider.getChange(changeLocator), myApiUrlBuilder);
+    return myFactory.create(Change.class, myDataProvider.getChange(changeLocator), myApiUrlBuilder);
   }
 }

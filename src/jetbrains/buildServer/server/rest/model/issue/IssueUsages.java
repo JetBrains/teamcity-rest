@@ -23,7 +23,9 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.issueTracker.Issue;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author Yegor.Yarko
@@ -34,6 +36,7 @@ public class IssueUsages {
   private Collection<Issue> myIssues;
   private SBuild myBuild;
   private ApiUrlBuilder myApiUrlBuilder;
+  @Autowired private BeanFactory myFactory;
 
   public IssueUsages() {
   }
@@ -48,7 +51,7 @@ public class IssueUsages {
   public List<IssueUsage> getIssueUsages() {
     List<IssueUsage> result = new ArrayList<IssueUsage>(myIssues.size());
     for (Issue issue : myIssues) {
-      result.add(new IssueUsage(issue, myBuild, myApiUrlBuilder));
+      result.add(myFactory.create(IssueUsage.class, issue, myBuild, myApiUrlBuilder));
     }
     return result;
   }

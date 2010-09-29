@@ -30,6 +30,7 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.users.SUser;
@@ -47,11 +48,9 @@ public class BuildRequest {
   private DataProvider myDataProvider;
   public static final String API_BUILDS_URL = Constants.API_URL + "/builds";
 
-  @Context
-  private ApiUrlBuilder myApiUrlBuilder;
-
-  @Context
-  private ServiceLocator myServiceLocator;
+  @Context private ApiUrlBuilder myApiUrlBuilder;
+  @Context private ServiceLocator myServiceLocator;
+  @Context private BeanFactory myFactory;
 
   public static String getBuildHref(SBuild build) {
     return API_BUILDS_URL + "/id:" + build.getBuildId();
@@ -96,7 +95,7 @@ public class BuildRequest {
   @Path("/{buildLocator}")
   @Produces({"application/xml", "application/json"})
   public Build serveBuild(@PathParam("buildLocator") String buildLocator) {
-    return new Build(myDataProvider.getBuild(null, buildLocator), myDataProvider, myApiUrlBuilder, myServiceLocator);
+    return myFactory.create(Build.class, myDataProvider.getBuild(null, buildLocator), myDataProvider, myApiUrlBuilder, myServiceLocator);
   }
 
   @GET

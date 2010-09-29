@@ -19,6 +19,8 @@ package jetbrains.buildServer.server.rest.util;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.context.ApplicationContext;
 
 /**
@@ -32,17 +34,46 @@ public class BeanFactory {
     this.ctx = ctx;
   }
 
+  @Nullable
+  private <T> Constructor<T> findConstructor(@NotNull final Class<T> clazz, Class<?>[] argTypes) {
+    try {
+      return clazz.getConstructor(argTypes);
+    } catch (NoSuchMethodException e) {
+      //NOP
+    }
+
+    for (Constructor c : clazz.getConstructors()) {
+      final Class[] reqTypes = c.getParameterTypes();
+      if (checkParametersMatch(argTypes, reqTypes)) {
+        //noinspection unchecked
+        return (Constructor<T>)c;
+      }
+    }
+    return null;
+  }
+
+  private <T> boolean checkParametersMatch(final Class<?>[] argTypes, final Class[] reqTypes) {
+    if (reqTypes.length != argTypes.length) return false;
+    for (int i = 0; i < argTypes.length; i++) {
+      final Class<?> paramType = argTypes[i];
+      final Class<?> reqType = reqTypes[i];
+
+      if (!reqType.isAssignableFrom(paramType)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public <T> T create(Class<T> clazz, Object... params) {
     Class[] types = new Class[params.length];
     for (int i = 0; i < types.length; i++) {
       types[i] = params[i].getClass();
     }
 
-    final Constructor<T> constructor;
-    try {
-      constructor = clazz.getConstructor(types);
-    } catch (NoSuchMethodException e) {
-      throw new OperationException("Could not find contructor for class " + clazz.getName() + " with parameters " + describe(params), e);
+    final Constructor<T> constructor = findConstructor(clazz, types);
+    if (constructor == null) {
+      throw new OperationException("Could not find contructor for class " + clazz.getName() + " with parameters " + describe(params));
     }
 
     final T t;

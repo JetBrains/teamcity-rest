@@ -34,12 +34,14 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildTypeRef;
 import jetbrains.buildServer.server.rest.model.change.ChangesRef;
 import jetbrains.buildServer.server.rest.model.change.Revisions;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.RunningBuildsManager;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SRunningBuild;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * User: Yegor Yarko
@@ -57,6 +59,7 @@ public class Build {
   @NotNull
   private DataProvider myDataProvider;
   private ApiUrlBuilder myApiUrlBuilder;
+  @Autowired BeanFactory myFactory;
 
   private ServiceLocator myServiceLocator;
 
@@ -200,7 +203,7 @@ public class Build {
 
   @XmlElement(name = "relatedIssues")
   public IssueUsages getIssues() {
-    return new IssueUsages(myBuild.getRelatedIssues(), myBuild, myApiUrlBuilder);
+    return myFactory.create(IssueUsages.class, myBuild.getRelatedIssues(), myBuild, myApiUrlBuilder);
   }
 
   private List<BuildRef> getBuildRefs(@NotNull Collection<? extends BuildDependency> dependencies,

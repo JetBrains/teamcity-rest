@@ -23,9 +23,11 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.vcs.SVcsModification;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author Yegor.Yarko
@@ -33,43 +35,51 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "changes")
 public class Changes {
-  @XmlElement(name = "change")
-  public List<ChangeRef> changes;
+  @Autowired private BeanFactory myFactory;
 
-  @XmlAttribute
-  public long count;
-
-  @XmlAttribute(required = false)
-  @Nullable
-  public String nextHref;
-
-  @XmlAttribute(required = false)
-  @Nullable
-  public String prevHref;
+  private List<SVcsModification> myModifications;
+  private PagerData myPagerData;
   private ApiUrlBuilder myApiUrlBuilder;
 
   public Changes() {
   }
 
   public Changes(final List<SVcsModification> modifications, final ApiUrlBuilder apiUrlBuilder) {
+    myModifications = modifications;
     myApiUrlBuilder = apiUrlBuilder;
-    init(modifications, new PagerData());
+    myPagerData = new PagerData();
   }
 
   public Changes(@NotNull final List<SVcsModification> modifications,
                  @NotNull final PagerData pagerData,
                  final ApiUrlBuilder apiUrlBuilder) {
+    myModifications = modifications;
+    myPagerData = pagerData;
     myApiUrlBuilder = apiUrlBuilder;
-    init(modifications, pagerData);
+  }
+  @XmlElement(name = "change")
+  public List<ChangeRef> getChanges() {
+    List<ChangeRef>changes = new ArrayList<ChangeRef>(myModifications.size());
+    for (SVcsModification root : myModifications) {
+      changes.add(myFactory.create(ChangeRef.class, root, myApiUrlBuilder));
+    }
+    return changes;
   }
 
-  private void init(final List<SVcsModification> modifications, final PagerData pagerData) {
-    changes = new ArrayList<ChangeRef>(modifications.size());
-    for (SVcsModification root : modifications) {
-      changes.add(new ChangeRef(root, myApiUrlBuilder));
-    }
-    nextHref = pagerData.getNextHref() != null ? myApiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;
-    prevHref = pagerData.getPrevHref() != null ? myApiUrlBuilder.transformRelativePath(pagerData.getPrevHref()) : null;
-    count = modifications.size();
+  @XmlAttribute
+  public long getCount() {
+    return myModifications.size();
+  }
+
+  @XmlAttribute(required = false)
+  @Nullable
+  public String getNextHref() {
+    return myPagerData.getNextHref() != null ? myApiUrlBuilder.transformRelativePath(myPagerData.getNextHref()) : null;
+  }
+
+  @XmlAttribute(required = false)
+  @Nullable
+  public String getPrevHref() {
+    return myPagerData.getPrevHref() != null ? myApiUrlBuilder.transformRelativePath(myPagerData.getPrevHref()) : null;
   }
 }

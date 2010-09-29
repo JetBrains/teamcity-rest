@@ -21,8 +21,10 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.change.Changes;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.vcs.SVcsModification;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author Yegor.Yarko
@@ -32,6 +34,7 @@ public class IssueUsage {
   private jetbrains.buildServer.issueTracker.Issue myIssue;
   private SBuild myBuild;
   private ApiUrlBuilder myApiUrlBuilder;
+  @Autowired private BeanFactory myFactory;
 
   public IssueUsage() {
   }
@@ -56,6 +59,6 @@ public class IssueUsage {
         relatedModifications.add(vcsModification);
       }
     }
-    return relatedModifications.isEmpty() ? null : new Changes(relatedModifications, myApiUrlBuilder);
+    return relatedModifications.isEmpty() ? null : myFactory.create(Changes.class, relatedModifications, myApiUrlBuilder);
   }
 }
