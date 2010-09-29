@@ -16,12 +16,18 @@
 
 package jetbrains.buildServer.server.rest.model.change;
 
+import java.util.Collection;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.model.user.UserRef;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.vcs.VcsManager;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * User: Yegor Yarko
@@ -29,6 +35,9 @@ import jetbrains.buildServer.server.rest.model.Util;
  */
 @XmlRootElement(name = "change")
 public class Change extends ChangeRef {
+
+  @Autowired VcsManager myVcsManager;
+  @Autowired BeanFactory myFactory;
 
   public Change() {
   }
@@ -54,6 +63,15 @@ public class Change extends ChangeRef {
   @XmlElement
   public String getComment() {
     return myModification.getDescription();
+  }
+
+  @XmlElement
+  public UserRef getUser() {
+    final Collection<SUser> users = myVcsManager.getModificationUsers(myModification);
+    if (users.size() != 1){
+      return null;
+    }
+    return myFactory.create(UserRef.class, users.iterator().next(), myApiUrlBuilder);
   }
 
   @XmlElement(name = "files")

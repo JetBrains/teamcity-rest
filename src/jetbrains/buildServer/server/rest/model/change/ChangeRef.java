@@ -18,16 +18,18 @@ package jetbrains.buildServer.server.rest.model.change;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.vcs.SVcsModification;
-import jetbrains.buildServer.vcs.VcsModification;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author Yegor.Yarko
  *         Date: 21.07.2009
  */
 public class ChangeRef {
-  protected VcsModification myModification;
-  private ApiUrlBuilder myApiUrlBuilder;
+  protected SVcsModification myModification;
+  protected ApiUrlBuilder myApiUrlBuilder;
+  @Autowired WebLinks myWebLinks;
 
   public ChangeRef() {
   }
@@ -51,4 +53,10 @@ public class ChangeRef {
   public String getHref() {
     return myApiUrlBuilder.getHref(myModification);
   }
+
+  @XmlAttribute
+  public String getWebLink() {
+    return myWebLinks.getChangeUrl(myModification.getId(), myModification.isPersonal());
+  }
+
 }
