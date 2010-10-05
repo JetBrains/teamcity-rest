@@ -235,7 +235,7 @@ public class APIController extends BaseController implements ServletContextAware
               }
             });
           } catch (Throwable throwable) {
-            LOG.debug(throwable);
+            LOG.debug(throwable.getMessage(), throwable);
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable.getMessage());
           }
         } else {
