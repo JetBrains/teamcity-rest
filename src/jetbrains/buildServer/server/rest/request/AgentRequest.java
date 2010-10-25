@@ -57,7 +57,7 @@ public class AgentRequest {
   @GET
   @Path("/{agentLocator}")
   @Produces({"application/xml", "application/json"})
-  public Agent serveBuild(@PathParam("agentLocator") String agentLocator) {
+  public Agent serveAgent(@PathParam("agentLocator") String agentLocator) {
     return new Agent(myDataProvider.getAgent(agentLocator), myApiUrlBuilder);
   }
 }
