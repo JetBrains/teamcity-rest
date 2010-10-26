@@ -73,7 +73,6 @@
   
   <path id="library.teamcity_open_api_common.classpath">
     <pathelement location="${path.variable.teamcitydistribution}/devPackage/common-api.jar"/>
-    <pathelement location="${path.variable.teamcitydistribution}/devPackage/runtime-util.jar"/>
   </path>
   
   <path id="library.teamcity_open_api_server.classpath">
