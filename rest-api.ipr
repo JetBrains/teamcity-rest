@@ -47,7 +47,7 @@
       <entry name="?*.tld" />
       <entry name="?*.ftl" />
     </wildcardResourcePatterns>
-    <annotationProcessing enabled="false" useClasspath="true" generatedDirName="generated" />
+    <annotationProcessing enabled="false" useClasspath="true" />
   </component>
   <component name="CopyrightManager" default="">
     <copyright>
@@ -158,13 +158,6 @@
       <item index="3" class="java.lang.String" itemvalue="ERROR" />
       <item index="4" class="java.lang.String" itemvalue="SERVER PROBLEM" />
     </list>
-  </component>
-  <component name="JavacSettings">
-    <option name="DEBUGGING_INFO" value="true" />
-    <option name="GENERATE_NO_WARNINGS" value="false" />
-    <option name="DEPRECATION" value="true" />
-    <option name="ADDITIONAL_OPTIONS_STRING" value="" />
-    <option name="MAXIMUM_HEAP_SIZE" value="128" />
   </component>
   <component name="JavadocGenerationManager">
     <option name="OUTPUT_DIRECTORY" />
@@ -326,6 +319,9 @@
       <module fileurl="file://$PROJECT_DIR$/rest-api.iml" filepath="$PROJECT_DIR$/rest-api.iml" />
     </modules>
   </component>
+  <component name="ProjectResources">
+    <default-html-doctype>http://www.w3.org/1999/xhtml</default-html-doctype>
+  </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_1_5" assert-keyword="true" jdk-15="true" project-jdk-name="1.5" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/out" />
   </component>
@@ -363,9 +359,9 @@
   </component>
   <component name="WebServicesPlugin" addRequiredLibraries="true" />
   <component name="libraryTable">
-    <library name="TeamCity Open API agent">
+    <library name="TeamCity Open API common">
       <CLASSES>
-        <root url="jar://$TeamCityDistribution$/devPackage/agent-api.jar!/" />
+        <root url="jar://$TeamCityDistribution$/devPackage/common-api.jar!/" />
       </CLASSES>
       <JAVADOC>
         <root url="jar://$TeamCityDistribution$/devPackage/javadoc/openApi-help.jar!/" />
@@ -377,18 +373,6 @@
     <library name="TeamCity Open API server">
       <CLASSES>
         <root url="jar://$TeamCityDistribution$/devPackage/server-api.jar!/" />
-      </CLASSES>
-      <JAVADOC>
-        <root url="jar://$TeamCityDistribution$/devPackage/javadoc/openApi-help.jar!/" />
-      </JAVADOC>
-      <SOURCES>
-        <root url="jar://$TeamCityDistribution$/devPackage/src/openApi-source.jar!/" />
-      </SOURCES>
-    </library>
-    <library name="TeamCity Open API common">
-      <CLASSES>
-        <root url="jar://$TeamCityDistribution$/devPackage/runtime-util.jar!/" />
-        <root url="jar://$TeamCityDistribution$/devPackage/common-api.jar!/" />
       </CLASSES>
       <JAVADOC>
         <root url="jar://$TeamCityDistribution$/devPackage/javadoc/openApi-help.jar!/" />
