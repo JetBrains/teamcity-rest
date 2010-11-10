@@ -16,8 +16,6 @@
 
 package jetbrains.buildServer.server.rest.model;
 
-import java.util.ArrayList;
-import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
@@ -39,16 +37,13 @@ public class Comment {
     myApiUrlBuilder = apiUrlBuilder;
   }
 
-  //todo: is it OK to handle possible missing value?
-
   @XmlElement
-  public List<UserRef> getUser() {
-    final ArrayList<UserRef> result = new ArrayList<UserRef>();
+  public UserRef getUser() {
     final jetbrains.buildServer.users.User user = myBuildComment.getUser();
     if (user != null) {
-      result.add(new UserRef(user, myApiUrlBuilder));
+      return new UserRef(user, myApiUrlBuilder);
     }
-    return result;
+    return null;
   }
 
   @XmlElement
