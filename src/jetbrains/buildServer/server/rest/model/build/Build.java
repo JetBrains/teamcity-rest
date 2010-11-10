@@ -35,10 +35,7 @@ import jetbrains.buildServer.server.rest.model.change.ChangesRef;
 import jetbrains.buildServer.server.rest.model.change.Revisions;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
-import jetbrains.buildServer.serverSide.RunningBuildsManager;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SBuildAgent;
-import jetbrains.buildServer.serverSide.SRunningBuild;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,7 +48,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 //todo: reuse fields code from DataProvider
 @XmlRootElement(name = "build")
 @XmlType(propOrder = {"running", "pinned", "history", "personal", "webUrl", "href", "status", "number", "id",
-  "runningBuildInfo", "statusText", "buildType", "startDate", "finishDate", "agent", "comment", "tags", "properties",
+  "runningBuildInfo", "statusText", "buildType", "startDate", "finishDate", "agent", "comment", "tags", "pinInfo", "properties",
   "buildDependencies", "revisions", "changes", "issues"})
 public class Build {
   @NotNull
@@ -159,6 +156,19 @@ public class Build {
   @XmlElement
   public Tags getTags() {
     return new Tags(myBuild.getTags());
+  }
+
+  @XmlElement(name = "pinInfo")
+  public Comment getPinInfo(){
+    if (!myBuild.isFinished()) {
+      return null;
+    }
+    SFinishedBuild finishedBuild = (SFinishedBuild)myBuild; //todo: is this OK?
+    final jetbrains.buildServer.serverSide.comments.Comment pinComment = finishedBuild.getPinComment();
+    if (pinComment == null){
+      return null;
+    }
+    return new Comment(pinComment, myApiUrlBuilder);
   }
 
   @XmlElement

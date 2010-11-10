@@ -26,12 +26,14 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildsFilter;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.web.util.SessionUser;
@@ -155,6 +157,50 @@ public class BuildRequest {
     final List<String> tags = build.getTags();
     tags.add(tagName);
     build.setTags(SessionUser.getUser(request), tags);
+  }
+
+  /**
+   * Fets current build pinned status.
+   * @param buildLocator build locator
+   */
+  @GET
+  @Path("/{buildLocator}/pin/")
+  @Produces({"text/plain"})
+  public String getPinned(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
+    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    return Boolean.toString(build.isPinned());
+  }
+
+  /**
+   * Pins a build
+   * @param buildLocator build locator
+   */
+  @PUT
+  @Path("/{buildLocator}/pin/")
+  @Consumes({"text/plain"})
+  public void pinBuild(@PathParam("buildLocator") String buildLocator, String comment, @Context HttpServletRequest request) {
+    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    if (!build.isFinished()){
+      throw new BadRequestException("Cannot pin build that is not finished.");
+    }
+    SFinishedBuild finishedBuild = (SFinishedBuild)build;
+    finishedBuild.setPinned(true, SessionUser.getUser(request), comment);
+  }
+
+  /**
+   * Unpins a build
+   * @param buildLocator build locator
+   */
+  @DELETE
+  @Path("/{buildLocator}/pin/")
+  @Consumes({"text/plain"})
+  public void unpinBuild(@PathParam("buildLocator") String buildLocator, String comment, @Context HttpServletRequest request) {
+    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    if (!build.isFinished()){
+      throw new BadRequestException("Cannot pin build that is not finished.");
+    }
+    SFinishedBuild finishedBuild = (SFinishedBuild)build;
+    finishedBuild.setPinned(false, SessionUser.getUser(request), comment);
   }
 
   @PUT
