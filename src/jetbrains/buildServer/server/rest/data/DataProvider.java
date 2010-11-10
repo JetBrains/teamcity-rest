@@ -412,7 +412,7 @@ public class DataProvider {
   }
 
   /**
-   * Finds finished builds by the specified criteria within specified range
+   * Finds builds by the specified criteria within specified range
    * This is slow!
    *
    * @param buildsFilter the filter for the builds to find
