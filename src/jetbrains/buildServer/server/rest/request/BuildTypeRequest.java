@@ -187,7 +187,7 @@ public class BuildTypeRequest {
                                      @PathParam("buildLocator") String buildLocator) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     SBuild build = myDataProvider.getBuild(buildType, buildLocator);
-    return myFactory.create(Build.class, build, myDataProvider, myApiUrlBuilder, myServiceLocator);
+    return new Build(build, myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
   }
 
 

@@ -50,7 +50,7 @@ public class ServerRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public Server serveServerInfo() {
-    return myFactory.create(Server.class);
+    return new Server(myFactory);
   }
 
   @GET

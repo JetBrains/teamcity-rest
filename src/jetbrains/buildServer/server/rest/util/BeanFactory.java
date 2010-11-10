@@ -86,6 +86,10 @@ public class BeanFactory {
     } catch (InvocationTargetException e) {
       throw new OperationException("Could not instantiate class " + clazz.getName() + " with parameters " + describe(params), e);
     }
+    return autowire(t);
+  }
+
+  public <T> T autowire(T t){
     ctx.getAutowireCapableBeanFactory().autowireBean(t);
     return t;
   }

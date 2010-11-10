@@ -69,11 +69,12 @@ public class Build {
   public Build(@NotNull final SBuild build,
                @NotNull final DataProvider dataProvider,
                final ApiUrlBuilder apiUrlBuilder,
-               @NotNull final ServiceLocator serviceLocator) {
+               @NotNull final ServiceLocator serviceLocator, final BeanFactory myFactory) {
     myBuild = build;
     myDataProvider = dataProvider;
     myApiUrlBuilder = apiUrlBuilder;
     myServiceLocator = serviceLocator;
+    myFactory.autowire(this);
   }
 
   @XmlAttribute
@@ -203,7 +204,7 @@ public class Build {
 
   @XmlElement(name = "relatedIssues")
   public IssueUsages getIssues() {
-    return myFactory.create(IssueUsages.class, myBuild.getRelatedIssues(), myBuild, myApiUrlBuilder);
+    return new IssueUsages(myBuild.getRelatedIssues(), myBuild, myApiUrlBuilder, myFactory);
   }
 
   private List<BuildRef> getBuildRefs(@NotNull Collection<? extends BuildDependency> dependencies,

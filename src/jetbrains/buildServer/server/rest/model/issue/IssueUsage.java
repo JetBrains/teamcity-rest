@@ -39,10 +39,14 @@ public class IssueUsage {
   public IssueUsage() {
   }
 
-  public IssueUsage(jetbrains.buildServer.issueTracker.Issue issue, SBuild build, final ApiUrlBuilder apiUrlBuilder) {
+  public IssueUsage(jetbrains.buildServer.issueTracker.Issue issue,
+                    SBuild build,
+                    final ApiUrlBuilder apiUrlBuilder,
+                    final BeanFactory myFactory) {
     myIssue = issue;
     myBuild = build;
     myApiUrlBuilder = apiUrlBuilder;
+    myFactory.autowire(this);
   }
 
   @XmlElement
@@ -59,6 +63,6 @@ public class IssueUsage {
         relatedModifications.add(vcsModification);
       }
     }
-    return relatedModifications.isEmpty() ? null : myFactory.create(Changes.class, relatedModifications, myApiUrlBuilder);
+    return relatedModifications.isEmpty() ? null : new Changes(relatedModifications, myApiUrlBuilder, myFactory);
   }
 }

@@ -41,17 +41,18 @@ public class IssueUsages {
   public IssueUsages() {
   }
 
-  public IssueUsages(final Collection<Issue> issues, final SBuild build, final ApiUrlBuilder apiUrlBuilder) {
+  public IssueUsages(final Collection<Issue> issues, final SBuild build, final ApiUrlBuilder apiUrlBuilder, final BeanFactory myFactory) {
     myIssues = issues;
     myBuild = build;
     myApiUrlBuilder = apiUrlBuilder;
+    myFactory.autowire(this);
   }
 
   @XmlElement(name = "issueUsage")
   public List<IssueUsage> getIssueUsages() {
     List<IssueUsage> result = new ArrayList<IssueUsage>(myIssues.size());
     for (Issue issue : myIssues) {
-      result.add(myFactory.create(IssueUsage.class, issue, myBuild, myApiUrlBuilder));
+      result.add(new IssueUsage(issue, myBuild, myApiUrlBuilder, myFactory));
     }
     return result;
   }

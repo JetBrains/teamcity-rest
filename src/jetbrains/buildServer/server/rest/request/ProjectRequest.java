@@ -147,7 +147,7 @@ public class ProjectRequest {
     SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
     SBuild build = myDataProvider.getBuild(buildType, buildLocator);
 
-    return myFactory.create(Build.class, build, myDataProvider, myApiUrlBuilder, myServiceLocator);
+    return new Build(build, myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
   }
 
   @GET

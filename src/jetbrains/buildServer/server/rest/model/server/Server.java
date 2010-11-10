@@ -21,6 +21,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -36,6 +37,10 @@ public class Server {
   private DataProvider myDataProvider;
 
   public Server() {
+  }
+
+  public Server(final BeanFactory myFactory) {
+    myFactory.autowire(this);
   }
 
   @XmlAttribute

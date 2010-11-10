@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model.change;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.vcs.SVcsModification;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,9 +35,10 @@ public class ChangeRef {
   public ChangeRef() {
   }
 
-  public ChangeRef(SVcsModification modification, final ApiUrlBuilder apiUrlBuilder) {
+  public ChangeRef(SVcsModification modification, final ApiUrlBuilder apiUrlBuilder, final BeanFactory myFactory) {
     myModification = modification;
     myApiUrlBuilder = apiUrlBuilder;
+    myFactory.autowire(this);
   }
 
   @XmlAttribute

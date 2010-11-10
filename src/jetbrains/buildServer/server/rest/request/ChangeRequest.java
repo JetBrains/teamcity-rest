@@ -75,15 +75,15 @@ public class ChangeRequest {
                         start,
                         count));
 
-    return myFactory.create(Changes.class, buildModifications,
+    return new Changes(buildModifications,
                        new PagerData(uriInfo.getRequestUriBuilder(), request, start, count, buildModifications.size()),
-                       myApiUrlBuilder);
+                       myApiUrlBuilder, myFactory);
   }
 
   @GET
   @Path("/{changeLocator}")
   @Produces({"application/xml", "application/json"})
   public Change serveChange(@PathParam("changeLocator") String changeLocator) {
-    return myFactory.create(Change.class, myDataProvider.getChange(changeLocator), myApiUrlBuilder);
+    return new Change(myDataProvider.getChange(changeLocator), myApiUrlBuilder, myFactory);
   }
 }

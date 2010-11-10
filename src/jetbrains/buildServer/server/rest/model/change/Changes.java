@@ -44,24 +44,27 @@ public class Changes {
   public Changes() {
   }
 
-  public Changes(final List<SVcsModification> modifications, final ApiUrlBuilder apiUrlBuilder) {
+  public Changes(final List<SVcsModification> modifications, final ApiUrlBuilder apiUrlBuilder, final BeanFactory myFactory) {
     myModifications = modifications;
     myApiUrlBuilder = apiUrlBuilder;
     myPagerData = new PagerData();
+    myFactory.autowire(this);
   }
 
   public Changes(@NotNull final List<SVcsModification> modifications,
                  @NotNull final PagerData pagerData,
-                 final ApiUrlBuilder apiUrlBuilder) {
+                 final ApiUrlBuilder apiUrlBuilder, final BeanFactory myFactory) {
     myModifications = modifications;
     myPagerData = pagerData;
     myApiUrlBuilder = apiUrlBuilder;
+    myFactory.autowire(this);
   }
+
   @XmlElement(name = "change")
   public List<ChangeRef> getChanges() {
     List<ChangeRef>changes = new ArrayList<ChangeRef>(myModifications.size());
     for (SVcsModification root : myModifications) {
-      changes.add(myFactory.create(ChangeRef.class, root, myApiUrlBuilder));
+      changes.add(new ChangeRef(root, myApiUrlBuilder, myFactory));
     }
     return changes;
   }

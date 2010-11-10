@@ -26,6 +26,7 @@ import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -42,8 +43,8 @@ public class Change extends ChangeRef {
   public Change() {
   }
 
-  public Change(jetbrains.buildServer.vcs.SVcsModification modification, final ApiUrlBuilder apiUrlBuilder) {
-    super(modification, apiUrlBuilder);
+  public Change(SVcsModification modification, final ApiUrlBuilder apiUrlBuilder, final BeanFactory myFactory) {
+    super(modification, apiUrlBuilder, myFactory);
   }
 
   @XmlAttribute
@@ -71,7 +72,7 @@ public class Change extends ChangeRef {
     if (users.size() != 1){
       return null;
     }
-    return myFactory.create(UserRef.class, users.iterator().next(), myApiUrlBuilder);
+    return new UserRef(users.iterator().next(), myApiUrlBuilder);
   }
 
   @XmlElement(name = "files")
