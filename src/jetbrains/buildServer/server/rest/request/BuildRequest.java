@@ -160,8 +160,9 @@ public class BuildRequest {
   }
 
   /**
-   * Fets current build pinned status.
+   * Fetches current build pinned status.
    * @param buildLocator build locator
+   * @return "true" is the build is pinned, "false" otherwise
    */
   @GET
   @Path("/{buildLocator}/pin/")
