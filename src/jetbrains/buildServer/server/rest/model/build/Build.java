@@ -173,7 +173,7 @@ public class Build {
 
   @XmlElement
   public Properties getProperties() {
-    return new Properties(myBuild.getBuildPromotion().getBuildParameters());
+    return new Properties(myBuild.getBuildPromotion().getParameters());
   }
 
   @XmlAttribute(name = "running")
