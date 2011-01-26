@@ -25,6 +25,7 @@ import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.groups.UserGroupManager;
 import jetbrains.buildServer.plugins.PluginManager;
 import jetbrains.buildServer.plugins.bean.PluginInfo;
+import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -40,7 +41,6 @@ import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsManager;
 import jetbrains.buildServer.vcs.VcsRoot;
-import jetbrains.buildServer.web.plugins.bean.ServerPluginInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

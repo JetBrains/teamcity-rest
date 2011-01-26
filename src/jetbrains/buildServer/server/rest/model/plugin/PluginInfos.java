@@ -21,7 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.web.plugins.bean.ServerPluginInfo;
+import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
 
 /**
  * Created by IntelliJ IDEA.

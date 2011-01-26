@@ -21,8 +21,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.web.plugins.bean.ServerPluginInfo;
 
 /**
  * @author Yegor.Yarko
