@@ -151,13 +151,13 @@ public class Locator {
     throw new LocatorProcessException("Invalid value of dimension '" + dimensionName + "': " + value + ". Should be 'true', 'false' or 'any'.");
   }
 
-  @Nullable
-  public Boolean getSingleDimensionValueAsBoolean(@NotNull final String dimensionName, @Nullable Boolean defaultValue) {
+  public boolean getSingleDimensionValueAsBoolean(@NotNull final String dimensionName, boolean defaultValue) {
     final String value = getSingleDimensionValue(dimensionName);
     if (value == null){
       return defaultValue;
     }
-    return getSingleDimensionValueAsBoolean(dimensionName);
+    final Boolean dimensionValue = getSingleDimensionValueAsBoolean(dimensionName);
+    return dimensionValue != null ? dimensionValue : defaultValue;
   }
 
   /**

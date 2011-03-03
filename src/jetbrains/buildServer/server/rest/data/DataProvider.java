@@ -638,11 +638,13 @@ public class DataProvider {
     }
 
     Long id = locator.getSingleDimensionValueAsLong("id");
+    boolean isPersonal = locator.getSingleDimensionValueAsBoolean("personal", false);
 
     if (id != null) {
-      SVcsModification modification = myVcsManager.findModificationById(id, false);
+      SVcsModification modification = myVcsManager.findModificationById(id, isPersonal);
       if (modification == null) {
-        throw new NotFoundException("No change can be found by id '" + locator.getSingleDimensionValue("id") + "'.");
+        throw new NotFoundException("No change can be found by id '" + locator.getSingleDimensionValue("id") + "' (searching " +
+                                    (isPersonal ? "personal" : "non-personal") + " changes).");
       }
       return modification;
     }

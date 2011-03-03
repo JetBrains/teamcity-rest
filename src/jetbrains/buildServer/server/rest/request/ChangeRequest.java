@@ -45,7 +45,7 @@ public class ChangeRequest {
   private BeanFactory myFactory;
 
   public static String getChangeHref(VcsModification modification) {
-    return API_CHANGES_URL + "/id:" + modification.getId();
+    return API_CHANGES_URL + "/id:" + modification.getId() + (modification.isPersonal() ? ",personal:true" : "");
   }
 
   public static String getBuildChangesHref(SBuild build) {

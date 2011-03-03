@@ -61,6 +61,11 @@ public class Change extends ChangeRef {
     return null;
   }
 
+  @XmlAttribute
+  public Boolean getPersonal() {
+    return myModification.isPersonal() ? true : null;
+  }
+
   @XmlElement
   public String getComment() {
     return myModification.getDescription();
