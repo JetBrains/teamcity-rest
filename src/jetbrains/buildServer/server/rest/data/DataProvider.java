@@ -273,6 +273,8 @@ public class DataProvider {
                             locator.getSingleDimensionValue("agentName"),
                             getRangeLimit(actualBuildType, locator.getSingleDimensionValue("sinceBuild"),
                                           parseDate(locator.getSingleDimensionValue("sinceDate"))),
+                            getRangeLimit(actualBuildType, locator.getSingleDimensionValue("untilBuild"),
+                                          parseDate(locator.getSingleDimensionValue("untilDate"))),
                             locator.getSingleDimensionValueAsLong("start"),
                             count == null?null:count.intValue());
   }

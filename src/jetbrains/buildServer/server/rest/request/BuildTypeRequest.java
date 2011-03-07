@@ -172,7 +172,7 @@ public class BuildTypeRequest {
       // preserve 5.0 logic for personal/canceled/pinned builds
       new BuildsFilter(buildType, status, myDataProvider.getUserIfNotNull(userLocator),
                        includePersonal ? null : false, includeCanceled ? null : false, false, onlyPinned ? true : null, tags, agentName,
-                       myDataProvider.getRangeLimit(buildType, sinceBuildLocator, myDataProvider.parseDate(sinceDate)), start,
+                       myDataProvider.getRangeLimit(buildType, sinceBuildLocator, myDataProvider.parseDate(sinceDate)), null, start,
                        count));
     return new Builds(buildsList,
                       myDataProvider,

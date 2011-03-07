@@ -35,6 +35,7 @@ public class BuildsFilter{
   private final List<String> myTags;
   @Nullable private final String myAgentName;
   @Nullable private final RangeLimit mySince;
+  @Nullable private final RangeLimit myUntil;
   @Nullable private final SUser myUser;
   @Nullable private final SBuildType myBuildType;
 
@@ -48,6 +49,7 @@ public class BuildsFilter{
    * @param pinned          if set, limits the builds by pinned status (return only pinned if "true", only non-pinned if "false")
    * @param agentName       limit builds to those ran on specified agent, can be null to return all builds
    * @param since           the RangeLimit to return only the builds since the limit. If contains build, it is not included, if contains the date, the builds that were started at and later then the date are included
+   * @param until           the RangeLimit to return only the builds until the limit. If contains build, it is included, if contains the date, the builds that were started at and before the date are included
    * @param start           the index of the first build to return (begins with 0), 0 by default
    * @param count           the number of builds to return, all by default
    */
@@ -61,6 +63,7 @@ public class BuildsFilter{
                       @Nullable final List<String> tags,
                       @Nullable final String agentName,
                       @Nullable final RangeLimit since,
+                      @Nullable final RangeLimit until,
                       @Nullable final Long start,
                       @Nullable final Integer count) {
     myStart = start;
@@ -76,6 +79,7 @@ public class BuildsFilter{
     myTags = tags;
     myAgentName = agentName;
     mySince = since;
+    myUntil = until;
   }
 
   @Nullable
@@ -127,6 +131,13 @@ public class BuildsFilter{
         if (sinceBuild != null && sinceBuild.getBuildId() == build.getBuildId()) {
           return false;
         }
+      }
+    }
+
+    //todo: consider also stopping processing if the build processed matched myUntil.getBuild()
+    if (myUntil != null) {
+      if (myUntil.getDate().before(build.getStartDate())) {
+        return false;
       }
     }
     return true;
@@ -194,6 +205,7 @@ public class BuildsFilter{
     if (myTags!= null) result.append("tag:").append(myTags).append(", ");
     if (myAgentName!= null) result.append("agentName:").append(myAgentName).append(", ");
     if (mySince!= null) result.append("since:").append(mySince).append(", ");
+    if (myUntil!= null) result.append("until:").append(myUntil).append(", ");
     if (myStart!= null) result.append("start:").append(myStart).append(", ");
     if (myCount!= null) result.append("count:").append(myCount);
     result.append(")");

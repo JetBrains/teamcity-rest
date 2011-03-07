@@ -86,6 +86,7 @@ public class BuildRequest {
                                       false, onlyPinned ? true : null, tags, agentName,
                                       myDataProvider
                                         .getRangeLimit(null, sinceBuildLocator, myDataProvider.parseDate(sinceDate)),
+                                      null,
                                       start, count);
     }
     final List<SBuild> buildsList = myDataProvider.getBuilds(buildsFilter);
