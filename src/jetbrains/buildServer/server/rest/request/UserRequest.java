@@ -57,13 +57,50 @@ public class UserRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public Users serveUsers() {
-    checkViewUserPermisison();
+    checkViewAllUsersPermission();
     return new Users(myDataProvider.getAllUsers(), myApiUrlBuilder);
   }
 
-  // workaround until http://youtrack.jetbrains.net/issue/TW-10534 is fixed
-  private void checkViewUserPermisison() {
+  private void checkViewAllUsersPermission() {
+    // workaround until http://youtrack.jetbrains.net/issue/TW-10534 is fixed
+    checkModifyAllUsersPermission();
+  }
+
+  private void checkViewUserPermission(String userLocator) {
+    SUser user;
+    try {
+      user = myDataProvider.getUser(userLocator);
+    } catch (RuntimeException e) { // ensuring user without permisisons could not get details on existing users by error messages
+      checkViewAllUsersPermission();
+      return;
+    }
+
+    final jetbrains.buildServer.users.User currentUser = myDataProvider.getCurrentUser();
+    if (user != null && currentUser != null && currentUser.getId() == user.getId()){
+      return;
+    }
+    checkViewAllUsersPermission();
+  }
+
+  private void checkModifyAllUsersPermission() {
     myDataProvider.checkGlobalPermission(jetbrains.buildServer.serverSide.auth.Permission.CHANGE_USER);
+  }
+
+  private void checkModifyUserPermission(String userLocator) {
+    SUser user;
+    try {
+      user = myDataProvider.getUser(userLocator);
+    } catch (RuntimeException e) { // ensuring user without permisisons could not get details on existing users by error messages
+      checkModifyAllUsersPermission();
+      return;
+    }
+
+    final jetbrains.buildServer.users.User currentUser = myDataProvider.getCurrentUser();
+    if (user != null && currentUser != null && currentUser.getId() == user.getId()){
+      myDataProvider.checkGlobalPermission(jetbrains.buildServer.serverSide.auth.Permission.CHANGE_OWN_PROFILE);
+      return;
+    }
+    checkModifyAllUsersPermission();
   }
 
   @POST
@@ -78,7 +115,7 @@ public class UserRequest {
   @Path("/{userLocator}")
   @Produces({"application/xml", "application/json"})
   public User serveUser(@PathParam("userLocator") String userLocator) {
-    checkViewUserPermisison();
+    checkViewUserPermission(userLocator);
     return new User(myDataProvider.getUser(userLocator), myApiUrlBuilder);
   }
 
@@ -86,7 +123,7 @@ public class UserRequest {
   @Path("/{userLocator}")
   @Consumes({"application/xml", "application/json"})
   public void updateUser(@PathParam("userLocator") String userLocator, UserData userData) {
-    checkViewUserPermisison();
+    checkModifyUserPermission(userLocator); //todo: user should not be able to add own roles
     SUser user = myDataProvider.getUser(userLocator);
     myDataUpdater.modify(user, userData);
   }
@@ -95,7 +132,7 @@ public class UserRequest {
   @Path("/{userLocator}/roles")
   @Produces({"application/xml", "application/json"})
   public RoleAssignments listRoles(@PathParam("userLocator") String userLocator) {
-    checkViewUserPermisison();
+    checkViewUserPermission(userLocator);
     SUser user = myDataProvider.getUser(userLocator);
     return new RoleAssignments(user.getRoles(), user, myApiUrlBuilder);
   }
@@ -105,7 +142,7 @@ public class UserRequest {
   @Path("/{userLocator}/roles")
   @Consumes({"application/xml", "application/json"})
   public void addRole(@PathParam("userLocator") String userLocator, RoleAssignment roleAssignment) {
-    checkViewUserPermisison();
+    checkModifyUserPermission(userLocator); //todo: user should not be able to add own roles
     SUser user = myDataProvider.getUser(userLocator);
     try {
       user.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
@@ -118,7 +155,7 @@ public class UserRequest {
   @Path("/{userLocator}/roles/{roleId}/{scope}")
   public RoleAssignment listRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
                                  @PathParam("scope") String scopeValue) {
-    checkViewUserPermisison();
+    checkViewUserPermission(userLocator);
     SUser user = myDataProvider.getUser(userLocator);
     return new RoleAssignment(myDataProvider.getUserRoleEntry(user, roleId, scopeValue), user, myApiUrlBuilder);
   }
@@ -127,7 +164,7 @@ public class UserRequest {
   @Path("/{userLocator}/roles/{roleId}/{scope}")
   public void deleteRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
                          @PathParam("scope") String scopeValue) {
-    checkViewUserPermisison();
+    checkModifyAllUsersPermission();  // user should not be able to modify own roles
     SUser user = myDataProvider.getUser(userLocator);
     try {
       user.removeRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
@@ -142,7 +179,7 @@ public class UserRequest {
   public void addRoleSimple(@PathParam("userLocator") String userLocator,
                             @PathParam("roleId") String roleId,
                             @PathParam("scope") String scopeValue) {
-    checkViewUserPermisison();
+    checkModifyAllUsersPermission(); // user should not be able to add own roles
     SUser user = myDataProvider.getUser(userLocator);
     try {
       user.addRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));

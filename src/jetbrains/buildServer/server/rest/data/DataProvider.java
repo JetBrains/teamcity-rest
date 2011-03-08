@@ -872,4 +872,9 @@ public class DataProvider {
   public ValueProviderRegistry getValueProviderRegistry() {
     return myValueProviderRegistry;
   }
+
+  @Nullable
+  public User getCurrentUser() {
+    return mySecurityContext.getAuthorityHolder().getAssociatedUser();
+  }
 }
