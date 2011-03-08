@@ -16,7 +16,10 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -27,7 +30,9 @@ import jetbrains.buildServer.server.rest.data.BuildsFilter;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
@@ -35,6 +40,9 @@ import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.statistics.ValueProvider;
+import jetbrains.buildServer.serverSide.statistics.build.BuildValue;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
@@ -112,11 +120,68 @@ public class BuildRequest {
   }
 
   @GET
+  @Path("/{buildLocator}/statistics/")
+  @Produces({"application/xml", "application/json"})
+  public Properties serveBuildStatisticValues(@PathParam("buildLocator") String buildLocator) {
+    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    return new Properties(getBuildStatisticsValues(build));
+  }
+
+  @GET
+  @Path("/{buildLocator}/statistics/{name}")
+  @Produces("text/plain")
+  public String serveBuildStatisticValue(@PathParam("buildLocator") String buildLocator,
+                                         @PathParam("name") String statisticValueName) {
+    SBuild build = myDataProvider.getBuild(null, buildLocator);
+
+    return getBuildStatisticValue(build, statisticValueName);
+  }
+
+  /*
+  //this seems to have no sense as there is no way to retrieve a list of values without registered value provider
+  @PUT
+  @Path("/{buildLocator}/statistics/{name}")
+  @Consumes("text/plain")
+  public void addBuildStatisticValue(@PathParam("buildLocator") String buildLocator,
+                                     @PathParam("name") String statisticValueName,
+                                     String value) {
+    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    myDataProvider.getBuildDataStorage().publishValue(statisticValueName, build.getBuildId(), new BigDecimal(value));
+  }
+  */
+
+  @GET
   @Path("/{buildLocator}/tags/")
   @Produces({"application/xml", "application/json"})
   public Tags serveTags(@PathParam("buildLocator") String buildLocator) {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
     return new Tags(build.getTags());
+  }
+
+  public String getBuildStatisticValue(final SBuild build, final String statisticValueName) {
+    final BuildValue data = getRawBuildStatisticValue(build, statisticValueName);
+    if (data == null){
+      throw new NotFoundException("No statistics data for key: " + statisticValueName + "' in build " + LogUtil.describe(build));
+    }
+    return data.getValue().toPlainString();
+  }
+
+  private BuildValue getRawBuildStatisticValue(final SBuild build, final String statisticValueName) {
+    return myDataProvider.getBuildDataStorage().getData(statisticValueName, null, build.getBuildId(), build.getBuildTypeId());
+  }
+
+  public Map<String, String> getBuildStatisticsValues(final SBuild build) {
+    final Collection<ValueProvider> valueProviders = myDataProvider.getValueProviderRegistry().getValueProviders();
+    final Map<String, String> result = new HashMap<String, String>();
+
+    //todo: this should be based not on curently registered providers, but on the real values published for a build
+    for (ValueProvider valueProvider : valueProviders) {
+      final BuildValue rawBuildStatisticValue = getRawBuildStatisticValue(build, valueProvider.getKey());
+      if (myDataProvider.getBuildDataStorage().hasDataFor(valueProvider.getKey(), build.getBuildTypeId()) && rawBuildStatisticValue != null){
+        result.put(valueProvider.getKey(), rawBuildStatisticValue.getValue().toPlainString());
+      }
+    }
+    return result;
   }
 
   /**
