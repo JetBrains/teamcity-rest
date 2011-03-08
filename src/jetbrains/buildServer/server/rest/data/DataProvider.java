@@ -453,7 +453,16 @@ public class DataProvider {
       // no dimensions found, assume it's username
       SUser user = myUserModel.findUserAccount(null, userLocator);
       if (user == null) {
-        throw new NotFoundException("No user can be found by username '" + userLocator + "'.");
+        if (!"current".equals(userLocator)) {
+          throw new NotFoundException("No user can be found by username '" + userLocator + "'.");
+        }
+        // support for predefined "current" keyword to get current user
+        final SUser currentUser = getCurrentUser();
+        if (currentUser == null) {
+          throw new NotFoundException("No current user.");
+        } else {
+          return currentUser;
+        }
       }
       return user;
     }
@@ -874,7 +883,11 @@ public class DataProvider {
   }
 
   @Nullable
-  public User getCurrentUser() {
-    return mySecurityContext.getAuthorityHolder().getAssociatedUser();
+  public SUser getCurrentUser() {
+    final User associatedUser = mySecurityContext.getAuthorityHolder().getAssociatedUser();
+    if (associatedUser == null){
+      return null;
+    }
+    return myUserModel.findUserAccount(null, associatedUser.getUsername());
   }
 }
