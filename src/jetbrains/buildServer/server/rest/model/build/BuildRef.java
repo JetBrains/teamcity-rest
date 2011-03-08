@@ -21,6 +21,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SRunningBuild;
 import org.jetbrains.annotations.NotNull;
@@ -29,7 +30,7 @@ import org.jetbrains.annotations.NotNull;
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
-@XmlType(propOrder = {"webUrl", "href", "buildTypeId", "status", "percentageComplete", "running", "number", "id"})
+@XmlType(propOrder = {"webUrl", "href", "startDate", "buildTypeId", "status", "percentageComplete", "running", "number", "id"})
 @XmlRootElement(name = "build")
 public class BuildRef {
   protected SBuild myBuild;
@@ -63,6 +64,11 @@ public class BuildRef {
   @XmlAttribute
   public String getBuildTypeId() {
     return myBuild.getBuildTypeId();
+  }
+
+  @XmlAttribute
+  public String getStartDate() {
+    return Util.formatTime(myBuild.getStartDate());
   }
 
   @XmlAttribute
