@@ -33,6 +33,8 @@ import jetbrains.buildServer.server.rest.model.Constants;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.*;
+import jetbrains.buildServer.serverSide.statistics.ValueProviderRegistry;
+import jetbrains.buildServer.serverSide.statistics.build.BuildDataStorage;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
@@ -51,35 +53,39 @@ import org.jetbrains.annotations.Nullable;
 public class DataProvider {
   private static final Logger LOG = Logger.getInstance(DataProvider.class.getName());
 
-  private final SBuildServer myServer;
-  private final BuildHistory myBuildHistory;
-  private final UserModel myUserModel;
-  private final RolesManager myRolesManager;
-  private final UserGroupManager myGroupManager;
-  private final VcsManager myVcsManager;
-  private final BuildAgentManager myAgentManager;
-  private final WebLinks myWebLinks;
-  private ServerPluginInfo myPluginInfo;
-  private ServerListener myServerListener;
-  private SecurityContext mySecurityContext;
-  private SourceVersionProvider mySourceVersionProvider;
-  private PluginManager myPluginManager;
-  private RunningBuildsManager myRunningBuildsManager;
+  @NotNull private final SBuildServer myServer;
+  @NotNull private final BuildHistory myBuildHistory;
+  @NotNull private final UserModel myUserModel;
+  @NotNull private final RolesManager myRolesManager;
+  @NotNull private final UserGroupManager myGroupManager;
+  @NotNull private final VcsManager myVcsManager;
+  @NotNull private final BuildAgentManager myAgentManager;
+  @NotNull private final WebLinks myWebLinks;
+  @NotNull private final ServerPluginInfo myPluginInfo;
+  @NotNull private final ServerListener myServerListener;
+  @NotNull private final SecurityContext mySecurityContext;
+  @NotNull private final SourceVersionProvider mySourceVersionProvider;
+  @NotNull private final PluginManager myPluginManager;
+  @NotNull private final RunningBuildsManager myRunningBuildsManager;
+  @NotNull private final ValueProviderRegistry myValueProviderRegistry;
+  @NotNull private final BuildDataStorage myBuildDataStorage;
 
-  public DataProvider(SBuildServer myServer,
-                      BuildHistory myBuildHistory,
-                      UserModel userModel,
-                      final RolesManager rolesManager,
-                      final UserGroupManager groupManager,
-                      final VcsManager vcsManager,
-                      final BuildAgentManager agentManager,
-                      final WebLinks webLinks,
-                      final ServerPluginInfo pluginInfo,
-                      final ServerListener serverListener,
-                      final SecurityContext securityContext,
-                      final SourceVersionProvider sourceVersionProvider,
-                      final PluginManager pluginManager,
-                      final RunningBuildsManager runningBuildsManager
+  public DataProvider(@NotNull final SBuildServer myServer,
+                      @NotNull final BuildHistory myBuildHistory,
+                      @NotNull final UserModel userModel,
+                      @NotNull final RolesManager rolesManager,
+                      @NotNull final UserGroupManager groupManager,
+                      @NotNull final VcsManager vcsManager,
+                      @NotNull final BuildAgentManager agentManager,
+                      @NotNull final WebLinks webLinks,
+                      @NotNull final ServerPluginInfo pluginInfo,
+                      @NotNull final ServerListener serverListener,
+                      @NotNull final SecurityContext securityContext,
+                      @NotNull final SourceVersionProvider sourceVersionProvider,
+                      @NotNull final PluginManager pluginManager,
+                      @NotNull final RunningBuildsManager runningBuildsManager,
+                      @NotNull final ValueProviderRegistry valueProviderRegistry,
+                      @NotNull final BuildDataStorage buildDataStorage
                       ) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
@@ -95,6 +101,8 @@ public class DataProvider {
     mySourceVersionProvider = sourceVersionProvider;
     myPluginManager = pluginManager;
     myRunningBuildsManager = runningBuildsManager;
+    myValueProviderRegistry = valueProviderRegistry;
+    myBuildDataStorage = buildDataStorage;
   }
 
   @Nullable
@@ -780,6 +788,7 @@ public class DataProvider {
     myBuildHistory.removeEntry(build.getBuildId());
   }
 
+  @NotNull
   public ServerPluginInfo getPluginInfo() {
     return myPluginInfo;
   }
@@ -852,5 +861,15 @@ public class DataProvider {
       result.add((ServerPluginInfo)plugin);
     }
     return result;
+  }
+
+  @NotNull
+  public BuildDataStorage getBuildDataStorage() {
+    return myBuildDataStorage;
+  }
+
+  @NotNull
+  public ValueProviderRegistry getValueProviderRegistry() {
+    return myValueProviderRegistry;
   }
 }
