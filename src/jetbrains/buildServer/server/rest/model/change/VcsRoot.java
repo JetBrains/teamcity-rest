@@ -71,7 +71,7 @@ public class VcsRoot {
     final VcsRootStatus rootStatus = vcsManager.getStatus(root);
     status = rootStatus.getType().toString();
     lastChecked = Util.formatTime(rootStatus.getTimestamp());
-    final RepositoryVersion revision = sourceVersionProvider.getRootCurrentRevision(root);
+    final RepositoryVersion revision = root.getLastUsedRevision();
     currentVersion = revision != null ? revision.getDisplayVersion() : null; //todo: consider using smth like "NONE" ?
   }
 
