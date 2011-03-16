@@ -22,8 +22,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
-import jetbrains.buildServer.serverSide.RepositoryVersion;
-import jetbrains.buildServer.serverSide.SourceVersionProvider;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsManager;
 import jetbrains.buildServer.vcs.VcsRootStatus;
@@ -56,13 +54,15 @@ public class VcsRoot {
   @XmlAttribute
   public  String lastChecked;
 
+  /*
   @XmlAttribute
   private String currentVersion;
+  */
 
   public VcsRoot() {
   }
 
-  public VcsRoot(final SVcsRoot root, final VcsManager vcsManager, final SourceVersionProvider sourceVersionProvider) {
+  public VcsRoot(final SVcsRoot root, final VcsManager vcsManager) {
     id = root.getId();
     name = root.getName();
     vcsName = root.getVcsName();
@@ -71,8 +71,10 @@ public class VcsRoot {
     final VcsRootStatus rootStatus = vcsManager.getStatus(root);
     status = rootStatus.getType().toString();
     lastChecked = Util.formatTime(rootStatus.getTimestamp());
-    final RepositoryVersion revision = root.getLastUsedRevision();
+    /*
+    final RepositoryVersion revision = ((VcsRootInstance)root).getLastUsedRevision();
     currentVersion = revision != null ? revision.getDisplayVersion() : null; //todo: consider using smth like "NONE" ?
+    */
   }
 
   /**
