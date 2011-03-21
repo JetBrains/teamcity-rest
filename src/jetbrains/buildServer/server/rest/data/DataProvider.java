@@ -657,7 +657,11 @@ public class DataProvider {
     }
 
     Long id = locator.getSingleDimensionValueAsLong("id");
-    boolean isPersonal = locator.getSingleDimensionValueAsBoolean("personal", false);
+    Boolean isPersonal = locator.getSingleDimensionValueAsBoolean("personal", false);
+    if (isPersonal == null){
+      throw new BadRequestException("Only true/false values are supportteed for 'personal' dimention. Was: '" +
+                                    locator.getSingleDimensionValue("personal") + "'");
+    }
 
     if (id != null) {
       SVcsModification modification = myVcsManager.findModificationById(id, isPersonal);
