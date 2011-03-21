@@ -164,8 +164,7 @@ public class Locator {
     if (value == null){
       return defaultValue;
     }
-    final Boolean dimensionValue = getSingleDimensionValueAsBoolean(dimensionName);
-    return dimensionValue != null ? dimensionValue : defaultValue;
+    return getSingleDimensionValueAsBoolean(dimensionName);
   }
 
   /**
