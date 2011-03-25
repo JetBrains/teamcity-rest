@@ -42,9 +42,6 @@ public class VcsRoot {
   @XmlAttribute
   public String vcsName;
 
-  @XmlAttribute
-  public long version;
-
   @XmlElement
   public Properties properties;
 
@@ -66,7 +63,6 @@ public class VcsRoot {
     id = root.getId();
     name = root.getName();
     vcsName = root.getVcsName();
-    version = root.getRootVersion();
     properties = new Properties(root.getProperties());
     final VcsRootStatus rootStatus = vcsManager.getStatus(root);
     status = rootStatus.getType().toString();
