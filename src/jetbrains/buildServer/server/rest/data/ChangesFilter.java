@@ -23,8 +23,8 @@ import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.vcs.SVcsModification;
-import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
+import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,13 +36,13 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
   @Nullable private SProject myProject;
   @Nullable private SBuildType myBuildType;
   @Nullable private SBuild myBuild;
-  @Nullable private SVcsRoot myVcsRoot;
+  @Nullable private VcsRootInstance myVcsRoot;
   @Nullable private SVcsModification mySinceChange;
 
   public ChangesFilter(@Nullable final SProject project,
                        @Nullable final SBuildType buildType,
                        @Nullable final SBuild build,
-                       @Nullable final SVcsRoot vcsRoot,
+                       @Nullable final VcsRootInstance vcsRoot,
                        @Nullable final SVcsModification sinceChange,
                        @Nullable final Long start,
                        @Nullable final Integer count) {
@@ -106,9 +106,9 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
   static private List<SVcsModification> getProjectChanges(@NotNull final VcsModificationHistory vcsHistory,
                                                           @NotNull final SProject project,
                                                           @Nullable final SVcsModification sinceChange) {
-    final List<SVcsRoot> vcsRoots = project.getVcsRoots();
+    final List<VcsRootInstance> vcsRoots = project.getVcsRootInstances();
     final List<SVcsModification> result = new ArrayList<SVcsModification>();
-    for (SVcsRoot root : vcsRoots) {
+    for (VcsRootInstance root : vcsRoots) {
       if (sinceChange != null) {
         result.addAll(vcsHistory.getModificationsInRange(root, sinceChange.getId(), null));
       } else {

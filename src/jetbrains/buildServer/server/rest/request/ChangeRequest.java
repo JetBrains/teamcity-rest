@@ -70,7 +70,7 @@ public class ChangeRequest {
       new ChangesFilter(project,
                         buildType,
                         myDataProvider.getBuildIfNotNull(buildType, buildLocator),
-                        myDataProvider.getVcsRootIfNotNull(vcsRootLocator),
+                        myDataProvider.getVcsRootInstanceIfNotNull(vcsRootLocator),
                         myDataProvider.getChangeIfNotNull(sinceChangeLocator),
                         start,
                         count));
