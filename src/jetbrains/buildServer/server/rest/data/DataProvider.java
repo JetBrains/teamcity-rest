@@ -265,6 +265,17 @@ public class DataProvider {
 
     final String userLocator = locator.getSingleDimensionValue("user");
     final String tagsString = locator.getSingleDimensionValue("tags");
+    final String singleTagString = locator.getSingleDimensionValue("tag");
+    if (tagsString != null && singleTagString != null){
+      throw new BadRequestException("Both 'tags' and 'tag' dimensions specified. Only one can be present.");
+    }
+    List<String> tagsList = null;
+    if (singleTagString != null) {
+      tagsList = Collections.singletonList(singleTagString);
+    }else if (tagsString != null) {
+      tagsList = Arrays.asList(tagsString.split(","));
+    }
+
     final Long count = locator.getSingleDimensionValueAsLong("count");
     return new BuildsFilter(actualBuildType,
                             locator.getSingleDimensionValue("status"),
@@ -273,7 +284,7 @@ public class DataProvider {
                             locator.getSingleDimensionValueAsBoolean("canceled"),
                             locator.getSingleDimensionValueAsBoolean("running", false),
                             locator.getSingleDimensionValueAsBoolean("pinned"),
-                            tagsString == null ? null : Arrays.asList(tagsString.split(",")),
+                            tagsList,
                             //todo: support agent locator here
                             locator.getSingleDimensionValue("agentName"),
                             getRangeLimit(actualBuildType, locator.getSingleDimensionValue("sinceBuild"),
