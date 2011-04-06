@@ -177,8 +177,8 @@ public class BuildRequest {
     //todo: this should be based not on curently registered providers, but on the real values published for a build
     for (ValueProvider valueProvider : valueProviders) {
       final BuildValue rawBuildStatisticValue = getRawBuildStatisticValue(build, valueProvider.getKey());
-      if (myDataProvider.getBuildDataStorage().hasDataFor(valueProvider.getKey(), build.getBuildTypeId()) && rawBuildStatisticValue != null){
-        result.put(valueProvider.getKey(), rawBuildStatisticValue.getValue().toPlainString());
+      if (rawBuildStatisticValue != null){
+        result.put(valueProvider.getKey(), rawBuildStatisticValue.getValue().toString());
       }
     }
     return result;
