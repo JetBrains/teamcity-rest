@@ -16,10 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -43,6 +40,7 @@ import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.statistics.ValueProvider;
 import jetbrains.buildServer.serverSide.statistics.build.BuildValue;
+import jetbrains.buildServer.serverSide.statistics.build.CompositeVTB;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
@@ -174,14 +172,41 @@ public class BuildRequest {
     final Collection<ValueProvider> valueProviders = myDataProvider.getValueProviderRegistry().getValueProviders();
     final Map<String, String> result = new HashMap<String, String>();
 
-    //todo: this should be based not on curently registered providers, but on the real values published for a build
+    //todo: this should be based not on curently registered providers, but on the real values published for a build,
+    // see also http://youtrack.jetbrains.net/issue/TW-4003
     for (ValueProvider valueProvider : valueProviders) {
-      final BuildValue rawBuildStatisticValue = getRawBuildStatisticValue(build, valueProvider.getKey());
-      if (rawBuildStatisticValue != null){
-        result.put(valueProvider.getKey(), rawBuildStatisticValue.getValue().toString());
+      addValueIfPresent(build, valueProvider.getKey(), result);
+    }
+    for (String statKey: getUnregisteredStatisticKeys()) {
+      if (!result.containsKey(statKey)) {
+        addValueIfPresent(build, statKey, result);
       }
     }
+
     return result;
+  }
+
+  private Collection<String> getUnregisteredStatisticKeys() {
+    final List<String> result = new ArrayList<String>();
+    final Collection<CompositeVTB> statisticValues = myServiceLocator.getServices(CompositeVTB.class);
+    for (CompositeVTB statisticValue : statisticValues) {
+      Collections.addAll(result, statisticValue.getSubKeys());
+    }
+    result.add("BuildDuration");
+    result.add("BuildDurationNetTime");
+    result.add("BuildCheckoutTime");
+    result.add("BuildArtifactsPublishingTime");
+    result.add("ArtifactsResolvingTime");
+    result.add("MaxTimeToFixTest");
+    result.add("BuildTestStatus");
+    return result;
+  }
+
+  private void addValueIfPresent(final SBuild build, final String key, final Map<String, String> result) {
+    final BuildValue rawBuildStatisticValue = getRawBuildStatisticValue(build, key);
+    if (rawBuildStatisticValue != null){
+      result.put(key, rawBuildStatisticValue.getValue().toString());
+    }
   }
 
   /**
