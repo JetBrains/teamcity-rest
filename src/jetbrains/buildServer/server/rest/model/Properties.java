@@ -16,12 +16,12 @@
 
 package jetbrains.buildServer.server.rest.model;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import com.intellij.util.containers.SortedList;
+import java.util.*;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.users.PropertyKey;
+import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 
@@ -32,25 +32,23 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "properties")
 public class Properties {
   @XmlElement(name = "property")
-  public List<Property> properties;
+  public List<Property> properties = new SortedList<Property>(new Comparator<Property>() {
+    private final CaseInsensitiveStringComparator comp = new CaseInsensitiveStringComparator();
+
+    public int compare(final Property o1, final Property o2) {
+      return comp.compare(o1.name, o2.name);
+    }
+  });
 
   public Properties() {
   }
 
   public Properties(final Map<String, String> propertiesP) {
-    properties = new ArrayList<Property>(propertiesP.size());
     for (Map.Entry<String, String> prop : propertiesP.entrySet()) {
       final String key = prop.getKey();
       if (!isSecureProperty(key)) {
         properties.add(new Property(key, prop.getValue()));
       }
-    }
-  }
-
-  public void init(final Map<PropertyKey, String> propertiesP) {
-    properties = new ArrayList<Property>(propertiesP.size());
-    for (Map.Entry<PropertyKey, String> prop : propertiesP.entrySet()) {
-      properties.add(new Property(prop.getKey().getKey(), prop.getValue()));
     }
   }
 

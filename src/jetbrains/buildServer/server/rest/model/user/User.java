@@ -16,14 +16,16 @@
 
 package jetbrains.buildServer.server.rest.model.user;
 
-import java.util.Date;
+import java.util.*;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.group.Groups;
+import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 
@@ -90,9 +92,11 @@ public class User {
 
   @XmlElement(name = "properties")
   public Properties getProperties() {
-    Properties result = new Properties();
-    result.init(myUser.getProperties());
-    return result;
+    Map<String, String> convertedProperties = new HashMap<String, String>();
+    for (Map.Entry<PropertyKey, String> prop : myUser.getProperties().entrySet()) {
+      convertedProperties.put(prop.getKey().getKey(), prop.getValue());
+    }
+    return new Properties(convertedProperties);
   }
 }
 
