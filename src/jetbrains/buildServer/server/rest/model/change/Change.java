@@ -37,8 +37,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 @XmlRootElement(name = "change")
 public class Change extends ChangeRef {
 
-  @Autowired VcsManager myVcsManager;
-  @Autowired BeanFactory myFactory;
+//  @Autowired VcsManager myVcsManager;
+//  @Autowired BeanFactory myFactory;
 
   public Change() {
   }
@@ -73,7 +73,7 @@ public class Change extends ChangeRef {
 
   @XmlElement
   public UserRef getUser() {
-    final Collection<SUser> users = myVcsManager.getModificationUsers(myModification);
+    final Collection<SUser> users = myModification.getCommitters();
     if (users.size() != 1){
       return null;
     }
