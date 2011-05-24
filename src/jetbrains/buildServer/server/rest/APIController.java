@@ -193,7 +193,14 @@ public class APIController extends BaseController implements ServletContextAware
     });
   }
 
+  static final boolean ENABLE_DISABLING_CHECK = TeamCityProperties.getBoolean("rest.enable.disabling.check");
   protected ModelAndView doHandle(final HttpServletRequest request, final HttpServletResponse response) throws Exception {
+    if (ENABLE_DISABLING_CHECK){ //necessary until TW-16750 is fixed
+      if (TeamCityProperties.getBoolean("rest.disable")){
+        response.sendError(HttpServletResponse.SC_NOT_IMPLEMENTED, "REST API is disabled on TeamCity server with 'rest.disable' internal property.");
+        return null;
+      }
+    }
     final long requestStartProcessing = System.nanoTime();
     if (LOG.isDebugEnabled()) {
       LOG.debug("REST API " + request.getMethod() + " request received: " +
