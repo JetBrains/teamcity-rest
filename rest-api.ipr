@@ -55,45 +55,12 @@
     </module2copyright>
     <LanguageOptions name="JSPX">
       <option name="fileTypeOverride" value="1" />
-      <option name="relativeBefore" value="true" />
-      <option name="addBlankAfter" value="true" />
-      <option name="fileLocation" value="1" />
-      <option name="block" value="true" />
-      <option name="separateBefore" value="false" />
-      <option name="separateAfter" value="false" />
-      <option name="prefixLines" value="true" />
-      <option name="lenBefore" value="80" />
-      <option name="lenAfter" value="80" />
-      <option name="box" value="false" />
-      <option name="filler" value=" " />
     </LanguageOptions>
     <LanguageOptions name="Properties">
       <option name="fileTypeOverride" value="1" />
-      <option name="relativeBefore" value="true" />
-      <option name="addBlankAfter" value="true" />
-      <option name="fileLocation" value="1" />
-      <option name="block" value="true" />
-      <option name="separateBefore" value="false" />
-      <option name="separateAfter" value="false" />
-      <option name="prefixLines" value="true" />
-      <option name="lenBefore" value="80" />
-      <option name="lenAfter" value="80" />
-      <option name="box" value="false" />
-      <option name="filler" value=" " />
     </LanguageOptions>
     <LanguageOptions name="XML">
       <option name="fileTypeOverride" value="1" />
-      <option name="relativeBefore" value="true" />
-      <option name="addBlankAfter" value="true" />
-      <option name="fileLocation" value="1" />
-      <option name="block" value="true" />
-      <option name="separateBefore" value="false" />
-      <option name="separateAfter" value="false" />
-      <option name="prefixLines" value="true" />
-      <option name="lenBefore" value="80" />
-      <option name="lenAfter" value="80" />
-      <option name="box" value="false" />
-      <option name="filler" value=" " />
     </LanguageOptions>
   </component>
   <component name="DependencyValidationManager">
@@ -113,16 +80,6 @@
   </component>
   <component name="FacetAutodetectingManager">
     <autodetection-disabled>
-      <facet-type id="web">
-        <modules>
-          <module name="rest-api">
-            <files>
-              <file url="file://$PROJECT_DIR$/misc/fromSample/resources/web.xml" />
-              <file url="file://$PROJECT_DIR$/misc/web.xml" />
-            </files>
-          </module>
-        </modules>
-      </facet-type>
       <facet-type id="Spring">
         <modules>
           <module name="rest-api">
@@ -130,6 +87,16 @@
               <file url="file://$PROJECT_DIR$/misc/fromSample/resources/applicationContext.xml" />
               <file url="file://$PROJECT_DIR$/misc/fromSample/src/META-INF/build-server-plugin-rest-api.xml" />
               <file url="file://$PROJECT_DIR$/src/META-INF/build-server-plugin-rest-api.xml" />
+            </files>
+          </module>
+        </modules>
+      </facet-type>
+      <facet-type id="web">
+        <modules>
+          <module name="rest-api">
+            <files>
+              <file url="file://$PROJECT_DIR$/misc/fromSample/resources/web.xml" />
+              <file url="file://$PROJECT_DIR$/misc/web.xml" />
             </files>
           </module>
         </modules>
@@ -149,7 +116,7 @@
     <option name="USE_PROJECT_PROFILE" value="true" />
     <version value="1.0" />
     <list size="5">
-      <item index="0" class="java.lang.String" itemvalue="TYPO" />
+      <item index="0" class="java.lang.String" itemvalue="WEAK WARNING" />
       <item index="1" class="java.lang.String" itemvalue="INFO" />
       <item index="2" class="java.lang.String" itemvalue="WARNING" />
       <item index="3" class="java.lang.String" itemvalue="ERROR" />
@@ -386,10 +353,13 @@
     <library name="TeamCity Third-Party">
       <CLASSES>
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/annotations.jar!/" />
-        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/spring.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/openapi.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/util.jar!/" />
-        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/spring-webmvc.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.core-3.0.5.RELEASE.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.context-3.0.5.RELEASE.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.beans-3.0.5.RELEASE.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.web.servlet-3.0.5.RELEASE.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.web-3.0.5.RELEASE.jar!/" />
       </CLASSES>
       <JAVADOC />
       <SOURCES />
