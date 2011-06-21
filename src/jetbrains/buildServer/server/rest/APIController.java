@@ -34,11 +34,9 @@ import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SecurityContextEx;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
-import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.FuncThrow;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
-import jetbrains.buildServer.web.util.SessionUser;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -203,9 +201,7 @@ public class APIController extends BaseController implements ServletContextAware
     }
     final long requestStartProcessing = System.nanoTime();
     if (LOG.isDebugEnabled()) {
-      LOG.debug("REST API " + request.getMethod() + " request received: " +
-                WebUtil.createPathWithParameters(request) + " , remote address: " + request.getRemoteAddr() +
-                ", by user: " + LogUtil.describe(SessionUser.getUser(request)));
+      LOG.debug("REST API request received: " + WebUtil.getRequestDump(request));
     }
     ensureInitialized();
 
