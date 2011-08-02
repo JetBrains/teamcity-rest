@@ -20,12 +20,16 @@ import com.sun.jersey.core.spi.component.ComponentContext;
 import com.sun.jersey.core.spi.component.ComponentScope;
 import com.sun.jersey.spi.inject.Injectable;
 import com.sun.jersey.spi.inject.InjectableProvider;
-import java.lang.reflect.Type;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.PathTransformator;
+import jetbrains.buildServer.server.rest.PathTransformer;
+import jetbrains.buildServer.server.rest.RequestPathTransformInfo;
+import jetbrains.buildServer.server.rest.request.Constants;
+
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.ext.Provider;
-import jetbrains.buildServer.server.rest.*;
-import jetbrains.buildServer.server.rest.request.Constants;
+import java.lang.reflect.Type;
 
 /**
  * @author Yegor.Yarko
@@ -35,6 +39,9 @@ import jetbrains.buildServer.server.rest.request.Constants;
 public class UrlBuilderProvider implements InjectableProvider<Context, java.lang.reflect.Type>, Injectable<ApiUrlBuilder> {
   private RequestPathTransformInfo myRequestPathTransformInfo;
 
+  //TODO: using request-specific field in singleton provider
+  //TODO: may lead to concurrency issue as this instance is
+  //TODO: created by spring not by Jersey!
   @Context private HttpHeaders headers;
 
   public UrlBuilderProvider(final RequestPathTransformInfo requestPathTransformInfo) {
