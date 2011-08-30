@@ -610,6 +610,15 @@ public class DataProvider {
       return root;
     }
 
+    Long rootId = locator.getSingleDimensionValueAsLong("id");
+    if (rootId != null){
+      SVcsRoot root = myVcsManager.findRootById(rootId);
+      if (root == null) {
+        throw new NotFoundException("No root can be found by id '" + vcsRootLocator + "'.");
+      }
+      return root;
+    }
+
     String rootName = locator.getSingleDimensionValue("name");
     if (rootName != null) {
       SVcsRoot root = myVcsManager.findRootByName(rootName);
