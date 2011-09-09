@@ -37,7 +37,9 @@ import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SimpleParameter;
+import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
 import jetbrains.buildServer.util.StringUtil;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
@@ -124,8 +126,14 @@ public class BuildTypeRequest {
     if (StringUtil.isEmpty(newValue)) {
       throw new BadRequestException("Parameter value cannot be empty.");
     }
-    buildType.addParameter(new SimpleParameter(parameterName, newValue));
+    //TODO: support type spec here
+    buildType.addParameter(getParameterFactory().createSimpleParameter(parameterName, newValue));
     buildType.getProject().persist();
+  }
+
+  @NotNull
+  private ParameterFactory getParameterFactory() {
+    return myServiceLocator.getSingletonService(ParameterFactory.class);
   }
 
   @DELETE
