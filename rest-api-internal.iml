@@ -28,7 +28,6 @@
     <orderEntry type="module" module-name="common" />
     <orderEntry type="module" module-name="runtime-util" />
     <orderEntry type="module" module-name="web-openapi" />
-    <orderEntry type="module" module-name="utils" />
     <orderEntry type="module" module-name="server" />
     <orderEntry type="module" module-name="web" />
     <orderEntry type="module-library">
