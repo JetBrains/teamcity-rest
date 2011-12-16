@@ -27,8 +27,6 @@ import jetbrains.buildServer.server.rest.model.user.UserRef;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsModification;
-import jetbrains.buildServer.vcs.VcsManager;
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * User: Yegor Yarko
@@ -55,10 +53,7 @@ public class Change extends ChangeRef {
   @XmlAttribute
   public String getDate() {
     final Date vcsDate = myModification.getVcsDate();
-    if (vcsDate != null) {
-      return Util.formatTime(vcsDate);
-    }
-    return null;
+    return Util.formatTime(vcsDate);
   }
 
   @XmlAttribute
