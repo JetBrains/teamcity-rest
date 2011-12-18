@@ -29,6 +29,7 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
@@ -98,6 +99,15 @@ public class BuildTypeRequest {
   public Tags serveBuildTypeBuildsTags(@PathParam("btLocator") String buildTypeLocator) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     return new Tags(buildType.getTags());
+  }
+
+  @GET
+  @Path("/{btLocator}/parameters")
+  @Produces({"application/xml", "application/json"})
+  public Properties serveBuildTypeParameters(@PathParam("btLocator") String buildTypeLocator) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+
+    return new Properties(buildType.getParameters());
   }
 
   @GET
