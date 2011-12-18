@@ -120,7 +120,11 @@ public class BuildType {
 
   @XmlElement(name = "steps")
   public PropEntities getSteps() {
-    return new PropEntities(CollectionsUtil.convertCollection(myBuildType.getBuildRunners(),
+    return getSteps(myBuildType);
+  }
+
+  public static PropEntities getSteps(final SBuildType buildType) {
+    return new PropEntities(CollectionsUtil.convertCollection(buildType.getBuildRunners(),
                                                               new Converter<PropEntity, SBuildRunnerDescriptor>() {
                                                                 public PropEntity createFrom(@NotNull final SBuildRunnerDescriptor source) {
                                                                   return new PropEntity(source.getId(), source.getType(),
@@ -131,8 +135,12 @@ public class BuildType {
 
   @XmlElement(name = "features")
   public PropEntities getFeatures() {
+    return getFeatures(myBuildType);
+  }
+
+  public static PropEntities getFeatures(final SBuildType buildType) {
     return new PropEntities(
-      CollectionsUtil.convertCollection(myBuildType.getBuildFeatures(), new Converter<PropEntity, SBuildFeatureDescriptor>() {
+      CollectionsUtil.convertCollection(buildType.getBuildFeatures(), new Converter<PropEntity, SBuildFeatureDescriptor>() {
         public PropEntity createFrom(@NotNull final SBuildFeatureDescriptor source) {
           return new PropEntity(source);
         }
@@ -141,12 +149,11 @@ public class BuildType {
 
   @XmlElement(name = "triggers")
   public PropEntities getTriggers() {
-    return new PropEntities(
-      CollectionsUtil.convertCollection(myBuildType.getBuildTriggersCollection(), new Converter<PropEntity, BuildTriggerDescriptor>() {
-        public PropEntity createFrom(@NotNull final BuildTriggerDescriptor source) {
-          return new PropEntity(source);
-        }
-      }));
+    return new PropEntities(CollectionsUtil.convertCollection(myBuildType.getBuildTriggersCollection(), new Converter<PropEntity, BuildTriggerDescriptor>() {
+      public PropEntity createFrom(@NotNull final BuildTriggerDescriptor source) {
+        return new PropEntity(source);
+      }
+    }));
   }
 
 
@@ -162,26 +169,21 @@ public class BuildType {
   private PropEntity getSnapshotDependencyPropertiesDescriptor(final Dependency dependency) {
     HashMap<String, String> properties = new HashMap<String, String>();
     properties.put("source_buildTypeId", dependency.getDependOnId());
-    properties.put(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED.getKey(),
-                   dependency.getOption(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED).toString());
-    properties.put(DependencyOptions.RUN_BUILD_ON_THE_SAME_AGENT.getKey(),
-                   dependency.getOption(DependencyOptions.RUN_BUILD_ON_THE_SAME_AGENT).toString());
-    properties.put(DependencyOptions.TAKE_STARTED_BUILD_WITH_SAME_REVISIONS.getKey(),
-                   dependency.getOption(DependencyOptions.TAKE_STARTED_BUILD_WITH_SAME_REVISIONS).toString());
-    properties.put(DependencyOptions.TAKE_SUCCESSFUL_BUILDS_ONLY.getKey(),
-                   dependency.getOption(DependencyOptions.TAKE_SUCCESSFUL_BUILDS_ONLY).toString());
+    properties.put(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED.getKey(), dependency.getOption(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED).toString());
+    properties.put(DependencyOptions.RUN_BUILD_ON_THE_SAME_AGENT.getKey(), dependency.getOption(DependencyOptions.RUN_BUILD_ON_THE_SAME_AGENT).toString());
+    properties.put(DependencyOptions.TAKE_STARTED_BUILD_WITH_SAME_REVISIONS.getKey(), dependency.getOption(DependencyOptions.TAKE_STARTED_BUILD_WITH_SAME_REVISIONS).toString());
+    properties.put(DependencyOptions.TAKE_SUCCESSFUL_BUILDS_ONLY.getKey(), dependency.getOption(DependencyOptions.TAKE_SUCCESSFUL_BUILDS_ONLY).toString());
     //todo: review id, type here
     return new PropEntity(null, "snapshot_dependency", properties);
   }
 
   @XmlElement(name = "artifact-dependencies")
   public PropEntities getArtifactDependencies() {
-    return new PropEntities(
-      CollectionsUtil.convertCollection(myBuildType.getArtifactDependencies(), new Converter<PropEntity, SArtifactDependency>() {
-        public PropEntity createFrom(@NotNull final SArtifactDependency source) {
-          return getArtifactDependencyPropertiesDescriptor(source);
-        }
-      }));
+    return new PropEntities(CollectionsUtil.convertCollection(myBuildType.getArtifactDependencies(), new Converter<PropEntity, SArtifactDependency>() {
+      public PropEntity createFrom(@NotNull final SArtifactDependency source) {
+        return getArtifactDependencyPropertiesDescriptor(source);
+      }
+    }));
   }
 
   private PropEntity getArtifactDependencyPropertiesDescriptor(final SArtifactDependency dependency) {
@@ -240,8 +242,8 @@ public class BuildType {
   }
 
   /**
-   *
-   * @deprecated
+   * 
+   * @deprecated 
    */
   //todo: drop this
   @XmlElement

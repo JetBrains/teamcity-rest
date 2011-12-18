@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
@@ -35,12 +36,14 @@ import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
+import jetbrains.buildServer.server.rest.model.buildType.PropEntities;
+import jetbrains.buildServer.server.rest.model.buildType.PropEntity;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SimpleParameter;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
+import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -160,6 +163,108 @@ public class BuildTypeRequest {
     buildType.getProject().persist();
   }
 
+
+
+  @GET
+  @Path("/{btLocator}/steps")
+  @Produces({"application/xml", "application/json"})
+  //todo: devise a way to serve  appropriate root element in XML
+  //  @XmlElement(name = "steps")
+  public PropEntities getSteps(@PathParam("btLocator") String buildTypeLocator){
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    return BuildType.getSteps(buildType);
+  }
+
+  @GET
+  @Path("/{btLocator}/steps/{stepId}")
+  @Produces({"application/xml", "application/json"})
+  public PropEntity getStep(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId){
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    SBuildRunnerDescriptor step = buildType.findBuildRunnerById(stepId);
+    if (step == null){
+      throw new NotFoundException("No step with id '" + stepId + "' is found.");
+    }
+    return new PropEntity(step);
+  }
+
+  @GET
+  @Path("/{btLocator}/steps/{stepId}/parameters/{parameterName}")
+  @Produces({"text/plain"})
+  public String getStepParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId,
+                                 @PathParam("parameterName") String parameterName) {
+    SBuildRunnerDescriptor step = getBuildTypeStep(myDataProvider.getBuildType(null, buildTypeLocator), stepId);
+    return getParameterValue(step, parameterName);
+  }
+
+  private String getParameterValue(final ParametersDescriptor parametersHolder, final String parameterName) {
+    Map<String, String> stepParameters = parametersHolder.getParameters();
+    if (!stepParameters.containsKey(parameterName)){
+      throw new NotFoundException("No parameter with name '" + parameterName + "' is found in the step parameters.");
+    }
+    return stepParameters.get(parameterName);
+  }
+
+  private SBuildRunnerDescriptor getBuildTypeStep(final SBuildType buildType, final String stepId) {
+    SBuildRunnerDescriptor step = buildType.findBuildRunnerById(stepId);
+    if (step == null) {
+      throw new NotFoundException("No step with id '" + stepId + "' is found in the build configuration.");
+    }
+    return step;
+  }
+
+  @PUT
+  @Path("/{btLocator}/steps/{stepId}/parameters/{parameterName}")
+  public void addStepParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId,
+                               @PathParam("parameterName") String parameterName, String newValue) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    SBuildRunnerDescriptor step = getBuildTypeStep(buildType, stepId);
+    Map<String, String> parameters = new HashMap<String, String>(step.getParameters());
+    parameters.put(parameterName, newValue);
+    buildType.updateBuildRunner(step.getId(), step.getName(), step.getType(), parameters);
+    buildType.persist();
+  }
+
+
+
+
+  @GET
+  @Path("/{btLocator}/features")
+  @Produces({"application/xml", "application/json"})
+  public PropEntities getFeatures(@PathParam("btLocator") String buildTypeLocator){
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    return BuildType.getFeatures(buildType);
+  }
+
+  @PUT
+  @Path("/{btLocator}/features/{featureId}/parameters/{parameterName}")
+  public void addFeatureParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId,
+                                  @PathParam("parameterName") String parameterName, String newValue) {
+
+    //todo: check featureId and parameterName are not empty/null
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    SBuildFeatureDescriptor feature = getBuildTypeFeature(buildType, featureId);
+    Map<String, String> parameters = feature.getParameters();
+    parameters.put(parameterName, newValue);
+    buildType.updateBuildFeature(feature.getId(), feature.getType(), parameters);
+    buildType.persist();
+  }
+
+  private SBuildFeatureDescriptor getBuildTypeFeature(final SBuildType buildType, @NotNull final String featureId) {
+    SBuildFeatureDescriptor feature = CollectionsUtil.findFirst(buildType.getBuildFeatures(), new Filter<SBuildFeatureDescriptor>() {
+      public boolean accept(@NotNull final SBuildFeatureDescriptor data) {
+        return data.getId().equals(featureId);
+      }
+    });
+    if (feature == null) {
+      throw new NotFoundException("No feature with id '" + featureId + "' is found in the build configuration.");
+    }
+    return feature;
+  }
+
+  /**
+   * @deprecated
+   * @see getBuildTypeStep()
+   */
   @PUT
   @Path("/{btLocator}/runParameters/{name}")
   @Produces("text/plain")

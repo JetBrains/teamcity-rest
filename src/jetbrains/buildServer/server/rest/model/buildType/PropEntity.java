@@ -3,6 +3,7 @@ package jetbrains.buildServer.server.rest.model.buildType;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.serverSide.ParametersDescriptor;
@@ -12,6 +13,7 @@ import jetbrains.buildServer.serverSide.ParametersDescriptor;
  */
 @XmlType(propOrder = {"type", "id",
   "properties"})
+@XmlRootElement(name = "property-described-entity")
 public class PropEntity {
   @SuppressWarnings("PublicField")
   @XmlAttribute
