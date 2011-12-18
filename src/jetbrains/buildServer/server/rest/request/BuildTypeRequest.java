@@ -156,7 +156,7 @@ public class BuildTypeRequest {
     if (StringUtil.isEmpty(parameterName)) {
       throw new BadRequestException("Parameter name cannot be empty.");
     }
-    buildType.removeBuildParameter(parameterName);
+    buildType.removeParameter(parameterName);
     buildType.getProject().persist();
   }
 
