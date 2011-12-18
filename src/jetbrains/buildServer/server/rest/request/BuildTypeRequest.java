@@ -136,9 +136,7 @@ public class BuildTypeRequest {
     if (StringUtil.isEmpty(parameterName)) {
       throw new BadRequestException("Parameter name cannot be empty.");
     }
-    if (StringUtil.isEmpty(newValue)) {
-      throw new BadRequestException("Parameter value cannot be empty.");
-    }
+
     //TODO: support type spec here
     buildType.addParameter(getParameterFactory().createSimpleParameter(parameterName, newValue));
     buildType.getProject().persist();
