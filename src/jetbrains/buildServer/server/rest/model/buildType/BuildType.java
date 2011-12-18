@@ -96,7 +96,7 @@ public class BuildType {
 
   @XmlElement
   public Properties getParameters() {
-    return new Properties(myBuildType.getBuildParameters());
+    return new Properties(myBuildType.getParameters());
   }
 
   @XmlElement

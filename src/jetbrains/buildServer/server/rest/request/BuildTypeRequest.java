@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import java.util.List;
+import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -107,10 +108,12 @@ public class BuildTypeRequest {
     if (StringUtil.isEmpty(parameterName)) {
       throw new BadRequestException("Parameter name cannot be empty.");
     }
-    if (!buildType.getBuildParameters().containsKey(parameterName)) {
-      throw new NotFoundException("No parameter with name '" + parameterName + "' is found.");
+
+    Map<String,String> parameters = buildType.getParameters();
+    if (parameters.containsKey(parameterName)) {
+      return parameters.get(parameterName);
     }
-    return buildType.getBuildParameter(parameterName);
+    throw new NotFoundException("No parameter with name '" + parameterName + "' is found.");
   }
 
   @PUT
