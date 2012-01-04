@@ -115,12 +115,14 @@
     <option name="PROJECT_PROFILE" value="Project Default" />
     <option name="USE_PROJECT_PROFILE" value="true" />
     <version value="1.0" />
-    <list size="5">
-      <item index="0" class="java.lang.String" itemvalue="WEAK WARNING" />
-      <item index="1" class="java.lang.String" itemvalue="INFO" />
-      <item index="2" class="java.lang.String" itemvalue="WARNING" />
-      <item index="3" class="java.lang.String" itemvalue="ERROR" />
-      <item index="4" class="java.lang.String" itemvalue="SERVER PROBLEM" />
+    <list size="7">
+      <item index="0" class="java.lang.String" itemvalue="TYPO" />
+      <item index="1" class="java.lang.String" itemvalue="WEAK WARNING" />
+      <item index="2" class="java.lang.String" itemvalue="WEAK WARNING" />
+      <item index="3" class="java.lang.String" itemvalue="INFO" />
+      <item index="4" class="java.lang.String" itemvalue="WARNING" />
+      <item index="5" class="java.lang.String" itemvalue="ERROR" />
+      <item index="6" class="java.lang.String" itemvalue="SERVER PROBLEM" />
     </list>
   </component>
   <component name="JavadocGenerationManager">
@@ -278,7 +280,7 @@
   <component name="ProjectResources">
     <default-html-doctype>http://www.w3.org/1999/xhtml</default-html-doctype>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_5" assert-keyword="true" jdk-15="true" project-jdk-name="1.5" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_5" assert-keyword="true" jdk-15="true" project-jdk-name="1.6" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/out" />
   </component>
   <component name="ResourceManagerContainer">
@@ -294,21 +296,6 @@
         <entry key="$PROJECT_DIR$">
           <value>
             <SvnBranchConfiguration>
-              <option name="branchMap">
-                <map>
-                  <entry key="http://svn.jetbrains.org/teamcity/plugins/rest-api/branches">
-                    <value>
-                      <list>
-                        <SvnBranchItem>
-                          <option name="creationDateMillis" value="1259842148004" />
-                          <option name="revision" value="2198" />
-                          <option name="url" value="http://svn.jetbrains.org/teamcity/plugins/rest-api/branches/Darjeeling-5.0.x" />
-                        </SvnBranchItem>
-                      </list>
-                    </value>
-                  </entry>
-                </map>
-              </option>
               <option name="branchUrls">
                 <list>
                   <option value="http://svn.jetbrains.org/teamcity/plugins/rest-api/branches" />
@@ -355,11 +342,11 @@
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/annotations.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/openapi.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/util.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.web.servlet-3.0.5.RELEASE.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.web-3.0.5.RELEASE.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.core-3.0.5.RELEASE.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.context-3.0.5.RELEASE.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.beans-3.0.5.RELEASE.jar!/" />
-        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.web.servlet-3.0.5.RELEASE.jar!/" />
-        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.web-3.0.5.RELEASE.jar!/" />
       </CLASSES>
       <JAVADOC />
       <SOURCES />
