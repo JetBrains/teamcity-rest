@@ -329,6 +329,30 @@ public class BuildTypeRequest {
     return BuildTypeUtil.getFeatures(buildType);
   }
 
+  //todo: currently, should post <property-described-entity>... XML. Should actually be something more user-friendly instead.
+  @PUT
+  @Path("/{btLocator}/features")
+  @Produces({"application/xml", "application/json"})
+  public PropEntity addFeature(@PathParam("btLocator") String buildTypeLocator, PropEntity featureDescription){
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    if (!StringUtil.isEmpty(featureDescription.id)){
+      throw new BadRequestException("Could not create build feature with predefined id.");
+    }
+    if (!StringUtil.isEmpty(featureDescription.name)){
+      throw new BadRequestException("Could not create build feature with name.");
+    }
+    if (StringUtil.isEmpty(featureDescription.type)){
+      throw new BadRequestException("Created build feature cannot have empty 'type'.");
+    }
+    if (featureDescription.properties == null){
+      featureDescription.properties = new Properties();
+    }
+    final SBuildFeatureDescriptor descriptor =
+      buildType.addBuildFeature(featureDescription.type, BuildTypeUtil.getMapFromProperties(featureDescription.properties));
+    buildType.persist();
+    return new PropEntity(descriptor);
+  }
+
   @GET
   @Path("/{btLocator}/features/{featureId}")
   @Produces({"application/xml", "application/json"})
@@ -339,6 +363,18 @@ public class BuildTypeRequest {
       throw new NotFoundException("No feature with id '" + featureId + "' is found.");
     }
     return new PropEntity(feature);
+  }
+
+  @DELETE
+  @Path("/{btLocator}/features/{featureId}")
+  public void deleteFeature(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String id){
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    SBuildFeatureDescriptor feature = getBuildTypeFeature(buildType, id);
+    if (feature == null){
+      throw new NotFoundException("No feature with id '" + id + "' is found.");
+    }
+    buildType.removeBuildFeature(id);
+    buildType.persist();
   }
 
   @GET
