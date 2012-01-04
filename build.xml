@@ -47,7 +47,9 @@
 
     <target name="dist" depends="check.teamcitydistribution,all,package"/>
 
-    <target name="clean" depends="rest-api.clean"/>
+    <target name="clean" depends="rest-api.clean">
+      <delete dir="dist" quiet="true"/>
+    </target>
 
     <target name="deploy" depends="dist">
         <deploy.teamcity.plugin name="${plugin.name}"/>
