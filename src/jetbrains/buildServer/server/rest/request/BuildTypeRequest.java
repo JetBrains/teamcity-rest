@@ -295,6 +295,18 @@ public class BuildTypeRequest {
   }
 
   @GET
+  @Path("/{btLocator}/features/{featureId}")
+  @Produces({"application/xml", "application/json"})
+  public PropEntity getFeature(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId){
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    SBuildFeatureDescriptor feature = getBuildTypeFeature(buildType, featureId);
+    if (feature == null){
+      throw new NotFoundException("No feature with id '" + featureId + "' is found.");
+    }
+    return new PropEntity(feature);
+  }
+
+  @GET
   @Path("/{btLocator}/features/{featureId}/parameters/{parameterName}")
   @Produces({"text/plain"})
   public String getFeatureParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId,
