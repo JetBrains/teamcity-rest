@@ -275,6 +275,9 @@ public class BuildTypeRequest {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     SBuildRunnerDescriptor step = getBuildTypeStep(buildType, stepId);
     Map<String, String> parameters = new HashMap<String, String>(step.getParameters());
+    if (StringUtil.isEmpty(parameterName)){
+      throw new BadRequestException("Parameter name cannot be empty.");
+    }
     parameters.put(parameterName, newValue);
     buildType.updateBuildRunner(step.getId(), step.getName(), step.getType(), parameters);
     buildType.persist();
@@ -291,21 +294,37 @@ public class BuildTypeRequest {
     return BuildTypeUtil.getFeatures(buildType);
   }
 
+  @GET
+  @Path("/{btLocator}/features/{featureId}/parameters/{parameterName}")
+  @Produces({"text/plain"})
+  public String getFeatureParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId,
+                                 @PathParam("parameterName") String parameterName) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    SBuildFeatureDescriptor feature = getBuildTypeFeature(buildType, featureId);
+    return feature.getParameters().get(parameterName);
+  }
+
   @PUT
   @Path("/{btLocator}/features/{featureId}/parameters/{parameterName}")
   public void addFeatureParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId,
                                   @PathParam("parameterName") String parameterName, String newValue) {
 
-    //todo: check featureId and parameterName are not empty/null
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     SBuildFeatureDescriptor feature = getBuildTypeFeature(buildType, featureId);
-    Map<String, String> parameters = feature.getParameters();
+    Map<String, String> parameters = new HashMap<String, String>();
+    parameters.putAll(feature.getParameters());
+    if (StringUtil.isEmpty(parameterName)){
+      throw new BadRequestException("Parameter name cannot be empty.");
+    }
     parameters.put(parameterName, newValue);
     buildType.updateBuildFeature(feature.getId(), feature.getType(), parameters);
     buildType.persist();
   }
 
   private SBuildFeatureDescriptor getBuildTypeFeature(final SBuildType buildType, @NotNull final String featureId) {
+    if (StringUtil.isEmpty(featureId)){
+      throw new BadRequestException("Feature Id cannot be empty.");
+    }
     SBuildFeatureDescriptor feature = CollectionsUtil.findFirst(buildType.getBuildFeatures(), new Filter<SBuildFeatureDescriptor>() {
       public boolean accept(@NotNull final SBuildFeatureDescriptor data) {
         return data.getId().equals(featureId);
