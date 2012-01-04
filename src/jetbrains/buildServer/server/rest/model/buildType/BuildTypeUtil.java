@@ -21,6 +21,8 @@ import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.BuildTypeDescriptor;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.serverSide.BuildTypeOptions;
@@ -31,6 +33,8 @@ import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.Option;
+import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -117,5 +121,20 @@ public class BuildTypeUtil {
       result.put(prop.name, prop.value);
     }
     return result;
+  }
+
+  public static SBuildFeatureDescriptor getBuildTypeFeature(final SBuildType buildType, @NotNull final String featureId) {
+    if (StringUtil.isEmpty(featureId)){
+      throw new BadRequestException("Feature Id cannot be empty.");
+    }
+    SBuildFeatureDescriptor feature = CollectionsUtil.findFirst(buildType.getBuildFeatures(), new Filter<SBuildFeatureDescriptor>() {
+      public boolean accept(@NotNull final SBuildFeatureDescriptor data) {
+        return data.getId().equals(featureId);
+      }
+    });
+    if (feature == null) {
+      throw new NotFoundException("No feature with id '" + featureId + "' is found in the build configuration.");
+    }
+    return feature;
   }
 }

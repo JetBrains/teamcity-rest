@@ -38,9 +38,7 @@ import jetbrains.buildServer.server.rest.model.buildType.*;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
-import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -83,6 +81,15 @@ public class BuildTypeRequest {
   public BuildType serveBuildTypeXML(@PathParam("btLocator") String buildTypeLocator) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
+  }
+
+  @DELETE
+  @Path("/{btLocator}")
+  public void deleteBuildType(@PathParam("btLocator") String buildTypeLocator) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    final SProject project = buildType.getProject();
+    project.removeBuildType(buildType.getBuildTypeId());
+    project.persist();
   }
 
   @GET
@@ -358,7 +365,7 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntity getFeature(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId){
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    SBuildFeatureDescriptor feature = getBuildTypeFeature(buildType, featureId);
+    SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType, featureId);
     if (feature == null){
       throw new NotFoundException("No feature with id '" + featureId + "' is found.");
     }
@@ -369,7 +376,7 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/features/{featureId}")
   public void deleteFeature(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String id){
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    SBuildFeatureDescriptor feature = getBuildTypeFeature(buildType, id);
+    SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType, id);
     if (feature == null){
       throw new NotFoundException("No feature with id '" + id + "' is found.");
     }
@@ -383,7 +390,7 @@ public class BuildTypeRequest {
   public String getFeatureParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId,
                                  @PathParam("parameterName") String parameterName) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    SBuildFeatureDescriptor feature = getBuildTypeFeature(buildType, featureId);
+    SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType, featureId);
     return feature.getParameters().get(parameterName);
   }
 
@@ -393,7 +400,7 @@ public class BuildTypeRequest {
                                   @PathParam("parameterName") String parameterName, String newValue) {
 
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    SBuildFeatureDescriptor feature = getBuildTypeFeature(buildType, featureId);
+    SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType, featureId);
     Map<String, String> parameters = new HashMap<String, String>();
     parameters.putAll(feature.getParameters());
     if (StringUtil.isEmpty(parameterName)){
@@ -402,21 +409,6 @@ public class BuildTypeRequest {
     parameters.put(parameterName, newValue);
     buildType.updateBuildFeature(feature.getId(), feature.getType(), parameters);
     buildType.persist();
-  }
-
-  private SBuildFeatureDescriptor getBuildTypeFeature(final SBuildType buildType, @NotNull final String featureId) {
-    if (StringUtil.isEmpty(featureId)){
-      throw new BadRequestException("Feature Id cannot be empty.");
-    }
-    SBuildFeatureDescriptor feature = CollectionsUtil.findFirst(buildType.getBuildFeatures(), new Filter<SBuildFeatureDescriptor>() {
-      public boolean accept(@NotNull final SBuildFeatureDescriptor data) {
-        return data.getId().equals(featureId);
-      }
-    });
-    if (feature == null) {
-      throw new NotFoundException("No feature with id '" + featureId + "' is found in the build configuration.");
-    }
-    return feature;
   }
 
   /**

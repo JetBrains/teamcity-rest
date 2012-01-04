@@ -25,17 +25,22 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildsFilter;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
+import jetbrains.buildServer.server.rest.model.buildType.NewBuildTypeDescription;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.serverSide.CopyOptions;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.util.StringUtil;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
@@ -81,6 +86,62 @@ public class ProjectRequest {
   public BuildTypes serveBuildTypesInProject(@PathParam("projectLocator") String projectLocator) {
     SProject project = myDataProvider.getProject(projectLocator);
     return new BuildTypes(project.getBuildTypes(), myDataProvider, myApiUrlBuilder);
+  }
+
+  @PUT
+  @Path("/{projectLocator}/buildTypes")
+  @Produces({"application/xml", "application/json"})
+  @Consumes({"text/plain"})
+  public BuildType createEmptyBuildType(@PathParam("projectLocator") String projectLocator, String name) {
+    SProject project = myDataProvider.getProject(projectLocator);
+    if (StringUtil.isEmpty(name)) {
+      throw new BadRequestException("Build type name cannot be empty.");
+    }
+    final SBuildType buildType = project.createBuildType(name);
+    project.persist();
+    return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
+  }
+
+  @PUT
+  @Path("/{projectLocator}/buildTypes")
+  @Produces({"application/xml", "application/json"})
+  @Consumes({"application/xml", "application/json"})
+  public BuildType createBuildType(@PathParam("projectLocator") String projectLocator, NewBuildTypeDescription descriptor) {
+    SProject project = myDataProvider.getProject(projectLocator);
+    if (StringUtil.isEmpty(descriptor.name)) {
+      throw new BadRequestException("Build type name cannot be empty.");
+    }
+    SBuildType resultingBuildType;
+    if (StringUtil.isEmpty(descriptor.sourceBuildTypeLocator)) {
+      resultingBuildType = project.createBuildType(descriptor.name);
+    }else{
+      SBuildType sourceBuildType = myDataProvider.getBuildType(null, descriptor.sourceBuildTypeLocator);
+      resultingBuildType = project.createBuildType(sourceBuildType, descriptor.name, getCopyOptions(descriptor));
+    }
+    project.persist();
+    return new BuildType(resultingBuildType, myDataProvider, myApiUrlBuilder);
+  }
+
+  private CopyOptions getCopyOptions(@NotNull final NewBuildTypeDescription description) {
+    final CopyOptions result = new CopyOptions();
+    if (toBoolean(description.copyAllAssociatedSettings)) {
+      result.addOption(CopyOptions.Option.COPY_AGENT_POOL_ASSOCIATIONS);
+      result.addOption(CopyOptions.Option.COPY_AGENT_RESTRICTIONS);
+      result.addOption(CopyOptions.Option.COPY_MUTED_TESTS);
+//    result.addOption(CopyOptions.Option.COPY_PROJECT_TEMPLATES);
+      result.addOption(CopyOptions.Option.COPY_USER_NOTIFICATION_RULES);
+      result.addOption(CopyOptions.Option.COPY_USER_ROLES);
+    }
+    if (toBoolean(description.shareVCSRoots)) {
+      result.addOption(CopyOptions.Option.SHARE_VCS_ROOTS);
+    }else{
+      result.addOption(CopyOptions.Option.COPY_VCS_ROOTS);
+    }
+    return result;
+  }
+
+  private static boolean toBoolean(final Boolean value) {
+    return (value == null) ? false: value;
   }
 
   @GET
