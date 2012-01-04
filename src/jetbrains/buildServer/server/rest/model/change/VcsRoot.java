@@ -63,7 +63,7 @@ public class VcsRoot {
     id = root.getId();
     name = root.getName();
     vcsName = root.getVcsName();
-    properties = new Properties(root.getProperties());
+    properties = new Properties(root.getPublicProperties()); // secure properties are not included
     final VcsRootStatus rootStatus = vcsManager.getStatus(root);
     status = rootStatus.getType().toString();
     lastChecked = Util.formatTime(rootStatus.getTimestamp());
