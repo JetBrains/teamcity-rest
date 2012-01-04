@@ -34,10 +34,7 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
-import jetbrains.buildServer.server.rest.model.buildType.BuildType;
-import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
-import jetbrains.buildServer.server.rest.model.buildType.PropEntities;
-import jetbrains.buildServer.server.rest.model.buildType.PropEntity;
+import jetbrains.buildServer.server.rest.model.buildType.*;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
@@ -124,6 +121,8 @@ public class BuildTypeRequest {
 
     Map<String,String> parameters = buildType.getParameters();
     if (parameters.containsKey(parameterName)) {
+      //TODO: need to process spec type to filter secure fields, may be include display value
+      //TODO: might support type spec here
       return parameters.get(parameterName);
     }
     throw new NotFoundException("No parameter with name '" + parameterName + "' is found.");
@@ -166,13 +165,62 @@ public class BuildTypeRequest {
 
 
   @GET
+  @Path("/{btLocator}/settings")
+  @Produces({"application/xml", "application/json"})
+  public Properties serveBuildTypeSettings(@PathParam("btLocator") String buildTypeLocator) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    return new Properties(BuildTypeUtil.getSettingsParameters(buildType));
+  }
+
+  @GET
+  @Path("/{btLocator}/settings/{name}")
+  @Produces("text/plain")
+  public String serveBuildTypeSettings(@PathParam("btLocator") String buildTypeLocator, @PathParam("name") String parameterName) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    if (StringUtil.isEmpty(parameterName)) {
+      throw new BadRequestException("Setting parameter name cannot be empty.");
+    }
+
+    Map<String,String> parameters = BuildTypeUtil.getSettingsParameters(buildType);
+    if (parameters.containsKey(parameterName)) {
+      return parameters.get(parameterName);
+    }
+    throw new NotFoundException("No setting parameter with name '" + parameterName + "' is found.");
+  }
+
+  @PUT
+  @Path("/{btLocator}/settings/{name}")
+  @Produces("text/plain")
+  public void putBuildTypeSetting(@PathParam("btLocator") String buildTypeLocator,
+                                    @PathParam("name") String parameterName,
+                                    String newValue) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    if (StringUtil.isEmpty(parameterName)) {
+      throw new BadRequestException("Settings parameter name cannot be empty.");
+    }
+
+    if (!BuildTypeUtil.getSettingsParameters(buildType).containsKey(parameterName)){
+      throw new BadRequestException("Setting parameter with name '" + parameterName + "' is not known.");
+    }
+
+    try {
+      BuildTypeUtil.setSettingsParameter(buildType, parameterName, newValue);
+    } catch (IllegalArgumentException e) {
+      throw new BadRequestException(
+        "Could not set setting parameter with name '" + parameterName + "' to value '" + newValue + "'. Error: " + e.getMessage());
+    }
+    buildType.getProject().persist();
+  }
+
+
+  @GET
   @Path("/{btLocator}/steps")
   @Produces({"application/xml", "application/json"})
   //todo: devise a way to serve  appropriate root element in XML
   //  @XmlElement(name = "steps")
   public PropEntities getSteps(@PathParam("btLocator") String buildTypeLocator){
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return BuildType.getSteps(buildType);
+    return BuildTypeUtil.getSteps(buildType);
   }
 
   @GET
@@ -232,7 +280,7 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntities getFeatures(@PathParam("btLocator") String buildTypeLocator){
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return BuildType.getFeatures(buildType);
+    return BuildTypeUtil.getFeatures(buildType);
   }
 
   @PUT

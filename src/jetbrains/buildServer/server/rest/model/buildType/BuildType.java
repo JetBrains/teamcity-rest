@@ -17,7 +17,6 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -31,17 +30,12 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.BuildsRef;
 import jetbrains.buildServer.server.rest.model.change.VcsRootEntries;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
-import jetbrains.buildServer.serverSide.BuildTypeOptions;
-import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
-import jetbrains.buildServer.serverSide.SBuildRunnerDescriptor;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.dependency.DependencyOptions;
-import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
-import jetbrains.buildServer.util.Option;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -53,7 +47,7 @@ import org.jetbrains.annotations.NotNull;
   "project", "vcsRootEntries", "builds", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
   "artifactDependencies", "runParameters", "agentRequirements"})
 public class BuildType {
-  final Logger LOG = Logger.getInstance(BuildType.class.getName());
+  private static final Logger LOG = Logger.getInstance(BuildType.class.getName());
 
   protected SBuildType myBuildType;
   private DataProvider myDataProvider;
@@ -120,31 +114,12 @@ public class BuildType {
 
   @XmlElement(name = "steps")
   public PropEntities getSteps() {
-    return getSteps(myBuildType);
-  }
-
-  public static PropEntities getSteps(final SBuildType buildType) {
-    return new PropEntities(CollectionsUtil.convertCollection(buildType.getBuildRunners(),
-                                                              new Converter<PropEntity, SBuildRunnerDescriptor>() {
-                                                                public PropEntity createFrom(@NotNull final SBuildRunnerDescriptor source) {
-                                                                  return new PropEntity(source.getId(), source.getType(),
-                                                                                        source.getParameters());
-                                                                }
-                                                              }));
+    return BuildTypeUtil.getSteps(myBuildType);
   }
 
   @XmlElement(name = "features")
   public PropEntities getFeatures() {
-    return getFeatures(myBuildType);
-  }
-
-  public static PropEntities getFeatures(final SBuildType buildType) {
-    return new PropEntities(
-      CollectionsUtil.convertCollection(buildType.getBuildFeatures(), new Converter<PropEntity, SBuildFeatureDescriptor>() {
-        public PropEntity createFrom(@NotNull final SBuildFeatureDescriptor source) {
-          return new PropEntity(source);
-        }
-      }));
+    return BuildTypeUtil.getFeatures(myBuildType);
   }
 
   @XmlElement(name = "triggers")
@@ -215,30 +190,7 @@ public class BuildType {
   //todo: should not add extra properties subtag
   @XmlElement(name = "settings")
   public PropEntity getSettings() {
-    HashMap<String, String> properties = new HashMap<String, String>();
-    addAllOptionsAsProperties(properties);
-    //todo: is the right way to do?
-    properties.put("artifactRules", myBuildType.getArtifactPaths());
-    properties.put("checkoutDirectory", myBuildType.getCheckoutDirectory());
-    properties.put("checkoutMode", myBuildType.getCheckoutType().name());
-    return new PropEntity(null, null, properties);
-  }
-
-  //todo: might use a generic util for this (e.g. Static HTML plugin has alike code to get all Page Places)
-  private void addAllOptionsAsProperties(final HashMap<String, String> properties) {
-    Field[] declaredFields = BuildTypeOptions.class.getDeclaredFields();
-    for (Field declaredField : declaredFields) {
-      try {
-        if (Option.class.isAssignableFrom(declaredField.get(myBuildType).getClass())) {
-          Option option = null;
-          option = (Option)declaredField.get(myBuildType);
-          //noinspection unchecked
-          properties.put(option.getKey(), myBuildType.getOption(option).toString());
-        }
-      } catch (IllegalAccessException e) {
-        LOG.error("Error retrieving options of build configuration " + LogUtil.describe(myBuildType) + ", error: " + e.getMessage());
-      }
-    }
+    return new PropEntity(null, null, BuildTypeUtil.getSettingsParameters(myBuildType));
   }
 
   /**
