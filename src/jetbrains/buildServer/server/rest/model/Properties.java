@@ -17,11 +17,13 @@
 package jetbrains.buildServer.server.rest.model;
 
 import com.intellij.util.containers.SortedList;
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.users.PropertyKey;
-import jetbrains.buildServer.util.*;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.util.CaseInsensitiveStringComparator;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 
@@ -46,13 +48,13 @@ public class Properties {
   public Properties(final Map<String, String> propertiesP) {
     for (Map.Entry<String, String> prop : propertiesP.entrySet()) {
       final String key = prop.getKey();
-      if (!isSecureProperty(key)) {
+      if (!isPropertyToExclude(key)) {
         properties.add(new Property(key, prop.getValue()));
       }
     }
   }
 
-  private boolean isSecureProperty(@NotNull final String key) {
-    return key.startsWith(SVcsRoot.SECURE_PROPERTY_PREFIX);
+  private boolean isPropertyToExclude(@NotNull final String key) {
+    return key.startsWith(SVcsRoot.SECURE_PROPERTY_PREFIX) && !TeamCityProperties.getBoolean("rest.listSecureProperties");
   }
 }
