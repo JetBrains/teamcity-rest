@@ -93,6 +93,14 @@ public class BuildTypeRequest {
     return myDataProvider.getFieldValue(buildType, fieldName);
   }
 
+  @PUT
+  @Path("/{btLocator}/{field}")
+  public void setBuildTypeField(@PathParam("btLocator") String buildTypeLocator, @PathParam("field") String fieldName, String newValue) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    myDataProvider.setFieldValue(buildType, fieldName, newValue);
+    buildType.getProject().persist();
+  }
+
   @GET
   @Path("/{btLocator}/buildTags")
   @Produces({"application/xml", "application/json"})

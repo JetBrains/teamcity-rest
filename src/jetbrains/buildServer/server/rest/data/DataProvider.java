@@ -114,6 +114,16 @@ public class DataProvider {
     throw new NotFoundException("Field '" + field + "' is not supported.");
   }
 
+  public void setFieldValue(final SBuildType buildType, final String field, final String value) {
+    if ("name".equals(field)) {
+      buildType.setName(value);
+    } else if ("description".equals(field)) {
+      buildType.setDescription(value);
+    } else {
+      throw new BadRequestException("Setting field '" + field + "' is not supported.");
+    }
+  }
+
   @Nullable
   public String getFieldValue(final SProject project, final String field) {
     if ("id".equals(field)) {
