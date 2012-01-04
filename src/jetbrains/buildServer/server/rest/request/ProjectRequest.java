@@ -26,12 +26,14 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildsFilter;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.CopyOptionsDescription;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.buildType.NewBuildTypeDescription;
+import jetbrains.buildServer.server.rest.model.project.NewProjectDescription;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
@@ -65,11 +67,49 @@ public class ProjectRequest {
     return new Projects(myDataProvider.getServer().getProjectManager().getProjects(), myApiUrlBuilder);
   }
 
+  @PUT
+  @Consumes({"text/plain"})
+  @Produces({"application/xml", "application/json"})
+  public Project createEmptyProject(String name) {
+    if (StringUtil.isEmpty(name)) {
+      throw new BadRequestException("Project name cannot be empty.");
+    }
+    final SProject project = myDataProvider.getServer().getProjectManager().createProject(name);
+    project.persist();
+    return new Project(project, myDataProvider, myApiUrlBuilder);
+  }
+
+  @PUT
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public Project createProject(NewProjectDescription descriptor) {
+    if (StringUtil.isEmpty(descriptor.name)) {
+      throw new BadRequestException("Project name cannot be empty.");
+    }
+    SProject resultingProject;
+    if (StringUtil.isEmpty(descriptor.sourceProjectLocator)) {
+      resultingProject = myDataProvider.getServer().getProjectManager().createProject(descriptor.name);
+    } else {
+      SProject sourceProject = myDataProvider.getProject(descriptor.sourceProjectLocator);
+      resultingProject =
+        myDataProvider.getServer().getProjectManager().createProject(sourceProject, descriptor.name, getCopyOptions(descriptor));
+    }
+    resultingProject.persist();
+    return new Project(resultingProject, myDataProvider, myApiUrlBuilder);
+  }
+
   @GET
   @Path("/{projectLocator}")
   @Produces({"application/xml", "application/json"})
   public Project serveProject(@PathParam("projectLocator") String projectLocator) {
     return new Project(myDataProvider.getProject(projectLocator), myDataProvider, myApiUrlBuilder);
+  }
+
+  @DELETE
+  @Path("/{projectLocator}")
+  public void deleteProject(@PathParam("projectLocator") String projectLocator) {
+    final SProject project = myDataProvider.getProject(projectLocator);
+    myDataProvider.getServer().getProjectManager().removeProject(project.getProjectId());
   }
 
   @GET
@@ -122,13 +162,13 @@ public class ProjectRequest {
     return new BuildType(resultingBuildType, myDataProvider, myApiUrlBuilder);
   }
 
-  private CopyOptions getCopyOptions(@NotNull final NewBuildTypeDescription description) {
+  private CopyOptions getCopyOptions(@NotNull final CopyOptionsDescription description) {
     final CopyOptions result = new CopyOptions();
     if (toBoolean(description.copyAllAssociatedSettings)) {
       result.addOption(CopyOptions.Option.COPY_AGENT_POOL_ASSOCIATIONS);
       result.addOption(CopyOptions.Option.COPY_AGENT_RESTRICTIONS);
       result.addOption(CopyOptions.Option.COPY_MUTED_TESTS);
-//    result.addOption(CopyOptions.Option.COPY_PROJECT_TEMPLATES);
+      result.addOption(CopyOptions.Option.COPY_PROJECT_TEMPLATES);
       result.addOption(CopyOptions.Option.COPY_USER_NOTIFICATION_RULES);
       result.addOption(CopyOptions.Option.COPY_USER_ROLES);
     }

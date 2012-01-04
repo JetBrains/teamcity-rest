@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.model.buildType;
+package jetbrains.buildServer.server.rest.model.project;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -25,13 +25,11 @@ import jetbrains.buildServer.server.rest.model.CopyOptionsDescription;
  *         Date: 04.01.12
  */
 @SuppressWarnings("PublicField")
-@XmlRootElement(name = "newBuildTypeDescription")
-public class NewBuildTypeDescription extends CopyOptionsDescription{
-
-  public NewBuildTypeDescription() {
+@XmlRootElement(name = "newProjectDescription")
+public class NewProjectDescription extends CopyOptionsDescription{
+  public NewProjectDescription() {
   }
 
   @XmlAttribute public String name;
-
-  @XmlAttribute public String sourceBuildTypeLocator;
+  @XmlAttribute public String sourceProjectLocator;
 }
