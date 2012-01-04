@@ -98,7 +98,7 @@ public class BuildTypeRequest {
   public void setBuildTypeField(@PathParam("btLocator") String buildTypeLocator, @PathParam("field") String fieldName, String newValue) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     myDataProvider.setFieldValue(buildType, fieldName, newValue);
-    buildType.getProject().persist();
+    buildType.persist();
   }
 
   @GET
@@ -149,7 +149,7 @@ public class BuildTypeRequest {
 
     //TODO: support type spec here
     buildType.addParameter(getParameterFactory().createSimpleParameter(parameterName, newValue));
-    buildType.getProject().persist();
+    buildType.persist();
   }
 
   @NotNull
@@ -167,7 +167,7 @@ public class BuildTypeRequest {
       throw new BadRequestException("Parameter name cannot be empty.");
     }
     buildType.removeParameter(parameterName);
-    buildType.getProject().persist();
+    buildType.persist();
   }
 
 
@@ -217,7 +217,7 @@ public class BuildTypeRequest {
       throw new BadRequestException(
         "Could not set setting parameter with name '" + parameterName + "' to value '" + newValue + "'. Error: " + e.getMessage());
     }
-    buildType.getProject().persist();
+    buildType.persist();
   }
 
 
@@ -229,6 +229,30 @@ public class BuildTypeRequest {
   public PropEntities getSteps(@PathParam("btLocator") String buildTypeLocator){
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     return BuildTypeUtil.getSteps(buildType);
+  }
+
+  //todo: currently, should post <property-described-entity>... XML. Should actually be something more user-friendly instead.
+  @PUT
+  @Path("/{btLocator}/steps")
+  @Produces({"application/xml", "application/json"})
+  public PropEntity addStep(@PathParam("btLocator") String buildTypeLocator, PropEntity stepDescription){
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    if (!StringUtil.isEmpty(stepDescription.id)){
+      throw new BadRequestException("Could not create step with predefined id.");
+    }
+    if (StringUtil.isEmpty(stepDescription.name)){
+      stepDescription.name="";
+    }
+    if (StringUtil.isEmpty(stepDescription.type)){
+      throw new BadRequestException("Created step cannot have empty 'type'.");
+    }
+    if (stepDescription.properties == null){
+      stepDescription.properties = new Properties();
+    }
+    final SBuildRunnerDescriptor descriptor =
+      buildType.addBuildRunner(stepDescription.name, stepDescription.type, BuildTypeUtil.getMapFromProperties(stepDescription.properties));
+    buildType.persist();
+    return new PropEntity(descriptor);
   }
 
   @GET
@@ -243,6 +267,18 @@ public class BuildTypeRequest {
     return new PropEntity(step);
   }
 
+  @DELETE
+  @Path("/{btLocator}/steps/{stepId}")
+  public void deleteStep(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId){
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    SBuildRunnerDescriptor step = buildType.findBuildRunnerById(stepId);
+    if (step == null){
+      throw new NotFoundException("No step with id '" + stepId + "' is found.");
+    }
+    buildType.removeBuildRunner(stepId);
+    buildType.persist();
+  }
+
   @GET
   @Path("/{btLocator}/steps/{stepId}/parameters/{parameterName}")
   @Produces({"text/plain"})
@@ -252,7 +288,7 @@ public class BuildTypeRequest {
     return getParameterValue(step, parameterName);
   }
 
-  private String getParameterValue(final ParametersDescriptor parametersHolder, final String parameterName) {
+  private static String getParameterValue(final ParametersDescriptor parametersHolder, final String parameterName) {
     Map<String, String> stepParameters = parametersHolder.getParameters();
     if (!stepParameters.containsKey(parameterName)){
       throw new NotFoundException("No parameter with name '" + parameterName + "' is found in the step parameters.");
@@ -282,7 +318,6 @@ public class BuildTypeRequest {
     buildType.updateBuildRunner(step.getId(), step.getName(), step.getType(), parameters);
     buildType.persist();
   }
-
 
 
 
