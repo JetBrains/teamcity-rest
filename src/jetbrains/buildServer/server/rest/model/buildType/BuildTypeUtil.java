@@ -63,6 +63,7 @@ public class BuildTypeUtil {
     properties.put("artifactRules", buildType.getArtifactPaths());
     properties.put("checkoutDirectory", buildType.getCheckoutDirectory());
     properties.put("checkoutMode", buildType.getCheckoutType().name());
+    properties.put("buildNumberCounter", (new Long(buildType.getBuildNumbers().getBuildCounter())).toString());
     return properties;
   }
 
@@ -75,11 +76,13 @@ public class BuildTypeUtil {
       buildType.setArtifactPaths(value);
     } else if ("checkoutDirectory".equals(name)) {
       buildType.setCheckoutDirectory(value);
-    } else if ("checkoutMode".equals(name)){
+    } else if ("checkoutMode".equals(name)) {
       buildType.setCheckoutType(BuildTypeDescriptor.CheckoutType.valueOf(value));
-    }else{
+    } else if ("buildNumberCounter".equals(name)) {
+      buildType.getBuildNumbers().setBuildNumberCounter(new Long(value));
+    } else {
       final Option option = Option.fromKey(name);
-      if (option == null){
+      if (option == null) {
         throw new IllegalArgumentException("No Build Type option found for name '" + name + "'");
       }
       final Object optionValue = option.fromString(value);
