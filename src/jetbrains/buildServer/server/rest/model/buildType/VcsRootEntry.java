@@ -14,34 +14,31 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.model.change;
+package jetbrains.buildServer.server.rest.model.buildType;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
- *         Date: 04.08.2009
+ *         Date: 16.04.2009
  */
-@XmlRootElement(name = "vcs-roots-entries")
-public class VcsRootEntries {
-  @XmlElement(name = "vcs-root-entry")
-  public List<VcsRootEntry> vcsRootAssignments;
+@XmlRootElement(name = "vcs-root-entry")
+public class VcsRootEntry {
+  @XmlElement(name = "checkout-rules")
+  public String checkoutRules;
+  @XmlElement(name = "vcs-root")
+  public VcsRoot.VcsRootRef vcsRootRef;
 
-  public VcsRootEntries() {
+  public VcsRootEntry() {
   }
 
-  public VcsRootEntries(final Collection<jetbrains.buildServer.vcs.VcsRootEntry> vcsRootEntries,
-                        @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    vcsRootAssignments = new ArrayList<VcsRootEntry>(vcsRootEntries.size());
-    for (jetbrains.buildServer.vcs.VcsRootEntry entry : vcsRootEntries) {
-      vcsRootAssignments.add(new VcsRootEntry(entry, apiUrlBuilder));
-    }
+  public VcsRootEntry(jetbrains.buildServer.vcs.VcsRootEntry entry, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    vcsRootRef = new VcsRoot.VcsRootRef(entry.getVcsRoot(), apiUrlBuilder);
+    checkoutRules = entry.getCheckoutRules().getAsString();
   }
-
 }
+

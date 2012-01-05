@@ -38,7 +38,11 @@ import jetbrains.buildServer.server.rest.model.buildType.*;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
+import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.filters.Filter;
+import jetbrains.buildServer.vcs.CheckoutRules;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -224,6 +228,69 @@ public class BuildTypeRequest {
       throw new BadRequestException(
         "Could not set setting parameter with name '" + parameterName + "' to value '" + newValue + "'. Error: " + e.getMessage());
     }
+    buildType.persist();
+  }
+
+
+  @GET
+  @Path("/{btLocator}/vcs-roots")
+  @Produces({"application/xml", "application/json"})
+  public VcsRootEntries getVcsRootEntries(@PathParam("btLocator") String buildTypeLocator){
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    return new VcsRootEntries(buildType.getVcsRootEntries(), myApiUrlBuilder);
+  }
+
+  @POST
+  @Path("/{btLocator}/vcs-roots")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public void addVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, VcsRootEntryDescription description){
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    final SVcsRoot vcsRoot = BuildTypeUtil.getVcsRoot(description, myDataProvider);
+
+    try {
+      buildType.addVcsRoot(vcsRoot);
+    } catch (InvalidVcsRootScopeException e) {
+      throw new BadRequestException("Could not attach VCS root with id '" + vcsRoot.getId() + "' because of scope issues. Error: " + e.getMessage());
+    }
+    if (!StringUtil.isEmpty(description.checkoutRules)) {
+      buildType.setCheckoutRules(vcsRoot, new CheckoutRules(description.checkoutRules));
+    }
+    buildType.persist();
+  }
+
+  @GET
+  @Path("/{btLocator}/vcs-roots/{vcsRootLocator}")
+  @Produces({"application/xml", "application/json"})
+  public VcsRootEntry addVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("vcsRootLocator") String vcsRootLocator) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
+
+    final CheckoutRules checkoutRules = buildType.getCheckoutRules(vcsRoot);
+    if (checkoutRules != null) {
+      final jetbrains.buildServer.vcs.VcsRootEntry vcsRootEntry =
+        CollectionsUtil.findFirst(buildType.getVcsRootEntries(), new Filter<jetbrains.buildServer.vcs.VcsRootEntry>() {
+          public boolean accept(@NotNull final jetbrains.buildServer.vcs.VcsRootEntry data) {
+            return data.getVcsRoot().getId() == vcsRoot.getId();
+          }
+        });
+      if (vcsRootEntry == null) {
+        throw new NotFoundException("No VCS root with id '" + vcsRoot.getId() + "' is attached to the build type.");
+      }
+      return new VcsRootEntry(vcsRootEntry, myApiUrlBuilder);
+    }
+    return new VcsRootEntry(new jetbrains.buildServer.vcs.VcsRootEntry(vcsRoot, new CheckoutRules("")), myApiUrlBuilder);
+  }
+
+  @DELETE
+  @Path("/{btLocator}/vcs-roots/{vcsRootLocator}")
+  public void deleteVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("vcsRootLocator") String vcsRootLocator) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
+    if (!buildType.containsVcsRoot(vcsRoot.getId())){
+      throw new NotFoundException("No VCS root with id '" + vcsRoot.getId() + "' is attached to the build type.");
+    }
+    buildType.removeVcsRoot(vcsRoot);
     buildType.persist();
   }
 

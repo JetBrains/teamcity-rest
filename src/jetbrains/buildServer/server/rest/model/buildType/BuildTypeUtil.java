@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import jetbrains.buildServer.BuildTypeDescriptor;
+import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -39,6 +40,7 @@ import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.Option;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.filters.Filter;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -161,5 +163,23 @@ public class BuildTypeUtil {
     properties.put("cleanDestinationDirectory", Boolean.toString(dependency.isCleanDestinationFolder()));
     //todo: review id, type here
     return new PropEntity(null, "artifact_dependency", properties);
+  }
+
+  public static SVcsRoot getVcsRoot(final VcsRootEntryDescription description, DataProvider dataProvider) {
+    if (!StringUtil.isEmpty(description.vcsRootLocator)){
+      if (description.vcsRootRef != null){
+        throw new BadRequestException("Only one from vcsRootLocator attribute and vcs-root element should be specified.");
+      }
+      return dataProvider.getVcsRoot(description.vcsRootLocator); 
+    }else{
+      if (description.vcsRootRef == null){
+        throw new BadRequestException("Either vcsRootLocator attribute or vcs-root element should be specified.");
+      }
+      final String vcsRootHref = description.vcsRootRef.href;
+      if (StringUtil.isEmpty(vcsRootHref)){
+        throw new BadRequestException("vcs-root element should have valid href attribute.");
+      }
+      return dataProvider.getVcsRoot(StringUtil.lastPartOf(vcsRootHref, '/'));
+    }
   }
 }
