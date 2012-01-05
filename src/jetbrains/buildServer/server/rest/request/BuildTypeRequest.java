@@ -231,18 +231,15 @@ public class BuildTypeRequest {
   @GET
   @Path("/{btLocator}/steps")
   @Produces({"application/xml", "application/json"})
-  //todo: devise a way to serve  appropriate root element in XML
-  //  @XmlElement(name = "steps")
-  public PropEntities getSteps(@PathParam("btLocator") String buildTypeLocator){
+  public PropEntitiesStep getSteps(@PathParam("btLocator") String buildTypeLocator){
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return BuildTypeUtil.getSteps(buildType);
+    return new PropEntitiesStep(BuildTypeUtil.getSteps(buildType));
   }
 
-  //todo: currently, should post <property-described-entity>... XML. Should actually be something more user-friendly instead.
   @PUT
   @Path("/{btLocator}/steps")
   @Produces({"application/xml", "application/json"})
-  public PropEntity addStep(@PathParam("btLocator") String buildTypeLocator, PropEntity stepDescription){
+  public PropEntity addStep(@PathParam("btLocator") String buildTypeLocator, PropEntityStep stepDescription){
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     if (!StringUtil.isEmpty(stepDescription.id)){
       throw new BadRequestException("Could not create step with predefined id.");
@@ -331,16 +328,15 @@ public class BuildTypeRequest {
   @GET
   @Path("/{btLocator}/features")
   @Produces({"application/xml", "application/json"})
-  public PropEntities getFeatures(@PathParam("btLocator") String buildTypeLocator){
+  public PropEntitiesFeature getFeatures(@PathParam("btLocator") String buildTypeLocator){
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return BuildTypeUtil.getFeatures(buildType);
+    return new PropEntitiesFeature(BuildTypeUtil.getFeatures(buildType));
   }
 
-  //todo: currently, should post <property-described-entity>... XML. Should actually be something more user-friendly instead.
   @PUT
   @Path("/{btLocator}/features")
   @Produces({"application/xml", "application/json"})
-  public PropEntity addFeature(@PathParam("btLocator") String buildTypeLocator, PropEntity featureDescription){
+  public PropEntity addFeature(@PathParam("btLocator") String buildTypeLocator, PropEntityFeature featureDescription){
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     if (!StringUtil.isEmpty(featureDescription.id)){
       throw new BadRequestException("Could not create build feature with predefined id.");

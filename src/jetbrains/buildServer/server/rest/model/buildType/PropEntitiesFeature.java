@@ -5,18 +5,19 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * Author: Yegor.Yarko
+ * @author Yegor.Yarko
+ *         Date: 05.01.12
  */
-@XmlRootElement(name="property-described-entities")
+@XmlRootElement(name="features")
 @SuppressWarnings("PublicField")
-public class PropEntities {
-  @XmlElement(name = "entity")
+public class PropEntitiesFeature {
+  @XmlElement(name = "feature")
   public List<PropEntity> propEntities;
 
-  public PropEntities() {
+  public PropEntitiesFeature() {
   }
 
-  public PropEntities(List<PropEntity> propEntitiesParam) {
+  public PropEntitiesFeature(List<PropEntity> propEntitiesParam) {
     propEntities = propEntitiesParam;
   }
  }

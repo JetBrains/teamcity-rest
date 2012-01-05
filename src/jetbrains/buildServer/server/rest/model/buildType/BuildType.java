@@ -33,7 +33,6 @@ import jetbrains.buildServer.server.rest.model.project.ProjectRef;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
-import jetbrains.buildServer.serverSide.dependency.DependencyOptions;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
@@ -113,18 +112,18 @@ public class BuildType {
   }
 
   @XmlElement(name = "steps")
-  public PropEntities getSteps() {
-    return BuildTypeUtil.getSteps(myBuildType);
+  public PropEntitiesStep getSteps() {
+    return new PropEntitiesStep(BuildTypeUtil.getSteps(myBuildType));
   }
 
   @XmlElement(name = "features")
-  public PropEntities getFeatures() {
-    return BuildTypeUtil.getFeatures(myBuildType);
+  public PropEntitiesFeature getFeatures() {
+    return new PropEntitiesFeature(BuildTypeUtil.getFeatures(myBuildType));
   }
 
   @XmlElement(name = "triggers")
-  public PropEntities getTriggers() {
-    return new PropEntities(CollectionsUtil.convertCollection(myBuildType.getBuildTriggersCollection(), new Converter<PropEntity, BuildTriggerDescriptor>() {
+  public PropEntitiesTrigger getTriggers() {
+    return new PropEntitiesTrigger(CollectionsUtil.convertCollection(myBuildType.getBuildTriggersCollection(), new Converter<PropEntity, BuildTriggerDescriptor>() {
       public PropEntity createFrom(@NotNull final BuildTriggerDescriptor source) {
         return new PropEntity(source);
       }
@@ -133,48 +132,26 @@ public class BuildType {
 
 
   @XmlElement(name = "snapshot-dependencies")
-  public PropEntities getSnapshotDependencies() {
-    return new PropEntities(CollectionsUtil.convertCollection(myBuildType.getDependencies(), new Converter<PropEntity, Dependency>() {
+  public PropEntitiesSnapshotDep getSnapshotDependencies() {
+    return new PropEntitiesSnapshotDep(CollectionsUtil.convertCollection(myBuildType.getDependencies(), new Converter<PropEntity, Dependency>() {
       public PropEntity createFrom(@NotNull final Dependency source) {
-        return getSnapshotDependencyPropertiesDescriptor(source);
+        return BuildTypeUtil.getSnapshotDependencyPropertiesDescriptor(source);
       }
     }));
-  }
-
-  private PropEntity getSnapshotDependencyPropertiesDescriptor(final Dependency dependency) {
-    HashMap<String, String> properties = new HashMap<String, String>();
-    properties.put("source_buildTypeId", dependency.getDependOnId());
-    properties.put(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED.getKey(), dependency.getOption(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED).toString());
-    properties.put(DependencyOptions.RUN_BUILD_ON_THE_SAME_AGENT.getKey(), dependency.getOption(DependencyOptions.RUN_BUILD_ON_THE_SAME_AGENT).toString());
-    properties.put(DependencyOptions.TAKE_STARTED_BUILD_WITH_SAME_REVISIONS.getKey(), dependency.getOption(DependencyOptions.TAKE_STARTED_BUILD_WITH_SAME_REVISIONS).toString());
-    properties.put(DependencyOptions.TAKE_SUCCESSFUL_BUILDS_ONLY.getKey(), dependency.getOption(DependencyOptions.TAKE_SUCCESSFUL_BUILDS_ONLY).toString());
-    //todo: review id, type here
-    return new PropEntity(null, "snapshot_dependency", properties);
   }
 
   @XmlElement(name = "artifact-dependencies")
-  public PropEntities getArtifactDependencies() {
-    return new PropEntities(CollectionsUtil.convertCollection(myBuildType.getArtifactDependencies(), new Converter<PropEntity, SArtifactDependency>() {
+  public PropEntitiesArtifactDep getArtifactDependencies() {
+    return new PropEntitiesArtifactDep(CollectionsUtil.convertCollection(myBuildType.getArtifactDependencies(), new Converter<PropEntity, SArtifactDependency>() {
       public PropEntity createFrom(@NotNull final SArtifactDependency source) {
-        return getArtifactDependencyPropertiesDescriptor(source);
+        return BuildTypeUtil.getArtifactDependencyPropertiesDescriptor(source);
       }
     }));
   }
 
-  private PropEntity getArtifactDependencyPropertiesDescriptor(final SArtifactDependency dependency) {
-    HashMap<String, String> properties = new HashMap<String, String>();
-    properties.put("source_buildTypeId", dependency.getSourceBuildTypeId());
-    properties.put("pathRules", dependency.getSourcePaths());
-    properties.put("revisionName", dependency.getRevisionRule().getName());
-    properties.put("revisionValue", dependency.getRevisionRule().getRevision());
-    properties.put("cleanDestinationDirectory", Boolean.toString(dependency.isCleanDestinationFolder()));
-    //todo: review id, type here
-    return new PropEntity(null, "artifact_dependency", properties);
-  }
-
   @XmlElement(name = "agent-requirements")
-  public PropEntities getAgentRequirements() {
-    return new PropEntities(CollectionsUtil.convertCollection(myBuildType.getRequirements(), new Converter<PropEntity, Requirement>() {
+  public PropEntitiesAgentRequirement getAgentRequirements() {
+    return new PropEntitiesAgentRequirement(CollectionsUtil.convertCollection(myBuildType.getRequirements(), new Converter<PropEntity, Requirement>() {
       public PropEntity createFrom(@NotNull final Requirement source) {
         HashMap<String, String> properties = new HashMap<String, String>();
         properties.put("property-name", source.getPropertyName());

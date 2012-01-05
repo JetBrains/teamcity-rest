@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.model.buildType;
 import com.intellij.openapi.diagnostic.Logger;
 import java.lang.reflect.Field;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import jetbrains.buildServer.BuildTypeDescriptor;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -29,6 +30,9 @@ import jetbrains.buildServer.serverSide.BuildTypeOptions;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.serverSide.SBuildRunnerDescriptor;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
+import jetbrains.buildServer.serverSide.dependency.Dependency;
+import jetbrains.buildServer.serverSide.dependency.DependencyOptions;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -44,23 +48,22 @@ import org.jetbrains.annotations.NotNull;
 public class BuildTypeUtil {
   private static final Logger LOG = Logger.getInstance(BuildTypeUtil.class.getName());
 
-  public static PropEntities getSteps(final SBuildType buildType) {
-    return new PropEntities(CollectionsUtil.convertCollection(buildType.getBuildRunners(),
-                                                              new Converter<PropEntity, SBuildRunnerDescriptor>() {
-                                                                public PropEntity createFrom(@NotNull final SBuildRunnerDescriptor source) {
-                                                                  return new PropEntity(source.getId(), source.getName(), source.getType(),
-                                                                                        source.getParameters());
-                                                                }
-                                                              }));
+  public static List<PropEntity> getSteps(final SBuildType buildType) {
+    return CollectionsUtil.convertCollection(buildType.getBuildRunners(),
+                                             new Converter<PropEntity, SBuildRunnerDescriptor>() {
+                                               public PropEntity createFrom(@NotNull final SBuildRunnerDescriptor source) {
+                                                 return new PropEntity(source.getId(), source.getName(), source.getType(),
+                                                                       source.getParameters());
+                                               }
+                                             });
   }
 
-  public static PropEntities getFeatures(final SBuildType buildType) {
-    return new PropEntities(
-      CollectionsUtil.convertCollection(buildType.getBuildFeatures(), new Converter<PropEntity, SBuildFeatureDescriptor>() {
-        public PropEntity createFrom(@NotNull final SBuildFeatureDescriptor source) {
-          return new PropEntity(source);
-        }
-      }));
+  public static List<PropEntity> getFeatures(final SBuildType buildType) {
+    return CollectionsUtil.convertCollection(buildType.getBuildFeatures(), new Converter<PropEntity, SBuildFeatureDescriptor>() {
+      public PropEntity createFrom(@NotNull final SBuildFeatureDescriptor source) {
+        return new PropEntity(source);
+      }
+    });
   }
 
   public static HashMap<String, String> getSettingsParameters(final SBuildType buildType) {
@@ -136,5 +139,27 @@ public class BuildTypeUtil {
       throw new NotFoundException("No feature with id '" + featureId + "' is found in the build configuration.");
     }
     return feature;
+  }
+
+  static PropEntity getSnapshotDependencyPropertiesDescriptor(final Dependency dependency) {
+    HashMap<String, String> properties = new HashMap<String, String>();
+    properties.put("source_buildTypeId", dependency.getDependOnId());
+    properties.put(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED.getKey(), dependency.getOption(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED).toString());
+    properties.put(DependencyOptions.RUN_BUILD_ON_THE_SAME_AGENT.getKey(), dependency.getOption(DependencyOptions.RUN_BUILD_ON_THE_SAME_AGENT).toString());
+    properties.put(DependencyOptions.TAKE_STARTED_BUILD_WITH_SAME_REVISIONS.getKey(), dependency.getOption(DependencyOptions.TAKE_STARTED_BUILD_WITH_SAME_REVISIONS).toString());
+    properties.put(DependencyOptions.TAKE_SUCCESSFUL_BUILDS_ONLY.getKey(), dependency.getOption(DependencyOptions.TAKE_SUCCESSFUL_BUILDS_ONLY).toString());
+    //todo: review id, type here
+    return new PropEntity(null, "snapshot_dependency", properties);
+  }
+
+  static PropEntity getArtifactDependencyPropertiesDescriptor(final SArtifactDependency dependency) {
+    HashMap<String, String> properties = new HashMap<String, String>();
+    properties.put("source_buildTypeId", dependency.getSourceBuildTypeId());
+    properties.put("pathRules", dependency.getSourcePaths());
+    properties.put("revisionName", dependency.getRevisionRule().getName());
+    properties.put("revisionValue", dependency.getRevisionRule().getRevision());
+    properties.put("cleanDestinationDirectory", Boolean.toString(dependency.isCleanDestinationFolder()));
+    //todo: review id, type here
+    return new PropEntity(null, "artifact_dependency", properties);
   }
 }

@@ -5,18 +5,19 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * Author: Yegor.Yarko
+ * @author Yegor.Yarko
+ *         Date: 05.01.12
  */
-@XmlRootElement(name="property-described-entities")
+@XmlRootElement(name="triggers")
 @SuppressWarnings("PublicField")
-public class PropEntities {
-  @XmlElement(name = "entity")
+public class PropEntitiesTrigger {
+  @XmlElement(name = "trigger")
   public List<PropEntity> propEntities;
 
-  public PropEntities() {
+  public PropEntitiesTrigger() {
   }
 
-  public PropEntities(List<PropEntity> propEntitiesParam) {
+  public PropEntitiesTrigger(List<PropEntity> propEntitiesParam) {
     propEntities = propEntitiesParam;
   }
  }
