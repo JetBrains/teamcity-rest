@@ -18,6 +18,16 @@ package jetbrains.buildServer.server.rest;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.Function;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
+import javax.servlet.http.HttpServletResponse;
 import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
@@ -35,16 +45,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.web.context.ServletContextAware;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.ModelAndView;
-
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-import javax.servlet.http.HttpServletResponse;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.*;
 
 /**
  * @author Yegor.Yarko
@@ -260,7 +260,7 @@ public class APIController extends BaseController implements ServletContextAware
 
     if (LOG.isDebugEnabled()) {
       final long requestFinishProcessing = System.nanoTime();
-      LOG.debug("REST API request processing finished in " + (requestFinishProcessing - requestStartProcessing) / 1000000 + " ms");
+      LOG.debug("REST API request processing finished in " + TimeUnit.MILLISECONDS.convert(requestFinishProcessing - requestStartProcessing, TimeUnit.NANOSECONDS) + " ms");
     }
     return null;
   }
