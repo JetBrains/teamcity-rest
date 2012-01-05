@@ -164,10 +164,9 @@ public class BuildType {
     }));
   }
 
-  //todo: should not add extra properties subtag
-  @XmlElement(name = "settings")
-  public PropEntity getSettings() {
-    return new PropEntity(null, null, BuildTypeUtil.getSettingsParameters(myBuildType));
+  @XmlElement(name="settings")
+  public Properties getSettings() {
+    return new Properties(BuildTypeUtil.getSettingsParameters(myBuildType));
   }
 
   /**
