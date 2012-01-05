@@ -23,8 +23,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.model.buildType.VcsRoots;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
-import jetbrains.buildServer.server.rest.model.change.VcsRoots;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
