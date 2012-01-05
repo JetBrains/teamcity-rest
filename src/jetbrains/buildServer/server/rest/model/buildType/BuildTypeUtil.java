@@ -165,6 +165,7 @@ public class BuildTypeUtil {
     return new PropEntity(null, "artifact_dependency", properties);
   }
 
+  // see also VCSRootRequest.getProjectLocator
   public static SVcsRoot getVcsRoot(final VcsRootEntryDescription description, DataProvider dataProvider) {
     if (!StringUtil.isEmpty(description.vcsRootLocator)){
       if (description.vcsRootRef != null){
@@ -179,7 +180,11 @@ public class BuildTypeUtil {
       if (StringUtil.isEmpty(vcsRootHref)){
         throw new BadRequestException("vcs-root element should have valid href attribute.");
       }
-      return dataProvider.getVcsRoot(StringUtil.lastPartOf(vcsRootHref, '/'));
+      return dataProvider.getVcsRoot(getLastPathPart(vcsRootHref));
     }
+  }
+
+  public static String getLastPathPart(final String vcsRootHref) {
+    return StringUtil.lastPartOf(vcsRootHref, '/');
   }
 }

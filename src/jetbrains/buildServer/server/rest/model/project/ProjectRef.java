@@ -17,38 +17,31 @@
 package jetbrains.buildServer.server.rest.model.project;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.serverSide.SProject;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
+@XmlType(propOrder = {"href", "name", "id"})
 public class ProjectRef {
-  @NotNull protected SProject myProject;
-  protected ApiUrlBuilder myApiUrlBuilder;
+  @XmlAttribute
+  public String id;
+
+  @XmlAttribute
+  public String name;
+
+  @XmlAttribute
+  public String href;
 
   public ProjectRef() {
   }
 
   public ProjectRef(SProject project, final ApiUrlBuilder apiUrlBuilder) {
-    myProject = project;
-    myApiUrlBuilder = apiUrlBuilder;
-  }
-
-  @XmlAttribute
-  public String getHref() {
-    return myApiUrlBuilder.getHref(myProject);
-  }
-
-  @XmlAttribute
-  public String getId() {
-    return myProject.getProjectId();
-  }
-
-  @XmlAttribute
-  public String getName() {
-    return myProject.getName();
+    id = project.getProjectId();
+    name = project.getName();
+    href = apiUrlBuilder.getHref(project);
   }
 }

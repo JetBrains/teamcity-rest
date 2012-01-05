@@ -16,15 +16,18 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRoots;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
+import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.vcs.VcsRootScope;
+import org.jetbrains.annotations.NotNull;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
@@ -49,10 +52,72 @@ public class VcsRootRequest {
     return new VcsRoots(myDataProvider.getAllVcsRoots(), myApiUrlBuilder);
   }
 
+  @POST
+  @Produces({"application/xml", "application/json"})
+  public VcsRoot serveRoot(@PathParam("vcsRootLocator") String vcsRootLocator, VcsRoot vcsRootDescription) {
+    checkVcsRootDescription(vcsRootDescription);
+    final SVcsRoot newVcsRoot = myDataProvider.getVcsManager()
+      .createNewVcsRoot(vcsRootDescription.vcsName, vcsRootDescription.name != null ? vcsRootDescription.name : null,
+                        BuildTypeUtil.getMapFromProperties(vcsRootDescription.properties),
+                        createScope(vcsRootDescription));
+    myDataProvider.getVcsManager().persistVcsRoots();
+    return new VcsRoot(newVcsRoot, myDataProvider, myApiUrlBuilder);
+  }
+
+  private void checkVcsRootDescription(final VcsRoot description) {
+    //might need to check for validity: not specified id, status, lastChecked attributes, etc.
+    if (StringUtil.isEmpty(description.vcsName)) {
+      throw new BadRequestException("Attribute 'vcsName' must be specified when creating VCS root. Should be a valid VCS support name.");
+    }
+    if (description.properties == null) {
+      throw new BadRequestException("Element 'properties' must be specified when creating VCS root.");
+    }
+  }
+
+  @NotNull
+  private VcsRootScope createScope(final VcsRoot vcsRootDescription) {
+    if (vcsRootDescription.shared != null && vcsRootDescription.shared){
+      if (vcsRootDescription.project != null){
+        throw new BadRequestException("Project should not be specified if the VCS root is shared.");
+      }
+      return VcsRootScope.globalScope();
+    }else{
+      return VcsRootScope.projectScope(myDataProvider.getProject(getProjectLocator(vcsRootDescription)).getProjectId());
+    }
+  }
+
+  // see also BuildTypeUtil.getVcsRoot
+  private String getProjectLocator(final VcsRoot description) {
+    if (!StringUtil.isEmpty(description.projectLocator)){
+      if (description.project != null){
+        throw new BadRequestException("Only one from projectLocator attribute and project element should be specified.");
+      }
+      return description.projectLocator;
+    }else{
+      if (description.project == null){
+        throw new BadRequestException("Either projectLocator attribute or project element should be specified.");
+      }
+      final String projectHref = description.project.href;
+      if (StringUtil.isEmpty(projectHref)){
+        throw new BadRequestException("project element should have valid href attribute.");
+      }
+      return BuildTypeUtil.getLastPathPart(projectHref);
+    }  }
+
+
   @GET
   @Path("/{vcsRootLocator}")
   @Produces({"application/xml", "application/json"})
   public VcsRoot serveRoot(@PathParam("vcsRootLocator") String vcsRootLocator) {
     return new VcsRoot(myDataProvider.getVcsRoot(vcsRootLocator), myDataProvider, myApiUrlBuilder);
+  }
+
+  @DELETE
+  @Path("/{vcsRootLocator}")
+  @Produces({"application/xml", "application/json"})
+  public void deleteRoot(@PathParam("vcsRootLocator") String vcsRootLocator) {
+    final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
+    myDataProvider.getVcsManager().removeVcsRoot(vcsRoot.getId());
+    myDataProvider.getVcsManager().persistVcsRoots();
   }
 }

@@ -29,34 +29,28 @@ import jetbrains.buildServer.serverSide.SProject;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "project")
+@SuppressWarnings("PublicField")
 public class Project extends ProjectRef {
-  private DataProvider myDataProvider;
+  @XmlAttribute
+  public String description;
+
+  @XmlAttribute
+  public boolean archived;
+
+  @XmlAttribute
+  public String webUrl;
+
+  @XmlElement
+  public BuildTypes buildTypes;
 
   public Project() {
   }
 
   public Project(final SProject project, final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
     super(project, apiUrlBuilder);
-    myDataProvider = dataProvider;
-  }
-
-  @XmlAttribute
-  public String getDescription() {
-    return myProject.getDescription();
-  }
-
-  @XmlAttribute
-  public boolean isArchived() {
-    return myProject.isArchived();
-  }
-
-  @XmlAttribute
-  public String getWebUrl() {
-    return myDataProvider.getProjectUrl(myProject);
-  }
-
-  @XmlElement
-  public BuildTypes getBuildTypes() {
-    return new BuildTypes(myProject.getBuildTypes(), myDataProvider, myApiUrlBuilder);
+    description = project.getDescription();
+    archived = project.isArchived();
+    webUrl = dataProvider.getProjectUrl(project);
+    buildTypes = new BuildTypes(project.getBuildTypes(), dataProvider, apiUrlBuilder);
   }
 }
