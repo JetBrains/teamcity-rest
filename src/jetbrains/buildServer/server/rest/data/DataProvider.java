@@ -404,6 +404,16 @@ public class DataProvider {
     }
     throw new BadRequestException("Project locator '" + projectLocator + "' is not supported.");
   }
+  
+  @NotNull
+  public SProject getProjectById(@NotNull String projectId){
+    final SProject project = myServer.getProjectManager().findProjectById(projectId);
+    if (project == null){
+      throw new NotFoundException("Could not find project by id '" + projectId + "'.");
+    }
+    return project;
+  }
+  
 
   /**
    * @param project project to search build type in. Can be 'null' to search in all the build types on the server.
