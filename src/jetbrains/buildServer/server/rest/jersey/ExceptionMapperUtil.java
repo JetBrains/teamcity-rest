@@ -38,20 +38,30 @@ public class ExceptionMapperUtil {
   }
 
   protected Response reportError(final int statusCode, @NotNull final Exception e, @Nullable final String message) {
+    return getRestErrorResponse(statusCode, e, message, myUriInfo.getRequestUri().toString());
+  }
+
+  public static Response getRestErrorResponse(final int statusCode,
+                                              @NotNull final Throwable e,
+                                              @Nullable final String message,
+                                              @NotNull String requestUri) {
     Response.Status status = Response.Status.fromStatusCode(statusCode);
     final String statusDescription = (status != null) ? status.toString() : Integer.toString(statusCode);
     Response.ResponseBuilder builder = Response.status(statusCode);
     builder.type("text/plain");
     builder.entity("Error has occurred during request processing (" + statusDescription +
                    ").\nError: " + getMessageWithCauses(e) + (message != null ? "\n" + message : ""));
-    final String logMessage = "Error" + (message != null ? " '" + message + "'" : "") + " for request " + myUriInfo.getRequestUri() +
+    final String logMessage = "Error" + (message != null ? " '" + message + "'" : "") + " for request " + requestUri +
                               ". Sending " + statusDescription + " error in response: " + e.toString();
     LOG.warn(logMessage);
     LOG.debug(logMessage, e);
     return builder.build();
   }
 
-  private static String getMessageWithCauses(Throwable e) {
+  public static String getMessageWithCauses(Throwable e) {
+    if (e == null){
+      return "";
+    }
     final String message = e.getMessage();
     String result = e.getClass().getName() + (message != null ? ": " + message : "");
     final Throwable cause = e.getCause();

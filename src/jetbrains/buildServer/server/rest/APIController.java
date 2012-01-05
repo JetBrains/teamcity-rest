@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.Function;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.*;
@@ -31,6 +32,7 @@ import javax.servlet.http.HttpServletResponse;
 import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
+import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
 import jetbrains.buildServer.server.rest.jersey.JerseyWebComponent;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.SBuildServer;
@@ -40,6 +42,8 @@ import jetbrains.buildServer.util.FuncThrow;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
 import jetbrains.buildServer.web.util.WebUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.web.context.ServletContextAware;
@@ -51,7 +55,7 @@ import org.springframework.web.servlet.ModelAndView;
  *         Date: 23.03.2009
  */
 public class APIController extends BaseController implements ServletContextAware {
-  final Logger LOG = Logger.getInstance(APIController.class.getName());
+  final static Logger LOG = Logger.getInstance(APIController.class.getName());
   private JerseyWebComponent myWebComponent;
   private final ConfigurableApplicationContext myConfigurableApplicationContext;
   private final SecurityContextEx mySecurityContext;
@@ -205,7 +209,7 @@ public class APIController extends BaseController implements ServletContextAware
   protected ModelAndView doHandle(final HttpServletRequest request, final HttpServletResponse response) throws Exception {
     if (ENABLE_DISABLING_CHECK){ //necessary until TW-16750 is fixed
       if (TeamCityProperties.getBoolean("rest.disable")){
-        response.sendError(HttpServletResponse.SC_NOT_IMPLEMENTED, "REST API is disabled on TeamCity server with 'rest.disable' internal property.");
+        reportRestErrorResponse(response, HttpServletResponse.SC_NOT_IMPLEMENTED, null, "REST API is disabled on TeamCity server with 'rest.disable' internal property.", request.getRequestURI());
         return null;
       }
     }
@@ -225,7 +229,7 @@ public class APIController extends BaseController implements ServletContextAware
           synchronized (this) {
             Thread.sleep(10000); //to prevent bruteforcing
           }
-          response.sendError(403, "Wrong authToken specified");
+          reportRestErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, null, "Wrong authToken specified", request.getRequestURI());
           return null;
         }
       }
@@ -244,15 +248,24 @@ public class APIController extends BaseController implements ServletContextAware
             LOG.debug("Executing request with system security level");
             mySecurityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
               public void run() throws Throwable {
-                myWebComponent.doFilter(actualRequest, response, null);
+                try {
+                  myWebComponent.doFilter(actualRequest, response, null);
+                } catch (Throwable throwable) {
+                  // Sometimes Jersy throws IllegalArgumentException and probably other without utilizing ExceptionMappers
+                  reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, request.getRequestURI());
+                }
               }
             });
           } catch (Throwable throwable) {
-            LOG.debug(throwable.getMessage(), throwable);
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable.getMessage());
+                  reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, request.getRequestURI());
           }
         } else {
-          myWebComponent.doFilter(actualRequest, response, null);
+          try {
+            myWebComponent.doFilter(actualRequest, response, null);
+          } catch (Throwable throwable) {
+            // Sometimes Jersy throws IllegalArgumentException and probably other without utilizing ExceptionMappers
+            reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, request.getRequestURI());
+          }
         }
         return null;
       }
@@ -263,6 +276,25 @@ public class APIController extends BaseController implements ServletContextAware
       LOG.debug("REST API request processing finished in " + TimeUnit.MILLISECONDS.convert(requestFinishProcessing - requestStartProcessing, TimeUnit.NANOSECONDS) + " ms");
     }
     return null;
+  }
+
+  //see ExceptionMapperUtil.getRestErrorResponse
+  public static void reportRestErrorResponse(@NotNull final HttpServletResponse response,
+                                          final int statusCode,
+                                          @Nullable final Throwable e,
+                                          @Nullable final String message,
+                                          @NotNull String requestUri) throws IOException {
+    response.setStatus(statusCode);
+    final String statusDescription = Integer.toString(statusCode);
+    response.setContentType("text/plain");
+    response.getWriter().print("Error has occurred during request processing (" + statusDescription +
+                               ").\nError: " + ExceptionMapperUtil.getMessageWithCauses(e) + (message != null ? "\n" + message : ""));
+    final String logMessage = "Error" + (message != null ? " '" + message + "'" : "") + " for request " + requestUri +
+                              ". Sending " + statusDescription + " error in response: " + (e != null ? e.toString() : "" );
+    LOG.warn(logMessage);
+    if (e != null) {
+      LOG.debug(logMessage, e);
+    }
   }
 
   //todo: move to RequestWrapper
