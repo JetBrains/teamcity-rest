@@ -303,7 +303,7 @@ public class BuildTypeRequest {
     return new PropEntitiesStep(BuildTypeUtil.getSteps(buildType));
   }
 
-  @PUT
+  @POST
   @Path("/{btLocator}/steps")
   @Produces({"application/xml", "application/json"})
   public PropEntity addStep(@PathParam("btLocator") String buildTypeLocator, PropEntityStep stepDescription){
@@ -400,7 +400,7 @@ public class BuildTypeRequest {
     return new PropEntitiesFeature(BuildTypeUtil.getFeatures(buildType));
   }
 
-  @PUT
+  @POST
   @Path("/{btLocator}/features")
   @Produces({"application/xml", "application/json"})
   public PropEntity addFeature(@PathParam("btLocator") String buildTypeLocator, PropEntityFeature featureDescription){

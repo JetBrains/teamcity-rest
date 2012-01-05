@@ -75,6 +75,7 @@ public class GroupRequest {
     return new RoleAssignments(group.getRoles(), group, myApiUrlBuilder);
   }
 
+  //todo: This should actually be POST
   @PUT
   @Path("/{groupLocator}/roles")
   @Consumes({"application/xml", "application/json"})

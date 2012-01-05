@@ -138,6 +138,7 @@ public class UserRequest {
   }
 
 
+   //todo: This should actually be POST
   @PUT
   @Path("/{userLocator}/roles")
   @Consumes({"application/xml", "application/json"})
@@ -174,6 +175,7 @@ public class UserRequest {
   }
 
 
+  //todo: This should actually be PUT
   @POST
   @Path("/{userLocator}/roles/{roleId}/{scope}")
   public void addRoleSimple(@PathParam("userLocator") String userLocator,

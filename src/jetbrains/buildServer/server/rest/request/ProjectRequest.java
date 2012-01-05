@@ -67,7 +67,7 @@ public class ProjectRequest {
     return new Projects(myDataProvider.getServer().getProjectManager().getProjects(), myApiUrlBuilder);
   }
 
-  @PUT
+  @POST
   @Consumes({"text/plain"})
   @Produces({"application/xml", "application/json"})
   public Project createEmptyProject(String name) {
@@ -79,7 +79,7 @@ public class ProjectRequest {
     return new Project(project, myDataProvider, myApiUrlBuilder);
   }
 
-  @PUT
+  @POST
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Project createProject(NewProjectDescription descriptor) {
@@ -128,7 +128,7 @@ public class ProjectRequest {
     return new BuildTypes(project.getBuildTypes(), myDataProvider, myApiUrlBuilder);
   }
 
-  @PUT
+  @POST
   @Path("/{projectLocator}/buildTypes")
   @Produces({"application/xml", "application/json"})
   @Consumes({"text/plain"})
@@ -142,7 +142,7 @@ public class ProjectRequest {
     return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
   }
 
-  @PUT
+  @POST
   @Path("/{projectLocator}/buildTypes")
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
