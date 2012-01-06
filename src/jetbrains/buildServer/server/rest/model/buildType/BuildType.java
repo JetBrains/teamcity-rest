@@ -43,7 +43,7 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "buildType")
 @XmlType(propOrder = {"paused", "description", "webUrl", "href", "name", "id",
   "project", "vcsRootEntries", "builds", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
-  "artifactDependencies", "runParameters", "agentRequirements"})
+  "artifactDependencies", "agentRequirements"})
 public class BuildType {
   private static final Logger LOG = Logger.getInstance(BuildType.class.getName());
 
