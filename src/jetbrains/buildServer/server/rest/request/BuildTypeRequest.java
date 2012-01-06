@@ -474,26 +474,7 @@ public class BuildTypeRequest {
     buildType.persist();
   }
 
-  /**
-   * @deprecated
-   * @see getBuildTypeStep()
-   */
-  @PUT
-  @Path("/{btLocator}/runParameters/{name}")
-  @Produces("text/plain")
-  public void putBuildTypeRunParameter(@PathParam("btLocator") String buildTypeLocator,
-                                       @PathParam("name") String parameterName,
-                                       String newValue) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    if (StringUtil.isEmpty(parameterName)) {
-      throw new BadRequestException("Parameter name cannot be empty.");
-    }
-    if (StringUtil.isEmpty(newValue)) {
-      throw new BadRequestException("Parameter value cannot be empty.");
-    }
-    buildType.addRunParameter(new SimpleParameter(parameterName, newValue));
-    buildType.getProject().persist();
-  }
+
 
   @GET
   @Path("/{btLocator}/builds")

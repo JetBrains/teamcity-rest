@@ -167,14 +167,4 @@ public class BuildType {
   public Properties getSettings() {
     return new Properties(BuildTypeUtil.getSettingsParameters(myBuildType));
   }
-
-  /**
-   * 
-   * @deprecated 
-   */
-  //todo: drop this
-  @XmlElement
-  public Properties getRunParameters() {
-    return new Properties(myBuildType.getRunParameters());
-  }
 }
