@@ -21,7 +21,6 @@ import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
-import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.user.*;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
@@ -76,7 +75,7 @@ public class UserRequest {
     }
 
     final jetbrains.buildServer.users.User currentUser = myDataProvider.getCurrentUser();
-    if (user != null && currentUser != null && currentUser.getId() == user.getId()){
+    if (user != null && currentUser != null && currentUser.getId() == user.getId()) {
       return;
     }
     checkViewAllUsersPermission();
@@ -96,7 +95,7 @@ public class UserRequest {
     }
 
     final jetbrains.buildServer.users.User currentUser = myDataProvider.getCurrentUser();
-    if (user != null && currentUser != null && currentUser.getId() == user.getId()){
+    if (user != null && currentUser != null && currentUser.getId() == user.getId()) {
       myDataProvider.checkGlobalPermission(jetbrains.buildServer.serverSide.auth.Permission.CHANGE_OWN_PROFILE);
       return;
     }
@@ -154,11 +153,7 @@ public class UserRequest {
   public void addRole(@PathParam("userLocator") String userLocator, RoleAssignment roleAssignment) {
     checkModifyUserPermission(userLocator); //todo: user should not be able to add own roles
     SUser user = myDataProvider.getUser(userLocator);
-    try {
-      user.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
-    } catch (Exception e) {
-      throw new OperationException("Cannot add role to user " + user, e);
-    }
+    user.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
   }
 
   @GET
@@ -176,11 +171,7 @@ public class UserRequest {
                          @PathParam("scope") String scopeValue) {
     checkModifyAllUsersPermission();  // user should not be able to modify own roles
     SUser user = myDataProvider.getUser(userLocator);
-    try {
-      user.removeRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
-    } catch (Exception e) {
-      throw new OperationException("Cannot remove role from user " + user, e);
-    }
+    user.removeRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
   }
 
 
@@ -190,8 +181,8 @@ public class UserRequest {
   @POST
   @Path("/{userLocator}/roles/{roleId}/{scope}")
   public void addRoleSimplePost(@PathParam("userLocator") String userLocator,
-                            @PathParam("roleId") String roleId,
-                            @PathParam("scope") String scopeValue) {
+                                @PathParam("roleId") String roleId,
+                                @PathParam("scope") String scopeValue) {
     addRoleSimple(userLocator, roleId, scopeValue);
   }
 
@@ -202,10 +193,6 @@ public class UserRequest {
                             @PathParam("scope") String scopeValue) {
     checkModifyAllUsersPermission(); // user should not be able to add own roles
     SUser user = myDataProvider.getUser(userLocator);
-    try {
-      user.addRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
-    } catch (Exception e) {
-      throw new OperationException("Cannot add role to user " + user, e);
-    }
+    user.addRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
   }
 }

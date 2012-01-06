@@ -22,7 +22,6 @@ import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.group.Group;
 import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
@@ -90,11 +89,7 @@ public class GroupRequest {
   @Consumes({"application/xml", "application/json"})
   public void addRole(@PathParam("groupLocator") String groupLocator, RoleAssignment roleAssignment) {
     SUserGroup group = myDataProvider.getGroup(groupLocator);
-    try {
-      group.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
-    } catch (Exception e) {
-      throw new OperationException("Cannot add role to group " + group, e);
-    }
+    group.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
   }
 
   @GET
@@ -110,11 +105,7 @@ public class GroupRequest {
   public void deleteRole(@PathParam("groupLocator") String groupLocator, @PathParam("roleId") String roleId,
                          @PathParam("scope") String scopeValue) {
     SUserGroup group = myDataProvider.getGroup(groupLocator);
-    try {
-      group.removeRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
-    } catch (Exception e) {
-      throw new OperationException("Cannot remove role from group " + group, e);
-    }
+    group.removeRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
   }
 
   @POST
@@ -123,10 +114,6 @@ public class GroupRequest {
                             @PathParam("roleId") String roleId,
                             @PathParam("scope") String scopeValue) {
     SUserGroup group = myDataProvider.getGroup(groupLocator);
-    try {
-      group.addRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
-    } catch (Exception e) {
-      throw new OperationException("Cannot add role to group " + group, e);
-    }
+    group.addRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
   }
 }
