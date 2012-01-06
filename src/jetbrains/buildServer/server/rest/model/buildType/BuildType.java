@@ -30,7 +30,6 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.BuildsRef;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
 import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
@@ -131,11 +130,7 @@ public class BuildType {
 
   @XmlElement(name = "snapshot-dependencies")
   public PropEntitiesSnapshotDep getSnapshotDependencies() {
-    return new PropEntitiesSnapshotDep(CollectionsUtil.convertCollection(myBuildType.getDependencies(), new Converter<PropEntity, Dependency>() {
-      public PropEntity createFrom(@NotNull final Dependency source) {
-        return BuildTypeUtil.getSnapshotDependencyPropertiesDescriptor(source);
-      }
-    }));
+    return new PropEntitiesSnapshotDep(myBuildType);
   }
 
   @XmlElement(name = "artifact-dependencies")

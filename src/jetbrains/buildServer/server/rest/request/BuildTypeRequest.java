@@ -38,6 +38,8 @@ import jetbrains.buildServer.server.rest.model.buildType.*;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
+import jetbrains.buildServer.serverSide.dependency.Dependency;
+import jetbrains.buildServer.serverSide.impl.dependency.DependencyFactoryImpl;
 import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
@@ -520,6 +522,57 @@ public class BuildTypeRequest {
       throw new NotFoundException("Specified artifact dependency is not found in the build type.");
     }
     buildType.setArtifactDependencies(dependencies);
+    buildType.persist();
+  }
+
+
+
+  @GET
+  @Path("/{btLocator}/snapshot-dependencies")
+  @Produces({"application/xml", "application/json"})
+  public PropEntitiesSnapshotDep getAnpshotDeps(@PathParam("btLocator") String buildTypeLocator){
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    return new PropEntitiesSnapshotDep(buildType);
+  }
+
+  @POST
+  @Path("/{btLocator}/snapshot-dependencies")
+  @Produces({"application/xml", "application/json"})
+  public PropEntitySnapshotDep addSnapshotDep(@PathParam("btLocator") String buildTypeLocator, PropEntitySnapshotDep descripton) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+
+    final Dependency dependencyDescription = descripton.createDependency(myServiceLocator.getSingletonService(DependencyFactoryImpl.class));
+    final String dependOnId = dependencyDescription.getDependOnId();
+
+    try {
+      // need to remove beforehand to make it update:
+      buildType.removeDependency(DataProvider.getSnapshotDep(buildType, dependOnId));
+    } catch (NotFoundException e) {
+      //ignore: it's OK if there is no such dependency
+    }
+    buildType.addDependency(dependencyDescription);
+    buildType.persist();
+
+    Dependency createdDependency = DataProvider.getSnapshotDep(buildType, dependOnId);
+    return new PropEntitySnapshotDep(createdDependency);
+  }
+
+  @GET
+  @Path("/{btLocator}/snapshot-dependencies/{snapshotDepLocator}")
+  @Produces({"application/xml", "application/json"})
+  public PropEntitySnapshotDep getSnapshotDep(@PathParam("btLocator") String buildTypeLocator,
+                                              @PathParam("snapshotDepLocator") String snapshotDepLocator) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    final Dependency dependency = DataProvider.getSnapshotDep(buildType, snapshotDepLocator);
+    return new PropEntitySnapshotDep(dependency);
+  }
+
+  @DELETE
+  @Path("/{btLocator}/snapshot-dependencies/{snapshotDepLocator}")
+  public void deleteSnapshotDep(@PathParam("btLocator") String buildTypeLocator, @PathParam("snapshotDepLocator") String snapshotDepLocator){
+    final SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    final Dependency dependency = DataProvider.getSnapshotDep(buildType, snapshotDepLocator);
+    buildType.removeDependency(dependency);
     buildType.persist();
   }
 

@@ -34,6 +34,7 @@ import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.*;
+import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.statistics.ValueProviderRegistry;
 import jetbrains.buildServer.serverSide.statistics.build.BuildDataStorage;
 import jetbrains.buildServer.users.SUser;
@@ -101,34 +102,6 @@ public class DataProvider {
     myRunningBuildsManager = runningBuildsManager;
     myValueProviderRegistry = valueProviderRegistry;
     myBuildDataStorage = buildDataStorage;
-  }
-
-  @NotNull
-  public static SArtifactDependency getArtifactDep(final SBuildType buildType, final String artifactDepLocator) {
-      if (StringUtil.isEmpty(artifactDepLocator)) {
-        throw new BadRequestException("Empty artifact dependency locator is not supported.");
-      }
-
-      final Locator locator = new Locator(artifactDepLocator);
-
-      if (locator.isSingleValue()) {
-        // no dimensions found, assume it's an order number
-        final Long order = locator.getSingleValueAsLong();
-        if (order == null) {
-          throw new NotFoundException("No artifact dependency found by locator '" + artifactDepLocator +
-                                      ". Locator should be order number of the dependency in the build configuration.");
-        }
-        final SArtifactDependency dependency;
-        try {
-          return buildType.getArtifactDependencies().get(order.intValue());
-        } catch (IndexOutOfBoundsException e) {
-          throw new NotFoundException(
-            "No artifact dependency found by locator '" + artifactDepLocator + ". There is no dependency with order " + order + ".");
-        }
-      }
-
-    throw new BadRequestException("No artifact dependency found by locator '" + artifactDepLocator +
-                                  ". Locator should be order number of the dependency in the build configuration.");
   }
 
   @Nullable
@@ -762,6 +735,58 @@ public class DataProvider {
     }
     throw new NotFoundException("Agent locator '" + locatorString + "' is not supported.");
   }
+
+  @NotNull
+  public static SArtifactDependency getArtifactDep(final SBuildType buildType, final String artifactDepLocator) {
+      if (StringUtil.isEmpty(artifactDepLocator)) {
+        throw new BadRequestException("Empty artifact dependency locator is not supported.");
+      }
+
+      final Locator locator = new Locator(artifactDepLocator);
+
+      if (locator.isSingleValue()) {
+        // no dimensions found, assume it's an order number
+        final Long order = locator.getSingleValueAsLong();
+        if (order == null) {
+          throw new NotFoundException("No artifact dependency found by locator '" + artifactDepLocator +
+                                      ". Locator should be order number of the dependency in the build configuration.");
+        }
+        final SArtifactDependency dependency;
+        try {
+          return buildType.getArtifactDependencies().get(order.intValue());
+        } catch (IndexOutOfBoundsException e) {
+          throw new NotFoundException(
+            "No artifact dependency found by locator '" + artifactDepLocator + ". There is no dependency with order " + order + ".");
+        }
+      }
+
+    throw new BadRequestException("No artifact dependency found by locator '" + artifactDepLocator +
+                                  ". Locator should be order number of the dependency in the build configuration.");
+  }
+
+  public static Dependency getSnapshotDep(final SBuildType buildType, final String snapshotDepLocator) {
+    if (StringUtil.isEmpty(snapshotDepLocator)) {
+      throw new BadRequestException("Empty snapshot dependency locator is not supported.");
+    }
+
+    final Locator locator = new Locator(snapshotDepLocator);
+
+    if (locator.isSingleValue()) {
+      // no dimensions found, assume it's source build type id
+      final String sourceBuildTypeId = locator.getSingleValue();
+      for (Dependency dependency : buildType.getDependencies()) {
+        if (dependency.getDependOnId().equals(sourceBuildTypeId)) {
+          return dependency;
+        }
+      }
+      throw new NotFoundException("No snapshot dependency found by locator '" + snapshotDepLocator +
+                                  ". There is no dependency with source build type id " + sourceBuildTypeId + ".");
+    }
+
+    throw new BadRequestException(
+      "No snapshot dependency found by locator '" + snapshotDepLocator + ". Locator should be existing dependency source build type id.");
+  }
+
 
   @Nullable
   public SBuildAgent findAgentByName(final String agentName) {

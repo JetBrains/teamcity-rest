@@ -31,8 +31,6 @@ import jetbrains.buildServer.serverSide.BuildTypeOptions;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.serverSide.SBuildRunnerDescriptor;
 import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.dependency.Dependency;
-import jetbrains.buildServer.serverSide.dependency.DependencyOptions;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -140,19 +138,6 @@ public class BuildTypeUtil {
       throw new NotFoundException("No feature with id '" + featureId + "' is found in the build configuration.");
     }
     return feature;
-  }
-
-  static PropEntity getSnapshotDependencyPropertiesDescriptor(final Dependency dependency) {
-    HashMap<String, String> properties = new HashMap<String, String>();
-    properties.put("source_buildTypeId", dependency.getDependOnId());
-    properties.put(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED.getKey(), dependency.getOption(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED).toString());
-    properties.put(DependencyOptions.RUN_BUILD_ON_THE_SAME_AGENT.getKey(), dependency.getOption(
-      DependencyOptions.RUN_BUILD_ON_THE_SAME_AGENT).toString());
-    properties.put(DependencyOptions.TAKE_STARTED_BUILD_WITH_SAME_REVISIONS.getKey(), dependency.getOption(
-      DependencyOptions.TAKE_STARTED_BUILD_WITH_SAME_REVISIONS).toString());
-    properties.put(DependencyOptions.TAKE_SUCCESSFUL_BUILDS_ONLY.getKey(), dependency.getOption(DependencyOptions.TAKE_SUCCESSFUL_BUILDS_ONLY).toString());
-    //todo: review id, type here
-    return new PropEntity(null, "snapshot_dependency", properties);
   }
 
   // see also VCSRootRequest.getProjectLocator

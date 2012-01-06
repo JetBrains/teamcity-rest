@@ -3,12 +3,17 @@ package jetbrains.buildServer.server.rest.model.buildType;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.dependency.Dependency;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
  *         Date: 05.01.12
  */
-@XmlRootElement(name="snapshot-dependencies")
+@XmlRootElement(name = "snapshot-dependencies")
 @SuppressWarnings("PublicField")
 public class PropEntitiesSnapshotDep {
   @XmlElement(name = "snapshot-dependency")
@@ -17,7 +22,11 @@ public class PropEntitiesSnapshotDep {
   public PropEntitiesSnapshotDep() {
   }
 
-  public PropEntitiesSnapshotDep(List<PropEntity> propEntitiesParam) {
-    propEntities = propEntitiesParam;
+  public PropEntitiesSnapshotDep(final SBuildType buildType) {
+    propEntities = CollectionsUtil.convertCollection(buildType.getDependencies(), new Converter<PropEntity, Dependency>() {
+      public PropEntity createFrom(@NotNull final Dependency source) {
+        return new PropEntitySnapshotDep(source);
+      }
+    });
   }
- }
+}
