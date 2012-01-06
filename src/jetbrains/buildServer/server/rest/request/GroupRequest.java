@@ -75,8 +75,17 @@ public class GroupRequest {
     return new RoleAssignments(group.getRoles(), group, myApiUrlBuilder);
   }
 
-  //todo: This should actually be POST
+  /**
+   * @deprecated Use POST instead, preserving PUT for compatibility
+   */
   @PUT
+  @Path("/{groupLocator}/roles")
+  @Consumes({"application/xml", "application/json"})
+  public void addRolePut(@PathParam("groupLocator") String groupLocator, RoleAssignment roleAssignment) {
+    addRole(groupLocator, roleAssignment);
+  }
+
+  @POST
   @Path("/{groupLocator}/roles")
   @Consumes({"application/xml", "application/json"})
   public void addRole(@PathParam("groupLocator") String groupLocator, RoleAssignment roleAssignment) {

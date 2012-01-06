@@ -138,8 +138,17 @@ public class UserRequest {
   }
 
 
-   //todo: This should actually be POST
+  /**
+   * @deprecated Use POST instead, preserving PUT for compatibility
+   */
   @PUT
+  @Path("/{userLocator}/roles")
+  @Consumes({"application/xml", "application/json"})
+  public void addRolePut(@PathParam("userLocator") String userLocator, RoleAssignment roleAssignment) {
+    addRole(userLocator, roleAssignment);
+  }
+
+  @POST
   @Path("/{userLocator}/roles")
   @Consumes({"application/xml", "application/json"})
   public void addRole(@PathParam("userLocator") String userLocator, RoleAssignment roleAssignment) {
@@ -175,8 +184,18 @@ public class UserRequest {
   }
 
 
-  //todo: This should actually be PUT
+  /**
+   * @deprecated Use PUT instead, preserving POST for compatibility
+   */
   @POST
+  @Path("/{userLocator}/roles/{roleId}/{scope}")
+  public void addRoleSimplePost(@PathParam("userLocator") String userLocator,
+                            @PathParam("roleId") String roleId,
+                            @PathParam("scope") String scopeValue) {
+    addRoleSimple(userLocator, roleId, scopeValue);
+  }
+
+  @PUT
   @Path("/{userLocator}/roles/{roleId}/{scope}")
   public void addRoleSimple(@PathParam("userLocator") String userLocator,
                             @PathParam("roleId") String roleId,
