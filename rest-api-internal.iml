@@ -84,6 +84,7 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="library" name="log4j-1.2.12" level="project" />
   </component>
 </module>
 

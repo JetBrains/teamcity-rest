@@ -42,6 +42,7 @@ import jetbrains.buildServer.util.FuncThrow;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
 import jetbrains.buildServer.web.util.WebUtil;
+import org.apache.log4j.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.context.ApplicationContext;
@@ -209,15 +210,22 @@ public class APIController extends BaseController implements ServletContextAware
   protected ModelAndView doHandle(final HttpServletRequest request, final HttpServletResponse response) throws Exception {
     if (ENABLE_DISABLING_CHECK){ //necessary until TW-16750 is fixed
       if (TeamCityProperties.getBoolean("rest.disable")){
-        reportRestErrorResponse(response, HttpServletResponse.SC_NOT_IMPLEMENTED, null, "REST API is disabled on TeamCity server with 'rest.disable' internal property.", request.getRequestURI());
+        reportRestErrorResponse(response, HttpServletResponse.SC_NOT_IMPLEMENTED, null,
+                                "REST API is disabled on TeamCity server with 'rest.disable' internal property.", request.getRequestURI(),
+                                Level.INFO);
         return null;
       }
     }
+
     final long requestStartProcessing = System.nanoTime();
     if (LOG.isDebugEnabled()) {
       LOG.debug("REST API request received: " + WebUtil.getRequestDump(request));
     }
-    ensureInitialized();
+    try {
+      ensureInitialized();
+    } catch (Throwable throwable) {
+      reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, request.getRequestURI(), Level.ERROR);
+    }
 
     boolean runAsSystem = false;
     if (TeamCityProperties.getBoolean("rest.use.authToken")) {
@@ -229,69 +237,69 @@ public class APIController extends BaseController implements ServletContextAware
           synchronized (this) {
             Thread.sleep(10000); //to prevent bruteforcing
           }
-          reportRestErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, null, "Wrong authToken specified", request.getRequestURI());
+          reportRestErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, null, "Wrong authToken specified", request.getRequestURI(),
+                                  Level.INFO);
           return null;
         }
       }
     }
 
     final boolean runAsSystemActual = runAsSystem;
-    // workaround for http://jetbrains.net/tracker/issue2/TW-7656
-    jetbrains.buildServer.util.Util.doUnderContextClassLoader(getClass().getClassLoader(), new FuncThrow<Void, Exception>() {
-      public Void apply() throws Exception {
-        // patching request
-        final HttpServletRequest actualRequest =
-          new RequestWrapper(patchRequest(request, "Accept", "overrideAccept"), myRequestPathTransformInfo);
+    try {
+      // workaround for http://jetbrains.net/tracker/issue2/TW-7656
+      jetbrains.buildServer.util.Util.doUnderContextClassLoader(getClass().getClassLoader(), new FuncThrow<Void, Throwable>() {
+        public Void apply() throws Throwable {
+          // patching request
+          final HttpServletRequest actualRequest =
+            new RequestWrapper(patchRequest(request, "Accept", "overrideAccept"), myRequestPathTransformInfo);
 
-        if (runAsSystemActual) {
-          try {
+          if (runAsSystemActual) {
             LOG.debug("Executing request with system security level");
             mySecurityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
               public void run() throws Throwable {
-                try {
-                  myWebComponent.doFilter(actualRequest, response, null);
-                } catch (Throwable throwable) {
-                  // Sometimes Jersy throws IllegalArgumentException and probably other without utilizing ExceptionMappers
-                  reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, request.getRequestURI());
-                }
+                myWebComponent.doFilter(actualRequest, response, null);
               }
             });
-          } catch (Throwable throwable) {
-                  reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, request.getRequestURI());
-          }
-        } else {
-          try {
+          } else {
             myWebComponent.doFilter(actualRequest, response, null);
-          } catch (Throwable throwable) {
-            // Sometimes Jersy throws IllegalArgumentException and probably other without utilizing ExceptionMappers
-            reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, request.getRequestURI());
           }
+          return null;
         }
-        return null;
-      }
-    });
+      });
 
-    if (LOG.isDebugEnabled()) {
-      final long requestFinishProcessing = System.nanoTime();
-      LOG.debug("REST API request processing finished in " + TimeUnit.MILLISECONDS.convert(requestFinishProcessing - requestStartProcessing, TimeUnit.NANOSECONDS) + " ms");
+      if (LOG.isDebugEnabled()) {
+        final long requestFinishProcessing = System.nanoTime();
+        LOG.debug("REST API request processing finished in " +
+                  TimeUnit.MILLISECONDS.convert(requestFinishProcessing - requestStartProcessing, TimeUnit.NANOSECONDS) + " ms");
+      }
+    } catch (Throwable throwable) {
+      // Sometimes Jersy throws IllegalArgumentException and probably other without utilizing ExceptionMappers
+      // forcing plain text error reporting
+      reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, request.getRequestURI(), Level.WARN);
     }
     return null;
   }
 
   //see ExceptionMapperUtil.getRestErrorResponse
   public static void reportRestErrorResponse(@NotNull final HttpServletResponse response,
-                                          final int statusCode,
-                                          @Nullable final Throwable e,
-                                          @Nullable final String message,
-                                          @NotNull String requestUri) throws IOException {
+                                             final int statusCode,
+                                             @Nullable final Throwable e,
+                                             @Nullable final String message,
+                                             @NotNull String requestUri, final Level level) throws IOException {
     response.setStatus(statusCode);
     final String statusDescription = Integer.toString(statusCode);
     response.setContentType("text/plain");
     response.getWriter().print("Error has occurred during request processing (" + statusDescription +
                                ").\nError: " + ExceptionMapperUtil.getMessageWithCauses(e) + (message != null ? "\n" + message : ""));
     final String logMessage = "Error" + (message != null ? " '" + message + "'" : "") + " for request " + requestUri +
-                              ". Sending " + statusDescription + " error in response: " + (e != null ? e.toString() : "" );
-    LOG.warn(logMessage);
+                              ". Sending " + statusDescription + " error in response: " + (e != null ? e.toString() : "");
+    if (level.isGreaterOrEqual(Level.ERROR)) {
+      LOG.error(logMessage);
+    } else if (level.isGreaterOrEqual(Level.WARN)) {
+      LOG.warn(logMessage);
+    } else if (level.isGreaterOrEqual(Level.INFO)) {
+      LOG.info(logMessage);
+    }
     if (e != null) {
       LOG.debug(logMessage, e);
     }
