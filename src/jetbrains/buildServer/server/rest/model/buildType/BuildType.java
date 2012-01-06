@@ -30,7 +30,6 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.BuildsRef;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
 import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -141,11 +140,7 @@ public class BuildType {
 
   @XmlElement(name = "artifact-dependencies")
   public PropEntitiesArtifactDep getArtifactDependencies() {
-    return new PropEntitiesArtifactDep(CollectionsUtil.convertCollection(myBuildType.getArtifactDependencies(), new Converter<PropEntity, SArtifactDependency>() {
-      public PropEntity createFrom(@NotNull final SArtifactDependency source) {
-        return BuildTypeUtil.getArtifactDependencyPropertiesDescriptor(source);
-      }
-    }));
+    return new PropEntitiesArtifactDep(myBuildType);
   }
 
   @XmlElement(name = "agent-requirements")

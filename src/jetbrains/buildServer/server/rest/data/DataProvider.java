@@ -32,6 +32,7 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Constants;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.statistics.ValueProviderRegistry;
 import jetbrains.buildServer.serverSide.statistics.build.BuildDataStorage;
@@ -100,6 +101,34 @@ public class DataProvider {
     myRunningBuildsManager = runningBuildsManager;
     myValueProviderRegistry = valueProviderRegistry;
     myBuildDataStorage = buildDataStorage;
+  }
+
+  @NotNull
+  public static SArtifactDependency getArtifactDep(final SBuildType buildType, final String artifactDepLocator) {
+      if (StringUtil.isEmpty(artifactDepLocator)) {
+        throw new BadRequestException("Empty artifact dependency locator is not supported.");
+      }
+
+      final Locator locator = new Locator(artifactDepLocator);
+
+      if (locator.isSingleValue()) {
+        // no dimensions found, assume it's an order number
+        final Long order = locator.getSingleValueAsLong();
+        if (order == null) {
+          throw new NotFoundException("No artifact dependency found by locator '" + artifactDepLocator +
+                                      ". Locator should be order number of the dependency in the build configuration.");
+        }
+        final SArtifactDependency dependency;
+        try {
+          return buildType.getArtifactDependencies().get(order.intValue());
+        } catch (IndexOutOfBoundsException e) {
+          throw new NotFoundException(
+            "No artifact dependency found by locator '" + artifactDepLocator + ". There is no dependency with order " + order + ".");
+        }
+      }
+
+    throw new BadRequestException("No artifact dependency found by locator '" + artifactDepLocator +
+                                  ". Locator should be order number of the dependency in the build configuration.");
   }
 
   @Nullable

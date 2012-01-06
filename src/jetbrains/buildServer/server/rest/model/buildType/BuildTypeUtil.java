@@ -31,7 +31,6 @@ import jetbrains.buildServer.serverSide.BuildTypeOptions;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.serverSide.SBuildRunnerDescriptor;
 import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.dependency.DependencyOptions;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -147,22 +146,13 @@ public class BuildTypeUtil {
     HashMap<String, String> properties = new HashMap<String, String>();
     properties.put("source_buildTypeId", dependency.getDependOnId());
     properties.put(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED.getKey(), dependency.getOption(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED).toString());
-    properties.put(DependencyOptions.RUN_BUILD_ON_THE_SAME_AGENT.getKey(), dependency.getOption(DependencyOptions.RUN_BUILD_ON_THE_SAME_AGENT).toString());
-    properties.put(DependencyOptions.TAKE_STARTED_BUILD_WITH_SAME_REVISIONS.getKey(), dependency.getOption(DependencyOptions.TAKE_STARTED_BUILD_WITH_SAME_REVISIONS).toString());
+    properties.put(DependencyOptions.RUN_BUILD_ON_THE_SAME_AGENT.getKey(), dependency.getOption(
+      DependencyOptions.RUN_BUILD_ON_THE_SAME_AGENT).toString());
+    properties.put(DependencyOptions.TAKE_STARTED_BUILD_WITH_SAME_REVISIONS.getKey(), dependency.getOption(
+      DependencyOptions.TAKE_STARTED_BUILD_WITH_SAME_REVISIONS).toString());
     properties.put(DependencyOptions.TAKE_SUCCESSFUL_BUILDS_ONLY.getKey(), dependency.getOption(DependencyOptions.TAKE_SUCCESSFUL_BUILDS_ONLY).toString());
     //todo: review id, type here
     return new PropEntity(null, "snapshot_dependency", properties);
-  }
-
-  static PropEntity getArtifactDependencyPropertiesDescriptor(final SArtifactDependency dependency) {
-    HashMap<String, String> properties = new HashMap<String, String>();
-    properties.put("source_buildTypeId", dependency.getSourceBuildTypeId());
-    properties.put("pathRules", dependency.getSourcePaths());
-    properties.put("revisionName", dependency.getRevisionRule().getName());
-    properties.put("revisionValue", dependency.getRevisionRule().getRevision());
-    properties.put("cleanDestinationDirectory", Boolean.toString(dependency.isCleanDestinationFolder()));
-    //todo: review id, type here
-    return new PropEntity(null, "artifact_dependency", properties);
   }
 
   // see also VCSRootRequest.getProjectLocator

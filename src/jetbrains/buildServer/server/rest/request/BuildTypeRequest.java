@@ -37,6 +37,7 @@ import jetbrains.buildServer.server.rest.model.build.Tags;
 import jetbrains.buildServer.server.rest.model.buildType.*;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
@@ -262,7 +263,7 @@ public class BuildTypeRequest {
   @GET
   @Path("/{btLocator}/vcs-roots/{vcsRootLocator}")
   @Produces({"application/xml", "application/json"})
-  public VcsRootEntry addVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("vcsRootLocator") String vcsRootLocator) {
+  public VcsRootEntry getVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("vcsRootLocator") String vcsRootLocator) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
 
@@ -306,7 +307,7 @@ public class BuildTypeRequest {
   @POST
   @Path("/{btLocator}/steps")
   @Produces({"application/xml", "application/json"})
-  public PropEntity addStep(@PathParam("btLocator") String buildTypeLocator, PropEntityStep stepDescription){
+  public PropEntityStep addStep(@PathParam("btLocator") String buildTypeLocator, PropEntityStep stepDescription){
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     if (!StringUtil.isEmpty(stepDescription.id)){
       throw new BadRequestException("Could not create step with predefined id.");
@@ -323,19 +324,19 @@ public class BuildTypeRequest {
     final SBuildRunnerDescriptor descriptor =
       buildType.addBuildRunner(stepDescription.name, stepDescription.type, BuildTypeUtil.getMapFromProperties(stepDescription.properties));
     buildType.persist();
-    return new PropEntity(descriptor);
+    return new PropEntityStep(descriptor);
   }
 
   @GET
   @Path("/{btLocator}/steps/{stepId}")
   @Produces({"application/xml", "application/json"})
-  public PropEntity getStep(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId){
+  public PropEntityStep getStep(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId){
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     SBuildRunnerDescriptor step = buildType.findBuildRunnerById(stepId);
     if (step == null){
       throw new NotFoundException("No step with id '" + stepId + "' is found.");
     }
-    return new PropEntity(step);
+    return new PropEntityStep(step);
   }
 
   @DELETE
@@ -403,7 +404,7 @@ public class BuildTypeRequest {
   @POST
   @Path("/{btLocator}/features")
   @Produces({"application/xml", "application/json"})
-  public PropEntity addFeature(@PathParam("btLocator") String buildTypeLocator, PropEntityFeature featureDescription){
+  public PropEntityFeature addFeature(@PathParam("btLocator") String buildTypeLocator, PropEntityFeature featureDescription){
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     if (!StringUtil.isEmpty(featureDescription.id)){
       throw new BadRequestException("Could not create build feature with predefined id.");
@@ -420,19 +421,19 @@ public class BuildTypeRequest {
     final SBuildFeatureDescriptor descriptor =
       buildType.addBuildFeature(featureDescription.type, BuildTypeUtil.getMapFromProperties(featureDescription.properties));
     buildType.persist();
-    return new PropEntity(descriptor);
+    return new PropEntityFeature(descriptor);
   }
 
   @GET
   @Path("/{btLocator}/features/{featureId}")
   @Produces({"application/xml", "application/json"})
-  public PropEntity getFeature(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId){
+  public PropEntityFeature getFeature(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId){
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType, featureId);
     if (feature == null){
       throw new NotFoundException("No feature with id '" + featureId + "' is found.");
     }
-    return new PropEntity(feature);
+    return new PropEntityFeature(feature);
   }
 
   @DELETE
@@ -471,6 +472,54 @@ public class BuildTypeRequest {
     }
     parameters.put(parameterName, newValue);
     buildType.updateBuildFeature(feature.getId(), feature.getType(), parameters);
+    buildType.persist();
+  }
+
+
+
+  @GET
+  @Path("/{btLocator}/artifact-dependencies")
+  @Produces({"application/xml", "application/json"})
+  public PropEntitiesArtifactDep getArtifactDeps(@PathParam("btLocator") String buildTypeLocator){
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    return new PropEntitiesArtifactDep(buildType);
+  }
+
+  @POST
+  @Path("/{btLocator}/artifact-dependencies")
+  @Produces({"application/xml", "application/json"})
+  public PropEntityArtifactDep addArtifactDep(@PathParam("btLocator") String buildTypeLocator, PropEntityArtifactDep descripton) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+
+    final List<SArtifactDependency> dependencies = buildType.getArtifactDependencies();
+    dependencies.add(descripton.createDependency(myServiceLocator.getSingletonService(ArtifactDependencyFactory.class)));
+    int orderNum = dependencies.size() - 1;
+    buildType.setArtifactDependencies(dependencies);
+    buildType.persist();
+
+    return new PropEntityArtifactDep(buildType.getArtifactDependencies().get(orderNum), orderNum);
+  }
+
+  @GET
+  @Path("/{btLocator}/artifact-dependencies/{artifactDepLocator}")
+  @Produces({"application/xml", "application/json"})
+  public PropEntityArtifactDep getArtifactDep(@PathParam("btLocator") String buildTypeLocator,
+                                              @PathParam("artifactDepLocator") String artifactDepLocator) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    final SArtifactDependency artifactDependency = DataProvider.getArtifactDep(buildType, artifactDepLocator);
+    return new PropEntityArtifactDep(artifactDependency, buildType);
+  }
+
+  @DELETE
+  @Path("/{btLocator}/artifact-dependencies/{artifactDepLocator}")
+  public void deleteArtifactDep(@PathParam("btLocator") String buildTypeLocator, @PathParam("artifactDepLocator") String artifactDepLocator){
+    final SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    final SArtifactDependency artifactDependency = DataProvider.getArtifactDep(buildType, artifactDepLocator);
+    final List<SArtifactDependency> dependencies = buildType.getArtifactDependencies();
+    if (!dependencies.remove(artifactDependency)){
+      throw new NotFoundException("Specified artifact dependency is not found in the build type.");
+    }
+    buildType.setArtifactDependencies(dependencies);
     buildType.persist();
   }
 

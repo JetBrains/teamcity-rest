@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model;
 
 import com.intellij.util.containers.SortedList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlElement;
@@ -56,5 +57,13 @@ public class Properties {
 
   private boolean isPropertyToExclude(@NotNull final String key) {
     return key.startsWith(SVcsRoot.SECURE_PROPERTY_PREFIX) && !TeamCityProperties.getBoolean("rest.listSecureProperties");
+  }
+
+  public Map<String, String> getMap() {
+    final HashMap<String, String> result = new HashMap<String, String>(properties.size());
+    for (Property property : properties) {
+      result.put(property.name, property.value);
+    }
+    return result;
   }
 }
