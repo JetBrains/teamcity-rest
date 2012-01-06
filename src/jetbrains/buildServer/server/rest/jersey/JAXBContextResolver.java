@@ -60,7 +60,7 @@ public class JAXBContextResolver implements ContextResolver<JAXBContext> {
     Agent.class, Agents.class,
     Build.class, Builds.class,
     BuildType.class, BuildTypes.class,
-    Change.class, FileChange.class, Revision.class, Revisions.class,
+    Change.class, Changes.class, FileChange.class, Revision.class, Revisions.class,
     VcsRoot.class, VcsRoots.class, VcsRootEntry.class, VcsRootEntries.class,
     Group.class, Groups.class,
     Issue.class, Issues.class, IssueUsage.class, IssueUsages.class,
@@ -80,6 +80,7 @@ public class JAXBContextResolver implements ContextResolver<JAXBContext> {
   }
 
   public JAXBContext getContext(Class<?> objectType) {
-    return (types.contains(objectType)) ? context : null;
+    return context;
+//    return (types.contains(objectType)) ? context : null;
   }
 }
