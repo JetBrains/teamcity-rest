@@ -66,8 +66,6 @@ public class JAXBContextResolver implements ContextResolver<JAXBContext> {
     Issue.class, Issues.class, IssueUsage.class, IssueUsages.class,
     Project.class, Projects.class,
     User.class, UserData.class, Users.class,
-    PropEntityStep.class, PropEntityFeature.class, PropEntityArtifactDep.class, PropEntitySnapshotDep.class, PropEntityTrigger.class, PropEntityAgentRequirement.class,
-    PropEntitiesStep.class, PropEntitiesFeature.class, PropEntitiesArtifactDep.class, PropEntitiesSnapshotDep.class, PropEntitiesTrigger.class, PropEntitiesAgentRequirement.class,
   };
 
   public JAXBContextResolver() throws Exception {
