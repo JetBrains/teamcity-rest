@@ -54,7 +54,7 @@ public class VcsRootRequest {
 
   @POST
   @Produces({"application/xml", "application/json"})
-  public VcsRoot serveRoot(VcsRoot vcsRootDescription) {
+  public VcsRoot addRoot(VcsRoot vcsRootDescription) {
     checkVcsRootDescription(vcsRootDescription);
     final SVcsRoot newVcsRoot = myDataProvider.getVcsManager()
       .createNewVcsRoot(vcsRootDescription.vcsName, vcsRootDescription.name != null ? vcsRootDescription.name : null,
