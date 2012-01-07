@@ -39,6 +39,7 @@ import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.model.issue.Issues;
 import jetbrains.buildServer.server.rest.model.plugin.PluginInfo;
 import jetbrains.buildServer.server.rest.model.plugin.PluginInfos;
+import jetbrains.buildServer.server.rest.model.project.NewProjectDescription;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.model.server.Server;
@@ -71,6 +72,7 @@ public class JAXBContextResolver implements ContextResolver<JAXBContext> {
     Project.class, Projects.class,
     Server.class,
     User.class, UserData.class, Users.class,
+    NewBuildTypeDescription.class, NewProjectDescription.class,
   };
 
   public JAXBContextResolver() throws Exception {
@@ -85,7 +87,9 @@ public class JAXBContextResolver implements ContextResolver<JAXBContext> {
   }
 
   public JAXBContext getContext(Class<?> objectType) {
-    return context; // this makes request fail if the served root bean is not accessible from cTypes
-//    return (types.contains(objectType)) ? context : null;
+//    return context; // this would make request fail if the served or posted root bean is not accessible from cTypes
+
+    // returning the context for all "our" types
+    return objectType.getClass().getName().startsWith("jetbrains.buildServer.server.rest") ? context : null;
   }
 }
