@@ -27,6 +27,7 @@ import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptorFactory;
+import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildsFilter;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -634,6 +635,55 @@ public class BuildTypeRequest {
     if (!buildType.removeBuildTrigger(trigger)){
       throw new OperationException("Build trigger removal failed");
     }
+    buildType.persist();
+  }
+
+
+
+  @GET
+  @Path("/{btLocator}/agent-requirements")
+  @Produces({"application/xml", "application/json"})
+  public PropEntitiesAgentRequirement getAgentRequirements(@PathParam("btLocator") String buildTypeLocator){
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    return new PropEntitiesAgentRequirement(buildType);
+  }
+
+  @POST
+  @Path("/{btLocator}/agent-requirements")
+  @Produces({"application/xml", "application/json"})
+  public PropEntityAgentRequirement addAgentRequirement(@PathParam("btLocator") String buildTypeLocator, PropEntityAgentRequirement descripton) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+
+
+    final Requirement requirementToAdd = descripton.createRequirement();
+    final Requirement requirement = DataProvider.getAgentRequirement(buildType, requirementToAdd.getPropertyName());
+    if (requirement != null){
+      buildType.removeRequirement(requirementToAdd.getPropertyName());
+    }
+    buildType.addRequirement(requirementToAdd);
+    buildType.persist();
+
+    //todo: might not be a good way to get just added requirement
+    final List<Requirement> requirements = buildType.getRequirements();
+    return new PropEntityAgentRequirement(requirements.get(requirements.size()-1));
+  }
+
+  @GET
+  @Path("/{btLocator}/agent-requirements/{agentRequirementLocator}")
+  @Produces({"application/xml", "application/json"})
+  public PropEntityAgentRequirement getAgentRequirement(@PathParam("btLocator") String buildTypeLocator,
+                                              @PathParam("agentRequirementLocator") String agentRequirementLocator) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    final Requirement requirement = DataProvider.getAgentRequirement(buildType, agentRequirementLocator);
+    return new PropEntityAgentRequirement(requirement);
+  }
+
+  @DELETE
+  @Path("/{btLocator}/agent-requirements/{agentRequirementLocator}")
+  public void deleteAgentRequirement(@PathParam("btLocator") String buildTypeLocator, @PathParam("agentRequirementLocator") String agentRequirementLocator){
+    final SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    final Requirement requirement = DataProvider.getAgentRequirement(buildType, agentRequirementLocator);
+    buildType.removeRequirement(requirement.getPropertyName());
     buildType.persist();
   }
 

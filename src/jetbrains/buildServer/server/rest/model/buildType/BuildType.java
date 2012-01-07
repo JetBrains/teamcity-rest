@@ -17,21 +17,16 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.HashMap;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.BuildsRef;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
 import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
@@ -135,17 +130,7 @@ public class BuildType {
 
   @XmlElement(name = "agent-requirements")
   public PropEntitiesAgentRequirement getAgentRequirements() {
-    return new PropEntitiesAgentRequirement(CollectionsUtil.convertCollection(myBuildType.getRequirements(), new Converter<PropEntity, Requirement>() {
-      public PropEntity createFrom(@NotNull final Requirement source) {
-        HashMap<String, String> properties = new HashMap<String, String>();
-        properties.put("property-name", source.getPropertyName());
-        if (source.getPropertyValue() != null) {
-          properties.put("property-value", source.getPropertyValue());
-        }
-        properties.put("type", source.getType().getName());
-        return new PropEntity(source.getPropertyName(), source.getType().getName(), properties);
-      }
-    }));
+    return new PropEntitiesAgentRequirement(myBuildType);
   }
 
   @XmlElement(name="settings")
