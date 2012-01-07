@@ -58,8 +58,7 @@ public class VcsRootRequest {
     checkVcsRootDescription(vcsRootDescription);
     final SVcsRoot newVcsRoot = myDataProvider.getVcsManager()
       .createNewVcsRoot(vcsRootDescription.vcsName, vcsRootDescription.name != null ? vcsRootDescription.name : null,
-                        BuildTypeUtil.getMapFromProperties(vcsRootDescription.properties),
-                        createScope(vcsRootDescription));
+                        vcsRootDescription.properties.getMap(), createScope(vcsRootDescription));
     myDataProvider.getVcsManager().persistVcsRoots();
     return new VcsRoot(newVcsRoot, myDataProvider, myApiUrlBuilder);
   }

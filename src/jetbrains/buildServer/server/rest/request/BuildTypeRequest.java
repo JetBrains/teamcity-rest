@@ -316,22 +316,11 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntityStep addStep(@PathParam("btLocator") String buildTypeLocator, PropEntityStep stepDescription){
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    if (!StringUtil.isEmpty(stepDescription.id)){
-      throw new BadRequestException("Could not create step with predefined id.");
-    }
-    if (StringUtil.isEmpty(stepDescription.name)){
-      stepDescription.name="";
-    }
-    if (StringUtil.isEmpty(stepDescription.type)){
-      throw new BadRequestException("Created step cannot have empty 'type'.");
-    }
-    if (stepDescription.properties == null){
-      stepDescription.properties = new Properties();
-    }
-    final SBuildRunnerDescriptor descriptor =
-      buildType.addBuildRunner(stepDescription.name, stepDescription.type, BuildTypeUtil.getMapFromProperties(stepDescription.properties));
+    final SBuildRunnerDescriptor runnerToCreate =
+      stepDescription.createRunner(myServiceLocator.getSingletonService(BuildRunnerDescriptorFactory.class));
+    buildType.addBuildRunner(runnerToCreate);
     buildType.persist();
-    return new PropEntityStep(descriptor);
+    return new PropEntityStep(buildType.findBuildRunnerById(runnerToCreate.getId()));
   }
 
   @GET
@@ -413,22 +402,11 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntityFeature addFeature(@PathParam("btLocator") String buildTypeLocator, PropEntityFeature featureDescription){
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    if (!StringUtil.isEmpty(featureDescription.id)){
-      throw new BadRequestException("Could not create build feature with predefined id.");
-    }
-    if (!StringUtil.isEmpty(featureDescription.name)){
-      throw new BadRequestException("Could not create build feature with name.");
-    }
-    if (StringUtil.isEmpty(featureDescription.type)){
-      throw new BadRequestException("Created build feature cannot have empty 'type'.");
-    }
-    if (featureDescription.properties == null){
-      featureDescription.properties = new Properties();
-    }
-    final SBuildFeatureDescriptor descriptor =
-      buildType.addBuildFeature(featureDescription.type, BuildTypeUtil.getMapFromProperties(featureDescription.properties));
+    final SBuildFeatureDescriptor featureToCreate =
+      featureDescription.createFeature(myServiceLocator.getSingletonService(BuildFeatureDescriptorFactory.class));
+    buildType.addBuildFeature(featureToCreate);
     buildType.persist();
-    return new PropEntityFeature(descriptor);
+    return new PropEntityFeature(BuildTypeUtil.getBuildTypeFeature(buildType, featureToCreate.getId()));
   }
 
   @GET

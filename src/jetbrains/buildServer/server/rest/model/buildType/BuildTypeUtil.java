@@ -19,13 +19,10 @@ package jetbrains.buildServer.server.rest.model.buildType;
 import com.intellij.openapi.diagnostic.Logger;
 import java.lang.reflect.Field;
 import java.util.HashMap;
-import java.util.Map;
 import jetbrains.buildServer.BuildTypeDescriptor;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.serverSide.BuildTypeOptions;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -94,14 +91,6 @@ public class BuildTypeUtil {
         LOG.error("Error retrieving options of build configuration " + LogUtil.describe(buildType) + ", error: " + e.getMessage());
       }
     }
-  }
-
-  public static Map<String, String> getMapFromProperties(final Properties properties) {
-    Map<String, String> result = new HashMap<String, String>(properties.properties.size());
-    for (Property prop : properties.properties) {
-      result.put(prop.name, prop.value);
-    }
-    return result;
   }
 
   public static SBuildFeatureDescriptor getBuildTypeFeature(final SBuildType buildType, @NotNull final String featureId) {
