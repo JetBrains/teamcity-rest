@@ -22,7 +22,6 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -120,11 +119,7 @@ public class BuildType {
 
   @XmlElement(name = "triggers")
   public PropEntitiesTrigger getTriggers() {
-    return new PropEntitiesTrigger(CollectionsUtil.convertCollection(myBuildType.getBuildTriggersCollection(), new Converter<PropEntity, BuildTriggerDescriptor>() {
-      public PropEntity createFrom(@NotNull final BuildTriggerDescriptor source) {
-        return new PropEntity(source);
-      }
-    }));
+    return new PropEntitiesTrigger(myBuildType);
   }
 
 

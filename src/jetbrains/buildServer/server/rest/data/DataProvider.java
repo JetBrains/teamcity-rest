@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.groups.UserGroupManager;
@@ -756,12 +757,12 @@ public class DataProvider {
           return buildType.getArtifactDependencies().get(order.intValue());
         } catch (IndexOutOfBoundsException e) {
           throw new NotFoundException(
-            "No artifact dependency found by locator '" + artifactDepLocator + ". There is no dependency with order " + order + ".");
+            "No artifact dependency found by locator '" + artifactDepLocator + "'. There is no dependency with order " + order + ".");
         }
       }
 
     throw new BadRequestException("No artifact dependency found by locator '" + artifactDepLocator +
-                                  ". Locator should be order number of the dependency in the build configuration.");
+                                  "'. Locator should be order number of the dependency in the build configuration.");
   }
 
   public static Dependency getSnapshotDep(final SBuildType buildType, final String snapshotDepLocator) {
@@ -780,13 +781,36 @@ public class DataProvider {
         }
       }
       throw new NotFoundException("No snapshot dependency found by locator '" + snapshotDepLocator +
-                                  ". There is no dependency with source build type id " + sourceBuildTypeId + ".");
+                                  "'. There is no dependency with source build type id " + sourceBuildTypeId + ".");
     }
 
     throw new BadRequestException(
-      "No snapshot dependency found by locator '" + snapshotDepLocator + ". Locator should be existing dependency source build type id.");
+      "No snapshot dependency found by locator '" + snapshotDepLocator + "'. Locator should be existing dependency source build type id.");
   }
 
+
+  public static BuildTriggerDescriptor getTrigger(final SBuildType buildType, final String triggerLocator) {
+    if (StringUtil.isEmpty(triggerLocator)) {
+      throw new BadRequestException("Empty trigger locator is not supported.");
+    }
+
+    final Locator locator = new Locator(triggerLocator);
+
+    if (locator.isSingleValue()) {
+      // no dimensions found, assume it's trigger id
+      final String triggerId = locator.getSingleValue();
+      if (StringUtil.isEmpty(triggerId)){
+        throw new BadRequestException("Trigger id cannot be empty.");
+      }
+      final BuildTriggerDescriptor foundTrigger = buildType.findTriggerById(triggerId);
+      if (foundTrigger == null){
+        throw new NotFoundException("No trigger found by id '" + triggerLocator +"' in build type.");
+      }
+      return foundTrigger;
+    }
+    throw new BadRequestException(
+      "No trigger can be found by locator '" + triggerLocator + "'. Locator should be trigger id.");
+  }
 
   @Nullable
   public SBuildAgent findAgentByName(final String agentName) {

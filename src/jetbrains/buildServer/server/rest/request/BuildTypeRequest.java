@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,11 +25,14 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
+import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptorFactory;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildsFilter;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.Build;
@@ -498,7 +502,7 @@ public class BuildTypeRequest {
     int orderNum = dependencies.size() - 1;
     buildType.setArtifactDependencies(dependencies);
     buildType.persist();
-
+    //todo: might not be a good way to get just added dependency
     return new PropEntityArtifactDep(buildType.getArtifactDependencies().get(orderNum), orderNum);
   }
 
@@ -573,6 +577,63 @@ public class BuildTypeRequest {
     final SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     final Dependency dependency = DataProvider.getSnapshotDep(buildType, snapshotDepLocator);
     buildType.removeDependency(dependency);
+    buildType.persist();
+  }
+
+
+
+  @GET
+  @Path("/{btLocator}/triggers")
+  @Produces({"application/xml", "application/json"})
+  public PropEntitiesTrigger getTriggers(@PathParam("btLocator") String buildTypeLocator){
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    return new PropEntitiesTrigger(buildType);
+  }
+
+  @POST
+  @Path("/{btLocator}/triggers")
+  @Produces({"application/xml", "application/json"})
+  public PropEntityTrigger addSnapshotDep(@PathParam("btLocator") String buildTypeLocator, PropEntityTrigger descripton) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+
+    final BuildTriggerDescriptor triggerToAdd =
+      descripton.createTrigger(myServiceLocator.getSingletonService(BuildTriggerDescriptorFactory.class));
+    if (!buildType.addBuildTrigger(triggerToAdd)) {
+      final BuildTriggerDescriptor foundTriggerWithSameId = buildType.findTriggerById(descripton.id);
+      if (foundTriggerWithSameId != null) {
+        buildType.removeBuildTrigger(foundTriggerWithSameId);
+      }
+      if (!buildType.addBuildTrigger(triggerToAdd)) {
+        throw new OperationException("Build trigger addition failed");
+      }
+    }
+    //todo: might not be a good way to get just added trigger
+    final Collection<BuildTriggerDescriptor> buildTriggersCollection = buildType.getBuildTriggersCollection();
+    final BuildTriggerDescriptor justAdded = (BuildTriggerDescriptor)buildTriggersCollection.toArray()[buildTriggersCollection.size() - 1];
+
+    buildType.persist();
+
+    return new PropEntityTrigger(justAdded);
+  }
+
+  @GET
+  @Path("/{btLocator}/triggers/{triggerLocator}")
+  @Produces({"application/xml", "application/json"})
+  public PropEntityTrigger getTrigger(@PathParam("btLocator") String buildTypeLocator,
+                                              @PathParam("triggerLocator") String triggerLocator) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    final BuildTriggerDescriptor trigger = DataProvider.getTrigger(buildType, triggerLocator);
+    return new PropEntityTrigger(trigger);
+  }
+
+  @DELETE
+  @Path("/{btLocator}/triggers/{triggerLocator}")
+  public void deleteTrigger(@PathParam("btLocator") String buildTypeLocator, @PathParam("triggerLocator") String triggerLocator){
+    final SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    final BuildTriggerDescriptor trigger = DataProvider.getTrigger(buildType, triggerLocator);
+    if (!buildType.removeBuildTrigger(trigger)){
+      throw new OperationException("Build trigger removal failed");
+    }
     buildType.persist();
   }
 
