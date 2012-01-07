@@ -14,7 +14,7 @@ import jetbrains.buildServer.util.StringUtil;
  * @author Yegor.Yarko
  *         Date: 05.01.12
  */
-@XmlRootElement(name = "trigger")
+@XmlRootElement(name = "agent-requirement")
 public class PropEntityAgentRequirement extends PropEntity {
 
   public static final String NAME_PROPERTY_VALUE = "property-value";
@@ -46,17 +46,10 @@ public class PropEntityAgentRequirement extends PropEntity {
 
   private String getId() {
     final String nameProperty = properties.getMap().get(NAME_PROPERTY_NAME);
-    if (!StringUtil.isEmpty(id)) {
-      if (!StringUtil.isEmpty(nameProperty) && !nameProperty.equals(id)) {
-        throw new BadRequestException("Only one from id attribute and " + NAME_PROPERTY_NAME + " property should be specified, or they should be equal.");
-      }
-      return id;
-    } else {
-      if (StringUtil.isEmpty(nameProperty)) {
-        throw new BadRequestException("Either id attribute or " + NAME_PROPERTY_NAME + " property should be specified for a requirement.");
-      }
-      return nameProperty;
+    if (StringUtil.isEmpty(nameProperty)) {
+      throw new BadRequestException("Prperty " + NAME_PROPERTY_NAME + " with the parameter name should be specified for a requirement.");
     }
+    return nameProperty;
   }
 
   private RequirementType getType() {
