@@ -17,14 +17,14 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 public class PropEntitiesTrigger {
   @XmlElement(name = "trigger")
-  public List<PropEntity> propEntities;
+  public List<PropEntityTrigger> propEntities;
 
   public PropEntitiesTrigger() {
   }
 
   public PropEntitiesTrigger(final SBuildType buildType) {
-    propEntities = CollectionsUtil.convertCollection(buildType.getBuildTriggersCollection(), new Converter<PropEntity, BuildTriggerDescriptor>() {
-          public PropEntity createFrom(@NotNull final BuildTriggerDescriptor source) {
+    propEntities = CollectionsUtil.convertCollection(buildType.getBuildTriggersCollection(), new Converter<PropEntityTrigger, BuildTriggerDescriptor>() {
+          public PropEntityTrigger createFrom(@NotNull final BuildTriggerDescriptor source) {
             return new PropEntityTrigger(source);
           }
         });

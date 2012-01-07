@@ -104,12 +104,12 @@ public class BuildType {
 
   @XmlElement(name = "steps")
   public PropEntitiesStep getSteps() {
-    return new PropEntitiesStep(BuildTypeUtil.getSteps(myBuildType));
+    return new PropEntitiesStep(myBuildType);
   }
 
   @XmlElement(name = "features")
   public PropEntitiesFeature getFeatures() {
-    return new PropEntitiesFeature(BuildTypeUtil.getFeatures(myBuildType));
+    return new PropEntitiesFeature(myBuildType);
   }
 
   @XmlElement(name = "triggers")

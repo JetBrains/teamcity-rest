@@ -19,7 +19,6 @@ package jetbrains.buildServer.server.rest.model.buildType;
 import com.intellij.openapi.diagnostic.Logger;
 import java.lang.reflect.Field;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import jetbrains.buildServer.BuildTypeDescriptor;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -29,11 +28,9 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.serverSide.BuildTypeOptions;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
-import jetbrains.buildServer.serverSide.SBuildRunnerDescriptor;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.Option;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.filters.Filter;
@@ -46,24 +43,6 @@ import org.jetbrains.annotations.NotNull;
  */
 public class BuildTypeUtil {
   private static final Logger LOG = Logger.getInstance(BuildTypeUtil.class.getName());
-
-  public static List<PropEntity> getSteps(final SBuildType buildType) {
-    return CollectionsUtil.convertCollection(buildType.getBuildRunners(),
-                                             new Converter<PropEntity, SBuildRunnerDescriptor>() {
-                                               public PropEntity createFrom(@NotNull final SBuildRunnerDescriptor source) {
-                                                 return new PropEntity(source.getId(), source.getName(), source.getType(),
-                                                                       source.getParameters());
-                                               }
-                                             });
-  }
-
-  public static List<PropEntity> getFeatures(final SBuildType buildType) {
-    return CollectionsUtil.convertCollection(buildType.getBuildFeatures(), new Converter<PropEntity, SBuildFeatureDescriptor>() {
-      public PropEntity createFrom(@NotNull final SBuildFeatureDescriptor source) {
-        return new PropEntity(source);
-      }
-    });
-  }
 
   public static HashMap<String, String> getSettingsParameters(final SBuildType buildType) {
     HashMap<String, String> properties = new HashMap<String, String>();

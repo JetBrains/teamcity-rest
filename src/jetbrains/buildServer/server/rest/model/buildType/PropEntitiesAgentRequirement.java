@@ -17,14 +17,14 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 public class PropEntitiesAgentRequirement {
   @XmlElement(name = "agent-requirement")
-  public List<PropEntity> propEntities;
+  public List<PropEntityAgentRequirement> propEntities;
 
   public PropEntitiesAgentRequirement() {
   }
 
   public PropEntitiesAgentRequirement(final SBuildType buildType) {
-    propEntities = CollectionsUtil.convertCollection(buildType.getRequirements(), new Converter<PropEntity, Requirement>() {
-          public PropEntity createFrom(@NotNull final Requirement source) {
+    propEntities = CollectionsUtil.convertCollection(buildType.getRequirements(), new Converter<PropEntityAgentRequirement, Requirement>() {
+          public PropEntityAgentRequirement createFrom(@NotNull final Requirement source) {
             return new PropEntityAgentRequirement(source);
           }
         });

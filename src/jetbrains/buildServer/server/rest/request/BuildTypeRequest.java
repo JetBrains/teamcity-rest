@@ -308,7 +308,7 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntitiesStep getSteps(@PathParam("btLocator") String buildTypeLocator){
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return new PropEntitiesStep(BuildTypeUtil.getSteps(buildType));
+    return new PropEntitiesStep(buildType);
   }
 
   @POST
@@ -405,7 +405,7 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntitiesFeature getFeatures(@PathParam("btLocator") String buildTypeLocator){
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return new PropEntitiesFeature(BuildTypeUtil.getFeatures(buildType));
+    return new PropEntitiesFeature(buildType);
   }
 
   @POST

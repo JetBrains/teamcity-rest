@@ -3,21 +3,31 @@ package jetbrains.buildServer.server.rest.model.buildType;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
+import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
  *         Date: 05.01.12
  */
-@XmlRootElement(name="features")
+@XmlRootElement(name = "features")
 @SuppressWarnings("PublicField")
 public class PropEntitiesFeature {
   @XmlElement(name = "feature")
-  public List<PropEntity> propEntities;
+  public List<PropEntityFeature> propEntities;
 
   public PropEntitiesFeature() {
   }
 
-  public PropEntitiesFeature(List<PropEntity> propEntitiesParam) {
-    propEntities = propEntitiesParam;
+  public PropEntitiesFeature(final SBuildType buildType) {
+    propEntities =
+      CollectionsUtil.convertCollection(buildType.getBuildFeatures(), new Converter<PropEntityFeature, SBuildFeatureDescriptor>() {
+        public PropEntityFeature createFrom(@NotNull final SBuildFeatureDescriptor source) {
+          return new PropEntityFeature(source);
+        }
+      });
   }
- }
+}

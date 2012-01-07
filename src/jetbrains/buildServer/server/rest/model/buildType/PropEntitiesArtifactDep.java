@@ -15,14 +15,14 @@ import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 @SuppressWarnings("PublicField")
 public class PropEntitiesArtifactDep {
   @XmlElement(name = "artifact-dependency")
-  public List<PropEntity> propEntities;
+  public List<PropEntityArtifactDep> propEntities;
 
   public PropEntitiesArtifactDep() {
   }
 
   public PropEntitiesArtifactDep(final SBuildType buildType) {
     final List<SArtifactDependency> artifactDependencies = buildType.getArtifactDependencies();
-    propEntities = new ArrayList<PropEntity>(artifactDependencies.size());
+    propEntities = new ArrayList<PropEntityArtifactDep>(artifactDependencies.size());
     int orderNumber = 0;
     for (SArtifactDependency dependency : artifactDependencies) {
       propEntities.add(new PropEntityArtifactDep(dependency, orderNumber));

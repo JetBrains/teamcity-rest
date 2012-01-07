@@ -17,14 +17,14 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 public class PropEntitiesSnapshotDep {
   @XmlElement(name = "snapshot-dependency")
-  public List<PropEntity> propEntities;
+  public List<PropEntitySnapshotDep> propEntities;
 
   public PropEntitiesSnapshotDep() {
   }
 
   public PropEntitiesSnapshotDep(final SBuildType buildType) {
-    propEntities = CollectionsUtil.convertCollection(buildType.getDependencies(), new Converter<PropEntity, Dependency>() {
-      public PropEntity createFrom(@NotNull final Dependency source) {
+    propEntities = CollectionsUtil.convertCollection(buildType.getDependencies(), new Converter<PropEntitySnapshotDep, Dependency>() {
+      public PropEntitySnapshotDep createFrom(@NotNull final Dependency source) {
         return new PropEntitySnapshotDep(source);
       }
     });
