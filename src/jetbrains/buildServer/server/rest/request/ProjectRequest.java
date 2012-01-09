@@ -142,6 +142,12 @@ public class ProjectRequest {
     return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
   }
 
+  /**
+   * Creates a new build configuration by copying existing one.
+   * @param projectLocator
+   * @param descriptor reference to the build configuration to copy and copy options. e.g. <newBuildTypeDescription name='Conf Name' sourceBuildTypeLocator='id:bt42' copyAllAssociatedSettings='true' shareVCSRoots='false'/>
+   * @return the build configuration created
+   */
   @POST
   @Path("/{projectLocator}/buildTypes")
   @Produces({"application/xml", "application/json"})

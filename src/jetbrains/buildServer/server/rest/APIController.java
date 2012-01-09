@@ -168,7 +168,7 @@ public class APIController extends BaseController implements ServletContextAware
       Map<String, String> initParameters = new HashMap<String, String>();
 
       {
-//        initParameters.put("com.sun.jersey.config.property.WadlGeneratorConfig", "jetbrains.buildServer.server.rest.WadlGenerator");
+        initParameters.put("com.sun.jersey.config.property.WadlGeneratorConfig", "jetbrains.buildServer.server.rest.jersey.WadlGenerator");
         initParameters.put("com.sun.jersey.config.property.packages",
                            "jetbrains.buildServer.server.rest.request;" + getPackagesFromExtensions());
       }

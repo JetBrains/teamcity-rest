@@ -4,6 +4,8 @@
     <property name="plugin.name" value="rest-api"/>
     <property name="javac2.home" value="${basedir}/lib-compile"/>
 
+  <property name="generated.out" value="temp/generated" />
+
     <import file="teamcity-common.xml"/>
     <import file="rest-api.xml"/>
 
@@ -45,7 +47,7 @@
 
     </target>
 
-    <target name="dist" depends="check.teamcitydistribution,all,package"/>
+    <target name="dist" depends="check.teamcitydistribution,all,clean.generated,generate.javadoc,generate.xml.schema,copy.generated,package"/>
 
     <target name="clean" depends="rest-api.clean">
       <delete dir="dist" quiet="true"/>
@@ -54,4 +56,53 @@
     <target name="deploy" depends="dist">
         <deploy.teamcity.plugin name="${plugin.name}"/>
     </target>
-</project>        
+
+
+  <target name="clean.generated">
+    <delete dir="${generated.out}" quiet="true"/>
+  </target>
+
+  <target name="generate.javadoc">
+    <delete dir="${generated.out}/javadoc_generated.xml" quiet="true"/>
+    <mkdir dir="${generated.out}"/>
+    <javadoc access="public">
+      <classpath>
+        <path refid="rest-api.module.production.classpath"/>
+      </classpath>
+      <fileset dir="src" defaultexcludes="yes">
+        <include name="**/**.java"/>
+      </fileset>
+      <doclet name="com.sun.jersey.wadl.resourcedoc.ResourceDoclet">
+        <path>
+          <path refid="rest-api.module.production.classpath"/>
+          <path path="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/xercesImpl.jar"/>
+        </path>
+        <param name="-output" value="${generated.out}/javadoc_generated.xml"/>
+      </doclet>
+    </javadoc>
+    <move file="${generated.out}/javadoc_generated.xml" todir="${generated.out}/jetbrains/buildServer/server/rest/jersey"/>
+  </target>
+
+  <target name="generate.xml.schema">
+    <delete dir="${generated.out}/rest-api-schema.xsd" quiet="true"/>
+    <mkdir dir="${generated.out}"/>
+    <taskdef name="schemagen" classname="com.sun.tools.jxc.SchemaGenTask">
+      <classpath>
+        <fileset dir="lib" includes="*.jar" />
+        <file file="lib-compile/jaxb-xjc-2.1.12.jar"/>
+      </classpath>
+    </taskdef>
+    <schemagen destdir="${generated.out}">
+      <src path="src"/>
+      <include name="jetbrains/buildServer/server/rest/model/**"/>
+      <classpath refid="rest-api.module.production.classpath"/>
+    </schemagen>
+    <move file="${generated.out}/schema1.xsd" tofile="${generated.out}/buildServerResources/rest-api-schema.xsd"/>
+  </target>
+
+  <target name="copy.generated">
+    <copy todir="${rest-api.output.dir}">
+      <fileset dir="${generated.out}"/>
+    </copy>
+  </target>
+</project>
