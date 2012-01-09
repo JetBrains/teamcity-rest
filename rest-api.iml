@@ -26,22 +26,23 @@
       <library name="Jersey">
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/asm-3.1.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jsr311-api-1.1.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jersey-core-1.1.4.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jersey-server-1.1.4.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jersey-spring-1.1.4.jar!/" />
           <root url="file://$MODULE_DIR$/lib" />
-          <root url="jar://$MODULE_DIR$/lib/jersey-json-1.1.4.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/wadl-resourcedoc-doclet-1.1.4.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jersey-core-1.11.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jersey-json-1.11.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jersey-server-1.11.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jersey-servlet-1.11.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jersey-spring-1.11.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jsr311-api-1.1.1.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="jar://$MODULE_DIR$/lib/src/jsr311-api-1.1-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jersey-spring-1.1.4-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jersey-server-1.1.4-sources.jar!/" />
           <root url="file://$MODULE_DIR$/lib" />
-          <root url="jar://$MODULE_DIR$/lib/src/jersey-json-1.1.4-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jersey-core-1.1.4-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jersey-servlet-1.11-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jersey-core-1.11-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jersey-spring-1.11-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jersey-server-1.11-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jersey-json-1.11-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jsr311-api-1.1.1-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
@@ -52,22 +53,21 @@
     <orderEntry type="module-library">
       <library name="JaxB">
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/jsr173_1.0_api.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jaxb-api-2.1.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jaxb-impl-2.1.12.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/stax-api-1.0-2.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/activation-1.1.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-core-asl-1.1.1.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jettison-1.1.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jaxb-impl-2.2.4-1.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/activation-1.1.1.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jaxb-api-2.2.4.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-core-asl-1.9.2.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="jar://$MODULE_DIR$/lib/src/jaxb-api-2.1-sources.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/src/stax-api-1.0-2-sources.jar!/src" />
-          <root url="jar://$MODULE_DIR$/lib/src/activation-1.1-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jaxb-impl-2.1.12-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-core-asl-1.1.1-sources.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/src/jettison-1.1-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jaxb-api-2.2.4-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/activation-1.1.1-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jaxb-impl-2.2.4-1-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-core-asl-1.9.2-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
