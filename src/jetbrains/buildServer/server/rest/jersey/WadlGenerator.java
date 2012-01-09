@@ -19,7 +19,7 @@ package jetbrains.buildServer.server.rest.jersey;
 import com.sun.jersey.api.wadl.config.WadlGeneratorConfig;
 import com.sun.jersey.api.wadl.config.WadlGeneratorDescription;
 import com.sun.jersey.server.wadl.generators.WadlGeneratorApplicationDoc;
-import com.sun.jersey.server.wadl.generators.WadlGeneratorGrammarsSupport;
+import com.sun.jersey.server.wadl.generators.WadlGeneratorJAXBGrammarGenerator;
 import com.sun.jersey.server.wadl.generators.resourcedoc.WadlGeneratorResourceDocSupport;
 import java.util.List;
 
@@ -36,10 +36,12 @@ public class WadlGenerator extends WadlGeneratorConfig {
     WadlGeneratorConfigDescriptionBuilder builder = generator(WadlGeneratorApplicationDoc.class)
       .prop("applicationDocsStream", "jetbrains/buildServer/server/rest/jersey/application-doc.xml");
 
-    if (getClass().getClassLoader().getResourceAsStream("buildServerResources/rest-api-schema.xsd") != null) {
-      builder = builder.generator(WadlGeneratorGrammarsSupport.class)
-        .prop("grammarsStream", "jetbrains/buildServer/server/rest/jersey/application-grammars.xml");
-    }
+    builder = builder.generator(WadlGeneratorJAXBGrammarGenerator.class);
+
+    //if (getClass().getClassLoader().getResourceAsStream("buildServerResources/rest-api-schema.xsd") != null) {
+    //  builder = builder.generator(WadlGeneratorGrammarsSupport.class)
+    //    .prop("grammarsStream", "jetbrains/buildServer/server/rest/jersey/application-grammars.xml");
+    //}
 
     if (getClass().getClassLoader().getResourceAsStream(RESOURCEDOC_XML) != null) {
       builder = builder.generator(WadlGeneratorResourceDocSupport.class).

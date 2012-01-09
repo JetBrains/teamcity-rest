@@ -47,7 +47,8 @@
 
     </target>
 
-    <target name="dist" depends="check.teamcitydistribution,all,clean.generated,generate.javadoc,generate.xml.schema,copy.generated,package"/>
+    <target name="dist" depends="check.teamcitydistribution,all,clean.generated,generate.javadoc,copy.generated,package"/>
+    <!--old Jersey needs generate.xml.schema: <target name="dist" depends="check.teamcitydistribution,all,clean.generated,generate.javadoc,generate.xml.schema,copy.generated,package"/>-->
 
     <target name="clean" depends="rest-api.clean">
       <delete dir="dist" quiet="true"/>
@@ -76,6 +77,7 @@
         <path>
           <path refid="rest-api.module.production.classpath"/>
           <path path="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/xercesImpl.jar"/>
+          <path path="lib-compile/wadl-resourcedoc-doclet-1.11.jar"/>
         </path>
         <param name="-output" value="${generated.out}/javadoc_generated.xml"/>
       </doclet>

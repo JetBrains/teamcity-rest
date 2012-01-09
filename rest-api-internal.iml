@@ -40,6 +40,12 @@
           <root url="jar://$MODULE_DIR$/lib/jersey-spring-1.1.4.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jersey-json-1.1.4.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/wadl-resourcedoc-doclet-1.1.4.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jersey-core-1.11.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jersey-json-1.11.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jersey-server-1.11.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jsr311-api-1.1.1.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jersey-spring-1.11.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jersey-servlet-1.11.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
@@ -49,6 +55,12 @@
           <root url="file://$MODULE_DIR$/lib" />
           <root url="jar://$MODULE_DIR$/lib/src/jersey-json-1.1.4-sources.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/src/jersey-core-1.1.4-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jersey-core-1.11-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jersey-json-1.11-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jersey-server-1.11-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jersey-spring-1.11-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jsr311-api-1.1.1-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jersey-servlet-1.11-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
@@ -63,6 +75,10 @@
           <root url="jar://$MODULE_DIR$/lib/activation-1.1.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jackson-core-asl-1.1.1.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jettison-1.1.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/activation-1.1.1.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-core-asl-1.9.2.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jaxb-api-2.2.4.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jaxb-impl-2.2.4-1.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
@@ -72,6 +88,10 @@
           <root url="jar://$MODULE_DIR$/lib/src/jaxb-impl-2.1.12-sources.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/src/jackson-core-asl-1.1.1-sources.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/src/jettison-1.1-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/activation-1.1.1-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-core-asl-1.9.2-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jaxb-api-2.2.4-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jaxb-impl-2.2.4-1-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
