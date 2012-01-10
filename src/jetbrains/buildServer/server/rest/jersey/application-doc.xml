@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <applicationDocs targetNamespace="http://research.sun.com/wadl/2006/10">
 
-  <doc xml:lang="en" title="The doc for your API">
-    TeamCity REST API.
+  <doc xml:lang="en" title=" TeamCity REST API">
     See also http://confluence.jetbrains.net/display/TW/REST+API+Plugin
   </doc>
 </applicationDocs>
