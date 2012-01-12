@@ -27,6 +27,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
+import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.server.rest.jersey.JerseyWebComponent;
@@ -55,6 +56,7 @@ public class APIController extends BaseController implements ServletContextAware
   private JerseyWebComponent myWebComponent;
   private final ConfigurableApplicationContext myConfigurableApplicationContext;
   private final SecurityContextEx mySecurityContext;
+  private final ExtensionHolder myExtensionHolder;
 
   private final ClassLoader myClassloader;
   private String myAuthToken;
@@ -65,8 +67,10 @@ public class APIController extends BaseController implements ServletContextAware
                        final ConfigurableApplicationContext configurableApplicationContext,
                        final SecurityContextEx securityContext,
                        final RequestPathTransformInfo requestPathTransformInfo,
-                       final ServerPluginInfo pluginDescriptor) throws ServletException {
+                       final ServerPluginInfo pluginDescriptor,
+                       final ExtensionHolder extensionHolder) throws ServletException {
     super(server);
+    myExtensionHolder = extensionHolder;
     setSupportedMethods(new String[]{METHOD_GET, METHOD_HEAD, METHOD_POST, "PUT", "OPTIONS", "DELETE"});
 
     myConfigurableApplicationContext = configurableApplicationContext;
@@ -150,6 +154,7 @@ public class APIController extends BaseController implements ServletContextAware
 
   private void init() throws ServletException {
     myWebComponent = new JerseyWebComponent();
+    myWebComponent.setExtensionHolder(myExtensionHolder);
     myWebComponent.setWebApplicationContext(myConfigurableApplicationContext);
     myWebComponent.init(new FilterConfig() {
       Map<String, String> initParameters = new HashMap<String, String>();

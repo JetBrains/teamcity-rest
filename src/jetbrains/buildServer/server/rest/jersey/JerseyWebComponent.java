@@ -19,9 +19,12 @@ package jetbrains.buildServer.server.rest.jersey;
 import com.intellij.openapi.diagnostic.Logger;
 import com.sun.jersey.api.core.ResourceConfig;
 import com.sun.jersey.spi.container.WebApplication;
-import com.sun.jersey.spi.spring.container.SpringComponentProviderFactory;
 import com.sun.jersey.spi.spring.container.servlet.SpringServlet;
+import jetbrains.buildServer.ExtensionHolder;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.util.ClassUtils;
 
 /**
  * @author Yegor.Yarko
@@ -34,24 +37,48 @@ public class JerseyWebComponent extends SpringServlet {
 
   private static final Logger LOG = Logger.getInstance(JerseyWebComponent.class.getName());
   private ConfigurableApplicationContext myWebApplicationContext;
+  private ExtensionHolder myExtensionHolder;
 
   @Override
   protected void initiate(ResourceConfig rc, WebApplication wa) {
     try {
-      final ConfigurableApplicationContext springContext = getSpringWebContext();
-
-      wa.initiate(rc, new SpringComponentProviderFactory(rc, springContext));
+      registerResourceProfiders(rc, myWebApplicationContext);
+      wa.initiate(rc, new ExtensionHolderProviderFactory(myExtensionHolder));
     } catch (RuntimeException e) {
       LOG.error("Exception occurred during REST API initialization", e);
       throw e;
     }
   }
 
-  ConfigurableApplicationContext getSpringWebContext() {
-    return myWebApplicationContext;
+  /**
+   * Checks for all beans that have @Provider annotation and
+   * registers them into Jersey ResourceConfig
+   * @param rc config
+   * @param springContext spring context
+   */
+  private void registerResourceProfiders(ResourceConfig rc, ConfigurableApplicationContext springContext) {
+    //TODO: restrict search to current spring context without parent for speedup
+    for (String name : BeanFactoryUtils.beanNamesIncludingAncestors(springContext)) {
+      final Class<?> type = ClassUtils.getUserClass(springContext.getType(name));
+      if (ResourceConfig.isProviderClass(type)) {
+        LOG.info("Registering Spring bean, " + name +
+                ", of type " + type.getName() +
+                " as a provider class");
+        rc.getClasses().add(type);
+      } else if (ResourceConfig.isRootResourceClass(type)) {
+        LOG.info("Registering Spring bean, " + name +
+                ", of type " + type.getName() +
+                " as a root resource class");
+        rc.getClasses().add(type);
+      }
+    }
   }
 
-  public void setWebApplicationContext(final ConfigurableApplicationContext webApplicationContext) {
+  public void setWebApplicationContext(@NotNull final ConfigurableApplicationContext webApplicationContext) {
     myWebApplicationContext = webApplicationContext;
+  }
+
+  public void setExtensionHolder(@NotNull final ExtensionHolder extensionHolder) {
+    myExtensionHolder = extensionHolder;
   }
 }
