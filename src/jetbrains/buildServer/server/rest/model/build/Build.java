@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import javax.xml.bind.annotation.*;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.issueTracker.Issue;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.Comment;
@@ -227,7 +228,8 @@ public class Build {
 
   @XmlElement(name = "relatedIssues")
   public IssueUsages getIssues() {
-    return new IssueUsages(myBuild.getRelatedIssues(), myBuild, myApiUrlBuilder, myFactory);
+    final Collection<Issue> relatedIssues = myBuild.getRelatedIssues();
+    return relatedIssues.size() == 0 ? null : new IssueUsages(relatedIssues, myBuild, myApiUrlBuilder, myFactory);
   }
 
   @XmlElement(name = "user")
