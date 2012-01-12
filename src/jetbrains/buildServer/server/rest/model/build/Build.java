@@ -19,10 +19,8 @@ package jetbrains.buildServer.server.rest.model.build;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
+import java.util.Map;
+import javax.xml.bind.annotation.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -51,7 +49,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @XmlRootElement(name = "build")
 @XmlType(propOrder = {"running", "pinned", "history", "personal", "webUrl", "href", "status", "number", "id",
   "runningBuildInfo", "statusText", "buildType", "startDate", "finishDate", "agent", "comment", "tags", "pinInfo", "personalBuildUser", "properties",
-  "buildDependencies", "revisions", "changes", "issues"})
+  "buildDependencies", "buildArtifactDependencies", "revisions", "changes", "issues"})
 public class Build {
   @NotNull
   protected SBuild myBuild;
@@ -199,9 +197,22 @@ public class Build {
     return new RunningBuildInfo(runningBuild);
   }
 
-  @XmlElement(name = "dependency-build")
+  @XmlElementWrapper(name = "snapshot-dependencies")
+  @XmlElement(name = "build")
   public List<BuildRef> getBuildDependencies() {
     return getBuildRefs(myBuild.getBuildPromotion().getDependencies(), myDataProvider);
+  }
+
+  @XmlElementWrapper(name = "artifact-dependencies")
+  @XmlElement(name = "build")
+  public List<BuildRef> getBuildArtifactDependencies() {
+    final Map<jetbrains.buildServer.Build,List<ArtifactInfo>> artifacts = myBuild.getDownloadedArtifacts().getArtifacts();
+    List<BuildRef> builds = new ArrayList<BuildRef>(artifacts.size());
+    for (Map.Entry<jetbrains.buildServer.Build, List<ArtifactInfo>> entry : artifacts.entrySet()) {
+      //todo: cast to SBuild?
+      builds.add(new BuildRef((SBuild)entry.getKey(), myDataProvider, myApiUrlBuilder));
+    }
+    return builds;
   }
 
   @XmlElement(name = "revisions")
