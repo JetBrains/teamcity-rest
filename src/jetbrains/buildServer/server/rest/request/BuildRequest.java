@@ -37,6 +37,7 @@ import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.impl.FinishedBuildEx;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.statistics.ValueProvider;
 import jetbrains.buildServer.serverSide.statistics.build.BuildValue;
@@ -64,6 +65,23 @@ public class BuildRequest {
     return API_BUILDS_URL + "/id:" + build.getBuildId();
   }
 
+  /**
+   *
+   * @param buildTypeLocator Deprecated, use "locator" parameter instead
+   * @param status   Deprecated, use "locator" parameter instead
+   * @param userLocator   Deprecated, use "locator" parameter instead
+   * @param includePersonal   Deprecated, use "locator" parameter instead
+   * @param includeCanceled   Deprecated, use "locator" parameter instead
+   * @param onlyPinned   Deprecated, use "locator" parameter instead
+   * @param tags   Deprecated, use "locator" parameter instead
+   * @param agentName   Deprecated, use "locator" parameter instead
+   * @param sinceBuildLocator   Deprecated, use "locator" parameter instead
+   * @param sinceDate   Deprecated, use "locator" parameter instead
+   * @param start   Deprecated, use "locator" parameter instead
+   * @param count   Deprecated, use "locator" parameter instead
+   * @param locator
+   * @return
+   */
   @GET
   @Produces({"application/xml", "application/json"})
   public Builds serveAllBuilds(@QueryParam("buildType") String buildTypeLocator,
@@ -105,6 +123,21 @@ public class BuildRequest {
   @Produces({"application/xml", "application/json"})
   public Build serveBuild(@PathParam("buildLocator") String buildLocator) {
     return new Build(myDataProvider.getBuild(null, buildLocator), myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
+  }
+
+  @GET
+  @Path("/{buildLocator}/finish-parameters/")
+  @Produces({"application/xml", "application/json"})
+  public Properties serveBuildActualParameters(@PathParam("buildLocator") String buildLocator) {
+    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    if (!build.isFinished()){
+      return null;
+    }
+    try {
+      return new Properties(((FinishedBuildEx)build).getBuildFinishParameters());
+    } catch (ClassCastException e) {
+      return null;
+    }
   }
 
   @GET
