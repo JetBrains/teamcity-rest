@@ -50,7 +50,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @XmlRootElement(name = "build")
 @XmlType(propOrder = {"running", "pinned", "history", "personal", "webUrl", "href", "status", "number", "id",
   "runningBuildInfo", "statusText", "buildType", "startDate", "finishDate", "agent", "comment", "tags", "pinInfo", "personalBuildUser", "properties",
-  "buildDependencies", "buildArtifactDependencies", "revisions", "changes", "issues"})
+  "buildDependencies", "buildArtifactDependencies", "revisions", "triggered", "changes", "issues"})
 public class Build {
   @NotNull
   protected SBuild myBuild;
@@ -226,6 +226,12 @@ public class Build {
     return new ChangesRef(myBuild, myApiUrlBuilder);
   }
 
+  @XmlElement(name = "triggered")
+  public TriggeredBy getTriggered(){
+    final jetbrains.buildServer.serverSide.TriggeredBy triggeredBy = myBuild.getTriggeredBy();
+    return triggeredBy != null ? new TriggeredBy(triggeredBy, myDataProvider, myApiUrlBuilder) : null;
+  }
+  
   @XmlElement(name = "relatedIssues")
   public IssueUsages getIssues() {
     final Collection<Issue> relatedIssues = myBuild.getRelatedIssues();
