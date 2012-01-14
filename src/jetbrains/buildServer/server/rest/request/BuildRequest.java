@@ -16,18 +16,25 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import com.intellij.openapi.util.io.StreamUtil;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildsFilter;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.Build;
@@ -36,6 +43,9 @@ import jetbrains.buildServer.server.rest.model.build.Tags;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
+import jetbrains.buildServer.serverSide.artifacts.BuildArtifactHolder;
+import jetbrains.buildServer.serverSide.artifacts.BuildArtifacts;
+import jetbrains.buildServer.serverSide.artifacts.BuildArtifactsViewMode;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.FinishedBuildEx;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -139,6 +149,33 @@ public class BuildRequest {
       return null;
     }
   }
+
+  //todo: need to expose file name and type?
+  @GET
+  @Path("/{buildLocator}/artifacts/{fileName:.+}")
+  @Produces({"application/octet-stream"})
+  public StreamingOutput serveArtifact(@PathParam("buildLocator") String buildLocator, @PathParam("fileName") String fileName) {
+    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    final BuildArtifacts artifacts = build.getArtifacts(BuildArtifactsViewMode.VIEW_ALL);
+    final BuildArtifactHolder artifact = artifacts.findArtifact(fileName);
+    if (!artifact.isAvailable() || artifact.getArtifact().isDirectory()){
+      throw new NotFoundException("No artifact found. Relative path: '" + fileName + "'");
+    }
+    if (!artifact.isAccessible()){
+      throw new AuthorizationFailedException("Artifaact is not accessible with current user permissions. Relative path: '" + fileName + "'");
+    }
+    try {
+      final InputStream inputStream = artifact.getArtifact().getInputStream();
+      return new StreamingOutput() {
+        public void write(final OutputStream output) throws IOException, WebApplicationException {
+          StreamUtil.copyStreamContent(inputStream, output);
+        }
+      };
+    } catch (IOException e) {
+      throw new OperationException("Error while retrieving file '" + fileName + "': " + e.getMessage(), e);
+    }
+  }
+
 
   @GET
   @Path("/{buildLocator}/{field}")
