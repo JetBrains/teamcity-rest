@@ -17,15 +17,16 @@
 package jetbrains.buildServer.server.restcontrib.cctray.model;
 
 import com.sun.org.apache.xerces.internal.jaxp.datatype.XMLGregorianCalendarImpl;
-import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.serverSide.*;
-
-import javax.xml.bind.annotation.*;
+import java.util.GregorianCalendar;
+import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlSchemaType;
+import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.CollapsedStringAdapter;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import javax.xml.datatype.XMLGregorianCalendar;
-import java.util.GregorianCalendar;
-import java.util.List;
+import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.serverSide.*;
 
 /**
  * <p>Java class for anonymous complex type.
@@ -65,7 +66,7 @@ import java.util.List;
  * &lt;/complexType>
  * </pre>
  */
-@XmlType(name = "")
+@XmlType(name = "", namespace = "http://cctray")
 public class Project {
 
     private SBuildType myBuildType;

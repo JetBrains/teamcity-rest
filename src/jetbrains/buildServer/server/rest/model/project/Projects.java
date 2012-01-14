@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
@@ -29,6 +30,7 @@ import org.jetbrains.annotations.NotNull;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "projects")
+@XmlType(name = "projects")
 public class Projects {
   @XmlElement(name = "project")
   public List<ProjectRef> projects;

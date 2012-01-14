@@ -17,18 +17,17 @@
 package jetbrains.buildServer.server.restcontrib.cctray.request;
 
 import com.sun.jersey.spi.resource.Singleton;
-import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.request.Constants;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.server.restcontrib.cctray.model.Projects;
-
+import java.util.List;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import java.util.List;
+import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.request.Constants;
+import jetbrains.buildServer.server.restcontrib.cctray.model.Projects;
+import jetbrains.buildServer.serverSide.SBuildType;
 
 /**
  * @author Yegor.Yarko

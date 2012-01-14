@@ -8,14 +8,15 @@
 
 package jetbrains.buildServer.server.restcontrib.cctray.model;
 
+import java.util.List;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
-
-import javax.xml.bind.annotation.*;
-import java.util.List;
 
 
 /**
@@ -69,6 +70,7 @@ import java.util.List;
  * 
  */
 @XmlRootElement(name = "Projects")
+@XmlType(name = "projects", namespace = "http://cctray")
 public class Projects {
 
     private List<SBuildType> myBuildTypes;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.restcontrib.cctray;
+package jetbrains.buildServer.server.restcontrib;
 
 import jetbrains.buildServer.server.rest.RESTControllerExtensionAdapter;
 import org.jetbrains.annotations.NotNull;
@@ -26,6 +26,6 @@ import org.jetbrains.annotations.NotNull;
 public class RESTControllerExtensionInitializer extends RESTControllerExtensionAdapter {
     @NotNull
     public String getPackage() {
-        return "jetbrains.buildServer.server.restcontrib.cctray";
+        return "jetbrains.buildServer.server.restcontrib";
     }
 }
