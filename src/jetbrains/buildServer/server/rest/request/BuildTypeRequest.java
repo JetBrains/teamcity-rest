@@ -73,8 +73,16 @@ public class BuildTypeRequest {
 
   public static final String API_BUILD_TYPES_URL = Constants.API_URL + "/buildTypes";
 
-  public static String getBuildTypeHref(SBuildType buildType) {
+  public static String getBuildTypeHref(@NotNull final BuildTypeOrTemplate buildType) {
+    return buildType.isBuildType() ? getBuildTypeHref(buildType.getBuildType()) : getBuildTypeHref(buildType.getTemplate());
+  }
+
+  public static String getBuildTypeHref(@NotNull SBuildType buildType) {
     return API_BUILD_TYPES_URL + "/id:" + buildType.getBuildTypeId();
+  }
+
+  public static String getBuildTypeHref(@NotNull final BuildTypeTemplate template) {
+    return API_BUILD_TYPES_URL + "/id:("+ DataProvider.TEMPLATE_ID_PREFIX + template.getId() + ")";
   }
 
 
@@ -88,11 +96,14 @@ public class BuildTypeRequest {
     return new BuildTypes(myDataProvider.getServer().getProjectManager().getAllBuildTypes(), myDataProvider, myApiUrlBuilder);
   }
 
+  /**
+   * Serves build configuraiton or templates according to the locator.
+   */
   @GET
   @Path("/{btLocator}")
   @Produces({"application/xml", "application/json"})
   public BuildType serveBuildTypeXML(@PathParam("btLocator") String buildTypeLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
   }
 

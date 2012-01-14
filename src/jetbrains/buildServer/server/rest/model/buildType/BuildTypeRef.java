@@ -21,6 +21,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.serverSide.BuildTypeTemplate;
 import jetbrains.buildServer.serverSide.SBuildType;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,7 +33,7 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "buildType")
 @XmlType(propOrder = {"webUrl", "projectId", "projectName", "href", "name", "id"})
 public class BuildTypeRef {
-  protected SBuildType myBuildType;
+  protected BuildTypeOrTemplate myBuildType;
   private DataProvider myDataProvider;
   private ApiUrlBuilder myApiUrlBuilder;
 
@@ -39,14 +41,20 @@ public class BuildTypeRef {
   }
 
   public BuildTypeRef(SBuildType buildType, @NotNull final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
-    myBuildType = buildType;
+    myBuildType = new BuildTypeOrTemplate(buildType);
+    myDataProvider = dataProvider;
+    myApiUrlBuilder = apiUrlBuilder;
+  }
+
+  public BuildTypeRef(BuildTypeTemplate buildType, @NotNull final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
+    myBuildType = new BuildTypeOrTemplate(buildType);
     myDataProvider = dataProvider;
     myApiUrlBuilder = apiUrlBuilder;
   }
 
   @XmlAttribute
   public String getId() {
-    return myBuildType.getBuildTypeId();
+    return myBuildType.getId();
   }
 
   @XmlAttribute
@@ -61,16 +69,16 @@ public class BuildTypeRef {
 
   @XmlAttribute
   public String getProjectId() {
-    return myBuildType.getProjectId();
+    return myBuildType.getProject().getProjectId();
   }
 
   @XmlAttribute
   public String getProjectName() {
-    return myBuildType.getProjectName();
+    return myBuildType.getProject().getName();
   }
 
   @XmlAttribute
   public String getWebUrl() {
-    return myDataProvider.getBuildTypeUrl(myBuildType);
+    return myBuildType.isBuildType() ? myDataProvider.getBuildTypeUrl(myBuildType.getBuildType()) : null;
   }
 }

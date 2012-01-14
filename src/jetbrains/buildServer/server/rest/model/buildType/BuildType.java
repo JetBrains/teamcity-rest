@@ -35,8 +35,8 @@ import jetbrains.buildServer.serverSide.SBuildType;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "buildType")
-@XmlType(propOrder = {"paused", "description", "webUrl", "href", "name", "id",
-  "project", "vcsRootEntries", "builds", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
+@XmlType(propOrder = {"paused", "description", "webUrl", "templateFlag", "href", "name", "id",
+  "project", "template", "vcsRootEntries", "builds", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
   "artifactDependencies", "agentRequirements"})
 public class BuildType {
   private static final Logger LOG = Logger.getInstance(BuildType.class.getName());
@@ -46,6 +46,12 @@ public class BuildType {
   private ApiUrlBuilder myApiUrlBuilder;
 
   public BuildType() {
+  }
+
+  public BuildType(final BuildTypeOrTemplate buildType, final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
+    myBuildType = buildType;
+    myDataProvider = dataProvider;
+    myApiUrlBuilder = apiUrlBuilder;
   }
 
   public BuildType(final SBuildType buildType, final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
@@ -72,12 +78,17 @@ public class BuildType {
 
   @XmlAttribute
   public String getHref() {
-    return myBuildType.isBuildType() ? myApiUrlBuilder.getHref(myBuildType.getBuildType()) : null; //todo
+    return myApiUrlBuilder.getHref(myBuildType);
   }
 
   @XmlAttribute
   public String getDescription() {
     return myBuildType.getDescription();
+  }
+
+  @XmlAttribute (name = "template")
+  public Boolean getTemplateFlag() {
+    return myBuildType.isBuildType() ? null : true;
   }
 
   @XmlAttribute
@@ -87,12 +98,21 @@ public class BuildType {
 
   @XmlAttribute
   public String getWebUrl() {
-    return myBuildType.isBuildType() ? myDataProvider.getBuildTypeUrl(myBuildType.getBuildType()) : null; //todo
+    return myBuildType.isBuildType() ? myDataProvider.getBuildTypeUrl(myBuildType.getBuildType()) : null; //template has no user link
   }
 
   @XmlElement
   public ProjectRef getProject() {
     return new ProjectRef(myBuildType.getProject(), myApiUrlBuilder);
+  }
+
+  @XmlElement
+  public BuildTypeRef getTemplate() {
+    if (myBuildType.isTemplate()){
+      return null;
+    }
+    final BuildTypeTemplate template = myBuildType.getBuildType().getTemplate();
+    return template == null ? null : new BuildTypeRef(template, myDataProvider, myApiUrlBuilder);
   }
 
   @XmlElement(name = "vcs-root")

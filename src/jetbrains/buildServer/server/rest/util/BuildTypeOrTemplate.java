@@ -51,6 +51,10 @@ public class BuildTypeOrTemplate {
     return hasBuildType;
   }
 
+  public boolean isTemplate() {
+    return !hasBuildType;
+  }
+
   public SBuildType getBuildType() {
     return myBuildType;
   }
@@ -67,6 +71,11 @@ public class BuildTypeOrTemplate {
   @Nullable
   public Boolean isPaused() {
     return hasBuildType ? myBuildType.isPaused() : null;
+  }
+
+  @NotNull
+  public String getText() {
+    return hasBuildType ? "Build type": "Template";
   }
 }
 

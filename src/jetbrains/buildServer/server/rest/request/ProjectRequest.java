@@ -37,6 +37,7 @@ import jetbrains.buildServer.server.rest.model.project.NewProjectDescription;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.CopyOptions;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -195,10 +196,8 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   public BuildType serveBuildType(@PathParam("projectLocator") String projectLocator,
                                   @PathParam("btLocator") String buildTypeLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
-
-    return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
-  }
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(myDataProvider.getProject(projectLocator), buildTypeLocator);
+    return new BuildType(buildType, myDataProvider, myApiUrlBuilder);  }
 
   @GET
   @Path("/{projectLocator}/buildTypes/{btLocator}/{field}")

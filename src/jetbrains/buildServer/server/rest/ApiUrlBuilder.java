@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest;
 
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.request.*;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -49,7 +50,7 @@ public class ApiUrlBuilder {
     return myPathTransformer.transform(BuildRequest.getBuildHref(build));
   }
 
-  public String getHref(final SBuildType buildType) {
+  public String getHref(@NotNull final BuildTypeOrTemplate buildType) {
     return myPathTransformer.transform(BuildTypeRequest.getBuildTypeHref(buildType));
   }
 

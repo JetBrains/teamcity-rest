@@ -33,6 +33,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Constants;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.*;
@@ -53,6 +54,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class DataProvider {
   private static final Logger LOG = Logger.getInstance(DataProvider.class.getName());
+  public static final String TEMPLATE_ID_PREFIX = "template:";
 
   @NotNull private final SBuildServer myServer;
   @NotNull private final BuildHistory myBuildHistory;
@@ -310,7 +312,7 @@ public class DataProvider {
   }
 
   @NotNull
-  public SBuildType getBuildType(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
+  public BuildTypeOrTemplate getBuildTypeOrTemplate(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
     if (StringUtil.isEmpty(buildTypeLocator)) {
       throw new BadRequestException("Empty build type locator is not supported.");
     }
@@ -321,19 +323,19 @@ public class DataProvider {
       // no dimensions found
       if (project != null) {
         // assume it's a name
-        return findBuildTypeByName(project, buildTypeLocator);
+        return new BuildTypeOrTemplate(findBuildTypeByName(project, buildTypeLocator));
       } else {
         //assume it's id
-        return findBuildTypeById(buildTypeLocator);
+        return findBuildTypeOrTemplateByGeneralId(buildTypeLocator);
       }
     }
 
     String id = locator.getSingleDimensionValue("id");
     if (!StringUtil.isEmpty(id)) {
       assert id != null;
-      SBuildType buildType = findBuildTypeById(id);
+      BuildTypeOrTemplate buildType = findBuildTypeOrTemplateByGeneralId(id);
       if (project != null && !buildType.getProject().equals(project)) {
-        throw new NotFoundException("Build type with id '" + id + "' does not belong to project " + project + ".");
+        throw new NotFoundException(buildType.getText() + " with id '" + id + "' does not belong to project " + project + ".");
       }
       if (locator.getDimensionsCount() > 1) {
         LOG.info("Build type locator '" + buildTypeLocator + "' has 'id' dimension and others. Others are ignored.");
@@ -346,9 +348,18 @@ public class DataProvider {
       if (locator.getDimensionsCount() > 1) {
         LOG.info("Build type locator '" + buildTypeLocator + "' has 'name' dimension and others. Others are ignored.");
       }
-      return findBuildTypeByName(project, name);
+      return new BuildTypeOrTemplate(findBuildTypeByName(project, name));
     }
     throw new BadRequestException("Build type locator '" + buildTypeLocator + "' is not supported.");
+  }
+
+  @NotNull
+  public SBuildType getBuildType(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
+    final BuildTypeOrTemplate buildTypeOrTemplate = getBuildTypeOrTemplate(project, buildTypeLocator);
+    if (buildTypeOrTemplate.isBuildType()){
+      return buildTypeOrTemplate.getBuildType();
+    }
+    throw new NotFoundException("No build type is found by locator '" + buildTypeLocator + "' (template is found instead).");
   }
 
   @NotNull
@@ -358,6 +369,28 @@ public class DataProvider {
       throw new NotFoundException("No build type is found by id '" + id + "'.");
     }
     return buildType;
+  }
+
+  @NotNull
+  private BuildTypeOrTemplate findBuildTypeOrTemplateByGeneralId(@NotNull final String id) {
+    if (!id.startsWith(TEMPLATE_ID_PREFIX)){
+      SBuildType buildType = myServer.getProjectManager().findBuildTypeById(id);
+      if (buildType == null) {
+        final BuildTypeTemplate buildTypeTemplate = myServer.getProjectManager().findBuildTypeTemplateById(id);
+        if (buildTypeTemplate == null){
+          throw new NotFoundException("No build type nor template is found by id '" + id + "'.");
+        }
+        return new BuildTypeOrTemplate(buildTypeTemplate);
+      }
+      return new BuildTypeOrTemplate(buildType);
+
+    }
+    String templateId = id.substring(TEMPLATE_ID_PREFIX.length());
+    final BuildTypeTemplate buildTypeTemplate = myServer.getProjectManager().findBuildTypeTemplateById(templateId);
+    if (buildTypeTemplate == null) {
+      throw new NotFoundException("No build type template is found by id '" + templateId + "'.");
+    }
+    return new BuildTypeOrTemplate(buildTypeTemplate);
   }
 
   @NotNull
