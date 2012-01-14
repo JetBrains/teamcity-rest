@@ -46,7 +46,6 @@ import jetbrains.buildServer.serverSide.artifacts.BuildArtifactHolder;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifacts;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactsViewMode;
 import jetbrains.buildServer.serverSide.auth.Permission;
-import jetbrains.buildServer.serverSide.impl.FinishedBuildEx;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.statistics.ValueProvider;
 import jetbrains.buildServer.serverSide.statistics.build.BuildValue;
@@ -137,18 +136,18 @@ public class BuildRequest {
   }
 
   @GET
-  @Path("/{buildLocator}/finish-parameters/")
+  @Path("/{buildLocator}/resulting-properties/")
   @Produces({"application/xml", "application/json"})
   public Properties serveBuildActualParameters(@PathParam("buildLocator") String buildLocator) {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
-    if (!build.isFinished()){
-      return null;
-    }
+    return new Properties(build.getParametersProvider().getAll());
+    /* alternative
     try {
       return new Properties(((FinishedBuildEx)build).getBuildFinishParameters());
     } catch (ClassCastException e) {
       return null;
     }
+    */
   }
 
   //todo: need to expose file name and type?
