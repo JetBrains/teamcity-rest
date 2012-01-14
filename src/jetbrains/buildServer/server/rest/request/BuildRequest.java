@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import com.intellij.openapi.util.io.StreamUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -53,6 +52,8 @@ import jetbrains.buildServer.serverSide.statistics.ValueProvider;
 import jetbrains.buildServer.serverSide.statistics.build.BuildValue;
 import jetbrains.buildServer.serverSide.statistics.build.CompositeVTB;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.FileUtil;
+import jetbrains.buildServer.util.TCStreamUtil;
 import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
 
@@ -154,26 +155,30 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/artifacts/files/{fileName:.+}")
   @Produces({"application/octet-stream"})
-  public StreamingOutput serveArtifact(@PathParam("buildLocator") String buildLocator, @PathParam("fileName") String fileName) {
+  public StreamingOutput serveArtifact(@PathParam("buildLocator") final String buildLocator, @PathParam("fileName") final String fileName) {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
     final BuildArtifacts artifacts = build.getArtifacts(BuildArtifactsViewMode.VIEW_ALL);
     final BuildArtifactHolder artifact = artifacts.findArtifact(fileName);
     if (!artifact.isAvailable() || artifact.getArtifact().isDirectory()){
       throw new NotFoundException("No artifact found. Relative path: '" + fileName + "'");
     }
-    if (!artifact.isAccessible()){
-      throw new AuthorizationFailedException("Artifaact is not accessible with current user permissions. Relative path: '" + fileName + "'");
+    if (!artifact.isAccessible()) {
+      throw new AuthorizationFailedException(
+        "Artifaact is not accessible with current user permissions. Relative path: '" + fileName + "'");
     }
-    try {
-      final InputStream inputStream = artifact.getArtifact().getInputStream();
-      return new StreamingOutput() {
-        public void write(final OutputStream output) throws IOException, WebApplicationException {
-          StreamUtil.copyStreamContent(inputStream, output);
+    return new StreamingOutput() {
+      public void write(final OutputStream output) throws IOException, WebApplicationException {
+        InputStream inputStream = null;
+        try {
+          inputStream = artifact.getArtifact().getInputStream();
+          TCStreamUtil.writeBinary(inputStream, output);
+        } catch (IOException e) {
+          throw new OperationException("Error while retrieving file '" + artifact.getRelativePath() + "': " + e.getMessage(), e);
+        } finally {
+          FileUtil.close(inputStream);
         }
-      };
-    } catch (IOException e) {
-      throw new OperationException("Error while retrieving file '" + fileName + "': " + e.getMessage(), e);
-    }
+      }
+    };
   }
 
 
