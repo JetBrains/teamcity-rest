@@ -9,7 +9,7 @@ import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.serverSide.ArtifactDependencyFactory;
-import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 
 /**
@@ -48,7 +48,7 @@ public class PropEntityArtifactDep extends PropEntity {
     this.properties = new Properties(properties);
   }
 
-  public PropEntityArtifactDep(final SArtifactDependency artifactDependency, final SBuildType buildType) {
+  public PropEntityArtifactDep(final SArtifactDependency artifactDependency, final BuildTypeSettings buildType) {
     final List<SArtifactDependency> artifactDependencies = buildType.getArtifactDependencies();
 
     int orderNumber = 0;

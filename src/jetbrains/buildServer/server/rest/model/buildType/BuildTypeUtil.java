@@ -25,8 +25,8 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeOptions;
+import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
-import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Option;
 import jetbrains.buildServer.util.OptionSupport;
@@ -59,15 +59,19 @@ public class BuildTypeUtil {
    * Caller must ensure 'name' is a valid name of a BuildType setting
    * @see #getSettingsParameters(jetbrains.buildServer.serverSide.SBuildType)
    */
-  public static void setSettingsParameter(final SBuildType buildType, final String name, final String value) {
+  public static void setSettingsParameter(final BuildTypeOrTemplate buildType, final String name, final String value) {
     if ("artifactRules".equals(name)) {
-      buildType.setArtifactPaths(value);
+      buildType.get().setArtifactPaths(value);
     } else if ("checkoutDirectory".equals(name)) {
-      buildType.setCheckoutDirectory(value);
+      buildType.get().setCheckoutDirectory(value);
     } else if ("checkoutMode".equals(name)) {
-      buildType.setCheckoutType(BuildTypeDescriptor.CheckoutType.valueOf(value));
+      buildType.get().setCheckoutType(BuildTypeDescriptor.CheckoutType.valueOf(value));
     } else if ("buildNumberCounter".equals(name)) {
-      buildType.getBuildNumbers().setBuildNumberCounter(new Long(value));
+      if (buildType.isBuildType()) {
+        buildType.getBuildType().getBuildNumbers().setBuildNumberCounter(new Long(value));
+      }else{
+        throw new BadRequestException("Templates do not have build counter.");
+      }
     } else {
       final Option option = Option.fromKey(name);
       if (option == null) {
@@ -75,7 +79,7 @@ public class BuildTypeUtil {
       }
       final Object optionValue = option.fromString(value);
       //noinspection unchecked
-      buildType.setOption(option, optionValue);
+      buildType.get().setOption(option, optionValue);
     }
   }
 
@@ -96,7 +100,7 @@ public class BuildTypeUtil {
     }
   }
 
-  public static SBuildFeatureDescriptor getBuildTypeFeature(final SBuildType buildType, @NotNull final String featureId) {
+  public static SBuildFeatureDescriptor getBuildTypeFeature(final BuildTypeSettings buildType, @NotNull final String featureId) {
     if (StringUtil.isEmpty(featureId)){
       throw new BadRequestException("Feature Id cannot be empty.");
     }

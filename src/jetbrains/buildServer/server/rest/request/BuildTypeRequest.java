@@ -110,9 +110,13 @@ public class BuildTypeRequest {
   @DELETE
   @Path("/{btLocator}")
   public void deleteBuildType(@PathParam("btLocator") String buildTypeLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     final SProject project = buildType.getProject();
-    project.removeBuildType(buildType.getBuildTypeId());
+    if (buildType.isBuildType()){
+    project.removeBuildType(buildType.getId());
+    }else{
+      project.removeBuildTypeTemplate(buildType.getId());
+    }
     project.persist();
   }
 
@@ -120,16 +124,16 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/{field}")
   @Produces("text/plain")
   public String serveBuildTypeField(@PathParam("btLocator") String buildTypeLocator, @PathParam("field") String fieldName) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return myDataProvider.getFieldValue(buildType, fieldName);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    return buildType.getFieldValue(fieldName);
   }
 
   @PUT
   @Path("/{btLocator}/{field}")
   public void setBuildTypeField(@PathParam("btLocator") String buildTypeLocator, @PathParam("field") String fieldName, String newValue) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    myDataProvider.setFieldValue(buildType, fieldName, newValue);
-    buildType.persist();
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    buildType.setFieldValue(fieldName, newValue);
+    buildType.get().persist();
   }
 
   @GET
@@ -144,21 +148,21 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/parameters")
   @Produces({"application/xml", "application/json"})
   public Properties serveBuildTypeParameters(@PathParam("btLocator") String buildTypeLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
 
-    return new Properties(buildType.getParameters());
+    return new Properties(buildType.get().getParameters());
   }
 
   @GET
   @Path("/{btLocator}/parameters/{name}")
   @Produces("text/plain")
   public String serveBuildTypeParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("name") String parameterName) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     if (StringUtil.isEmpty(parameterName)) {
       throw new BadRequestException("Parameter name cannot be empty.");
     }
 
-    Map<String,String> parameters = buildType.getParameters();
+    Map<String,String> parameters = buildType.get().getParameters();
     if (parameters.containsKey(parameterName)) {
       //TODO: need to process spec type to filter secure fields, may be include display value
       //TODO: might support type spec here
@@ -173,14 +177,14 @@ public class BuildTypeRequest {
   public void putBuildTypeParameter(@PathParam("btLocator") String buildTypeLocator,
                                     @PathParam("name") String parameterName,
                                     String newValue) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     if (StringUtil.isEmpty(parameterName)) {
       throw new BadRequestException("Parameter name cannot be empty.");
     }
 
     //TODO: support type spec here
-    buildType.addParameter(getParameterFactory().createSimpleParameter(parameterName, newValue));
-    buildType.persist();
+    buildType.get().addParameter(getParameterFactory().createSimpleParameter(parameterName, newValue));
+    buildType.get().persist();
   }
 
   @NotNull
@@ -193,12 +197,12 @@ public class BuildTypeRequest {
   @Produces("text/plain")
   public void deleteBuildTypeParameter(@PathParam("btLocator") String buildTypeLocator,
                                        @PathParam("name") String parameterName) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     if (StringUtil.isEmpty(parameterName)) {
       throw new BadRequestException("Parameter name cannot be empty.");
     }
-    buildType.removeParameter(parameterName);
-    buildType.persist();
+    buildType.get().removeParameter(parameterName);
+    buildType.get().persist();
   }
 
 
@@ -207,20 +211,20 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/settings")
   @Produces({"application/xml", "application/json"})
   public Properties serveBuildTypeSettings(@PathParam("btLocator") String buildTypeLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return new Properties(BuildTypeUtil.getSettingsParameters(new BuildTypeOrTemplate(buildType)));
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    return new Properties(BuildTypeUtil.getSettingsParameters(buildType));
   }
 
   @GET
   @Path("/{btLocator}/settings/{name}")
   @Produces("text/plain")
   public String serveBuildTypeSettings(@PathParam("btLocator") String buildTypeLocator, @PathParam("name") String parameterName) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     if (StringUtil.isEmpty(parameterName)) {
       throw new BadRequestException("Setting parameter name cannot be empty.");
     }
 
-    Map<String,String> parameters = BuildTypeUtil.getSettingsParameters(new BuildTypeOrTemplate(buildType));
+    Map<String,String> parameters = BuildTypeUtil.getSettingsParameters(buildType);
     if (parameters.containsKey(parameterName)) {
       return parameters.get(parameterName);
     }
@@ -233,12 +237,12 @@ public class BuildTypeRequest {
   public void putBuildTypeSetting(@PathParam("btLocator") String buildTypeLocator,
                                     @PathParam("name") String parameterName,
                                     String newValue) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     if (StringUtil.isEmpty(parameterName)) {
       throw new BadRequestException("Settings parameter name cannot be empty.");
     }
 
-    if (!BuildTypeUtil.getSettingsParameters(new BuildTypeOrTemplate(buildType)).containsKey(parameterName)){
+    if (!BuildTypeUtil.getSettingsParameters(buildType).containsKey(parameterName)){
       throw new BadRequestException("Setting parameter with name '" + parameterName + "' is not known.");
     }
 
@@ -248,7 +252,7 @@ public class BuildTypeRequest {
       throw new BadRequestException(
         "Could not set setting parameter with name '" + parameterName + "' to value '" + newValue + "'. Error: " + e.getMessage());
     }
-    buildType.persist();
+    buildType.get().persist();
   }
 
 
@@ -256,8 +260,8 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/vcs-roots")
   @Produces({"application/xml", "application/json"})
   public VcsRootEntries getVcsRootEntries(@PathParam("btLocator") String buildTypeLocator){
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return new VcsRootEntries(buildType.getVcsRootEntries(), myApiUrlBuilder);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    return new VcsRootEntries(buildType.get().getVcsRootEntries(), myApiUrlBuilder);
   }
 
   @POST
@@ -265,31 +269,31 @@ public class BuildTypeRequest {
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public void addVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, VcsRootEntryDescription description){
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     final SVcsRoot vcsRoot = BuildTypeUtil.getVcsRoot(description, myDataProvider);
 
     try {
-      buildType.addVcsRoot(vcsRoot);
+      buildType.get().addVcsRoot(vcsRoot);
     } catch (InvalidVcsRootScopeException e) {
       throw new BadRequestException("Could not attach VCS root with id '" + vcsRoot.getId() + "' because of scope issues. Error: " + e.getMessage());
     }
     if (!StringUtil.isEmpty(description.checkoutRules)) {
-      buildType.setCheckoutRules(vcsRoot, new CheckoutRules(description.checkoutRules));
+      buildType.get().setCheckoutRules(vcsRoot, new CheckoutRules(description.checkoutRules));
     }
-    buildType.persist();
+    buildType.get().persist();
   }
 
   @GET
   @Path("/{btLocator}/vcs-roots/{vcsRootLocator}")
   @Produces({"application/xml", "application/json"})
   public VcsRootEntry getVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("vcsRootLocator") String vcsRootLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
 
-    final CheckoutRules checkoutRules = buildType.getCheckoutRules(vcsRoot);
+    final CheckoutRules checkoutRules = buildType.get().getCheckoutRules(vcsRoot);
     if (checkoutRules != null) {
       final jetbrains.buildServer.vcs.VcsRootEntry vcsRootEntry =
-        CollectionsUtil.findFirst(buildType.getVcsRootEntries(), new Filter<jetbrains.buildServer.vcs.VcsRootEntry>() {
+        CollectionsUtil.findFirst(buildType.get().getVcsRootEntries(), new Filter<jetbrains.buildServer.vcs.VcsRootEntry>() {
           public boolean accept(@NotNull final jetbrains.buildServer.vcs.VcsRootEntry data) {
             return data.getVcsRoot().getId() == vcsRoot.getId();
           }
@@ -305,13 +309,13 @@ public class BuildTypeRequest {
   @DELETE
   @Path("/{btLocator}/vcs-roots/{vcsRootLocator}")
   public void deleteVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("vcsRootLocator") String vcsRootLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
-    if (!buildType.containsVcsRoot(vcsRoot.getId())){
+    if (!buildType.get().containsVcsRoot(vcsRoot.getId())){
       throw new NotFoundException("No VCS root with id '" + vcsRoot.getId() + "' is attached to the build type.");
     }
-    buildType.removeVcsRoot(vcsRoot);
-    buildType.persist();
+    buildType.get().removeVcsRoot(vcsRoot);
+    buildType.get().persist();
   }
 
 
@@ -319,28 +323,28 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/steps")
   @Produces({"application/xml", "application/json"})
   public PropEntitiesStep getSteps(@PathParam("btLocator") String buildTypeLocator){
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return new PropEntitiesStep(buildType);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    return new PropEntitiesStep(buildType.get());
   }
 
   @POST
   @Path("/{btLocator}/steps")
   @Produces({"application/xml", "application/json"})
   public PropEntityStep addStep(@PathParam("btLocator") String buildTypeLocator, PropEntityStep stepDescription){
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     final SBuildRunnerDescriptor runnerToCreate =
       stepDescription.createRunner(myServiceLocator.getSingletonService(BuildRunnerDescriptorFactory.class));
-    buildType.addBuildRunner(runnerToCreate);
-    buildType.persist();
-    return new PropEntityStep(buildType.findBuildRunnerById(runnerToCreate.getId()));
+    buildType.get().addBuildRunner(runnerToCreate);
+    buildType.get().persist();
+    return new PropEntityStep(buildType.get().findBuildRunnerById(runnerToCreate.getId()));
   }
 
   @GET
   @Path("/{btLocator}/steps/{stepId}")
   @Produces({"application/xml", "application/json"})
   public PropEntityStep getStep(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId){
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    SBuildRunnerDescriptor step = buildType.findBuildRunnerById(stepId);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    SBuildRunnerDescriptor step = buildType.get().findBuildRunnerById(stepId);
     if (step == null){
       throw new NotFoundException("No step with id '" + stepId + "' is found.");
     }
@@ -350,13 +354,13 @@ public class BuildTypeRequest {
   @DELETE
   @Path("/{btLocator}/steps/{stepId}")
   public void deleteStep(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId){
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    SBuildRunnerDescriptor step = buildType.findBuildRunnerById(stepId);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    SBuildRunnerDescriptor step = buildType.get().findBuildRunnerById(stepId);
     if (step == null){
       throw new NotFoundException("No step with id '" + stepId + "' is found.");
     }
-    buildType.removeBuildRunner(stepId);
-    buildType.persist();
+    buildType.get().removeBuildRunner(stepId);
+    buildType.get().persist();
   }
 
   @GET
@@ -364,7 +368,7 @@ public class BuildTypeRequest {
   @Produces({"text/plain"})
   public String getStepParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId,
                                  @PathParam("parameterName") String parameterName) {
-    SBuildRunnerDescriptor step = getBuildTypeStep(myDataProvider.getBuildType(null, buildTypeLocator), stepId);
+    SBuildRunnerDescriptor step = getBuildTypeStep(myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator).get(), stepId);
     return getParameterValue(step, parameterName);
   }
 
@@ -376,7 +380,7 @@ public class BuildTypeRequest {
     return stepParameters.get(parameterName);
   }
 
-  private SBuildRunnerDescriptor getBuildTypeStep(final SBuildType buildType, final String stepId) {
+  private SBuildRunnerDescriptor getBuildTypeStep(final BuildTypeSettings buildType, final String stepId) {
     SBuildRunnerDescriptor step = buildType.findBuildRunnerById(stepId);
     if (step == null) {
       throw new NotFoundException("No step with id '" + stepId + "' is found in the build configuration.");
@@ -388,15 +392,15 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/steps/{stepId}/parameters/{parameterName}")
   public void addStepParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId,
                                @PathParam("parameterName") String parameterName, String newValue) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    SBuildRunnerDescriptor step = getBuildTypeStep(buildType, stepId);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    SBuildRunnerDescriptor step = getBuildTypeStep(buildType.get(), stepId);
     Map<String, String> parameters = new HashMap<String, String>(step.getParameters());
     if (StringUtil.isEmpty(parameterName)){
       throw new BadRequestException("Parameter name cannot be empty.");
     }
     parameters.put(parameterName, newValue);
-    buildType.updateBuildRunner(step.getId(), step.getName(), step.getType(), parameters);
-    buildType.persist();
+    buildType.get().updateBuildRunner(step.getId(), step.getName(), step.getType(), parameters);
+    buildType.get().persist();
   }
 
 
@@ -405,28 +409,28 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/features")
   @Produces({"application/xml", "application/json"})
   public PropEntitiesFeature getFeatures(@PathParam("btLocator") String buildTypeLocator){
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return new PropEntitiesFeature(buildType);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    return new PropEntitiesFeature(buildType.get());
   }
 
   @POST
   @Path("/{btLocator}/features")
   @Produces({"application/xml", "application/json"})
   public PropEntityFeature addFeature(@PathParam("btLocator") String buildTypeLocator, PropEntityFeature featureDescription){
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     final SBuildFeatureDescriptor featureToCreate =
       featureDescription.createFeature(myServiceLocator.getSingletonService(BuildFeatureDescriptorFactory.class));
-    buildType.addBuildFeature(featureToCreate);
-    buildType.persist();
-    return new PropEntityFeature(BuildTypeUtil.getBuildTypeFeature(buildType, featureToCreate.getId()));
+    buildType.get().addBuildFeature(featureToCreate);
+    buildType.get().persist();
+    return new PropEntityFeature(BuildTypeUtil.getBuildTypeFeature(buildType.get(), featureToCreate.getId()));
   }
 
   @GET
   @Path("/{btLocator}/features/{featureId}")
   @Produces({"application/xml", "application/json"})
   public PropEntityFeature getFeature(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId){
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType, featureId);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType.get(), featureId);
     if (feature == null){
       throw new NotFoundException("No feature with id '" + featureId + "' is found.");
     }
@@ -436,13 +440,13 @@ public class BuildTypeRequest {
   @DELETE
   @Path("/{btLocator}/features/{featureId}")
   public void deleteFeature(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String id){
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType, id);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType.get(), id);
     if (feature == null){
       throw new NotFoundException("No feature with id '" + id + "' is found.");
     }
-    buildType.removeBuildFeature(id);
-    buildType.persist();
+    buildType.get().removeBuildFeature(id);
+    buildType.get().persist();
   }
 
   @GET
@@ -450,8 +454,8 @@ public class BuildTypeRequest {
   @Produces({"text/plain"})
   public String getFeatureParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId,
                                  @PathParam("parameterName") String parameterName) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType, featureId);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType.get(), featureId);
     return feature.getParameters().get(parameterName);
   }
 
@@ -460,16 +464,16 @@ public class BuildTypeRequest {
   public void addFeatureParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId,
                                   @PathParam("parameterName") String parameterName, String newValue) {
 
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType, featureId);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType.get(), featureId);
     Map<String, String> parameters = new HashMap<String, String>();
     parameters.putAll(feature.getParameters());
     if (StringUtil.isEmpty(parameterName)){
       throw new BadRequestException("Parameter name cannot be empty.");
     }
     parameters.put(parameterName, newValue);
-    buildType.updateBuildFeature(feature.getId(), feature.getType(), parameters);
-    buildType.persist();
+    buildType.get().updateBuildFeature(feature.getId(), feature.getType(), parameters);
+    buildType.get().persist();
   }
 
 
@@ -478,23 +482,23 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/artifact-dependencies")
   @Produces({"application/xml", "application/json"})
   public PropEntitiesArtifactDep getArtifactDeps(@PathParam("btLocator") String buildTypeLocator){
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return new PropEntitiesArtifactDep(buildType);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    return new PropEntitiesArtifactDep(buildType.get());
   }
 
   @POST
   @Path("/{btLocator}/artifact-dependencies")
   @Produces({"application/xml", "application/json"})
   public PropEntityArtifactDep addArtifactDep(@PathParam("btLocator") String buildTypeLocator, PropEntityArtifactDep descripton) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
 
-    final List<SArtifactDependency> dependencies = buildType.getArtifactDependencies();
+    final List<SArtifactDependency> dependencies = buildType.get().getArtifactDependencies();
     dependencies.add(descripton.createDependency(myServiceLocator.getSingletonService(ArtifactDependencyFactory.class)));
     int orderNum = dependencies.size() - 1;
-    buildType.setArtifactDependencies(dependencies);
-    buildType.persist();
+    buildType.get().setArtifactDependencies(dependencies);
+    buildType.get().persist();
     //todo: might not be a good way to get just added dependency
-    return new PropEntityArtifactDep(buildType.getArtifactDependencies().get(orderNum), orderNum);
+    return new PropEntityArtifactDep(buildType.get().getArtifactDependencies().get(orderNum), orderNum);
   }
 
   @GET
@@ -502,22 +506,22 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntityArtifactDep getArtifactDep(@PathParam("btLocator") String buildTypeLocator,
                                               @PathParam("artifactDepLocator") String artifactDepLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    final SArtifactDependency artifactDependency = DataProvider.getArtifactDep(buildType, artifactDepLocator);
-    return new PropEntityArtifactDep(artifactDependency, buildType);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    final SArtifactDependency artifactDependency = DataProvider.getArtifactDep(buildType.get(), artifactDepLocator);
+    return new PropEntityArtifactDep(artifactDependency, buildType.get());
   }
 
   @DELETE
   @Path("/{btLocator}/artifact-dependencies/{artifactDepLocator}")
   public void deleteArtifactDep(@PathParam("btLocator") String buildTypeLocator, @PathParam("artifactDepLocator") String artifactDepLocator){
-    final SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    final SArtifactDependency artifactDependency = DataProvider.getArtifactDep(buildType, artifactDepLocator);
-    final List<SArtifactDependency> dependencies = buildType.getArtifactDependencies();
+    final BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    final SArtifactDependency artifactDependency = DataProvider.getArtifactDep(buildType.get(), artifactDepLocator);
+    final List<SArtifactDependency> dependencies = buildType.get().getArtifactDependencies();
     if (!dependencies.remove(artifactDependency)){
       throw new NotFoundException("Specified artifact dependency is not found in the build type.");
     }
-    buildType.setArtifactDependencies(dependencies);
-    buildType.persist();
+    buildType.get().setArtifactDependencies(dependencies);
+    buildType.get().persist();
   }
 
 
@@ -526,29 +530,29 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/snapshot-dependencies")
   @Produces({"application/xml", "application/json"})
   public PropEntitiesSnapshotDep getAnpshotDeps(@PathParam("btLocator") String buildTypeLocator){
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return new PropEntitiesSnapshotDep(buildType);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    return new PropEntitiesSnapshotDep(buildType.get());
   }
 
   @POST
   @Path("/{btLocator}/snapshot-dependencies")
   @Produces({"application/xml", "application/json"})
   public PropEntitySnapshotDep addSnapshotDep(@PathParam("btLocator") String buildTypeLocator, PropEntitySnapshotDep descripton) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
 
     final Dependency dependencyDescription = descripton.createDependency(myServiceLocator.getSingletonService(DependencyFactoryImpl.class));
     final String dependOnId = dependencyDescription.getDependOnId();
 
     try {
       // need to remove beforehand to make it update:
-      buildType.removeDependency(DataProvider.getSnapshotDep(buildType, dependOnId));
+      buildType.get().removeDependency(DataProvider.getSnapshotDep(buildType.get(), dependOnId));
     } catch (NotFoundException e) {
       //ignore: it's OK if there is no such dependency
     }
-    buildType.addDependency(dependencyDescription);
-    buildType.persist();
+    buildType.get().addDependency(dependencyDescription);
+    buildType.get().persist();
 
-    Dependency createdDependency = DataProvider.getSnapshotDep(buildType, dependOnId);
+    Dependency createdDependency = DataProvider.getSnapshotDep(buildType.get(), dependOnId);
     return new PropEntitySnapshotDep(createdDependency);
   }
 
@@ -557,18 +561,18 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntitySnapshotDep getSnapshotDep(@PathParam("btLocator") String buildTypeLocator,
                                               @PathParam("snapshotDepLocator") String snapshotDepLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    final Dependency dependency = DataProvider.getSnapshotDep(buildType, snapshotDepLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    final Dependency dependency = DataProvider.getSnapshotDep(buildType.get(), snapshotDepLocator);
     return new PropEntitySnapshotDep(dependency);
   }
 
   @DELETE
   @Path("/{btLocator}/snapshot-dependencies/{snapshotDepLocator}")
   public void deleteSnapshotDep(@PathParam("btLocator") String buildTypeLocator, @PathParam("snapshotDepLocator") String snapshotDepLocator){
-    final SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    final Dependency dependency = DataProvider.getSnapshotDep(buildType, snapshotDepLocator);
-    buildType.removeDependency(dependency);
-    buildType.persist();
+    final BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    final Dependency dependency = DataProvider.getSnapshotDep(buildType.get(), snapshotDepLocator);
+    buildType.get().removeDependency(dependency);
+    buildType.get().persist();
   }
 
 
@@ -577,32 +581,32 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/triggers")
   @Produces({"application/xml", "application/json"})
   public PropEntitiesTrigger getTriggers(@PathParam("btLocator") String buildTypeLocator){
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return new PropEntitiesTrigger(buildType);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    return new PropEntitiesTrigger(buildType.get());
   }
 
   @POST
   @Path("/{btLocator}/triggers")
   @Produces({"application/xml", "application/json"})
   public PropEntityTrigger addSnapshotDep(@PathParam("btLocator") String buildTypeLocator, PropEntityTrigger descripton) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
 
     final BuildTriggerDescriptor triggerToAdd =
       descripton.createTrigger(myServiceLocator.getSingletonService(BuildTriggerDescriptorFactory.class));
-    if (!buildType.addBuildTrigger(triggerToAdd)) {
-      final BuildTriggerDescriptor foundTriggerWithSameId = buildType.findTriggerById(descripton.id);
+    if (!buildType.get().addBuildTrigger(triggerToAdd)) {
+      final BuildTriggerDescriptor foundTriggerWithSameId = buildType.get().findTriggerById(descripton.id);
       if (foundTriggerWithSameId != null) {
-        buildType.removeBuildTrigger(foundTriggerWithSameId);
+        buildType.get().removeBuildTrigger(foundTriggerWithSameId);
       }
-      if (!buildType.addBuildTrigger(triggerToAdd)) {
+      if (!buildType.get().addBuildTrigger(triggerToAdd)) {
         throw new OperationException("Build trigger addition failed");
       }
     }
     //todo: might not be a good way to get just added trigger
-    final Collection<BuildTriggerDescriptor> buildTriggersCollection = buildType.getBuildTriggersCollection();
+    final Collection<BuildTriggerDescriptor> buildTriggersCollection = buildType.get().getBuildTriggersCollection();
     final BuildTriggerDescriptor justAdded = (BuildTriggerDescriptor)buildTriggersCollection.toArray()[buildTriggersCollection.size() - 1];
 
-    buildType.persist();
+    buildType.get().persist();
 
     return new PropEntityTrigger(justAdded);
   }
@@ -612,20 +616,20 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntityTrigger getTrigger(@PathParam("btLocator") String buildTypeLocator,
                                               @PathParam("triggerLocator") String triggerLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    final BuildTriggerDescriptor trigger = DataProvider.getTrigger(buildType, triggerLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    final BuildTriggerDescriptor trigger = DataProvider.getTrigger(buildType.get(), triggerLocator);
     return new PropEntityTrigger(trigger);
   }
 
   @DELETE
   @Path("/{btLocator}/triggers/{triggerLocator}")
   public void deleteTrigger(@PathParam("btLocator") String buildTypeLocator, @PathParam("triggerLocator") String triggerLocator){
-    final SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    final BuildTriggerDescriptor trigger = DataProvider.getTrigger(buildType, triggerLocator);
-    if (!buildType.removeBuildTrigger(trigger)){
+    final BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    final BuildTriggerDescriptor trigger = DataProvider.getTrigger(buildType.get(), triggerLocator);
+    if (!buildType.get().removeBuildTrigger(trigger)){
       throw new OperationException("Build trigger removal failed");
     }
-    buildType.persist();
+    buildType.get().persist();
   }
 
 
@@ -634,27 +638,26 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/agent-requirements")
   @Produces({"application/xml", "application/json"})
   public PropEntitiesAgentRequirement getAgentRequirements(@PathParam("btLocator") String buildTypeLocator){
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return new PropEntitiesAgentRequirement(buildType);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    return new PropEntitiesAgentRequirement(buildType.get());
   }
 
   @POST
   @Path("/{btLocator}/agent-requirements")
   @Produces({"application/xml", "application/json"})
   public PropEntityAgentRequirement addAgentRequirement(@PathParam("btLocator") String buildTypeLocator, PropEntityAgentRequirement descripton) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
 
     final Requirement requirementToAdd = descripton.createRequirement();
-    final Requirement requirement = DataProvider.getAgentRequirement(buildType, requirementToAdd.getPropertyName());
+    final Requirement requirement = DataProvider.getAgentRequirement(buildType.get(), requirementToAdd.getPropertyName());
     if (requirement != null){
-      buildType.removeRequirement(requirementToAdd.getPropertyName());
+      buildType.get().removeRequirement(requirementToAdd.getPropertyName());
     }
-    buildType.addRequirement(requirementToAdd);
-    buildType.persist();
+    buildType.get().addRequirement(requirementToAdd);
+    buildType.get().persist();
 
     //todo: might not be a good way to get just added requirement
-    final List<Requirement> requirements = buildType.getRequirements();
+    final List<Requirement> requirements = buildType.get().getRequirements();
     return new PropEntityAgentRequirement(requirements.get(requirements.size()-1));
   }
 
@@ -663,18 +666,18 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntityAgentRequirement getAgentRequirement(@PathParam("btLocator") String buildTypeLocator,
                                               @PathParam("agentRequirementLocator") String agentRequirementLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    final Requirement requirement = DataProvider.getAgentRequirement(buildType, agentRequirementLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    final Requirement requirement = DataProvider.getAgentRequirement(buildType.get(), agentRequirementLocator);
     return new PropEntityAgentRequirement(requirement);
   }
 
   @DELETE
   @Path("/{btLocator}/agent-requirements/{agentRequirementLocator}")
   public void deleteAgentRequirement(@PathParam("btLocator") String buildTypeLocator, @PathParam("agentRequirementLocator") String agentRequirementLocator){
-    final SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    final Requirement requirement = DataProvider.getAgentRequirement(buildType, agentRequirementLocator);
-    buildType.removeRequirement(requirement.getPropertyName());
-    buildType.persist();
+    final BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    final Requirement requirement = DataProvider.getAgentRequirement(buildType.get(), agentRequirementLocator);
+    buildType.get().removeRequirement(requirement.getPropertyName());
+    buildType.get().persist();
   }
 
 

@@ -205,9 +205,9 @@ public class ProjectRequest {
   public String serveBuildTypeFieldWithProject(@PathParam("projectLocator") String projectLocator,
                                                @PathParam("btLocator") String buildTypeLocator,
                                                @PathParam("field") String fieldName) {
-    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(myDataProvider.getProject(projectLocator), buildTypeLocator);
 
-    return myDataProvider.getFieldValue(buildType, fieldName);
+    return buildType.getFieldValue(fieldName);
   }
 
   //todo: separate methods to serve running builds

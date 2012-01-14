@@ -109,28 +109,6 @@ public class DataProvider {
   }
 
   @Nullable
-  public String getFieldValue(final SBuildType buildType, final String field) {
-    if ("id".equals(field)) {
-      return buildType.getBuildTypeId();
-    } else if ("description".equals(field)) {
-      return buildType.getDescription();
-    } else if ("name".equals(field)) {
-      return buildType.getName();
-    }
-    throw new NotFoundException("Field '" + field + "' is not supported.");
-  }
-
-  public void setFieldValue(final SBuildType buildType, final String field, final String value) {
-    if ("name".equals(field)) {
-      buildType.setName(value);
-    } else if ("description".equals(field)) {
-      buildType.setDescription(value);
-    } else {
-      throw new BadRequestException("Setting field '" + field + "' is not supported.");
-    }
-  }
-
-  @Nullable
   public String getFieldValue(final SProject project, final String field) {
     if ("id".equals(field)) {
       return project.getProjectId();
@@ -772,7 +750,7 @@ public class DataProvider {
   }
 
   @NotNull
-  public static SArtifactDependency getArtifactDep(final SBuildType buildType, final String artifactDepLocator) {
+  public static SArtifactDependency getArtifactDep(final BuildTypeSettings buildType, final String artifactDepLocator) {
       if (StringUtil.isEmpty(artifactDepLocator)) {
         throw new BadRequestException("Empty artifact dependency locator is not supported.");
       }
@@ -799,7 +777,7 @@ public class DataProvider {
                                   "'. Locator should be order number of the dependency in the build configuration.");
   }
 
-  public static Dependency getSnapshotDep(final SBuildType buildType, final String snapshotDepLocator) {
+  public static Dependency getSnapshotDep(final BuildTypeSettings buildType, final String snapshotDepLocator) {
     if (StringUtil.isEmpty(snapshotDepLocator)) {
       throw new BadRequestException("Empty snapshot dependency locator is not supported.");
     }
@@ -823,7 +801,7 @@ public class DataProvider {
   }
 
 
-  public static BuildTriggerDescriptor getTrigger(final SBuildType buildType, final String triggerLocator) {
+  public static BuildTriggerDescriptor getTrigger(final BuildTypeSettings buildType, final String triggerLocator) {
     if (StringUtil.isEmpty(triggerLocator)) {
       throw new BadRequestException("Empty trigger locator is not supported.");
     }
@@ -847,7 +825,7 @@ public class DataProvider {
   }
 
 
-  public static Requirement getAgentRequirement(final SBuildType buildType, final String agentRequirementLocator) {
+  public static Requirement getAgentRequirement(final BuildTypeSettings buildType, final String agentRequirementLocator) {
     if (StringUtil.isEmpty(agentRequirementLocator)) {
       throw new BadRequestException("Empty agent requirement locator is not supported.");
     }
