@@ -23,12 +23,13 @@ import jetbrains.buildServer.BuildTypeDescriptor;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeOptions;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Option;
+import jetbrains.buildServer.util.OptionSupport;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.vcs.SVcsRoot;
@@ -41,14 +42,16 @@ import org.jetbrains.annotations.NotNull;
 public class BuildTypeUtil {
   private static final Logger LOG = Logger.getInstance(BuildTypeUtil.class.getName());
 
-  public static HashMap<String, String> getSettingsParameters(final SBuildType buildType) {
+  public static HashMap<String, String> getSettingsParameters(final BuildTypeOrTemplate buildType) {
     HashMap<String, String> properties = new HashMap<String, String>();
-    addAllOptionsAsProperties(properties, buildType);
+    addAllOptionsAsProperties(properties, buildType.get());
     //todo: is the right way to do?
-    properties.put("artifactRules", buildType.getArtifactPaths());
-    properties.put("checkoutDirectory", buildType.getCheckoutDirectory());
-    properties.put("checkoutMode", buildType.getCheckoutType().name());
-    properties.put("buildNumberCounter", (new Long(buildType.getBuildNumbers().getBuildCounter())).toString());
+    properties.put("artifactRules", buildType.get().getArtifactPaths());
+    properties.put("checkoutDirectory", buildType.get().getCheckoutDirectory());
+    properties.put("checkoutMode", buildType.get().getCheckoutType().name());
+    if (buildType.isBuildType()){
+      properties.put("buildNumberCounter", (new Long(buildType.getBuildType().getBuildNumbers().getBuildCounter())).toString());
+    }
     return properties;
   }
 
@@ -77,7 +80,7 @@ public class BuildTypeUtil {
   }
 
   //todo: might use a generic util for this (e.g. Static HTML plugin has alike code to get all Page Places)
-  private static void addAllOptionsAsProperties(final HashMap<String, String> properties, final SBuildType buildType) {
+  private static void addAllOptionsAsProperties(final HashMap<String, String> properties, final OptionSupport buildType) {
     Field[] declaredFields = BuildTypeOptions.class.getDeclaredFields();
     for (Field declaredField : declaredFields) {
       try {
@@ -88,7 +91,7 @@ public class BuildTypeUtil {
           properties.put(option.getKey(), buildType.getOption(option).toString());
         }
       } catch (IllegalAccessException e) {
-        LOG.error("Error retrieving options of build configuration " + LogUtil.describe(buildType) + ", error: " + e.getMessage());
+        LOG.error("Error retrieving option '" + declaredField.getName() + "' , error: " + e.getMessage());
       }
     }
   }

@@ -41,6 +41,7 @@ import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
 import jetbrains.buildServer.server.rest.model.buildType.*;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
@@ -196,7 +197,7 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public Properties serveBuildTypeSettings(@PathParam("btLocator") String buildTypeLocator) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    return new Properties(BuildTypeUtil.getSettingsParameters(buildType));
+    return new Properties(BuildTypeUtil.getSettingsParameters(new BuildTypeOrTemplate(buildType)));
   }
 
   @GET
@@ -208,7 +209,7 @@ public class BuildTypeRequest {
       throw new BadRequestException("Setting parameter name cannot be empty.");
     }
 
-    Map<String,String> parameters = BuildTypeUtil.getSettingsParameters(buildType);
+    Map<String,String> parameters = BuildTypeUtil.getSettingsParameters(new BuildTypeOrTemplate(buildType));
     if (parameters.containsKey(parameterName)) {
       return parameters.get(parameterName);
     }
@@ -226,7 +227,7 @@ public class BuildTypeRequest {
       throw new BadRequestException("Settings parameter name cannot be empty.");
     }
 
-    if (!BuildTypeUtil.getSettingsParameters(buildType).containsKey(parameterName)){
+    if (!BuildTypeUtil.getSettingsParameters(new BuildTypeOrTemplate(buildType)).containsKey(parameterName)){
       throw new BadRequestException("Setting parameter with name '" + parameterName + "' is not known.");
     }
 

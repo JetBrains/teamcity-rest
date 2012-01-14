@@ -26,6 +26,8 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.BuildsRef;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.serverSide.BuildTypeTemplate;
 import jetbrains.buildServer.serverSide.SBuildType;
 
 /**
@@ -39,7 +41,7 @@ import jetbrains.buildServer.serverSide.SBuildType;
 public class BuildType {
   private static final Logger LOG = Logger.getInstance(BuildType.class.getName());
 
-  protected SBuildType myBuildType;
+  protected BuildTypeOrTemplate myBuildType;
   private DataProvider myDataProvider;
   private ApiUrlBuilder myApiUrlBuilder;
 
@@ -47,14 +49,20 @@ public class BuildType {
   }
 
   public BuildType(final SBuildType buildType, final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
-    myBuildType = buildType;
+    myBuildType = new BuildTypeOrTemplate(buildType);
+    myDataProvider = dataProvider;
+    myApiUrlBuilder = apiUrlBuilder;
+  }
+
+  public BuildType(final BuildTypeTemplate buildType, final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
+    myBuildType = new BuildTypeOrTemplate(buildType);
     myDataProvider = dataProvider;
     myApiUrlBuilder = apiUrlBuilder;
   }
 
   @XmlAttribute
   public String getId() {
-    return myBuildType.getBuildTypeId();
+    return myBuildType.getId();
   }
 
   @XmlAttribute
@@ -64,7 +72,7 @@ public class BuildType {
 
   @XmlAttribute
   public String getHref() {
-    return myApiUrlBuilder.getHref(myBuildType);
+    return myBuildType.isBuildType() ? myApiUrlBuilder.getHref(myBuildType.getBuildType()) : null; //todo
   }
 
   @XmlAttribute
@@ -73,13 +81,13 @@ public class BuildType {
   }
 
   @XmlAttribute
-  public boolean isPaused() {
+  public Boolean isPaused() {
     return myBuildType.isPaused();
   }
 
   @XmlAttribute
   public String getWebUrl() {
-    return myDataProvider.getBuildTypeUrl(myBuildType);
+    return myBuildType.isBuildType() ? myDataProvider.getBuildTypeUrl(myBuildType.getBuildType()) : null; //todo
   }
 
   @XmlElement
@@ -89,48 +97,52 @@ public class BuildType {
 
   @XmlElement(name = "vcs-root")
   public VcsRootEntries getVcsRootEntries() {
-    return new VcsRootEntries(myBuildType.getVcsRootEntries(), myApiUrlBuilder);
+    return new VcsRootEntries(myBuildType.get().getVcsRootEntries(), myApiUrlBuilder);
   }
 
+  /**
+   * Link to builds of this build configuraiton. Is not present for templates.
+   * @return
+   */
   @XmlElement
   public BuildsRef getBuilds() {
-    return new BuildsRef(myBuildType, myApiUrlBuilder);
+    return myBuildType.isBuildType() ? new BuildsRef(myBuildType.getBuildType(), myApiUrlBuilder) : null;
   }
 
   @XmlElement
   public Properties getParameters() {
-    return new Properties(myBuildType.getParameters());
+    return new Properties(myBuildType.get().getParameters());
   }
 
   @XmlElement(name = "steps")
   public PropEntitiesStep getSteps() {
-    return new PropEntitiesStep(myBuildType);
+    return new PropEntitiesStep(myBuildType.get());
   }
 
   @XmlElement(name = "features")
   public PropEntitiesFeature getFeatures() {
-    return new PropEntitiesFeature(myBuildType);
+    return new PropEntitiesFeature(myBuildType.get());
   }
 
   @XmlElement(name = "triggers")
   public PropEntitiesTrigger getTriggers() {
-    return new PropEntitiesTrigger(myBuildType);
+    return new PropEntitiesTrigger(myBuildType.get());
   }
 
 
   @XmlElement(name = "snapshot-dependencies")
   public PropEntitiesSnapshotDep getSnapshotDependencies() {
-    return new PropEntitiesSnapshotDep(myBuildType);
+    return new PropEntitiesSnapshotDep(myBuildType.get());
   }
 
   @XmlElement(name = "artifact-dependencies")
   public PropEntitiesArtifactDep getArtifactDependencies() {
-    return new PropEntitiesArtifactDep(myBuildType);
+    return new PropEntitiesArtifactDep(myBuildType.get());
   }
 
   @XmlElement(name = "agent-requirements")
   public PropEntitiesAgentRequirement getAgentRequirements() {
-    return new PropEntitiesAgentRequirement(myBuildType);
+    return new PropEntitiesAgentRequirement(myBuildType.get());
   }
 
   @XmlElement(name="settings")

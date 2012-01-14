@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 
 /**
@@ -20,7 +20,7 @@ public class PropEntitiesArtifactDep {
   public PropEntitiesArtifactDep() {
   }
 
-  public PropEntitiesArtifactDep(final SBuildType buildType) {
+  public PropEntitiesArtifactDep(final BuildTypeSettings buildType) {
     final List<SArtifactDependency> artifactDependencies = buildType.getArtifactDependencies();
     propEntities = new ArrayList<PropEntityArtifactDep>(artifactDependencies.size());
     int orderNumber = 0;

@@ -3,8 +3,8 @@ package jetbrains.buildServer.server.rest.model.buildType;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.SBuildRunnerDescriptor;
-import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
@@ -22,7 +22,7 @@ public class PropEntitiesStep {
   public PropEntitiesStep() {
   }
 
-  public PropEntitiesStep(final SBuildType buildType) {
+  public PropEntitiesStep(final BuildTypeSettings buildType) {
     propEntities = CollectionsUtil.convertCollection(buildType.getBuildRunners(),
                                                      new Converter<PropEntityStep, SBuildRunnerDescriptor>() {
                                                        public PropEntityStep createFrom(@NotNull final SBuildRunnerDescriptor source) {

@@ -3,7 +3,7 @@ package jetbrains.buildServer.server.rest.model.buildType;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -22,7 +22,7 @@ public class PropEntitiesSnapshotDep {
   public PropEntitiesSnapshotDep() {
   }
 
-  public PropEntitiesSnapshotDep(final SBuildType buildType) {
+  public PropEntitiesSnapshotDep(final BuildTypeSettings buildType) {
     propEntities = CollectionsUtil.convertCollection(buildType.getDependencies(), new Converter<PropEntitySnapshotDep, Dependency>() {
       public PropEntitySnapshotDep createFrom(@NotNull final Dependency source) {
         return new PropEntitySnapshotDep(source);
