@@ -43,6 +43,9 @@ public class Project extends ProjectRef {
   @XmlElement
   public BuildTypes buildTypes;
 
+  @XmlElement
+  public BuildTypes templates;
+
   public Project() {
   }
 
@@ -51,6 +54,7 @@ public class Project extends ProjectRef {
     description = project.getDescription();
     archived = project.isArchived();
     webUrl = dataProvider.getProjectUrl(project);
-    buildTypes = new BuildTypes(project.getBuildTypes(), dataProvider, apiUrlBuilder);
+    buildTypes = BuildTypes.createFromBuildTypes(project.getBuildTypes(), dataProvider, apiUrlBuilder);
+    templates = BuildTypes.createFromTemplates(project.getBuildTypeTemplates(), dataProvider, apiUrlBuilder);
   }
 }

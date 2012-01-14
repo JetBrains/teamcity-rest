@@ -22,6 +22,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.serverSide.BuildTypeTemplate;
 import jetbrains.buildServer.serverSide.SBuildType;
 import org.jetbrains.annotations.NotNull;
 
@@ -37,10 +38,25 @@ public class BuildTypes {
   public BuildTypes() {
   }
 
-  public BuildTypes(List<SBuildType> buildTypesObjects, @NotNull final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
-    buildTypes = new ArrayList<BuildTypeRef>(buildTypesObjects.size());
+  public static BuildTypes createFromBuildTypes(List<SBuildType> buildTypesObjects,
+                                                @NotNull final DataProvider dataProvider,
+                                                final ApiUrlBuilder apiUrlBuilder){
+    final BuildTypes result = new BuildTypes();
+    result.buildTypes = new ArrayList<BuildTypeRef>(buildTypesObjects.size());
     for (SBuildType buildType : buildTypesObjects) {
-      buildTypes.add(new BuildTypeRef(buildType, dataProvider, apiUrlBuilder));
+      result.buildTypes.add(new BuildTypeRef(buildType, dataProvider, apiUrlBuilder));
     }
+    return result;
+  }
+
+  public static BuildTypes createFromTemplates(final List<BuildTypeTemplate> buildTypeTemplates,
+                                  final DataProvider dataProvider,
+                                  final ApiUrlBuilder apiUrlBuilder) {
+    final BuildTypes result = new BuildTypes();
+    result.buildTypes = new ArrayList<BuildTypeRef>(buildTypeTemplates.size());
+    for (BuildTypeTemplate buildType : buildTypeTemplates) {
+      result.buildTypes.add(new BuildTypeRef(buildType, dataProvider, apiUrlBuilder));
+    }
+    return result;
   }
 }

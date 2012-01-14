@@ -93,7 +93,8 @@ public class BuildTypeRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public BuildTypes serveBuildTypesXML() {
-    return new BuildTypes(myDataProvider.getServer().getProjectManager().getAllBuildTypes(), myDataProvider, myApiUrlBuilder);
+    return BuildTypes.createFromBuildTypes(myDataProvider.getServer().getProjectManager().getAllBuildTypes(), myDataProvider,
+                                           myApiUrlBuilder);
   }
 
   /**
@@ -273,11 +274,8 @@ public class BuildTypeRequest {
   @Consumes("text/plain")
   public void setBuildTypeField(@PathParam("btLocator") String buildTypeLocator, String templateLocator) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
-    BuildTypeOrTemplate template = myDataProvider.getBuildTypeOrTemplate(null, templateLocator);
-    if (!template.isTemplate()){
-      throw new BadRequestException("Could not find template by locator '" + templateLocator + "'. Build type found instead.");
-    }
-    buildType.attachToTemplate(template.getTemplate(), false);
+    BuildTypeTemplate template = myDataProvider.getBuildTemplate(null, templateLocator);
+    buildType.attachToTemplate(template, false);
     buildType.persist();
   }
 

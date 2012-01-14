@@ -38,10 +38,7 @@ import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
-import jetbrains.buildServer.serverSide.CopyOptions;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -121,12 +118,13 @@ public class ProjectRequest {
     return myDataProvider.getFieldValue(myDataProvider.getProject(projectLocator), fieldName);
   }
 
+
   @GET
   @Path("/{projectLocator}/buildTypes")
   @Produces({"application/xml", "application/json"})
   public BuildTypes serveBuildTypesInProject(@PathParam("projectLocator") String projectLocator) {
     SProject project = myDataProvider.getProject(projectLocator);
-    return new BuildTypes(project.getBuildTypes(), myDataProvider, myApiUrlBuilder);
+    return BuildTypes.createFromBuildTypes(project.getBuildTypes(), myDataProvider, myApiUrlBuilder);
   }
 
   @POST
@@ -196,8 +194,68 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   public BuildType serveBuildType(@PathParam("projectLocator") String projectLocator,
                                   @PathParam("btLocator") String buildTypeLocator) {
-    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(myDataProvider.getProject(projectLocator), buildTypeLocator);
-    return new BuildType(buildType, myDataProvider, myApiUrlBuilder);  }
+    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
+    return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
+  }
+
+
+  @GET
+  @Path("/{projectLocator}/templates")
+  @Produces({"application/xml", "application/json"})
+  public BuildTypes serveTemplatesInProject(@PathParam("projectLocator") String projectLocator) {
+    SProject project = myDataProvider.getProject(projectLocator);
+    return BuildTypes.createFromTemplates(project.getBuildTypeTemplates(), myDataProvider, myApiUrlBuilder);
+  }
+
+  @POST
+  @Path("/{projectLocator}/templates")
+  @Produces({"application/xml", "application/json"})
+  @Consumes({"text/plain"})
+  public BuildType createEmptyBuildTypeTemplate(@PathParam("projectLocator") String projectLocator, String name) {
+    SProject project = myDataProvider.getProject(projectLocator);
+    if (StringUtil.isEmpty(name)) {
+      throw new BadRequestException("Build type template name cannot be empty.");
+    }
+    final BuildTypeTemplate buildType = project.createBuildTypeTemplate(name);
+    project.persist();
+    return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
+  }
+
+  /**
+   * Creates a new build configuration template by copying existing one.
+   * @param projectLocator
+   * @param descriptor reference to the build configuration template to copy and copy options. e.g. <newBuildTypeDescription name='Conf Name' sourceBuildTypeLocator='id:bt42' copyAllAssociatedSettings='true' shareVCSRoots='false'/>
+   * @return the build configuration created
+   */
+  @POST
+  @Path("/{projectLocator}/templates")
+  @Produces({"application/xml", "application/json"})
+  @Consumes({"application/xml", "application/json"})
+  public BuildType createBuildTypeTemplate(@PathParam("projectLocator") String projectLocator, NewBuildTypeDescription descriptor) {
+    SProject project = myDataProvider.getProject(projectLocator);
+    if (StringUtil.isEmpty(descriptor.name)) {
+      throw new BadRequestException("Build type template name cannot be empty.");
+    }
+    BuildTypeTemplate resultingBuildType;
+    if (StringUtil.isEmpty(descriptor.sourceBuildTypeLocator)) {
+      resultingBuildType = project.createBuildTypeTemplate(descriptor.name);
+    }else{
+      BuildTypeTemplate sourceTemplate = myDataProvider.getBuildTemplate(null, descriptor.sourceBuildTypeLocator);
+      resultingBuildType = project.createBuildTypeTemplate(sourceTemplate, descriptor.name, getCopyOptions(descriptor));
+    }
+    project.persist();
+    return new BuildType(resultingBuildType, myDataProvider, myApiUrlBuilder);
+  }
+
+
+  @GET
+  @Path("/{projectLocator}/templates/{btLocator}")
+  @Produces({"application/xml", "application/json"})
+  public BuildType serveBuildTypeTemplates(@PathParam("projectLocator") String projectLocator,
+                                  @PathParam("btLocator") String buildTypeLocator) {
+    BuildTypeTemplate buildType = myDataProvider.getBuildTemplate(myDataProvider.getProject(projectLocator), buildTypeLocator);
+    return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
+  }
 
   @GET
   @Path("/{projectLocator}/buildTypes/{btLocator}/{field}")

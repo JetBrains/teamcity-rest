@@ -290,6 +290,15 @@ public class DataProvider {
   }
 
   @NotNull
+  public BuildTypeTemplate getBuildTemplate(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
+    final BuildTypeOrTemplate buildTypeOrTemplate = getBuildTypeOrTemplate(project, buildTypeLocator);
+    if (buildTypeOrTemplate.isBuildType()){
+      throw new BadRequestException("Could not find template by locator '" + buildTypeLocator + "'. Build type found instead.");
+    }
+    return buildTypeOrTemplate.getTemplate();
+  }
+
+  @NotNull
   public BuildTypeOrTemplate getBuildTypeOrTemplate(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
     if (StringUtil.isEmpty(buildTypeLocator)) {
       throw new BadRequestException("Empty build type locator is not supported.");
@@ -301,7 +310,7 @@ public class DataProvider {
       // no dimensions found
       if (project != null) {
         // assume it's a name
-        return new BuildTypeOrTemplate(findBuildTypeByName(project, buildTypeLocator));
+        return findBuildTypeByName(project, buildTypeLocator);
       } else {
         //assume it's id
         return findBuildTypeOrTemplateByGeneralId(buildTypeLocator);
@@ -326,7 +335,7 @@ public class DataProvider {
       if (locator.getDimensionsCount() > 1) {
         LOG.info("Build type locator '" + buildTypeLocator + "' has 'name' dimension and others. Others are ignored.");
       }
-      return new BuildTypeOrTemplate(findBuildTypeByName(project, name));
+      return findBuildTypeByName(project, name);
     }
     throw new BadRequestException("Build type locator '" + buildTypeLocator + "' is not supported.");
   }
@@ -438,30 +447,39 @@ public class DataProvider {
    *          if several build types with the same name are found
    */
   @NotNull
-  public SBuildType findBuildTypeByName(@Nullable final SProject project, @NotNull final String name) {
-    if (project != null) {
-      final SBuildType buildType = project.findBuildTypeByName(name);
-      if (buildType == null) {
-        throw new NotFoundException("No build type is found by name '" + name + "' in project " + project.getName() + ".");
-      }
-      return buildType;
+  public BuildTypeOrTemplate findBuildTypeByName(@Nullable final SProject fixedProject, @NotNull final String name) {
+    if (fixedProject != null) {
+      return findBuildTypeOrTemplateByName(fixedProject, name);
     }
-    List<SBuildType> allBuildTypes = myServer.getProjectManager().getAllBuildTypes();
-    SBuildType foundBuildType = null;
-    for (SBuildType buildType : allBuildTypes) {
-      if (name.equalsIgnoreCase(buildType.getName())) {
-        if (foundBuildType == null) {
-          foundBuildType = buildType;
-        } else {
-          //second match found
-          throw new BadRequestException("Several matching build types found for name '" + name + "'.");
+
+    final List<SProject> projects = myServer.getProjectManager().getProjects();
+    BuildTypeOrTemplate firstFound = null;
+    for (SProject project : projects) {
+      final BuildTypeOrTemplate found = findBuildTypeOrTemplateByName(project, name);
+      if (found != null) {
+        if (firstFound != null) {
+          throw new BadRequestException("Several matching build types/templates found for name '" + name + "'.");
         }
+        firstFound = found;
       }
     }
-    if (foundBuildType == null) {
-      throw new NotFoundException("No build type is found by name '" + name + "'.");
+    if (firstFound != null) {
+      return firstFound;
     }
-    return foundBuildType;
+    throw new NotFoundException("No build type or template is found by name '" + name + "'.");
+  }
+
+  private BuildTypeOrTemplate findBuildTypeOrTemplateByName(final SProject project, final String name) {
+    final SBuildType buildType = project.findBuildTypeByName(name);
+    if (buildType != null) {
+      return new BuildTypeOrTemplate(buildType);
+
+    }
+    final BuildTypeTemplate buildTypeTemplate = project.findBuildTypeTemplateByName(name);
+    if (buildTypeTemplate != null) {
+      return new BuildTypeOrTemplate(buildTypeTemplate);
+    }
+    throw new NotFoundException("No build type or template is found by name '" + name + "' in project " + project.getName() + ".");
   }
 
   /**
