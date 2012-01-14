@@ -257,6 +257,40 @@ public class BuildTypeRequest {
 
 
   @GET
+  @Path("/{btLocator}/template")
+  @Produces({"application/xml", "application/json"})
+  public BuildTypeRef serveBuildTypeTemplate(@PathParam("btLocator") String buildTypeLocator) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    final BuildTypeTemplate template = buildType.getTemplate();
+    if (template == null){
+      throw new NotFoundException("No template associated."); //todo: how to report it duly?
+    }
+    return new BuildTypeRef(template, myDataProvider, myApiUrlBuilder);
+  }
+
+  @PUT
+  @Path("/{btLocator}/template")
+  @Consumes("text/plain")
+  public void setBuildTypeField(@PathParam("btLocator") String buildTypeLocator, String templateLocator) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    BuildTypeOrTemplate template = myDataProvider.getBuildTypeOrTemplate(null, templateLocator);
+    if (!template.isTemplate()){
+      throw new BadRequestException("Could not find template by locator '" + templateLocator + "'. Build type found instead.");
+    }
+    buildType.attachToTemplate(template.getTemplate(), false);
+    buildType.persist();
+  }
+
+  @DELETE
+  @Path("/{btLocator}/template")
+  public void setBuildTypeField(@PathParam("btLocator") String buildTypeLocator) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    buildType.detachFromTemplate();
+    buildType.persist();
+  }
+
+
+  @GET
   @Path("/{btLocator}/vcs-roots")
   @Produces({"application/xml", "application/json"})
   public VcsRootEntries getVcsRootEntries(@PathParam("btLocator") String buildTypeLocator){
