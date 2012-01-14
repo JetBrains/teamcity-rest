@@ -152,7 +152,7 @@ public class BuildRequest {
 
   //todo: need to expose file name and type?
   @GET
-  @Path("/{buildLocator}/artifacts/{fileName:.+}")
+  @Path("/{buildLocator}/artifacts/files/{fileName:.+}")
   @Produces({"application/octet-stream"})
   public StreamingOutput serveArtifact(@PathParam("buildLocator") String buildLocator, @PathParam("fileName") String fileName) {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
