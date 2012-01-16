@@ -1,6 +1,5 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
-import java.util.HashMap;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.BuildFeatureDescriptorFactory;
@@ -22,10 +21,16 @@ public class PropEntityFeature extends PropEntity{
     super(descriptor, buildType);
   }
 
-  public SBuildFeatureDescriptor createFeature(final BuildFeatureDescriptorFactory factory) {
+  public SBuildFeatureDescriptor addFeature(final BuildTypeSettings buildType, final BuildFeatureDescriptorFactory factory) {
     if (StringUtil.isEmpty(type)){
       throw new BadRequestException("Created build feature cannot have empty 'type'.");
     }
-    return factory.createNewBuildFeature(type, properties == null ? new HashMap<String, String>() : properties.getMap());
+    final SBuildFeatureDescriptor newBuildFeature = factory.createNewBuildFeature(type, properties.getMap());
+    //todo: refuse to add if such feature already exists
+    buildType.addBuildFeature(newBuildFeature);
+    if (disabled != null){
+      buildType.setEnabled(newBuildFeature.getId(), !disabled);
+    }
+    return BuildTypeUtil.getBuildTypeFeature(buildType, newBuildFeature.getId());
   }
 }

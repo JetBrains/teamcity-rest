@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -364,11 +363,10 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntityStep addStep(@PathParam("btLocator") String buildTypeLocator, PropEntityStep stepDescription){
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
-    final SBuildRunnerDescriptor runnerToCreate =
-      stepDescription.createRunner(myServiceLocator.getSingletonService(BuildRunnerDescriptorFactory.class));
-    buildType.get().addBuildRunner(runnerToCreate);
+    final SBuildRunnerDescriptor newRunner =
+      stepDescription.addStep(buildType.get(), myServiceLocator.getSingletonService(BuildRunnerDescriptorFactory.class));
     buildType.get().persist();
-    return new PropEntityStep(buildType.get().findBuildRunnerById(runnerToCreate.getId()), buildType.get());
+    return new PropEntityStep(newRunner, buildType.get());
   }
 
   @GET
@@ -471,11 +469,10 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntityFeature addFeature(@PathParam("btLocator") String buildTypeLocator, PropEntityFeature featureDescription){
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
-    final SBuildFeatureDescriptor featureToCreate =
-      featureDescription.createFeature(myServiceLocator.getSingletonService(BuildFeatureDescriptorFactory.class));
-    buildType.get().addBuildFeature(featureToCreate);
+    final SBuildFeatureDescriptor newFeature =
+      featureDescription.addFeature(buildType.get(), myServiceLocator.getSingletonService(BuildFeatureDescriptorFactory.class));
     buildType.get().persist();
-    return new PropEntityFeature(BuildTypeUtil.getBuildTypeFeature(buildType.get(), featureToCreate.getId()), buildType.get());
+    return new PropEntityFeature(newFeature, buildType.get());
   }
 
   @GET
@@ -662,23 +659,11 @@ public class BuildTypeRequest {
   @POST
   @Path("/{btLocator}/triggers")
   @Produces({"application/xml", "application/json"})
-  public PropEntityTrigger addSnapshotDep(@PathParam("btLocator") String buildTypeLocator, PropEntityTrigger descripton) {
+  public PropEntityTrigger addTrigger(@PathParam("btLocator") String buildTypeLocator, PropEntityTrigger descripton) {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
 
-    final BuildTriggerDescriptor triggerToAdd =
-      descripton.createTrigger(myServiceLocator.getSingletonService(BuildTriggerDescriptorFactory.class));
-    if (!buildType.get().addBuildTrigger(triggerToAdd)) {
-      final BuildTriggerDescriptor foundTriggerWithSameId = buildType.get().findTriggerById(descripton.id);
-      if (foundTriggerWithSameId != null) {
-        buildType.get().removeBuildTrigger(foundTriggerWithSameId);
-      }
-      if (!buildType.get().addBuildTrigger(triggerToAdd)) {
-        throw new OperationException("Build trigger addition failed");
-      }
-    }
-    //todo: might not be a good way to get just added trigger
-    final Collection<BuildTriggerDescriptor> buildTriggersCollection = buildType.get().getBuildTriggersCollection();
-    final BuildTriggerDescriptor justAdded = (BuildTriggerDescriptor)buildTriggersCollection.toArray()[buildTriggersCollection.size() - 1];
+    final BuildTriggerDescriptor justAdded = descripton.addTrigger(buildType.get(), myServiceLocator
+      .getSingletonService(BuildTriggerDescriptorFactory.class));
 
     buildType.get().persist();
 
