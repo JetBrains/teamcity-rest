@@ -3,7 +3,6 @@ package jetbrains.buildServer.server.rest.model.buildType;
 import java.util.HashMap;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -21,10 +20,6 @@ public class PropEntityAgentRequirement extends PropEntity {
   public static final String NAME_PROPERTY_NAME = "property-name";
 
   public PropEntityAgentRequirement() {
-  }
-
-  public PropEntityAgentRequirement(final BuildTriggerDescriptor descriptor) {
-    super(descriptor);
   }
 
   public PropEntityAgentRequirement(final Requirement requirement) {

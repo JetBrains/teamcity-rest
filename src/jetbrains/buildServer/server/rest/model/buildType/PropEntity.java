@@ -4,8 +4,12 @@ import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.ParametersDescriptor;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Author: Yegor.Yarko
@@ -13,42 +17,67 @@ import jetbrains.buildServer.serverSide.ParametersDescriptor;
 @XmlType(propOrder = {"type", "name", "id",
   "properties"})
 //@XmlRootElement(name = "property-described-entity")
+@SuppressWarnings("PublicField")
 public class PropEntity {
-  @SuppressWarnings("PublicField")
   @XmlAttribute
+  @NotNull
   public String id;
 
-  @SuppressWarnings("PublicField")
   @XmlAttribute
+  @Nullable
   public String name;
 
-  @SuppressWarnings("PublicField")
   @XmlAttribute
+  @NotNull
   public String type;
 
-  @SuppressWarnings("PublicField")
+  @XmlAttribute
+  @Nullable
+  public Boolean disabled;
+
   @XmlElement
+  @NotNull
   public Properties properties;
 
   public PropEntity() {
   }
 
-  public PropEntity(ParametersDescriptor descriptor) {
-    id = descriptor.getId();
-    type = descriptor.getType();
-    properties = new Properties(descriptor.getParameters());
+  public PropEntity(@NotNull ParametersDescriptor descriptor, @NotNull BuildTypeSettings buildType) {
+    init(descriptor.getId(), null, descriptor.getType(), buildType.isEnabled(descriptor.getId()), descriptor.getParameters());
   }
 
-  public PropEntity(final String idP, final String typeP, final Map<String, String> propertiesP) {
-    this.id = idP;
-    this.type = typeP;
-    this.properties = new Properties(propertiesP);
+  public PropEntity(@NotNull final String id,
+                    @Nullable final String name,
+                    @NotNull final String type,
+                    @Nullable final Boolean enabled,
+                    @NotNull final Map<String, String> properties) {
+    init(id, name, type, enabled, properties);
   }
 
-  public PropEntity(final String idP, final String name, final String typeP, final Map<String, String> propertiesP) {
-    this.id = idP;
+  private void init(@NotNull final String id,
+                    @Nullable final String name,
+                    @NotNull final String type,
+                    @Nullable final Boolean enabled,
+                    @NotNull final Map<String, String> properties) {
+    this.id = id;
     this.name = name;
-    this.type = typeP;
-    this.properties = new Properties(propertiesP);
+    this.type = type;
+    this.properties = new Properties(properties);
+    disabled = enabled ? null : true;
+  }
+
+  public static String getSetting(final BuildTypeSettings buildType, final ParametersDescriptor descriptor, final String name) {
+    if ("disabled".equals(name)) {
+      return String.valueOf(!buildType.isEnabled(descriptor.getId()));
+    }
+    throw new BadRequestException("Only 'disabled' setting names is supported. '" + name + "' unknown.");
+  }
+
+  public static void setSetting(final BuildTypeSettings buildType, final ParametersDescriptor descriptor, final String name, final String value) {
+    if ("disabled".equals(name)) {
+      buildType.setEnabled(descriptor.getId(), !Boolean.parseBoolean(value));
+    } else {
+      throw new BadRequestException("Only 'disabled' setting names is supported. '" + name + "' unknown.");
+    }
   }
 }

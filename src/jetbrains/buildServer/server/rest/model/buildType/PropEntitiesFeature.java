@@ -26,7 +26,7 @@ public class PropEntitiesFeature {
     propEntities =
       CollectionsUtil.convertCollection(buildType.getBuildFeatures(), new Converter<PropEntityFeature, SBuildFeatureDescriptor>() {
         public PropEntityFeature createFrom(@NotNull final SBuildFeatureDescriptor source) {
-          return new PropEntityFeature(source);
+          return new PropEntityFeature(source, buildType);
         }
       });
   }

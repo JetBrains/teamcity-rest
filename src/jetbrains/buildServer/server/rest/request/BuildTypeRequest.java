@@ -368,7 +368,7 @@ public class BuildTypeRequest {
       stepDescription.createRunner(myServiceLocator.getSingletonService(BuildRunnerDescriptorFactory.class));
     buildType.get().addBuildRunner(runnerToCreate);
     buildType.get().persist();
-    return new PropEntityStep(buildType.get().findBuildRunnerById(runnerToCreate.getId()));
+    return new PropEntityStep(buildType.get().findBuildRunnerById(runnerToCreate.getId()), buildType.get());
   }
 
   @GET
@@ -380,7 +380,7 @@ public class BuildTypeRequest {
     if (step == null){
       throw new NotFoundException("No step with id '" + stepId + "' is found.");
     }
-    return new PropEntityStep(step);
+    return new PropEntityStep(step, buildType.get());
   }
 
   @DELETE
@@ -422,6 +422,7 @@ public class BuildTypeRequest {
 
   @PUT
   @Path("/{btLocator}/steps/{stepId}/parameters/{parameterName}")
+  @Consumes({"text/plain"})
   public void addStepParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId,
                                @PathParam("parameterName") String parameterName, String newValue) {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
@@ -435,6 +436,26 @@ public class BuildTypeRequest {
     buildType.get().persist();
   }
 
+  @GET
+  @Path("/{btLocator}/steps/{stepId}/{name}")
+  @Produces({"text/plain"})
+  public String getStepSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId,
+                                 @PathParam("name") String name) {
+    final BuildTypeSettings buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator).get();
+    final SBuildRunnerDescriptor step = getBuildTypeStep(buildType, stepId);
+    return PropEntityStep.getSetting(buildType, step, name);
+  }
+
+  @PUT
+  @Path("/{btLocator}/steps/{stepId}/{name}")
+  @Consumes({"text/plain"})
+  public void changeStepSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId,
+                               @PathParam("name") String name, String newValue) {
+    final BuildTypeSettings buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator).get();
+    final SBuildRunnerDescriptor step = getBuildTypeStep(buildType, stepId);
+    PropEntityStep.setSetting(buildType, step, name, newValue);
+    buildType.persist();
+  }
 
 
   @GET
@@ -454,7 +475,7 @@ public class BuildTypeRequest {
       featureDescription.createFeature(myServiceLocator.getSingletonService(BuildFeatureDescriptorFactory.class));
     buildType.get().addBuildFeature(featureToCreate);
     buildType.get().persist();
-    return new PropEntityFeature(BuildTypeUtil.getBuildTypeFeature(buildType.get(), featureToCreate.getId()));
+    return new PropEntityFeature(BuildTypeUtil.getBuildTypeFeature(buildType.get(), featureToCreate.getId()), buildType.get());
   }
 
   @GET
@@ -466,7 +487,7 @@ public class BuildTypeRequest {
     if (feature == null){
       throw new NotFoundException("No feature with id '" + featureId + "' is found.");
     }
-    return new PropEntityFeature(feature);
+    return new PropEntityFeature(feature, buildType.get());
   }
 
   @DELETE
@@ -508,6 +529,27 @@ public class BuildTypeRequest {
     buildType.get().persist();
   }
 
+
+  @GET
+  @Path("/{btLocator}/features/{featureId}/{name}")
+  @Produces({"text/plain"})
+  public String getFeatureSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId,
+                                 @PathParam("name") String name) {
+    final BuildTypeSettings buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator).get();
+    final SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType, featureId);
+    return PropEntityStep.getSetting(buildType, feature, name);
+  }
+
+  @PUT
+  @Path("/{btLocator}/features/{featureId}/{name}")
+  @Consumes({"text/plain"})
+  public void changeFeatureSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId,
+                               @PathParam("name") String name, String newValue) {
+    final BuildTypeSettings buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator).get();
+    final SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType, featureId);
+    PropEntityStep.setSetting(buildType, feature, name, newValue);
+    buildType.persist();
+  }
 
 
   @GET
@@ -640,7 +682,7 @@ public class BuildTypeRequest {
 
     buildType.get().persist();
 
-    return new PropEntityTrigger(justAdded);
+    return new PropEntityTrigger(justAdded, buildType.get());
   }
 
   @GET
@@ -650,7 +692,7 @@ public class BuildTypeRequest {
                                               @PathParam("triggerLocator") String triggerLocator) {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     final BuildTriggerDescriptor trigger = DataProvider.getTrigger(buildType.get(), triggerLocator);
-    return new PropEntityTrigger(trigger);
+    return new PropEntityTrigger(trigger, buildType.get());
   }
 
   @DELETE
@@ -664,6 +706,26 @@ public class BuildTypeRequest {
     buildType.get().persist();
   }
 
+  @GET
+  @Path("/{btLocator}/triggers/{triggerLocator}/{name}")
+  @Produces({"text/plain"})
+  public String getTriggerSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("triggerLocator") String triggerLocator,
+                                 @PathParam("name") String name) {
+    final BuildTypeSettings buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator).get();
+    final BuildTriggerDescriptor trigger = DataProvider.getTrigger(buildType, triggerLocator);
+    return PropEntityStep.getSetting(buildType, trigger, name);
+  }
+
+  @PUT
+  @Path("/{btLocator}/triggers/{triggerLocator}/{name}")
+  @Consumes({"text/plain"})
+  public void changeTriggerSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("triggerLocator") String triggerLocator,
+                               @PathParam("name") String name, String newValue) {
+    final BuildTypeSettings buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator).get();
+    final BuildTriggerDescriptor trigger = DataProvider.getTrigger(buildType, triggerLocator);
+    PropEntityStep.setSetting(buildType, trigger, name, newValue);
+    buildType.persist();
+  }
 
 
   @GET

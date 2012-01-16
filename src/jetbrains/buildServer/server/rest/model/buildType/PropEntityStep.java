@@ -3,7 +3,9 @@ package jetbrains.buildServer.server.rest.model.buildType;
 import java.util.HashMap;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.serverSide.BuildRunnerDescriptor;
 import jetbrains.buildServer.serverSide.BuildRunnerDescriptorFactory;
+import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.SBuildRunnerDescriptor;
 import jetbrains.buildServer.util.StringUtil;
 
@@ -16,15 +18,38 @@ public class PropEntityStep extends PropEntity {
   public PropEntityStep() {
   }
 
-  public PropEntityStep(SBuildRunnerDescriptor descriptor) {
-    super(descriptor.getId(), descriptor.getName(), descriptor.getType(), descriptor.getParameters());
+  public PropEntityStep(SBuildRunnerDescriptor descriptor, final BuildTypeSettings buildType) {
+    super(descriptor.getId(), descriptor.getName(), descriptor.getType(), buildType.isEnabled(descriptor.getId()),
+          descriptor.getParameters());
   }
 
   public SBuildRunnerDescriptor createRunner(final BuildRunnerDescriptorFactory factory) {
-    if (StringUtil.isEmpty(type)){
+    if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Created step cannot have empty 'type'.");
     }
 
-    return factory.createNewBuildRunner(StringUtil.isEmpty(name)?"" :name, type, properties == null? new HashMap<String, String>() : properties.getMap());
+    return factory.createNewBuildRunner(StringUtil.isEmpty(name) ? "" : name, type,
+                                        properties == null ? new HashMap<String, String>() : properties.getMap());
+  }
+
+
+  public static String getSetting(final BuildTypeSettings buildType, final BuildRunnerDescriptor step, final String name) {
+    if ("name".equals(name)) {
+      return step.getName();
+    }
+    if ("disabled".equals(name)) {
+      return String.valueOf(!buildType.isEnabled(step.getId()));
+    }
+    throw new BadRequestException("Only 'name'and 'disabled' setting names are supported. '" + name + "' unknown.");
+  }
+
+  public static void setSetting(final BuildTypeSettings buildType, final BuildRunnerDescriptor step, final String name, final String value) {
+    if ("name".equals(name)) {
+      buildType.updateBuildRunner(step.getId(), value, step.getType(), step.getParameters());
+    } else if ("disabled".equals(name)) {
+      buildType.setEnabled(step.getId(), !Boolean.parseBoolean(value));
+    } else {
+      throw new BadRequestException("Only 'name'and 'disabled' setting names are supported. '" + name + "' unknown.");
+    }
   }
 }

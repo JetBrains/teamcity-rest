@@ -26,7 +26,7 @@ public class PropEntitiesStep {
     propEntities = CollectionsUtil.convertCollection(buildType.getBuildRunners(),
                                                      new Converter<PropEntityStep, SBuildRunnerDescriptor>() {
                                                        public PropEntityStep createFrom(@NotNull final SBuildRunnerDescriptor source) {
-                                                         return new PropEntityStep(source);
+                                                         return new PropEntityStep(source, buildType);
                                                        }
                                                      });
   }

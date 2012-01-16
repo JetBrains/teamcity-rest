@@ -117,5 +117,9 @@ public class BuildTypeOrTemplate {
     }
     throw new NotFoundException("Field '" + field + "' is not supported.");
   }
+
+  public boolean isEnabled(final String id) {
+    return hasBuildType ? myBuildType.isEnabled(id) : myTemplate.isEnabled(id);
+  }
 }
 

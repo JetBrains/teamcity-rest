@@ -25,7 +25,7 @@ public class PropEntitiesTrigger {
   public PropEntitiesTrigger(final BuildTypeSettings buildType) {
     propEntities = CollectionsUtil.convertCollection(buildType.getBuildTriggersCollection(), new Converter<PropEntityTrigger, BuildTriggerDescriptor>() {
           public PropEntityTrigger createFrom(@NotNull final BuildTriggerDescriptor source) {
-            return new PropEntityTrigger(source);
+            return new PropEntityTrigger(source, buildType);
           }
         });
   }

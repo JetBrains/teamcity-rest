@@ -4,9 +4,11 @@ import java.util.HashMap;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.BuildFeatureDescriptorFactory;
+import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.ParametersDescriptor;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.util.StringUtil;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
@@ -16,8 +18,8 @@ import jetbrains.buildServer.util.StringUtil;
 public class PropEntityFeature extends PropEntity{
   public PropEntityFeature() {
   }
-  public PropEntityFeature(ParametersDescriptor descriptor) {
-    super(descriptor);
+  public PropEntityFeature(@NotNull ParametersDescriptor descriptor, @NotNull final BuildTypeSettings buildType) {
+    super(descriptor, buildType);
   }
 
   public SBuildFeatureDescriptor createFeature(final BuildFeatureDescriptorFactory factory) {
