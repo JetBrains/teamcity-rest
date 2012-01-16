@@ -435,20 +435,20 @@ public class BuildTypeRequest {
   }
 
   @GET
-  @Path("/{btLocator}/steps/{stepId}/{name}")
+  @Path("/{btLocator}/steps/{stepId}/{fieldName}")
   @Produces({"text/plain"})
   public String getStepSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId,
-                                 @PathParam("name") String name) {
+                                 @PathParam("fieldName") String name) {
     final BuildTypeSettings buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator).get();
     final SBuildRunnerDescriptor step = getBuildTypeStep(buildType, stepId);
     return PropEntityStep.getSetting(buildType, step, name);
   }
 
   @PUT
-  @Path("/{btLocator}/steps/{stepId}/{name}")
+  @Path("/{btLocator}/steps/{stepId}/{fieldName}")
   @Consumes({"text/plain"})
   public void changeStepSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId,
-                               @PathParam("name") String name, String newValue) {
+                               @PathParam("fieldName") String name, String newValue) {
     final BuildTypeSettings buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator).get();
     final SBuildRunnerDescriptor step = getBuildTypeStep(buildType, stepId);
     PropEntityStep.setSetting(buildType, step, name, newValue);
@@ -605,25 +605,19 @@ public class BuildTypeRequest {
     return new PropEntitiesSnapshotDep(buildType.get());
   }
 
+  /**
+   * Creates new snapshot dependency. 'id' attribute is ignored in the submitted descriptor.
+   * Reports error if new dependency cannot be created (e.g. another dependency on the specified build configuration already exists).
+   */
   @POST
   @Path("/{btLocator}/snapshot-dependencies")
   @Produces({"application/xml", "application/json"})
   public PropEntitySnapshotDep addSnapshotDep(@PathParam("btLocator") String buildTypeLocator, PropEntitySnapshotDep descripton) {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
 
-    final Dependency dependencyDescription = descripton.createDependency(myServiceLocator.getSingletonService(DependencyFactoryImpl.class));
-    final String dependOnId = dependencyDescription.getDependOnId();
-
-    try {
-      // need to remove beforehand to make it update:
-      buildType.get().removeDependency(DataProvider.getSnapshotDep(buildType.get(), dependOnId));
-    } catch (NotFoundException e) {
-      //ignore: it's OK if there is no such dependency
-    }
-    buildType.get().addDependency(dependencyDescription);
+    Dependency createdDependency = descripton.addSnapshotDependency(buildType.get(),
+                                                                    myServiceLocator.getSingletonService(DependencyFactoryImpl.class));
     buildType.get().persist();
-
-    Dependency createdDependency = DataProvider.getSnapshotDep(buildType.get(), dependOnId);
     return new PropEntitySnapshotDep(createdDependency);
   }
 
@@ -656,6 +650,10 @@ public class BuildTypeRequest {
     return new PropEntitiesTrigger(buildType.get());
   }
 
+  /**
+   * Creates new trigger. 'id' attribute is ignored in the submitted descriptor.
+   * Reports error if new trigger cannot be created (e.g. only single trigger of the type is allowed for a build configuraiton).
+   */
   @POST
   @Path("/{btLocator}/triggers")
   @Produces({"application/xml", "application/json"})
@@ -692,20 +690,20 @@ public class BuildTypeRequest {
   }
 
   @GET
-  @Path("/{btLocator}/triggers/{triggerLocator}/{name}")
+  @Path("/{btLocator}/triggers/{triggerLocator}/{fieldName}")
   @Produces({"text/plain"})
   public String getTriggerSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("triggerLocator") String triggerLocator,
-                                 @PathParam("name") String name) {
+                                 @PathParam("fieldName") String name) {
     final BuildTypeSettings buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator).get();
     final BuildTriggerDescriptor trigger = DataProvider.getTrigger(buildType, triggerLocator);
     return PropEntityStep.getSetting(buildType, trigger, name);
   }
 
   @PUT
-  @Path("/{btLocator}/triggers/{triggerLocator}/{name}")
+  @Path("/{btLocator}/triggers/{triggerLocator}/{fieldName}")
   @Consumes({"text/plain"})
   public void changeTriggerSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("triggerLocator") String triggerLocator,
-                               @PathParam("name") String name, String newValue) {
+                               @PathParam("fieldName") String name, String newValue) {
     final BuildTypeSettings buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator).get();
     final BuildTriggerDescriptor trigger = DataProvider.getTrigger(buildType, triggerLocator);
     PropEntityStep.setSetting(buildType, trigger, name, newValue);
@@ -721,23 +719,19 @@ public class BuildTypeRequest {
     return new PropEntitiesAgentRequirement(buildType.get());
   }
 
+  /**
+   * Creates new agent requirement. 'id' attribute is ignored in the submitted descriptor.
+   * Reports error if new requirement cannot be created (e.g. another requirement is present for the parameter).
+   */
   @POST
   @Path("/{btLocator}/agent-requirements")
   @Produces({"application/xml", "application/json"})
   public PropEntityAgentRequirement addAgentRequirement(@PathParam("btLocator") String buildTypeLocator, PropEntityAgentRequirement descripton) {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
 
-    final Requirement requirementToAdd = descripton.createRequirement();
-    final Requirement requirement = DataProvider.getAgentRequirement(buildType.get(), requirementToAdd.getPropertyName());
-    if (requirement != null){
-      buildType.get().removeRequirement(requirementToAdd.getPropertyName());
-    }
-    buildType.get().addRequirement(requirementToAdd);
+    final PropEntityAgentRequirement result = descripton.addRequirement(buildType);
     buildType.get().persist();
-
-    //todo: might not be a good way to get just added requirement
-    final List<Requirement> requirements = buildType.get().getRequirements();
-    return new PropEntityAgentRequirement(requirements.get(requirements.size()-1));
+    return result;
   }
 
   @GET

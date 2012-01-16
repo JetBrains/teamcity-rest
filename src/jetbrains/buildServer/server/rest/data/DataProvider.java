@@ -805,19 +805,29 @@ public class DataProvider {
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's source build type id
       final String sourceBuildTypeId = locator.getSingleValue();
-      for (Dependency dependency : buildType.getDependencies()) {
-        if (dependency.getDependOnId().equals(sourceBuildTypeId)) {
-          return dependency;
-        }
+      //todo (TeamCity) seems like no way to get snapshot dependency by source build type
+      final Dependency foundDependency = getSnapshotDepOrNull(buildType, sourceBuildTypeId);
+      if (foundDependency != null) {
+        return foundDependency;
+      } else {
+        throw new NotFoundException("No snapshot dependency found by locator '" + snapshotDepLocator +
+                                    "'. There is no dependency with source build type id " + sourceBuildTypeId + ".");
       }
-      throw new NotFoundException("No snapshot dependency found by locator '" + snapshotDepLocator +
-                                  "'. There is no dependency with source build type id " + sourceBuildTypeId + ".");
     }
 
     throw new BadRequestException(
       "No snapshot dependency found by locator '" + snapshotDepLocator + "'. Locator should be existing dependency source build type id.");
   }
 
+  public static Dependency getSnapshotDepOrNull(final BuildTypeSettings buildType, final String sourceBuildTypeId){
+    for (Dependency dependency : buildType.getDependencies()) {
+      if (dependency.getDependOnId().equals(sourceBuildTypeId)) {
+        return dependency;
+      }
+    }
+    return null;
+  }
+  
 
   public static BuildTriggerDescriptor getTrigger(final BuildTypeSettings buildType, final String triggerLocator) {
     if (StringUtil.isEmpty(triggerLocator)) {
@@ -856,20 +866,25 @@ public class DataProvider {
       if (StringUtil.isEmpty(parameterName)){
         throw new BadRequestException("Agent requirement property name cannot be empty.");
       }
-      final List<Requirement> requirements = buildType.getRequirements();
-      for (Requirement requirement : requirements) {
-        if (parameterName.equals(requirement.getPropertyName())){
-          return requirement;
-        }
+      Requirement result = getAgentRequirementOrNull(buildType, parameterName);
+      if (result == null){
+        throw new NotFoundException("No agent requirement for build parameter '" + parameterName +"' is found in the build type.");
       }
-      throw new NotFoundException("No agent requirement for build parameter '" + parameterName +"' is found in the build type.");
+      return result;
     }
     throw new BadRequestException(
-      "No agent requirement can be found by locator '" + agentRequirementLocator + "'. Locator should be trigger id.");
+      "No agent requirement can be found by locator '" + agentRequirementLocator + "'. Locator should be property name.");
   }
 
-
-
+  public static Requirement getAgentRequirementOrNull(final BuildTypeSettings buildType, final String parameterName) {
+    final List<Requirement> requirements = buildType.getRequirements();
+    for (Requirement requirement : requirements) {
+      if (parameterName.equals(requirement.getPropertyName())) {
+        return requirement;
+      }
+    }
+    return null;
+  }
 
 
   @Nullable

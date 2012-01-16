@@ -24,17 +24,20 @@ public class PropEntityTrigger extends PropEntity {
     final BuildTriggerDescriptor triggerToAdd = descriptorFactory.createTriggerDescriptor(type, properties.getMap());
 
     if (!buildType.addBuildTrigger(triggerToAdd)) {
-      final BuildTriggerDescriptor foundTriggerWithSameId = buildType.findTriggerById(triggerToAdd.getId());
-      if (foundTriggerWithSameId != null) {
-        buildType.removeBuildTrigger(foundTriggerWithSameId);
-      }
-      if (!buildType.addBuildTrigger(triggerToAdd)) {
-        throw new OperationException("Build trigger addition failed");
-      }
+      String additionalMessage = getDetails(buildType, triggerToAdd);
+      throw new OperationException("Build trigger addition failed." + (additionalMessage != null ? " " + additionalMessage : ""));
     }
     if (disabled != null) {
       buildType.setEnabled(triggerToAdd.getId(), !disabled);
     }
     return buildType.findTriggerById(triggerToAdd.getId());
+  }
+
+  private String getDetails(final BuildTypeSettings buildType, final BuildTriggerDescriptor triggerToAdd) {
+    final BuildTriggerDescriptor foundTriggerWithSameId = buildType.findTriggerById(triggerToAdd.getId());
+    if (foundTriggerWithSameId != null) {
+      return "Trigger with id '" + triggerToAdd.getId() + "'already exists.";
+    }
+    return null;
   }
 }

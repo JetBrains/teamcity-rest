@@ -5,8 +5,10 @@ import java.util.Map;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.requirements.RequirementType;
+import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.util.StringUtil;
 
 /**
@@ -34,11 +36,6 @@ public class PropEntityAgentRequirement extends PropEntity {
     properties = new Properties(propertiesMap);
   }
 
-  public Requirement createRequirement() {
-    final Map<String, String> propertiesMap = properties.getMap();
-    return new Requirement(getId(), propertiesMap.get(NAME_PROPERTY_VALUE), getType());
-  }
-
   private String getId() {
     final String nameProperty = properties.getMap().get(NAME_PROPERTY_NAME);
     if (StringUtil.isEmpty(nameProperty)) {
@@ -56,5 +53,19 @@ public class PropEntityAgentRequirement extends PropEntity {
       throw new BadRequestException("Could not create Requirement type by type '" + type + ". Check it is a valid type.");
     }
     return foundType;
+  }
+
+  public PropEntityAgentRequirement addRequirement(final BuildTypeOrTemplate buildType) {
+    final Map<String, String> propertiesMap = properties.getMap();
+    final Requirement requirementToAdd = new Requirement(getId(), propertiesMap.get(NAME_PROPERTY_VALUE), getType());
+
+    //todo: (TeamCity) API allows to add several requirements, but we will limit it as it is not supported duly
+    final Requirement requirement = DataProvider.getAgentRequirementOrNull(buildType.get(), requirementToAdd.getPropertyName());
+    if (requirement != null){
+      throw new BadRequestException("Requirement for parameter with name '" + getId() + "' already exists.");
+    }
+    buildType.get().addRequirement(requirementToAdd);
+
+    return new PropEntityAgentRequirement(DataProvider.getAgentRequirementOrNull(buildType.get(), requirementToAdd.getPropertyName()));
   }
 }

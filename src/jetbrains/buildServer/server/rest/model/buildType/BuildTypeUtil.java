@@ -100,19 +100,24 @@ public class BuildTypeUtil {
     }
   }
 
+  @NotNull
   public static SBuildFeatureDescriptor getBuildTypeFeature(final BuildTypeSettings buildType, @NotNull final String featureId) {
     if (StringUtil.isEmpty(featureId)){
       throw new BadRequestException("Feature Id cannot be empty.");
     }
-    SBuildFeatureDescriptor feature = CollectionsUtil.findFirst(buildType.getBuildFeatures(), new Filter<SBuildFeatureDescriptor>() {
-      public boolean accept(@NotNull final SBuildFeatureDescriptor data) {
-        return data.getId().equals(featureId);
-      }
-    });
+    SBuildFeatureDescriptor feature = getBuildTypeFeatureOrNull(buildType, featureId);
     if (feature == null) {
       throw new NotFoundException("No feature with id '" + featureId + "' is found in the build configuration.");
     }
     return feature;
+  }
+
+  public static SBuildFeatureDescriptor getBuildTypeFeatureOrNull(final BuildTypeSettings buildType, final String featureId) {
+    return CollectionsUtil.findFirst(buildType.getBuildFeatures(), new Filter<SBuildFeatureDescriptor>() {
+      public boolean accept(@NotNull final SBuildFeatureDescriptor data) {
+        return data.getId().equals(featureId);
+      }
+    });
   }
 
   // see also VCSRootRequest.getProjectLocator
