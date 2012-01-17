@@ -20,6 +20,8 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
@@ -28,11 +30,14 @@ import jetbrains.buildServer.plugins.PluginManager;
 import jetbrains.buildServer.plugins.bean.PluginInfo;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.requirements.Requirement;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Constants;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
@@ -106,6 +111,41 @@ public class DataProvider {
     myRunningBuildsManager = runningBuildsManager;
     myValueProviderRegistry = valueProviderRegistry;
     myBuildDataStorage = buildDataStorage;
+  }
+
+  public Builds getBuildsForRequest(final SBuildType buildType,
+                                    final String status,
+                                    final String userLocator,
+                                    final boolean includePersonal,
+                                    final boolean includeCanceled,
+                                    final boolean onlyPinned,
+                                    final List<String> tags,
+                                    final String agentName,
+                                    final String sinceBuildLocator,
+                                    final String sinceDate,
+                                    final Long start,
+                                    final Integer count,
+                                    final String locator,
+                                    final UriInfo uriInfo,
+                                    final HttpServletRequest request,
+                                    final ApiUrlBuilder apiUrlBuilder) {
+    BuildsFilter buildsFilter;
+    if (locator != null) {
+      buildsFilter = getBuildsFilterByLocator(buildType, new Locator(locator));
+    } else {
+      // preserve 5.0 logic for personal/canceled/pinned builds
+      buildsFilter = new BuildsFilter(buildType,
+                                      status,
+                                      getUserIfNotNull(userLocator),
+                                      includePersonal ? null : false, includeCanceled ? null : false,
+                                      false, onlyPinned ? true : null, tags, agentName,
+                                      getRangeLimit(buildType, sinceBuildLocator, parseDate(sinceDate)),
+                                      null,
+                                      start, count);
+    }
+    final List<SBuild> buildsList = this.getBuilds(buildsFilter);
+    return new Builds(buildsList, this, new PagerData(uriInfo.getRequestUriBuilder(), request, start, count, buildsList.size()),
+                      apiUrlBuilder);
   }
 
   @Nullable

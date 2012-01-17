@@ -27,14 +27,11 @@ import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.BuildsFilter;
 import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
-import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
@@ -108,24 +105,9 @@ public class BuildRequest {
                                @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count,
                                @QueryParam("locator") String locator,
                                @Context UriInfo uriInfo, @Context HttpServletRequest request) {
-    BuildsFilter buildsFilter;
-    if (locator != null) {
-      buildsFilter = myDataProvider.getBuildsFilterByLocator(null, new Locator(locator));
-    } else {
-      // preserve 5.0 logic for personal/canceled/pinned builds
-      buildsFilter = new BuildsFilter(myDataProvider.getBuildTypeIfNotNull(buildTypeLocator),
-                                      status,
-                                      myDataProvider.getUserIfNotNull(userLocator),
-                                      includePersonal ? null : false, includeCanceled ? null : false,
-                                      false, onlyPinned ? true : null, tags, agentName,
-                                      myDataProvider
-                                        .getRangeLimit(null, sinceBuildLocator, DataProvider.parseDate(sinceDate)),
-                                      null,
-                                      start, count);
-    }
-    final List<SBuild> buildsList = myDataProvider.getBuilds(buildsFilter);
-    return new Builds(buildsList, myDataProvider, new PagerData(uriInfo.getRequestUriBuilder(), request, start, count, buildsList.size()),
-                      myApiUrlBuilder);
+    return myDataProvider.getBuildsForRequest(myDataProvider.getBuildTypeIfNotNull(buildTypeLocator),
+                                              status, userLocator, includePersonal, includeCanceled, onlyPinned, tags, agentName,
+                                              sinceBuildLocator, sinceDate, start, count, locator, uriInfo, request, myApiUrlBuilder);
   }
 
   @GET

@@ -28,13 +28,10 @@ import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptorFactory;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.BuildsFilter;
 import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
-import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
@@ -791,23 +788,9 @@ public class BuildTypeRequest {
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
 
-    BuildsFilter buildsFilter;
-    if (locator != null) {
-      buildsFilter = myDataProvider.getBuildsFilterByLocator(buildType, new Locator(locator));
-    } else {
-      // preserve 5.0 logic for personal/canceled/pinned builds
-      buildsFilter = new BuildsFilter(buildType,
-                                      status,
-                                      myDataProvider.getUserIfNotNull(userLocator),
-                                      includePersonal ? null : false, includeCanceled ? null : false,
-                                      false, onlyPinned ? true : null, tags, agentName,
-                                      myDataProvider.getRangeLimit(buildType, sinceBuildLocator, DataProvider.parseDate(sinceDate)),
-                                      null,
-                                      start, count);
-    }
-    final List<SBuild> buildsList = myDataProvider.getBuilds(buildsFilter);
-    return new Builds(buildsList, myDataProvider, new PagerData(uriInfo.getRequestUriBuilder(), request, start, count, buildsList.size()),
-                      myApiUrlBuilder);
+    return myDataProvider.getBuildsForRequest(buildType,
+                                              status, userLocator, includePersonal, includeCanceled, onlyPinned, tags, agentName,
+                                              sinceBuildLocator, sinceDate, start, count, locator, uriInfo, request, myApiUrlBuilder);
   }
 
   @GET
