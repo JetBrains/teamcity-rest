@@ -77,6 +77,7 @@ public class DataProvider {
   @NotNull private final RunningBuildsManager myRunningBuildsManager;
   @NotNull private final ValueProviderRegistry myValueProviderRegistry;
   @NotNull private final BuildDataStorage myBuildDataStorage;
+  private BuildPromotionManager myPromotionManager;
 
   public DataProvider(@NotNull final SBuildServer myServer,
                       @NotNull final BuildHistory myBuildHistory,
@@ -93,7 +94,8 @@ public class DataProvider {
                       @NotNull final PluginManager pluginManager,
                       @NotNull final RunningBuildsManager runningBuildsManager,
                       @NotNull final ValueProviderRegistry valueProviderRegistry,
-                      @NotNull final BuildDataStorage buildDataStorage
+                      @NotNull final BuildDataStorage buildDataStorage,
+                      @NotNull final BuildPromotionManager promotionManager
                       ) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
@@ -111,6 +113,7 @@ public class DataProvider {
     myRunningBuildsManager = runningBuildsManager;
     myValueProviderRegistry = valueProviderRegistry;
     myBuildDataStorage = buildDataStorage;
+    myPromotionManager = promotionManager;
   }
 
   public Builds getBuildsForRequest(final SBuildType buildType,
@@ -139,9 +142,9 @@ public class DataProvider {
                                       getUserIfNotNull(userLocator),
                                       includePersonal ? null : false, includeCanceled ? null : false,
                                       false, onlyPinned ? true : null, tags, agentName,
-                                      getRangeLimit(buildType, sinceBuildLocator, parseDate(sinceDate)),
+                                      null, getRangeLimit(buildType, sinceBuildLocator, parseDate(sinceDate)),
                                       null,
-                                      start, count);
+                                      start, count, null);
     }
     final List<SBuild> buildsList = this.getBuilds(buildsFilter);
     return new Builds(buildsList, this, new PagerData(uriInfo.getRequestUriBuilder(), request, start, count, buildsList.size()),
@@ -174,6 +177,8 @@ public class DataProvider {
       return Util.formatTime(build.getFinishDate());
     } else if ("buildTypeId".equals(field)) {
       return (build.getBuildTypeId());
+    } else if ("promotionId".equals(field)) {
+      return (String.valueOf(build.getBuildPromotion().getId()));
     }
     throw new NotFoundException("Field '" + field + "' is not supported.");
   }
@@ -260,7 +265,26 @@ public class DataProvider {
         throw new NotFoundException("Build number is specified without build configuraiton. Cannot find build by build number only.");
       }
     }
-
+    {
+      Long promotionId = locator.getSingleDimensionValueAsLong("promotionId");
+      if (promotionId != null) {
+        final BuildPromotion promotion = myPromotionManager.findPromotionById(promotionId);
+        if (promotion == null) {
+          throw new NotFoundException("No promotion can be found by promotionId '" + promotionId + "'.");
+        }
+        SBuild build = promotion.getAssociatedBuild();
+        if (build == null) {
+          throw new NotFoundException("No associated build can be found for promotion with id '" + promotionId + "'.");
+        }
+        if (buildType != null && !buildType.getBuildTypeId().equals(build.getBuildTypeId())) {
+          throw new NotFoundException("No build can be found by promotionId '" + promotionId + "' in build type '" + buildType + "'.");
+        }
+        if (locator.getDimensionsCount() > 1) {
+          LOG.info("Build locator '" + buildLocator + "' has 'promotionId' dimension and others. Others are ignored.");
+        }
+        return build;
+      }
+    }
     final BuildsFilter buildsFilter = getBuildsFilterByLocator(buildType, locator);
     buildsFilter.setCount(1);
 
@@ -321,12 +345,14 @@ public class DataProvider {
                             tagsList,
                             //todo: support agent locator here
                             locator.getSingleDimensionValue("agentName"),
-                            getRangeLimit(actualBuildType, locator.getSingleDimensionValue("sinceBuild"),
+                            ParameterCondition.create(locator.getSingleDimensionValue("property")), getRangeLimit(actualBuildType, locator.getSingleDimensionValue("sinceBuild"),
                                           parseDate(locator.getSingleDimensionValue("sinceDate"))),
                             getRangeLimit(actualBuildType, locator.getSingleDimensionValue("untilBuild"),
                                           parseDate(locator.getSingleDimensionValue("untilDate"))),
                             locator.getSingleDimensionValueAsLong("start"),
-                            count == null?null:count.intValue());
+                            count == null?null:count.intValue(),
+                            locator.getSingleDimensionValueAsLong("lookupLimit")
+    );
   }
 
   @NotNull

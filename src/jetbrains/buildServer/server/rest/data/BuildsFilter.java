@@ -36,6 +36,8 @@ public class BuildsFilter{
   @Nullable private final String myAgentName;
   @Nullable private final RangeLimit mySince;
   @Nullable private final RangeLimit myUntil;
+  @Nullable private Long myLookupLimit;
+  @Nullable private ParameterCondition myParameterCondition;
   @Nullable private final SUser myUser;
   @Nullable private final SBuildType myBuildType;
 
@@ -48,10 +50,12 @@ public class BuildsFilter{
    * @param running         if set, limits the builds by running state (return only running if "true", only finished if "false")
    * @param pinned          if set, limits the builds by pinned status (return only pinned if "true", only non-pinned if "false")
    * @param agentName       limit builds to those ran on specified agent, can be null to return all builds
+   * @param parameterCondition  limit builds to those with a finish parameter matching the condition specified, can be null to return all builds
    * @param since           the RangeLimit to return only the builds since the limit. If contains build, it is not included, if contains the date, the builds that were started at and later then the date are included
    * @param until           the RangeLimit to return only the builds until the limit. If contains build, it is included, if contains the date, the builds that were started at and before the date are included
    * @param start           the index of the first build to return (begins with 0), 0 by default
    * @param count           the number of builds to return, all by default
+   * @param lookupLimit     the number of builds to search. Matching results only within first 'lookupLimit' builds will be returned
    */
   public BuildsFilter(@Nullable final SBuildType buildType,
                       @Nullable final String status,
@@ -62,10 +66,13 @@ public class BuildsFilter{
                       @Nullable final Boolean pinned,
                       @Nullable final List<String> tags,
                       @Nullable final String agentName,
+                      @Nullable final ParameterCondition parameterCondition,
                       @Nullable final RangeLimit since,
                       @Nullable final RangeLimit until,
                       @Nullable final Long start,
-                      @Nullable final Integer count) {
+                      @Nullable final Integer count,
+                      @Nullable final Long lookupLimit
+  ) {
     myStart = start;
     myCount = count;
 
@@ -80,6 +87,8 @@ public class BuildsFilter{
     myAgentName = agentName;
     mySince = since;
     myUntil = until;
+    myLookupLimit = lookupLimit;
+    myParameterCondition = parameterCondition;
   }
 
   @Nullable
@@ -130,6 +139,12 @@ public class BuildsFilter{
         return false;
       }
     }
+    
+    if (myParameterCondition != null){
+      if (!myParameterCondition.matches(build)){
+        return false;
+      }
+    }
     return true;
   }
 
@@ -152,18 +167,8 @@ public class BuildsFilter{
   }
 
   public List<SFinishedBuild> getMatchingFinishedBuilds(@NotNull final BuildHistory buildHistory) {
-    final FilterItemProcessor<SFinishedBuild> buildsFilterItemProcessor = new FilterItemProcessor<SFinishedBuild>(new AbstractFilter<SFinishedBuild>(myStart, myCount) {
-        @Override
-        protected boolean isIncluded(@NotNull final SFinishedBuild item) {
-          return BuildsFilter.this.isIncluded(item);
-        }
-
-      @Override
-      public boolean shouldStop(final SFinishedBuild item) {
-        //assume the builds are processed from most recent to older
-        return isExcludedBySince(item);
-      }
-    });
+    final FilterItemProcessor<SFinishedBuild> buildsFilterItemProcessor =
+      new FilterItemProcessor<SFinishedBuild>(new FinishedBuildsFilter());
     if (myBuildType != null) {
         buildHistory.processEntries(myBuildType.getBuildTypeId(),
                                     getUserForProcessEntries(),
@@ -177,16 +182,49 @@ public class BuildsFilter{
     return buildsFilterItemProcessor.getResult();
   }
 
+
+  private class FinishedBuildsFilter extends AbstractFilter<SFinishedBuild> {
+    private int processedItems;
+
+    public FinishedBuildsFilter() {
+      super(BuildsFilter.this.myStart, BuildsFilter.this.myCount);
+      processedItems = 0;
+    }
+
+    @Override
+    protected boolean isIncluded(@NotNull final SFinishedBuild item) {
+      ++processedItems;
+      return BuildsFilter.this.isIncluded(item);
+    }
+
+    @Override
+    public boolean shouldStop(final SFinishedBuild item) {
+      if (myLookupLimit!= null && processedItems >= myLookupLimit){
+        return true;
+      }
+      //assume the builds are processed from most recent to older
+      return isExcludedBySince(item);
+    }
+  }
+  
+
   public List<SRunningBuild> getMatchingRunningBuilds(@NotNull final RunningBuildsManager runningBuildsManager) {
     final FilterItemProcessor<SRunningBuild> buildsFilterItemProcessor =
-      new FilterItemProcessor<SRunningBuild>(new AbstractFilter<SRunningBuild>(myStart, myCount) {
-        @Override
-        protected boolean isIncluded(@NotNull final SRunningBuild item) {
-          return BuildsFilter.this.isIncluded(item);
-        }
-      });
+      new FilterItemProcessor<SRunningBuild>(new RunningBuildsFilter());
     AbstractFilter.processList(runningBuildsManager.getRunningBuilds(), buildsFilterItemProcessor);
     return buildsFilterItemProcessor.getResult();
+  }
+
+  
+  private class RunningBuildsFilter extends AbstractFilter<SRunningBuild> {
+    public RunningBuildsFilter() {
+      super(BuildsFilter.this.myStart, BuildsFilter.this.myCount);
+    }
+
+    @Override
+    protected boolean isIncluded(@NotNull final SRunningBuild item) {
+      return BuildsFilter.this.isIncluded(item);
+    }
   }
 
   private User getUserForProcessEntries() {
@@ -209,10 +247,12 @@ public class BuildsFilter{
     if (myPinned!= null) result.append("pinned:").append(myPinned).append(", ");
     if (myTags!= null) result.append("tag:").append(myTags).append(", ");
     if (myAgentName!= null) result.append("agentName:").append(myAgentName).append(", ");
+    if (myParameterCondition!= null) result.append("parameterCondition:").append(myParameterCondition).append(", ");
     if (mySince!= null) result.append("since:").append(mySince).append(", ");
     if (myUntil!= null) result.append("until:").append(myUntil).append(", ");
     if (myStart!= null) result.append("start:").append(myStart).append(", ");
     if (myCount!= null) result.append("count:").append(myCount);
+    if (myLookupLimit!= null) result.append("lookupLimit:").append(myLookupLimit);
     result.append(")");
     return result.toString();
   }

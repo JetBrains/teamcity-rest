@@ -187,7 +187,6 @@ public class Locator {
     return idDimension.iterator().next();
   }
 
-  @NotNull
   public int getDimensionsCount() {
     return myDimensions.keySet().size();
   }

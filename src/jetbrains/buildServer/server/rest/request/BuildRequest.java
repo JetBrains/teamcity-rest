@@ -49,6 +49,7 @@ import jetbrains.buildServer.serverSide.statistics.build.BuildValue;
 import jetbrains.buildServer.serverSide.statistics.build.CompositeVTB;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.FileUtil;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.TCStreamUtil;
 import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
@@ -130,6 +131,17 @@ public class BuildRequest {
       return null;
     }
     */
+  }
+
+  @GET
+  @Path("/{buildLocator}/resulting-properties/{propertyName}")
+  @Produces({"text/plain"})
+  public String getParameter(@PathParam("buildLocator") String buildLocator, @PathParam("propertyName") String propertyName) {
+    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    if (StringUtil.isEmpty(propertyName)){
+      throw new BadRequestException("Property name should not be empty");
+    }
+    return build.getParametersProvider().get(propertyName);
   }
 
   //todo: need to expose file name and type?
