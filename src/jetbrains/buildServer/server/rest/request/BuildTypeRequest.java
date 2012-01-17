@@ -30,6 +30,7 @@ import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildsFilter;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
@@ -754,7 +755,23 @@ public class BuildTypeRequest {
   }
 
 
-
+  /**
+   * Serves builds matching supplied condition.
+   * @param locator Build locator string to filter builds server
+   * @param buildTypeLocator Deprecated, use "locator" parameter instead
+   * @param status   Deprecated, use "locator" parameter instead
+   * @param userLocator   Deprecated, use "locator" parameter instead
+   * @param includePersonal   Deprecated, use "locator" parameter instead
+   * @param includeCanceled   Deprecated, use "locator" parameter instead
+   * @param onlyPinned   Deprecated, use "locator" parameter instead
+   * @param tags   Deprecated, use "locator" parameter instead
+   * @param agentName   Deprecated, use "locator" parameter instead
+   * @param sinceBuildLocator   Deprecated, use "locator" parameter instead
+   * @param sinceDate   Deprecated, use "locator" parameter instead
+   * @param start   Deprecated, use "locator" parameter instead
+   * @param count   Deprecated, use "locator" parameter instead
+   * @return
+   */
   @GET
   @Path("/{btLocator}/builds")
   @Produces({"application/xml", "application/json"})
@@ -770,19 +787,26 @@ public class BuildTypeRequest {
                             @QueryParam("sinceDate") String sinceDate,
                             @QueryParam("start") @DefaultValue(value = "0") Long start,
                             @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count,
+                            @QueryParam("locator") String locator,
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
-    //todo: support locator parameter
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
 
-    final List<SBuild> buildsList = myDataProvider.getBuilds(
+    BuildsFilter buildsFilter;
+    if (locator != null) {
+      buildsFilter = myDataProvider.getBuildsFilterByLocator(buildType, new Locator(locator));
+    } else {
       // preserve 5.0 logic for personal/canceled/pinned builds
-      new BuildsFilter(buildType, status, myDataProvider.getUserIfNotNull(userLocator),
-                       includePersonal ? null : false, includeCanceled ? null : false, false, onlyPinned ? true : null, tags, agentName,
-                       myDataProvider.getRangeLimit(buildType, sinceBuildLocator, myDataProvider.parseDate(sinceDate)), null, start,
-                       count));
-    return new Builds(buildsList,
-                      myDataProvider,
-                      new PagerData(uriInfo.getRequestUriBuilder(), request, start, count, buildsList.size()),
+      buildsFilter = new BuildsFilter(buildType,
+                                      status,
+                                      myDataProvider.getUserIfNotNull(userLocator),
+                                      includePersonal ? null : false, includeCanceled ? null : false,
+                                      false, onlyPinned ? true : null, tags, agentName,
+                                      myDataProvider.getRangeLimit(buildType, sinceBuildLocator, DataProvider.parseDate(sinceDate)),
+                                      null,
+                                      start, count);
+    }
+    final List<SBuild> buildsList = myDataProvider.getBuilds(buildsFilter);
+    return new Builds(buildsList, myDataProvider, new PagerData(uriInfo.getRequestUriBuilder(), request, start, count, buildsList.size()),
                       myApiUrlBuilder);
   }
 

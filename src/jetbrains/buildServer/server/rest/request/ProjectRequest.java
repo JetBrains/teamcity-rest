@@ -25,6 +25,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildsFilter;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.CopyOptionsDescription;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -270,10 +271,26 @@ public class ProjectRequest {
 
   //todo: separate methods to serve running builds
 
+  /**
+   * Serves builds matching supplied condition.
+   * @param locator Build locator string to filter builds server
+   * @param buildTypeLocator Deprecated, use "locator" parameter instead
+   * @param status   Deprecated, use "locator" parameter instead
+   * @param userLocator   Deprecated, use "locator" parameter instead
+   * @param includePersonal   Deprecated, use "locator" parameter instead
+   * @param includeCanceled   Deprecated, use "locator" parameter instead
+   * @param onlyPinned   Deprecated, use "locator" parameter instead
+   * @param tags   Deprecated, use "locator" parameter instead
+   * @param agentName   Deprecated, use "locator" parameter instead
+   * @param sinceBuildLocator   Deprecated, use "locator" parameter instead
+   * @param sinceDate   Deprecated, use "locator" parameter instead
+   * @param start   Deprecated, use "locator" parameter instead
+   * @param count   Deprecated, use "locator" parameter instead
+   * @return
+   */
   @GET
   @Path("/{projectLocator}/buildTypes/{btLocator}/builds")
   @Produces({"application/xml", "application/json"})
-  //todo: add qury params limiting range
   public Builds serveBuilds(@PathParam("projectLocator") String projectLocator,
                             @PathParam("btLocator") String buildTypeLocator,
                             @QueryParam("status") String status,
@@ -287,19 +304,28 @@ public class ProjectRequest {
                             @QueryParam("sinceDate") String sinceDate,
                             @QueryParam("start") @DefaultValue(value = "0") Long start,
                             @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count,
+                            @QueryParam("locator") String locator,
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
-    //todo: support locator parameter
     SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
-    final List<SBuild> buildsList = myDataProvider.getBuilds(
-      // preserve 5.0 logic for personal/canceled/pinned builds
-      new BuildsFilter(buildType, status, myDataProvider.getUserIfNotNull(userLocator),
-                       includePersonal ? null : false, includeCanceled ? null : false, false, onlyPinned ? true : null, tags, agentName,
-                       myDataProvider.getRangeLimit(buildType, sinceBuildLocator, myDataProvider.parseDate(sinceDate)), null, start,
-                       count));
-    return new Builds(buildsList,
-                      myDataProvider,
-                      new PagerData(uriInfo.getRequestUriBuilder(), request, start, count, buildsList.size()),
-                      myApiUrlBuilder);
+
+     BuildsFilter buildsFilter;
+     if (locator != null) {
+       buildsFilter = myDataProvider.getBuildsFilterByLocator(buildType, new Locator(locator));
+     } else {
+       // preserve 5.0 logic for personal/canceled/pinned builds
+       buildsFilter = new BuildsFilter(buildType,
+                                       status,
+                                       myDataProvider.getUserIfNotNull(userLocator),
+                                       includePersonal ? null : false, includeCanceled ? null : false,
+                                       false, onlyPinned ? true : null, tags, agentName,
+                                       myDataProvider
+                                         .getRangeLimit(buildType, sinceBuildLocator, DataProvider.parseDate(sinceDate)),
+                                       null,
+                                       start, count);
+     }
+     final List<SBuild> buildsList = myDataProvider.getBuilds(buildsFilter);
+     return new Builds(buildsList, myDataProvider, new PagerData(uriInfo.getRequestUriBuilder(), request, start, count, buildsList.size()),
+                       myApiUrlBuilder);
   }
 
   @GET

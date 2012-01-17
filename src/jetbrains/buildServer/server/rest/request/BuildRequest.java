@@ -76,7 +76,8 @@ public class BuildRequest {
   }
 
   /**
-   *
+   * Serves builds matching supplied condition.
+   * @param locator Build locator string to filter builds server
    * @param buildTypeLocator Deprecated, use "locator" parameter instead
    * @param status   Deprecated, use "locator" parameter instead
    * @param userLocator   Deprecated, use "locator" parameter instead
@@ -89,7 +90,6 @@ public class BuildRequest {
    * @param sinceDate   Deprecated, use "locator" parameter instead
    * @param start   Deprecated, use "locator" parameter instead
    * @param count   Deprecated, use "locator" parameter instead
-   * @param locator
    * @return
    */
   @GET
@@ -119,7 +119,7 @@ public class BuildRequest {
                                       includePersonal ? null : false, includeCanceled ? null : false,
                                       false, onlyPinned ? true : null, tags, agentName,
                                       myDataProvider
-                                        .getRangeLimit(null, sinceBuildLocator, myDataProvider.parseDate(sinceDate)),
+                                        .getRangeLimit(null, sinceBuildLocator, DataProvider.parseDate(sinceDate)),
                                       null,
                                       start, count);
     }
