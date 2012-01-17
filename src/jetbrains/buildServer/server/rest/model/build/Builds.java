@@ -21,6 +21,7 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -33,8 +34,9 @@ import org.jetbrains.annotations.Nullable;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "builds")
+@XmlType(name = "builds")
 public class Builds {
-  @XmlElement(name = "build")
+  @XmlElement(name = "build", namespace = "ref")
   public List<BuildRef> builds;
 
   @XmlAttribute

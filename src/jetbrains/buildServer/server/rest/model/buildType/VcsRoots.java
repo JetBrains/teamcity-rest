@@ -21,8 +21,9 @@ import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.model.change.VcsRoot;
+import jetbrains.buildServer.server.rest.model.change.VcsRootRef;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -30,17 +31,18 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 16.04.2009
  */
 @XmlRootElement(name = "vcs-roots")
+@XmlType(name = "vcs-roots")
 public class VcsRoots {
-  @XmlElement(name = "vcs-root")
-  public List<VcsRoot.VcsRootRef> vcsRoots;
+  @XmlElement(name = "vcs-root", namespace = "ref")
+  public List<VcsRootRef> vcsRoots;
 
   public VcsRoots() {
   }
 
   public VcsRoots(final Collection<jetbrains.buildServer.vcs.VcsRoot> serverVcsRoots, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    vcsRoots = new ArrayList<VcsRoot.VcsRootRef>(serverVcsRoots.size());
+    vcsRoots = new ArrayList<VcsRootRef>(serverVcsRoots.size());
     for (jetbrains.buildServer.vcs.VcsRoot root : serverVcsRoots) {
-      vcsRoots.add(new VcsRoot.VcsRootRef(root, apiUrlBuilder));
+      vcsRoots.add(new VcsRootRef(root, apiUrlBuilder));
     }
   }
 }

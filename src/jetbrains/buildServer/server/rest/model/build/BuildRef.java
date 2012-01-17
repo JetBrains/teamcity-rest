@@ -30,8 +30,9 @@ import org.jetbrains.annotations.NotNull;
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
-@XmlType(propOrder = {"webUrl", "href", "startDate", "buildTypeId", "status", "percentageComplete", "running", "number", "id"})
-@XmlRootElement(name = "build")
+@XmlRootElement(name = "build", namespace = "ref")
+@XmlType(name = "build", namespace = "ref",
+         propOrder = {"webUrl", "href", "startDate", "buildTypeId", "status", "percentageComplete", "running", "number", "id"})
 public class BuildRef {
   protected SBuild myBuild;
   private DataProvider myDataProvider;

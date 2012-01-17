@@ -35,7 +35,7 @@ import jetbrains.buildServer.serverSide.SBuildType;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "buildType")
-@XmlType(propOrder = {"paused", "description", "webUrl", "templateFlag", "href", "name", "id",
+@XmlType(name = "buildType", propOrder = {"paused", "description", "webUrl", "templateFlag", "href", "name", "id",
   "project", "template", "vcsRootEntries", "builds", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
   "artifactDependencies", "agentRequirements"})
 public class BuildType {
@@ -115,7 +115,7 @@ public class BuildType {
     return template == null ? null : new BuildTypeRef(template, myDataProvider, myApiUrlBuilder);
   }
 
-  @XmlElement(name = "vcs-root")
+  @XmlElement(name = "vcs-root-entries")
   public VcsRootEntries getVcsRootEntries() {
     return new VcsRootEntries(myBuildType.get().getVcsRootEntries(), myApiUrlBuilder);
   }

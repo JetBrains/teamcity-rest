@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.model.change;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import org.jetbrains.annotations.NotNull;
@@ -27,6 +28,7 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 21.07.2009
  */
+@XmlType(name = "revisions")
 public class Revisions {
   @XmlElement(name = "revision")
   public List<Revision> revisoins;

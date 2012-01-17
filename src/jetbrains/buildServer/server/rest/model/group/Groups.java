@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import org.jetbrains.annotations.NotNull;
@@ -30,8 +31,9 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 16.04.2009
  */
 @XmlRootElement(name = "groups")
+@XmlType(name = "groups")
 public class Groups {
-  @XmlElement(name = "group")
+  @XmlElement(name = "group", namespace = "ref")
   public List<GroupRef> groups;
 
   public Groups() {

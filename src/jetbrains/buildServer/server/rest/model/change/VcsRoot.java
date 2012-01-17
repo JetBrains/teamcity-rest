@@ -27,14 +27,13 @@ import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootStatus;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
  *         Date: 16.04.2009
  */
 @XmlRootElement(name = "vcs-root")
-@XmlType(propOrder = {"lastChecked", "status", "shared", "vcsName", "name", "id",
+@XmlType(name = "vcs-root", propOrder = {"lastChecked", "status", "shared", "vcsName", "name", "id",
   "project", "properties"})
 @SuppressWarnings("PublicField")
 public class VcsRoot {
@@ -93,27 +92,6 @@ public class VcsRoot {
     final RepositoryVersion revision = ((VcsRootInstance)root).getLastUsedRevision();
     currentVersion = revision != null ? revision.getDisplayVersion() : null; //todo: consider using smth like "NONE" ?
     */
-  }
-
-  /**
-   * @author Yegor.Yarko
-   *         Date: 16.04.2009
-   */
-  @XmlRootElement(name = "vcs-root")
-  @XmlType(propOrder = {"href", "name"})
-  public static class VcsRootRef {
-    @XmlAttribute
-    public String name;
-    @XmlAttribute
-    public String href;
-
-    public VcsRootRef() {
-    }
-
-    public VcsRootRef(jetbrains.buildServer.vcs.VcsRoot root, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-      this.href = apiUrlBuilder.getHref(root);
-      this.name = root.getName();
-    }
   }
 }
 

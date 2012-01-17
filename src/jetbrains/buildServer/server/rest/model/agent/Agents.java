@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import org.jetbrains.annotations.NotNull;
@@ -30,8 +31,9 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 16.08.2009
  */
 @XmlRootElement(name = "agents")
+@XmlType(name = "agents")
 public class Agents {
-  @XmlElement(name = "agent")
+  @XmlElement(name = "agent", namespace = "ref")
   public List<AgentRef> agents;
 
   public Agents() {

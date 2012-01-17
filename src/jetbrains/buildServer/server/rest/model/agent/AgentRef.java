@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model.agent;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import org.jetbrains.annotations.NotNull;
@@ -26,7 +27,8 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 01.08.2009
  */
-@XmlRootElement(name = "agent")
+@XmlRootElement(name = "agent", namespace = "ref")
+@XmlType(name = "agent", namespace = "ref")
 public class AgentRef {
   private SBuildAgent myAgent;
   private ApiUrlBuilder myApiUrlBuilder;

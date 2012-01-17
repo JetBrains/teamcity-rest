@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,8 +30,9 @@ import org.jetbrains.annotations.NotNull;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "users")
+@XmlType(name = "users")
 public class Users {
-  @XmlElement(name = "user")
+  @XmlElement(name = "user", namespace = "ref")
   public List<UserRef> users;
   private ApiUrlBuilder myApiUrlBuilder;
 

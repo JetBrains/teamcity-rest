@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model.change;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import org.jetbrains.annotations.NotNull;
@@ -26,17 +27,18 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 16.04.2009
  */
+@XmlType(name = "revision")
 public class Revision {
   @XmlAttribute(name = "display-version")
   public String displayRevision;
-  @XmlElement(name = "vcs-root")
-  public VcsRoot.VcsRootRef vcsRoot;
+  @XmlElement(name = "vcs-root", namespace = "ref")
+  public VcsRootRef vcsRoot;
 
   public Revision() {
   }
 
   public Revision(BuildRevision revision, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     displayRevision = revision.getRevisionDisplayName();
-    vcsRoot = new VcsRoot.VcsRootRef(revision.getRoot(), apiUrlBuilder);
+    vcsRoot = new VcsRootRef(revision.getRoot(), apiUrlBuilder);
   }
 }

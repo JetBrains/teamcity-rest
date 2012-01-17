@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model.group;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import org.jetbrains.annotations.NotNull;
@@ -26,7 +27,8 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 16.04.2009
  */
-@XmlRootElement(name = "group")
+@XmlRootElement(name = "group", namespace = "ref")
+@XmlType(name = "group", namespace = "ref")
 public class GroupRef {
   @XmlAttribute
   public String key;

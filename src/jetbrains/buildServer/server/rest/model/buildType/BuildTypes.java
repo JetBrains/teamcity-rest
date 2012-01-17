@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.serverSide.BuildTypeTemplate;
@@ -31,8 +32,9 @@ import org.jetbrains.annotations.NotNull;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "buildTypes")
+@XmlType(name = "buildTypes")
 public class BuildTypes {
-  @XmlElement(name = "buildType")
+  @XmlElement(name = "buildType", namespace = "ref")
   public List<BuildTypeRef> buildTypes;
 
   public BuildTypes() {
