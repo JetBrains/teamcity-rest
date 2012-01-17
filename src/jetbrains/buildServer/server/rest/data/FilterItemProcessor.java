@@ -17,6 +17,9 @@ class FilterItemProcessor<T> implements ItemProcessor<T> {
   }
 
   public boolean processItem(final T item) {
+    if (myFilter.shouldStop(item)){
+      return false;
+    }
     if (!myFilter.isIncluded(item)) {
       return true;
     }

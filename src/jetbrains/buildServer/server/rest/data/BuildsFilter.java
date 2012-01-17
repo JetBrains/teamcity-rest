@@ -122,25 +122,29 @@ public class BuildsFilter{
         return false;
       }
     }
-    if (mySince != null) {
-      if (mySince.getDate().after(build.getStartDate())) {
-        return false;
-      } else {
-        //filter out the build itself (see BuildHistory.getEntriesSince )
-        final SBuild sinceBuild = mySince.getBuild();
-        if (sinceBuild != null && sinceBuild.getBuildId() == build.getBuildId()) {
-          return false;
-        }
-      }
-    }
+    if (isExcludedBySince(build))
+      return false;
 
-    //todo: consider also stopping processing if the build processed matched myUntil.getBuild()
     if (myUntil != null) {
       if (myUntil.getDate().before(build.getStartDate())) {
         return false;
       }
     }
     return true;
+  }
+
+  private boolean isExcludedBySince(final SBuild build) {
+    if (mySince != null) {
+      if (mySince.getDate().after(build.getStartDate())) {
+        return true;
+      } else {
+         final SBuild sinceBuild = mySince.getBuild();
+        if (sinceBuild != null && sinceBuild.getBuildId() >= build.getBuildId()) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   private boolean isIncludedByBooleanFilter(final Boolean filterValue, final boolean actualValue) {
@@ -153,19 +157,20 @@ public class BuildsFilter{
         protected boolean isIncluded(@NotNull final SFinishedBuild item) {
           return BuildsFilter.this.isIncluded(item);
         }
-      });
+
+      @Override
+      public boolean shouldStop(final SFinishedBuild item) {
+        //assume the builds are processed from most recent to older
+        return isExcludedBySince(item);
+      }
+    });
     if (myBuildType != null) {
-      SBuild sinceBuild;
-      if (mySince != null && (sinceBuild = mySince.getBuild()) != null) {
-        AbstractFilter.processList(buildHistory.getEntriesSince(sinceBuild, myBuildType), buildsFilterItemProcessor);
-      } else {
         buildHistory.processEntries(myBuildType.getBuildTypeId(),
                                     getUserForProcessEntries(),
                                     myPersonal == null || myPersonal,
                                     myCanceled == null || myCanceled,
                                     false,
                                     buildsFilterItemProcessor);
-      }
     } else {
       buildHistory.processEntries(buildsFilterItemProcessor);
     }

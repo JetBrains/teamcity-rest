@@ -53,5 +53,7 @@ public abstract class AbstractFilter<T> {
     }
   }
 
-
+  public boolean shouldStop(final T item) {
+    return false;
+  }
 }
