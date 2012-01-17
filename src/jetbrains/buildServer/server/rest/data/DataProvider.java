@@ -134,11 +134,13 @@ public class DataProvider {
                                     final ApiUrlBuilder apiUrlBuilder) {
     BuildsFilter buildsFilter;
     if (locator != null) {
-      buildsFilter = getBuildsFilterByLocator(buildType, new Locator(locator));
+      final Locator locatorObject = new Locator(locator);
+      buildsFilter = getBuildsFilterByLocator(buildType, locatorObject);
+      checkLocatorFullyProcessed(locatorObject);
     } else {
       // preserve 5.0 logic for personal/canceled/pinned builds
       buildsFilter = new BuildsFilter(buildType,
-                                      status,
+                                      status, null,
                                       getUserIfNotNull(userLocator),
                                       includePersonal ? null : false, includeCanceled ? null : false,
                                       false, onlyPinned ? true : null, tags, agentName,
@@ -288,6 +290,8 @@ public class DataProvider {
     final BuildsFilter buildsFilter = getBuildsFilterByLocator(buildType, locator);
     buildsFilter.setCount(1);
 
+    checkLocatorFullyProcessed(locator);
+    
     final List<SBuild> filteredBuilds = getBuilds(buildsFilter);
     if (filteredBuilds.size() == 0){
       throw new NotFoundException("No build found by filter: " + buildsFilter.toString() + ".");
@@ -300,6 +304,18 @@ public class DataProvider {
     //todo: check for unknown dimension names
 
     throw new NotFoundException("Build locator '" + buildLocator + "' is not supported (" + filteredBuilds.size() + " builds found)");
+  }
+
+  //todo: use this whenever possible
+  private void checkLocatorFullyProcessed(final Locator locator) {
+    final Set<String> unusedDimensions = locator.getUnusedDimensions();
+    if (unusedDimensions.size() > 0){
+      if (TeamCityProperties.getBooleanOrTrue("rest.report.locator.errors")){
+        throw new BadRequestException("Locator dimensions " + unusedDimensions + " are unknown.");
+      }else{
+        LOG.warn("Some supplied locator dimensions are unknown: " + unusedDimensions);
+      }
+    }
   }
 
   @Nullable
@@ -337,6 +353,7 @@ public class DataProvider {
     final Long count = locator.getSingleDimensionValueAsLong("count");
     return new BuildsFilter(actualBuildType,
                             locator.getSingleDimensionValue("status"),
+                            locator.getSingleDimensionValue("number"),
                             userLocator != null ? getUser(userLocator) : null,
                             locator.getSingleDimensionValueAsBoolean("personal"),
                             locator.getSingleDimensionValueAsBoolean("canceled"),

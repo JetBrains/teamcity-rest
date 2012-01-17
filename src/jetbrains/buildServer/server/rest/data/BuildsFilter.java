@@ -24,6 +24,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class BuildsFilter{
+  @Nullable private String myNumber;
   @Nullable protected final Long myStart;
   @Nullable protected Integer myCount;
 
@@ -44,6 +45,7 @@ public class BuildsFilter{
   /**
    * @param buildType       build type to return builds from, can be null to return all builds
    * @param status          status of the builds to include
+   * @param number          build number of the builds to include
    * @param user            limit builds to those triggered by user, can be null to return all builds
    * @param personal        if set, limits the builds by personal status (return only personal if "true", only non-personal if "false")
    * @param canceled        if set, limits the builds by canceled status (return only canceled if "true", only non-conceled if "false")
@@ -59,6 +61,7 @@ public class BuildsFilter{
    */
   public BuildsFilter(@Nullable final SBuildType buildType,
                       @Nullable final String status,
+                      @Nullable final String number,
                       @Nullable final SUser user,
                       @Nullable final Boolean personal,
                       @Nullable final Boolean canceled,
@@ -78,6 +81,7 @@ public class BuildsFilter{
 
     myBuildType = buildType;
     myStatus = status;
+    myNumber = number;
     myUser = user;
     myPersonal = personal;
     myCanceled = canceled;
@@ -108,6 +112,9 @@ public class BuildsFilter{
       return false;
     }
     if (myStatus != null && !myStatus.equalsIgnoreCase(build.getStatusDescriptor().getStatus().getText())) {
+      return false;
+    }
+    if (myNumber != null && !myNumber.equals(build.getBuildNumber())) {
       return false;
     }
     if (!isIncludedByBooleanFilter(myPersonal, build.isPersonal())) {
@@ -240,6 +247,7 @@ public class BuildsFilter{
     result.append("Builds filter (");
     if (myBuildType!= null) result.append("buildType:").append(myBuildType).append(", ");
     if (myStatus!= null) result.append("status:").append(myStatus).append(", ");
+    if (myNumber!= null) result.append("number:").append(myNumber).append(", ");
     if (myUser!= null) result.append("user:").append(myUser).append(", ");
     if (myPersonal!= null) result.append("personal:").append(myPersonal).append(", ");
     if (myCanceled!= null) result.append("canceled:").append(myCanceled).append(", ");

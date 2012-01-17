@@ -2,6 +2,8 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.util.MultiValuesMap;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -31,6 +33,8 @@ public class Locator {
   private final MultiValuesMap<String, String> myDimensions;
   private final String mySingleValue;
 
+  private final Set<String> myUnusedDimensions;
+
   public Locator(@NotNull final String locator) {
     if (StringUtil.isEmpty(locator)) {
       throw new LocatorProcessException("Invalid locator. Cannot be empty.");
@@ -39,9 +43,11 @@ public class Locator {
     if (!hasDimentions) {
       mySingleValue = locator;
       myDimensions = new MultiValuesMap<String, String>();
+      myUnusedDimensions = new HashSet<String>();
     } else {
       mySingleValue = null;
       myDimensions = parse(locator);
+      myUnusedDimensions = new HashSet<String>(myDimensions.keySet());
     }
   }
 
@@ -181,6 +187,7 @@ public class Locator {
     if (idDimension == null || idDimension.size() == 0) {
       return null;
     }
+    myUnusedDimensions.remove(dimensionName);
     if (idDimension.size() > 1) {
       throw new LocatorProcessException("Only single '" + dimensionName + "' dimension is supported in locator. Found: " + idDimension);
     }
@@ -197,7 +204,20 @@ public class Locator {
    * @param value
    */
   public void setDimension(@NotNull final String name, @NotNull final String value) {
-    myDimensions.removeAll(name);
+    final Collection<String> oldValues = myDimensions.removeAll(name);
     myDimensions.put(name, value);
+
+    if (oldValues == null || oldValues.size() == 0){
+      myUnusedDimensions.add(name);
+    }
+  }
+
+  /**
+   * Provides the names of dimentions whose values were never retrieved
+   * @return
+   */
+  @NotNull
+  public Set<String> getUnusedDimensions() {
+    return myUnusedDimensions;
   }
 }
