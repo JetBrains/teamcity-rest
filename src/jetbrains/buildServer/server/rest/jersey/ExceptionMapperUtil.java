@@ -64,10 +64,18 @@ public class ExceptionMapperUtil {
     }
     final String message = e.getMessage();
     String result = e.getClass().getName() + (message != null ? ": " + message : "");
+    result += appendCauseInfo(e);
+    return result;
+  }
+
+  private static String appendCauseInfo(final Throwable e) {
     final Throwable cause = e.getCause();
     if (cause != null && cause != e) {
-      result += ", caused by: " + getMessageWithCauses(cause);
+      if (e.getMessage().contains(cause.getMessage())){
+        return appendCauseInfo(cause);
+      }
+      return  ", caused by: " + getMessageWithCauses(cause);
     }
-    return result;
+    return "";
   }
 }

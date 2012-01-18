@@ -35,11 +35,11 @@ public class Locator {
 
   private final Set<String> myUnusedDimensions;
 
-  public Locator(@NotNull final String locator) {
+  public Locator(@Nullable final String locator) {
     if (StringUtil.isEmpty(locator)) {
       throw new LocatorProcessException("Invalid locator. Cannot be empty.");
     }
-    final boolean hasDimentions = locator.indexOf(DIMENSION_NAME_VALUE_DELIMITER) != -1;
+    @SuppressWarnings("ConstantConditions")final boolean hasDimentions = locator.indexOf(DIMENSION_NAME_VALUE_DELIMITER) != -1;
     if (!hasDimentions) {
       mySingleValue = locator;
       myDimensions = new MultiValuesMap<String, String>();

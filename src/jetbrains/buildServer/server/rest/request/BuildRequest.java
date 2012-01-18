@@ -27,6 +27,7 @@ import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.BuildLocator;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -75,7 +76,7 @@ public class BuildRequest {
 
   /**
    * Serves builds matching supplied condition.
-   * @param locator Build locator string to filter builds server
+   * @param locator Build locator to filter builds server
    * @param buildTypeLocator Deprecated, use "locator" parameter instead
    * @param status   Deprecated, use "locator" parameter instead
    * @param userLocator   Deprecated, use "locator" parameter instead
@@ -104,7 +105,7 @@ public class BuildRequest {
                                @QueryParam("sinceDate") String sinceDate,
                                @QueryParam("start") @DefaultValue(value = "0") Long start,
                                @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count,
-                               @QueryParam("locator") String locator,
+                               @QueryParam("locator") BuildLocator locator,
                                @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     return myDataProvider.getBuildsForRequest(myDataProvider.getBuildTypeIfNotNull(buildTypeLocator),
                                               status, userLocator, includePersonal, includeCanceled, onlyPinned, tags, agentName,

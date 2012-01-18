@@ -28,6 +28,7 @@
   <bean id="accessDeniedExceptionMapper" class="jetbrains.buildServer.server.rest.errors.AccessDeniedExceptionMapper"/>
   <bean id="webApplicationExceptionMapper" class="jetbrains.buildServer.server.rest.errors.WebApplicationExceptionMapper"/>
   <bean id="jerseyNotFoundExceptionMapper" class="jetbrains.buildServer.server.rest.errors.JerseyNotFoundExceptionMapper"/>
+  <bean id="jerseyParamExceptionExceptionMapper" class="jetbrains.buildServer.server.rest.errors.JerseyParamExceptionExceptionMapper"/>
   <bean id="operationExceptionMapper" class="jetbrains.buildServer.server.rest.errors.OperationExceptionMapper"/>
   <bean id="runtimeExceptionMapper" class="jetbrains.buildServer.server.rest.errors.RuntimeExceptionMapper"/>
 

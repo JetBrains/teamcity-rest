@@ -28,6 +28,7 @@ import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptorFactory;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.BuildLocator;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -742,7 +743,7 @@ public class BuildTypeRequest {
 
   /**
    * Serves builds matching supplied condition.
-   * @param locator Build locator string to filter builds server
+   * @param locator Build locator to filter builds
    * @param buildTypeLocator Deprecated, use "locator" parameter instead
    * @param status   Deprecated, use "locator" parameter instead
    * @param userLocator   Deprecated, use "locator" parameter instead
@@ -772,7 +773,7 @@ public class BuildTypeRequest {
                             @QueryParam("sinceDate") String sinceDate,
                             @QueryParam("start") @DefaultValue(value = "0") Long start,
                             @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count,
-                            @QueryParam("locator") String locator,
+                            @QueryParam("locator") BuildLocator locator,
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
 

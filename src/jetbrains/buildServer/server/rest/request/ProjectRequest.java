@@ -23,6 +23,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.BuildLocator;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.CopyOptionsDescription;
@@ -270,7 +271,7 @@ public class ProjectRequest {
 
   /**
    * Serves builds matching supplied condition.
-   * @param locator Build locator string to filter builds server
+   * @param locator Build locator to filter builds
    * @param buildTypeLocator Deprecated, use "locator" parameter instead
    * @param status   Deprecated, use "locator" parameter instead
    * @param userLocator   Deprecated, use "locator" parameter instead
@@ -301,7 +302,7 @@ public class ProjectRequest {
                             @QueryParam("sinceDate") String sinceDate,
                             @QueryParam("start") @DefaultValue(value = "0") Long start,
                             @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count,
-                            @QueryParam("locator") String locator,
+                            @QueryParam("locator") BuildLocator locator,
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
     return myDataProvider.getBuildsForRequest(buildType,

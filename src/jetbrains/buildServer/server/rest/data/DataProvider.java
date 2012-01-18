@@ -128,15 +128,13 @@ public class DataProvider {
                                     final String sinceDate,
                                     final Long start,
                                     final Integer count,
-                                    final String locator,
+                                    final Locator locator,
                                     final UriInfo uriInfo,
-                                    final HttpServletRequest request,
-                                    final ApiUrlBuilder apiUrlBuilder) {
+                                    final HttpServletRequest request, final ApiUrlBuilder apiUrlBuilder) {
     BuildsFilter buildsFilter;
     if (locator != null) {
-      final Locator locatorObject = new Locator(locator);
-      buildsFilter = getBuildsFilterByLocator(buildType, locatorObject);
-      checkLocatorFullyProcessed(locatorObject);
+      buildsFilter = getBuildsFilterByLocator(buildType, locator);
+      checkLocatorFullyProcessed(locator);
     } else {
       // preserve 5.0 logic for personal/canceled/pinned builds
       buildsFilter = new BuildsFilter(buildType,
