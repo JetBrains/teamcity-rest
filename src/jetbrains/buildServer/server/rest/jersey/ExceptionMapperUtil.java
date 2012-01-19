@@ -71,7 +71,10 @@ public class ExceptionMapperUtil {
   private static String appendCauseInfo(final Throwable e) {
     final Throwable cause = e.getCause();
     if (cause != null && cause != e) {
-      if (e.getMessage().contains(cause.getMessage())){
+      final String message = e.getMessage();
+      final String causeMessage = cause.getMessage();
+      if (message != null && causeMessage != null && message.contains(causeMessage)){
+        //skip cause
         return appendCauseInfo(cause);
       }
       return  ", caused by: " + getMessageWithCauses(cause);

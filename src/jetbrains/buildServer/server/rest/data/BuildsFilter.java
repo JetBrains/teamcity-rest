@@ -88,6 +88,7 @@ public class BuildsFilter{
     myRunning = running;
     myPinned = pinned;
     myTags = tags;
+    //todo: support agent locator
     myAgentName = agentName;
     mySince = since;
     myUntil = until;

@@ -271,7 +271,7 @@ public class APIController extends BaseController implements ServletContextAware
       if (LOG.isDebugEnabled()) {
         final long requestFinishProcessing = System.nanoTime();
         LOG.debug("REST API request processing finished in " +
-                  TimeUnit.MILLISECONDS.convert(requestFinishProcessing - requestStartProcessing, TimeUnit.NANOSECONDS) + " ms");
+                  TimeUnit.MILLISECONDS.convert(requestFinishProcessing - requestStartProcessing, TimeUnit.NANOSECONDS) + " ms, status code: " + response.getStatus());
       }
     } catch (Throwable throwable) {
       // Sometimes Jersy throws IllegalArgumentException and probably other without utilizing ExceptionMappers
@@ -293,7 +293,7 @@ public class APIController extends BaseController implements ServletContextAware
     response.getWriter().print("Error has occurred during request processing (" + statusDescription +
                                ").\nError: " + ExceptionMapperUtil.getMessageWithCauses(e) + (message != null ? "\n" + message : ""));
     final String logMessage = "Error" + (message != null ? " '" + message + "'" : "") + " for request " + requestUri +
-                              ". Sending " + statusDescription + " error in response: " + (e != null ? e.toString() : "");
+                              ". Sending '" + statusDescription + "' error in response: " + (e != null ? e.toString() : "");
     if (level.isGreaterOrEqual(Level.ERROR)) {
       LOG.error(logMessage);
     } else if (level.isGreaterOrEqual(Level.WARN)) {
