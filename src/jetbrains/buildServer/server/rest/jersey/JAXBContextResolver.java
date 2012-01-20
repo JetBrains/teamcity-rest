@@ -64,6 +64,8 @@ public class JAXBContextResolver implements ContextResolver<JAXBContext> {
     Agent.class, Agents.class,
     Build.class, Builds.class,
     BuildType.class, BuildTypes.class,
+    PropEntity.class, PropEntityFeature.class, PropEntityStep.class, PropEntityAgentRequirement.class, PropEntityTrigger.class, PropEntitySnapshotDep.class, PropEntityArtifactDep.class,
+    PropEntitiesFeature.class, PropEntitiesStep.class, PropEntitiesAgentRequirement.class, PropEntitiesTrigger.class, PropEntitiesSnapshotDep.class, PropEntitiesArtifactDep.class,
     Change.class, Changes.class, FileChange.class, Revision.class, Revisions.class,
     VcsRoot.class, VcsRoots.class, VcsRootEntry.class, VcsRootEntries.class,
     Group.class, Groups.class,
@@ -90,6 +92,6 @@ public class JAXBContextResolver implements ContextResolver<JAXBContext> {
 //    return context; // this would make request fail if the served or posted root bean is not accessible from cTypes
 
     // returning the context for all "our" types
-    return objectType.getClass().getName().startsWith("jetbrains.buildServer.server.rest") ? context : null;
+    return objectType.getName().startsWith("jetbrains.buildServer.server.rest") ? context : null;
   }
 }
