@@ -28,7 +28,6 @@ import jetbrains.buildServer.server.rest.model.group.GroupRef;
 import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
-import jetbrains.buildServer.server.rest.model.user.UserData;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.users.*;
 import jetbrains.buildServer.util.StringUtil;
@@ -64,33 +63,33 @@ public class DataUpdater {
       throw new BadRequestException("Cannot create user with empty username.", e);
     }
   }
-  public void modify(SUser user, UserData userData) {
-    String newUsername = userData.username != null ? userData.username : user.getUsername();
-    String newName = userData.name != null ? userData.name : user.getName();
-    String newEmail = userData.email != null ? userData.email : user.getEmail();
-    if (userData.username != null ||
-        userData.name != null ||
-        userData.email != null) {
+  public void modify(SUser user, jetbrains.buildServer.server.rest.model.user.User userData) {
+    String newUsername = userData.getSubmittedUsername() != null ? userData.getSubmittedUsername() : user.getUsername();
+    String newName = userData.getSubmittedName() != null ? userData.getSubmittedName() : user.getName();
+    String newEmail = userData.getSubmittedEmail() != null ? userData.getSubmittedEmail() : user.getEmail();
+    if (userData.getSubmittedUsername() != null ||
+        userData.getSubmittedName() != null ||
+        userData.getSubmittedEmail() != null) {
       user.updateUserAccount(newUsername, newName, newEmail);
     }
 
-    if (userData.password != null) {
-      user.setPassword(userData.password);
+    if (userData.getSubmittedPassword() != null) {
+      user.setPassword(userData.getSubmittedPassword());
     }
 
-    if (userData.roles != null) {
+    if (userData.getSubmittedRoles() != null) {
       removeAllRoles(user);
-      addRoles(user, userData.roles);
+      addRoles(user, userData.getSubmittedRoles());
     }
 
-    if (userData.properties != null) {
+    if (userData.getSubmittedProperties() != null) {
       removeAllProperties(user);
-      addProperties(user, userData.properties);
+      addProperties(user, userData.getSubmittedProperties());
     }
 
-    if (userData.groups != null) {
+    if (userData.getSubmittedGroups() != null) {
       removeAllGroups(user);
-      addGroups(user, userData.groups);
+      addGroups(user, userData.getSubmittedGroups());
     }
   }
 
@@ -107,6 +106,7 @@ public class DataUpdater {
 
   private void removeAllGroups(final SUser user) {
     for (UserGroup group : user.getUserGroups()) {
+      if (!myGroupManager.isAllUsersGroup((SUserGroup)group)) //todo (TeamCity) need to cast
       ((SUserGroup)group).removeUser(user);
     }
   }

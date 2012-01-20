@@ -21,7 +21,10 @@ import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
-import jetbrains.buildServer.server.rest.model.user.*;
+import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
+import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
+import jetbrains.buildServer.server.rest.model.user.User;
+import jetbrains.buildServer.server.rest.model.user.Users;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.users.SUser;
@@ -104,8 +107,8 @@ public class UserRequest {
 
   @POST
   @Consumes({"application/xml", "application/json"})
-  public User createUser(UserData userData) {
-    final SUser user = myDataUpdater.createUser(userData.username);
+  public User createUser(User userData) {
+    final SUser user = myDataUpdater.createUser(userData.getSubmittedUsername());
     myDataUpdater.modify(user, userData);
     return new User(user, myApiUrlBuilder);
   }
@@ -121,7 +124,7 @@ public class UserRequest {
   @PUT
   @Path("/{userLocator}")
   @Consumes({"application/xml", "application/json"})
-  public void updateUser(@PathParam("userLocator") String userLocator, UserData userData) {
+  public void updateUser(@PathParam("userLocator") String userLocator, User userData) {
     checkModifyUserPermission(userLocator); //todo: user should not be able to add own roles
     SUser user = myDataProvider.getUser(userLocator);
     myDataUpdater.modify(user, userData);

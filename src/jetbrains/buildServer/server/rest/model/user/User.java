@@ -16,13 +16,14 @@
 
 package jetbrains.buildServer.server.rest.model.user;
 
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.users.PropertyKey;
@@ -97,6 +98,71 @@ public class User {
       convertedProperties.put(prop.getKey().getKey(), prop.getValue());
     }
     return new Properties(convertedProperties);
+  }
+
+  // These are necessary for allowing to submit the same class
+  private String name;
+  private String username;
+  private String email;
+  private String password;
+  private RoleAssignments roles;
+  private Groups groups;
+  private Properties properties;
+
+  public void setName(final String name) {
+    this.name = name;
+  }
+
+  public void setUsername(final String username) {
+    this.username = username;
+  }
+
+  public void setEmail(final String email) {
+    this.email = email;
+  }
+
+  public void setPassword(final String password) {
+    this.password = password;
+  }
+
+  public void setRoles(final RoleAssignments roles) {
+    this.roles = roles;
+  }
+
+  public void setGroups(final Groups groups) {
+    this.groups = groups;
+  }
+
+  public void setProperties(final Properties properties) {
+    this.properties = properties;
+  }
+
+  public String getSubmittedName() {
+    return name;
+  }
+
+  public String getSubmittedUsername() {
+    return username;
+  }
+
+  public String getSubmittedEmail() {
+    return email;
+  }
+
+  public String getSubmittedPassword() {
+    return password;
+  }
+
+  public RoleAssignments getSubmittedRoles() {
+    return roles;
+  }
+
+  public Groups getSubmittedGroups() {
+    return groups;
+  }
+
+  public Properties getSubmittedProperties() {
+    return properties;
   }
 }
 

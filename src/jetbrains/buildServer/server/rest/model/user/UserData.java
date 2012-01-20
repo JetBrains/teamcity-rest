@@ -19,7 +19,6 @@ package jetbrains.buildServer.server.rest.model.user;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.group.Groups;
 
@@ -27,8 +26,9 @@ import jetbrains.buildServer.server.rest.model.group.Groups;
  * @author Yegor.Yarko
  *         Date: 12.07.2009
  */
-@XmlRootElement(name = "user-descriptor")
-@XmlType(name = "user-descriptor")
+//todo: this is unused, remove
+@XmlRootElement(name = "user")
+//@XmlType(name = "user")
 public class UserData {
 
   @XmlAttribute
