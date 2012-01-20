@@ -34,7 +34,7 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "buildTypes")
 @XmlType(name = "buildTypes")
 public class BuildTypes {
-  @XmlElement(name = "buildType", namespace = "ref")
+  @XmlElement(name = "buildType")
   public List<BuildTypeRef> buildTypes;
 
   public BuildTypes() {

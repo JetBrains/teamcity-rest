@@ -27,8 +27,8 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 01.08.2009
  */
-@XmlRootElement(name = "agent", namespace = "ref")
-@XmlType(name = "agent", namespace = "ref")
+@XmlRootElement(name = "agent-ref")
+@XmlType(name = "agent-ref")
 public class AgentRef {
   private SBuildAgent myAgent;
   private ApiUrlBuilder myApiUrlBuilder;

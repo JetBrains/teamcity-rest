@@ -26,8 +26,8 @@ import jetbrains.buildServer.serverSide.SBuildType;
  * @author Yegor.Yarko
  *         Date: 01.08.2009
  */
-@XmlRootElement(name = "builds", namespace = "ref")
-@XmlType(name = "builds", namespace = "ref")
+@XmlRootElement(name = "builds-ref")
+@XmlType(name = "builds-ref")
 public class BuildsRef {
   private SBuildType myBuildType;
   private ApiUrlBuilder myApiUrlBuilder;

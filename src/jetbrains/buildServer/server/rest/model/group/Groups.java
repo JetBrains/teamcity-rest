@@ -33,7 +33,7 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "groups")
 @XmlType(name = "groups")
 public class Groups {
-  @XmlElement(name = "group", namespace = "ref")
+  @XmlElement(name = "group")
   public List<GroupRef> groups;
 
   public Groups() {

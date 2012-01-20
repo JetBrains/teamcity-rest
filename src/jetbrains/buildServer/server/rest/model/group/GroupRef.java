@@ -27,8 +27,8 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 16.04.2009
  */
-@XmlRootElement(name = "group", namespace = "ref")
-@XmlType(name = "group", namespace = "ref")
+@XmlRootElement(name = "group-ref")
+@XmlType(name = "group-ref")
 public class GroupRef {
   @XmlAttribute
   public String key;

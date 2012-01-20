@@ -44,7 +44,7 @@ public class UserActionData {
     myApiUrlBuilder = apiUrlBuilder;
   }
 
-  @XmlElement
+  @XmlElement(name = "user")
   public UserRef getUser() {
     return new UserRef(myUser, myApiUrlBuilder);
   }

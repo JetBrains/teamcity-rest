@@ -64,7 +64,7 @@ public class VcsRoot {
   @XmlElement
   public Properties properties;
 
-  @XmlElement
+  @XmlElement(name = "project")
   public ProjectRef project;
 
 

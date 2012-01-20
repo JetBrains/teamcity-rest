@@ -34,7 +34,7 @@ import org.jetbrains.annotations.NotNull;
 public class VcsRootEntry {
   @XmlElement(name = "checkout-rules")
   public String checkoutRules;
-  @XmlElement(name = "vcs-root", namespace = "ref")
+  @XmlElement(name = "vcs-root")
   public VcsRootRef vcsRootRef;
 
   public VcsRootEntry() {

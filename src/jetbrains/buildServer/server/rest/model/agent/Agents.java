@@ -30,10 +30,10 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 16.08.2009
  */
-@XmlRootElement(name = "agents")
-@XmlType(name = "agents")
+@XmlRootElement(name = "agents-ref")
+@XmlType(name = "agents-ref")
 public class Agents {
-  @XmlElement(name = "agent", namespace = "ref")
+  @XmlElement(name = "agent")
   public List<AgentRef> agents;
 
   public Agents() {

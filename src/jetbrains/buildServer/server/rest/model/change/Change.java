@@ -66,7 +66,7 @@ public class Change extends ChangeRef {
     return myModification.getDescription();
   }
 
-  @XmlElement
+  @XmlElement(name = "user")
   public UserRef getUser() {
     final Collection<SUser> users = myModification.getCommitters();
     if (users.size() != 1){

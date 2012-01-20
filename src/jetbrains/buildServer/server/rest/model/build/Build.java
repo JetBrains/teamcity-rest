@@ -120,7 +120,7 @@ public class Build {
     return myBuild.getStatusDescriptor().getText();
   }
 
-  @XmlElement
+  @XmlElement(name = "agent")
   public AgentRef getAgent() {
     final SBuildAgent agent = myDataProvider.findAgentByName(myBuild.getAgentName());
     if (agent == null) {
@@ -129,7 +129,7 @@ public class Build {
     return new AgentRef(agent, myApiUrlBuilder);
   }
 
-  @XmlElement
+  @XmlElement(name = "buildType")
   public BuildTypeRef getBuildType() {
     return new BuildTypeRef(myBuild.getBuildType(), myDataProvider, myApiUrlBuilder);
   }
@@ -199,13 +199,13 @@ public class Build {
   }
 
   @XmlElementWrapper(name = "snapshot-dependencies")
-  @XmlElement(name = "build", namespace = "ref")
+  @XmlElement(name = "build")
   public List<BuildRef> getBuildDependencies() {
     return getBuildRefs(myBuild.getBuildPromotion().getDependencies(), myDataProvider);
   }
 
   @XmlElementWrapper(name = "artifact-dependencies")
-  @XmlElement(name = "build", namespace = "ref")
+  @XmlElement(name = "build")
   public List<BuildRef> getBuildArtifactDependencies() {
     final Map<jetbrains.buildServer.Build,List<ArtifactInfo>> artifacts = myBuild.getDownloadedArtifacts().getArtifacts();
     List<BuildRef> builds = new ArrayList<BuildRef>(artifacts.size());
@@ -221,7 +221,7 @@ public class Build {
     return new Revisions(myBuild.getRevisions(), myApiUrlBuilder);
   }
 
-  @XmlElement(name = "changes", namespace = "ref")
+  @XmlElement(name = "changes")
   public ChangesRef getChanges() {
     return new ChangesRef(myBuild, myApiUrlBuilder);
   }
@@ -238,7 +238,7 @@ public class Build {
     return relatedIssues.size() == 0 ? null : new IssueUsages(relatedIssues, myBuild, myApiUrlBuilder, myFactory);
   }
 
-  @XmlElement(name = "user", namespace = "ref")
+  @XmlElement(name = "user")
   public UserRef getPersonalBuildUser() {
     final SUser owner = myBuild.getOwner();
     return owner == null ? null : new UserRef(owner, myApiUrlBuilder);

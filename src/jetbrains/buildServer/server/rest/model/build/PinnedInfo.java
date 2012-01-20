@@ -44,7 +44,7 @@ public class PinnedInfo {
     myApiUrlBuilder = apiUrlBuilder;
   }
 
-  @XmlElement
+  @XmlElement(name = "user")
   public UserRef getUser() {
     return new UserRef(myUser, myApiUrlBuilder);
   }

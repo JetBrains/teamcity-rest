@@ -17,6 +17,8 @@
 package jetbrains.buildServer.server.rest.model.user;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import org.jetbrains.annotations.NotNull;
 
@@ -24,6 +26,8 @@ import org.jetbrains.annotations.NotNull;
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
+@XmlRootElement(name = "user-ref")
+@XmlType(name = "user-ref")
 public class UserRef {
   @NotNull private jetbrains.buildServer.users.User myUser;
   private ApiUrlBuilder myApiUrlBuilder;

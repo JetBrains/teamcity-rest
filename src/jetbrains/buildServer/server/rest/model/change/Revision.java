@@ -31,7 +31,7 @@ import org.jetbrains.annotations.NotNull;
 public class Revision {
   @XmlAttribute(name = "display-version")
   public String displayRevision;
-  @XmlElement(name = "vcs-root", namespace = "ref")
+  @XmlElement(name = "vcs-root")
   public VcsRootRef vcsRoot;
 
   public Revision() {

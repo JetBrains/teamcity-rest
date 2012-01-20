@@ -37,7 +37,7 @@ public class Comment {
     myApiUrlBuilder = apiUrlBuilder;
   }
 
-  @XmlElement
+  @XmlElement(name = "user")
   public UserRef getUser() {
     final jetbrains.buildServer.users.User user = myBuildComment.getUser();
     if (user != null) {

@@ -27,8 +27,8 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 01.08.2009
  */
-@XmlRootElement(name = "changes", namespace = "ref")
-@XmlType(name = "changes", namespace = "ref")
+@XmlRootElement(name = "changes-ref")
+@XmlType(name = "changes-ref")
 public class ChangesRef {
   @NotNull private SBuild myBuild;
   private ApiUrlBuilder myApiUrlBuilder;

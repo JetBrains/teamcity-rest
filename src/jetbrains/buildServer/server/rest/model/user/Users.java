@@ -32,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "users")
 @XmlType(name = "users")
 public class Users {
-  @XmlElement(name = "user", namespace = "ref")
+  @XmlElement(name = "user")
   public List<UserRef> users;
   private ApiUrlBuilder myApiUrlBuilder;
 

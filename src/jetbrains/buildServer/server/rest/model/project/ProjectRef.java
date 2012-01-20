@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model.project;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.serverSide.SProject;
@@ -25,7 +26,8 @@ import jetbrains.buildServer.serverSide.SProject;
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
-@XmlType(propOrder = {"href", "name", "id"})
+@XmlRootElement(name = "project-ref")
+@XmlType(name = "project-ref", propOrder = {"href", "name", "id"})
 public class ProjectRef {
   @XmlAttribute
   public String id;

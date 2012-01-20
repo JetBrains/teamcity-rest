@@ -296,7 +296,7 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/vcs-root-entries")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public void addVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, VcsRootEntryDescription description){
+  public VcsRootEntry addVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, VcsRootEntry description){
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     final SVcsRoot vcsRoot = BuildTypeUtil.getVcsRoot(description, myDataProvider);
 
@@ -309,6 +309,8 @@ public class BuildTypeRequest {
       buildType.get().setCheckoutRules(vcsRoot, new CheckoutRules(description.checkoutRules));
     }
     buildType.get().persist();
+
+    return new VcsRootEntry(vcsRoot, buildType.get().getCheckoutRules(vcsRoot), myApiUrlBuilder);
   }
 
   @GET

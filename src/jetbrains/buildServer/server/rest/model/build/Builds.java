@@ -36,7 +36,7 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "builds")
 @XmlType(name = "builds")
 public class Builds {
-  @XmlElement(name = "build", namespace = "ref")
+  @XmlElement(name = "build")
   public List<BuildRef> builds;
 
   @XmlAttribute

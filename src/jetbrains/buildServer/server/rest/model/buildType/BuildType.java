@@ -101,12 +101,12 @@ public class BuildType {
     return myBuildType.isBuildType() ? myDataProvider.getBuildTypeUrl(myBuildType.getBuildType()) : null; //template has no user link
   }
 
-  @XmlElement
+  @XmlElement(name = "project")
   public ProjectRef getProject() {
     return new ProjectRef(myBuildType.getProject(), myApiUrlBuilder);
   }
 
-  @XmlElement
+  @XmlElement(name = "template")
   public BuildTypeRef getTemplate() {
     if (myBuildType.isTemplate()){
       return null;
@@ -124,7 +124,7 @@ public class BuildType {
    * Link to builds of this build configuraiton. Is not present for templates.
    * @return
    */
-  @XmlElement
+  @XmlElement(name = "builds")
   public BuildsRef getBuilds() {
     return myBuildType.isBuildType() ? new BuildsRef(myBuildType.getBuildType(), myApiUrlBuilder) : null;
   }

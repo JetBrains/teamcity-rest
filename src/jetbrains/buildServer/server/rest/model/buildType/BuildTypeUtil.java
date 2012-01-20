@@ -121,22 +121,15 @@ public class BuildTypeUtil {
   }
 
   // see also VCSRootRequest.getProjectLocator
-  public static SVcsRoot getVcsRoot(final VcsRootEntryDescription description, DataProvider dataProvider) {
-    if (!StringUtil.isEmpty(description.vcsRootLocator)){
-      if (description.vcsRootRef != null){
-        throw new BadRequestException("Only one from vcsRootLocator attribute and vcs-root element should be specified.");
-      }
-      return dataProvider.getVcsRoot(description.vcsRootLocator); 
-    }else{
+  public static SVcsRoot getVcsRoot(final VcsRootEntry description, DataProvider dataProvider) {
       if (description.vcsRootRef == null){
-        throw new BadRequestException("Either vcsRootLocator attribute or vcs-root element should be specified.");
+        throw new BadRequestException("Element vcs-root-ref should be specified.");
       }
-      final String vcsRootHref = description.vcsRootRef.href;
-      if (StringUtil.isEmpty(vcsRootHref)){
-        throw new BadRequestException("vcs-root element should have valid href attribute.");
+      final String vcsRootId = description.vcsRootRef.id;
+      if (StringUtil.isEmpty(vcsRootId)){
+        throw new BadRequestException("Element vcs-root-ref should have valid id attribute.");
       }
-      return dataProvider.getVcsRoot(getLastPathPart(vcsRootHref));
-    }
+      return dataProvider.getVcsRoot("id:" + vcsRootId);
   }
 
   public static String getLastPathPart(final String vcsRootHref) {

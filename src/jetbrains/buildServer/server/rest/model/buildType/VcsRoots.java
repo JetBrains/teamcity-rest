@@ -33,7 +33,7 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "vcs-roots")
 @XmlType(name = "vcs-roots")
 public class VcsRoots {
-  @XmlElement(name = "vcs-root", namespace = "ref")
+  @XmlElement(name = "vcs-root")
   public List<VcsRootRef> vcsRoots;
 
   public VcsRoots() {

@@ -11,9 +11,11 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 16.04.2009
  */
 @SuppressWarnings("PublicField")
-@XmlRootElement(name = "vcs-root", namespace = "ref")
-@XmlType(name = "vcs-root", namespace = "ref", propOrder = {"href", "name"})
+@XmlRootElement(name = "vcs-root-ref")
+@XmlType(name = "vcs-root-ref", propOrder = {"href", "name", "id"})
 public class VcsRootRef {
+  @XmlAttribute
+  public String id;
   @XmlAttribute
   public String name;
   @XmlAttribute
@@ -23,6 +25,7 @@ public class VcsRootRef {
   }
 
   public VcsRootRef(jetbrains.buildServer.vcs.VcsRoot root, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    this.id = String.valueOf(root.getId());
     this.href = apiUrlBuilder.getHref(root);
     this.name = root.getName();
   }

@@ -34,10 +34,10 @@ public class TriggeredBy {
   public String details;
 
 
-  @XmlElement
+  @XmlElement(name = "user")
   public UserRef user;
 
-  @XmlElement
+  @XmlElement(name = "buildType")
   public BuildTypeRef buildType;
 
   /**

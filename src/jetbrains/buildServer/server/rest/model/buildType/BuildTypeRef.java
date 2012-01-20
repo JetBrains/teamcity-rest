@@ -30,8 +30,8 @@ import org.jetbrains.annotations.NotNull;
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
-@XmlRootElement(name = "buildType", namespace = "ref")
-@XmlType(name = "buildType", namespace = "ref", propOrder = {"webUrl", "projectId", "projectName", "href", "name", "id"})
+@XmlRootElement(name = "buildType-ref")
+@XmlType(name = "buildType-ref", propOrder = {"webUrl", "projectId", "projectName", "href", "name", "id"})
 public class BuildTypeRef {
   protected BuildTypeOrTemplate myBuildType;
   private DataProvider myDataProvider;
