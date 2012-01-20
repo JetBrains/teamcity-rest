@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.restcontrib.cctray.model;
 
 import com.sun.org.apache.xerces.internal.jaxp.datatype.XMLGregorianCalendarImpl;
+import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -190,7 +191,7 @@ public class Project {
                 final BuildEstimates estimate = build.getBuildEstimates();
                 if (estimate != null) {
                     final TimeInterval interval = estimate.getTimeInterval();
-                    if (interval != null) {
+                    if (interval != null && isValid(interval)) {
                         result.setTime(interval.getStartPoint().getAbsoluteTime());
                         return new XMLGregorianCalendarImpl(result);
                     }
@@ -201,7 +202,16 @@ public class Project {
         return null;
     }
 
-    /**
+  private static boolean isValid(final TimeInterval interval) {
+    // todo (TeamCity) can return some huge number for some reason...
+    final long fromNow_ms = interval.getStartPoint().getAbsoluteTime().getTime() - (new Date()).getTime();
+    if (fromNow_ms > 1000*60*60*24*100 || fromNow_ms < 0){
+      return false;
+    }
+    return true;
+  }
+
+  /**
      * Gets the value of the webUrl property.
      *
      * @return possible object is

@@ -75,6 +75,7 @@ public class JAXBContextResolver implements ContextResolver<JAXBContext> {
     Server.class,
     User.class, UserData.class, Users.class,
     NewBuildTypeDescription.class, NewProjectDescription.class,
+    jetbrains.buildServer.server.restcontrib.cctray.model.Project.class, jetbrains.buildServer.server.restcontrib.cctray.model.Projects.class,
   };
 
   public JAXBContextResolver() throws Exception {
@@ -92,6 +93,7 @@ public class JAXBContextResolver implements ContextResolver<JAXBContext> {
 //    return context; // this would make request fail if the served or posted root bean is not accessible from cTypes
 
     // returning the context for all "our" types
-    return objectType.getName().startsWith("jetbrains.buildServer.server.rest") ? context : null;
+    final String name = objectType.getName();
+    return name.startsWith("jetbrains.buildServer.server.rest") || name.startsWith("jetbrains.buildServer.server.restcontrib")? context : null;
   }
 }

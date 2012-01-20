@@ -123,11 +123,11 @@ public class BuildTypeUtil {
   // see also VCSRootRequest.getProjectLocator
   public static SVcsRoot getVcsRoot(final VcsRootEntry description, DataProvider dataProvider) {
       if (description.vcsRootRef == null){
-        throw new BadRequestException("Element vcs-root-ref should be specified.");
+        throw new BadRequestException("Element vcs-root should be specified.");
       }
       final String vcsRootId = description.vcsRootRef.id;
       if (StringUtil.isEmpty(vcsRootId)){
-        throw new BadRequestException("Element vcs-root-ref should have valid id attribute.");
+        throw new BadRequestException("Element vcs-root should have id attribute with valid VCS root id.");
       }
       return dataProvider.getVcsRoot("id:" + vcsRootId);
   }
