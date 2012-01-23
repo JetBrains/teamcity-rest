@@ -60,4 +60,18 @@ public class AgentRequest {
   public Agent serveAgent(@PathParam("agentLocator") String agentLocator) {
     return new Agent(myDataProvider.getAgent(agentLocator), myApiUrlBuilder);
   }
+  
+  @GET
+  @Path("/{agentLocator}/{field}")
+  @Produces("text/plain")
+  public String serveAgentField(@PathParam("agentLocator") String agentLocator, @PathParam("field") String fieldName) {
+    return Agent.getFieldValue(myDataProvider.getAgent(agentLocator), fieldName);
+  }
+
+  @PUT
+  @Path("/{agentLocator}/{field}")
+  @Consumes("text/plain")
+  public void setAgentField(@PathParam("agentLocator") String agentLocator, @PathParam("field") String fieldName, String value) {
+    Agent.setFieldValue(myDataProvider.getAgent(agentLocator), fieldName, value);
+  }
 }

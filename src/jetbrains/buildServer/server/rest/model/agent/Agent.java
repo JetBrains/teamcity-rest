@@ -20,9 +20,12 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.serverSide.SBuildAgent;
+import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -85,5 +88,39 @@ public class Agent {
   public Properties getProperties() {
     //TODO: review, if it should return all parameters on agent, use #getDefinedParameters()
     return new Properties(myAgent.getAvailableParameters());
+  }
+  
+  public static String getFieldValue(@NotNull final SBuildAgent agent, @Nullable final String name) {
+    if (StringUtil.isEmpty(name)) {
+      throw new BadRequestException("Field name cannot be empty");
+    }
+    if ("id".equals(name)) {
+      return String.valueOf(agent.getId());
+    } else if ("name".equals(name)) {
+      return agent.getName();
+    }else if ("connected".equals(name)) {
+      return String.valueOf(agent.isRegistered());
+    }else if ("enabled".equals(name)) {
+      return String.valueOf(agent.isEnabled());
+    }else if ("authorized".equals(name)) {
+      return String.valueOf(agent.isAuthorized());
+    }else if ("ip".equals(name)) {
+      return agent.getHostAddress();
+    }
+    throw new BadRequestException("Unknown field '" + name + "'. Supported fields are: id, name, connected, enabled, authorized, ip");
+  }
+
+  public static void setFieldValue(@NotNull final SBuildAgent agent, @Nullable final String name, @NotNull final String value) {
+    if (StringUtil.isEmpty(name)) {
+      throw new BadRequestException("Field name cannot be empty");
+    }
+    if ("enabled".equals(name)) {
+      agent.setEnabled(Boolean.valueOf(value), null, "Set via REST API");
+      return;
+    }else if ("authorized".equals(name)) {
+      agent.setAuthorized(Boolean.valueOf(value), null, "Set via REST API");
+      return;
+    }
+    throw new BadRequestException("Changing field '" + name + "' is not supported. Supported fields are: enabled, authorized");
   }
 }
