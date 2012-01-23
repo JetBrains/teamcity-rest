@@ -203,7 +203,7 @@ public class Project {
     }
 
   private static boolean isValid(final TimeInterval interval) {
-    // todo (TeamCity) can return some huge number for some reason...
+    // todo (TeamCity) can return some huge number for some reason: TW-19894
     final long fromNow_ms = interval.getStartPoint().getAbsoluteTime().getTime() - (new Date()).getTime();
     if (fromNow_ms > 1000*60*60*24*100 || fromNow_ms < 0){
       return false;

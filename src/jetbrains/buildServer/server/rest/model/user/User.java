@@ -131,13 +131,13 @@ public class User {
     if ("username".equals(name)) {
       DataUpdater.updateUserCoreFields(user, value, null, null, null);
       return;
-    }else if ("name".equals(name)) {
+    } else if ("name".equals(name)) {
       DataUpdater.updateUserCoreFields(user, null, value, null, null);
       return;
-    }else if ("email".equals(name)) {
+    } else if ("email".equals(name)) {
       DataUpdater.updateUserCoreFields(user, null, null, value, null);
       return;
-    }else if ("password".equals(name)) {
+    } else if ("password".equals(name)) {
       DataUpdater.updateUserCoreFields(user, null, null, null, value);
       return;
     }

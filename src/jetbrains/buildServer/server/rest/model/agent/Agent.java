@@ -89,7 +89,7 @@ public class Agent {
     //TODO: review, if it should return all parameters on agent, use #getDefinedParameters()
     return new Properties(myAgent.getAvailableParameters());
   }
-  
+
   public static String getFieldValue(@NotNull final SBuildAgent agent, @Nullable final String name) {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Field name cannot be empty");
@@ -98,13 +98,13 @@ public class Agent {
       return String.valueOf(agent.getId());
     } else if ("name".equals(name)) {
       return agent.getName();
-    }else if ("connected".equals(name)) {
+    } else if ("connected".equals(name)) {
       return String.valueOf(agent.isRegistered());
-    }else if ("enabled".equals(name)) {
+    } else if ("enabled".equals(name)) {
       return String.valueOf(agent.isEnabled());
-    }else if ("authorized".equals(name)) {
+    } else if ("authorized".equals(name)) {
       return String.valueOf(agent.isAuthorized());
-    }else if ("ip".equals(name)) {
+    } else if ("ip".equals(name)) {
       return agent.getHostAddress();
     }
     throw new BadRequestException("Unknown field '" + name + "'. Supported fields are: id, name, connected, enabled, authorized, ip");
@@ -117,7 +117,7 @@ public class Agent {
     if ("enabled".equals(name)) {
       agent.setEnabled(Boolean.valueOf(value), null, "Set via REST API");
       return;
-    }else if ("authorized".equals(name)) {
+    } else if ("authorized".equals(name)) {
       agent.setAuthorized(Boolean.valueOf(value), null, "Set via REST API");
       return;
     }

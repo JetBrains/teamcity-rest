@@ -181,8 +181,8 @@ public class UserRequest {
   @Path("/{userLocator}/properties/{name}")
   @Consumes("text/plain")
   public void putUserProperty(@PathParam("userLocator") String userLocator,
-                                @PathParam("name") String name,
-                                String newValue) {
+                              @PathParam("name") String name,
+                              String newValue) {
     checkModifyUserPermission(userLocator);
     SUser user = myDataProvider.getUser(userLocator);
     if (StringUtil.isEmpty(name)) {
@@ -195,7 +195,7 @@ public class UserRequest {
   @DELETE
   @Path("/{userLocator}/properties/{name}")
   public void removeUserProperty(@PathParam("userLocator") String userLocator,
-                                @PathParam("name") String name) {
+                                 @PathParam("name") String name) {
     SUser user = myDataProvider.getUser(userLocator);
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Property name cannot be empty.");

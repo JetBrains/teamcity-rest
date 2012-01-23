@@ -60,7 +60,7 @@ public class AgentRequest {
   public Agent serveAgent(@PathParam("agentLocator") String agentLocator) {
     return new Agent(myDataProvider.getAgent(agentLocator), myApiUrlBuilder);
   }
-  
+
   @GET
   @Path("/{agentLocator}/{field}")
   @Produces("text/plain")
