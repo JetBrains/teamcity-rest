@@ -16,11 +16,15 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import java.util.Map;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.server.rest.model.user.User;
@@ -28,6 +32,8 @@ import jetbrains.buildServer.server.rest.model.user.Users;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.SimplePropertyKey;
+import jetbrains.buildServer.util.StringUtil;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
@@ -129,6 +135,75 @@ public class UserRequest {
     SUser user = myDataProvider.getUser(userLocator);
     myDataUpdater.modify(user, userData);
   }
+
+  @GET
+  @Path("/{userLocator}/{field}")
+  @Produces("text/plain")
+  public String serveUserField(@PathParam("userLocator") String userLocator, @PathParam("field") String fieldName) {
+    return User.getFieldValue(myDataProvider.getUser(userLocator), fieldName);
+  }
+
+  @PUT
+  @Path("/{userLocator}/{field}")
+  @Consumes("text/plain")
+  public void setUserField(@PathParam("userLocator") String userLocator, @PathParam("field") String fieldName, String value) {
+    checkModifyUserPermission(userLocator);
+    User.setFieldValue(myDataProvider.getUser(userLocator), fieldName, value);
+  }
+
+  @GET
+  @Path("/{userLocator}/properties")
+  @Produces({"application/xml", "application/json"})
+  public Properties serveUserProperties(@PathParam("userLocator") String userLocator) {
+    SUser user = myDataProvider.getUser(userLocator);
+
+    return new Properties(User.getUserProperties(user));
+  }
+
+  @GET
+  @Path("/{userLocator}/properties/{name}")
+  @Produces("text/plain")
+  public String serveUserProperties(@PathParam("userLocator") String userLocator, @PathParam("name") String parameterName) {
+    SUser user = myDataProvider.getUser(userLocator);
+    if (StringUtil.isEmpty(parameterName)) {
+      throw new BadRequestException("Property name cannot be empty.");
+    }
+
+    Map<String, String> parameters = User.getUserProperties(user);
+    if (parameters.containsKey(parameterName)) {
+      //TODO: process secure fields
+      return parameters.get(parameterName);
+    }
+    throw new NotFoundException("No property with name '" + parameterName + "' is found.");
+  }
+
+  @PUT
+  @Path("/{userLocator}/properties/{name}")
+  @Consumes("text/plain")
+  public void putUserProperty(@PathParam("userLocator") String userLocator,
+                                @PathParam("name") String name,
+                                String newValue) {
+    checkModifyUserPermission(userLocator);
+    SUser user = myDataProvider.getUser(userLocator);
+    if (StringUtil.isEmpty(name)) {
+      throw new BadRequestException("Property name cannot be empty.");
+    }
+
+    user.setUserProperty(new SimplePropertyKey(name), newValue);
+  }
+
+  @DELETE
+  @Path("/{userLocator}/properties/{name}")
+  public void removeUserProperty(@PathParam("userLocator") String userLocator,
+                                @PathParam("name") String name) {
+    SUser user = myDataProvider.getUser(userLocator);
+    if (StringUtil.isEmpty(name)) {
+      throw new BadRequestException("Property name cannot be empty.");
+    }
+
+    user.deleteUserProperty(new SimplePropertyKey(name));
+  }
+
 
   @GET
   @Path("/{userLocator}/roles")

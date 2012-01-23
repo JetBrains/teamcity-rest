@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.users.*;
 import jetbrains.buildServer.util.StringUtil;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -64,18 +65,8 @@ public class DataUpdater {
     }
   }
   public void modify(SUser user, jetbrains.buildServer.server.rest.model.user.User userData) {
-    String newUsername = userData.getSubmittedUsername() != null ? userData.getSubmittedUsername() : user.getUsername();
-    String newName = userData.getSubmittedName() != null ? userData.getSubmittedName() : user.getName();
-    String newEmail = userData.getSubmittedEmail() != null ? userData.getSubmittedEmail() : user.getEmail();
-    if (userData.getSubmittedUsername() != null ||
-        userData.getSubmittedName() != null ||
-        userData.getSubmittedEmail() != null) {
-      user.updateUserAccount(newUsername, newName, newEmail);
-    }
-
-    if (userData.getSubmittedPassword() != null) {
-      user.setPassword(userData.getSubmittedPassword());
-    }
+    updateUserCoreFields(user, userData.getSubmittedUsername(), userData.getSubmittedName(), userData.getSubmittedEmail(),
+                         userData.getSubmittedPassword());
 
     if (userData.getSubmittedRoles() != null) {
       removeAllRoles(user);
@@ -90,6 +81,25 @@ public class DataUpdater {
     if (userData.getSubmittedGroups() != null) {
       removeAllGroups(user);
       addGroups(user, userData.getSubmittedGroups());
+    }
+  }
+
+  public static void updateUserCoreFields(@NotNull final SUser user,
+                                    @Nullable final String submittedUsername,
+                                    @Nullable final String submittedName,
+                                    @Nullable final String submittedEmail,
+                                    @Nullable final String submittedPassword) {
+    String newUsername = submittedUsername != null ? submittedUsername : user.getUsername();
+    String newName = submittedName != null ? submittedName : user.getName();
+    String newEmail = submittedEmail != null ? submittedEmail : user.getEmail();
+    if (submittedUsername != null ||
+        submittedName != null ||
+        submittedEmail != null) {
+      user.updateUserAccount(newUsername, newName, newEmail);
+    }
+
+    if (submittedPassword != null) {
+      user.setPassword(submittedPassword);
     }
   }
 

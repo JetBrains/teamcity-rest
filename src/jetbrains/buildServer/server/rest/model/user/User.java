@@ -23,12 +23,16 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.DataUpdater;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * User: Yegor Yarko
@@ -93,11 +97,51 @@ public class User {
 
   @XmlElement(name = "properties")
   public Properties getProperties() {
+    return new Properties(getUserProperties(myUser));
+  }
+
+  public static Map<String, String> getUserProperties(final SUser user) {
     Map<String, String> convertedProperties = new HashMap<String, String>();
-    for (Map.Entry<PropertyKey, String> prop : myUser.getProperties().entrySet()) {
+    for (Map.Entry<PropertyKey, String> prop : user.getProperties().entrySet()) {
       convertedProperties.put(prop.getKey().getKey(), prop.getValue());
     }
-    return new Properties(convertedProperties);
+    return convertedProperties;
+  }
+
+  public static String getFieldValue(@NotNull final SUser user, @Nullable final String name) {
+    if (StringUtil.isEmpty(name)) {
+      throw new BadRequestException("Field name cannot be empty");
+    }
+    if ("id".equals(name)) {
+      return String.valueOf(user.getId());
+    } else if ("name".equals(name)) {
+      return user.getName();
+    } else if ("username".equals(name)) {
+      return user.getUsername();
+    } else if ("email".equals(name)) {
+      return user.getEmail();
+    }
+    throw new BadRequestException("Unknown field '" + name + "'. Supported fields are: id, name, username, email");
+  }
+
+  public static void setFieldValue(@NotNull final SUser user, @Nullable final String name, @NotNull final String value) {
+    if (StringUtil.isEmpty(name)) {
+      throw new BadRequestException("Field name cannot be empty");
+    }
+    if ("username".equals(name)) {
+      DataUpdater.updateUserCoreFields(user, value, null, null, null);
+      return;
+    }else if ("name".equals(name)) {
+      DataUpdater.updateUserCoreFields(user, null, value, null, null);
+      return;
+    }else if ("email".equals(name)) {
+      DataUpdater.updateUserCoreFields(user, null, null, value, null);
+      return;
+    }else if ("password".equals(name)) {
+      DataUpdater.updateUserCoreFields(user, null, null, null, value);
+      return;
+    }
+    throw new BadRequestException("Changing field '" + name + "' is not supported. Supported fields are: username, name, email, password");
   }
 
   // These are necessary for allowing to submit the same class
