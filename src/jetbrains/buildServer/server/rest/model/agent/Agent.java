@@ -20,9 +20,11 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.serverSide.SBuildAgent;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -110,15 +112,17 @@ public class Agent {
     throw new BadRequestException("Unknown field '" + name + "'. Supported fields are: id, name, connected, enabled, authorized, ip");
   }
 
-  public static void setFieldValue(@NotNull final SBuildAgent agent, @Nullable final String name, @NotNull final String value) {
+  public static void setFieldValue(@NotNull final SBuildAgent agent, @Nullable final String name, @NotNull final String value, @NotNull final DataProvider dataProvider) {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Field name cannot be empty");
     }
     if ("enabled".equals(name)) {
-      agent.setEnabled(Boolean.valueOf(value), null, "Set via REST API");
+      agent.setEnabled(Boolean.valueOf(value), dataProvider.getCurrentUser(), TeamCityProperties.getProperty("rest.defaultActionComment"));
+      //todo (TeamCity) why not use current user by default?
       return;
     } else if ("authorized".equals(name)) {
-      agent.setAuthorized(Boolean.valueOf(value), null, "Set via REST API");
+      agent.setAuthorized(Boolean.valueOf(value), dataProvider.getCurrentUser(), TeamCityProperties.getProperty("rest.defaultActionComment"));
+      //todo (TeamCity) why not use current user by default?
       return;
     }
     throw new BadRequestException("Changing field '" + name + "' is not supported. Supported fields are: enabled, authorized");

@@ -72,6 +72,6 @@ public class AgentRequest {
   @Path("/{agentLocator}/{field}")
   @Consumes("text/plain")
   public void setAgentField(@PathParam("agentLocator") String agentLocator, @PathParam("field") String fieldName, String value) {
-    Agent.setFieldValue(myDataProvider.getAgent(agentLocator), fieldName, value);
+    Agent.setFieldValue(myDataProvider.getAgent(agentLocator), fieldName, value, myDataProvider);
   }
 }

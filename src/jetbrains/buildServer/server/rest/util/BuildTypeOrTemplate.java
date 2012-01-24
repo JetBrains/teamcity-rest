@@ -1,11 +1,9 @@
 package jetbrains.buildServer.server.rest.util;
 
+import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.serverSide.BuildTypeSettings;
-import jetbrains.buildServer.serverSide.BuildTypeTemplate;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -96,14 +94,23 @@ public class BuildTypeOrTemplate {
     }
   }
 
-  public void setFieldValue(final String field, final String value) {
+  public void setFieldValue(final String field, final String value, @NotNull final DataProvider dataProvider) {
     if ("name".equals(field)) {
       setName(value);
+      return;
     } else if ("description".equals(field)) {
       setDescription(value);
-    } else {
-      throw new BadRequestException("Setting field '" + field + "' is not supported.");
+      return;
     }
+    if (isBuildType()){
+      if ("paused".equals(field)){
+        myBuildType.setPaused(Boolean.valueOf(value), dataProvider.getCurrentUser(), TeamCityProperties.getProperty("rest.defaultActionComment"));
+        //todo (TeamCity) why not use current user by default?
+        return;
+      }
+    }
+    
+    throw new BadRequestException("Setting field '" + field + "' is not supported. Supported are: name, description, paused");
   }
 
   @Nullable
@@ -115,7 +122,12 @@ public class BuildTypeOrTemplate {
     } else if ("name".equals(field)) {
       return getName();
     }
-    throw new NotFoundException("Field '" + field + "' is not supported.");
+    if (isBuildType()){
+      if ("paused".equals(field)){
+        return String.valueOf(myBuildType.isPaused());
+      }
+    }
+    throw new NotFoundException("Field '" + field + "' is not supported. Supported are: id, name, description, paused");
   }
 
   public boolean isEnabled(final String id) {
