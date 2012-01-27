@@ -67,7 +67,7 @@ public class JAXBContextResolver implements ContextResolver<JAXBContext> {
     PropEntity.class, PropEntityFeature.class, PropEntityStep.class, PropEntityAgentRequirement.class, PropEntityTrigger.class, PropEntitySnapshotDep.class, PropEntityArtifactDep.class,
     PropEntitiesFeature.class, PropEntitiesStep.class, PropEntitiesAgentRequirement.class, PropEntitiesTrigger.class, PropEntitiesSnapshotDep.class, PropEntitiesArtifactDep.class,
     Change.class, Changes.class, FileChange.class, Revision.class, Revisions.class,
-    VcsRoot.class, VcsRoots.class, VcsRootEntry.class, VcsRootEntries.class,
+    VcsRoot.class, VcsRoots.class, VcsRootEntry.class, VcsRootEntries.class, VcsRootInstance.class, VcsRootInstances.class, VcsRootRef.class, VcsRootInstanceRef.class,
     Group.class, Groups.class,
     Issue.class, Issues.class, IssueUsage.class, IssueUsages.class,
     PluginInfo.class, PluginInfos.class,

@@ -14,36 +14,36 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.model.change;
+package jetbrains.buildServer.server.rest.model.buildType;
 
-import javax.xml.bind.annotation.XmlAttribute;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.serverSide.BuildRevision;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.server.rest.model.change.VcsRootInstanceRef;
+import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
  *         Date: 16.04.2009
  */
-@XmlType(name = "revision")
-public class Revision {
-  @XmlAttribute(name = "version")
-  public String displayRevision;
-  @XmlAttribute(name = "internalVersion")
-  public String internalRevision;
-
+@XmlRootElement(name = "vcs-root-instances")
+@XmlType(name = "vcs-root-instances")
+public class VcsRootInstances {
   @XmlElement(name = "vcs-root-instance")
-  public VcsRootInstanceRef vcsRoot;
+  public List<VcsRootInstanceRef> vcsRoots;
 
-  public Revision() {
+  public VcsRootInstances() {
   }
 
-  public Revision(BuildRevision revision, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    displayRevision = revision.getRevisionDisplayName();
-    vcsRoot = new VcsRootInstanceRef(revision.getRoot(), apiUrlBuilder);
-    internalRevision = TeamCityProperties.getBoolean("rest.internalMode") ? revision.getRevision() : null;
+  public VcsRootInstances(final Collection<VcsRootInstance> serverVcsRoots, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    vcsRoots = new ArrayList<VcsRootInstanceRef>(serverVcsRoots.size());
+    for (VcsRootInstance root : serverVcsRoots) {
+      vcsRoots.add(new VcsRootInstanceRef(root, apiUrlBuilder));
+    }
   }
 }

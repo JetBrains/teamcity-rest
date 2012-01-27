@@ -28,6 +28,7 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.vcs.VcsModification;
 import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -88,6 +89,10 @@ public class ApiUrlBuilder {
 
   public String getHref(final VcsRoot root) {
     return myPathTransformer.transform(VcsRootRequest.getVcsRootHref(root));
+  }
+
+  public String getHref(final VcsRootInstance root) {
+    return myPathTransformer.transform(VcsRootRequest.getVcsRootInstanceHref(root));
   }
 
   public String getGlobalWadlHref() {

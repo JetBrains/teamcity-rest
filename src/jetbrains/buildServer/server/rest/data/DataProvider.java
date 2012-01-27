@@ -769,21 +769,34 @@ public class DataProvider {
   }
 
   @NotNull
-  private VcsRootInstance getVcsRootInstance(final String vcsRootLocator) {
+  public VcsRootInstance getVcsRootInstance(@Nullable final String vcsRootLocator) {
     if (StringUtil.isEmpty(vcsRootLocator)) {
-      throw new BadRequestException("Empty VCS root locator is not supported.");
+      throw new BadRequestException("Empty VCS root instance locator is not supported.");
     }
 
     final Locator locator = new Locator(vcsRootLocator);
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's root id
-      VcsRootInstance root = myVcsManager.findRootInstanceById(locator.getSingleValueAsLong());
-      if (root != null) {
-        return root;
+      final Long parsedId = locator.getSingleValueAsLong();
+      if (parsedId == null) {
+        throw new BadRequestException("Expecting VCS root instance id, found empty value.");
       }
+      VcsRootInstance root = myVcsManager.findRootInstanceById(parsedId);
+      if (root == null) {
+        throw new NotFoundException("No root instance can be found by id '" + parsedId + "'.");
+      }
+      return root;
     }
 
-    throw new NotFoundException("No root instance can be found by id '" + vcsRootLocator + "'.");
+    Long rootId = locator.getSingleDimensionValueAsLong("id");
+    if (rootId == null) {
+      throw new BadRequestException("No 'id' dimension found in locator '" + vcsRootLocator + "'.");
+    }
+    VcsRootInstance root = myVcsManager.findRootInstanceById(rootId);
+    if (root == null) {
+      throw new NotFoundException("No root instance can be found by id '" + rootId + "'.");
+    }
+    return root;
   }
 
   @NotNull

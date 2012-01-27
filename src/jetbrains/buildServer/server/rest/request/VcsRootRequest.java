@@ -18,12 +18,14 @@ package jetbrains.buildServer.server.rest.request;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRoots;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
+import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootScope;
@@ -40,10 +42,17 @@ public class VcsRootRequest {
   private DataProvider myDataProvider;
   @Context
   private ApiUrlBuilder myApiUrlBuilder;
+  @Context
+  private ServiceLocator myServiceLocator;
+
   public static final String API_VCS_ROOTS_URL = Constants.API_URL + "/vcs-roots";
 
   public static String getVcsRootHref(final jetbrains.buildServer.vcs.VcsRoot root) {
     return API_VCS_ROOTS_URL + "/id:" + root.getId();
+  }
+
+  public static String getVcsRootInstanceHref(final jetbrains.buildServer.vcs.VcsRootInstance vcsRootInstance) {
+    return API_VCS_ROOTS_URL + "/id:" + vcsRootInstance.getParentId() + "/instances/id:" + vcsRootInstance.getId();
   }
 
   @GET
@@ -118,5 +127,13 @@ public class VcsRootRequest {
     final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
     myDataProvider.getVcsManager().removeVcsRoot(vcsRoot.getId());
     myDataProvider.getVcsManager().persistVcsRoots();
+  }
+
+  @GET
+  @Path("/{vcsRootLocator}/instances/{vcsRootInstanceLocator}")
+  @Produces({"application/xml", "application/json"})
+  public VcsRootInstance serveRootInstance(@PathParam("vcsRootLocator") String vcsRootLocator,
+                                           @PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator) {
+    return new VcsRootInstance(myDataProvider.getVcsRootInstance(vcsRootInstanceLocator), myDataProvider, myApiUrlBuilder);
   }
 }
