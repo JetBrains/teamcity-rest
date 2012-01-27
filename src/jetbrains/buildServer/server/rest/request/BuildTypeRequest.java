@@ -315,9 +315,9 @@ public class BuildTypeRequest {
   }
 
   @GET
-  @Path("/{btLocator}/vcs-root-entries/{vcsRootLocator}")
+  @Path("/{btLocator}/vcs-root-entries/{id}")
   @Produces({"application/xml", "application/json"})
-  public VcsRootEntry getVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("vcsRootLocator") String vcsRootLocator) {
+  public VcsRootEntry getVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("id") String vcsRootLocator) {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
 
@@ -328,8 +328,8 @@ public class BuildTypeRequest {
   }
 
   @DELETE
-  @Path("/{btLocator}/vcs-root-entries/{vcsRootLocator}")
-  public void deleteVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("vcsRootLocator") String vcsRootLocator) {
+  @Path("/{btLocator}/vcs-root-entries/{id}")
+  public void deleteVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("id") String vcsRootLocator) {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
     if (!buildType.get().containsVcsRoot(vcsRoot.getId())) {

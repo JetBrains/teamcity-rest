@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
@@ -32,6 +33,9 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "vcs-root-entry")
 @XmlType(name = "vcs-root-entry")
 public class VcsRootEntry {
+  @XmlAttribute(name = "id")
+  public String id;
+
   @XmlElement(name = "checkout-rules")
   public String checkoutRules;
   @XmlElement(name = "vcs-root")
@@ -41,11 +45,13 @@ public class VcsRootEntry {
   }
 
   public VcsRootEntry(final @NotNull VcsRoot vcsRootParam, @NotNull final CheckoutRules CheckoutRulesParam, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    id = String.valueOf(vcsRootParam.getId());
     vcsRootRef = new VcsRootRef(vcsRootParam, apiUrlBuilder);
     checkoutRules = CheckoutRulesParam.getAsString();
   }
 
   public VcsRootEntry(jetbrains.buildServer.vcs.VcsRootEntry entry, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    id = String.valueOf(entry.getVcsRoot().getId());
     vcsRootRef = new VcsRootRef(entry.getVcsRoot(), apiUrlBuilder);
     checkoutRules = entry.getCheckoutRules().getAsString();
   }
