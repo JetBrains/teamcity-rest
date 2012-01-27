@@ -23,6 +23,7 @@ import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
@@ -52,6 +53,8 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.TCStreamUtil;
+import jetbrains.buildServer.vcs.VcsException;
+import jetbrains.buildServer.vcs.VcsManager;
 import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
 
@@ -173,6 +176,20 @@ public class BuildRequest {
         }
       }
     };
+  }
+
+  @GET
+  @Path("/{buildLocator}/sources/files/{fileName:.+}")
+  @Produces({"application/octet-stream"})
+  public Response serveSourceFeil(@PathParam("buildLocator") final String buildLocator, @PathParam("fileName") final String fileName) {
+    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    byte[] fileContent;
+    try {
+      fileContent = myServiceLocator.getSingletonService(VcsManager.class).getFileContent(build, fileName);
+    } catch (VcsException e) {
+      throw new OperationException("Erorr while retrieving file content from VCS", e);
+    }
+    return Response.ok().entity(fileContent).build();
   }
 
 
