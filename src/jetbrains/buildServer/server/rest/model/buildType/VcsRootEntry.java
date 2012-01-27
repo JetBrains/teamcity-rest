@@ -44,7 +44,9 @@ public class VcsRootEntry {
   public VcsRootEntry() {
   }
 
-  public VcsRootEntry(final @NotNull VcsRoot vcsRootParam, @NotNull final CheckoutRules CheckoutRulesParam, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public VcsRootEntry(final @NotNull VcsRoot vcsRootParam,
+                      @NotNull final CheckoutRules CheckoutRulesParam,
+                      @NotNull final ApiUrlBuilder apiUrlBuilder) {
     id = String.valueOf(vcsRootParam.getId());
     vcsRootRef = new VcsRootRef(vcsRootParam, apiUrlBuilder);
     checkoutRules = CheckoutRulesParam.getAsString();
