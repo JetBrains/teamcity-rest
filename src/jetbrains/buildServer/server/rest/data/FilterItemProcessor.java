@@ -33,4 +33,8 @@ class FilterItemProcessor<T> implements ItemProcessor<T> {
   public ArrayList<T> getResult() {
     return myList;
   }
+
+  public long getProcessedItemsCount() {
+    return myCurrentIndex;
+  }
 }

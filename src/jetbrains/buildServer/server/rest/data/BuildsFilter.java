@@ -16,6 +16,9 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import com.intellij.openapi.diagnostic.Logger;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
@@ -24,8 +27,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class BuildsFilter{
+  final static Logger LOG = Logger.getInstance(BuildsFilter.class.getName());
+
   @Nullable private String myNumber;
-  @Nullable protected final Long myStart;
+  @Nullable protected Long myStart;
   @Nullable protected Integer myCount;
 
   @Nullable private final String myStatus;
@@ -95,6 +100,16 @@ public class BuildsFilter{
     myLookupLimit = lookupLimit;
     myParameterCondition = parameterCondition;
   }
+
+  @Nullable
+  public Long getStart() {
+    return myStart;
+  }
+
+  public void setStart(@Nullable final Long start) {
+    myStart = start;
+  }
+
 
   @Nullable
   public Integer getCount() {
@@ -175,6 +190,10 @@ public class BuildsFilter{
   }
 
   public List<SFinishedBuild> getMatchingFinishedBuilds(@NotNull final BuildHistory buildHistory) {
+    if (myRunning != null && myRunning){
+      return Collections.emptyList();
+    }
+    
     final FilterItemProcessor<SFinishedBuild> buildsFilterItemProcessor =
       new FilterItemProcessor<SFinishedBuild>(new FinishedBuildsFilter());
     if (myBuildType != null) {
@@ -187,7 +206,9 @@ public class BuildsFilter{
     } else {
       buildHistory.processEntries(buildsFilterItemProcessor);
     }
-    return buildsFilterItemProcessor.getResult();
+    final ArrayList<SFinishedBuild> result = buildsFilterItemProcessor.getResult();
+    LOG.debug("Processed " + buildsFilterItemProcessor.getProcessedItemsCount() + " builds, " + result.size() + " selected.");
+    return result;
   }
 
 

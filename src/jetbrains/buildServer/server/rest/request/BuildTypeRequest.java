@@ -761,7 +761,7 @@ public class BuildTypeRequest {
    * @param sinceBuildLocator Deprecated, use "locator" parameter instead
    * @param sinceDate         Deprecated, use "locator" parameter instead
    * @param start             Deprecated, use "locator" parameter instead
-   * @param count             Deprecated, use "locator" parameter instead
+   * @param count             Deprecated, use "locator" parameter instead, defaults to 100
    * @return
    */
   @GET
@@ -777,8 +777,8 @@ public class BuildTypeRequest {
                             @QueryParam("agentName") String agentName,
                             @QueryParam("sinceBuild") String sinceBuildLocator,
                             @QueryParam("sinceDate") String sinceDate,
-                            @QueryParam("start") @DefaultValue(value = "0") Long start,
-                            @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count,
+                            @QueryParam("start") Long start,
+                            @QueryParam("count") Integer count,
                             @QueryParam("locator") BuildLocator locator,
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);

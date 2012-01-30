@@ -53,6 +53,7 @@ public class PagerData {
                    @Nullable final Long start,
                    @Nullable final Integer count,
                    long currentPageRealCount) {
+    //todo: set start and count in locator, if specified
     myContextPath = request.getContextPath();
     if (start == null || start == 0) {
       myPrevHref = null;

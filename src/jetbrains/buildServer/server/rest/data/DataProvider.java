@@ -146,8 +146,24 @@ public class DataProvider {
                                       null,
                                       start, count, null);
     }
+
+    // override start and count if set in URL query parameters
+    if (start != null){
+      buildsFilter.setStart(start);
+    }
+
+    if (count != null){
+      buildsFilter.setCount(count);
+    }else{
+      if (buildsFilter.getCount() != null){
+        buildsFilter.setCount(buildsFilter.getCount() != -1 ? buildsFilter.getCount() : null);
+      }else{
+        buildsFilter.setCount(jetbrains.buildServer.server.rest.request.Constants.DEFAULT_PAGE_ITEMS_COUNT_INT);
+      }
+    }
+
     final List<SBuild> buildsList = this.getBuilds(buildsFilter);
-    return new Builds(buildsList, this, new PagerData(uriInfo.getRequestUriBuilder(), request, start, count, buildsList.size()),
+    return new Builds(buildsList, this, new PagerData(uriInfo.getRequestUriBuilder(), request, buildsFilter.getStart(), buildsFilter.getCount(), buildsList.size()),
                       apiUrlBuilder);
   }
 
@@ -1077,7 +1093,7 @@ public class DataProvider {
     try {
       return new SimpleDateFormat(Constants.TIME_FORMAT).parse(dateString);
     } catch (ParseException e) {
-      throw new BadRequestException("Could not parse date from value '" + dateString + "'", e);
+      throw new BadRequestException("Could not parse date from value '" + dateString + "'. Supported format example : " + Util.formatTime(new Date()) + " :", e);
     }
   }
 
