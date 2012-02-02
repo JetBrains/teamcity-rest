@@ -44,7 +44,6 @@ import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.model.server.Server;
 import jetbrains.buildServer.server.rest.model.user.User;
-import jetbrains.buildServer.server.rest.model.user.UserData;
 import jetbrains.buildServer.server.rest.model.user.Users;
 import jetbrains.buildServer.util.FuncThrow;
 
@@ -73,7 +72,7 @@ public class JAXBContextResolver implements ContextResolver<JAXBContext> {
     PluginInfo.class, PluginInfos.class,
     Project.class, Projects.class,
     Server.class,
-    User.class, UserData.class, Users.class,
+    User.class, Users.class,
     NewBuildTypeDescription.class, NewProjectDescription.class,
     jetbrains.buildServer.server.restcontrib.cctray.model.Project.class, jetbrains.buildServer.server.restcontrib.cctray.model.Projects.class,
   };
