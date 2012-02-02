@@ -25,6 +25,7 @@ import jetbrains.buildServer.issueTracker.Issue;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -33,7 +34,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 @XmlRootElement(name = "issuesUsages")
 public class IssueUsages {
-  private Collection<Issue> myIssues;
+  @NotNull private Collection<Issue> myIssues;
   private SBuild myBuild;
   private ApiUrlBuilder myApiUrlBuilder;
   @Autowired private BeanFactory myFactory;
@@ -41,7 +42,7 @@ public class IssueUsages {
   public IssueUsages() {
   }
 
-  public IssueUsages(final Collection<Issue> issues, final SBuild build, final ApiUrlBuilder apiUrlBuilder, final BeanFactory myFactory) {
+  public IssueUsages(@NotNull final Collection<Issue> issues, final SBuild build, final ApiUrlBuilder apiUrlBuilder, final BeanFactory myFactory) {
     myIssues = issues;
     myBuild = build;
     myApiUrlBuilder = apiUrlBuilder;

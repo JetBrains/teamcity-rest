@@ -38,6 +38,7 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
+import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
@@ -190,6 +191,14 @@ public class BuildRequest {
       throw new OperationException("Erorr while retrieving file content from VCS", e);
     }
     return Response.ok().entity(fileContent).build();
+  }
+
+  @GET
+  @Path("/{buildLocator}/related-issues/")
+  @Produces({"application/xml", "application/json"})
+  public IssueUsages serveBuildRelatedIssues(@PathParam("buildLocator") String buildLocator) {
+    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    return new IssueUsages(build.getRelatedIssues(), build, myApiUrlBuilder, myFactory);
   }
 
 
