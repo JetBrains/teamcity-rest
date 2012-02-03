@@ -16,17 +16,30 @@
 
 package jetbrains.buildServer.server.rest.model.change;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
+import jetbrains.buildServer.serverSide.Parameter;
+import jetbrains.buildServer.serverSide.SimpleParameter;
+import jetbrains.buildServer.serverSide.UserParametersHolder;
 import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.vcs.VcsManager;
+import jetbrains.buildServer.vcs.VcsRootScope;
 import jetbrains.buildServer.vcs.VcsRootStatus;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -92,6 +105,85 @@ public class VcsRoot {
     final RepositoryVersion revision = ((VcsRootInstance)root).getLastUsedRevision();
     currentVersion = revision != null ? revision.getDisplayVersion() : null; //todo: consider using smth like "NONE" ?
     */
+  }
+
+  @NotNull
+  public static UserParametersHolder getUserParametersHolder(@NotNull final SVcsRoot root, @NotNull final VcsManager vcsManager) {
+    return new UserParametersHolder() {
+      public void addParameter(@NotNull final Parameter param) {
+        final Map<String, String> newProperties = new HashMap<String, String>(root.getProperties());
+        newProperties.put(param.getName(), param.getValue());
+        updateVCSRoot(root, newProperties, null, vcsManager);
+      }
+
+      public void removeParameter(@NotNull final String paramName) {
+        final Map<String, String> newProperties = new HashMap<String, String>(root.getProperties());
+        newProperties.remove(paramName);
+        updateVCSRoot(root, newProperties, null, vcsManager);
+      }
+
+      @NotNull
+      public Collection<Parameter> getParametersCollection() {
+        final ArrayList<Parameter> result = new ArrayList<Parameter>();
+        for (Map.Entry<String, String> item : getParameters().entrySet()) {
+          result.add(new SimpleParameter(item.getKey(), item.getValue()));
+        }
+        return result;
+      }
+
+      @NotNull
+      public Map<String, String> getParameters() {
+        return root.getProperties();
+      }
+    };
+  }
+
+  private static void updateVCSRoot(final SVcsRoot root,
+                                    @Nullable final Map<String, String> newProperties,
+                                    @Nullable final String newName,
+                                    final VcsManager vcsManager) {
+    vcsManager.updateVcsRoot(root.getId(),
+                             root.getVcsName(),
+                             newName != null ? newName : root.getName(),
+                             newProperties != null ? newProperties : root.getProperties());
+  }
+
+  public static String getFieldValue(final SVcsRoot vcsRoot, final String field) {
+    if ("if".equals(field)) {
+      return String.valueOf(vcsRoot.getId());
+    } else if ("name".equals(field)) {
+      return vcsRoot.getName();
+    } else if ("vcsName".equals(field)) {
+      return vcsRoot.getVcsName();
+    } else if ("shared".equals(field)) {
+      return String.valueOf(vcsRoot.getScope().isGlobal());
+    } else if ("projectId".equals(field)) {
+      if (vcsRoot.getScope().isGlobal()){
+        return "";
+      }
+      return  vcsRoot.getScope().getOwnerProjectId();
+
+    }
+    throw new NotFoundException("Field '" + field + "' is not supported. Supported are: id, name, vcsName, shared, projectId");
+  }
+
+  public static void setFieldValue(final SVcsRoot vcsRoot, final String field, final String newValue, final DataProvider dataProvider) {
+    if ("name".equals(field)) {
+      updateVCSRoot(vcsRoot, null, newValue, dataProvider.getVcsManager());
+      return;
+    } else if ("shared".equals(field)) {
+      boolean newShared = Boolean.valueOf(newValue);
+      if (newShared){
+        dataProvider.getVcsManager().setVcsRootScope(vcsRoot.getId(), VcsRootScope.globalScope());
+        return;
+      }
+      throw new BadRequestException("Setting field 'shared' to false is not supported, set projectId instead.");
+    }else if ("projectId".equals(field)) {
+        dataProvider.getVcsManager().setVcsRootScope(vcsRoot.getId(), VcsRootScope.projectScope(dataProvider.getProject(newValue).getProjectId()));
+        return;
+    }
+
+    throw new BadRequestException("Setting field '" + field + "' is not supported. Supported are: name, shared, projectId");
   }
 }
 

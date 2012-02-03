@@ -22,6 +22,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRoots;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
@@ -62,6 +63,7 @@ public class VcsRootRequest {
   }
 
   @POST
+  @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public VcsRoot addRoot(VcsRoot vcsRootDescription) {
     checkVcsRootDescription(vcsRootDescription);
@@ -75,6 +77,7 @@ public class VcsRootRequest {
   private void checkVcsRootDescription(final VcsRoot description) {
     //might need to check for validity: not specified id, status, lastChecked attributes, etc.
     if (StringUtil.isEmpty(description.vcsName)) {
+      //todo: include list of avaialble supports here
       throw new BadRequestException("Attribute 'vcsName' must be specified when creating VCS root. Should be a valid VCS support name.");
     }
     if (description.properties == null) {
@@ -136,4 +139,60 @@ public class VcsRootRequest {
                                            @PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator) {
     return new VcsRootInstance(myDataProvider.getVcsRootInstance(vcsRootInstanceLocator), myDataProvider, myApiUrlBuilder);
   }
+
+
+  @GET
+  @Path("/{vcsRootLocator}/properties")
+  @Produces({"application/xml", "application/json"})
+  public Properties serveProperties(@PathParam("vcsRootLocator") String vcsRootLocator) {
+    final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
+    return new Properties(vcsRoot.getProperties());
+  }
+
+  @GET
+  @Path("/{vcsRootLocator}/properties/{name}")
+  @Produces("text/plain")
+  public String serveProperty(@PathParam("vcsRootLocator") String vcsRootLocator, @PathParam("name") String parameterName) {
+    final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
+    return BuildTypeUtil.getParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot, myDataProvider.getVcsManager()));
+  }
+
+  @PUT
+  @Path("/{vcsRootLocator}/properties/{name}")
+  @Consumes("text/plain")
+  public void putParameter(@PathParam("vcsRootLocator") String vcsRootLocator,
+                                    @PathParam("name") String parameterName,
+                                    String newValue) {
+    final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
+    BuildTypeUtil.changeParameter(parameterName, newValue, VcsRoot.getUserParametersHolder(vcsRoot, myDataProvider.getVcsManager()), myServiceLocator);
+    myDataProvider.getVcsManager().persistVcsRoots();
+  }
+
+  @DELETE
+  @Path("/{vcsRootLocator}/properties/{name}")
+  @Produces("text/plain")
+  public void deleteParameter(@PathParam("vcsRootLocator") String vcsRootLocator,
+                                       @PathParam("name") String parameterName) {
+    final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
+    BuildTypeUtil.deleteParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot, myDataProvider.getVcsManager()));
+    myDataProvider.getVcsManager().persistVcsRoots();
+  }
+
+  @GET
+  @Path("/{vcsRootLocator}/{field}")
+  @Produces("text/plain")
+  public String serveField(@PathParam("vcsRootLocator") String vcsRootLocator, @PathParam("field") String fieldName) {
+    final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
+    return VcsRoot.getFieldValue(vcsRoot, fieldName);
+  }
+
+  @PUT
+  @Path("/{vcsRootLocator}/{field}")
+  @Consumes("text/plain")
+  public void seteField(@PathParam("vcsRootLocator") String vcsRootLocator, @PathParam("field") String fieldName, String newValue) {
+    final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
+    VcsRoot.setFieldValue(vcsRoot, fieldName, newValue, myDataProvider);
+    myDataProvider.getVcsManager().persistVcsRoots();
+  }
+
 }

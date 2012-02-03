@@ -491,7 +491,7 @@ public class DataProvider {
     final Locator locator = new Locator(projectLocator);
 
     if (locator.isSingleValue()) {
-      // no dimensions found, assume it's a name
+      // no dimensions found, assume it's a name or id
       SProject project = myServer.getProjectManager().findProjectByName(projectLocator);
       if (project != null) {
         return project;
