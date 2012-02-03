@@ -493,11 +493,15 @@ public class DataProvider {
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's a name
       SProject project = myServer.getProjectManager().findProjectByName(projectLocator);
-      if (project == null) {
-        throw new NotFoundException(
-          "No project found by locator '" + projectLocator + "'. Project cannot be found by name '" + projectLocator + "'.");
+      if (project != null) {
+        return project;
       }
-      return project;
+      project = myServer.getProjectManager().findProjectById(projectLocator);
+      if (project != null) {
+        return project;
+      }
+      throw new NotFoundException(
+        "No project found by locator '" + projectLocator + "'. Project cannot be found by name or id '" + projectLocator + "'.");
     }
 
     String id = locator.getSingleDimensionValue("id");

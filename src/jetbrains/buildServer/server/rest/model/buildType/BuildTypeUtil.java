@@ -19,7 +19,9 @@ package jetbrains.buildServer.server.rest.model.buildType;
 import com.intellij.openapi.diagnostic.Logger;
 import java.lang.reflect.Field;
 import java.util.HashMap;
+import java.util.Map;
 import jetbrains.buildServer.BuildTypeDescriptor;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -27,6 +29,8 @@ import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeOptions;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
+import jetbrains.buildServer.serverSide.UserParametersHolder;
+import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Option;
 import jetbrains.buildServer.util.OptionSupport;
@@ -134,5 +138,43 @@ public class BuildTypeUtil {
 
   public static String getLastPathPart(final String vcsRootHref) {
     return StringUtil.lastPartOf(vcsRootHref, '/');
+  }
+
+  public static String getParameter(final String parameterName, final UserParametersHolder parametrizedEntity) {
+    if (StringUtil.isEmpty(parameterName)) {
+      throw new BadRequestException("Parameter name cannot be empty.");
+    }
+
+    Map<String, String> parameters = parametrizedEntity.getParameters();
+    if (parameters.containsKey(parameterName)) {
+      //TODO: need to process spec type to filter secure fields, may be include display value
+      //TODO: might support type spec here
+      return parameters.get(parameterName);
+    }
+    throw new NotFoundException("No parameter with name '" + parameterName + "' is found.");
+  }
+
+  public static void changeParameter(final String parameterName,
+                                     final String newValue,
+                                     final UserParametersHolder parametrizedEntity,
+                                     final ServiceLocator serviceLocator) {
+    if (StringUtil.isEmpty(parameterName)) {
+      throw new BadRequestException("Parameter name cannot be empty.");
+    }
+
+    //TODO: support type spec here
+    parametrizedEntity.addParameter(getParameterFactory(serviceLocator).createSimpleParameter(parameterName, newValue));
+  }
+
+  @NotNull
+  private static ParameterFactory getParameterFactory(final ServiceLocator serviceLocator) {
+    return serviceLocator.getSingletonService(ParameterFactory.class);
+  }
+
+  public static void deleteParameter(final String parameterName, final UserParametersHolder parametrizedEntity) {
+    if (StringUtil.isEmpty(parameterName)) {
+      throw new BadRequestException("Parameter name cannot be empty.");
+    }
+    parametrizedEntity.removeParameter(parameterName);
   }
 }

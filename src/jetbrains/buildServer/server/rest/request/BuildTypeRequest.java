@@ -44,7 +44,6 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.impl.dependency.DependencyFactoryImpl;
-import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.CheckoutRules;
 import jetbrains.buildServer.vcs.SVcsRoot;
@@ -156,17 +155,7 @@ public class BuildTypeRequest {
   @Produces("text/plain")
   public String serveBuildTypeParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("name") String parameterName) {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
-    if (StringUtil.isEmpty(parameterName)) {
-      throw new BadRequestException("Parameter name cannot be empty.");
-    }
-
-    Map<String, String> parameters = buildType.get().getParameters();
-    if (parameters.containsKey(parameterName)) {
-      //TODO: need to process spec type to filter secure fields, may be include display value
-      //TODO: might support type spec here
-      return parameters.get(parameterName);
-    }
-    throw new NotFoundException("No parameter with name '" + parameterName + "' is found.");
+    return BuildTypeUtil.getParameter(parameterName, buildType.get());
   }
 
   @PUT
@@ -176,18 +165,8 @@ public class BuildTypeRequest {
                                     @PathParam("name") String parameterName,
                                     String newValue) {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
-    if (StringUtil.isEmpty(parameterName)) {
-      throw new BadRequestException("Parameter name cannot be empty.");
-    }
-
-    //TODO: support type spec here
-    buildType.get().addParameter(getParameterFactory().createSimpleParameter(parameterName, newValue));
+    BuildTypeUtil.changeParameter(parameterName, newValue, buildType.get(), myServiceLocator);
     buildType.get().persist();
-  }
-
-  @NotNull
-  private ParameterFactory getParameterFactory() {
-    return myServiceLocator.getSingletonService(ParameterFactory.class);
   }
 
   @DELETE
@@ -196,10 +175,7 @@ public class BuildTypeRequest {
   public void deleteBuildTypeParameter(@PathParam("btLocator") String buildTypeLocator,
                                        @PathParam("name") String parameterName) {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
-    if (StringUtil.isEmpty(parameterName)) {
-      throw new BadRequestException("Parameter name cannot be empty.");
-    }
-    buildType.get().removeParameter(parameterName);
+    BuildTypeUtil.deleteParameter(parameterName, buildType.get());
     buildType.get().persist();
   }
 

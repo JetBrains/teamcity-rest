@@ -27,9 +27,11 @@ import jetbrains.buildServer.server.rest.data.BuildLocator;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.CopyOptionsDescription;
+import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
+import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.buildType.NewBuildTypeDescription;
 import jetbrains.buildServer.server.rest.model.project.NewProjectDescription;
@@ -255,6 +257,44 @@ public class ProjectRequest {
     BuildTypeTemplate buildType = myDataProvider.getBuildTemplate(myDataProvider.getProject(projectLocator), buildTypeLocator);
     return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
   }
+
+  @GET
+  @Path("/{projectLocator}/parameters")
+  @Produces({"application/xml", "application/json"})
+  public Properties serveParameters(@PathParam("projectLocator") String projectLocator) {
+    SProject project = myDataProvider.getProject(projectLocator);
+    return new Properties(project.getParameters());
+  }
+
+  @GET
+  @Path("/{projectLocator}/parameters/{name}")
+  @Produces("text/plain")
+  public String serveParameter(@PathParam("projectLocator") String projectLocator, @PathParam("name") String parameterName) {
+    SProject project = myDataProvider.getProject(projectLocator);
+    return BuildTypeUtil.getParameter(parameterName, project);
+  }
+
+  @PUT
+  @Path("/{projectLocator}/parameters/{name}")
+  @Consumes("text/plain")
+  public void putParameter(@PathParam("projectLocator") String projectLocator,
+                                    @PathParam("name") String parameterName,
+                                    String newValue) {
+    SProject project = myDataProvider.getProject(projectLocator);
+    BuildTypeUtil.changeParameter(parameterName, newValue, project, myServiceLocator);
+    project.persist();
+  }
+
+  @DELETE
+  @Path("/{projectLocator}/parameters/{name}")
+  @Produces("text/plain")
+  public void deleteParameter(@PathParam("projectLocator") String projectLocator,
+                                       @PathParam("name") String parameterName) {
+    SProject project = myDataProvider.getProject(projectLocator);
+    BuildTypeUtil.deleteParameter(parameterName, project);
+    project.persist();
+  }
+
 
   @GET
   @Path("/{projectLocator}/buildTypes/{btLocator}/{field}")

@@ -21,6 +21,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.serverSide.SProject;
 
@@ -46,6 +47,9 @@ public class Project extends ProjectRef {
   @XmlElement
   public BuildTypes templates;
 
+  @XmlElement
+  public Properties parameters;
+
   public Project() {
   }
 
@@ -56,5 +60,6 @@ public class Project extends ProjectRef {
     webUrl = dataProvider.getProjectUrl(project);
     buildTypes = BuildTypes.createFromBuildTypes(project.getBuildTypes(), dataProvider, apiUrlBuilder);
     templates = BuildTypes.createFromTemplates(project.getBuildTypeTemplates(), dataProvider, apiUrlBuilder);
+    parameters = new Properties(project.getParameters());
   }
 }
