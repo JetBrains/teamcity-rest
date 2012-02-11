@@ -224,7 +224,7 @@ public class APIController extends BaseController implements ServletContextAware
     try {
       ensureInitialized();
     } catch (Throwable throwable) {
-      reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, request.getRequestURI(), Level.ERROR);
+      reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, "Error initializing REST API", request.getRequestURI(), Level.ERROR);
       return null;
     }
 

@@ -12,7 +12,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "vcs-root-ref")
-@XmlType(name = "vcs-root-ref", propOrder = {"href", "name", "id"})
+@XmlType(name = "vcs-root-ref", propOrder = {"id", "name", "href"})
 public class VcsRootRef {
   @XmlAttribute
   public String id;

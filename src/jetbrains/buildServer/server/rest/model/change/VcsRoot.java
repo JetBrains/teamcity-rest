@@ -46,7 +46,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 16.04.2009
  */
 @XmlRootElement(name = "vcs-root")
-@XmlType(name = "vcs-root", propOrder = {"lastChecked", "status", "shared", "vcsName", "name", "id",
+@XmlType(name = "vcs-root", propOrder = { "id", "name","vcsName", "shared", "status", "lastChecked",
   "project", "properties"})
 @SuppressWarnings("PublicField")
 public class VcsRoot {

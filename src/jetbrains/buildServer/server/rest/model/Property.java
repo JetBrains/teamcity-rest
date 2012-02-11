@@ -23,7 +23,7 @@ import javax.xml.bind.annotation.XmlType;
  * @author Yegor.Yarko
  *         Date: 16.04.2009
  */
-@XmlType(propOrder = {"value", "name"})
+@XmlType(propOrder = {"name", "value"})
 public class Property {
   @XmlAttribute
   public String name;

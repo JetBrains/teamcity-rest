@@ -29,7 +29,7 @@ import jetbrains.buildServer.server.rest.model.Properties;
  *         Date: 16.11.2009
  */
 @XmlRootElement(name = "plugin")
-@XmlType(propOrder = {"loadPath", "version", "displayName", "name",
+@XmlType(propOrder = {"name", "displayName", "version", "loadPath",
   "parameters"})
 public class PluginInfo {
   ServerPluginInfo myPluginInfo;

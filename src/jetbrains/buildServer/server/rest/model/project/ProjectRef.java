@@ -27,7 +27,7 @@ import jetbrains.buildServer.serverSide.SProject;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "project-ref")
-@XmlType(name = "project-ref", propOrder = {"href", "name", "id"})
+@XmlType(name = "project-ref", propOrder = {"id", "name", "href"})
 public class ProjectRef {
   @XmlAttribute
   public String id;

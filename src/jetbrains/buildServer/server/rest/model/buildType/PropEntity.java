@@ -14,7 +14,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Author: Yegor.Yarko
  */
-@XmlType(propOrder = {"type", "name", "id",
+@XmlType(propOrder = {"id", "name", "type",
   "properties"})
 //@XmlRootElement(name = "property-described-entity")
 @SuppressWarnings("PublicField")

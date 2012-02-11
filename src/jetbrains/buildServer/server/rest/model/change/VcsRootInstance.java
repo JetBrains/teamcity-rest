@@ -30,7 +30,7 @@ import jetbrains.buildServer.serverSide.TeamCityProperties;
  *         Date: 16.04.2009
  */
 @XmlRootElement(name = "vcs-root-instance")
-@XmlType(name = "vcs-root-instance", propOrder = {"lastVersionInternal", "lastVersion",
+@XmlType(name = "vcs-root-instance", propOrder = {"lastVersion", "lastVersionInternal",
   "parent"})
 @SuppressWarnings("PublicField")
 public class VcsRootInstance extends VcsRoot {

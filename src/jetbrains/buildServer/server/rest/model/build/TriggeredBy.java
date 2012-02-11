@@ -21,7 +21,7 @@ import jetbrains.buildServer.users.SUser;
  *         Date: 13.01.12
  */
 @SuppressWarnings("PublicField")
-@XmlType(propOrder = {"rawValue", "date", "details", "type",
+@XmlType(propOrder = {"type", "details", "date", "rawValue",
 "user", "buildType", "properties"})
 public class TriggeredBy {
   @XmlAttribute

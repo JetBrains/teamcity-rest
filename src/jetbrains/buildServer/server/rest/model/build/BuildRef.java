@@ -32,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlRootElement(name = "build-ref")
 @XmlType(name = "build-ref",
-         propOrder = {"webUrl", "href", "startDate", "buildTypeId", "status", "percentageComplete", "running", "number", "id"})
+         propOrder = {"id", "number", "running", "percentageComplete", "status", "buildTypeId", "startDate", "href", "webUrl"})
 public class BuildRef {
   protected SBuild myBuild;
   private DataProvider myDataProvider;

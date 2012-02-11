@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 13.09.2010
  */
-@XmlType(propOrder = {"probablyHanging", "outdated", "currentStageText", "estimatedDuration", "elapsedTime", "progress"})
+@XmlType(propOrder = { "progress", "elapsedTime", "estimatedDuration", "currentStageText", "outdated", "probablyHanging"})
 @XmlRootElement(name = "progress-info")
 public class RunningBuildInfo {
   @NotNull

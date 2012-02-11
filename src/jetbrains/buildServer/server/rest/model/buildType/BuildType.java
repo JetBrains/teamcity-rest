@@ -35,7 +35,7 @@ import jetbrains.buildServer.serverSide.SBuildType;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "buildType")
-@XmlType(name = "buildType", propOrder = {"paused", "description", "webUrl", "templateFlag", "href", "name", "id",
+@XmlType(name = "buildType", propOrder = { "id", "name", "href", "templateFlag", "webUrl", "description", "paused",
   "project", "template", "vcsRootEntries", "builds", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
   "artifactDependencies", "agentRequirements"})
 public class BuildType {

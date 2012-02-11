@@ -48,7 +48,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 //todo: add changes
 //todo: reuse fields code from DataProvider
 @XmlRootElement(name = "build")
-@XmlType(propOrder = {"running", "pinned", "history", "personal", "webUrl", "href", "status", "number", "id",
+@XmlType(name = "build", propOrder = {"id", "number", "status", "href", "webUrl", "personal", "history", "pinned", "running",
   "runningBuildInfo", "statusText", "buildType", "startDate", "finishDate", "agent", "comment", "tags", "pinInfo", "personalBuildUser", "properties",
   "buildDependencies", "buildArtifactDependencies", "revisions", "triggered", "changes", "issues"})
 public class Build {
