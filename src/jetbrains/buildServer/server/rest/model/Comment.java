@@ -16,44 +16,45 @@
 
 package jetbrains.buildServer.server.rest.model;
 
+import java.util.Date;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
+import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
  *         Date: 21.07.2009
  */
+@XmlType
 public class Comment {
-  @NotNull private jetbrains.buildServer.serverSide.comments.Comment myBuildComment;
-  private ApiUrlBuilder myApiUrlBuilder;
+  @XmlElement(name = "user")
+  public UserRef user;
+  @XmlElement
+  public String timestamp;
+  @XmlElement
+  public String text;
 
   public Comment() {
   }
 
   public Comment(@NotNull jetbrains.buildServer.serverSide.comments.Comment buildComment, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    myBuildComment = buildComment;
-    myApiUrlBuilder = apiUrlBuilder;
+    init(buildComment.getUser(), buildComment.getTimestamp(), buildComment.getComment(), apiUrlBuilder);
   }
 
-  @XmlElement(name = "user")
-  public UserRef getUser() {
-    final jetbrains.buildServer.users.User user = myBuildComment.getUser();
-    if (user != null) {
-      return new UserRef(user, myApiUrlBuilder);
-    }
-    return null;
+  public Comment(@Nullable User user, @NotNull Date timestamp, @Nullable String commentText, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    init(user, timestamp, commentText, apiUrlBuilder);
   }
 
-  @XmlElement
-  public String getTimestamp() {
-    return Util.formatTime(myBuildComment.getTimestamp());
-  }
-
-  @XmlElement
-  public String getText() {
-    final String commentText = myBuildComment.getComment();
-    return commentText != null ? commentText : "<none>";
+  private void init(@Nullable User userP,
+                    @NotNull Date timestampP,
+                    @Nullable String commentTextP,
+                    @NotNull final ApiUrlBuilder apiUrlBuilderP) {
+    user = userP == null ? null : new UserRef(userP, apiUrlBuilderP);
+    timestamp = Util.formatTime(timestampP);
+    text = commentTextP == null ? null : commentTextP;
   }
 }

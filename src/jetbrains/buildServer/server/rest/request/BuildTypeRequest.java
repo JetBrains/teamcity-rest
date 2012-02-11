@@ -721,6 +721,13 @@ public class BuildTypeRequest {
     buildType.get().persist();
   }
 
+  @GET
+  @Path("/{btLocator}/investigations")
+  @Produces({"application/xml", "application/json"})
+  public Investigations getInvestigations(@PathParam("btLocator") String buildTypeLocator) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    return new Investigations(buildType, myDataProvider, myApiUrlBuilder);
+  }
 
   /**
    * Serves builds matching supplied condition.

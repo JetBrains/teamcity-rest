@@ -25,6 +25,7 @@ import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
+import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.server.rest.model.build.Build;
@@ -69,6 +70,8 @@ public class JAXBContextResolver implements ContextResolver<JAXBContext> {
     VcsRoot.class, VcsRoots.class, VcsRootEntry.class, VcsRootEntries.class, VcsRootInstance.class, VcsRootInstances.class, VcsRootRef.class, VcsRootInstanceRef.class,
     Group.class, Groups.class,
     Issue.class, Issues.class, IssueUsage.class, IssueUsages.class,
+    Investigation.class, Investigations.class, InvestigationScope.class,
+    Comment.class,
     PluginInfo.class, PluginInfos.class,
     Project.class, Projects.class,
     Server.class,
