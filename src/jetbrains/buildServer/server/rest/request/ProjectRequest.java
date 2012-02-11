@@ -114,11 +114,18 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/{field}")
   @Produces("text/plain")
-  public String serveProjectFiled(@PathParam("projectLocator") String projectLocator,
-                                  @PathParam("field") String fieldName) {
-    return myDataProvider.getFieldValue(myDataProvider.getProject(projectLocator), fieldName);
+  public String serveProjectFiled(@PathParam("projectLocator") String projectLocator, @PathParam("field") String fieldName) {
+    return Project.getFieldValue(myDataProvider.getProject(projectLocator), fieldName);
   }
 
+  @PUT
+  @Path("/{projectLocator}/{field}")
+  @Consumes("text/plain")
+  public void setProjectFiled(@PathParam("projectLocator") String projectLocator, @PathParam("field") String fieldName, String newValue) {
+    final SProject project = myDataProvider.getProject(projectLocator);
+    Project.setFieldValue(project, fieldName, newValue, myDataProvider);
+    project.persist();
+  }
 
   @GET
   @Path("/{projectLocator}/buildTypes")

@@ -168,18 +168,6 @@ public class DataProvider {
   }
 
   @Nullable
-  public String getFieldValue(final SProject project, final String field) {
-    if ("id".equals(field)) {
-      return project.getProjectId();
-    } else if ("description".equals(field)) {
-      return project.getDescription();
-    } else if ("name".equals(field)) {
-      return project.getName();
-    }
-    throw new NotFoundException("Field '" + field + "' is not supported.");
-  }
-
-  @Nullable
   public String getFieldValue(@NotNull final SBuild build, @Nullable final String field) {
     if ("number".equals(field)) {
       return build.getBuildNumber();
@@ -234,7 +222,7 @@ public class DataProvider {
       if (buildType == null) {
         // no dimensions found and no build type, assume it's build id
 
-        SBuild build = myServer.findBuildInstanceById(locator.getSingleValueAsLong());
+        SBuild build = myServer.findBuildInstanceById(locator.getSingleValueAsLong()); //todo: report non-number more user-friendly
         if (build == null) {
           throw new BadRequestException("Cannot find build by id '" + locator.getSingleValue() + "'.");
         }

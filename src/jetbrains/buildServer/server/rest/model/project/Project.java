@@ -21,9 +21,13 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.serverSide.SProject;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * User: Yegor Yarko
@@ -61,5 +65,33 @@ public class Project extends ProjectRef {
     buildTypes = BuildTypes.createFromBuildTypes(project.getBuildTypes(), dataProvider, apiUrlBuilder);
     templates = BuildTypes.createFromTemplates(project.getBuildTypeTemplates(), dataProvider, apiUrlBuilder);
     parameters = new Properties(project.getParameters());
+  }
+
+  @Nullable
+  public static String getFieldValue(final SProject project, final String field) {
+    if ("id".equals(field)) {
+      return project.getProjectId();
+    } else if ("description".equals(field)) {
+      return project.getDescription();
+    } else if ("name".equals(field)) {
+      return project.getName();
+    } else if ("archived".equals(field)) {
+      return String.valueOf(project.isArchived());
+    }
+    throw new NotFoundException("Field '" + field + "' is not supported.");
+  }
+
+  public static void setFieldValue(final SProject project, final String field, final String value, @NotNull final DataProvider dataProvider) {
+    if ("name".equals(field)) {
+      project.setName(value);
+      return;
+    } else if ("description".equals(field)) {
+      project.setDescription(value);
+      return;
+    } else if ("archived".equals(field)) {
+      project.setArchived(Boolean.valueOf(value), dataProvider.getCurrentUser());
+      return;
+    }
+    throw new BadRequestException("Setting field '" + field + "' is not supported. Supported are: name, description, archived");
   }
 }

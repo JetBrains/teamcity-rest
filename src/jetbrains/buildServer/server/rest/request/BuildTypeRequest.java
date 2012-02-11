@@ -244,7 +244,7 @@ public class BuildTypeRequest {
   @PUT
   @Path("/{btLocator}/template")
   @Consumes("text/plain")
-  public void setBuildTypeField(@PathParam("btLocator") String buildTypeLocator, String templateLocator) {
+  public void getTemplateAssociation(@PathParam("btLocator") String buildTypeLocator, String templateLocator) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     BuildTypeTemplate template = myDataProvider.getBuildTemplate(null, templateLocator);
     buildType.attachToTemplate(template, false);
@@ -253,7 +253,7 @@ public class BuildTypeRequest {
 
   @DELETE
   @Path("/{btLocator}/template")
-  public void setBuildTypeField(@PathParam("btLocator") String buildTypeLocator) {
+  public void deleteTemplateAssociation(@PathParam("btLocator") String buildTypeLocator) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     buildType.detachFromTemplate();
     buildType.persist();
