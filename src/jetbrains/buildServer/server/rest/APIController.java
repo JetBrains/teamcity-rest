@@ -287,11 +287,16 @@ public class APIController extends BaseController implements ServletContextAware
                                              @Nullable final Throwable e,
                                              @Nullable final String message,
                                              @NotNull String requestUri, final Level level) throws IOException {
-    response.setStatus(statusCode);
     final String statusDescription = Integer.toString(statusCode);
-    response.setContentType("text/plain");
-    response.getWriter().print("Error has occurred during request processing (" + statusDescription +
-                               ").\nError: " + ExceptionMapperUtil.getMessageWithCauses(e) + (message != null ? "\n" + message : ""));
+    try {
+      response.setStatus(statusCode);
+      response.setContentType("text/plain");
+      response.getWriter().print("Error has occurred during request processing (" + statusDescription +
+                                 ").\nError: " + ExceptionMapperUtil.getMessageWithCauses(e) + (message != null ? "\n" + message : ""));
+    } catch (Throwable nestedException) {
+      LOG.warn("Error while adding error description into response: " + nestedException.getMessage());
+      LOG.debug("Error while adding error description into response: " + nestedException.getMessage(), nestedException);
+    }
     final String logMessage = "Error" + (message != null ? " '" + message + "'" : "") + " for request " + requestUri +
                               ". Sending '" + statusDescription + "' error in response: " + (e != null ? e.toString() : "");
     if (level.isGreaterOrEqual(Level.ERROR)) {

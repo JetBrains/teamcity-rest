@@ -40,7 +40,7 @@ public class BuildTypeRef {
   public BuildTypeRef() {
   }
 
-  public BuildTypeRef(SBuildType buildType, @NotNull final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
+  public BuildTypeRef(@NotNull SBuildType buildType, @NotNull final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
     myBuildType = new BuildTypeOrTemplate(buildType);
     myDataProvider = dataProvider;
     myApiUrlBuilder = apiUrlBuilder;
