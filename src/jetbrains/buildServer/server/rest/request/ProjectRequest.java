@@ -178,6 +178,7 @@ public class ProjectRequest {
   private CopyOptions getCopyOptions(@NotNull final CopyOptionsDescription description) {
     final CopyOptions result = new CopyOptions();
     if (toBoolean(description.copyAllAssociatedSettings)) {
+      //todo: need to use some API to set all necessary options. e.g. see TW-16948, TW-16934
       result.addOption(CopyOptions.Option.COPY_AGENT_POOL_ASSOCIATIONS);
       result.addOption(CopyOptions.Option.COPY_AGENT_RESTRICTIONS);
       result.addOption(CopyOptions.Option.COPY_MUTED_TESTS);

@@ -52,6 +52,7 @@ public class ChangeRequest {
     return API_CHANGES_URL + "?build=id:" + build.getBuildId();
   }
 
+  //todo: use locator here, like for builds with limitLookup, etc.
   @GET
   @Produces({"application/xml", "application/json"})
   public Changes serveChanges(@QueryParam("project") String projectLocator,

@@ -344,6 +344,8 @@ public class BuildRequest {
     tags.add(tagName);
     build.setTags(SessionUser.getUser(request), tags);
   }
+//todo: add GET (true/false) and DELETE, amy be PUT (true/false) for a single tag
+
 
   /**
    * Fetches current build pinned status.
