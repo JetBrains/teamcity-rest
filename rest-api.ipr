@@ -341,12 +341,8 @@
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/annotations.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/openapi.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/util.jar!/" />
-        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.context-3.0.5.RELEASE.jar!/" />
-        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.web.servlet-3.0.5.RELEASE.jar!/" />
-        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.web-3.0.5.RELEASE.jar!/" />
-        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.core-3.0.5.RELEASE.jar!/" />
-        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.context.support-3.0.5.RELEASE.jar!/" />
-        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.beans-3.0.5.RELEASE.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/spring.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/spring-webmvc.jar!/" />
       </CLASSES>
       <JAVADOC />
       <SOURCES />
