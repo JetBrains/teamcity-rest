@@ -129,7 +129,7 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
       return build.getContainingChanges();
     }
     final List<SDependencyModification> chainChanges =
-      ((BuildPromotionEx)build).getChainChanges(SelectPrevBuildPolicy.SINCE_FIRST_BUILD, false);
+      ((BuildPromotionEx)build.getBuildPromotion()).getChainChanges(SelectPrevBuildPolicy.SINCE_LAST_BUILD, false);
     return CollectionsUtil.convertCollection(chainChanges, new Converter<SVcsModification, SDependencyModification>() {
       public SVcsModification createFrom(@NotNull final SDependencyModification source) {
         return source.asVcsModification();
