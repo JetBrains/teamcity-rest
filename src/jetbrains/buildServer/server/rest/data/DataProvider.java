@@ -43,6 +43,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
+import jetbrains.buildServer.serverSide.impl.BuildChainChangesCollector;
 import jetbrains.buildServer.serverSide.statistics.ValueProviderRegistry;
 import jetbrains.buildServer.serverSide.statistics.build.BuildDataStorage;
 import jetbrains.buildServer.users.SUser;
@@ -78,6 +79,7 @@ public class DataProvider {
   @NotNull private final ValueProviderRegistry myValueProviderRegistry;
   @NotNull private final BuildDataStorage myBuildDataStorage;
   private BuildPromotionManager myPromotionManager;
+  private BuildChainChangesCollector myBuildChainChangesCollector;
 
   public DataProvider(@NotNull final SBuildServer myServer,
                       @NotNull final BuildHistory myBuildHistory,
@@ -95,7 +97,8 @@ public class DataProvider {
                       @NotNull final RunningBuildsManager runningBuildsManager,
                       @NotNull final ValueProviderRegistry valueProviderRegistry,
                       @NotNull final BuildDataStorage buildDataStorage,
-                      @NotNull final BuildPromotionManager promotionManager
+                      @NotNull final BuildPromotionManager promotionManager,
+                      @NotNull final BuildChainChangesCollector buildChainChangesCollector
                       ) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
@@ -114,6 +117,7 @@ public class DataProvider {
     myValueProviderRegistry = valueProviderRegistry;
     myBuildDataStorage = buildDataStorage;
     myPromotionManager = promotionManager;
+    myBuildChainChangesCollector = buildChainChangesCollector;
   }
 
   public Builds getBuildsForRequest(final SBuildType buildType,
@@ -1024,7 +1028,7 @@ public class DataProvider {
 
   @NotNull
   public List<SVcsModification> getModifications(ChangesFilter changesFilter) {
-    return changesFilter.getMatchingChanges(myVcsManager.getVcsHistory());
+    return changesFilter.getMatchingChanges(myVcsManager.getVcsHistory(), myBuildChainChangesCollector);
   }
 
   @Nullable

@@ -19,12 +19,12 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.vcs.SVcsModification;
-import jetbrains.buildServer.vcs.VcsModificationHistory;
-import jetbrains.buildServer.vcs.VcsRootInstance;
+import java.util.Map;
+import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.impl.BuildChainChangesCollector;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
+import jetbrains.buildServer.vcs.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -33,6 +33,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 09.09.2009
  */
 public class ChangesFilter extends AbstractFilter<SVcsModification> {
+  public static final String IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION = "rest.ignoreChangesFromDependenciesOption";
   @Nullable private SProject myProject;
   @Nullable private SBuildType myBuildType;
   @Nullable private SBuild myBuild;
@@ -78,14 +79,15 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
 
   //todo: BuiltType is ignored if VCS root is specified; sometimes we return filtered changes by checkout rules and sometimes not
   //todo: sometimes with panding sometimes not?
-  public List<SVcsModification> getMatchingChanges(@NotNull final VcsModificationHistory vcsHistory) {
+  public List<SVcsModification> getMatchingChanges(@NotNull final VcsModificationHistory vcsHistory,
+                                                   final BuildChainChangesCollector buildChainChangesCollector) {
 
 
     final FilterItemProcessor<SVcsModification> filterItemProcessor = new FilterItemProcessor<SVcsModification>(this);
     if (myBuild != null) {
-      processList(myBuild.getContainingChanges(), filterItemProcessor);
+      processList(getBuildChanges(myBuild), filterItemProcessor);
     } else if (myBuildType != null) {
-      processList(vcsHistory.getAllModifications(myBuildType), filterItemProcessor);
+      processList(getBuildTypeChanges(vcsHistory, myBuildType, buildChainChangesCollector), filterItemProcessor);
     } else if (myVcsRoot != null) {
       if (mySinceChange != null) {
         processList(vcsHistory.getModificationsInRange(myVcsRoot, mySinceChange.getId(), null), filterItemProcessor);
@@ -101,6 +103,38 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
     }
 
     return filterItemProcessor.getResult();
+  }
+
+  private List<SVcsModification> getBuildTypeChanges(final VcsModificationHistory vcsHistory,
+                                                     final SBuildType buildType,
+                                                     final BuildChainChangesCollector buildChainChangesCollector) {
+    if (TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) || !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES)){
+      return vcsHistory.getAllModifications(buildType);
+    }
+    final Map<SBuild,List<SDependencyModification>> chainModifications = buildChainChangesCollector.getChainModifications(buildType);
+
+    final ArrayList<SVcsModification> result = new ArrayList<SVcsModification>();
+    for (Map.Entry<SBuild, List<SDependencyModification>> sBuildListEntry : chainModifications.entrySet()) {
+      result.addAll(CollectionsUtil.convertCollection(sBuildListEntry.getValue(), new Converter<SVcsModification, SDependencyModification>() {
+        public SVcsModification createFrom(@NotNull final SDependencyModification source) {
+          return source.asVcsModification();
+        }
+      }));
+    }
+    return result;
+  }
+
+  private static List<SVcsModification> getBuildChanges(final SBuild build) {
+    if (TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) || !build.getBuildType().getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES)) {
+      return build.getContainingChanges();
+    }
+    final List<SDependencyModification> chainChanges =
+      ((BuildPromotionEx)build).getChainChanges(SelectPrevBuildPolicy.SINCE_FIRST_BUILD, false);
+    return CollectionsUtil.convertCollection(chainChanges, new Converter<SVcsModification, SDependencyModification>() {
+      public SVcsModification createFrom(@NotNull final SDependencyModification source) {
+        return source.asVcsModification();
+      }
+    });
   }
 
   static private List<SVcsModification> getProjectChanges(@NotNull final VcsModificationHistory vcsHistory,
