@@ -34,7 +34,7 @@ import jetbrains.buildServer.serverSide.maintenance.BackupProcessManager;
 import jetbrains.buildServer.serverSide.maintenance.MaintenanceProcessAlreadyRunningException;
 import jetbrains.buildServer.util.StringUtil;
 
-/**
+/*
  * User: Yegor Yarko
  * Date: 11.04.2009
  */

@@ -59,7 +59,7 @@ import jetbrains.buildServer.vcs.VcsManager;
 import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
 
-/**
+/*
  * User: Yegor Yarko
  * Date: 11.04.2009
  */

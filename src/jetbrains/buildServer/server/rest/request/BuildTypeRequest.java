@@ -49,7 +49,7 @@ import jetbrains.buildServer.vcs.CheckoutRules;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 
-/**
+/*
  * User: Yegor Yarko
  * Date: 22.03.2009
  */

@@ -43,7 +43,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
-/**
+/*
  * User: Yegor Yarko
  * Date: 11.04.2009
  */
