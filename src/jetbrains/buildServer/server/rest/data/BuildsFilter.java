@@ -150,7 +150,7 @@ public class BuildsFilter{
     }
     if (myUser != null) {
       final SUser userWhoTriggered = build.getTriggeredBy().getUser();
-      if (!build.getTriggeredBy().isTriggeredByUser() || (userWhoTriggered != null && myUser.getId() != userWhoTriggered.getId())) {
+      if (!build.getTriggeredBy().isTriggeredByUser() || (userWhoTriggered == null) || (myUser.getId() != userWhoTriggered.getId())) {
         return false;
       }
     }
