@@ -111,11 +111,11 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
     if (TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) || !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES)){
       return vcsHistory.getAllModifications(buildType);
     }
-    final Map<SBuild,List<SDependencyModification>> chainModifications = buildChainChangesCollector.getChainModifications(buildType);
+    final Map<BuildPromotion,List<SDependencyModification>> chainModifications = buildChainChangesCollector.getChainModifications(buildType);
 
     final ArrayList<SVcsModification> result = new ArrayList<SVcsModification>();
-    for (Map.Entry<SBuild, List<SDependencyModification>> sBuildListEntry : chainModifications.entrySet()) {
-      result.addAll(CollectionsUtil.convertCollection(sBuildListEntry.getValue(), new Converter<SVcsModification, SDependencyModification>() {
+    for (List<SDependencyModification> modificationsList : chainModifications.values()) {
+      result.addAll(CollectionsUtil.convertCollection(modificationsList, new Converter<SVcsModification, SDependencyModification>() {
         public SVcsModification createFrom(@NotNull final SDependencyModification source) {
           return source.asVcsModification();
         }
