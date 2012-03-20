@@ -8,7 +8,6 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
-import jetbrains.buildServer.serverSide.ResponsibilityInfo;
 import jetbrains.buildServer.serverSide.SBuildType;
 import org.jetbrains.annotations.NotNull;
 
@@ -37,16 +36,16 @@ public class Investigation {
   }
 
   public Investigation(final @NotNull SBuildType buildType, final @NotNull DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
-    final ResponsibilityInfo responsibilityInfo = buildType.getResponsibilityInfo();
-    final ResponsibilityEntry.State stateOjbect = responsibilityInfo.getState();
+    final ResponsibilityEntry responsibilityEntry = buildType.getResponsibilityInfo();
+    final ResponsibilityEntry.State stateOjbect = responsibilityEntry.getState();
     state = stateOjbect.name();
     if (stateOjbect.equals(ResponsibilityEntry.State.NONE)){
       return;
     }
     id = buildType.getBuildTypeId();
     scope = new InvestigationScope(buildType, dataProvider, apiUrlBuilder);
-    responsible = new UserRef(responsibilityInfo.getResponsibleUser(), apiUrlBuilder);
+    responsible = new UserRef(responsibilityEntry.getResponsibleUser(), apiUrlBuilder);
 
-    assignment = new Comment(responsibilityInfo.getReporterUser(), responsibilityInfo.getTimestamp(), responsibilityInfo.getComment(), apiUrlBuilder);
+    assignment = new Comment(responsibilityEntry.getReporterUser(), responsibilityEntry.getTimestamp(), responsibilityEntry.getComment(), apiUrlBuilder);
   }
 }
