@@ -145,7 +145,7 @@ public class BuildsFilter{
     if (!isIncludedByBooleanFilter(myPinned, build.isPinned())) {
       return false;
     }
-    if (myTags != null && !build.getTags().containsAll(myTags)) {
+    if (myTags != null && myTags.size() > 0 && !build.getTags().containsAll(myTags)) {
       return false;
     }
     if (myUser != null) {
