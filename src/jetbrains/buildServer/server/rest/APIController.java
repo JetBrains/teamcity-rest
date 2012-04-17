@@ -207,7 +207,7 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   static final boolean ENABLE_DISABLING_CHECK = TeamCityProperties.getBoolean("rest.enable.disabling.check");
-  protected ModelAndView doHandle(final HttpServletRequest request, final HttpServletResponse response) throws Exception {
+  protected ModelAndView doHandle(@NotNull final HttpServletRequest request, @NotNull final HttpServletResponse response) throws Exception {
     if (ENABLE_DISABLING_CHECK){ //necessary until TW-16750 is fixed
       if (TeamCityProperties.getBoolean("rest.disable")){
         reportRestErrorResponse(response, HttpServletResponse.SC_NOT_IMPLEMENTED, null,
