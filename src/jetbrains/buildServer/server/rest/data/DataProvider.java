@@ -43,7 +43,6 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
-import jetbrains.buildServer.serverSide.impl.BuildChainChangesCollector;
 import jetbrains.buildServer.serverSide.statistics.ValueProviderRegistry;
 import jetbrains.buildServer.serverSide.statistics.build.BuildDataStorage;
 import jetbrains.buildServer.users.SUser;
@@ -78,8 +77,7 @@ public class DataProvider {
   @NotNull private final RunningBuildsManager myRunningBuildsManager;
   @NotNull private final ValueProviderRegistry myValueProviderRegistry;
   @NotNull private final BuildDataStorage myBuildDataStorage;
-  private BuildPromotionManager myPromotionManager;
-  private BuildChainChangesCollector myBuildChainChangesCollector;
+  @NotNull private final BuildPromotionManager myPromotionManager;
 
   public DataProvider(@NotNull final SBuildServer myServer,
                       @NotNull final BuildHistory myBuildHistory,
@@ -97,9 +95,8 @@ public class DataProvider {
                       @NotNull final RunningBuildsManager runningBuildsManager,
                       @NotNull final ValueProviderRegistry valueProviderRegistry,
                       @NotNull final BuildDataStorage buildDataStorage,
-                      @NotNull final BuildPromotionManager promotionManager,
-                      @NotNull final BuildChainChangesCollector buildChainChangesCollector
-                      ) {
+                      @NotNull final BuildPromotionManager promotionManager
+  ) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
     this.myUserModel = userModel;
@@ -117,7 +114,6 @@ public class DataProvider {
     myValueProviderRegistry = valueProviderRegistry;
     myBuildDataStorage = buildDataStorage;
     myPromotionManager = promotionManager;
-    myBuildChainChangesCollector = buildChainChangesCollector;
   }
 
   public Builds getBuildsForRequest(final SBuildType buildType,
@@ -1028,7 +1024,7 @@ public class DataProvider {
 
   @NotNull
   public List<SVcsModification> getModifications(ChangesFilter changesFilter) {
-    return changesFilter.getMatchingChanges(myVcsManager.getVcsHistory(), myBuildChainChangesCollector);
+    return changesFilter.getMatchingChanges(myVcsManager.getVcsHistory());
   }
 
   @Nullable
