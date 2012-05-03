@@ -528,6 +528,8 @@ public class DataProvider {
   }
   
 
+
+
   /**
    * @param project project to search build type in. Can be 'null' to search in all the build types on the server.
    * @param name    name of the build type to search for.
@@ -538,13 +540,17 @@ public class DataProvider {
   @NotNull
   public BuildTypeOrTemplate findBuildTypeByName(@Nullable final SProject fixedProject, @NotNull final String name) {
     if (fixedProject != null) {
-      return findBuildTypeOrTemplateByName(fixedProject, name);
+      final BuildTypeOrTemplate result = getBuildTypeOrTemplateByName(fixedProject, name);
+      if (result != null){
+        return result;
+      }
+      throw new NotFoundException("No build type or template is found by name '" + name + "' in project '" + fixedProject.getName() +"'.");
     }
 
     final List<SProject> projects = myServer.getProjectManager().getProjects();
     BuildTypeOrTemplate firstFound = null;
     for (SProject project : projects) {
-      final BuildTypeOrTemplate found = findBuildTypeOrTemplateByName(project, name);
+      final BuildTypeOrTemplate found = getBuildTypeOrTemplateByName(project, name);
       if (found != null) {
         if (firstFound != null) {
           throw new BadRequestException("Several matching build types/templates found for name '" + name + "'.");
@@ -558,7 +564,8 @@ public class DataProvider {
     throw new NotFoundException("No build type or template is found by name '" + name + "'.");
   }
 
-  private BuildTypeOrTemplate findBuildTypeOrTemplateByName(final SProject project, final String name) {
+  @Nullable
+  private BuildTypeOrTemplate getBuildTypeOrTemplateByName(@NotNull final SProject project, @NotNull final String name) {
     final SBuildType buildType = project.findBuildTypeByName(name);
     if (buildType != null) {
       return new BuildTypeOrTemplate(buildType);
@@ -568,7 +575,7 @@ public class DataProvider {
     if (buildTypeTemplate != null) {
       return new BuildTypeOrTemplate(buildTypeTemplate);
     }
-    throw new NotFoundException("No build type or template is found by name '" + name + "' in project " + project.getName() + ".");
+    return null;
   }
 
   /**
