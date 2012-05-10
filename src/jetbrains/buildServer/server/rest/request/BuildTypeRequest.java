@@ -93,7 +93,7 @@ public class BuildTypeRequest {
   }
 
   /**
-   * Serves build configuraiton or templates according to the locator.
+   * Serves build configuration or templates according to the locator.
    */
   @GET
   @Path("/{btLocator}")
@@ -618,7 +618,7 @@ public class BuildTypeRequest {
 
   /**
    * Creates new trigger. 'id' attribute is ignored in the submitted descriptor.
-   * Reports error if new trigger cannot be created (e.g. only single trigger of the type is allowed for a build configuraiton).
+   * Reports error if new trigger cannot be created (e.g. only single trigger of the type is allowed for a build configuration).
    */
   @POST
   @Path("/{btLocator}/triggers")

@@ -121,7 +121,7 @@ public class BuildType {
   }
 
   /**
-   * Link to builds of this build configuraiton. Is not present for templates.
+   * Link to builds of this build configuration. Is not present for templates.
    * @return
    */
   @XmlElement(name = "builds")

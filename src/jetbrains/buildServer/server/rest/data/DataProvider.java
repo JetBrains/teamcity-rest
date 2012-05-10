@@ -266,7 +266,7 @@ public class DataProvider {
         }
         return build;
       }else{
-        throw new NotFoundException("Build number is specified without build configuraiton. Cannot find build by build number only.");
+        throw new NotFoundException("Build number is specified without build configuration. Cannot find build by build number only.");
       }
     }
     {
