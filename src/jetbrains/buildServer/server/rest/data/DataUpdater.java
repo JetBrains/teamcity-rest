@@ -18,12 +18,11 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.HashMap;
 import java.util.Map;
-import jetbrains.buildServer.groups.SUserGroup;
-import jetbrains.buildServer.groups.UserGroup;
-import jetbrains.buildServer.groups.UserGroupManager;
+import jetbrains.buildServer.groups.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Property;
+import jetbrains.buildServer.server.rest.model.group.Group;
 import jetbrains.buildServer.server.rest.model.group.GroupRef;
 import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
@@ -101,6 +100,37 @@ public class DataUpdater {
     if (submittedPassword != null) {
       user.setPassword(submittedPassword);
     }
+  }
+
+  public SUserGroup createUserGroup(final Group groupDescription) {
+    myDataProvider.checkGlobalPermission(jetbrains.buildServer.serverSide.auth.Permission.CREATE_USERGROUP);
+    if (groupDescription.childGroups != null || groupDescription.parentGroups != null || groupDescription.users != null ||
+        groupDescription.roleAssignments != null) {
+      //href is also ignored but not reported...
+      throw new BadRequestException("Only 'key', 'name' and 'description' attributtes are supported when creating user groups.");
+    }
+    if (StringUtil.isEmpty(groupDescription.key)) {
+      throw new BadRequestException("Attribbute 'key' must not be empty when creating group.");
+    }
+    if (StringUtil.isEmpty(groupDescription.name)) {
+      throw new BadRequestException("Attribbute 'name' must not be empty when creating group.");
+    }
+    SUserGroup resultingGroup;
+    try {
+      resultingGroup = myGroupManager.createUserGroup(groupDescription.key, groupDescription.name,
+                                                      groupDescription.description != null ? groupDescription.description : "");
+    } catch (DuplicateKeyException e) {
+      throw new BadRequestException(
+        "Cannot create group as group with key '" + groupDescription.key + "': group with the same key already exists");
+    } catch (DuplicateNameException e) {
+      throw new BadRequestException(
+        "Cannot create group as group with name '" + groupDescription.name + "': group with the same name already exists");
+    }
+    return resultingGroup;
+  }
+
+  public void deleteUserGroup(final SUserGroup group) {
+    myGroupManager.deleteUserGroup(group);
   }
 
   private void addGroups(final SUser user, final Groups groups) {

@@ -22,6 +22,7 @@ import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.DataUpdater;
 import jetbrains.buildServer.server.rest.model.group.Group;
 import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
@@ -38,6 +39,8 @@ import jetbrains.buildServer.serverSide.auth.RoleScope;
 public class GroupRequest {
   @Context
   private DataProvider myDataProvider;
+  @Context
+  private DataUpdater myDataUpdater;
   @Context
   private ApiUrlBuilder myApiUrlBuilder;
 
@@ -59,11 +62,25 @@ public class GroupRequest {
     return new Groups(myDataProvider.getAllGroups(), myApiUrlBuilder);
   }
 
+  @POST
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public Group addGroup(Group description) {
+    SUserGroup group = myDataUpdater.createUserGroup(description);
+    return new Group(group, myApiUrlBuilder);
+  }
+
   @GET
   @Path("/{groupLocator}")
   @Produces({"application/xml", "application/json"})
   public Group serveGroup(@PathParam("groupLocator") String groupLocator) {
     return new Group(myDataProvider.getGroup(groupLocator), myApiUrlBuilder);
+  }
+
+  @DELETE
+  @Path("/{groupLocator}")
+  public void deleteGroup(@PathParam("groupLocator") String groupLocator) {
+    myDataUpdater.deleteUserGroup(myDataProvider.getGroup(groupLocator));
   }
 
   @GET
