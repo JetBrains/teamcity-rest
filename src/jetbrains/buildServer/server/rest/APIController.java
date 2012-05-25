@@ -238,7 +238,7 @@ public class APIController extends BaseController implements ServletContextAware
           synchronized (this) {
             Thread.sleep(10000); //to prevent bruteforcing
           }
-          reportRestErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, null, "Wrong authToken specified", request.getRequestURI(),
+          reportRestErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, null, "Wrong authToken specified", request.getRequestURI(),
                                   Level.INFO);
           return null;
         }
