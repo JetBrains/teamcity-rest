@@ -302,10 +302,9 @@ public class DataProvider {
     if (filteredBuilds.size() == 1){
       return filteredBuilds.get(0);
     }
+    //todo: check for unknown dimension names in all the returns
 
-    //todo: check for unknown dimension names
-
-    throw new NotFoundException("Build locator '" + buildLocator + "' is not supported (" + filteredBuilds.size() + " builds found)");
+    throw new BadRequestException("Build locator '" + buildLocator + "' is not supported (" + filteredBuilds.size() + " builds found)");
   }
 
   //todo: use this whenever possible
@@ -313,7 +312,17 @@ public class DataProvider {
     final Set<String> unusedDimensions = locator.getUnusedDimensions();
     if (unusedDimensions.size() > 0){
       if (TeamCityProperties.getBooleanOrTrue("rest.report.locator.errors")){
-        throw new BadRequestException("Locator dimensions " + unusedDimensions + " are unknown.");
+        String message;
+        if (unusedDimensions.size() > 1){
+          message = "Locator dimensions " + unusedDimensions + " are unknown.";
+        }else{
+          if (!unusedDimensions.contains(Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME)){
+            message = "Locator dimension " + unusedDimensions + " is unknown.";
+          }else{
+            message = "Single value locator is not supported here.";
+          }
+        }
+        throw new BadRequestException(message);
       }else{
         LOG.warn("Some supplied locator dimensions are unknown: " + unusedDimensions);
       }

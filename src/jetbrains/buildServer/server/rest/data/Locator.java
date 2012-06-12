@@ -2,6 +2,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.util.MultiValuesMap;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -29,6 +30,7 @@ public class Locator {
   private static final String DIMENSIONS_DELIMITER = ",";
   private static final String DIMENSION_COMPLEX_VALUE_START_DELIMITER = "(";
   private static final String DIMENSION_COMPLEX_VALUE_END_DELIMITER = ")";
+  public static final String LOCATOR_SINGLE_VALUE_UNUSED_NAME = "locator_single_value";
 
   private final MultiValuesMap<String, String> myDimensions;
   private final String mySingleValue;
@@ -218,6 +220,9 @@ public class Locator {
    */
   @NotNull
   public Set<String> getUnusedDimensions() {
-    return myUnusedDimensions;
+    if (!isSingleValue()){
+      return myUnusedDimensions;
+    }
+    return Collections.singleton(LOCATOR_SINGLE_VALUE_UNUSED_NAME);
   }
 }
