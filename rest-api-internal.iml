@@ -46,6 +46,7 @@
           <root url="jar://$MODULE_DIR$/lib/jsr311-api-1.1.1.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jersey-spring-1.11.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jersey-servlet-1.11.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jersey-multipart-1.11.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
@@ -61,6 +62,7 @@
           <root url="jar://$MODULE_DIR$/lib/src/jersey-spring-1.11-sources.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/src/jsr311-api-1.1.1-sources.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/src/jersey-servlet-1.11-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jersey-multipart-1.11-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>

@@ -124,6 +124,7 @@
     <pathelement location="${basedir}/lib/asm-3.1.jar"/>
     <pathelement location="${basedir}/lib/jersey-core-1.11.jar"/>
     <pathelement location="${basedir}/lib/jersey-json-1.11.jar"/>
+    <pathelement location="${basedir}/lib/jersey-multipart-1.11.jar"/>
     <pathelement location="${basedir}/lib/jersey-server-1.11.jar"/>
     <pathelement location="${basedir}/lib/jersey-servlet-1.11.jar"/>
     <pathelement location="${basedir}/lib/jersey-spring-1.11.jar"/>
@@ -149,6 +150,7 @@
     <pathelement location="${basedir}/lib/asm-3.1.jar"/>
     <pathelement location="${basedir}/lib/jersey-core-1.11.jar"/>
     <pathelement location="${basedir}/lib/jersey-json-1.11.jar"/>
+    <pathelement location="${basedir}/lib/jersey-multipart-1.11.jar"/>
     <pathelement location="${basedir}/lib/jersey-server-1.11.jar"/>
     <pathelement location="${basedir}/lib/jersey-servlet-1.11.jar"/>
     <pathelement location="${basedir}/lib/jersey-spring-1.11.jar"/>
@@ -174,6 +176,7 @@
     <pathelement location="${basedir}/lib/asm-3.1.jar"/>
     <pathelement location="${basedir}/lib/jersey-core-1.11.jar"/>
     <pathelement location="${basedir}/lib/jersey-json-1.11.jar"/>
+    <pathelement location="${basedir}/lib/jersey-multipart-1.11.jar"/>
     <pathelement location="${basedir}/lib/jersey-server-1.11.jar"/>
     <pathelement location="${basedir}/lib/jersey-servlet-1.11.jar"/>
     <pathelement location="${basedir}/lib/jersey-spring-1.11.jar"/>
@@ -201,6 +204,7 @@
     <pathelement location="${basedir}/lib/asm-3.1.jar"/>
     <pathelement location="${basedir}/lib/jersey-core-1.11.jar"/>
     <pathelement location="${basedir}/lib/jersey-json-1.11.jar"/>
+    <pathelement location="${basedir}/lib/jersey-multipart-1.11.jar"/>
     <pathelement location="${basedir}/lib/jersey-server-1.11.jar"/>
     <pathelement location="${basedir}/lib/jersey-servlet-1.11.jar"/>
     <pathelement location="${basedir}/lib/jersey-spring-1.11.jar"/>

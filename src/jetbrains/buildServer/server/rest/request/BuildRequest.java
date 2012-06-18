@@ -16,16 +16,13 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import com.sun.jersey.multipart.file.DefaultMediaTypePredictor;
+import java.io.*;
 import java.util.*;
+import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
-import javax.ws.rs.core.UriInfo;
+import javax.ws.rs.core.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildLocator;
@@ -41,16 +38,21 @@ import jetbrains.buildServer.server.rest.model.build.Tags;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
+import jetbrains.buildServer.serverSide.SecurityContextEx;
+import jetbrains.buildServer.serverSide.artifacts.BuildArtifact;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactHolder;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifacts;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactsViewMode;
+import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.statistics.ValueProvider;
 import jetbrains.buildServer.serverSide.statistics.build.BuildValue;
 import jetbrains.buildServer.serverSide.statistics.build.CompositeVTB;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.TCStreamUtil;
@@ -157,26 +159,19 @@ public class BuildRequest {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
     final BuildArtifacts artifacts = build.getArtifacts(BuildArtifactsViewMode.VIEW_ALL);
     final BuildArtifactHolder artifact = artifacts.findArtifact(fileName);
-    if (!artifact.isAvailable() || artifact.getArtifact().isDirectory()){
+    final BuildArtifact buildArtifact = artifact.getArtifact();
+    if (!artifact.isAvailable() || buildArtifact.isDirectory()) {
       throw new NotFoundException("No artifact found. Relative path: '" + fileName + "'");
     }
     if (!artifact.isAccessible()) {
       throw new AuthorizationFailedException(
-        "Artifaact is not accessible with current user permissions. Relative path: '" + fileName + "'");
+        "Artifact is not accessible with current user permissions. Relative path: '" + fileName + "'");
     }
-    return new StreamingOutput() {
-      public void write(final OutputStream output) throws IOException, WebApplicationException {
-        InputStream inputStream = null;
-        try {
-          inputStream = artifact.getArtifact().getInputStream();
-          TCStreamUtil.writeBinary(inputStream, output);
-        } catch (IOException e) {
-          throw new OperationException("Error while retrieving file '" + artifact.getRelativePath() + "': " + e.getMessage(), e);
-        } finally {
-          FileUtil.close(inputStream);
-        }
-      }
-    };
+    try {
+      return getStreamingOutput(buildArtifact.getInputStream(), buildArtifact.getRelativePath());
+    } catch (IOException e) {
+      throw new OperationException("Error opening artifact file '" + buildArtifact.getRelativePath() + "': " + e.getMessage(), e);
+    }
   }
 
   @GET
@@ -426,5 +421,110 @@ public class BuildRequest {
 
   private boolean isPersonalUserBuild(final SBuild build, @NotNull final SUser user) {
     return user.equals(build.getOwner());
+  }
+
+  // Note: authentication for this request is disabled in APIController configuration
+  @GET
+  @Path("/{buildLocator}/statusIcon")
+  public Response serveBuildStatusIcon(@PathParam("buildLocator") final String buildLocator) {
+    //todo: return something appropriate when in maintenance
+    //todo: separate icons for no access, no build found, etc.
+
+    final SBuild build = checkAndGetBuild(buildLocator);
+    String resultIconFileName = getRealFileName(getIconFileName(build));
+
+    final File resultIconFile = new File(resultIconFileName);
+    final StreamingOutput streamingOutput;
+    try {
+      streamingOutput = getStreamingOutput(new FileInputStream(resultIconFile), resultIconFile.getName());
+    } catch (FileNotFoundException e) {
+      throw new NotFoundException("Error finding file '" + resultIconFile.getName() + "' (installation corrupted?): " + e.getMessage());
+    }
+    final MediaType mediaType = getMediaType(resultIconFileName);
+    return Response.ok(streamingOutput, mediaType).header("Cache-Control", "no-cache").build();
+    //todo: consider using ETag for better caching/cache resets, might also use "Expires" header
+  }
+
+  private MediaType getMediaType(final String resultIconFileName) {
+    //todo: match with artifacts default logic, consider using WebUtil.getMimeType(request,)
+    return DefaultMediaTypePredictor.CommonMediaTypes.getMediaTypeFromFileName(resultIconFileName);
+  }
+
+  private String getIconFileName(final SBuild build) {
+    if (!build.isFinished()){
+      return "/img/buildStates/buildGray.gif";
+    }
+    if (build.getStatusDescriptor().isSuccessful()){
+      return "/img/buildStates/buildSuccessful.gif";
+    }
+    if (build.isInternalError()){
+      return "/img/buildStates/redSign.gif";
+    }
+    if (build.getCanceledInfo() != null ){
+      return "/img/buildStates/cancelled.gif";
+    }
+    return "/img/buildStates/buildFailed.gif";
+  }
+
+  private SBuild checkAndGetBuild(final String buildLocator) {
+    final SBuild[] buildRetriever = new SBuild[1];
+
+    final SecurityContextEx securityContext = myServiceLocator.getSingletonService(SecurityContextEx.class);
+    try {
+      securityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
+        public void run() throws Throwable {
+          buildRetriever[0] = myDataProvider.getBuild(null, buildLocator);
+        }
+      });
+    } catch (Throwable throwable) {
+      throw new OperationException("Internal error while retrieving build: " + throwable.getMessage());
+    }
+
+    final SBuild build = buildRetriever[0];
+
+    final SBuildType buildType = build.getBuildType();
+    if (buildType == null){
+      throw new OperationException("No build type found for build.");
+    }
+
+    if (buildType.isAllowExternalStatus()) {
+      return build;
+    }
+
+    final AuthorityHolder authorityHolder = securityContext.getAuthorityHolder();
+    //todo: how to distinguish no user from system? Might check for system to support authToken requests...
+    if (authorityHolder.getAssociatedUser() != null &&
+        authorityHolder.isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_PROJECT)) {
+      return build;
+    }
+
+    final SUser guestUser = myServiceLocator.getSingletonService(UserModel.class).getGuestUser();
+    if (myDataProvider.getServer().getLoginConfiguration().isGuestLoginAllowed() &&
+        guestUser.isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_PROJECT)) {
+      return build;
+    }
+    throw new AuthorizationFailedException("No permissions to access requested build. " +
+                                           "Either authenticate as user with appropriate permisisons, " +
+                                           "or ensure 'guest' user has appropriate permisisons " +
+                                           "or enable external status widget for the build configuation.");
+  }
+
+  private StreamingOutput getStreamingOutput(final InputStream inputStream, final String streamName) {
+    return new StreamingOutput() {
+      public void write(final OutputStream output) throws IOException, WebApplicationException {
+        try {
+          TCStreamUtil.writeBinary(inputStream, output);
+        } catch (IOException e) {
+          //todo add better processing
+          throw new OperationException("Error while retrieving file '" + streamName + "': " + e.getMessage(), e);
+        } finally {
+          FileUtil.close(inputStream);
+        }
+      }
+    };
+  }
+
+  private String getRealFileName(final String relativePath) {
+    return myServiceLocator.getSingletonService(ServletContext.class).getRealPath(relativePath);
   }
 }

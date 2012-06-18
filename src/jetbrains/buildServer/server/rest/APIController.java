@@ -30,6 +30,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import jetbrains.buildServer.ExtensionHolder;
+import jetbrains.buildServer.controllers.AuthorizationInterceptor;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
@@ -61,6 +62,7 @@ public class APIController extends BaseController implements ServletContextAware
   private final ConfigurableApplicationContext myConfigurableApplicationContext;
   private final SecurityContextEx mySecurityContext;
   private final ExtensionHolder myExtensionHolder;
+  private AuthorizationInterceptor myAuthorizationInterceptor;
 
   private final ClassLoader myClassloader;
   private String myAuthToken;
@@ -72,9 +74,11 @@ public class APIController extends BaseController implements ServletContextAware
                        final SecurityContextEx securityContext,
                        final RequestPathTransformInfo requestPathTransformInfo,
                        final ServerPluginInfo pluginDescriptor,
-                       final ExtensionHolder extensionHolder) throws ServletException {
+                       final ExtensionHolder extensionHolder,
+                       final AuthorizationInterceptor authorizationInterceptor) throws ServletException {
     super(server);
     myExtensionHolder = extensionHolder;
+    myAuthorizationInterceptor = authorizationInterceptor;
     setSupportedMethods(new String[]{METHOD_GET, METHOD_HEAD, METHOD_POST, "PUT", "OPTIONS", "DELETE"});
 
     myConfigurableApplicationContext = configurableApplicationContext;
@@ -134,6 +138,7 @@ public class APIController extends BaseController implements ServletContextAware
       for (String controllerBindPath : bindPaths) {
         LOG.debug("Binding REST API to path '" + controllerBindPath + "'");
         webControllerManager.registerController(controllerBindPath + "/**", this);
+        myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + "/builds/*/statusIcon");
       }
     } catch (Exception e) {
       LOG.error("Error registering controller", e);
