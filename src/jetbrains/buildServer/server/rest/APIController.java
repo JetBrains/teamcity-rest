@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest;
 
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.util.ArrayUtil;
 import com.intellij.util.Function;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -58,6 +59,7 @@ import org.springframework.web.servlet.ModelAndView;
  */
 public class APIController extends BaseController implements ServletContextAware {
   final static Logger LOG = Logger.getInstance(APIController.class.getName());
+  public static final String REST_CORS_ORIGINS_INTRNAL_PROPERTY_NAME = "rest.cors.origins";
   private JerseyWebComponent myWebComponent;
   private final ConfigurableApplicationContext myConfigurableApplicationContext;
   private final SecurityContextEx mySecurityContext;
@@ -252,6 +254,9 @@ public class APIController extends BaseController implements ServletContextAware
 
     final boolean runAsSystemActual = runAsSystem;
     try {
+
+      processCorsRequest(request, response);
+
       // workaround for http://jetbrains.net/tracker/issue2/TW-7656
       jetbrains.buildServer.util.Util.doUnderContextClassLoader(getClass().getClassLoader(), new FuncThrow<Void, Throwable>() {
         public Void apply() throws Throwable {
@@ -273,17 +278,54 @@ public class APIController extends BaseController implements ServletContextAware
         }
       });
 
+    } catch (Throwable throwable) {
+      // Sometimes Jersy throws IllegalArgumentException and probably other without utilizing ExceptionMappers
+      // forcing plain text error reporting
+      reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, request.getRequestURI(), Level.WARN);
+    } finally{
       if (LOG.isDebugEnabled()) {
         final long requestFinishProcessing = System.nanoTime();
         LOG.debug("REST API request processing finished in " +
                   TimeUnit.MILLISECONDS.convert(requestFinishProcessing - requestStartProcessing, TimeUnit.NANOSECONDS) + " ms, status code: " + response.getStatus());
       }
-    } catch (Throwable throwable) {
-      // Sometimes Jersy throws IllegalArgumentException and probably other without utilizing ExceptionMappers
-      // forcing plain text error reporting
-      reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, request.getRequestURI(), Level.WARN);
     }
     return null;
+  }
+
+  private void processCorsRequest(final HttpServletRequest request, final HttpServletResponse response) {
+    final String origin = request.getHeader("Origin");
+    if (StringUtil.isNotEmpty(origin)) {
+      final String[] originsArray = getAllowedOrigins();
+      if (ArrayUtil.contains(origin, originsArray)) {
+        response.addHeader("Access-Control-Allow-Origin", origin);
+        response.addHeader("Access-Control-Allow-Methods", request.getHeader("Access-Control-Request-Method"));
+        response.addHeader("Access-Control-Allow-Credentials", "true");
+
+        //this will actually not function for OPTION request until http://youtrack.jetbrains.com/issue/TW-22019 is fixed
+        response.addHeader("Access-Control-Allow-Headers", request.getHeader("Access-Control-Request-Headers"));
+      } else {
+        LOG.debug("Got CORS request from origin '" + origin + "', but this origin is not allowed. Add the origin to '" +
+                  REST_CORS_ORIGINS_INTRNAL_PROPERTY_NAME +
+                  "' internal property (comma-separated) to trust the applications hosted on the domain. Current allowed origins are: " +
+                  Arrays.toString(originsArray));
+      }
+    }
+  }
+
+  private String myAllowedOrigins;
+  private String[] myOriginsArray;
+
+  @NotNull
+  private synchronized String[] getAllowedOrigins() {
+    final String allowedOrigins = TeamCityProperties.getProperty(REST_CORS_ORIGINS_INTRNAL_PROPERTY_NAME);
+    if (myAllowedOrigins == null || !myAllowedOrigins.equals(allowedOrigins)) {
+      myAllowedOrigins = allowedOrigins;
+      myOriginsArray = allowedOrigins.split(",");
+      for (int i = 0; i < myOriginsArray.length; i++) {
+        myOriginsArray[i] = myOriginsArray[i].trim();
+      }
+    }
+    return myOriginsArray;
   }
 
   //see ExceptionMapperUtil.getRestErrorResponse
