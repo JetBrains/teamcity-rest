@@ -452,18 +452,18 @@ public class BuildRequest {
 
   private String getIconFileName(final SBuild build) {
     if (!build.isFinished()){
-      return "/img/buildStates/buildGray.gif";
+      return "/img/statusWidget/running.png";
     }
     if (build.getStatusDescriptor().isSuccessful()){
-      return "/img/buildStates/buildSuccessful.gif";
+      return "/img/statusWidget/successful.png";
     }
     if (build.isInternalError()){
-      return "/img/buildStates/redSign.gif";
+      return "/img/statusWidget/error.png";
     }
     if (build.getCanceledInfo() != null ){
-      return "/img/buildStates/cancelled.gif";
+      return "/img/statusWidget/canceled.png";
     }
-    return "/img/buildStates/buildFailed.gif";
+    return "/img/statusWidget/failed.png";
   }
 
   private SBuild checkAndGetBuild(final String buildLocator) {
