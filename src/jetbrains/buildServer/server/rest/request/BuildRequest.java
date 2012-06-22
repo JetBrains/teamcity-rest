@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import com.intellij.openapi.diagnostic.Logger;
 import com.sun.jersey.multipart.file.DefaultMediaTypePredictor;
 import java.io.*;
 import java.util.*;
@@ -67,6 +68,8 @@ import org.jetbrains.annotations.NotNull;
  */
 @Path(BuildRequest.API_BUILDS_URL)
 public class BuildRequest {
+  private static final Logger LOG = Logger.getInstance(BuildRequest.class.getName());
+
   @Context
   @NotNull
   private DataProvider myDataProvider;
@@ -428,10 +431,9 @@ public class BuildRequest {
   @Path("/{buildLocator}/statusIcon")
   public Response serveBuildStatusIcon(@PathParam("buildLocator") final String buildLocator) {
     //todo: return something appropriate when in maintenance
-    //todo: separate icons for no access, no build found, etc.
+    //todo: separate icons no build found, etc.
 
-    final SBuild build = checkAndGetBuild(buildLocator);
-    String resultIconFileName = getRealFileName(getIconFileName(build));
+    String resultIconFileName = getRealFileName(getIconFileName(buildLocator));
 
     final File resultIconFile = new File(resultIconFileName);
     final StreamingOutput streamingOutput;
@@ -450,63 +452,76 @@ public class BuildRequest {
     return DefaultMediaTypePredictor.CommonMediaTypes.getMediaTypeFromFileName(resultIconFileName);
   }
 
-  private String getIconFileName(final SBuild build) {
-    if (!build.isFinished()){
+  private String getIconFileName(final String buildLocator) {
+    SBuild build;
+
+    final SecurityContextEx securityContext = myServiceLocator.getSingletonService(SecurityContextEx.class);
+    try {
+      build = getBuildUnderSystem(buildLocator, securityContext);
+    } catch (Throwable throwable) {
+      LOG.info("Error while retrieving build under system by build locator '" + buildLocator + "': " + throwable.getMessage());
+      LOG.debug("Error while retrieving build under system by build locator '" + buildLocator + "': " + throwable.getMessage(), throwable);
+      return "/img/statusWidget/notFound.png"; //todo: return not found only when not found, return internal error otherwise
+    }
+
+    if (!hasPermissionsToViewStatus(build, securityContext)) {
+      LOG.info("No permissions to access requested build " + LogUtil.describe(build) +
+               ". Either authenticate as user with appropriate permisisons, or ensure 'guest' user has appropriate permisisons " +
+               "or enable external status widget for the build configuation.");
+      return "/img/statusWidget/permission.png";
+    }
+
+    if (!build.isFinished()) {
       return "/img/statusWidget/running.png";
     }
-    if (build.getStatusDescriptor().isSuccessful()){
+    if (build.getStatusDescriptor().isSuccessful()) {
       return "/img/statusWidget/successful.png";
     }
-    if (build.isInternalError()){
+    if (build.isInternalError()) {
       return "/img/statusWidget/error.png";
     }
-    if (build.getCanceledInfo() != null ){
+    if (build.getCanceledInfo() != null) {
       return "/img/statusWidget/canceled.png";
     }
     return "/img/statusWidget/failed.png";
   }
 
-  private SBuild checkAndGetBuild(final String buildLocator) {
-    final SBuild[] buildRetriever = new SBuild[1];
-
-    final SecurityContextEx securityContext = myServiceLocator.getSingletonService(SecurityContextEx.class);
-    try {
-      securityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
-        public void run() throws Throwable {
-          buildRetriever[0] = myDataProvider.getBuild(null, buildLocator);
-        }
-      });
-    } catch (Throwable throwable) {
-      throw new OperationException("Internal error while retrieving build: " + throwable.getMessage());
-    }
-
-    final SBuild build = buildRetriever[0];
-
+  private boolean hasPermissionsToViewStatus(@NotNull final SBuild build, @NotNull final SecurityContextEx securityContext) {
     final SBuildType buildType = build.getBuildType();
     if (buildType == null){
       throw new OperationException("No build type found for build.");
     }
 
     if (buildType.isAllowExternalStatus()) {
-      return build;
+      return true;
     }
 
     final AuthorityHolder authorityHolder = securityContext.getAuthorityHolder();
     //todo: how to distinguish no user from system? Might check for system to support authToken requests...
     if (authorityHolder.getAssociatedUser() != null &&
         authorityHolder.isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_PROJECT)) {
-      return build;
+      return true;
     }
 
     final SUser guestUser = myServiceLocator.getSingletonService(UserModel.class).getGuestUser();
     if (myDataProvider.getServer().getLoginConfiguration().isGuestLoginAllowed() &&
         guestUser.isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_PROJECT)) {
-      return build;
+      return true;
     }
-    throw new AuthorizationFailedException("No permissions to access requested build. " +
-                                           "Either authenticate as user with appropriate permisisons, " +
-                                           "or ensure 'guest' user has appropriate permisisons " +
-                                           "or enable external status widget for the build configuation.");
+    return false;
+  }
+
+  @NotNull
+  private SBuild getBuildUnderSystem(final String buildLocator, final SecurityContextEx securityContext) throws Throwable {
+    final SBuild[] buildRetriever = new SBuild[1];
+
+      securityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
+        public void run() throws Throwable {
+          buildRetriever[0] = myDataProvider.getBuild(null, buildLocator);
+        }
+      });
+
+    return buildRetriever[0];
   }
 
   private StreamingOutput getStreamingOutput(final InputStream inputStream, final String streamName) {
