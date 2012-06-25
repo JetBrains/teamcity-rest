@@ -38,10 +38,7 @@ import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SFinishedBuild;
-import jetbrains.buildServer.serverSide.SecurityContextEx;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifact;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactHolder;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifacts;
@@ -440,7 +437,9 @@ public class BuildRequest {
     try {
       streamingOutput = getStreamingOutput(new FileInputStream(resultIconFile), resultIconFile.getName());
     } catch (FileNotFoundException e) {
-      throw new NotFoundException("Error finding file '" + resultIconFile.getName() + "' (installation corrupted?): " + e.getMessage());
+      LOG.debug("Failed to find resource file",e);
+      //ignoring exception message as it can contain absolute file path
+      throw new NotFoundException("Error finding file '" + resultIconFile.getName() + "' (installation corrupted?)");
     }
     final MediaType mediaType = getMediaType(resultIconFileName);
     return Response.ok(streamingOutput, mediaType).header("Cache-Control", "no-cache").build();
@@ -458,10 +457,14 @@ public class BuildRequest {
     final SecurityContextEx securityContext = myServiceLocator.getSingletonService(SecurityContextEx.class);
     try {
       build = getBuildUnderSystem(buildLocator, securityContext);
+    } catch (NotFoundException e) {
+      LOG.info("Cannot find build by build locator '" + buildLocator + "': " + e.getMessage());
+      //should return the same error as when no permissions in order not to expose build existence
+      return "/img/statusWidget/permission.png";
     } catch (Throwable throwable) {
       LOG.info("Error while retrieving build under system by build locator '" + buildLocator + "': " + throwable.getMessage());
       LOG.debug("Error while retrieving build under system by build locator '" + buildLocator + "': " + throwable.getMessage(), throwable);
-      return "/img/statusWidget/notFound.png"; //todo: return not found only when not found, return internal error otherwise
+      return "/img/statusWidget/permission.png"; //todo: use separate icon for errors (most importantly, wrong request)
     }
 
     if (!hasPermissionsToViewStatus(build, securityContext)) {
@@ -492,7 +495,7 @@ public class BuildRequest {
       throw new OperationException("No build type found for build.");
     }
 
-    if (buildType.isAllowExternalStatus()) {
+    if (buildType.isAllowExternalStatus() && TeamCityProperties.getBooleanOrTrue("rest.enableBuildStatusWithStatusWidget")) {
       return true;
     }
 
