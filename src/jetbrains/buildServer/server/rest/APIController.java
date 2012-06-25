@@ -297,19 +297,33 @@ public class APIController extends BaseController implements ServletContextAware
     if (StringUtil.isNotEmpty(origin)) {
       final String[] originsArray = getAllowedOrigins();
       if (ArrayUtil.contains(origin, originsArray)) {
-        response.addHeader("Access-Control-Allow-Origin", origin);
-        response.addHeader("Access-Control-Allow-Methods", request.getHeader("Access-Control-Request-Method"));
-        response.addHeader("Access-Control-Allow-Credentials", "true");
-
-        //this will actually not function for OPTION request until http://youtrack.jetbrains.com/issue/TW-22019 is fixed
-        response.addHeader("Access-Control-Allow-Headers", request.getHeader("Access-Control-Request-Headers"));
-      } else {
+        addOriginHeaderToResponse(response, origin);
+        addOtherHeadersToResponse(request, response);
+      } else if (ArrayUtil.contains("*", originsArray)){
+        LOG.debug("Got CORS request from origin '" + origin + "', but this origin is not allowed. However, '*' is. Replying with '*'." +
+                  " Add the origin to '" + REST_CORS_ORIGINS_INTRNAL_PROPERTY_NAME +
+                  "' internal property (comma-separated) to trust the applications hosted on the domain. Current allowed origins are: " +
+                  Arrays.toString(originsArray));
+        addOriginHeaderToResponse(response, "*");
+      }else {
         LOG.debug("Got CORS request from origin '" + origin + "', but this origin is not allowed. Add the origin to '" +
                   REST_CORS_ORIGINS_INTRNAL_PROPERTY_NAME +
                   "' internal property (comma-separated) to trust the applications hosted on the domain. Current allowed origins are: " +
                   Arrays.toString(originsArray));
       }
     }
+  }
+
+  private void addOriginHeaderToResponse(final HttpServletResponse response, final String origin) {
+    response.addHeader("Access-Control-Allow-Origin", origin);
+  }
+
+  private void addOtherHeadersToResponse(final HttpServletRequest request, final HttpServletResponse response) {
+    response.addHeader("Access-Control-Allow-Methods", request.getHeader("Access-Control-Request-Method"));
+    response.addHeader("Access-Control-Allow-Credentials", "true");
+
+    //this will actually not function for OPTION request until http://youtrack.jetbrains.com/issue/TW-22019 is fixed
+    response.addHeader("Access-Control-Allow-Headers", request.getHeader("Access-Control-Request-Headers"));
   }
 
   private String myAllowedOrigins;
