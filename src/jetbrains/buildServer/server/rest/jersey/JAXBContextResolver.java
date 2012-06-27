@@ -28,6 +28,7 @@ import javax.xml.bind.JAXBException;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
+import jetbrains.buildServer.server.rest.model.build.Branches;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.*;
@@ -64,6 +65,7 @@ public class JAXBContextResolver implements ContextResolver<JAXBContext> {
     Agent.class, Agents.class,
     Build.class, Builds.class,
     BuildType.class, BuildTypes.class,
+    Branches.class,
     PropEntity.class, PropEntityFeature.class, PropEntityStep.class, PropEntityAgentRequirement.class, PropEntityTrigger.class, PropEntitySnapshotDep.class, PropEntityArtifactDep.class,
     PropEntitiesFeature.class, PropEntitiesStep.class, PropEntitiesAgentRequirement.class, PropEntitiesTrigger.class, PropEntitiesSnapshotDep.class, PropEntitiesArtifactDep.class,
     Change.class, Changes.class, FileChange.class, Revision.class, Revisions.class,

@@ -60,6 +60,7 @@ import org.jetbrains.annotations.Nullable;
 public class DataProvider {
   private static final Logger LOG = Logger.getInstance(DataProvider.class.getName());
   public static final String TEMPLATE_ID_PREFIX = "template:";
+  public static final String BRANCH_NAME_ANY = "any";
 
   @NotNull private final SBuildServer myServer;
   @NotNull private final BuildHistory myBuildHistory;
@@ -141,7 +142,7 @@ public class DataProvider {
                                       status, null,
                                       getUserIfNotNull(userLocator),
                                       includePersonal ? null : false, includeCanceled ? null : false,
-                                      false, onlyPinned ? true : null, tags, agentName,
+                                      false, onlyPinned ? true : null, tags, BRANCH_NAME_ANY, agentName,
                                       null, getRangeLimit(buildType, sinceBuildLocator, parseDate(sinceDate)),
                                       null,
                                       start, count, null);
@@ -181,7 +182,9 @@ public class DataProvider {
       return Util.formatTime(build.getFinishDate());
     } else if ("buildTypeId".equals(field)) {
       return (build.getBuildTypeId());
-    } else if ("promotionId".equals(field)) {
+    } else if ("branch".equals(field)) {
+      return (build.getBranchName());
+    } else if ("promotionId".equals(field)) { //this is not exposed in any other way
       return (String.valueOf(build.getBuildPromotion().getId()));
     }
     throw new NotFoundException("Field '" + field + "' is not supported.");
@@ -371,9 +374,11 @@ public class DataProvider {
                             locator.getSingleDimensionValueAsBoolean("running", false),
                             locator.getSingleDimensionValueAsBoolean("pinned"),
                             tagsList,
+                            locator.getSingleDimensionValue("branch"),
                             //todo: support agent locator here
                             locator.getSingleDimensionValue("agentName"),
-                            ParameterCondition.create(locator.getSingleDimensionValue("property")), getRangeLimit(actualBuildType, locator.getSingleDimensionValue("sinceBuild"),
+                            ParameterCondition.create(locator.getSingleDimensionValue("property")),
+                            getRangeLimit(actualBuildType, locator.getSingleDimensionValue("sinceBuild"),
                                           parseDate(locator.getSingleDimensionValue("sinceDate"))),
                             getRangeLimit(actualBuildType, locator.getSingleDimensionValue("untilBuild"),
                                           parseDate(locator.getSingleDimensionValue("untilDate"))),

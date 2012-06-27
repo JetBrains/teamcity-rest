@@ -34,6 +34,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.build.Branches;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
@@ -43,7 +44,10 @@ import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
+import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.dependency.DependencyFactoryImpl;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.CheckoutRules;
 import jetbrains.buildServer.vcs.SVcsRoot;
@@ -792,5 +796,20 @@ public class BuildTypeRequest {
     SBuild build = myDataProvider.getBuild(buildType, buildLocator);
 
     return myDataProvider.getFieldValue(build, field);
+  }
+
+  @GET
+  @Path("/{btLocator}/branches")
+  @Produces({"application/xml", "application/json"})
+  public Branches serveBranches(@PathParam("btLocator") String buildTypeLocator) {
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    //todo: support branches filters
+    return new Branches(CollectionsUtil
+                          .convertCollection(((BuildTypeImpl)buildType).getBranches(BranchesPolicy.HISTORY_AND_VCS_BRANCHES, false),
+                                             new Converter<String, Branch>() {
+                                               public String createFrom(@NotNull final Branch source) {
+                                                 return source.getName();
+                                               }
+                                             }));
   }
 }

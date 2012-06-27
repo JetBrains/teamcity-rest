@@ -39,6 +39,7 @@ public class BuildsFilter{
   private final Boolean myRunning;
   private final Boolean myPinned;
   private final List<String> myTags;
+  @Nullable private String myBranch;
   @Nullable private final String myAgentName;
   @Nullable private final RangeLimit mySince;
   @Nullable private final RangeLimit myUntil;
@@ -56,6 +57,7 @@ public class BuildsFilter{
    * @param canceled        if set, limits the builds by canceled status (return only canceled if "true", only non-conceled if "false")
    * @param running         if set, limits the builds by running state (return only running if "true", only finished if "false")
    * @param pinned          if set, limits the builds by pinned status (return only pinned if "true", only non-pinned if "false")
+   * @param branch          if set, limits the builds by branch with the specified name. If "null", limits to builds with default or no branch.
    * @param agentName       limit builds to those ran on specified agent, can be null to return all builds
    * @param parameterCondition  limit builds to those with a finish parameter matching the condition specified, can be null to return all builds
    * @param since           the RangeLimit to return only the builds since the limit. If contains build, it is not included, if contains the date, the builds that were started at and later then the date are included
@@ -73,6 +75,7 @@ public class BuildsFilter{
                       @Nullable final Boolean running,
                       @Nullable final Boolean pinned,
                       @Nullable final List<String> tags,
+                      @Nullable final String branch,
                       @Nullable final String agentName,
                       @Nullable final ParameterCondition parameterCondition,
                       @Nullable final RangeLimit since,
@@ -93,6 +96,7 @@ public class BuildsFilter{
     myRunning = running;
     myPinned = pinned;
     myTags = tags;
+    myBranch = branch;
     //todo: support agent locator
     myAgentName = agentName;
     mySince = since;
@@ -147,6 +151,15 @@ public class BuildsFilter{
     }
     if (myTags != null && myTags.size() > 0 && !build.getTags().containsAll(myTags)) {
       return false;
+    }
+    if (!DataProvider.BRANCH_NAME_ANY.equals(myBranch)) { //todo: use something less clashing instead of "any"
+      if (myBranch == null && !"".equals(build.getBranchName())) {
+        //todo: use proper default branch detection
+        return false;
+      }
+      if (myBranch != null && !myBranch.equals(build.getBranchName())) {
+        return false;
+      }
     }
     if (myUser != null) {
       final SUser userWhoTriggered = build.getTriggeredBy().getUser();
@@ -276,6 +289,7 @@ public class BuildsFilter{
     if (myRunning!= null) result.append("running:").append(myRunning).append(", ");
     if (myPinned!= null) result.append("pinned:").append(myPinned).append(", ");
     if (myTags!= null) result.append("tag:").append(myTags).append(", ");
+    if (myBranch!= null) result.append("branch:").append(myBranch).append(", ");
     if (myAgentName!= null) result.append("agentName:").append(myAgentName).append(", ");
     if (myParameterCondition!= null) result.append("parameterCondition:").append(myParameterCondition).append(", ");
     if (mySince!= null) result.append("since:").append(mySince).append(", ");
