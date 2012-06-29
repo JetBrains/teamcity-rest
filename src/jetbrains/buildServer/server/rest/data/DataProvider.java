@@ -183,7 +183,7 @@ public class DataProvider {
     } else if ("buildTypeId".equals(field)) {
       return (build.getBuildTypeId());
     } else if ("branch".equals(field)) {
-      return (build.getBranchName());
+      return (build.getBranch().getName());
     } else if ("promotionId".equals(field)) { //this is not exposed in any other way
       return (String.valueOf(build.getBuildPromotion().getId()));
     }

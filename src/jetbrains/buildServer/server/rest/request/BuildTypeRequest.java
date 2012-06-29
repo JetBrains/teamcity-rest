@@ -806,8 +806,8 @@ public class BuildTypeRequest {
     //todo: support branches filters
     return new Branches(CollectionsUtil
                           .convertCollection(((BuildTypeImpl)buildType).getBranches(BranchesPolicy.HISTORY_AND_VCS_BRANCHES, false),
-                                             new Converter<String, Branch>() {
-                                               public String createFrom(@NotNull final Branch source) {
+                                             new Converter<String, BranchEx>() {
+                                               public String createFrom(@NotNull final BranchEx source) {
                                                  return source.getName();
                                                }
                                              }));

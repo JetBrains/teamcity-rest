@@ -107,7 +107,7 @@ public class Build {
 
   @XmlAttribute
   public String getBranch() {
-    return myBuild.getBranchName();
+    return myBuild.getBranch().getName();
   }
 
   @XmlAttribute
