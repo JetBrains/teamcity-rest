@@ -239,6 +239,9 @@ public class Build {
   
   @XmlElement(name = "relatedIssues")
   public IssueUsages getIssues() {
+    if (TeamCityProperties.getBoolean("rest.disableBuildRelatedIssues")){
+      return null;
+    }
     final Collection<Issue> relatedIssues = myBuild.getRelatedIssues();
     return relatedIssues.size() == 0 ? null : new IssueUsages(relatedIssues, myBuild, myApiUrlBuilder, myFactory);
   }
