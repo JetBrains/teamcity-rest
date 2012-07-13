@@ -153,7 +153,7 @@ public class BuildsFilter{
       return false;
     }
     if (!DataProvider.BRANCH_NAME_ANY.equals(myBranch)) { //todo: use something less clashing instead of "any"
-      if (myBranch == null && !build.getBranch().isDefault()) {
+      if (myBranch == null && !build.getBranch().isDefaultBranch()) {
         //todo: use proper default branch detection
         return false;
       }
