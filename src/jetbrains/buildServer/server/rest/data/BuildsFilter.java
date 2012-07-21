@@ -180,11 +180,11 @@ public class BuildsFilter{
     return true;
   }
 
-  private boolean matchesBranchLocator(@Nullable Locator branchLocator, final SBuild build) {
+  private boolean matchesBranchLocator(@Nullable Locator branchLocator, @NotNull final SBuild build) {
     //todo consider optimizing by parsing locator beforehand + validating all locator dimensions are used
     final Branch buildBranch = build.getBranch();
     if (branchLocator == null){
-      return buildBranch.isDefaultBranch();
+      return buildBranch.isDefaultBranch();// might need looking into after TW-22162 fix
     }
     if (branchLocator.isSingleValue()){//treat as logic branch name with special values
       @SuppressWarnings("ConstantConditions")

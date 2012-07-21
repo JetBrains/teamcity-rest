@@ -118,6 +118,7 @@ public class DataProvider {
   }
 
   public static boolean buildIsBranched(final SBuild build) {
+    // will need looking into after TW-22162 fix
     if (!build.getBranch().isDefaultBranch()){
       return true;
     }
