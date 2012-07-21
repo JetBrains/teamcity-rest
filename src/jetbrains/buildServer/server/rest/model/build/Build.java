@@ -48,7 +48,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 //todo: add changes
 //todo: reuse fields code from DataProvider
 @XmlRootElement(name = "build")
-@XmlType(name = "build", propOrder = {"id", "number", "status", "href", "webUrl", "branch", "personal", "history", "pinned", "running",
+@XmlType(name = "build", propOrder = {"id", "number", "status", "href", "webUrl", "branchName", "defaultBranch", "unspecifiedBranch", "personal", "history", "pinned", "running",
   "runningBuildInfo", "statusText", "buildType", "startDate", "finishDate", "agent", "comment", "tags", "pinInfo", "personalBuildUser", "properties",
   "buildDependencies", "buildArtifactDependencies", "revisions", "triggered", "changes", "issues"})
 public class Build {
@@ -106,8 +106,27 @@ public class Build {
   }
 
   @XmlAttribute
-  public String getBranch() {
-    return myBuild.getBranch().getName();
+  public String getBranchName() {
+    if (!DataProvider.buildIsBranched(myBuild)){
+      return null;
+    }
+    return myBuild.getBranch().getDisplayName();
+  }
+
+  @XmlAttribute
+  public Boolean getDefaultBranch() {
+    if (!DataProvider.buildIsBranched(myBuild)){
+      return null;
+    }
+    return myBuild.getBranch().isDefaultBranch() ? Boolean.TRUE : null;
+  }
+
+  @XmlAttribute
+  public Boolean getUnspecifiedBranch() {
+    if (!DataProvider.buildIsBranched(myBuild)){
+      return null;
+    }
+    return Branch.UNSPECIFIED_BRANCH_NAME.equals(myBuild.getBranch().getName()) ? Boolean.TRUE : null;
   }
 
   @XmlAttribute

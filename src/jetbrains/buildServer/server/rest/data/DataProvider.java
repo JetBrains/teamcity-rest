@@ -33,6 +33,7 @@ import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Constants;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -60,7 +61,6 @@ import org.jetbrains.annotations.Nullable;
 public class DataProvider {
   private static final Logger LOG = Logger.getInstance(DataProvider.class.getName());
   public static final String TEMPLATE_ID_PREFIX = "template:";
-  public static final String BRANCH_NAME_ANY = "any";
 
   @NotNull private final SBuildServer myServer;
   @NotNull private final BuildHistory myBuildHistory;
@@ -117,6 +117,18 @@ public class DataProvider {
     myPromotionManager = promotionManager;
   }
 
+  public static boolean buildIsBranched(final SBuild build) {
+    if (!build.getBranch().isDefaultBranch()){
+      return true;
+    }
+    final SBuildType buildType = build.getBuildType();
+    if (buildType != null) {
+      return ((BuildTypeEx)buildType).isBranchSpecDefined();
+    } else{
+      return false;
+    }
+  }
+
   public Builds getBuildsForRequest(final SBuildType buildType,
                                     final String status,
                                     final String userLocator,
@@ -142,7 +154,7 @@ public class DataProvider {
                                       status, null,
                                       getUserIfNotNull(userLocator),
                                       includePersonal ? null : false, includeCanceled ? null : false,
-                                      false, onlyPinned ? true : null, tags, BRANCH_NAME_ANY, agentName,
+                                      false, onlyPinned ? true : null, tags, null, agentName,
                                       null, getRangeLimit(buildType, sinceBuildLocator, parseDate(sinceDate)),
                                       null,
                                       start, count, null);
@@ -182,8 +194,14 @@ public class DataProvider {
       return Util.formatTime(build.getFinishDate());
     } else if ("buildTypeId".equals(field)) {
       return (build.getBuildTypeId());
+    } else if ("branchName".equals(field)) {
+      return (build.getBranch().getDisplayName());
     } else if ("branch".equals(field)) {
       return (build.getBranch().getName());
+    } else if ("defaultBranch".equals(field)) {
+      return (String.valueOf(build.getBranch().isDefaultBranch()));
+    } else if ("unspecifiedBranch".equals(field)) {
+      return (String.valueOf(Branch.UNSPECIFIED_BRANCH_NAME.equals(build.getBranch().getName())));
     } else if ("promotionId".equals(field)) { //this is not exposed in any other way
       return (String.valueOf(build.getBuildPromotion().getId()));
     }
@@ -365,6 +383,12 @@ public class DataProvider {
     }
 
     final Long count = locator.getSingleDimensionValueAsLong("count");
+    final Locator branchLocator;
+    try {
+      branchLocator = new Locator(locator.getSingleDimensionValue("branch"));
+    } catch (LocatorProcessException e) {
+      throw new LocatorProcessException("Invlaid sub-locator 'branch':" + e.getMessage());
+    }
     return new BuildsFilter(actualBuildType,
                             locator.getSingleDimensionValue("status"),
                             locator.getSingleDimensionValue("number"),
@@ -374,7 +398,7 @@ public class DataProvider {
                             locator.getSingleDimensionValueAsBoolean("running", false),
                             locator.getSingleDimensionValueAsBoolean("pinned"),
                             tagsList,
-                            locator.getSingleDimensionValue("branch"),
+                            branchLocator,
                             //todo: support agent locator here
                             locator.getSingleDimensionValue("agentName"),
                             ParameterCondition.create(locator.getSingleDimensionValue("property")),

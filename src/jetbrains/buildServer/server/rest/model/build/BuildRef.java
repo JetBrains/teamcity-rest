@@ -22,6 +22,7 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SRunningBuild;
 import org.jetbrains.annotations.NotNull;
@@ -32,7 +33,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlRootElement(name = "build-ref")
 @XmlType(name = "build-ref",
-         propOrder = {"id", "number", "running", "percentageComplete", "status", "buildTypeId", "startDate", "href", "webUrl"})
+         propOrder = {"id", "number", "running", "percentageComplete", "status", "buildTypeId", "branchName", "defaultBranch", "unspecifiedBranch", "startDate", "href", "webUrl"})
 public class BuildRef {
   protected SBuild myBuild;
   private DataProvider myDataProvider;
@@ -66,6 +67,31 @@ public class BuildRef {
   public String getBuildTypeId() {
     return myBuild.getBuildTypeId();
   }
+
+  @XmlAttribute
+  public String getBranchName() {
+    if (!DataProvider.buildIsBranched(myBuild)){
+      return null;
+    }
+    return myBuild.getBranch().getDisplayName();
+  }
+
+  @XmlAttribute
+  public Boolean getDefaultBranch() {
+    if (!DataProvider.buildIsBranched(myBuild)){
+      return null;
+    }
+    return myBuild.getBranch().isDefaultBranch() ? Boolean.TRUE : null;
+  }
+
+  @XmlAttribute
+  public Boolean getUnspecifiedBranch() {
+    if (!DataProvider.buildIsBranched(myBuild)){
+      return null;
+    }
+    return Branch.UNSPECIFIED_BRANCH_NAME.equals(myBuild.getBranch().getName()) ? Boolean.TRUE : null;
+  }
+
 
   @XmlAttribute
   public String getStartDate() {

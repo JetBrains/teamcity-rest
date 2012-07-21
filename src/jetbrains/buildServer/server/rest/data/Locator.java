@@ -37,7 +37,7 @@ public class Locator {
 
   private final Set<String> myUnusedDimensions;
 
-  public Locator(@Nullable final String locator) {
+  public Locator(@Nullable final String locator) throws LocatorProcessException{
     if (StringUtil.isEmpty(locator)) {
       throw new LocatorProcessException("Invalid locator. Cannot be empty.");
     }
@@ -114,6 +114,9 @@ public class Locator {
     return mySingleValue != null;
   }
 
+  /**
+   * @return locator's not-null value if it is single-value locator, 'null' othervise
+   */
   @Nullable
   public String getSingleValue() {
     return mySingleValue;
