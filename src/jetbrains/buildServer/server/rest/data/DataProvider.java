@@ -384,11 +384,15 @@ public class DataProvider {
     }
 
     final Long count = locator.getSingleDimensionValueAsLong("count");
-    final Locator branchLocator;
-    try {
-      branchLocator = new Locator(locator.getSingleDimensionValue("branch"));
-    } catch (LocatorProcessException e) {
-      throw new LocatorProcessException("Invlaid sub-locator 'branch':" + e.getMessage());
+
+    Locator branchLocator = null;
+    final String branchLocatorValue = locator.getSingleDimensionValue("branch");
+    if (!StringUtil.isEmpty(branchLocatorValue)) {
+      try {
+        branchLocator = new Locator(branchLocatorValue);
+      } catch (LocatorProcessException e) {
+        throw new LocatorProcessException("Invlaid sub-locator 'branch':" + e.getMessage());
+      }
     }
     return new BuildsFilter(actualBuildType,
                             locator.getSingleDimensionValue("status"),
