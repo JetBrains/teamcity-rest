@@ -107,26 +107,29 @@ public class Build {
 
   @XmlAttribute
   public String getBranchName() {
-    if (!DataProvider.buildIsBranched(myBuild)){
+    Branch branch = myBuild.getBranch();
+    if (branch == null){
       return null;
     }
-    return myBuild.getBranch().getDisplayName();
+    return branch.getDisplayName();
   }
 
   @XmlAttribute
   public Boolean getDefaultBranch() {
-    if (!DataProvider.buildIsBranched(myBuild)){
+    Branch branch = myBuild.getBranch();
+    if (branch == null){
       return null;
     }
-    return myBuild.getBranch().isDefaultBranch() ? Boolean.TRUE : null;
+    return branch.isDefaultBranch() ? Boolean.TRUE : null;
   }
 
   @XmlAttribute
   public Boolean getUnspecifiedBranch() {
-    if (!DataProvider.buildIsBranched(myBuild)){
+    Branch branch = myBuild.getBranch();
+    if (branch == null){
       return null;
     }
-    return Branch.UNSPECIFIED_BRANCH_NAME.equals(myBuild.getBranch().getName()) ? Boolean.TRUE : null;
+    return Branch.UNSPECIFIED_BRANCH_NAME.equals(branch.getName()) ? Boolean.TRUE : null;
   }
 
   @XmlAttribute

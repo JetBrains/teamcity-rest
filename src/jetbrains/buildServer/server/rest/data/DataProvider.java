@@ -117,19 +117,6 @@ public class DataProvider {
     myPromotionManager = promotionManager;
   }
 
-  public static boolean buildIsBranched(final SBuild build) {
-    // will need looking into after TW-22162 fix
-    if (!build.getBranch().isDefaultBranch()){
-      return true;
-    }
-    final SBuildType buildType = build.getBuildType();
-    if (buildType != null) {
-      return ((BuildTypeEx)buildType).isBranchSpecDefined();
-    } else{
-      return false;
-    }
-  }
-
   public Builds getBuildsForRequest(final SBuildType buildType,
                                     final String status,
                                     final String userLocator,
@@ -198,7 +185,8 @@ public class DataProvider {
     } else if ("branchName".equals(field)) {
       return (build.getBranch().getDisplayName());
     } else if ("branch".equals(field)) {
-      return (build.getBranch().getName());
+      Branch branch = build.getBranch();
+      return branch == null ? Branch.DEFAULT_BRANCH_NAME : branch.getName();
     } else if ("defaultBranch".equals(field)) {
       return (String.valueOf(build.getBranch().isDefaultBranch()));
     } else if ("unspecifiedBranch".equals(field)) {
