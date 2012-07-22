@@ -20,7 +20,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import javax.xml.bind.annotation.*;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.issueTracker.Issue;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -225,22 +228,20 @@ public class Build {
     return new RunningBuildInfo(runningBuild);
   }
 
-  @XmlElementWrapper(name = "snapshot-dependencies")
-  @XmlElement(name = "build")
-  public List<BuildRef> getBuildDependencies() {
-    return getBuildRefs(myBuild.getBuildPromotion().getDependencies(), myDataProvider);
+  @XmlElement(name = "snapshot-dependencies")
+  public BuildsList getBuildDependencies() {
+    return new BuildsList(getBuildRefs(myBuild.getBuildPromotion().getDependencies(), myDataProvider));
   }
 
-  @XmlElementWrapper(name = "artifact-dependencies")
-  @XmlElement(name = "build")
-  public List<BuildRef> getBuildArtifactDependencies() {
+  @XmlElement(name = "artifact-dependencies")
+  public BuildsList getBuildArtifactDependencies() {
     final Map<jetbrains.buildServer.Build,List<ArtifactInfo>> artifacts = myBuild.getDownloadedArtifacts().getArtifacts();
     List<BuildRef> builds = new ArrayList<BuildRef>(artifacts.size());
     for (Map.Entry<jetbrains.buildServer.Build, List<ArtifactInfo>> entry : artifacts.entrySet()) {
       //todo: cast to SBuild?
       builds.add(new BuildRef((SBuild)entry.getKey(), myDataProvider, myApiUrlBuilder));
     }
-    return builds;
+    return new BuildsList(builds);
   }
 
   @XmlElement(name = "revisions")

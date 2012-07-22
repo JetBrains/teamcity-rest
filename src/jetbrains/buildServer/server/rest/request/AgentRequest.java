@@ -44,11 +44,6 @@ public class AgentRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
-  /*
-  @XmlElementWrapper(name = "agents") //todo: investigate why this is ignored...
-  @XmlElement(name = "agent") //todo: investigate why this is ignored...
-  public List<AgentRef> serveAgents(@QueryParam("includeDisconnected") @DefaultValue("true") boolean includeDisconnected,
-  */
   public Agents serveAgents(@QueryParam("includeDisconnected") @DefaultValue("true") boolean includeDisconnected,
                             @QueryParam("includeUnauthorized") @DefaultValue("true") boolean includeUnauthorized) {
     return new Agents(myDataProvider.getAllAgents(new AgentsSearchFields(includeDisconnected, includeUnauthorized)), myApiUrlBuilder);
