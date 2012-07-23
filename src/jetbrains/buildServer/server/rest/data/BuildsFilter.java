@@ -184,7 +184,7 @@ public class BuildsFilter{
     //todo consider optimizing by parsing locator beforehand + validating all locator dimensions are used
     final Branch buildBranch = build.getBranch();
     if (branchLocator == null){
-      return buildBranch.isDefaultBranch();// might need looking into after TW-22162 fix
+      return buildBranch == null || buildBranch.isDefaultBranch();// might need looking into after TW-22162 fix
     }
     if (branchLocator.isSingleValue()){//treat as logic branch name with special values
       @SuppressWarnings("ConstantConditions")
@@ -195,10 +195,10 @@ public class BuildsFilter{
     final String branchName = branchLocator.getSingleDimensionValue("name");
     final Boolean defaultBranch = branchLocator.getSingleDimensionValueAsBoolean("default");
     final Boolean unspecifiedBranch = branchLocator.getSingleDimensionValueAsBoolean("unspecified");
-    if (defaultBranch != null && !defaultBranch.equals(buildBranch.isDefaultBranch())) {
+    if (defaultBranch != null && buildBranch != null && !defaultBranch.equals(buildBranch.isDefaultBranch())) {
       return false;
     }
-    if (unspecifiedBranch != null && !unspecifiedBranch.equals(Branch.UNSPECIFIED_BRANCH_NAME.equals(buildBranch.getName()))) {
+    if (unspecifiedBranch != null && buildBranch != null && !unspecifiedBranch.equals(Branch.UNSPECIFIED_BRANCH_NAME.equals(buildBranch.getName()))) {
       return false;
     }
     if (branchName != null && !matchesBranchName(branchName, buildBranch)) {
@@ -207,8 +207,8 @@ public class BuildsFilter{
     return true;
   }
 
-  private boolean matchesBranchName(@NotNull final String branchNameToMatch, @NotNull final Branch buildBranch) {
-    if (branchNameToMatch.equals(buildBranch.getDisplayName()) || branchNameToMatch.equals(buildBranch.getName())){
+  private boolean matchesBranchName(@NotNull final String branchNameToMatch, @Nullable final Branch buildBranch) {
+    if (buildBranch != null && (branchNameToMatch.equals(buildBranch.getDisplayName()) || branchNameToMatch.equals(buildBranch.getName()))){
       return true;
     }
     if (branchNameToMatch.equals(BRANCH_NAME_ANY)){
