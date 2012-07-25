@@ -183,14 +183,17 @@ public class DataProvider {
     } else if ("buildTypeId".equals(field)) {
       return (build.getBuildTypeId());
     } else if ("branchName".equals(field)) {
-      return (build.getBranch().getDisplayName());
+      Branch branch = build.getBranch();
+      return branch == null ? "" : branch.getDisplayName();
     } else if ("branch".equals(field)) {
       Branch branch = build.getBranch();
-      return branch == null ? Branch.DEFAULT_BRANCH_NAME : branch.getName();
+      return branch == null ? "" : branch.getName();
     } else if ("defaultBranch".equals(field)) {
-      return (String.valueOf(build.getBranch().isDefaultBranch()));
+      Branch branch = build.getBranch();
+      return branch == null ? "" : String.valueOf(branch.isDefaultBranch());
     } else if ("unspecifiedBranch".equals(field)) {
-      return (String.valueOf(Branch.UNSPECIFIED_BRANCH_NAME.equals(build.getBranch().getName())));
+      Branch branch = build.getBranch();
+      return branch == null ? "" : String.valueOf(Branch.UNSPECIFIED_BRANCH_NAME.equals(branch.getName()));
     } else if ("promotionId".equals(field)) { //this is not exposed in any other way
       return (String.valueOf(build.getBuildPromotion().getId()));
     }

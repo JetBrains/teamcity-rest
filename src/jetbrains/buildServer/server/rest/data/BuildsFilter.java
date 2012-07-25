@@ -184,7 +184,7 @@ public class BuildsFilter{
     //todo consider optimizing by parsing locator beforehand + validating all locator dimensions are used
     final Branch buildBranch = build.getBranch();
     if (branchLocator == null){
-      return buildBranch == null || buildBranch.isDefaultBranch();// might need looking into after TW-22162 fix
+      return buildBranch == null || buildBranch.isDefaultBranch();
     }
     if (branchLocator.isSingleValue()){//treat as logic branch name with special values
       @SuppressWarnings("ConstantConditions")
@@ -195,23 +195,43 @@ public class BuildsFilter{
     final String branchName = branchLocator.getSingleDimensionValue("name");
     final Boolean defaultBranch = branchLocator.getSingleDimensionValueAsBoolean("default");
     final Boolean unspecifiedBranch = branchLocator.getSingleDimensionValueAsBoolean("unspecified");
-    if (defaultBranch != null && buildBranch != null && !defaultBranch.equals(buildBranch.isDefaultBranch())) {
-      return false;
+    final Boolean branched = branchLocator.getSingleDimensionValueAsBoolean("branched");
+    if (defaultBranch != null) {
+      if (buildBranch != null && !defaultBranch.equals(buildBranch.isDefaultBranch())) {
+        return false;
+      }
+      if (buildBranch == null && !defaultBranch) { //making default:true match not-branched builds
+        return false;
+      }
     }
-    if (unspecifiedBranch != null && buildBranch != null && !unspecifiedBranch.equals(Branch.UNSPECIFIED_BRANCH_NAME.equals(buildBranch.getName()))) {
-      return false;
+    if (unspecifiedBranch != null) {
+      if (buildBranch != null && !unspecifiedBranch.equals(Branch.UNSPECIFIED_BRANCH_NAME.equals(buildBranch.getName()))){
+        return false;
+      }
+      if (buildBranch == null && unspecifiedBranch) {
+        return false;
+      }
     }
     if (branchName != null && !matchesBranchName(branchName, buildBranch)) {
       return false;
     }
+    if (branched != null){
+      if (!branched.equals(buildBranch != null)){
+        return false;
+      }
+    }
+    //todo: provide a way to get only builds without a branch
     return true;
   }
 
   private boolean matchesBranchName(@NotNull final String branchNameToMatch, @Nullable final Branch buildBranch) {
-    if (buildBranch != null && (branchNameToMatch.equals(buildBranch.getDisplayName()) || branchNameToMatch.equals(buildBranch.getName()))){
+    if (branchNameToMatch.equals(BRANCH_NAME_ANY)){
       return true;
     }
-    if (branchNameToMatch.equals(BRANCH_NAME_ANY)){
+    if (buildBranch == null){ //may be can return true if branchNameToMatch.equals("")
+      return false;
+    }
+    if (branchNameToMatch.equals(buildBranch.getDisplayName()) || branchNameToMatch.equals(buildBranch.getName())){
       return true;
     }
     return false;
