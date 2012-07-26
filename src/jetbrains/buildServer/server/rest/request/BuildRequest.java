@@ -66,6 +66,7 @@ import org.jetbrains.annotations.NotNull;
 @Path(BuildRequest.API_BUILDS_URL)
 public class BuildRequest {
   private static final Logger LOG = Logger.getInstance(BuildRequest.class.getName());
+  public static final String IMG_STATUS_WIDGET_ROOT_DIRECTORY = "/img/statusWidget";
 
   @Context
   @NotNull
@@ -459,34 +460,38 @@ public class BuildRequest {
       build = getBuildUnderSystem(buildLocator, securityContext);
     } catch (NotFoundException e) {
       LOG.info("Cannot find build by build locator '" + buildLocator + "': " + e.getMessage());
+      if (TeamCityProperties.getBoolean("rest.buildRequest.statusIcon.enableNotFoundResponsesWithoutPermissions") || hasPermissionsToViewStatusGlobally(securityContext)) {
+        return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/not_found.png";
+      }
       //should return the same error as when no permissions in order not to expose build existence
-      return "/img/statusWidget/permission.png";
+      return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/permission.png";
     } catch (Throwable throwable) {
-      LOG.info("Error while retrieving build under system by build locator '" + buildLocator + "': " + throwable.getMessage());
-      LOG.debug("Error while retrieving build under system by build locator '" + buildLocator + "': " + throwable.getMessage(), throwable);
-      return "/img/statusWidget/permission.png"; //todo: use separate icon for errors (most importantly, wrong request)
+      final String message = "Error while retrieving build under system by build locator '" + buildLocator + "': " + throwable.getMessage();
+      LOG.info(message);
+      LOG.debug(message, throwable);
+      return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/internal_error.png"; //todo: use separate icon for errors (most importantly, wrong request)
     }
 
     if (!hasPermissionsToViewStatus(build, securityContext)) {
       LOG.info("No permissions to access requested build " + LogUtil.describe(build) +
                ". Either authenticate as user with appropriate permisisons, or ensure 'guest' user has appropriate permisisons " +
                "or enable external status widget for the build configuation.");
-      return "/img/statusWidget/permission.png";
+      return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/permission.png";
     }
 
     if (!build.isFinished()) {
-      return "/img/statusWidget/running.png";
+      return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/running.png";  //todo: support running/failing and may be running/last failed
     }
     if (build.getStatusDescriptor().isSuccessful()) {
-      return "/img/statusWidget/successful.png";
+      return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/successful.png";
     }
     if (build.isInternalError()) {
-      return "/img/statusWidget/error.png";
+      return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/error.png";
     }
     if (build.getCanceledInfo() != null) {
-      return "/img/statusWidget/canceled.png";
+      return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/canceled.png";
     }
-    return "/img/statusWidget/failed.png";
+    return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/failed.png";
   }
 
   private boolean hasPermissionsToViewStatus(@NotNull final SBuild build, @NotNull final SecurityContextEx securityContext) {
@@ -495,7 +500,7 @@ public class BuildRequest {
       throw new OperationException("No build type found for build.");
     }
 
-    if (buildType.isAllowExternalStatus() && TeamCityProperties.getBooleanOrTrue("rest.enableBuildStatusWithStatusWidget")) {
+    if (buildType.isAllowExternalStatus() && TeamCityProperties.getBooleanOrTrue("rest.buildRequest.statusIcon.enableWithStatusWidget")) {
       return true;
     }
 
@@ -509,6 +514,21 @@ public class BuildRequest {
     final SUser guestUser = myServiceLocator.getSingletonService(UserModel.class).getGuestUser();
     if (myDataProvider.getServer().getLoginConfiguration().isGuestLoginAllowed() &&
         guestUser.isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_PROJECT)) {
+      return true;
+    }
+    return false;
+  }
+
+  private boolean hasPermissionsToViewStatusGlobally(@NotNull final SecurityContextEx securityContext) {
+    final AuthorityHolder authorityHolder = securityContext.getAuthorityHolder();
+    //todo: how to distinguish no user from system? Might check for system to support authToken requests...
+    if (authorityHolder.getAssociatedUser() != null &&
+        authorityHolder.isPermissionGrantedGlobally(Permission.VIEW_PROJECT)) {
+      return true;
+    }
+    final SUser guestUser = myServiceLocator.getSingletonService(UserModel.class).getGuestUser();
+    if (myDataProvider.getServer().getLoginConfiguration().isGuestLoginAllowed() &&
+        guestUser.isPermissionGrantedGlobally(Permission.VIEW_PROJECT)) {
       return true;
     }
     return false;
