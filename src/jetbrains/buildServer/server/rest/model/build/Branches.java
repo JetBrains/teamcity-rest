@@ -27,12 +27,12 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "branches")
 public class Branches {
   @XmlElement(name = "branch")
-  public List<String> branches;
+  public List<Branch> branches;
 
   public Branches() {
   }
 
-  public Branches(final List<String> branchesP) {
+  public Branches(final List<Branch> branchesP) {
     branches = branchesP;
   }
 }

@@ -34,10 +34,8 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.server.rest.model.build.Branches;
-import jetbrains.buildServer.server.rest.model.build.Build;
-import jetbrains.buildServer.server.rest.model.build.Builds;
-import jetbrains.buildServer.server.rest.model.build.Tags;
+import jetbrains.buildServer.server.rest.model.build.Branch;
+import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.buildType.*;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
@@ -805,10 +803,10 @@ public class BuildTypeRequest {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     //todo: support branches filters
     return new Branches(CollectionsUtil
-                          .convertCollection(((BuildTypeImpl)buildType).getBranches(BranchesPolicy.HISTORY_AND_ACTIVE_VCS_BRANCHES, false),
-                                             new Converter<String, BranchEx>() {
-                                               public String createFrom(@NotNull final BranchEx source) {
-                                                 return source.getName();
+                          .convertCollection(((BuildTypeImpl)buildType).getBranches(BranchesPolicy.ACTIVE_HISTORY_AND_ACTIVE_VCS_BRANCHES, false),
+                                             new Converter<jetbrains.buildServer.server.rest.model.build.Branch, BranchEx>() {
+                                               public Branch createFrom(@NotNull final BranchEx source) {
+                                                 return new Branch(source);
                                                }
                                              }));
   }
