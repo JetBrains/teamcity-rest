@@ -116,6 +116,13 @@ public class BuildsFilter{
     if (myTags != null && !build.getTags().containsAll(myTags)) {
       return false;
     }
+
+    //ensure only default branch builds (since TeamCity 7.1) are returned
+    final Branch buildBranch = build.getBranch();
+    if (buildBranch != null && !buildBranch.isDefaultBranch()){
+      return false;
+    }
+
     if (myUser != null) {
       final SUser userWhoTriggered = build.getTriggeredBy().getUser();
       if (!build.getTriggeredBy().isTriggeredByUser() || (userWhoTriggered != null && myUser.getId() != userWhoTriggered.getId())) {
