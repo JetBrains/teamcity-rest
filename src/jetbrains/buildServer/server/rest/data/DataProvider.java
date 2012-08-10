@@ -203,6 +203,7 @@ public class DataProvider {
 
   @Nullable
   public String getServerFieldValue(@Nullable final String field) {
+    // Note: "build", "majorVersion" and "minorVersion" for backward compatibility.
     if ("version".equals(field)) {
       return myServer.getFullServerVersion();
     } else if ("buildNumber".equals(field) || "build".equals(field)) {
