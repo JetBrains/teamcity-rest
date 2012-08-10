@@ -156,8 +156,9 @@ public class DataProvider {
     if (count != null){
       buildsFilter.setCount(count);
     }else{
-      if (buildsFilter.getCount() != null){
-        buildsFilter.setCount(buildsFilter.getCount() != -1 ? buildsFilter.getCount() : null);
+      final Integer c = buildsFilter.getCount();
+      if (c != null){
+        buildsFilter.setCount(c != -1 ? c : null);
       }else{
         buildsFilter.setCount(jetbrains.buildServer.server.rest.request.Constants.DEFAULT_PAGE_ITEMS_COUNT_INT);
       }
@@ -204,14 +205,18 @@ public class DataProvider {
   public String getServerFieldValue(@Nullable final String field) {
     if ("version".equals(field)) {
       return myServer.getFullServerVersion();
-    } else if ("build".equals(field)) {
+    } else if ("buildNumber".equals(field) || "build".equals(field)) {
       return myServer.getBuildNumber();
-    } else if ("majorVersion".equals(field)) {
+    } else if ("versionMajor".equals(field) || "majorVersion".equals(field)) {
       return Byte.toString(myServer.getServerMajorVersion());
-    } else if ("minorVersion".equals(field)) {
+    } else if ("versionMinor".equals(field) || "minorVersion".equals(field)) {
       return Byte.toString(myServer.getServerMinorVersion());
+    } else if ("startTime".equals(field)) {
+      return Util.formatTime(getServerStartTime());
+    } else if ("currentTime".equals(field)) {
+      return Util.formatTime(new Date());
     }
-    throw new NotFoundException("Field '" + field + "' is not supported.");
+    throw new NotFoundException("Field '" + field + "' is not supported. Supported are: version, versionMajor, versionMinor, buildNumber, startTime, currentTime");
   }
 
   /**
@@ -235,14 +240,14 @@ public class DataProvider {
       if (buildType == null) {
         // no dimensions found and no build type, assume it's build id
 
-        SBuild build = myServer.findBuildInstanceById(locator.getSingleValueAsLong()); //todo: report non-number more user-friendly
+        @SuppressWarnings("ConstantConditions") SBuild build = myServer.findBuildInstanceById(locator.getSingleValueAsLong()); //todo: report non-number more user-friendly
         if (build == null) {
           throw new BadRequestException("Cannot find build by id '" + locator.getSingleValue() + "'.");
         }
         return build;
       }
       // no dimensions found and build type is specified, assume it's build number
-      SBuild build = myServer.findBuildInstanceByBuildNumber(buildType.getBuildTypeId(), buildLocator);
+      @SuppressWarnings("ConstantConditions") SBuild build = myServer.findBuildInstanceByBuildNumber(buildType.getBuildTypeId(), buildLocator);
       if (build == null) {
         throw new NotFoundException("No build can be found by number '" + buildLocator + "' in build configuration " + buildType + ".");
       }
@@ -382,7 +387,7 @@ public class DataProvider {
       try {
         branchLocator = new Locator(branchLocatorValue);
       } catch (LocatorProcessException e) {
-        throw new LocatorProcessException("Invlaid sub-locator 'branch':" + e.getMessage());
+        throw new LocatorProcessException("Invalid sub-locator 'branch':" + e.getMessage());
       }
     }
     return new BuildsFilter(actualBuildType,
@@ -786,7 +791,7 @@ public class DataProvider {
     final Locator locator = new Locator(vcsRootLocator);
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's root id
-      SVcsRoot root = myVcsManager.findRootById(locator.getSingleValueAsLong());
+      @SuppressWarnings("ConstantConditions") SVcsRoot root = myVcsManager.findRootById(locator.getSingleValueAsLong());
       if (root == null) {
         throw new NotFoundException("No root can be found by id '" + vcsRootLocator + "'.");
       }
@@ -857,7 +862,7 @@ public class DataProvider {
     final Locator locator = new Locator(changeLocator);
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's id
-      SVcsModification modification = myVcsManager.findModificationById(locator.getSingleValueAsLong(), false);
+      @SuppressWarnings("ConstantConditions") SVcsModification modification = myVcsManager.findModificationById(locator.getSingleValueAsLong(), false);
       if (modification == null) {
         throw new NotFoundException("No change can be found by id '" + changeLocator + "'.");
       }
@@ -867,7 +872,7 @@ public class DataProvider {
     Long id = locator.getSingleDimensionValueAsLong("id");
     Boolean isPersonal = locator.getSingleDimensionValueAsBoolean("personal", false);
     if (isPersonal == null){
-      throw new BadRequestException("Only true/false values are supportteed for 'personal' dimention. Was: '" +
+      throw new BadRequestException("Only true/false values are supported for 'personal' dimension. Was: '" +
                                     locator.getSingleDimensionValue("personal") + "'");
     }
 
@@ -925,7 +930,6 @@ public class DataProvider {
           throw new NotFoundException("No artifact dependency found by locator '" + artifactDepLocator +
                                       ". Locator should be order number of the dependency in the build configuration.");
         }
-        final SArtifactDependency dependency;
         try {
           return buildType.getArtifactDependencies().get(order.intValue());
         } catch (IndexOutOfBoundsException e) {
@@ -985,7 +989,7 @@ public class DataProvider {
       if (StringUtil.isEmpty(triggerId)){
         throw new BadRequestException("Trigger id cannot be empty.");
       }
-      final BuildTriggerDescriptor foundTrigger = buildType.findTriggerById(triggerId);
+      @SuppressWarnings("ConstantConditions") final BuildTriggerDescriptor foundTrigger = buildType.findTriggerById(triggerId);
       if (foundTrigger == null){
         throw new NotFoundException("No trigger found by id '" + triggerLocator +"' in build type.");
       }
@@ -1192,10 +1196,12 @@ public class DataProvider {
     }
   }
 
+  @NotNull
   public VcsManager getVcsManager() {
     return myVcsManager;
   }
 
+  @NotNull
   public SourceVersionProvider getSourceVersionProvider() {
     return mySourceVersionProvider;
   }
