@@ -286,10 +286,21 @@ public class APIController extends BaseController implements ServletContextAware
       if (LOG.isDebugEnabled()) {
         final long requestFinishProcessing = System.nanoTime();
         LOG.debug("REST API request processing finished in " +
-                  TimeUnit.MILLISECONDS.convert(requestFinishProcessing - requestStartProcessing, TimeUnit.NANOSECONDS) + " ms, status code: " + response.getStatus());
+                  TimeUnit.MILLISECONDS.convert(requestFinishProcessing - requestStartProcessing, TimeUnit.NANOSECONDS) + " ms, status code: " +
+                  getStatus(response));
       }
     }
     return null;
+  }
+
+  private String getStatus(final HttpServletResponse response) {
+    String result = "<unknown>";
+    try {
+      result = String.valueOf(response.getStatus());
+    } catch (NoSuchMethodError e) {
+      //ignore: this occurs for Servlet API < 3.0
+    }
+    return result;
   }
 
   private void processCorsRequest(final HttpServletRequest request, final HttpServletResponse response) {
