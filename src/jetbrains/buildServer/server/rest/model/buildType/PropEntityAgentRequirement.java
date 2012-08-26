@@ -9,6 +9,7 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.util.StringUtil;
 
 /**
@@ -60,12 +61,20 @@ public class PropEntityAgentRequirement extends PropEntity {
     final Requirement requirementToAdd = new Requirement(getId(), propertiesMap.get(NAME_PROPERTY_VALUE), getType());
 
     //todo: (TeamCity) API allows to add several requirements, but we will limit it as it is not supported duly
-    final Requirement requirement = DataProvider.getAgentRequirementOrNull(buildType.get(), requirementToAdd.getPropertyName());
-    if (requirement != null){
-      throw new BadRequestException("Requirement for parameter with name '" + getId() + "' already exists.");
-    }
-    buildType.get().addRequirement(requirementToAdd);
+    final String requirementPropertyName = requirementToAdd.getPropertyName();
+    final BuildTypeSettings buildTypeSettings = buildType.get();
 
-    return new PropEntityAgentRequirement(DataProvider.getAgentRequirementOrNull(buildType.get(), requirementToAdd.getPropertyName()));
+    final Requirement requirement = DataProvider.getAgentRequirementOrNull(buildTypeSettings, requirementPropertyName);
+    if (requirement != null){
+      if (buildType.isBuildType() && buildType.getBuildType().getTemplate() != null &&
+          DataProvider.getAgentRequirementOrNull(buildType.getBuildType().getTemplate(), requirementPropertyName) != null) {
+        buildTypeSettings.removeRequirement(requirementPropertyName); //todo (TeamCity) not clear how not present is handled
+      }else{
+        throw new BadRequestException("Requirement for parameter with name '" + getId() + "' already exists.");
+      }
+    }
+    buildTypeSettings.addRequirement(requirementToAdd);
+
+    return new PropEntityAgentRequirement(DataProvider.getAgentRequirementOrNull(buildTypeSettings, requirementPropertyName));
   }
 }
