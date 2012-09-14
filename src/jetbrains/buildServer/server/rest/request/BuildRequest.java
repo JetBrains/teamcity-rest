@@ -43,6 +43,7 @@ import jetbrains.buildServer.serverSide.artifacts.BuildArtifact;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactHolder;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifacts;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactsViewMode;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -453,48 +454,67 @@ public class BuildRequest {
   }
 
   private String getIconFileName(final String buildLocator) {
-    SBuild build;
+    final boolean holderHasPermission[] = new boolean[1];
+    final boolean holderFinished[] = new boolean[1];
+    final boolean holderSuccessful[] = new boolean[1];
+    final boolean holderInternalError[] = new boolean[1];
+    final boolean holderCanceled[] = new boolean[1];
 
-    final SecurityContextEx securityContext = myServiceLocator.getSingletonService(SecurityContextEx.class);
     try {
-      build = getBuildUnderSystem(buildLocator, securityContext);
-    } catch (NotFoundException e) {
-      LOG.info("Cannot find build by build locator '" + buildLocator + "': " + e.getMessage());
-      if (TeamCityProperties.getBoolean("rest.buildRequest.statusIcon.enableNotFoundResponsesWithoutPermissions") || hasPermissionsToViewStatusGlobally(securityContext)) {
-        return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/not_found.png";
+      final SecurityContextEx securityContext = myServiceLocator.getSingletonService(SecurityContextEx.class);
+      final AuthorityHolder currentUserAuthorityHolder = securityContext.getAuthorityHolder();
+      try {
+        securityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
+          public void run() throws Throwable {
+            SBuild build = myDataProvider.getBuild(null, buildLocator);
+            holderHasPermission[0] = hasPermissionsToViewStatus(build, currentUserAuthorityHolder);
+            holderFinished[0] = build.isFinished();
+            holderSuccessful[0] = build.getStatusDescriptor().isSuccessful();
+            holderInternalError[0] = build.isInternalError();
+            holderCanceled[0] = build.getCanceledInfo() != null;
+          }
+        });
+      } catch (NotFoundException e) {
+        LOG.info("Cannot find build by build locator '" + buildLocator + "': " + e.getMessage());
+        if (TeamCityProperties.getBoolean("rest.buildRequest.statusIcon.enableNotFoundResponsesWithoutPermissions") || hasPermissionsToViewStatusGlobally(securityContext)) {
+          return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/not_found.png";
+        }
+        //should return the same error as when no permissions in order not to expose build existence
+        return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/permission.png";
+      } catch (Throwable throwable) {
+        final String message = "Error while retrieving build under system by build locator '" + buildLocator + "': " + throwable.getMessage();
+        LOG.info(message);
+        LOG.debug(message, throwable);
+        return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/internal_error.png"; //todo: use separate icon for errors (most importantly, wrong request)
       }
-      //should return the same error as when no permissions in order not to expose build existence
-      return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/permission.png";
-    } catch (Throwable throwable) {
-      final String message = "Error while retrieving build under system by build locator '" + buildLocator + "': " + throwable.getMessage();
-      LOG.info(message);
-      LOG.debug(message, throwable);
-      return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/internal_error.png"; //todo: use separate icon for errors (most importantly, wrong request)
-    }
 
-    if (!hasPermissionsToViewStatus(build, securityContext)) {
-      LOG.info("No permissions to access requested build " + LogUtil.describe(build) +
-               ". Either authenticate as user with appropriate permisisons, or ensure 'guest' user has appropriate permisisons " +
-               "or enable external status widget for the build configuation.");
+      if (!holderHasPermission[0]) {
+        LOG.info("No permissions to access requested build with locator'" + buildLocator + "'" +
+                 ". Either authenticate as user with appropriate permisisons, or ensure 'guest' user has appropriate permisisons " +
+                 "or enable external status widget for the build configuation.");
+        return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/permission.png";
+      }
+
+      if (!holderFinished[0]) {
+        return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/running.png";  //todo: support running/failing and may be running/last failed
+      }
+      if (holderSuccessful[0]) {
+        return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/successful.png";
+      }
+      if (holderInternalError[0]) {
+        return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/error.png";
+      }
+      if (holderCanceled[0]) {
+        return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/canceled.png";
+      }
+      return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/failed.png";
+    } catch (AccessDeniedException e) {
+      LOG.warn("Unexpected access denied error encountered while retrieving build by build locator '" + buildLocator + "': " + e.getMessage(), e);
       return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/permission.png";
     }
-
-    if (!build.isFinished()) {
-      return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/running.png";  //todo: support running/failing and may be running/last failed
-    }
-    if (build.getStatusDescriptor().isSuccessful()) {
-      return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/successful.png";
-    }
-    if (build.isInternalError()) {
-      return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/error.png";
-    }
-    if (build.getCanceledInfo() != null) {
-      return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/canceled.png";
-    }
-    return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/failed.png";
   }
 
-  private boolean hasPermissionsToViewStatus(@NotNull final SBuild build, @NotNull final SecurityContextEx securityContext) {
+  private boolean hasPermissionsToViewStatus(@NotNull final SBuild build, @NotNull final AuthorityHolder authorityHolder) {
     final SBuildType buildType = build.getBuildType();
     if (buildType == null){
       throw new OperationException("No build type found for build.");
@@ -504,7 +524,6 @@ public class BuildRequest {
       return true;
     }
 
-    final AuthorityHolder authorityHolder = securityContext.getAuthorityHolder();
     //todo: how to distinguish no user from system? Might check for system to support authToken requests...
     if (authorityHolder.getAssociatedUser() != null &&
         authorityHolder.isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_PROJECT)) {
@@ -532,19 +551,6 @@ public class BuildRequest {
       return true;
     }
     return false;
-  }
-
-  @NotNull
-  private SBuild getBuildUnderSystem(final String buildLocator, final SecurityContextEx securityContext) throws Throwable {
-    final SBuild[] buildRetriever = new SBuild[1];
-
-      securityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
-        public void run() throws Throwable {
-          buildRetriever[0] = myDataProvider.getBuild(null, buildLocator);
-        }
-      });
-
-    return buildRetriever[0];
   }
 
   private StreamingOutput getStreamingOutput(final InputStream inputStream, final String streamName) {
