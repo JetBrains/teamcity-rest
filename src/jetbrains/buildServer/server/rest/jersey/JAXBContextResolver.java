@@ -61,6 +61,7 @@ public class JAXBContextResolver implements ContextResolver<JAXBContext> {
   //Root entities should be listed here 
   private final Class[] cTypes = {
     Agent.class, Agents.class,
+    Artifact.class, Artifacts.class,
     Build.class, Builds.class,
     BuildsList.class,
     BuildType.class, BuildTypes.class,

@@ -33,9 +33,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.server.rest.model.build.Build;
-import jetbrains.buildServer.server.rest.model.build.Builds;
-import jetbrains.buildServer.server.rest.model.build.Tags;
+import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
@@ -156,24 +154,52 @@ public class BuildRequest {
   //todo: need to expose file name and type?
   @GET
   @Path("/{buildLocator}/artifacts/files/{fileName:.+}")
-  @Produces({"application/octet-stream"})
-  public StreamingOutput serveArtifact(@PathParam("buildLocator") final String buildLocator, @PathParam("fileName") final String fileName) {
-    SBuild build = myDataProvider.getBuild(null, buildLocator);
+  @Produces({MediaType.WILDCARD})
+  public Response getArtifactContent(@PathParam("buildLocator") final String buildLocator, @PathParam("fileName") final String fileName, @Context HttpServletRequest request) {
+    final SBuild build = myDataProvider.getBuild(null, buildLocator);
     final BuildArtifacts artifacts = build.getArtifacts(BuildArtifactsViewMode.VIEW_ALL);
     final BuildArtifactHolder artifact = artifacts.findArtifact(fileName);
-    final BuildArtifact buildArtifact = artifact.getArtifact();
-    if (!artifact.isAvailable() || buildArtifact.isDirectory()) {
+    if (!artifact.isAvailable()) {
       throw new NotFoundException("No artifact found. Relative path: '" + fileName + "'");
     }
     if (!artifact.isAccessible()) {
-      throw new AuthorizationFailedException(
-        "Artifact is not accessible with current user permissions. Relative path: '" + fileName + "'");
+      throw new AuthorizationFailedException("Artifact is not accessible with current user permissions. Relative path: '" + fileName + "'");
+    }
+    final BuildArtifact buildArtifact = artifact.getArtifact();
+    if (buildArtifact.isDirectory()) {
+      throw new NotFoundException("Requested path is a directory. Relative path: '" + fileName + "'");
     }
     try {
-      return getStreamingOutput(buildArtifact.getInputStream(), buildArtifact.getRelativePath());
+      String mimeType = request.getSession().getServletContext().getMimeType(fileName);
+      Response.ResponseBuilder builder = Response.ok();
+      if (mimeType != null) {
+        builder = builder.type(mimeType);
+      } else {
+        builder = builder.type(DefaultMediaTypePredictor.CommonMediaTypes.getMediaTypeFromFileName(fileName));
+      }
+      return builder.entity(getStreamingOutput(buildArtifact.getInputStream(), buildArtifact.getRelativePath())).build();
     } catch (IOException e) {
       throw new OperationException("Error opening artifact file '" + buildArtifact.getRelativePath() + "': " + e.getMessage(), e);
     }
+  }
+
+  @GET
+  @Path("/{buildLocator}/artifacts/")
+  @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+  public Artifacts getArtifacts(@PathParam("buildLocator") final String buildLocator, @QueryParam("includeHidden") String getHidden) {
+    final SBuild build = myDataProvider.getBuild(null, buildLocator);
+    final List<Artifact> collected = new ArrayList<Artifact>();
+    build.getArtifacts((getHidden != null) ? BuildArtifactsViewMode.VIEW_ALL : BuildArtifactsViewMode.VIEW_DEFAULT).iterateArtifacts(
+      new BuildArtifacts.BuildArtifactsProcessor() {
+        @NotNull
+        public Continuation processBuildArtifact(@NotNull final BuildArtifact artifact) {
+          if (!artifact.isDirectory()) {
+            collected.add(new Artifact(artifact, myApiUrlBuilder, build));
+          }
+          return Continuation.CONTINUE;
+        }
+      });
+    return new Artifacts(collected);
   }
 
   @GET
