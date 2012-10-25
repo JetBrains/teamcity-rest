@@ -42,7 +42,7 @@ public class JerseyWebComponent extends SpringServlet {
   @Override
   protected void initiate(ResourceConfig rc, WebApplication wa) {
     try {
-      registerResourceProfiders(rc, myWebApplicationContext);
+      registerResourceProviders(rc, myWebApplicationContext);
       wa.initiate(rc, new ExtensionHolderProviderFactory(myExtensionHolder));
     } catch (RuntimeException e) {
       LOG.error("Exception occurred during REST API initialization", e);
@@ -56,7 +56,7 @@ public class JerseyWebComponent extends SpringServlet {
    * @param rc config
    * @param springContext spring context
    */
-  private void registerResourceProfiders(ResourceConfig rc, ConfigurableApplicationContext springContext) {
+  private void registerResourceProviders(ResourceConfig rc, ConfigurableApplicationContext springContext) {
     //TODO: restrict search to current spring context without parent for speedup
     for (String name : BeanFactoryUtils.beanNamesIncludingAncestors(springContext)) {
       final Class<?> type = ClassUtils.getUserClass(springContext.getType(name));

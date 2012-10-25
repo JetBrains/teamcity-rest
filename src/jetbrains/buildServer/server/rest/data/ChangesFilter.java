@@ -33,11 +33,11 @@ import org.jetbrains.annotations.Nullable;
  */
 public class ChangesFilter extends AbstractFilter<SVcsModification> {
   public static final String IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION = "rest.ignoreChangesFromDependenciesOption";
-  @Nullable private SProject myProject;
-  @Nullable private SBuildType myBuildType;
-  @Nullable private SBuild myBuild;
-  @Nullable private VcsRootInstance myVcsRoot;
-  @Nullable private SVcsModification mySinceChange;
+  @Nullable private final SProject myProject;
+  @Nullable private final SBuildType myBuildType;
+  @Nullable private final SBuild myBuild;
+  @Nullable private final VcsRootInstance myVcsRoot;
+  @Nullable private final SVcsModification mySinceChange;
 
   public ChangesFilter(@Nullable final SProject project,
                        @Nullable final SBuildType buildType,
@@ -60,7 +60,6 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
       if (change.isPersonal()) {
         return false;
       } else {
-        assert myVcsRoot != null;
         if (myVcsRoot.getId() != change.getVcsRoot().getId()) {
           return false;
         }
@@ -77,7 +76,7 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
   }
 
   //todo: BuiltType is ignored if VCS root is specified; sometimes we return filtered changes by checkout rules and sometimes not
-  //todo: sometimes with panding sometimes not?
+  //todo: sometimes with pending sometimes not?
   public List<SVcsModification> getMatchingChanges(@NotNull final VcsModificationHistory vcsHistory) {
 
 

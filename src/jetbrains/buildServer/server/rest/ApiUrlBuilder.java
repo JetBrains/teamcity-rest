@@ -36,7 +36,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 14.11.2009
  */
 public class ApiUrlBuilder {
-  private PathTransformer myPathTransformer;
+  private final PathTransformer myPathTransformer;
 
   public ApiUrlBuilder(@NotNull final PathTransformer pathTransformer) {
     myPathTransformer = pathTransformer;

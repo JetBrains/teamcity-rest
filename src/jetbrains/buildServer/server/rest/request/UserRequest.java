@@ -82,7 +82,7 @@ public class UserRequest {
     SUser user;
     try {
       user = myDataProvider.getUser(userLocator);
-    } catch (RuntimeException e) { // ensuring user without permisisons could not get details on existing users by error messages
+    } catch (RuntimeException e) { // ensuring user without permissions could not get details on existing users by error messages
       checkViewAllUsersPermission();
       return;
     }
@@ -102,7 +102,7 @@ public class UserRequest {
     SUser user;
     try {
       user = myDataProvider.getUser(userLocator);
-    } catch (RuntimeException e) { // ensuring user without permisisons could not get details on existing users by error messages
+    } catch (RuntimeException e) { // ensuring user without permissions could not get details on existing users by error messages
       checkModifyAllUsersPermission();
       return;
     }

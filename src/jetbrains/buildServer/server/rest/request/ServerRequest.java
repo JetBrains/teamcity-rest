@@ -16,7 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import com.sun.jersey.spi.inject.Inject;
+import com.sun.jersey.api.core.InjectParam;
 import com.sun.jersey.spi.resource.Singleton;
 import java.io.File;
 import javax.ws.rs.*;
@@ -77,7 +77,7 @@ public class ServerRequest {
    * @param includeConfigs whether to include configs into the backup or not
    * @param includeDatabase whether to include database into the backup or not
    * @param includeBuildLogs whether to include build logs into the backup or not
-   * @param includePersonalChanges whether to include personal chanegs into the backup or not
+   * @param includePersonalChanges whether to include personal changes into the backup or not
    * @return the resulting file name that the backup will be saved to
    */
   @POST
@@ -89,7 +89,7 @@ public class ServerRequest {
                             @QueryParam("includeDatabase") Boolean includeDatabase,
                             @QueryParam("includeBuildLogs") Boolean includeBuildLogs,
                             @QueryParam("includePersonalChanges") Boolean includePersonalChanges,
-                            @Inject BackupProcessManager backupManager) {
+                            @InjectParam BackupProcessManager backupManager) {
     BackupConfig backupConfig = new BackupConfig();
     if (StringUtil.isNotEmpty(fileName)) {
       if (new File(fileName).isAbsolute()){
@@ -112,7 +112,7 @@ public class ServerRequest {
     try {
       backupManager.startBackup(backupConfig);
     } catch (MaintenanceProcessAlreadyRunningException e) {
-      throw new InvalidStateException("Cannot start backup becasue another maintenance process is in progress", e);
+      throw new InvalidStateException("Cannot start backup because another maintenance process is in progress", e);
     }
     return backupConfig.getResultFileName();
   }
@@ -123,7 +123,7 @@ public class ServerRequest {
   @GET
   @Path("/backup")
   @Produces({"text/plain"})
-  public String getBackupStatus(@Inject BackupProcessManager backupManager) {
+  public String getBackupStatus(@InjectParam BackupProcessManager backupManager) {
     final BackupProcess backupProcess = backupManager.getCurrentBackupProcess();
     if (backupProcess == null) {
       return "Idle";

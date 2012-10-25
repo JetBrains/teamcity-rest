@@ -42,7 +42,7 @@ public class RequestPathTransformInfo implements PathTransformator {
   }
 
   @NotNull
-  private static String getLargerstMatchingSubstring(@NotNull final String path, final Set<String> substrings) {
+  private static String getLargestMatchingSubstring(@NotNull final String path, final Set<String> substrings) {
     String result = "";
     for (String substring : substrings) {
       boolean matches = path.contains(substring);
@@ -55,7 +55,7 @@ public class RequestPathTransformInfo implements PathTransformator {
 
   @NotNull
   public String getTransformedPath(@NotNull final String path) {
-    String matching = getLargerstMatchingSubstring(path, myPathMapping.keySet());
+    String matching = getLargestMatchingSubstring(path, myPathMapping.keySet());
     if (matching.length() == 0){
       return path;
     }
@@ -70,7 +70,7 @@ public class RequestPathTransformInfo implements PathTransformator {
 
   @NotNull
   public PathTransformator getReverseTransformator(@NotNull final String originalPath, final boolean prefixSupported) {
-    final String matching = getLargerstMatchingSubstring(originalPath, myPathMapping.keySet());
+    final String matching = getLargestMatchingSubstring(originalPath, myPathMapping.keySet());
     if (matching.length() == 0){
       return new PathTransformator(){
         @NotNull

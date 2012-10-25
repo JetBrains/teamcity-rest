@@ -59,7 +59,7 @@ import org.springframework.web.servlet.ModelAndView;
  */
 public class APIController extends BaseController implements ServletContextAware {
   final static Logger LOG = Logger.getInstance(APIController.class.getName());
-  public static final String REST_CORS_ORIGINS_INTRNAL_PROPERTY_NAME = "rest.cors.origins";
+  public static final String REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME = "rest.cors.origins";
   private JerseyWebComponent myWebComponent;
   private final ConfigurableApplicationContext myConfigurableApplicationContext;
   private final SecurityContextEx mySecurityContext;
@@ -243,7 +243,7 @@ public class APIController extends BaseController implements ServletContextAware
           runAsSystem = true;
         } else {
           synchronized (this) {
-            Thread.sleep(10000); //to prevent bruteforcing
+            Thread.sleep(10000); //to prevent brute-forcing
           }
           reportRestErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, null, "Wrong authToken specified", request.getRequestURI(),
                                   Level.INFO);
@@ -279,7 +279,7 @@ public class APIController extends BaseController implements ServletContextAware
       });
 
     } catch (Throwable throwable) {
-      // Sometimes Jersy throws IllegalArgumentException and probably other without utilizing ExceptionMappers
+      // Sometimes Jersey throws IllegalArgumentException and probably other without utilizing ExceptionMappers
       // forcing plain text error reporting
       reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, request.getRequestURI(), Level.WARN);
     } finally{
@@ -312,13 +312,13 @@ public class APIController extends BaseController implements ServletContextAware
         addOtherHeadersToResponse(request, response);
       } else if (ArrayUtil.contains("*", originsArray)){
         LOG.debug("Got CORS request from origin '" + origin + "', but this origin is not allowed. However, '*' is. Replying with '*'." +
-                  " Add the origin to '" + REST_CORS_ORIGINS_INTRNAL_PROPERTY_NAME +
+                  " Add the origin to '" + REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME +
                   "' internal property (comma-separated) to trust the applications hosted on the domain. Current allowed origins are: " +
                   Arrays.toString(originsArray));
         addOriginHeaderToResponse(response, "*");
       }else {
         LOG.debug("Got CORS request from origin '" + origin + "', but this origin is not allowed. Add the origin to '" +
-                  REST_CORS_ORIGINS_INTRNAL_PROPERTY_NAME +
+                  REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME +
                   "' internal property (comma-separated) to trust the applications hosted on the domain. Current allowed origins are: " +
                   Arrays.toString(originsArray));
       }
@@ -342,7 +342,7 @@ public class APIController extends BaseController implements ServletContextAware
 
   @NotNull
   private synchronized String[] getAllowedOrigins() {
-    final String allowedOrigins = TeamCityProperties.getProperty(REST_CORS_ORIGINS_INTRNAL_PROPERTY_NAME);
+    final String allowedOrigins = TeamCityProperties.getProperty(REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME);
     if (myAllowedOrigins == null || !myAllowedOrigins.equals(allowedOrigins)) {
       myAllowedOrigins = allowedOrigins;
       myOriginsArray = allowedOrigins.split(",");

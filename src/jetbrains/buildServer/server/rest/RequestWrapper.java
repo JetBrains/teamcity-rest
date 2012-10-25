@@ -29,8 +29,8 @@ import jetbrains.buildServer.server.rest.request.Constants;
  *         Date: 16.11.2009
  */
 public class RequestWrapper extends HttpServletRequestWrapper {
-  final Logger LOG = Logger.getInstance(RequestWrapper.class.getName());
-  private RequestPathTransformInfo myRequestPathTransformInfo;
+  private static final Logger LOG = Logger.getInstance(RequestWrapper.class.getName());
+  private final RequestPathTransformInfo myRequestPathTransformInfo;
 
   public RequestWrapper(HttpServletRequest request, RequestPathTransformInfo requestPathTransformInfo) {
     super(request);

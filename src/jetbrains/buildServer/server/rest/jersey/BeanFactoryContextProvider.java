@@ -31,7 +31,7 @@ import jetbrains.buildServer.server.rest.util.BeanFactory;
  */
 @Provider
 public class BeanFactoryContextProvider implements InjectableProvider<Context, Type>, Injectable<BeanFactory> {
-  private BeanFactory myValue;
+  private final BeanFactory myValue;
 
   public BeanFactoryContextProvider(final BeanFactory contextLocator) {
     myValue = contextLocator;

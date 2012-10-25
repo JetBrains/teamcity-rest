@@ -107,13 +107,13 @@ public class DataUpdater {
     if (groupDescription.childGroups != null || groupDescription.parentGroups != null || groupDescription.users != null ||
         groupDescription.roleAssignments != null) {
       //href is also ignored but not reported...
-      throw new BadRequestException("Only 'key', 'name' and 'description' attributtes are supported when creating user groups.");
+      throw new BadRequestException("Only 'key', 'name' and 'description' attributes are supported when creating user groups.");
     }
     if (StringUtil.isEmpty(groupDescription.key)) {
-      throw new BadRequestException("Attribbute 'key' must not be empty when creating group.");
+      throw new BadRequestException("Attribute 'key' must not be empty when creating group.");
     }
     if (StringUtil.isEmpty(groupDescription.name)) {
-      throw new BadRequestException("Attribbute 'name' must not be empty when creating group.");
+      throw new BadRequestException("Attribute 'name' must not be empty when creating group.");
     }
     SUserGroup resultingGroup;
     try {

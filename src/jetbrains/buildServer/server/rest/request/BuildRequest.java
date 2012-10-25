@@ -205,13 +205,13 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/sources/files/{fileName:.+}")
   @Produces({"application/octet-stream"})
-  public Response serveSourceFeil(@PathParam("buildLocator") final String buildLocator, @PathParam("fileName") final String fileName) {
+  public Response serveSourceFail(@PathParam("buildLocator") final String buildLocator, @PathParam("fileName") final String fileName) {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
     byte[] fileContent;
     try {
       fileContent = myServiceLocator.getSingletonService(VcsManager.class).getFileContent(build, fileName);
     } catch (VcsException e) {
-      throw new OperationException("Erorr while retrieving file content from VCS", e);
+      throw new OperationException("Error while retrieving file content from VCS", e);
     }
     return Response.ok().entity(fileContent).build();
   }
@@ -290,7 +290,7 @@ public class BuildRequest {
     final Collection<ValueProvider> valueProviders = myDataProvider.getValueProviderRegistry().getValueProviders();
     final Map<String, String> result = new HashMap<String, String>();
 
-    //todo: this should be based not on curently registered providers, but on the real values published for a build,
+    //todo: this should be based not on currently registered providers, but on the real values published for a build,
     // see also http://youtrack.jetbrains.net/issue/TW-4003
     for (ValueProvider valueProvider : valueProviders) {
       addValueIfPresent(build, valueProvider.getKey(), result);
@@ -348,9 +348,9 @@ public class BuildRequest {
   @Consumes({"application/xml", "application/json"})
   public void addTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
-    final List<String> resutlingTags = build.getTags();
-    resutlingTags.addAll(tags.tags);
-    build.setTags(SessionUser.getUser(request), resutlingTags);
+    final List<String> resultingTags = build.getTags();
+    resultingTags.addAll(tags.tags);
+    build.setTags(SessionUser.getUser(request), resultingTags);
   }
 
   /**
@@ -516,8 +516,8 @@ public class BuildRequest {
 
       if (!holderHasPermission[0]) {
         LOG.info("No permissions to access requested build with locator'" + buildLocator + "'" +
-                 ". Either authenticate as user with appropriate permisisons, or ensure 'guest' user has appropriate permisisons " +
-                 "or enable external status widget for the build configuation.");
+                 ". Either authenticate as user with appropriate permissions, or ensure 'guest' user has appropriate permissions " +
+                 "or enable external status widget for the build configuration.");
         return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/permission.png";
       }
 
@@ -581,7 +581,7 @@ public class BuildRequest {
 
   private StreamingOutput getStreamingOutput(final InputStream inputStream, final String streamName) {
     return new StreamingOutput() {
-      public void write(final OutputStream output) throws IOException, WebApplicationException {
+      public void write(final OutputStream output) throws WebApplicationException {
         try {
           TCStreamUtil.writeBinary(inputStream, output);
         } catch (IOException e) {

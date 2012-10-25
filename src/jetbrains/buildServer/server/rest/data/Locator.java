@@ -41,8 +41,8 @@ public class Locator {
     if (StringUtil.isEmpty(locator)) {
       throw new LocatorProcessException("Invalid locator. Cannot be empty.");
     }
-    @SuppressWarnings("ConstantConditions")final boolean hasDimentions = locator.indexOf(DIMENSION_NAME_VALUE_DELIMITER) != -1;
-    if (!hasDimentions) {
+    @SuppressWarnings("ConstantConditions")final boolean hasDimensions = locator.indexOf(DIMENSION_NAME_VALUE_DELIMITER) != -1;
+    if (!hasDimensions) {
       mySingleValue = locator;
       myDimensions = new MultiValuesMap<String, String>();
       myUnusedDimensions = new HashSet<String>();
@@ -115,7 +115,7 @@ public class Locator {
   }
 
   /**
-   * @return locator's not-null value if it is single-value locator, 'null' othervise
+   * @return locator's not-null value if it is single-value locator, 'null' otherwise
    */
   @Nullable
   public String getSingleValue() {
@@ -184,7 +184,7 @@ public class Locator {
    * @param dimensions    dimensions to extract value from.
    * @param dimensionName the name of the dimension to extract value.   @return 'null' if no such dimension is found, value of the dimension otherwise.
    * @throws jetbrains.buildServer.server.rest.errors.LocatorProcessException
-   *          if there are more then a single dimension defiition for a 'dimensionName' name or the dimension has no value specified.
+   *          if there are more then a single dimension definition for a 'dimensionName' name or the dimension has no value specified.
    */
   @Nullable
   public String getSingleDimensionValue(@NotNull final String dimensionName) {
@@ -204,7 +204,7 @@ public class Locator {
   }
 
   /**
-   * Should be used only for multi-dimention locators
+   * Should be used only for multi-dimension locators
    * @param name
    * @param value
    */
@@ -218,7 +218,7 @@ public class Locator {
   }
 
   /**
-   * Provides the names of dimentions whose values were never retrieved
+   * Provides the names of dimensions whose values were never retrieved
    * @return
    */
   @NotNull

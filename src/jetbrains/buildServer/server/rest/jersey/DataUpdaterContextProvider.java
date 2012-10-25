@@ -31,7 +31,7 @@ import jetbrains.buildServer.server.rest.data.DataUpdater;
  */
 @Provider
 public class DataUpdaterContextProvider implements InjectableProvider<Context, Type>, Injectable<DataUpdater> {
-  private DataUpdater myDataUpdater;
+  private final DataUpdater myDataUpdater;
 
   public DataUpdaterContextProvider(final DataUpdater dataUpdater) {
     myDataUpdater = dataUpdater;

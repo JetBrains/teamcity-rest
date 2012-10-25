@@ -58,7 +58,7 @@ import org.jetbrains.annotations.NotNull;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
-    - too long number passed as finish for builds produses 404
+    - too long number passed as finish for builds produces 404
 */
 
 @Path(BuildTypeRequest.API_BUILD_TYPES_URL)
@@ -449,9 +449,6 @@ public class BuildTypeRequest {
   public PropEntityFeature getFeature(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId) {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType.get(), featureId);
-    if (feature == null) {
-      throw new NotFoundException("No feature with id '" + featureId + "' is found.");
-    }
     return new PropEntityFeature(feature, buildType.get());
   }
 
@@ -460,10 +457,7 @@ public class BuildTypeRequest {
   public void deleteFeature(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String id) {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType.get(), id);
-    if (feature == null) {
-      throw new NotFoundException("No feature with id '" + id + "' is found.");
-    }
-    buildType.get().removeBuildFeature(id);
+    buildType.get().removeBuildFeature(feature.getId());
     buildType.get().persist();
   }
 
@@ -528,11 +522,11 @@ public class BuildTypeRequest {
   @POST
   @Path("/{btLocator}/artifact-dependencies")
   @Produces({"application/xml", "application/json"})
-  public PropEntityArtifactDep addArtifactDep(@PathParam("btLocator") String buildTypeLocator, PropEntityArtifactDep descripton) {
+  public PropEntityArtifactDep addArtifactDep(@PathParam("btLocator") String buildTypeLocator, PropEntityArtifactDep description) {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
 
     final List<SArtifactDependency> dependencies = buildType.get().getArtifactDependencies();
-    dependencies.add(descripton.createDependency(myServiceLocator.getSingletonService(ArtifactDependencyFactory.class)));
+    dependencies.add(description.createDependency(myServiceLocator.getSingletonService(ArtifactDependencyFactory.class)));
     int orderNum = dependencies.size() - 1;
     buildType.get().setArtifactDependencies(dependencies);
     buildType.get().persist();
@@ -568,7 +562,7 @@ public class BuildTypeRequest {
   @GET
   @Path("/{btLocator}/snapshot-dependencies")
   @Produces({"application/xml", "application/json"})
-  public PropEntitiesSnapshotDep getAnpshotDeps(@PathParam("btLocator") String buildTypeLocator) {
+  public PropEntitiesSnapshotDep getSnapshotDeps(@PathParam("btLocator") String buildTypeLocator) {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     return new PropEntitiesSnapshotDep(buildType.get());
   }
@@ -580,11 +574,11 @@ public class BuildTypeRequest {
   @POST
   @Path("/{btLocator}/snapshot-dependencies")
   @Produces({"application/xml", "application/json"})
-  public PropEntitySnapshotDep addSnapshotDep(@PathParam("btLocator") String buildTypeLocator, PropEntitySnapshotDep descripton) {
+  public PropEntitySnapshotDep addSnapshotDep(@PathParam("btLocator") String buildTypeLocator, PropEntitySnapshotDep description) {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
 
-    Dependency createdDependency = descripton.addSnapshotDependency(buildType.get(),
-                                                                    myServiceLocator.getSingletonService(DependencyFactoryImpl.class));
+    Dependency createdDependency = description.addSnapshotDependency(buildType.get(),
+                                                                     myServiceLocator.getSingletonService(DependencyFactoryImpl.class));
     buildType.get().persist();
     return new PropEntitySnapshotDep(createdDependency);
   }
@@ -625,10 +619,10 @@ public class BuildTypeRequest {
   @POST
   @Path("/{btLocator}/triggers")
   @Produces({"application/xml", "application/json"})
-  public PropEntityTrigger addTrigger(@PathParam("btLocator") String buildTypeLocator, PropEntityTrigger descripton) {
+  public PropEntityTrigger addTrigger(@PathParam("btLocator") String buildTypeLocator, PropEntityTrigger description) {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
 
-    final BuildTriggerDescriptor justAdded = descripton.addTrigger(buildType.get(), myServiceLocator
+    final BuildTriggerDescriptor justAdded = description.addTrigger(buildType.get(), myServiceLocator
       .getSingletonService(BuildTriggerDescriptorFactory.class));
 
     buildType.get().persist();
@@ -695,10 +689,10 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/agent-requirements")
   @Produces({"application/xml", "application/json"})
   public PropEntityAgentRequirement addAgentRequirement(@PathParam("btLocator") String buildTypeLocator,
-                                                        PropEntityAgentRequirement descripton) {
+                                                        PropEntityAgentRequirement description) {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
 
-    final PropEntityAgentRequirement result = descripton.addRequirement(buildType);
+    final PropEntityAgentRequirement result = description.addRequirement(buildType);
     buildType.get().persist();
     return result;
   }

@@ -36,7 +36,7 @@ import jetbrains.buildServer.server.rest.request.Constants;
  */
 @Provider
 public class UrlBuilderProvider implements InjectableProvider<Context, java.lang.reflect.Type>, Injectable<ApiUrlBuilder> {
-  private RequestPathTransformInfo myRequestPathTransformInfo;
+  private final RequestPathTransformInfo myRequestPathTransformInfo;
 
   //TODO: using request-specific field in singleton provider
   //TODO: may lead to concurrency issue as this instance is

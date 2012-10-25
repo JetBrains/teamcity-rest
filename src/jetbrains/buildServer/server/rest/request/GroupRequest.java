@@ -32,7 +32,7 @@ import jetbrains.buildServer.serverSide.auth.RoleScope;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
-    - too long number passed as finish for builds produses 404
+    - too long number passed as finish for builds produces 404
 */
 
 @Path(GroupRequest.API_USER_GROUPS_URL)

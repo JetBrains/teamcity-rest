@@ -31,7 +31,7 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
  */
 @Provider
 public class DataProviderContextProvider implements InjectableProvider<Context, Type>, Injectable<DataProvider> {
-  private DataProvider myDataProvider;
+  private final DataProvider myDataProvider;
 
   public DataProviderContextProvider(final DataProvider dataProvider) {
     myDataProvider = dataProvider;

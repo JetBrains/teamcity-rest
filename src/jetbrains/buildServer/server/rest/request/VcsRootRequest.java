@@ -34,7 +34,7 @@ import org.jetbrains.annotations.NotNull;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
-    - too long number passed as finish for builds produses 404
+    - too long number passed as finish for builds produces 404
 */
 
 @Path(VcsRootRequest.API_VCS_ROOTS_URL)
@@ -77,7 +77,7 @@ public class VcsRootRequest {
   private void checkVcsRootDescription(final VcsRoot description) {
     //might need to check for validity: not specified id, status, lastChecked attributes, etc.
     if (StringUtil.isEmpty(description.vcsName)) {
-      //todo: include list of avaialble supports here
+      //todo: include list of available supports here
       throw new BadRequestException("Attribute 'vcsName' must be specified when creating VCS root. Should be a valid VCS support name.");
     }
     if (description.properties == null) {
@@ -189,7 +189,7 @@ public class VcsRootRequest {
   @PUT
   @Path("/{vcsRootLocator}/{field}")
   @Consumes("text/plain")
-  public void seteField(@PathParam("vcsRootLocator") String vcsRootLocator, @PathParam("field") String fieldName, String newValue) {
+  public void setField(@PathParam("vcsRootLocator") String vcsRootLocator, @PathParam("field") String fieldName, String newValue) {
     final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
     VcsRoot.setFieldValue(vcsRoot, fieldName, newValue, myDataProvider);
     myDataProvider.getVcsManager().persistVcsRoots();

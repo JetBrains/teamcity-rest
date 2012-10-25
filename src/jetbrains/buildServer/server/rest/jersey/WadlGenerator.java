@@ -29,7 +29,7 @@ import java.util.List;
  */
 public class WadlGenerator extends WadlGeneratorConfig {
 
-  public static final String RESOURCEDOC_XML = "jetbrains/buildServer/server/rest/jersey/javadoc_generated.xml";
+  public static final String RESOURCE_JAVADOC_XML = "jetbrains/buildServer/server/rest/jersey/javadoc_generated.xml";
 
   @Override
   public List<WadlGeneratorDescription> configure() {
@@ -43,9 +43,9 @@ public class WadlGenerator extends WadlGeneratorConfig {
     //    .prop("grammarsStream", "jetbrains/buildServer/server/rest/jersey/application-grammars.xml");
     //}
 
-    if (getClass().getClassLoader().getResourceAsStream(RESOURCEDOC_XML) != null) {
+    if (getClass().getClassLoader().getResourceAsStream(RESOURCE_JAVADOC_XML) != null) {
       builder = builder.generator(WadlGeneratorResourceDocSupport.class).
-        prop("resourceDocStream", RESOURCEDOC_XML);
+        prop("resourceDocStream", RESOURCE_JAVADOC_XML);
     }
 
     return builder.descriptions();

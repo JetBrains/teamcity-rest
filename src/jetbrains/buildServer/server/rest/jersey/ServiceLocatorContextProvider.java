@@ -31,7 +31,7 @@ import jetbrains.buildServer.ServiceLocator;
  */
 @Provider
 public class ServiceLocatorContextProvider implements InjectableProvider<Context, Type>, Injectable<ServiceLocator> {
-  private ServiceLocator myValue;
+  private final ServiceLocator myValue;
 
   public ServiceLocatorContextProvider(final ServiceLocator contextLocator) {
     myValue = contextLocator;

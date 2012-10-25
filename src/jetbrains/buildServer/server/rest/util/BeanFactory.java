@@ -52,7 +52,7 @@ public class BeanFactory {
     return null;
   }
 
-  private <T> boolean checkParametersMatch(final Class<?>[] argTypes, final Class[] reqTypes) {
+  private boolean checkParametersMatch(final Class<?>[] argTypes, final Class[] reqTypes) {
     if (reqTypes.length != argTypes.length) return false;
     for (int i = 0; i < argTypes.length; i++) {
       final Class<?> paramType = argTypes[i];
@@ -73,7 +73,7 @@ public class BeanFactory {
 
     final Constructor<T> constructor = findConstructor(clazz, types);
     if (constructor == null) {
-      throw new OperationException("Could not find contructor for class " + clazz.getName() + " with parameters " + describe(params));
+      throw new OperationException("Could not find constructor for class " + clazz.getName() + " with parameters " + describe(params));
     }
 
     final T t;

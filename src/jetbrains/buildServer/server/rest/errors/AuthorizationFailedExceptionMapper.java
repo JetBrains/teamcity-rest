@@ -26,7 +26,7 @@ import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
  * User: Yegor Yarko
  * Date: 30.03.2009
  * <p/>
- * This will jopefull report Jersey-originated errors with more details
+ * This will hopefully report Jersey-originated errors with more details
  */
 @Provider
 public class AuthorizationFailedExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<AuthorizationFailedException> {

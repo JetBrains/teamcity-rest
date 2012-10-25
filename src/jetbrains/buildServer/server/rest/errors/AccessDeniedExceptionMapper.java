@@ -27,7 +27,7 @@ import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
  * User: Yegor Yarko
  * Date: 30.03.2009
  * <p/>
- * This will jopefull report Jersey-originated errors with more details
+ * This will hopefully report Jersey-originated errors with more details
  */
 @Provider
 public class AccessDeniedExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<AccessDeniedException> {

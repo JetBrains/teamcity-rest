@@ -38,6 +38,7 @@ public class ParameterCondition {
     if (StringUtil.isEmpty(myParameterValue)) {
       return true;
     } else {
+      //noinspection ConstantConditions
       return !StringUtil.isEmpty(value) && value.contains(myParameterValue);
     }
   }

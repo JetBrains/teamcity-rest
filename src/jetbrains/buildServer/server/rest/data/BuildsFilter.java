@@ -31,7 +31,7 @@ public class BuildsFilter{
 
   public static final String BRANCH_NAME_ANY = "<any>";
 
-  @Nullable private String myNumber;
+  @Nullable private final String myNumber;
   @Nullable protected Long myStart;
   @Nullable protected Integer myCount;
 
@@ -41,12 +41,12 @@ public class BuildsFilter{
   private final Boolean myRunning;
   private final Boolean myPinned;
   private final List<String> myTags;
-  @Nullable private Locator myBranchLocator;
+  @Nullable private final Locator myBranchLocator;
   @Nullable private final String myAgentName;
   @Nullable private final RangeLimit mySince;
   @Nullable private final RangeLimit myUntil;
-  @Nullable private Long myLookupLimit;
-  @Nullable private ParameterCondition myParameterCondition;
+  @Nullable private final Long myLookupLimit;
+  @Nullable private final ParameterCondition myParameterCondition;
   @Nullable private final SUser myUser;
   @Nullable private final SBuildType myBuildType;
 
@@ -56,7 +56,7 @@ public class BuildsFilter{
    * @param number          build number of the builds to include
    * @param user            limit builds to those triggered by user, can be null to return all builds
    * @param personal        if set, limits the builds by personal status (return only personal if "true", only non-personal if "false")
-   * @param canceled        if set, limits the builds by canceled status (return only canceled if "true", only non-conceled if "false")
+   * @param canceled        if set, limits the builds by canceled status (return only canceled if "true", only non-canceled if "false")
    * @param running         if set, limits the builds by running state (return only running if "true", only finished if "false")
    * @param pinned          if set, limits the builds by pinned status (return only pinned if "true", only non-pinned if "false")
    * @param branchLocator   if not set, only builds from default branch match. The locator supports dimensions: "name"/String, "default"/boolean and "unspecified"/boolean.

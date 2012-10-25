@@ -24,6 +24,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 20.06.2010
  */
 public class RESTControllerExtensionInitializer extends RESTControllerExtensionAdapter {
+    @Override
     @NotNull
     public String getPackage() {
         return "jetbrains.buildServer.server.restcontrib";
