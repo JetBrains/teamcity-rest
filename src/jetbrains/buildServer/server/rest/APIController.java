@@ -63,6 +63,7 @@ public class APIController extends BaseController implements ServletContextAware
   private JerseyWebComponent myWebComponent;
   private final ConfigurableApplicationContext myConfigurableApplicationContext;
   private final SecurityContextEx mySecurityContext;
+  private ServerPluginInfo myPluginDescriptor;
   private final ExtensionHolder myExtensionHolder;
   private AuthorizationInterceptor myAuthorizationInterceptor;
 
@@ -79,6 +80,7 @@ public class APIController extends BaseController implements ServletContextAware
                        final ExtensionHolder extensionHolder,
                        final AuthorizationInterceptor authorizationInterceptor) throws ServletException {
     super(server);
+    myPluginDescriptor = pluginDescriptor;
     myExtensionHolder = extensionHolder;
     myAuthorizationInterceptor = authorizationInterceptor;
     setSupportedMethods(new String[]{METHOD_GET, METHOD_HEAD, METHOD_POST, "PUT", "OPTIONS", "DELETE"});
@@ -106,7 +108,8 @@ public class APIController extends BaseController implements ServletContextAware
     if (TeamCityProperties.getBoolean("rest.use.authToken")) {
       try {
         myAuthToken = URLEncoder.encode(UUID.randomUUID().toString() + (new Date()).toString().hashCode(), "UTF-8");
-        LOG.info("Authentication token for superuser generated: '" + myAuthToken + "'.");
+        LOG.info("Authentication token for superuser generated: '" + myAuthToken + "' (plugin '" + myPluginDescriptor.getPluginName() +
+                 "', listening for paths " + originalBindPaths + ").");
       } catch (UnsupportedEncodingException e) {
         LOG.warn(e);
       }
