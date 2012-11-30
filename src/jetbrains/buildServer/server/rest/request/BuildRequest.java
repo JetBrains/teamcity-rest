@@ -205,7 +205,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/sources/files/{fileName:.+}")
   @Produces({"application/octet-stream"})
-  public Response serveSourceFail(@PathParam("buildLocator") final String buildLocator, @PathParam("fileName") final String fileName) {
+  public Response serveSourceFile(@PathParam("buildLocator") final String buildLocator, @PathParam("fileName") final String fileName) {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
     byte[] fileContent;
     try {
