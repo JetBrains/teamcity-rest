@@ -252,6 +252,7 @@ public class BuildTypeRequest {
     buildType.attachToTemplate(template, false);
     buildType.persist();
   }
+//todo: allow also to post back the XML from GET request (http://devnet.jetbrains.net/message/5466528#5466528)
 
   @DELETE
   @Path("/{btLocator}/template")
