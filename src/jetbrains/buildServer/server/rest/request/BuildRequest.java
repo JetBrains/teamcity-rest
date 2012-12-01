@@ -47,6 +47,7 @@ import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.statistics.BuildValueProvider;
 import jetbrains.buildServer.serverSide.statistics.ValueProvider;
 import jetbrains.buildServer.serverSide.statistics.build.BuildValue;
 import jetbrains.buildServer.serverSide.statistics.build.CompositeVTB;
@@ -257,7 +258,11 @@ public class BuildRequest {
   }
 
   private BuildValue getRawBuildStatisticValue(final SBuild build, final String statisticValueName) {
-    return myDataProvider.getBuildDataStorage().getData(statisticValueName, null, build.getBuildId(), build.getBuildTypeId());
+    ValueProvider vt = myDataProvider.getValueProviderRegistry().getValueProvider(statisticValueName);
+    if (vt instanceof BuildValueProvider) { // also checks for null
+      return ((BuildValueProvider)vt).getData(build);
+    }
+    return null;
   }
 
   public Map<String, String> getBuildStatisticsValues(final SBuild build) {
