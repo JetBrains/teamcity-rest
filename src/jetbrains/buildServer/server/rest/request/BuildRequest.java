@@ -285,7 +285,7 @@ public class BuildRequest {
       BuildValue value = bve.getValue();
       if (value != null) { // should never happen
         if (value.getValue() == null) {
-          LOG.debug("Returned statistics value returns null in getValue(), statistics key: " + bve.getKey() + ", statistics value: " + bve.getValue().toString());
+          // some value providers can return BuildValue without value itself (see TimeToFixValueType), however in REST we do not need such values
           continue;
         }
         result.put(bve.getKey(), value.getValue().toString());
