@@ -263,7 +263,7 @@ public class BuildRequest {
     if (vt instanceof BuildValueProvider) { // also checks for null
       return ((BuildValueProvider)vt).getData(build);
     }
-    return null;
+    return Collections.emptyMap();
   }
 
   public Map<String, String> getBuildStatisticsValues(final SBuild build) {
@@ -275,40 +275,19 @@ public class BuildRequest {
     for (ValueProvider valueProvider : valueProviders) {
       addValueIfPresent(build, valueProvider.getKey(), result);
     }
-    /*
-    for (String statKey: getUnregisteredStatisticKeys()) {
-      if (!result.containsKey(statKey)) {
-        addValueIfPresent(build, statKey, result);
-      }
-    }
-    */
 
     return result;
   }
-
-  /*
-  private Collection<String> getUnregisteredStatisticKeys() {
-    final List<String> result = new ArrayList<String>();
-    final Collection<CompositeVTB> statisticValues = myServiceLocator.getServices(CompositeVTB.class);
-    for (CompositeVTB statisticValue : statisticValues) {
-      Collections.addAll(result, statisticValue.getSubKeys());
-    }
-    result.add("BuildDuration");
-    result.add("BuildDurationNetTime");
-    result.add("BuildCheckoutTime");
-    result.add("BuildArtifactsPublishingTime");
-    result.add("ArtifactsResolvingTime");
-    result.add("MaxTimeToFixTest");
-    result.add("BuildTestStatus");
-    return result;
-  }
-  */
 
   private void addValueIfPresent(@NotNull final SBuild build, @NotNull final String valueTypeKey, @NotNull final Map<String, String> result) {
     final Map<String, BuildValue> statValues = getRawBuildStatisticValue(build, valueTypeKey);
     for (Map.Entry<String, BuildValue> bve: statValues.entrySet()) {
       BuildValue value = bve.getValue();
       if (value != null) { // should never happen
+        if (value.getValue() == null) {
+          LOG.debug("Returned statistics value returns null in getValue(), statistics key: " + bve.getKey() + ", statistics value: " + bve.getValue().toString());
+          continue;
+        }
         result.put(bve.getKey(), value.getValue().toString());
       }
     }
