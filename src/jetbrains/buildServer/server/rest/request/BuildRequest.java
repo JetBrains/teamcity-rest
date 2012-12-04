@@ -45,9 +45,9 @@ import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.statistics.BuildValueProvider;
 import jetbrains.buildServer.serverSide.statistics.ValueProvider;
 import jetbrains.buildServer.serverSide.statistics.build.BuildValue;
-import jetbrains.buildServer.serverSide.statistics.build.CompositeVTB;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.FileUtil;
@@ -275,15 +275,21 @@ public class BuildRequest {
   }
 
   public String getBuildStatisticValue(final SBuild build, final String statisticValueName) {
-    final BuildValue data = getRawBuildStatisticValue(build, statisticValueName);
-    if (data == null){
+    Map<String, String> stats = getBuildStatisticsValues(build);
+    String val = stats.get(statisticValueName);
+    if (val == null){
       throw new NotFoundException("No statistics data for key: " + statisticValueName + "' in build " + LogUtil.describe(build));
     }
-    return data.getValue().toPlainString();
+    return val;
   }
 
-  private BuildValue getRawBuildStatisticValue(final SBuild build, final String statisticValueName) {
-    return myDataProvider.getBuildDataStorage().getData(statisticValueName, null, build.getBuildId(), build.getBuildTypeId());
+  @NotNull
+  private Map<String, BuildValue> getRawBuildStatisticValue(final SBuild build, final String valueTypeKey) {
+    ValueProvider vt = myDataProvider.getValueProviderRegistry().getValueProvider(valueTypeKey);
+    if (vt instanceof BuildValueProvider) { // also checks for null
+      return ((BuildValueProvider)vt).getData(build);
+    }
+    return Collections.emptyMap();
   }
 
   public Map<String, String> getBuildStatisticsValues(final SBuild build) {
@@ -295,35 +301,21 @@ public class BuildRequest {
     for (ValueProvider valueProvider : valueProviders) {
       addValueIfPresent(build, valueProvider.getKey(), result);
     }
-    for (String statKey: getUnregisteredStatisticKeys()) {
-      if (!result.containsKey(statKey)) {
-        addValueIfPresent(build, statKey, result);
+
+    return result;
+  }
+
+  private void addValueIfPresent(@NotNull final SBuild build, @NotNull final String valueTypeKey, @NotNull final Map<String, String> result) {
+    final Map<String, BuildValue> statValues = getRawBuildStatisticValue(build, valueTypeKey);
+    for (Map.Entry<String, BuildValue> bve: statValues.entrySet()) {
+      BuildValue value = bve.getValue();
+      if (value != null) { // should never happen
+        if (value.getValue() == null) {
+          // some value providers can return BuildValue without value itself (see TimeToFixValueType), however in REST we do not need such values
+          continue;
+        }
+        result.put(bve.getKey(), value.getValue().toString());
       }
-    }
-
-    return result;
-  }
-
-  private Collection<String> getUnregisteredStatisticKeys() {
-    final List<String> result = new ArrayList<String>();
-    final Collection<CompositeVTB> statisticValues = myServiceLocator.getServices(CompositeVTB.class);
-    for (CompositeVTB statisticValue : statisticValues) {
-      Collections.addAll(result, statisticValue.getSubKeys());
-    }
-    result.add("BuildDuration");
-    result.add("BuildDurationNetTime");
-    result.add("BuildCheckoutTime");
-    result.add("BuildArtifactsPublishingTime");
-    result.add("ArtifactsResolvingTime");
-    result.add("MaxTimeToFixTest");
-    result.add("BuildTestStatus");
-    return result;
-  }
-
-  private void addValueIfPresent(final SBuild build, final String key, final Map<String, String> result) {
-    final BuildValue rawBuildStatisticValue = getRawBuildStatisticValue(build, key);
-    if (rawBuildStatisticValue != null){
-      result.put(key, rawBuildStatisticValue.getValue().toString());
     }
   }
 
