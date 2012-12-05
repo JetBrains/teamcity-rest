@@ -24,7 +24,7 @@ public class PropEntityArtifactDep extends PropEntity {
   public static final String NAME_PATH_RULES = "pathRules";
   public static final String NAME_REVISION_NAME = "revisionName";
   public static final String NAME_REVISION_VALUE = "revisionValue";
-  public static final String NAME_CLEAN_DESTINATION_DIRECTORY1 = "cleanDestinationDirectory";
+  public static final String NAME_CLEAN_DESTINATION_DIRECTORY = "cleanDestinationDirectory";
 
   public PropEntityArtifactDep() {
   }
@@ -44,7 +44,7 @@ public class PropEntityArtifactDep extends PropEntity {
     properties.put(NAME_PATH_RULES, dependency.getSourcePaths());
     properties.put(NAME_REVISION_NAME, dependency.getRevisionRule().getName());
     properties.put(NAME_REVISION_VALUE, dependency.getRevisionRule().getRevision());
-    properties.put(NAME_CLEAN_DESTINATION_DIRECTORY1, Boolean.toString(dependency.isCleanDestinationFolder()));
+    properties.put(NAME_CLEAN_DESTINATION_DIRECTORY, Boolean.toString(dependency.isCleanDestinationFolder()));
     this.properties = new Properties(properties);
   }
 
@@ -76,7 +76,15 @@ public class PropEntityArtifactDep extends PropEntity {
       throw new BadRequestException("Artifact dependency properties should contian '" + NAME_SOURCE_BUILD_TYPE_ID + "' property.");
     }
 
-    return factory.createArtifactDependency(propertiesMap.get(NAME_SOURCE_BUILD_TYPE_ID), propertiesMap.get(NAME_PATH_RULES), getRevisionRule(propertiesMap));
+    final SArtifactDependency artifactDependency = factory.createArtifactDependency(
+      propertiesMap.get(NAME_SOURCE_BUILD_TYPE_ID),
+      propertiesMap.get(NAME_PATH_RULES),
+      getRevisionRule(propertiesMap));
+    final String cleanDir = propertiesMap.get(NAME_CLEAN_DESTINATION_DIRECTORY);
+    if (cleanDir != null) {
+      artifactDependency.setCleanDestinationFolder(Boolean.parseBoolean(cleanDir));
+    }
+    return artifactDependency;
   }
 
   private RevisionRule getRevisionRule(final Map<String, String> properties) {
