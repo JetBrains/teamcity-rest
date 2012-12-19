@@ -93,7 +93,7 @@ public class VcsRootRequest {
       }
       return VcsRootScope.globalScope();
     }else{
-      return VcsRootScope.projectScope(myDataProvider.getProject(getProjectLocator(vcsRootDescription)).getProjectId());
+      return VcsRootScope.projectScope(myDataProvider.getProject(getProjectLocator(vcsRootDescription)));
     }
   }
 

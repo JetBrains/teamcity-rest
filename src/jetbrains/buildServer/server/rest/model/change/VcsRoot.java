@@ -178,8 +178,8 @@ public class VcsRoot {
         return;
       }
       throw new BadRequestException("Setting field 'shared' to false is not supported, set projectId instead.");
-    }else if ("projectId".equals(field)) {
-        dataProvider.getVcsManager().setVcsRootScope(vcsRoot.getId(), VcsRootScope.projectScope(dataProvider.getProject(newValue).getProjectId()));
+    } else if ("projectId".equals(field)) {
+        dataProvider.getVcsManager().setVcsRootScope(vcsRoot.getId(), VcsRootScope.projectScope(dataProvider.getProject(newValue)));
         return;
     }
 
