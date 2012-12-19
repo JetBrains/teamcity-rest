@@ -700,7 +700,7 @@ public class DataProvider {
   }
 
   @NotNull
-  public static RoleScope getScope(@NotNull String scopeData) {
+  public RoleScope getScope(@NotNull String scopeData) {
     if ("g".equalsIgnoreCase(scopeData)) {
       return RoleScope.globalScope();
     }
@@ -709,14 +709,20 @@ public class DataProvider {
       throw new NotFoundException("Cannot find scope by '" + scopeData + "' Valid formats are: 'g' or 'p:<projectId>'.");
     }
 
-    return RoleScope.projectScope(scopeData.substring(2));
+    final String projectInternalId = myServer.getProjectManager().getInternalIdByProjectId(scopeData.substring(2));
+    if (projectInternalId == null) {
+      throw new NotFoundException("Cannot find scope by '" + scopeData + "': project with specified id not found.");
+    }
+
+    return RoleScope.projectScope(projectInternalId);
   }
 
-  public static String getScopeRepresentation(@NotNull final RoleScope scope) {
+  public String getScopeRepresentation(@NotNull final RoleScope scope) {
     if (scope.isGlobal()) {
       return "g";
     }
-    return "p:" + scope.getProjectId();
+    final String projectId = myServer.getProjectManager().getProjectIdByInternalId(scope.getProjectInternalId());
+    return "p:" + StringUtil.notNullize(projectId, "<unknown project>");
   }
 
   @NotNull
