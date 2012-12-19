@@ -524,7 +524,7 @@ public class DataProvider {
       if (project != null) {
         return project;
       }
-      project = myServer.getProjectManager().findProjectById(projectLocator);
+      project = myServer.getProjectManager().findProjectByProjectId(projectLocator);
       if (project != null) {
         return project;
       }
@@ -534,7 +534,7 @@ public class DataProvider {
 
     String id = locator.getSingleDimensionValue("id");
     if (id != null) {
-      SProject project = myServer.getProjectManager().findProjectById(id);
+      SProject project = myServer.getProjectManager().findProjectByProjectId(id);
       if (project == null) {
         throw new NotFoundException("No project found by locator '" + projectLocator + ". Project cannot be found by id '" + id + "'.");
       }
@@ -560,7 +560,7 @@ public class DataProvider {
   
   @NotNull
   public SProject getProjectById(@NotNull String projectId){
-    final SProject project = myServer.getProjectManager().findProjectById(projectId);
+    final SProject project = myServer.getProjectManager().findProjectByProjectId(projectId);
     if (project == null){
       throw new NotFoundException("Could not find project by id '" + projectId + "'.");
     }
