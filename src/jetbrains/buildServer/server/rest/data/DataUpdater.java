@@ -173,7 +173,7 @@ public class DataUpdater {
 
   private void addRoles(final SUser user, final RoleAssignments roles) {
     for (RoleAssignment roleAssignment : roles.roleAssignments) {
-      user.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
+      user.addRole(myDataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
     }
   }
 }

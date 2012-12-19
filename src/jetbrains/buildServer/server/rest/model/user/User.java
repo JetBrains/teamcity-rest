@@ -23,11 +23,13 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.group.Groups;
+import jetbrains.buildServer.server.rest.request.UserRequest;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
@@ -42,13 +44,17 @@ import org.jetbrains.annotations.Nullable;
 public class User {
   private SUser myUser;
   private ApiUrlBuilder myApiUrlBuilder;
+  private UserRequest myUserRequest;
+  private DataProvider myDataProvider;
 
   public User() {
   }
 
-  public User(jetbrains.buildServer.users.SUser user, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public User(jetbrains.buildServer.users.SUser user, UserRequest userRequest, DataProvider dataProvider, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     this.myUser = user;
     myApiUrlBuilder = apiUrlBuilder;
+    myUserRequest = userRequest;
+    myDataProvider = dataProvider;
   }
 
   @XmlAttribute
@@ -82,7 +88,7 @@ public class User {
 
   @XmlElement(name = "roles")
   public RoleAssignments getRoleAssignments() {
-    return new RoleAssignments(myUser.getRoles(), myUser, myApiUrlBuilder);
+    return new RoleAssignments(myUser.getRoles(), myUser, myUserRequest, myDataProvider, myApiUrlBuilder);
   }
 
   @XmlElement(name = "groups")

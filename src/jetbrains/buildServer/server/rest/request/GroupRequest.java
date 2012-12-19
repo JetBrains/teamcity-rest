@@ -51,9 +51,9 @@ public class GroupRequest {
     return API_USER_GROUPS_URL + "/key:" + userGroup.getKey();
   }
 
-  public static String getRoleAssignmentHref(final RoleEntry roleEntry, final UserGroup group) {
+  public String getRoleAssignmentHref(final RoleEntry roleEntry, final UserGroup group) {
     final RoleScope roleScope = roleEntry.getScope();
-    return getGroupHref(group) + "/roles/" + roleEntry.getRole().getId() + "/" + DataProvider.getScopeRepresentation(roleScope);
+    return getGroupHref(group) + "/roles/" + roleEntry.getRole().getId() + "/" + myDataProvider.getScopeRepresentation(roleScope);
   }
 
   @GET
@@ -67,14 +67,14 @@ public class GroupRequest {
   @Produces({"application/xml", "application/json"})
   public Group addGroup(Group description) {
     SUserGroup group = myDataUpdater.createUserGroup(description);
-    return new Group(group, myApiUrlBuilder);
+    return new Group(group, this, myDataProvider, myApiUrlBuilder);
   }
 
   @GET
   @Path("/{groupLocator}")
   @Produces({"application/xml", "application/json"})
   public Group serveGroup(@PathParam("groupLocator") String groupLocator) {
-    return new Group(myDataProvider.getGroup(groupLocator), myApiUrlBuilder);
+    return new Group(myDataProvider.getGroup(groupLocator), this, myDataProvider, myApiUrlBuilder);
   }
 
   @DELETE
@@ -88,7 +88,7 @@ public class GroupRequest {
   @Produces({"application/xml", "application/json"})
   public RoleAssignments listRoles(@PathParam("groupLocator") String groupLocator) {
     SUserGroup group = myDataProvider.getGroup(groupLocator);
-    return new RoleAssignments(group.getRoles(), group, myApiUrlBuilder);
+    return new RoleAssignments(group.getRoles(), group, this, myDataProvider, myApiUrlBuilder);
   }
 
   /**
@@ -106,7 +106,7 @@ public class GroupRequest {
   @Consumes({"application/xml", "application/json"})
   public void addRole(@PathParam("groupLocator") String groupLocator, RoleAssignment roleAssignment) {
     SUserGroup group = myDataProvider.getGroup(groupLocator);
-    group.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
+    group.addRole(myDataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
   }
 
   @GET
@@ -114,7 +114,7 @@ public class GroupRequest {
   public RoleAssignment listRole(@PathParam("groupLocator") String groupLocator, @PathParam("roleId") String roleId,
                                  @PathParam("scope") String scopeValue) {
     SUserGroup group = myDataProvider.getGroup(groupLocator);
-    return new RoleAssignment(myDataProvider.getGroupRoleEntry(group, roleId, scopeValue), group, myApiUrlBuilder);
+    return new RoleAssignment(myDataProvider.getGroupRoleEntry(group, roleId, scopeValue), group, this, myDataProvider, myApiUrlBuilder);
   }
 
   @DELETE
@@ -122,7 +122,7 @@ public class GroupRequest {
   public void deleteRole(@PathParam("groupLocator") String groupLocator, @PathParam("roleId") String roleId,
                          @PathParam("scope") String scopeValue) {
     SUserGroup group = myDataProvider.getGroup(groupLocator);
-    group.removeRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
+    group.removeRole(myDataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
   }
 
   @POST
@@ -131,6 +131,6 @@ public class GroupRequest {
                             @PathParam("roleId") String roleId,
                             @PathParam("scope") String scopeValue) {
     SUserGroup group = myDataProvider.getGroup(groupLocator);
-    group.addRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
+    group.addRole(myDataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
   }
 }

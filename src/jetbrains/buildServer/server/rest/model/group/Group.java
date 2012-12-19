@@ -21,8 +21,10 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.server.rest.model.user.Users;
+import jetbrains.buildServer.server.rest.request.GroupRequest;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -49,12 +51,12 @@ public class Group extends GroupRef {
   public Group() {
   }
 
-  public Group(SUserGroup userGroup, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public Group(SUserGroup userGroup, GroupRequest groupRequest, DataProvider dataProvider, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     super(userGroup, apiUrlBuilder);
     description = userGroup.getDescription();
     parentGroups = new Groups(userGroup.getParentGroups(), apiUrlBuilder);
     childGroups = new Groups(userGroup.getDirectSubgroups(), apiUrlBuilder);
     users = new Users(userGroup.getDirectUsers(), apiUrlBuilder);
-    roleAssignments = new RoleAssignments(userGroup.getRoles(), userGroup, apiUrlBuilder);
+    roleAssignments = new RoleAssignments(userGroup.getRoles(), userGroup, groupRequest, dataProvider, apiUrlBuilder);
   }
 }
