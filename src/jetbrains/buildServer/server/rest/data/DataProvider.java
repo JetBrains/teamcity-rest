@@ -1195,11 +1195,11 @@ public class DataProvider {
     }
   }
 
-  public void checkProjectPermission(final Permission permission, final String projectId) throws AuthorizationFailedException{
+  public void checkProjectPermission(final Permission permission, final String projectInternalId) throws AuthorizationFailedException{
     final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
-    if (!authorityHolder.isPermissionGrantedForProject(projectId, permission)) {
+    if (!authorityHolder.isPermissionGrantedForProject(projectInternalId, permission)) {
       throw new AuthorizationFailedException("User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission +
-                                             "in project with id: '" + projectId + "'");
+                                             "in project with id: '" + projectInternalId + "'");
     }
   }
 
