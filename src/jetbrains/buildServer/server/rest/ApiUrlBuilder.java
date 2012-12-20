@@ -71,12 +71,12 @@ public class ApiUrlBuilder {
     return myPathTransformer.transform(GroupRequest.getGroupHref(userGroup));
   }
 
-  public String getHref(final RoleEntry roleEntry, final UserGroup group, final GroupRequest groupRequest) {
-    return myPathTransformer.transform(groupRequest.getRoleAssignmentHref(roleEntry, group));
+  public String getHref(final RoleEntry roleEntry, final UserGroup group) {
+    return myPathTransformer.transform(GroupRequest.getRoleAssignmentHref(roleEntry, group));
   }
 
-  public String getHref(final RoleEntry roleEntry, final SUser user, final UserRequest userRequest) {
-    return myPathTransformer.transform(userRequest.getRoleAssignmentHref(roleEntry, user));
+  public String getHref(final RoleEntry roleEntry, final SUser user) {
+    return myPathTransformer.transform(UserRequest.getRoleAssignmentHref(roleEntry, user));
   }
 
   public String getHref(final SProject project) {

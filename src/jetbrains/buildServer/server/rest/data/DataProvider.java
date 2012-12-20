@@ -524,7 +524,7 @@ public class DataProvider {
       if (project != null) {
         return project;
       }
-      project = myServer.getProjectManager().findProjectByProjectId(projectLocator);
+      project = myServer.getProjectManager().findProjectById(projectLocator);
       if (project != null) {
         return project;
       }
@@ -534,7 +534,7 @@ public class DataProvider {
 
     String id = locator.getSingleDimensionValue("id");
     if (id != null) {
-      SProject project = myServer.getProjectManager().findProjectByProjectId(id);
+      SProject project = myServer.getProjectManager().findProjectById(id);
       if (project == null) {
         throw new NotFoundException("No project found by locator '" + projectLocator + ". Project cannot be found by id '" + id + "'.");
       }
@@ -560,7 +560,7 @@ public class DataProvider {
   
   @NotNull
   public SProject getProjectById(@NotNull String projectId){
-    final SProject project = myServer.getProjectManager().findProjectByProjectId(projectId);
+    final SProject project = myServer.getProjectManager().findProjectById(projectId);
     if (project == null){
       throw new NotFoundException("Could not find project by id '" + projectId + "'.");
     }
@@ -700,7 +700,7 @@ public class DataProvider {
   }
 
   @NotNull
-  public RoleScope getScope(@NotNull String scopeData) {
+  public static RoleScope getScope(@NotNull String scopeData) {
     if ("g".equalsIgnoreCase(scopeData)) {
       return RoleScope.globalScope();
     }
@@ -709,20 +709,14 @@ public class DataProvider {
       throw new NotFoundException("Cannot find scope by '" + scopeData + "' Valid formats are: 'g' or 'p:<projectId>'.");
     }
 
-    final String projectInternalId = myServer.getProjectManager().getInternalIdByProjectId(scopeData.substring(2));
-    if (projectInternalId == null) {
-      throw new NotFoundException("Cannot find scope by '" + scopeData + "': project with specified id not found.");
-    }
-
-    return RoleScope.projectScope(projectInternalId);
+    return RoleScope.projectScope(scopeData.substring(2));
   }
 
-  public String getScopeRepresentation(@NotNull final RoleScope scope) {
+  public static String getScopeRepresentation(@NotNull final RoleScope scope) {
     if (scope.isGlobal()) {
       return "g";
     }
-    final String projectId = myServer.getProjectManager().getProjectIdByInternalId(scope.getProjectInternalId());
-    return "p:" + StringUtil.notNullize(projectId, "<unknown project>");
+    return "p:" + scope.getProjectId();
   }
 
   @NotNull
@@ -1195,11 +1189,11 @@ public class DataProvider {
     }
   }
 
-  public void checkProjectPermission(final Permission permission, final String projectInternalId) throws AuthorizationFailedException{
+  public void checkProjectPermission(final Permission permission, final String projectId) throws AuthorizationFailedException{
     final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
-    if (!authorityHolder.isPermissionGrantedForProject(projectInternalId, permission)) {
+    if (!authorityHolder.isPermissionGrantedForProject(projectId, permission)) {
       throw new AuthorizationFailedException("User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission +
-                                             "in project with id: '" + projectInternalId + "'");
+                                             "in project with id: '" + projectId + "'");
     }
   }
 

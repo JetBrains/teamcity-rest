@@ -21,8 +21,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.request.GroupRequest;
-import jetbrains.buildServer.server.rest.request.UserRequest;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.users.SUser;
@@ -45,19 +43,19 @@ public class RoleAssignment {
   public RoleAssignment() {
   }
 
-  public RoleAssignment(RoleEntry roleEntry, SUser user, UserRequest userRequest, DataProvider dataProvider, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public RoleAssignment(RoleEntry roleEntry, SUser user, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     roleId = roleEntry.getRole().getId();
-    scope = getScopeRepresentation(roleEntry.getScope(), dataProvider);
-    href = apiUrlBuilder.getHref(roleEntry, user, userRequest);
+    scope = getScopeRepresentation(roleEntry.getScope());
+    href = apiUrlBuilder.getHref(roleEntry, user);
   }
 
-  public RoleAssignment(RoleEntry roleEntry, UserGroup group, GroupRequest groupRequest, DataProvider dataProvider, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public RoleAssignment(RoleEntry roleEntry, UserGroup group, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     roleId = roleEntry.getRole().getId();
-    scope = getScopeRepresentation(roleEntry.getScope(), dataProvider);
-    href = apiUrlBuilder.getHref(roleEntry, group, groupRequest);
+    scope = getScopeRepresentation(roleEntry.getScope());
+    href = apiUrlBuilder.getHref(roleEntry, group);
   }
 
-  private static String getScopeRepresentation(@NotNull final RoleScope scope, final DataProvider dataProvider) {
-    return dataProvider.getScopeRepresentation(scope);
+  private static String getScopeRepresentation(@NotNull final RoleScope scope) {
+    return DataProvider.getScopeRepresentation(scope);
   }
 }

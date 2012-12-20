@@ -434,7 +434,7 @@ public class BuildRequest {
     final SUser user = SessionUser.getUser(request);  //todo: support "run as system" case
     // workaround for http://youtrack.jetbrains.net/issue/TW-10538
     if (!isPersonalUserBuild(build, user)) {
-      myDataProvider.checkProjectPermission(Permission.EDIT_PROJECT, build.getProjectInternalId());
+      myDataProvider.checkProjectPermission(Permission.EDIT_PROJECT, build.getProjectId());
     }
     myDataProvider.deleteBuild(build);
   }
@@ -544,13 +544,13 @@ public class BuildRequest {
 
     //todo: how to distinguish no user from system? Might check for system to support authToken requests...
     if (authorityHolder.getAssociatedUser() != null &&
-        authorityHolder.isPermissionGrantedForProject(buildType.getProjectInternalId(), Permission.VIEW_PROJECT)) {
+        authorityHolder.isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_PROJECT)) {
       return true;
     }
 
     final SUser guestUser = myServiceLocator.getSingletonService(UserModel.class).getGuestUser();
     if (myDataProvider.getServer().getLoginConfiguration().isGuestLoginAllowed() &&
-        guestUser.isPermissionGrantedForProject(buildType.getProjectInternalId(), Permission.VIEW_PROJECT)) {
+        guestUser.isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_PROJECT)) {
       return true;
     }
     return false;

@@ -40,7 +40,6 @@ import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -74,7 +73,8 @@ public class ProjectRequest {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Project name cannot be empty.");
     }
-    final SProject project = createNewProject(name);
+    final SProject project = myDataProvider.getServer().getProjectManager().createProject(name);
+    project.persist();
     return new Project(project, myDataProvider, myApiUrlBuilder);
   }
 
@@ -87,7 +87,7 @@ public class ProjectRequest {
     }
     SProject resultingProject;
     if (StringUtil.isEmpty(descriptor.sourceProjectLocator)) {
-      resultingProject = createNewProject(descriptor.name);
+      resultingProject = myDataProvider.getServer().getProjectManager().createProject(descriptor.name);
     } else {
       SProject sourceProject = myDataProvider.getProject(descriptor.sourceProjectLocator);
       resultingProject =
@@ -95,14 +95,6 @@ public class ProjectRequest {
     }
     resultingProject.persist();
     return new Project(resultingProject, myDataProvider, myApiUrlBuilder);
-  }
-
-  private SProject createNewProject(final String name) {
-    ProjectManagerEx projectManager = (ProjectManagerEx) myDataProvider.getServer().getProjectManager();
-    String newProjectId = projectManager.prepareNewProjectIdByProjectName(name);
-    ProjectEx project = projectManager.createProject(newProjectId, name);
-    project.persist();
-    return project;
   }
 
   @GET

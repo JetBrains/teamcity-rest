@@ -59,9 +59,9 @@ public class UserRequest {
     return API_USERS_URL + "/id:" + user.getId();
   }
 
-  public String getRoleAssignmentHref(final RoleEntry roleEntry, final SUser user) {
+  public static String getRoleAssignmentHref(final RoleEntry roleEntry, final SUser user) {
     final RoleScope roleScope = roleEntry.getScope();
-    return getUserHref(user) + "/roles/" + roleEntry.getRole().getId() + "/" + myDataProvider.getScopeRepresentation(roleScope);
+    return getUserHref(user) + "/roles/" + roleEntry.getRole().getId() + "/" + DataProvider.getScopeRepresentation(roleScope);
   }
 
   @GET
@@ -120,14 +120,14 @@ public class UserRequest {
   public User createUser(User userData) {
     final SUser user = myDataUpdater.createUser(userData.getSubmittedUsername());
     myDataUpdater.modify(user, userData);
-    return new User(user, this, myDataProvider, myApiUrlBuilder);
+    return new User(user, myApiUrlBuilder);
   }
 
   @GET
   @Path("/{userLocator}")
   @Produces({"application/xml", "application/json"})
   public User serveUser(@PathParam("userLocator") String userLocator) {
-    return new User(myDataProvider.getUser(userLocator), this, myDataProvider, myApiUrlBuilder);
+    return new User(myDataProvider.getUser(userLocator), myApiUrlBuilder);
   }
 
   @PUT
@@ -211,7 +211,7 @@ public class UserRequest {
   public RoleAssignments listRoles(@PathParam("userLocator") String userLocator) {
     checkViewUserPermission(userLocator); //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
     SUser user = myDataProvider.getUser(userLocator);
-    return new RoleAssignments(user.getRoles(), user, this, myDataProvider, myApiUrlBuilder);
+    return new RoleAssignments(user.getRoles(), user, myApiUrlBuilder);
   }
 
 
@@ -230,7 +230,7 @@ public class UserRequest {
   @Consumes({"application/xml", "application/json"})
   public void addRole(@PathParam("userLocator") String userLocator, RoleAssignment roleAssignment) {
     SUser user = myDataProvider.getUser(userLocator);
-    user.addRole(myDataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
+    user.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
   }
 
   @GET
@@ -239,7 +239,7 @@ public class UserRequest {
                                  @PathParam("scope") String scopeValue) {
     checkViewUserPermission(userLocator);  //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
     SUser user = myDataProvider.getUser(userLocator);
-    return new RoleAssignment(myDataProvider.getUserRoleEntry(user, roleId, scopeValue), user, this, myDataProvider, myApiUrlBuilder);
+    return new RoleAssignment(myDataProvider.getUserRoleEntry(user, roleId, scopeValue), user, myApiUrlBuilder);
   }
 
   @DELETE
@@ -247,7 +247,7 @@ public class UserRequest {
   public void deleteRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
                          @PathParam("scope") String scopeValue) {
     SUser user = myDataProvider.getUser(userLocator);
-    user.removeRole(myDataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
+    user.removeRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
   }
 
 
@@ -268,6 +268,6 @@ public class UserRequest {
                             @PathParam("roleId") String roleId,
                             @PathParam("scope") String scopeValue) {
     SUser user = myDataProvider.getUser(userLocator);
-    user.addRole(myDataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
+    user.addRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
   }
 }
