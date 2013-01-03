@@ -1052,7 +1052,7 @@ public class DataProvider {
 
   @NotNull
   public String getProjectUrl(final SProject project) {
-    return myWebLinks.getProjectPageUrl(project.getProjectId());
+    return myWebLinks.getProjectPageUrl(project.getExternalId());
   }
 
   @NotNull
