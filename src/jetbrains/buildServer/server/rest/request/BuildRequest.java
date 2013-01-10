@@ -177,6 +177,7 @@ public class BuildRequest {
       } else {
         builder = builder.type(DefaultMediaTypePredictor.CommonMediaTypes.getMediaTypeFromFileName(fileName));
       }
+      //todo: log build downloading artifacts (also consider an option), see RepositoryDownloadController
       return builder.entity(getStreamingOutput(buildArtifact.getInputStream(), buildArtifact.getRelativePath())).build();
     } catch (IOException e) {
       throw new OperationException("Error opening artifact file '" + buildArtifact.getRelativePath() + "': " + e.getMessage(), e);

@@ -58,7 +58,7 @@ public class DebugRequest {
   @Produces({"text/plain; charset=UTF-8"})
   public String serveServerVersion(@PathParam("query") String query,
                                    @QueryParam("fieldDelimiter") @DefaultValue(", ") String fieldDelimiter,
-                                   @QueryParam("pageSize") @DefaultValue("1000") int pageSize) {
+                                   @QueryParam("maxRows") @DefaultValue("1000") int maxRows) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     checkQuery(query);
     final boolean selectQuery = query.trim().toLowerCase().startsWith("select");
@@ -69,9 +69,9 @@ public class DebugRequest {
       processor = null;
     }
     final GenericQuery<List<String>> genericQuery = new GenericQuery<List<String>>(query, processor);
-    if (pageSize >= 0 && selectQuery) {
+    if (maxRows >= 0 && selectQuery) {
       final QueryOptions options = new QueryOptions();
-      options.setMaxRows(pageSize);
+      options.setMaxRows(maxRows);
       genericQuery.setOptions(options);
     }
     //final SQLRunner sqlRunner = myServiceLocator.getSingletonService(SQLRunner.class);
