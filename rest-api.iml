@@ -77,6 +77,7 @@
       <library name="TeamCity Closed API server">
         <CLASSES>
           <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/server.jar!/" />
+          <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/db.jar!/" />
           <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/web.jar!/" />
           <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/common-impl.jar!/" />
         </CLASSES>
