@@ -36,11 +36,11 @@ public class BuildsFilter{
   @Nullable protected Integer myCount;
 
   @Nullable private final String myStatus;
-  private final Boolean myPersonal;
-  private final Boolean myCanceled;
-  private final Boolean myRunning;
-  private final Boolean myPinned;
-  private final List<String> myTags;
+  @Nullable private final Boolean myPersonal;
+  @Nullable private final Boolean myCanceled;
+  @Nullable private final Boolean myRunning;
+  @Nullable private final Boolean myPinned;
+  @Nullable private final List<String> myTags;
   @Nullable private final Locator myBranchLocator;
   @Nullable private final String myAgentName;
   @Nullable private final RangeLimit mySince;
@@ -146,6 +146,66 @@ public class BuildsFilter{
     myCount = count;
   }
 
+  @Nullable
+  public String getStatus() {
+    return myStatus;
+  }
+
+  @Nullable
+  public Boolean getPersonal() {
+    return myPersonal;
+  }
+
+  @Nullable
+  public Boolean getCanceled() {
+    return myCanceled;
+  }
+
+  @Nullable
+  public Boolean getRunning() {
+    return myRunning;
+  }
+
+  @Nullable
+  public Boolean getPinned() {
+    return myPinned;
+  }
+
+  @Nullable
+  public String getAgentName() {
+    return myAgentName;
+  }
+
+  @Nullable
+  public SUser getUser() {
+    return myUser;
+  }
+
+  @Nullable
+  public SBuildType getBuildType() {
+    return myBuildType;
+  }
+
+  @Nullable
+  public RangeLimit getUntil() {
+    return myUntil;
+  }
+
+  @Nullable
+  public RangeLimit getSince() {
+    return mySince;
+  }
+
+  @Nullable
+  public Long getLookupLimit() {
+    return myLookupLimit;
+  }
+
+  @Nullable
+  public String getNumber() {
+    return myNumber;
+  }
+
   protected boolean isIncluded(@NotNull final SBuild build) {
     if (myAgentName != null && !myAgentName.equals(build.getAgentName())) {
       return false;
@@ -209,6 +269,7 @@ public class BuildsFilter{
     if (branchLocator.isSingleValue()){//treat as logic branch name with special values
       @SuppressWarnings("ConstantConditions")
       @NotNull final String logicalBranchName = branchLocator.getSingleValue();
+      //noinspection ConstantConditions
       return matchesBranchName(logicalBranchName, buildBranch);
     }
 
@@ -275,18 +336,18 @@ public class BuildsFilter{
     return filterValue == null || (!(filterValue ^ actualValue));
   }
 
-  public List<SFinishedBuild> getMatchingFinishedBuilds(@NotNull final BuildHistory buildHistory) {
-    if (myRunning != null && myRunning){
+  public static List<SFinishedBuild> getMatchingFinishedBuilds(@NotNull final BuildsFilter buildsFilter, @NotNull final BuildHistory buildHistory) {
+    if (buildsFilter.getRunning() != null && buildsFilter.getRunning()){
       return Collections.emptyList();
     }
     
     final FilterItemProcessor<SFinishedBuild> buildsFilterItemProcessor =
-      new FilterItemProcessor<SFinishedBuild>(new FinishedBuildsFilter());
-    if (myBuildType != null) {
-        buildHistory.processEntries(myBuildType.getBuildTypeId(),
-                                    getUserForProcessEntries(),
-                                    myPersonal == null || myPersonal,
-                                    myCanceled == null || myCanceled,
+      new FilterItemProcessor<SFinishedBuild>(new FinishedBuildsFilter(buildsFilter));
+    if (buildsFilter.getBuildType() != null) {
+        buildHistory.processEntries(buildsFilter.getBuildType().getBuildTypeId(),
+                                    buildsFilter.getUserForProcessEntries(),
+                                    buildsFilter.getPersonal() == null || buildsFilter.getPersonal(),
+                                    buildsFilter.getCanceled() == null || buildsFilter.getCanceled(),
                                     false,
                                     buildsFilterItemProcessor);
     } else {
@@ -298,47 +359,53 @@ public class BuildsFilter{
   }
 
 
-  private class FinishedBuildsFilter extends AbstractFilter<SFinishedBuild> {
+  private static class FinishedBuildsFilter extends AbstractFilter<SFinishedBuild> {
     private int processedItems;
+    @NotNull private final BuildsFilter myBuildsFilter;
 
-    public FinishedBuildsFilter() {
-      super(BuildsFilter.this.myStart, BuildsFilter.this.myCount);
+    public FinishedBuildsFilter(@NotNull final BuildsFilter buildsFilter) {
+      super(buildsFilter.getStart(), buildsFilter.getCount());
       processedItems = 0;
+      myBuildsFilter = buildsFilter;
     }
 
     @Override
     protected boolean isIncluded(@NotNull final SFinishedBuild item) {
       ++processedItems;
-      return BuildsFilter.this.isIncluded(item);
+      return myBuildsFilter.isIncluded(item);
     }
 
     @Override
     public boolean shouldStop(final SFinishedBuild item) {
-      if (myLookupLimit!= null && processedItems >= myLookupLimit){
+      if (myBuildsFilter.getLookupLimit() != null && processedItems >= myBuildsFilter.getLookupLimit()){
         return true;
       }
       //assume the builds are processed from most recent to older
-      return isExcludedBySince(item);
+      return myBuildsFilter.isExcludedBySince(item);
     }
   }
   
 
-  public List<SRunningBuild> getMatchingRunningBuilds(@NotNull final RunningBuildsManager runningBuildsManager) {
+  public static List<SRunningBuild> getMatchingRunningBuilds(@NotNull final BuildsFilter buildsFilter,
+                                                             @NotNull final RunningBuildsManager runningBuildsManager) {
     final FilterItemProcessor<SRunningBuild> buildsFilterItemProcessor =
-      new FilterItemProcessor<SRunningBuild>(new RunningBuildsFilter());
+      new FilterItemProcessor<SRunningBuild>(new RunningBuildsFilter(buildsFilter));
     AbstractFilter.processList(runningBuildsManager.getRunningBuilds(), buildsFilterItemProcessor);
     return buildsFilterItemProcessor.getResult();
   }
 
   
-  private class RunningBuildsFilter extends AbstractFilter<SRunningBuild> {
-    public RunningBuildsFilter() {
-      super(BuildsFilter.this.myStart, BuildsFilter.this.myCount);
+  private static class RunningBuildsFilter extends AbstractFilter<SRunningBuild> {
+    @NotNull private final BuildsFilter myBuildsFilter;
+
+    public RunningBuildsFilter(@NotNull final BuildsFilter buildsFilter) {
+      super(buildsFilter.getStart(), buildsFilter.getCount());
+      this.myBuildsFilter = buildsFilter;
     }
 
     @Override
     protected boolean isIncluded(@NotNull final SRunningBuild item) {
-      return BuildsFilter.this.isIncluded(item);
+      return myBuildsFilter.isIncluded(item);
     }
   }
 
