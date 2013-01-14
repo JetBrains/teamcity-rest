@@ -1,3 +1,19 @@
+/*
+ * Copyright 2000-2013 JetBrains s.r.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
@@ -8,7 +24,9 @@ import jetbrains.buildServer.serverSide.BuildHistory;
 import jetbrains.buildServer.serverSide.RunningBuildsManager;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SRunningBuild;
+import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -26,7 +44,7 @@ public class BuildsFilterProcessor {
       new FilterItemProcessor<SFinishedBuild>(new FinishedBuildsFilter(buildsFilter));
     if (buildsFilter.getBuildType() != null) {
         buildHistory.processEntries(buildsFilter.getBuildType().getBuildTypeId(),
-                                    buildsFilter.getUserForProcessEntries(),
+                                    getUserForProcessEntries(buildsFilter),
                                     buildsFilter.getPersonal() == null || buildsFilter.getPersonal(),
                                     buildsFilter.getCanceled() == null || buildsFilter.getCanceled(),
                                     false,
@@ -45,6 +63,14 @@ public class BuildsFilterProcessor {
       new FilterItemProcessor<SRunningBuild>(new RunningBuildsFilter(buildsFilter));
     AbstractFilter.processList(runningBuildsManager.getRunningBuilds(), buildsFilterItemProcessor);
     return buildsFilterItemProcessor.getResult();
+  }
+
+  @Nullable
+  public static User getUserForProcessEntries(@NotNull final BuildsFilter buildsFilter) {
+    if ((buildsFilter.getPersonal() == null || buildsFilter.getPersonal()) && buildsFilter.getUser() != null) {
+      return buildsFilter.getUser();
+    }
+    return null;
   }
 
   private static class FinishedBuildsFilter extends AbstractFilter<SFinishedBuild> {

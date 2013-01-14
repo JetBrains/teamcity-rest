@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2012 JetBrains s.r.o.
+ * Copyright 2000-2013 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -138,7 +138,7 @@ public class DataProvider {
       checkLocatorFullyProcessed(locator);
     } else {
       // preserve 5.0 logic for personal/canceled/pinned builds
-      buildsFilter = new BuildsFilter(buildType,
+      buildsFilter = new GenericBuildsFilter(buildType,
                                       status, null,
                                       getUserIfNotNull(userLocator),
                                       includePersonal ? null : false, includeCanceled ? null : false,
@@ -391,7 +391,7 @@ public class DataProvider {
         throw new LocatorProcessException("Invalid sub-locator 'branch':" + e.getMessage());
       }
     }
-    return new BuildsFilter(actualBuildType,
+    return new GenericBuildsFilter(actualBuildType,
                             locator.getSingleDimensionValue("status"),
                             locator.getSingleDimensionValue("number"),
                             userLocator != null ? getUser(userLocator) : null,
@@ -631,7 +631,7 @@ public class DataProvider {
     result.addAll(BuildsFilterProcessor.getMatchingRunningBuilds(buildsFilter, myRunningBuildsManager));
     final Integer originalCount = buildsFilter.getCount();
     if (originalCount == null || result.size() < originalCount) {
-      final BuildsFilter patchedBuildsFilter = new BuildsFilter(buildsFilter);
+      final BuildsFilter patchedBuildsFilter = new BuildsFilterWithBuildExcludes(buildsFilter, result);
       if (originalCount != null){
         patchedBuildsFilter.setCount(originalCount - result.size());
       }
