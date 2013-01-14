@@ -628,14 +628,14 @@ public class DataProvider {
   public List<SBuild> getBuilds(@NotNull final BuildsFilter buildsFilter) {
     final ArrayList<SBuild> result = new ArrayList<SBuild>();
     //todo: sort and ensure there are no duplicates
-    result.addAll(BuildsFilter.getMatchingRunningBuilds(buildsFilter, myRunningBuildsManager));
+    result.addAll(BuildsFilterProcessor.getMatchingRunningBuilds(buildsFilter, myRunningBuildsManager));
     final Integer originalCount = buildsFilter.getCount();
     if (originalCount == null || result.size() < originalCount) {
       final BuildsFilter patchedBuildsFilter = new BuildsFilter(buildsFilter);
       if (originalCount != null){
         patchedBuildsFilter.setCount(originalCount - result.size());
       }
-      result.addAll(BuildsFilter.getMatchingFinishedBuilds(patchedBuildsFilter, myBuildHistory));
+      result.addAll(BuildsFilterProcessor.getMatchingFinishedBuilds(patchedBuildsFilter, myBuildHistory));
     }
     return result;
   }
