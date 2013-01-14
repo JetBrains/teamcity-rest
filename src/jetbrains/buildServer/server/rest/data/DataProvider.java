@@ -631,10 +631,11 @@ public class DataProvider {
     result.addAll(buildsFilter.getMatchingRunningBuilds(myRunningBuildsManager));
     final Integer originalCount = buildsFilter.getCount();
     if (originalCount == null || result.size() < originalCount) {
+      final BuildsFilter patchedBbuildsFilter = new BuildsFilter(buildsFilter);
       if (originalCount != null){
-        buildsFilter.setCount(originalCount - result.size());
+        patchedBbuildsFilter.setCount(originalCount - result.size());
       }
-      result.addAll(buildsFilter.getMatchingFinishedBuilds(myBuildHistory));
+      result.addAll(patchedBbuildsFilter.getMatchingFinishedBuilds(myBuildHistory));
     }
     return result;
   }

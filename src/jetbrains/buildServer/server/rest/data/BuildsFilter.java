@@ -107,6 +107,26 @@ public class BuildsFilter{
     myParameterCondition = parameterCondition;
   }
 
+  public BuildsFilter(final BuildsFilter original) {
+    myNumber = original.myNumber;
+    myStart = original.myStart;
+    myCount = original.myCount;
+    myStatus = original.myStatus;
+    myPersonal = original.myPersonal;
+    myCanceled = original.myCanceled;
+    myRunning = original.myRunning;
+    myPinned = original.myPinned;
+    myTags = original.myTags;
+    myBranchLocator = original.myBranchLocator;
+    myAgentName = original.myAgentName;
+    mySince = original.mySince;
+    myUntil = original.myUntil;
+    myLookupLimit = original.myLookupLimit;
+    myParameterCondition = original.myParameterCondition;
+    myUser = original.myUser;
+    myBuildType = original.myBuildType;
+  }
+
   @Nullable
   public Long getStart() {
     return myStart;
