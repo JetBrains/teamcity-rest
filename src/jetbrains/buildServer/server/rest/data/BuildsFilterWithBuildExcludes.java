@@ -33,8 +33,11 @@ public class BuildsFilterWithBuildExcludes implements BuildsFilter {
   @NotNull private final BuildsFilter myBuildsFilter;
   @NotNull private final Set<Long> myExcludedBuilds;
 
+  @Nullable protected Integer myCount;
+
   public BuildsFilterWithBuildExcludes(@NotNull final BuildsFilter buildsFilter, @NotNull final Collection<SBuild> excludedBuilds) {
     myBuildsFilter = buildsFilter;
+    myCount = buildsFilter.getCount();
     myExcludedBuilds = new HashSet<Long>(excludedBuilds.size());
     for (SBuild build : excludedBuilds) {
       myExcludedBuilds.add(build.getBuildId());
@@ -52,11 +55,11 @@ public class BuildsFilterWithBuildExcludes implements BuildsFilter {
 
   @Nullable
   public Integer getCount() {
-    return myBuildsFilter.getCount();
+    return myCount;
   }
 
   public void setCount(@Nullable final Integer count) {
-    myBuildsFilter.setCount(count);
+    myCount = count;
   }
 
   @Nullable
@@ -98,5 +101,16 @@ public class BuildsFilterWithBuildExcludes implements BuildsFilter {
 
   public boolean isExcludedBySince(final SBuild build) {
     return myBuildsFilter.isExcludedBySince(build);
+  }
+
+  @Override
+  public String toString() {
+    final StringBuilder result = new StringBuilder();
+    result.append("Builds filter with exclude (");
+    result.append("builds filter:").append(myBuildsFilter).append(", ");
+    result.append("exclude builds:").append(myExcludedBuilds).append(", ");
+    if (myCount!= null) result.append("count:").append(myCount);
+    result.append(")");
+    return result.toString();
   }
 }
