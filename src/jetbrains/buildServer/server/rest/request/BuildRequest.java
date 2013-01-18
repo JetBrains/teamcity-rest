@@ -57,6 +57,7 @@ import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsManager;
 import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /*
  * User: Yegor Yarko
@@ -169,19 +170,31 @@ public class BuildRequest {
     if (buildArtifact.isDirectory()) {
       throw new NotFoundException("Requested path is a directory. Relative path: '" + fileName + "'");
     }
-    try {
-      String mimeType = request.getSession().getServletContext().getMimeType(fileName);
-      Response.ResponseBuilder builder = Response.ok();
-      if (mimeType != null) {
-        builder = builder.type(mimeType);
-      } else {
-        builder = builder.type(DefaultMediaTypePredictor.CommonMediaTypes.getMediaTypeFromFileName(fileName));
+
+    final StreamingOutput output = new StreamingOutput() {
+      public void write(final OutputStream output) throws WebApplicationException {
+        InputStream inputStream = null;
+        try {
+          inputStream = buildArtifact.getInputStream();
+          TCStreamUtil.writeBinary(inputStream, output);
+        } catch (IOException e) {
+          //todo add better processing
+          throw new OperationException("Error while retrieving file '" + buildArtifact.getRelativePath() + "': " + e.getMessage(), e);
+        } finally {
+          FileUtil.close(inputStream);
+        }
       }
-      //todo: log build downloading artifacts (also consider an option), see RepositoryDownloadController
-      return builder.entity(getStreamingOutput(buildArtifact.getInputStream(), buildArtifact.getRelativePath())).build();
-    } catch (IOException e) {
-      throw new OperationException("Error opening artifact file '" + buildArtifact.getRelativePath() + "': " + e.getMessage(), e);
+    };
+
+    final String mimeType = request.getSession().getServletContext().getMimeType(fileName);
+    Response.ResponseBuilder builder = Response.ok();
+    if (mimeType != null) {
+      builder = builder.type(mimeType);
+    } else {
+      builder = builder.type(DefaultMediaTypePredictor.CommonMediaTypes.getMediaTypeFromFileName(fileName));
     }
+    //todo: log build downloading artifacts (also consider an option), see RepositoryDownloadController
+    return builder.entity(output).build();
   }
 
   @GET
@@ -448,31 +461,47 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/statusIcon")
   public Response serveBuildStatusIcon(@PathParam("buildLocator") final String buildLocator) {
+    //todo: may also use HTTP 304 for different resources in order to make it browser-cached
     //todo: return something appropriate when in maintenance
     //todo: separate icons no build found, etc.
 
-    String resultIconFileName = getRealFileName(getIconFileName(buildLocator));
+    final String iconFileName = getIconFileName(buildLocator);
+    final String resultIconFileName = getRealFileName(iconFileName);
+
+    if (resultIconFileName == null || !new File(resultIconFileName).isFile()) {
+      LOG.debug("Failed to find resource file: " + iconFileName);
+      throw new NotFoundException("Error finding resource file '" + iconFileName + "' (installation corrupted?)");
+    }
 
     final File resultIconFile = new File(resultIconFileName);
-    final StreamingOutput streamingOutput;
-    try {
-      streamingOutput = getStreamingOutput(new FileInputStream(resultIconFile), resultIconFile.getName());
-    } catch (FileNotFoundException e) {
-      LOG.debug("Failed to find resource file",e);
-      //ignoring exception message as it can contain absolute file path
-      throw new NotFoundException("Error finding file '" + resultIconFile.getName() + "' (installation corrupted?)");
-    }
+    final StreamingOutput streamingOutput = new StreamingOutput() {
+      public void write(final OutputStream output) throws WebApplicationException {
+        InputStream inputStream = null;
+        try {
+          inputStream = new BufferedInputStream(new FileInputStream(resultIconFile));
+          TCStreamUtil.writeBinary(inputStream, output);
+        } catch (IOException e) {
+          //todo add better processing
+          throw new OperationException("Error while retrieving file '" + resultIconFile.getName() + "': " + e.getMessage(), e);
+        } finally {
+          FileUtil.close(inputStream);
+        }
+      }
+    };
+
     final MediaType mediaType = getMediaType(resultIconFileName);
     return Response.ok(streamingOutput, mediaType).header("Cache-Control", "no-cache").build();
     //todo: consider using ETag for better caching/cache resets, might also use "Expires" header
   }
 
+  @Nullable
   private MediaType getMediaType(final String resultIconFileName) {
     //todo: match with artifacts default logic, consider using WebUtil.getMimeType(request,)
     return DefaultMediaTypePredictor.CommonMediaTypes.getMediaTypeFromFileName(resultIconFileName);
   }
 
-  private String getIconFileName(final String buildLocator) {
+  @NotNull
+  private String getIconFileName(@Nullable final String buildLocator) {
     final boolean holderHasPermission[] = new boolean[1];
     final boolean holderFinished[] = new boolean[1];
     final boolean holderSuccessful[] = new boolean[1];
@@ -570,21 +599,6 @@ public class BuildRequest {
       return true;
     }
     return false;
-  }
-
-  private StreamingOutput getStreamingOutput(final InputStream inputStream, final String streamName) {
-    return new StreamingOutput() {
-      public void write(final OutputStream output) throws WebApplicationException {
-        try {
-          TCStreamUtil.writeBinary(inputStream, output);
-        } catch (IOException e) {
-          //todo add better processing
-          throw new OperationException("Error while retrieving file '" + streamName + "': " + e.getMessage(), e);
-        } finally {
-          FileUtil.close(inputStream);
-        }
-      }
-    };
   }
 
   private String getRealFileName(final String relativePath) {
