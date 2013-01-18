@@ -16,10 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.build;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -242,6 +239,7 @@ public class Build {
       //todo: cast to SBuild?
       builds.add(new BuildRef((SBuild)entry.getKey(), myDataProvider, myApiUrlBuilder));
     }
+    Collections.sort(builds, new BuildDependenciesComparator());
     return new BuildsList(builds);
   }
 
@@ -285,7 +283,14 @@ public class Build {
         result.add(new BuildRef(dependOnBuild, dataProvider, myApiUrlBuilder));
       }
     }
+    Collections.sort(result, new BuildDependenciesComparator());
     return result;
   }
 
+  private class BuildDependenciesComparator implements Comparator<BuildRef> {
+    public int compare(final BuildRef o1, final BuildRef o2) {
+      final int buildTypesCompare = o1.getBuildTypeId().compareTo(o2.getBuildTypeId());
+      return buildTypesCompare != 0 ? buildTypesCompare : (int)(o1.getId() - o2.getId());
+    }
+  }
 }

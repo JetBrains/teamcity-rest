@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 /**
  * @author Yegor.Yarko
  */
+//todo: consider merging with jetbrains.buildServer.server.rest.model.build.Builds
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "builds")
 public class BuildsList {
