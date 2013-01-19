@@ -88,18 +88,6 @@
   
   
   <!-- Application Server Libraries -->
-  <!-- Register Custom Compiler Taskdefs -->
-  <property name="javac2.home" value="${idea.home}/lib"/>
-  <path id="javac2.classpath">
-    <pathelement location="${javac2.home}/javac2.jar"/>
-    <pathelement location="${javac2.home}/jdom.jar"/>
-    <pathelement location="${javac2.home}/asm4-all.jar"/>
-    <pathelement location="${javac2.home}/jgoodies-forms.jar"/>
-  </path>
-  <target name="register.custom.compilers">
-    <taskdef name="javac2" classname="com.intellij.ant.Javac2" classpathref="javac2.classpath"/>
-    <taskdef name="instrumentIdeaExtensions" classname="com.intellij.ant.InstrumentIdeaExtensions" classpathref="javac2.classpath"/>
-  </target>
   
   <!-- Modules -->
   
@@ -249,15 +237,15 @@
   
   <target name="compile.module.rest-api" depends="compile.module.rest-api.production,compile.module.rest-api.tests" description="Compile module rest-api"/>
   
-  <target name="compile.module.rest-api.production" depends="register.custom.compilers" description="Compile module rest-api; production classes">
+  <target name="compile.module.rest-api.production" description="Compile module rest-api; production classes">
     <mkdir dir="${rest-api.output.dir}"/>
-    <javac2 destdir="${rest-api.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true">
+    <javac destdir="${rest-api.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true">
       <compilerarg line="${compiler.args.rest-api}"/>
       <bootclasspath refid="rest-api.module.bootclasspath"/>
       <classpath refid="rest-api.module.production.classpath"/>
       <src refid="rest-api.module.sourcepath"/>
       <patternset refid="excluded.from.compilation.rest-api"/>
-    </javac2>
+    </javac>
     
     <copy todir="${rest-api.output.dir}">
       <fileset dir="${module.rest-api.basedir}/src">
@@ -267,15 +255,15 @@
     </copy>
   </target>
   
-  <target name="compile.module.rest-api.tests" depends="register.custom.compilers,compile.module.rest-api.production" description="compile module rest-api; test classes" unless="skip.tests">
+  <target name="compile.module.rest-api.tests" depends="compile.module.rest-api.production" description="compile module rest-api; test classes" unless="skip.tests">
     <mkdir dir="${rest-api.testoutput.dir}"/>
-    <javac2 destdir="${rest-api.testoutput.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true">
+    <javac destdir="${rest-api.testoutput.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true">
       <compilerarg line="${compiler.args.rest-api}"/>
       <bootclasspath refid="rest-api.module.bootclasspath"/>
       <classpath refid="rest-api.module.classpath"/>
       <src refid="rest-api.module.test.sourcepath"/>
       <patternset refid="excluded.from.compilation.rest-api"/>
-    </javac2>
+    </javac>
     
     <copy todir="${rest-api.testoutput.dir}">
       <fileset dir="${module.rest-api.basedir}/test">
