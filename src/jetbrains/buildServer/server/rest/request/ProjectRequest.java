@@ -41,6 +41,7 @@ import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
+import jetbrains.buildServer.serverSide.impl.RootProjectImpl;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -89,7 +90,7 @@ public class ProjectRequest {
     SProject resultingProject;
     if (StringUtil.isEmpty(descriptor.sourceProjectLocator)) {
       if (!StringUtil.isEmpty(descriptor.id)) {
-        resultingProject = myDataProvider.getServer().getProjectManager().createProject(descriptor.id, descriptor.name);
+        resultingProject = myDataProvider.getServer().getProjectManager().createProject(descriptor.id, RootProjectImpl.ROOT_PROJECT_ID, descriptor.name);
       } else {
         resultingProject = myDataProvider.getServer().getProjectManager().createProject(descriptor.name);
       }
