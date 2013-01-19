@@ -519,8 +519,13 @@ public class DataProvider {
     final Locator locator = new Locator(projectLocator);
 
     if (locator.isSingleValue()) {
-      // no dimensions found, assume it's a name or id
-      SProject project = myServer.getProjectManager().findProjectByName(projectLocator);
+      // no dimensions found, assume it's a name or internal id or external id
+      SProject project=null;
+      project = myServer.getProjectManager().findProjectByExternalId(projectLocator);
+      if (project != null) {
+        return project;
+      }
+      project = myServer.getProjectManager().findProjectByName(projectLocator);
       if (project != null) {
         return project;
       }
@@ -529,17 +534,29 @@ public class DataProvider {
         return project;
       }
       throw new NotFoundException(
-        "No project found by locator '" + projectLocator + "'. Project cannot be found by name or id '" + projectLocator + "'.");
+        "No project found by locator '" + projectLocator + "'. Project cannot be found by name or internal/external id '" + projectLocator + "'.");
     }
 
     String id = locator.getSingleDimensionValue("id");
     if (id != null) {
-      SProject project = myServer.getProjectManager().findProjectById(id);
+      SProject project = myServer.getProjectManager().findProjectByExternalId(id);
       if (project == null) {
-        throw new NotFoundException("No project found by locator '" + projectLocator + ". Project cannot be found by id '" + id + "'.");
+        throw new NotFoundException("No project found by locator '" + projectLocator + ". Project cannot be found by external id '" + id + "'.");
       }
       if (locator.getDimensionsCount() > 1) {
         LOG.info("Project locator '" + projectLocator + "' has 'id' dimension and others. Others are ignored.");
+      }
+      return project;
+    }
+
+    String internalId = locator.getSingleDimensionValue("internalId");
+    if (internalId != null) {
+      SProject project = myServer.getProjectManager().findProjectById(internalId);
+      if (project == null) {
+        throw new NotFoundException("No project found by locator '" + projectLocator + ". Project cannot be found by internal id '" + internalId + "'.");
+      }
+      if (locator.getDimensionsCount() > 1) {
+        LOG.info("Project locator '" + projectLocator + "' has 'internalId' dimension and others. Others are ignored.");
       }
       return project;
     }

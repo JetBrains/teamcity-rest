@@ -21,9 +21,11 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.model.project.ProjectRef;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeTemplate;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -69,7 +71,14 @@ public class BuildTypeRef {
 
   @XmlAttribute
   public String getProjectId() {
-    return myBuildType.getProject().getProjectId();
+    return myBuildType.getProject().getExternalId();
+  }
+
+  @XmlAttribute
+  public String getProjectInternalId() {
+    return TeamCityProperties.getBoolean(ProjectRef.INCLUDE_INTERNAL_PROJECT_ID_PROPERTY_NAME)
+           ? myBuildType.getProject().getProjectId()
+           : null;
   }
 
   @XmlAttribute

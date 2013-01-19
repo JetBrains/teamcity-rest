@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.project;
 
+import com.intellij.openapi.util.text.StringUtil;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -26,6 +27,7 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -70,6 +72,8 @@ public class Project extends ProjectRef {
   @Nullable
   public static String getFieldValue(final SProject project, final String field) {
     if ("id".equals(field)) {
+      return project.getExternalId();
+    } else if ("internalId".equals(field)) {
       return project.getProjectId();
     } else if ("description".equals(field)) {
       return project.getDescription();
@@ -83,7 +87,17 @@ public class Project extends ProjectRef {
 
   public static void setFieldValue(final SProject project, final String field, final String value, @NotNull final DataProvider dataProvider) {
     if ("name".equals(field)) {
+      if (StringUtil.isEmpty(value)){
+        throw new BadRequestException("Project name cannot be empty.");
+      }
       project.setName(value);
+      return;
+    } else if ("id".equals(field)) {
+      //todo: (TeamCity) open API How to set project external id via open API?
+      if (StringUtil.isEmpty(value)){
+        throw new BadRequestException("Project external id cannot be empty.");
+      }
+      ((ProjectEx)project).setExternalId(value);
       return;
     } else if ("description".equals(field)) {
       project.setDescription(value);

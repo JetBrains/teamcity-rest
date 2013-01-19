@@ -40,6 +40,7 @@ import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -57,7 +58,7 @@ public class ProjectRequest {
   public static final String API_PROJECTS_URL = Constants.API_URL + "/projects";
 
   public static String getProjectHref(SProject project) {
-    return API_PROJECTS_URL + "/id:" + project.getProjectId();
+    return API_PROJECTS_URL + "/id:" + project.getExternalId();
   }
 
   @GET
@@ -87,11 +88,19 @@ public class ProjectRequest {
     }
     SProject resultingProject;
     if (StringUtil.isEmpty(descriptor.sourceProjectLocator)) {
-      resultingProject = myDataProvider.getServer().getProjectManager().createProject(descriptor.name);
+      if (!StringUtil.isEmpty(descriptor.id)) {
+        resultingProject = myDataProvider.getServer().getProjectManager().createProject(descriptor.id, descriptor.name);
+      } else {
+        resultingProject = myDataProvider.getServer().getProjectManager().createProject(descriptor.name);
+      }
     } else {
       SProject sourceProject = myDataProvider.getProject(descriptor.sourceProjectLocator);
       resultingProject =
         myDataProvider.getServer().getProjectManager().createProject(sourceProject, descriptor.name, getCopyOptions(descriptor));
+      //todo: (TeamCity) opan API how to change external id?
+      if (!StringUtil.isEmpty(descriptor.id)) {
+        ((ProjectEx)resultingProject).setExternalId(descriptor.id);
+      }
     }
     resultingProject.persist();
     return new Project(resultingProject, myDataProvider, myApiUrlBuilder);
@@ -114,7 +123,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/{field}")
   @Produces("text/plain")
-  public String serveProjectFiled(@PathParam("projectLocator") String projectLocator, @PathParam("field") String fieldName) {
+  public String serveProjectField(@PathParam("projectLocator") String projectLocator, @PathParam("field") String fieldName) {
     return Project.getFieldValue(myDataProvider.getProject(projectLocator), fieldName);
   }
 
