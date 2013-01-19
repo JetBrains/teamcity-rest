@@ -45,6 +45,7 @@
     <include name="*.apk"/>
     <include name="*.zip"/>
     <include name="*.swc"/>
+    <include name="*.ane"/>
     <include name="*.egg"/>
     <include name="*.jar"/>
   </patternset>
@@ -76,8 +77,8 @@
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/annotations.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/log4j-1.2.12.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/openapi.jar"/>
-    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/spring.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/spring-webmvc.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/spring.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/util.jar"/>
   </path>
   
@@ -92,8 +93,7 @@
   <path id="javac2.classpath">
     <pathelement location="${javac2.home}/javac2.jar"/>
     <pathelement location="${javac2.home}/jdom.jar"/>
-    <pathelement location="${javac2.home}/asm.jar"/>
-    <pathelement location="${javac2.home}/asm-commons.jar"/>
+    <pathelement location="${javac2.home}/asm4-all.jar"/>
     <pathelement location="${javac2.home}/jgoodies-forms.jar"/>
   </path>
   <target name="register.custom.compilers">
