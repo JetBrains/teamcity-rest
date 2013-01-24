@@ -541,7 +541,15 @@ public class DataProvider {
     if (id != null) {
       SProject project = myServer.getProjectManager().findProjectByExternalId(id);
       if (project == null) {
-        throw new NotFoundException("No project found by locator '" + projectLocator + ". Project cannot be found by external id '" + id + "'.");
+        if (TeamCityProperties.getBoolean("rest.compatibility.allowExternalIdAsInternal")){
+          project = myServer.getProjectManager().findProjectById(id);
+          if (project == null) {
+            throw new NotFoundException("No project found by locator '" + projectLocator +
+                                        " in compatibility mode. Project cannot be found by external or internal id '" + id + "'.");
+          }
+        }else{
+          throw new NotFoundException("No project found by locator '" + projectLocator + ". Project cannot be found by external id '" + id + "'.");
+        }
       }
       if (locator.getDimensionsCount() > 1) {
         LOG.info("Project locator '" + projectLocator + "' has 'id' dimension and others. Others are ignored.");
