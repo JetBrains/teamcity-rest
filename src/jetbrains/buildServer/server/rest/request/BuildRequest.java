@@ -197,24 +197,24 @@ public class BuildRequest {
     return builder.entity(output).build();
   }
 
-  @GET
-  @Path("/{buildLocator}/artifacts/")
-  @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-  public Artifacts getArtifacts(@PathParam("buildLocator") final String buildLocator, @QueryParam("includeHidden") String getHidden) {
-    final SBuild build = myDataProvider.getBuild(null, buildLocator);
-    final List<Artifact> collected = new ArrayList<Artifact>();
-    build.getArtifacts((getHidden != null) ? BuildArtifactsViewMode.VIEW_ALL : BuildArtifactsViewMode.VIEW_DEFAULT).iterateArtifacts(
-      new BuildArtifacts.BuildArtifactsProcessor() {
-        @NotNull
-        public Continuation processBuildArtifact(@NotNull final BuildArtifact artifact) {
-          if (!artifact.isDirectory()) {
-            collected.add(new Artifact(artifact, myApiUrlBuilder, build));
-          }
-          return Continuation.CONTINUE;
-        }
-      });
-    return new Artifacts(collected);
-  }
+//  @GET
+//  @Path("/{buildLocator}/artifacts/")
+//  @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+//  public Artifacts getArtifacts(@PathParam("buildLocator") final String buildLocator, @QueryParam("includeHidden") String getHidden) {
+//    final SBuild build = myDataProvider.getBuild(null, buildLocator);
+//    final List<Artifact> collected = new ArrayList<Artifact>();
+//    build.getArtifacts((getHidden != null) ? BuildArtifactsViewMode.VIEW_ALL : BuildArtifactsViewMode.VIEW_DEFAULT).iterateArtifacts(
+//      new BuildArtifacts.BuildArtifactsProcessor() {
+//        @NotNull
+//        public Continuation processBuildArtifact(@NotNull final BuildArtifact artifact) {
+//          if (!artifact.isDirectory()) {
+//            collected.add(new Artifact(artifact, myApiUrlBuilder, build));
+//          }
+//          return Continuation.CONTINUE;
+//        }
+//      });
+//    return new Artifacts(collected);
+//  }
 
   @GET
   @Path("/{buildLocator}/sources/files/{fileName:.+}")
