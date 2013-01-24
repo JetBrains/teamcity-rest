@@ -95,9 +95,13 @@ public class ProjectRequest {
       }
     } else {
       SProject sourceProject = myDataProvider.getProject(descriptor.sourceProjectLocator);
-      resultingProject =
-        myDataProvider.getServer().getProjectManager().createProject(sourceProject, descriptor.name, getCopyOptions(descriptor));
-      //todo: (TeamCity) opan API how to change external id?
+      if (!StringUtil.isEmpty(descriptor.id)) {
+        // todo (TeamCity) open API see http://youtrack.jetbrains.com/issue/TW-25556
+        throw new BadRequestException("Sorry, setting project id on copying is not supported. Create project with name only and then change the id.");
+      }else{
+        resultingProject = myDataProvider.getServer().getProjectManager().createProject(sourceProject, descriptor.name, getCopyOptions(descriptor));
+      }
+      //todo: (TeamCity) open API how to change external id?
       if (!StringUtil.isEmpty(descriptor.id)) {
         ((ProjectEx)resultingProject).setExternalId(descriptor.id);
       }

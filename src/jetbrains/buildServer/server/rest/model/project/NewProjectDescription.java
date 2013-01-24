@@ -32,7 +32,7 @@ public class NewProjectDescription extends CopyOptionsDescription{
 
   @XmlAttribute public String name;
   /**
-   * Project enternal id.
+   * Project external id.
    */
   @XmlAttribute public String id;
   @XmlAttribute public String sourceProjectLocator;
