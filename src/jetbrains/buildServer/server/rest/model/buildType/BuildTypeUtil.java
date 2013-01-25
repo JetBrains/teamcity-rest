@@ -177,4 +177,10 @@ public class BuildTypeUtil {
     }
     parametrizedEntity.removeParameter(parameterName);
   }
+
+  public static void removeAllParameters(final UserParametersHolder holder) {
+    for (String p: holder.getParameters().keySet()) {
+      holder.removeParameter(p);
+    }
+  }
 }

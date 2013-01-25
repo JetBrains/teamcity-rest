@@ -34,6 +34,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.build.Branch;
 import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.buildType.*;
@@ -150,6 +151,26 @@ public class BuildTypeRequest {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
 
     return new Properties(buildType.get().getParameters());
+  }
+
+  @PUT
+  @Path("/{btLocator}/parameters")
+  @Consumes({"application/xml", "application/json"})
+  public void changeBuildTypeParameters(@PathParam("btLocator") String buildTypeLocator, Properties properties) {
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    BuildTypeUtil.removeAllParameters(buildType.get());
+    for (Property p : properties.properties) {
+      BuildTypeUtil.changeParameter(p.name, p.value, buildType.get(), myServiceLocator);
+    }
+    buildType.get().persist();
+  }
+
+  @DELETE
+  @Path("/{btLocator}/parameters")
+  public void deleteAllBuildTypeParameters(@PathParam("btLocator") String buildTypeLocator) {
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
+    BuildTypeUtil.removeAllParameters(buildType.get());
+    buildType.get().persist();
   }
 
   @GET

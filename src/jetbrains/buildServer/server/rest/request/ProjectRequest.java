@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.CopyOptionsDescription;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
@@ -285,6 +286,26 @@ public class ProjectRequest {
   public Properties serveParameters(@PathParam("projectLocator") String projectLocator) {
     SProject project = myDataProvider.getProject(projectLocator);
     return new Properties(project.getParameters());
+  }
+
+  @PUT
+  @Path("/{projectLocator}/parameters")
+  @Consumes({"application/xml", "application/json"})
+  public void changeAllParameters(@PathParam("projectLocator") String projectLocator, Properties properties) {
+    SProject project = myDataProvider.getProject(projectLocator);
+    BuildTypeUtil.removeAllParameters(project);
+    for (Property p : properties.properties) {
+      BuildTypeUtil.changeParameter(p.name, p.value, project, myServiceLocator);
+    }
+    project.persist();
+  }
+
+  @DELETE
+  @Path("/{projectLocator}/parameters")
+  public void deleteAllParameters(@PathParam("projectLocator") String projectLocator) {
+    SProject project = myDataProvider.getProject(projectLocator);
+    BuildTypeUtil.removeAllParameters(project);
+    project.persist();
   }
 
   @GET
