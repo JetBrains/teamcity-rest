@@ -562,10 +562,10 @@ public class DataProvider {
   }
   
   @NotNull
-  public SProject getProjectById(@NotNull String projectId){
-    final SProject project = myServer.getProjectManager().findProjectById(projectId);
+  public SProject getProjectByInternalId(@NotNull String projectInternalId){
+    final SProject project = myServer.getProjectManager().findProjectById(projectInternalId);
     if (project == null){
-      throw new NotFoundException("Could not find project by id '" + projectId + "'.");
+      throw new NotFoundException("Could not find project by internal id '" + projectInternalId + "'.");
     }
     return project;
   }
@@ -720,7 +720,7 @@ public class DataProvider {
     if (scope.isGlobal()) {
       return "g";
     }
-    return "p:" + scope.getProjectId();
+    return "p:" + scope.getProjectId(); //todo: (TeamCity) open API: is it internal or external project id?
   }
 
   @NotNull
@@ -1195,9 +1195,9 @@ public class DataProvider {
 
   public void checkProjectPermission(final Permission permission, final String projectId) throws AuthorizationFailedException{
     final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
-    if (!authorityHolder.isPermissionGrantedForProject(projectId, permission)) {
+    if (!authorityHolder.isPermissionGrantedForProject(projectId, permission)) { //todo: (TeamCity) open API: is it internal or external project id?
       throw new AuthorizationFailedException("User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission +
-                                             "in project with id: '" + projectId + "'");
+                                             "in project with internal id: '" + projectId + "'");
     }
   }
 
