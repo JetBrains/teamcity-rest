@@ -135,7 +135,7 @@ public class DataProvider {
     BuildsFilter buildsFilter;
     if (locator != null) {
       buildsFilter = getBuildsFilterByLocator(buildType, locator);
-      checkLocatorFullyProcessed(locator);
+      locator.checkLocatorFullyProcessed();
     } else {
       // preserve 5.0 logic for personal/canceled/pinned builds
       buildsFilter = new GenericBuildsFilter(buildType,
@@ -311,7 +311,7 @@ public class DataProvider {
     final BuildsFilter buildsFilter = getBuildsFilterByLocator(buildType, locator);
     buildsFilter.setCount(1);
 
-    checkLocatorFullyProcessed(locator);
+    locator.checkLocatorFullyProcessed();
     
     final List<SBuild> filteredBuilds = getBuilds(buildsFilter);
     if (filteredBuilds.size() == 0){
@@ -324,28 +324,6 @@ public class DataProvider {
     //todo: check for unknown dimension names in all the returns
 
     throw new BadRequestException("Build locator '" + buildLocator + "' is not supported (" + filteredBuilds.size() + " builds found)");
-  }
-
-  //todo: use this whenever possible
-  private void checkLocatorFullyProcessed(final Locator locator) {
-    final Set<String> unusedDimensions = locator.getUnusedDimensions();
-    if (unusedDimensions.size() > 0){
-      if (TeamCityProperties.getBooleanOrTrue("rest.report.locator.errors")){
-        String message;
-        if (unusedDimensions.size() > 1){
-          message = "Locator dimensions " + unusedDimensions + " are unknown.";
-        }else{
-          if (!unusedDimensions.contains(Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME)){
-            message = "Locator dimension " + unusedDimensions + " is unknown.";
-          }else{
-            message = "Single value locator is not supported here.";
-          }
-        }
-        throw new BadRequestException(message);
-      }else{
-        LOG.warn("Some supplied locator dimensions are unknown: " + unusedDimensions);
-      }
-    }
   }
 
   @Nullable

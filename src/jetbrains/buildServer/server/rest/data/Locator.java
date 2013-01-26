@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -108,6 +109,28 @@ public class Locator {
       if (!Character.isLetter(name.charAt(i)) && !Character.isDigit(name.charAt(i))) return false;
     }
     return true;
+  }
+
+  //todo: use this whenever possible
+  public void checkLocatorFullyProcessed() {
+    final Set<String> unusedDimensions = getUnusedDimensions();
+    if (unusedDimensions.size() > 0){
+      if (TeamCityProperties.getBooleanOrTrue("rest.report.locator.errors")){
+        String message;
+        if (unusedDimensions.size() > 1){
+          message = "Locator dimensions " + unusedDimensions + " are unknown.";
+        }else{
+          if (!unusedDimensions.contains(LOCATOR_SINGLE_VALUE_UNUSED_NAME)){
+            message = "Locator dimension " + unusedDimensions + " is unknown.";
+          }else{
+            message = "Single value locator is not supported here.";
+          }
+        }
+        throw new LocatorProcessException(message);
+      }else{
+        // LOG.debug("Some supplied locator dimensions are unknown: " + unusedDimensions);
+      }
+    }
   }
 
   public boolean isSingleValue() {

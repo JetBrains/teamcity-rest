@@ -30,6 +30,7 @@ import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildLocator;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
@@ -147,10 +148,23 @@ public class BuildTypeRequest {
   @GET
   @Path("/{btLocator}/parameters")
   @Produces({"application/xml", "application/json"})
-  public Properties serveBuildTypeParameters(@PathParam("btLocator") String buildTypeLocator) {
+  public Properties serveBuildTypeParameters(@PathParam("btLocator") String buildTypeLocator,
+                                             @QueryParam("locator") Locator locator) {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
-
-    return new Properties(buildType.get().getParameters());
+    if (locator == null){
+      return new Properties(buildType.get().getParameters());
+    }
+    final Boolean own = locator.getSingleDimensionValueAsBoolean("own");
+    if (own == null){
+      locator.checkLocatorFullyProcessed();
+      return new Properties(buildType.get().getParameters());
+    }
+    if (own){
+      // todo (TeamCity) open API: how to get only own parameters?
+      throw new BadRequestException("Sorry, getting only own parameters is not supported at the moment");
+    }else{
+      throw new BadRequestException("Sorry, getting only not own parameters is not supported at the moment");
+    }
   }
 
   @PUT
