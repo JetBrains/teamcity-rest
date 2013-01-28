@@ -219,7 +219,7 @@ public class VcsRoot {
       return;
     }
 
-    throw new BadRequestException("Setting field '" + field + "' is not supported. Supported are: name, shared, project, modificationCheckInterval");
+    throw new NotFoundException("Setting field '" + field + "' is not supported. Supported are: name, shared, project, modificationCheckInterval");
   }
 }
 

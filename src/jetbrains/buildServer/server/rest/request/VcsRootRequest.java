@@ -17,6 +17,8 @@
 package jetbrains.buildServer.server.rest.request;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
@@ -25,11 +27,14 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
+import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRoots;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.vcs.VcsManager;
 import jetbrains.buildServer.vcs.VcsRootScope;
 import org.jetbrains.annotations.NotNull;
 
@@ -137,6 +142,24 @@ public class VcsRootRequest {
   }
 
   @GET
+  @Path("/{vcsRootLocator}/instances")
+  @Produces({"application/xml", "application/json"})
+  public VcsRootInstances serveRootInstances(@PathParam("vcsRootLocator") String vcsRootLocator) {
+    final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
+    final VcsManager vcsManager = myDataProvider.getVcsManager();
+    //todo: (TeamCity) open API is there a better way to do this?
+    final List<SBuildType> allConfigurationUsages = vcsManager.getAllConfigurationUsages(vcsRoot);
+    final HashSet<jetbrains.buildServer.vcs.VcsRootInstance> result = new HashSet<jetbrains.buildServer.vcs.VcsRootInstance>();
+    for (SBuildType buildType : allConfigurationUsages) {
+      final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = buildType.getVcsRootInstanceForParent(vcsRoot);
+      if (rootInstance!=null){
+        result.add(rootInstance);
+      }
+    }
+    return new VcsRootInstances(result, myApiUrlBuilder);
+  }
+
+  @GET
   @Path("/{vcsRootLocator}/instances/{vcsRootInstanceLocator}")
   @Produces({"application/xml", "application/json"})
   public VcsRootInstance serveRootInstance(@PathParam("vcsRootLocator") String vcsRootLocator,
@@ -151,6 +174,29 @@ public class VcsRootRequest {
                                            @PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator) {
     return new Properties(myDataProvider.getVcsRootInstance(vcsRootInstanceLocator).getProperties());
   }
+
+
+  @GET
+  @Path("/{vcsRootLocator}/instances/{vcsRootInstanceLocator}/{field}")
+  @Produces("text/plain")
+  public String serveInstanceField(@PathParam("vcsRootLocator") String vcsRootLocator,
+                                   @PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
+                                   @PathParam("field") String fieldName) {
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myDataProvider.getVcsRootInstance(vcsRootInstanceLocator);
+    return VcsRootInstance.getFieldValue(rootInstance, fieldName, myDataProvider);
+  }
+
+  @PUT
+  @Path("/{vcsRootLocator}/instances/{vcsRootInstanceLocator}/{field}")
+  @Consumes("text/plain")
+  public void setInstanceField(@PathParam("vcsRootLocator") String vcsRootLocator,
+                               @PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
+                               @PathParam("field") String fieldName, String newValue) {
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myDataProvider.getVcsRootInstance(vcsRootInstanceLocator);
+    VcsRootInstance.setFieldValue(rootInstance, fieldName, newValue, myDataProvider);
+    myDataProvider.getVcsManager().persistVcsRoots();
+  }
+
 
   @GET
   @Path("/{vcsRootLocator}/properties")

@@ -22,8 +22,13 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.serverSide.RepositoryVersion;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.vcs.SingleVersionRepositoryStateAdapter;
+import jetbrains.buildServer.vcs.VcsException;
+import jetbrains.buildServer.vcs.VcsRootInstanceEx;
 
 /**
  * @author Yegor.Yarko
@@ -68,5 +73,48 @@ public class VcsRootInstance extends VcsRoot {
     return currentRevision != null ? currentRevision.getVersion() : null;
   }
 
+  public static String getFieldValue(final jetbrains.buildServer.vcs.VcsRootInstance rootInstance,
+                                     final String field,
+                                     final DataProvider dataProvider) {
+    if ("lastVersion".equals(field)) {
+      final RepositoryVersion currentRevision = rootInstance.getLastUsedRevision();
+      return currentRevision != null ? currentRevision.getDisplayVersion() : null; //todo: current status code for this case is 204/not changed. Should be different
+    } else if ("lastVersionInternal".equals(field)) {
+      final RepositoryVersion currentRevision = rootInstance.getLastUsedRevision();
+      return currentRevision != null ? currentRevision.getVersion() : null;
+    } else if ("currentVersion".equals(field)) {
+      final RepositoryVersion currentRevision;
+      try {
+        currentRevision = rootInstance.getCurrentRevision();
+      } catch (VcsException e) {
+        throw new OperationException("Error while getting current revision: ", e); //todo: use dedicated exception
+      }
+      return currentRevision.getDisplayVersion();
+    } else if ("currentVersionInternal".equals(field)) {
+      final RepositoryVersion currentRevision;
+      try {
+        currentRevision = rootInstance.getCurrentRevision();
+      } catch (VcsException e) {
+        throw new OperationException("Error while getting current revision: ", e); //todo: use dedicated exception
+      }
+      return currentRevision.getVersion();
+    }
+    try {
+      return VcsRoot.getFieldValue(rootInstance.getParent(), field, dataProvider);
+    } catch (NotFoundException e) {
+      throw new NotFoundException("Field '" + field + "' is not supported. Supported are: lastVersion, lastVersionInternal and those of VCS root, see: " + e.getMessage());
+    }
+  }
+
+  public static void setFieldValue(final jetbrains.buildServer.vcs.VcsRootInstance rootInstance,
+                                   final String field,
+                                   final String newValue,
+                                   final DataProvider dataProvider) {
+    if ("lastVersionInternal".equals(field)) {
+      ((VcsRootInstanceEx)rootInstance).setLastUsedState(new SingleVersionRepositoryStateAdapter(newValue));
+      return;
+    }
+    throw new NotFoundException("Setting of field '" + field + "' is not supported. Supported is: lastVersionInternal");
+  }
 }
 
