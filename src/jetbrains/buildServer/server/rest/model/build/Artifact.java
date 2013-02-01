@@ -1,6 +1,5 @@
 package jetbrains.buildServer.server.rest.model.build;
 
-import com.sun.jersey.multipart.file.DefaultMediaTypePredictor;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -16,7 +15,7 @@ import org.jetbrains.annotations.NotNull;
  * @author Vladislav.Rassokhin
  */
 @XmlRootElement(name = "artifact")
-@XmlType(name = "artifact", propOrder = {"name", "relativePath", "size", "timestamp", "href", "type", "mime"})
+@XmlType(name = "artifact", propOrder = {"name", "relativePath", "size", "timestamp", "href", "type"})
 public class Artifact {
 
   private final BuildArtifact myArtifact;
@@ -63,10 +62,5 @@ public class Artifact {
   @XmlAttribute(name = "type")
   public String getType() {
     return FileUtil.getExtension(getRelativePath());
-  }
-
-  @XmlAttribute(name = "mime")
-  public String getMime() {
-    return DefaultMediaTypePredictor.CommonMediaTypes.getMediaTypeFromFileName(getName()).toString();
   }
 }

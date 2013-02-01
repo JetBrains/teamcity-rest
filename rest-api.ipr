@@ -40,7 +40,11 @@
       <entry name="?*.tld" />
       <entry name="?*.ftl" />
     </wildcardResourcePatterns>
-    <annotationProcessing enabled="false" useClasspath="true" />
+    <annotationProcessing>
+      <profile default="true" name="Default" enabled="false">
+        <processorPath useClasspath="true" />
+      </profile>
+    </annotationProcessing>
   </component>
   <component name="CopyrightManager" default="">
     <copyright>
@@ -342,12 +346,10 @@
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/annotations.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/openapi.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/util.jar!/" />
-        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.web.servlet-3.0.5.RELEASE.jar!/" />
-        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.web-3.0.5.RELEASE.jar!/" />
-        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.core-3.0.5.RELEASE.jar!/" />
-        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.context-3.0.5.RELEASE.jar!/" />
-        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/org.springframework.beans-3.0.5.RELEASE.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/log4j-1.2.12.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/spring-security.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/spring-webmvc.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/spring.jar!/" />
       </CLASSES>
       <JAVADOC />
       <SOURCES />

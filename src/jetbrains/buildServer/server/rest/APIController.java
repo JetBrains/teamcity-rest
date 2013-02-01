@@ -19,23 +19,16 @@ package jetbrains.buildServer.server.rest;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.ArrayUtil;
 import com.intellij.util.Function;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-import javax.servlet.http.HttpServletResponse;
+import com.sun.jersey.api.core.PackagesResourceConfig;
+import com.sun.jersey.api.core.ResourceConfig;
+import com.sun.jersey.api.json.JSONConfiguration;
 import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.controllers.AuthorizationInterceptor;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
 import jetbrains.buildServer.server.rest.jersey.JerseyWebComponent;
+import jetbrains.buildServer.server.rest.jersey.WadlGenerator;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SecurityContextEx;
@@ -52,6 +45,18 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.web.context.ServletContextAware;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.ModelAndView;
+
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Yegor.Yarko
@@ -178,9 +183,9 @@ public class APIController extends BaseController implements ServletContextAware
       Map<String, String> initParameters = new HashMap<String, String>();
 
       {
-        initParameters.put("com.sun.jersey.config.property.WadlGeneratorConfig", "jetbrains.buildServer.server.rest.jersey.WadlGenerator");
-        initParameters.put("com.sun.jersey.config.property.packages",
-                           "jetbrains.buildServer.server.rest.request;" + getPackagesFromExtensions());
+        initParameters.put(ResourceConfig.PROPERTY_WADL_GENERATOR_CONFIG, WadlGenerator.class.getCanonicalName());
+        initParameters.put(JSONConfiguration.FEATURE_POJO_MAPPING, "true");
+        initParameters.put(PackagesResourceConfig.PROPERTY_PACKAGES, "org.codehaus.jackson.jaxrs;jetbrains.buildServer.server.rest.request;" + getPackagesFromExtensions());
       }
 
       private String getPackagesFromExtensions() {

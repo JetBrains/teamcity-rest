@@ -17,7 +17,6 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
-import com.sun.jersey.multipart.file.DefaultMediaTypePredictor;
 import java.io.*;
 import java.util.*;
 import javax.servlet.ServletContext;
@@ -56,6 +55,7 @@ import jetbrains.buildServer.util.TCStreamUtil;
 import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsManager;
 import jetbrains.buildServer.web.util.SessionUser;
+import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -190,8 +190,6 @@ public class BuildRequest {
     Response.ResponseBuilder builder = Response.ok();
     if (mimeType != null) {
       builder = builder.type(mimeType);
-    } else {
-      builder = builder.type(DefaultMediaTypePredictor.CommonMediaTypes.getMediaTypeFromFileName(fileName));
     }
     //todo: log build downloading artifacts (also consider an option), see RepositoryDownloadController
     return builder.entity(output).build();
@@ -460,7 +458,7 @@ public class BuildRequest {
   // Note: authentication for this request is disabled in APIController configuration
   @GET
   @Path("/{buildLocator}/statusIcon")
-  public Response serveBuildStatusIcon(@PathParam("buildLocator") final String buildLocator) {
+  public Response serveBuildStatusIcon(@PathParam("buildLocator") final String buildLocator, @Context HttpServletRequest request) {
     //todo: may also use HTTP 304 for different resources in order to make it browser-cached
     //todo: return something appropriate when in maintenance
     //todo: separate icons no build found, etc.
@@ -489,15 +487,9 @@ public class BuildRequest {
       }
     };
 
-    final MediaType mediaType = getMediaType(resultIconFileName);
+    final String mediaType = WebUtil.getMimeType(request, resultIconFileName);
     return Response.ok(streamingOutput, mediaType).header("Cache-Control", "no-cache").build();
     //todo: consider using ETag for better caching/cache resets, might also use "Expires" header
-  }
-
-  @Nullable
-  private MediaType getMediaType(final String resultIconFileName) {
-    //todo: match with artifacts default logic, consider using WebUtil.getMimeType(request,)
-    return DefaultMediaTypePredictor.CommonMediaTypes.getMediaTypeFromFileName(resultIconFileName);
   }
 
   @NotNull
