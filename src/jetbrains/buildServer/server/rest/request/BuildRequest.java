@@ -17,12 +17,6 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.io.*;
-import java.util.*;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildLocator;
@@ -31,8 +25,14 @@ import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.files.FileDef;
+import jetbrains.buildServer.server.rest.files.FileDefRef;
 import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.server.rest.model.build.*;
+import jetbrains.buildServer.server.rest.model.build.Build;
+import jetbrains.buildServer.server.rest.model.build.Builds;
+import jetbrains.buildServer.server.rest.model.build.Tags;
+import jetbrains.buildServer.server.rest.model.files.*;
+import jetbrains.buildServer.server.rest.files.Util;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
@@ -49,15 +49,20 @@ import jetbrains.buildServer.serverSide.statistics.ValueProvider;
 import jetbrains.buildServer.serverSide.statistics.build.BuildValue;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
-import jetbrains.buildServer.util.FileUtil;
-import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.util.TCStreamUtil;
+import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsManager;
 import jetbrains.buildServer.web.util.SessionUser;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
+import java.io.*;
+import java.util.*;
 
 /*
  * User: Yegor Yarko
@@ -73,9 +78,16 @@ public class BuildRequest {
   private DataProvider myDataProvider;
   public static final String API_BUILDS_URL = Constants.API_URL + "/builds";
 
-  @Context private ApiUrlBuilder myApiUrlBuilder;
-  @Context private ServiceLocator myServiceLocator;
-  @Context private BeanFactory myFactory;
+  public static final String ARTIFACTS_METADATA = "/artifacts/metadata";
+  public static final String ARTIFACTS_CONTENT = "/artifacts/content";
+  public static final String ARTIFACTS_CHILDREN = "/artifacts/children";
+
+  @Context
+  private ApiUrlBuilder myApiUrlBuilder;
+  @Context
+  private ServiceLocator myServiceLocator;
+  @Context
+  private BeanFactory myFactory;
 
   public static String getBuildHref(SBuild build) {
     return API_BUILDS_URL + "/id:" + build.getBuildId();
@@ -83,19 +95,20 @@ public class BuildRequest {
 
   /**
    * Serves builds matching supplied condition.
-   * @param locator Build locator to filter builds server
-   * @param buildTypeLocator Deprecated, use "locator" parameter instead
-   * @param status   Deprecated, use "locator" parameter instead
-   * @param userLocator   Deprecated, use "locator" parameter instead
+   *
+   * @param locator           Build locator to filter builds server
+   * @param buildTypeLocator  Deprecated, use "locator" parameter instead
+   * @param status            Deprecated, use "locator" parameter instead
+   * @param userLocator       Deprecated, use "locator" parameter instead
    * @param includePersonal   Deprecated, use "locator" parameter instead
    * @param includeCanceled   Deprecated, use "locator" parameter instead
-   * @param onlyPinned   Deprecated, use "locator" parameter instead
-   * @param tags   Deprecated, use "locator" parameter instead
-   * @param agentName   Deprecated, use "locator" parameter instead
-   * @param sinceBuildLocator   Deprecated, use "locator" parameter instead
-   * @param sinceDate   Deprecated, use "locator" parameter instead
-   * @param start   Deprecated, use "locator" parameter instead
-   * @param count   Deprecated, use "locator" parameter instead, defaults to 100
+   * @param onlyPinned        Deprecated, use "locator" parameter instead
+   * @param tags              Deprecated, use "locator" parameter instead
+   * @param agentName         Deprecated, use "locator" parameter instead
+   * @param sinceBuildLocator Deprecated, use "locator" parameter instead
+   * @param sinceDate         Deprecated, use "locator" parameter instead
+   * @param start             Deprecated, use "locator" parameter instead
+   * @param count             Deprecated, use "locator" parameter instead, defaults to 100
    * @return
    */
   @GET
@@ -115,8 +128,8 @@ public class BuildRequest {
                                @QueryParam("locator") BuildLocator locator,
                                @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     return myDataProvider.getBuildsForRequest(myDataProvider.getBuildTypeIfNotNull(buildTypeLocator),
-                                              status, userLocator, includePersonal, includeCanceled, onlyPinned, tags, agentName,
-                                              sinceBuildLocator, sinceDate, start, count, locator, uriInfo, request, myApiUrlBuilder);
+        status, userLocator, includePersonal, includeCanceled, onlyPinned, tags, agentName,
+        sinceBuildLocator, sinceDate, start, count, locator, uriInfo, request, myApiUrlBuilder);
   }
 
   @GET
@@ -146,17 +159,53 @@ public class BuildRequest {
   @Produces({"text/plain"})
   public String getParameter(@PathParam("buildLocator") String buildLocator, @PathParam("propertyName") String propertyName) {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
-    if (StringUtil.isEmpty(propertyName)){
+    if (StringUtil.isEmpty(propertyName)) {
       throw new BadRequestException("Property name should not be empty");
     }
     return build.getParametersProvider().get(propertyName);
   }
 
+  @GET
+  @Path("/{buildLocator}" + ARTIFACTS_METADATA + "{path:(/.*)?}")
+  @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+  public FileMetadata getArtifactMetadata(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String path) {
+    final SBuild build = myDataProvider.getBuild(null, buildLocator);
+    final FileDef fd = Util.getFileDef(path, build);
+    return new FileMetadata(fd, FileApiUrlBuilder.forBuild(myApiUrlBuilder, build));
+  }
+
+  @GET
+  @Path("/{buildLocator}" + ARTIFACTS_CHILDREN + "{path:(/.*)?}")
+  @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+  public FileChildren getArtifactChildren(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String path) {
+    final SBuild build = myDataProvider.getBuild(null, buildLocator);
+    final FileDef fd = Util.getFileDef(path, build);
+    Collection<FileDefRef> children;
+    try {
+      children = fd.getChildren();
+    } catch (IOException e) {
+      throw new OperationException("Error while retrieving children for artifact '" + path + "': " + e.getMessage(), e);
+    }
+    return new FileChildren(children, FileApiUrlBuilder.forBuild(myApiUrlBuilder, build));
+  }
+
+  //TODO: merge with getArtifactFilesContent?
+  @GET
+  @Path("/{buildLocator}" + ARTIFACTS_CONTENT + "{path:(/.*)?}")
+  @Produces({MediaType.WILDCARD})
+  public Response getArtifactContent(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String fileName, @Context HttpServletRequest request, @Context UriInfo uriInfo) {
+    final SBuild build = myDataProvider.getBuild(null, buildLocator);
+    UriBuilder uriBuilder = uriInfo.getRequestUriBuilder();
+    Response.ResponseBuilder builder = Response.temporaryRedirect(uriBuilder.replacePath(request.getContextPath() + "/repository/download/" + build.getBuildTypeId() + "/" + build.getBuildId() + ":id/" + fileName).build());
+    return builder.build();
+  }
+
+  //TODO: remove?
   //todo: need to expose file name and type?
   @GET
   @Path("/{buildLocator}/artifacts/files/{fileName:.+}")
   @Produces({MediaType.WILDCARD})
-  public Response getArtifactContent(@PathParam("buildLocator") final String buildLocator, @PathParam("fileName") final String fileName, @Context HttpServletRequest request) {
+  public Response getArtifactFilesContent(@PathParam("buildLocator") final String buildLocator, @PathParam("fileName") final String fileName, @Context HttpServletRequest request) {
     final SBuild build = myDataProvider.getBuild(null, buildLocator);
     final BuildArtifacts artifacts = build.getArtifacts(BuildArtifactsViewMode.VIEW_ALL);
     final BuildArtifactHolder artifact = artifacts.findArtifact(fileName);
@@ -186,33 +235,10 @@ public class BuildRequest {
       }
     };
 
-    final String mimeType = request.getSession().getServletContext().getMimeType(fileName);
-    Response.ResponseBuilder builder = Response.ok();
-    if (mimeType != null) {
-      builder = builder.type(mimeType);
-    }
+    Response.ResponseBuilder builder = Response.ok().type(WebUtil.getMimeType(request, fileName));
     //todo: log build downloading artifacts (also consider an option), see RepositoryDownloadController
     return builder.entity(output).build();
   }
-
-//  @GET
-//  @Path("/{buildLocator}/artifacts/")
-//  @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-//  public Artifacts getArtifacts(@PathParam("buildLocator") final String buildLocator, @QueryParam("includeHidden") String getHidden) {
-//    final SBuild build = myDataProvider.getBuild(null, buildLocator);
-//    final List<Artifact> collected = new ArrayList<Artifact>();
-//    build.getArtifacts((getHidden != null) ? BuildArtifactsViewMode.VIEW_ALL : BuildArtifactsViewMode.VIEW_DEFAULT).iterateArtifacts(
-//      new BuildArtifacts.BuildArtifactsProcessor() {
-//        @NotNull
-//        public Continuation processBuildArtifact(@NotNull final BuildArtifact artifact) {
-//          if (!artifact.isDirectory()) {
-//            collected.add(new Artifact(artifact, myApiUrlBuilder, build));
-//          }
-//          return Continuation.CONTINUE;
-//        }
-//      });
-//    return new Artifacts(collected);
-//  }
 
   @GET
   @Path("/{buildLocator}/sources/files/{fileName:.+}")
@@ -289,7 +315,7 @@ public class BuildRequest {
   public String getBuildStatisticValue(final SBuild build, final String statisticValueName) {
     Map<String, String> stats = getBuildStatisticsValues(build);
     String val = stats.get(statisticValueName);
-    if (val == null){
+    if (val == null) {
       throw new NotFoundException("No statistics data for key: " + statisticValueName + "' in build " + LogUtil.describe(build));
     }
     return val;
@@ -299,7 +325,7 @@ public class BuildRequest {
   private Map<String, BuildValue> getRawBuildStatisticValue(final SBuild build, final String valueTypeKey) {
     ValueProvider vt = myDataProvider.getValueProviderRegistry().getValueProvider(valueTypeKey);
     if (vt instanceof BuildValueProvider) { // also checks for null
-      return ((BuildValueProvider)vt).getData(build);
+      return ((BuildValueProvider) vt).getData(build);
     }
     return Collections.emptyMap();
   }
@@ -319,7 +345,7 @@ public class BuildRequest {
 
   private void addValueIfPresent(@NotNull final SBuild build, @NotNull final String valueTypeKey, @NotNull final Map<String, String> result) {
     final Map<String, BuildValue> statValues = getRawBuildStatisticValue(build, valueTypeKey);
-    for (Map.Entry<String, BuildValue> bve: statValues.entrySet()) {
+    for (Map.Entry<String, BuildValue> bve : statValues.entrySet()) {
       BuildValue value = bve.getValue();
       if (value != null) { // should never happen
         if (value.getValue() == null) {
@@ -333,6 +359,7 @@ public class BuildRequest {
 
   /**
    * Replaces build's tags.
+   *
    * @param buildLocator build locator
    */
   @PUT
@@ -345,6 +372,7 @@ public class BuildRequest {
 
   /**
    * Adds a set of tags to a build
+   *
    * @param buildLocator build locator
    */
   @POST
@@ -359,8 +387,9 @@ public class BuildRequest {
 
   /**
    * Adds a single tag to a build
+   *
    * @param buildLocator build locator
-   * @param tagName name of a tag to add
+   * @param tagName      name of a tag to add
    */
   @POST
   @Path("/{buildLocator}/tags/")
@@ -376,6 +405,7 @@ public class BuildRequest {
 
   /**
    * Fetches current build pinned status.
+   *
    * @param buildLocator build locator
    * @return "true" is the build is pinned, "false" otherwise
    */
@@ -389,6 +419,7 @@ public class BuildRequest {
 
   /**
    * Pins a build
+   *
    * @param buildLocator build locator
    */
   @PUT
@@ -396,15 +427,16 @@ public class BuildRequest {
   @Consumes({"text/plain"})
   public void pinBuild(@PathParam("buildLocator") String buildLocator, String comment, @Context HttpServletRequest request) {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
-    if (!build.isFinished()){
+    if (!build.isFinished()) {
       throw new BadRequestException("Cannot pin build that is not finished.");
     }
-    SFinishedBuild finishedBuild = (SFinishedBuild)build;
+    SFinishedBuild finishedBuild = (SFinishedBuild) build;
     finishedBuild.setPinned(true, SessionUser.getUser(request), comment);
   }
 
   /**
    * Unpins a build
+   *
    * @param buildLocator build locator
    */
   @DELETE
@@ -412,10 +444,10 @@ public class BuildRequest {
   @Consumes({"text/plain"})
   public void unpinBuild(@PathParam("buildLocator") String buildLocator, String comment, @Context HttpServletRequest request) {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
-    if (!build.isFinished()){
+    if (!build.isFinished()) {
       throw new BadRequestException("Cannot pin build that is not finished.");
     }
-    SFinishedBuild finishedBuild = (SFinishedBuild)build;
+    SFinishedBuild finishedBuild = (SFinishedBuild) build;
     finishedBuild.setPinned(false, SessionUser.getUser(request), comment);
   }
 
@@ -530,8 +562,8 @@ public class BuildRequest {
 
       if (!holderHasPermission[0]) {
         LOG.info("No permissions to access requested build with locator'" + buildLocator + "'" +
-                 ". Either authenticate as user with appropriate permissions, or ensure 'guest' user has appropriate permissions " +
-                 "or enable external status widget for the build configuration.");
+            ". Either authenticate as user with appropriate permissions, or ensure 'guest' user has appropriate permissions " +
+            "or enable external status widget for the build configuration.");
         return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/permission.png";
       }
 
@@ -556,7 +588,7 @@ public class BuildRequest {
 
   private boolean hasPermissionsToViewStatus(@NotNull final SBuild build, @NotNull final AuthorityHolder authorityHolder) {
     final SBuildType buildType = build.getBuildType();
-    if (buildType == null){
+    if (buildType == null) {
       throw new OperationException("No build type found for build.");
     }
 

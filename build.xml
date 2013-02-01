@@ -1,62 +1,42 @@
 <project name="rest-api-custom-build" default="dist" basedir=".">
 
-    <property file="build.properties"/>
-    <property name="plugin.name" value="rest-api"/>
-    <property name="javac2.home" value="${basedir}/lib-compile"/>
+  <property file="build.properties"/>
+  <property name="plugin.name" value="rest-api"/>
+  <property name="javac2.home" value="${basedir}/lib-compile"/>
 
-  <property name="generated.out" value="temp/generated" />
+  <property name="generated.out" value="temp/generated"/>
 
-    <import file="teamcity-common.xml"/>
-    <import file="rest-api.xml"/>
+  <import file="teamcity-common.xml"/>
+  <import file="rest-api.xml"/>
 
-    <target name="package" depends="define.version">
-        <package.teamcity.plugin name="${plugin.name}" server.output="${rest-api.output.dir}"
-                                 server.lib.dir="lib" server.lib.includes="*.jar"
-                                 plugin.descriptor.file="${basedir}/teamcity-plugin.xml"
-                                 plugin.version="${plugin.version}"/>
-    </target>
+  <target name="package" depends="define.version">
+    <package.teamcity.plugin name="${plugin.name}" server.output="${rest-api.output.dir}"
+                             server.lib.dir="lib" server.lib.includes="*.jar"
+                             plugin.descriptor.file="${basedir}/teamcity-plugin.xml"
+                             plugin.version="${plugin.version}"/>
+  </target>
 
-    <target name="define.version" depends="define.version.if.under.teamcity">
-        <tstamp>
-            <format property="current.time" pattern="yyyyMMddHHmm"/>
-        </tstamp>
-        <property name="plugin.version" value="SNAPSHOT-${current.time}"/>
-    </target>
+  <target name="define.version" depends="define.version.if.under.teamcity">
+    <tstamp>
+      <format property="current.time" pattern="yyyyMMddHHmm"/>
+    </tstamp>
+    <property name="plugin.version" value="SNAPSHOT-${current.time}"/>
+  </target>
 
-    <target name="define.version.if.under.teamcity" if="build.number">
-        <property name="plugin.version" value="${build.number}"/>
-    </target>
+  <target name="define.version.if.under.teamcity" if="build.number">
+    <property name="plugin.version" value="${build.number}"/>
+  </target>
 
-    <target name="test">
-        <junit printsummary="on" fork="true" haltonfailure="false" haltonerror="false" failureproperty="failure_found"
-               showoutput="true">
-            <classpath>
-                <path refid="rest-api.runtime.module.classpath"/>
-            </classpath>
+  <target name="dist" depends="check.teamcitydistribution,all,clean.generated,generate.javadoc,copy.generated,package"/>
+  <!--old Jersey needs generate.xml.schema: <target name="dist" depends="check.teamcitydistribution,all,clean.generated,generate.javadoc,generate.xml.schema,copy.generated,package"/>-->
 
-            <formatter type="xml"/>
+  <target name="clean" depends="rest-api.clean">
+    <delete dir="dist" quiet="true"/>
+  </target>
 
-            <batchtest>
-                <fileset dir="${rest-api.testoutput.dir}">
-                    <include name="**/*Test.class"/>
-                </fileset>
-            </batchtest>
-        </junit>
-
-        <fail message="Failures found" if="failure_found"/>
-
-    </target>
-
-    <target name="dist" depends="check.teamcitydistribution,all,clean.generated,generate.javadoc,copy.generated,package"/>
-    <!--old Jersey needs generate.xml.schema: <target name="dist" depends="check.teamcitydistribution,all,clean.generated,generate.javadoc,generate.xml.schema,copy.generated,package"/>-->
-
-    <target name="clean" depends="rest-api.clean">
-      <delete dir="dist" quiet="true"/>
-    </target>
-
-    <target name="deploy" depends="dist">
-        <deploy.teamcity.plugin name="${plugin.name}"/>
-    </target>
+  <target name="deploy" depends="dist">
+    <deploy.teamcity.plugin name="${plugin.name}"/>
+  </target>
 
 
   <target name="clean.generated">
@@ -90,7 +70,7 @@
     <mkdir dir="${generated.out}"/>
     <taskdef name="schemagen" classname="com.sun.tools.jxc.SchemaGenTask">
       <classpath>
-        <fileset dir="lib" includes="*.jar" />
+        <fileset dir="lib" includes="*.jar"/>
         <file file="lib-compile/jaxb-xjc-2.1.12.jar"/>
       </classpath>
     </taskdef>

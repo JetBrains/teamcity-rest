@@ -1,0 +1,9 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="REST API Suite" preserve-order="false">
+  <test name="REST API Test" preserve-order="false">
+    <classes>
+      <class name="jetbrains.buildServer.server.rest.data.LocatorTest"/>
+      <class name="jetbrains.buildServer.server.rest.files.UtilTest"/>
+    </classes>
+  </test>
+</suite>

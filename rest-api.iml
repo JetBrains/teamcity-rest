@@ -50,7 +50,6 @@
     <orderEntry type="module-library">
       <library name="JaxB">
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/activation-1.1.1.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jackson-core-asl-1.9.11.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jackson-jaxrs-1.9.11.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jackson-mapper-asl-1.9.11.jar!/" />
@@ -59,7 +58,6 @@
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="jar://$MODULE_DIR$/lib/src/activation-1.1.1-sources.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/src/jettison-1.3.3-sources.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/src/jackson-xc-1.9.11-sources.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/src/jackson-mapper-asl-1.9.11-sources.jar!/" />
@@ -81,12 +79,15 @@
       </library>
     </orderEntry>
     <orderEntry type="module-library" scope="TEST">
-      <library>
+      <library name="TestNG &amp; Mockito">
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib-test/junit-4.5.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib-test/mockito-all-1.9.5.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib-test/testng-6.8.jar!/" />
         </CLASSES>
         <JAVADOC />
-        <SOURCES />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib-test/mockito-all-1.9.5.jar!/" />
+        </SOURCES>
       </library>
     </orderEntry>
   </component>

@@ -35,7 +35,7 @@ public class ObjectMapperResolver implements ContextResolver<ObjectMapper> {
   }
 
   public ObjectMapper getContext(Class<?> type) {
-    LOG.info("Used for " + type.getCanonicalName());
+    LOG.debug("Used for " + type.getCanonicalName());
 
 //    TODO: Investigate is that code required. Can our mapper been used outside from rest plugin?
 //    final String name = type.getName();

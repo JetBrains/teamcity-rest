@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="rest-api" default="all">
-  
-  
+
+
   <property file="rest-api.properties"/>
   <!-- Uncomment the following property if no tests compilation is needed -->
   <!-- 
   <property name="skip.tests" value="true"/>
    -->
-  
+
   <!-- Compiler options -->
-  
+
   <property name="compiler.debug" value="on"/>
   <property name="compiler.generate.no.warnings" value="off"/>
   <property name="compiler.args" value=""/>
@@ -18,12 +18,9 @@
     <exclude name="**/CVS/**"/>
     <exclude name="**/SCCS/**"/>
     <exclude name="**/RCS/**"/>
+    <exclude name="**/rcs/**"/>
     <exclude name="**/.DS_Store/**"/>
     <exclude name="**/.svn/**"/>
-    <exclude name="**/.sbas/**"/>
-    <exclude name="**/.IJI.*/**"/>
-    <exclude name="**/vssver.scc/**"/>
-    <exclude name="**/vssver2.scc/**"/>
     <exclude name="**/.pyc/**"/>
     <exclude name="**/.pyo/**"/>
     <exclude name="**/*.pyc/**"/>
@@ -36,8 +33,9 @@
     <exclude name="**/*~/**"/>
     <exclude name="**/__pycache__/**"/>
     <exclude name="**/.bundle/**"/>
-    <exclude name="**/*.orig/**"/>
     <exclude name="**/*.rbc/**"/>
+    <exclude name="**/vssver.scc/**"/>
+    <exclude name="**/vssver2.scc/**"/>
   </patternset>
   <patternset id="library.patterns">
     <include name="*.war"/>
@@ -45,6 +43,7 @@
     <include name="*.apk"/>
     <include name="*.zip"/>
     <include name="*.swc"/>
+    <include name="*.ane"/>
     <include name="*.egg"/>
     <include name="*.jar"/>
   </patternset>
@@ -60,65 +59,66 @@
     <include name="**/?*.tld"/>
     <include name="**/?*.ftl"/>
   </patternset>
-  
+
 
   <!-- Project Libraries -->
-  
+
   <path id="library.teamcity_open_api_common.classpath">
     <pathelement location="${path.variable.teamcitydistribution}/devPackage/common-api.jar"/>
   </path>
-  
+
   <path id="library.teamcity_open_api_server.classpath">
     <pathelement location="${path.variable.teamcitydistribution}/devPackage/server-api.jar"/>
   </path>
-  
+
   <path id="library.teamcity_third-party.classpath">
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/annotations.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/commons-compress-1.4.1.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/log4j-1.2.12.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/openapi.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/spring.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/spring-webmvc.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/util.jar"/>
   </path>
-  
+
   <path id="library.tomcat.classpath">
     <pathelement location="${path.variable.teamcitydistribution}/lib/servlet-api.jar"/>
   </path>
-  
-  
-  <!-- Application Server Libraries -->
+
+
   <!-- Register Custom Compiler Taskdefs -->
-  <property name="javac2.home" value="${idea.home}/lib"/>
+  <property name="javac2.home" value="${basedir}/lib-compile"/>
   <path id="javac2.classpath">
     <pathelement location="${javac2.home}/javac2.jar"/>
     <pathelement location="${javac2.home}/jdom.jar"/>
-    <pathelement location="${javac2.home}/asm.jar"/>
-    <pathelement location="${javac2.home}/asm-commons.jar"/>
+    <pathelement location="${javac2.home}/asm4-all.jar"/>
     <pathelement location="${javac2.home}/jgoodies-forms.jar"/>
   </path>
   <target name="register.custom.compilers">
     <taskdef name="javac2" classname="com.intellij.ant.Javac2" classpathref="javac2.classpath"/>
     <taskdef name="instrumentIdeaExtensions" classname="com.intellij.ant.InstrumentIdeaExtensions" classpathref="javac2.classpath"/>
+    <taskdef name="testng" classpathref="rest-api.module.classpath" classname="org.testng.TestNGAntTask"/>
   </target>
-  
+
+
   <!-- Modules -->
-  
-  
+
+
   <!-- Module rest-api -->
-  
+
   <dirname property="module.rest-api.basedir" file="${ant.file}"/>
-  
-  
+
+
 
   <property name="compiler.args.rest-api" value="${compiler.args}"/>
-  
+
   <property name="rest-api.output.dir" value="${module.rest-api.basedir}/out/production/rest-api"/>
   <property name="rest-api.testoutput.dir" value="${module.rest-api.basedir}/out/test/rest-api"/>
-  
+
   <path id="rest-api.module.bootclasspath">
     <!-- Paths to be included in compilation bootclasspath -->
   </path>
-  
+
   <path id="rest-api.module.production.classpath">
     <pathelement location="${basedir}/lib/asm-3.1.jar"/>
     <pathelement location="${basedir}/lib/jersey-core-1.16.jar"/>
@@ -130,7 +130,6 @@
     <path refid="library.teamcity_open_api_common.classpath"/>
     <path refid="library.teamcity_third-party.classpath"/>
     <path refid="library.tomcat.classpath"/>
-    <pathelement location="${basedir}/lib/activation-1.1.1.jar"/>
     <pathelement location="${basedir}/lib/jackson-core-asl-1.9.11.jar"/>
     <pathelement location="${basedir}/lib/jackson-jaxrs-1.9.11.jar"/>
     <pathelement location="${basedir}/lib/jackson-mapper-asl-1.9.11.jar"/>
@@ -141,7 +140,7 @@
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/db.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/web.jar"/>
   </path>
-  
+
   <path id="rest-api.runtime.production.module.classpath">
     <pathelement location="${rest-api.output.dir}"/>
     <pathelement location="${basedir}/lib/asm-3.1.jar"/>
@@ -154,7 +153,6 @@
     <path refid="library.teamcity_open_api_common.classpath"/>
     <path refid="library.teamcity_third-party.classpath"/>
     <path refid="library.tomcat.classpath"/>
-    <pathelement location="${basedir}/lib/activation-1.1.1.jar"/>
     <pathelement location="${basedir}/lib/jackson-core-asl-1.9.11.jar"/>
     <pathelement location="${basedir}/lib/jackson-jaxrs-1.9.11.jar"/>
     <pathelement location="${basedir}/lib/jackson-mapper-asl-1.9.11.jar"/>
@@ -165,7 +163,7 @@
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/db.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/web.jar"/>
   </path>
-  
+
   <path id="rest-api.module.classpath">
     <pathelement location="${rest-api.output.dir}"/>
     <pathelement location="${basedir}/lib/asm-3.1.jar"/>
@@ -178,7 +176,6 @@
     <path refid="library.teamcity_open_api_common.classpath"/>
     <path refid="library.teamcity_third-party.classpath"/>
     <path refid="library.tomcat.classpath"/>
-    <pathelement location="${basedir}/lib/activation-1.1.1.jar"/>
     <pathelement location="${basedir}/lib/jackson-core-asl-1.9.11.jar"/>
     <pathelement location="${basedir}/lib/jackson-jaxrs-1.9.11.jar"/>
     <pathelement location="${basedir}/lib/jackson-mapper-asl-1.9.11.jar"/>
@@ -188,9 +185,10 @@
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/server.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/db.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/web.jar"/>
-    <pathelement location="${basedir}/lib-test/junit-4.5.jar"/>
+    <pathelement location="${basedir}/lib-test/mockito-all-1.9.5.jar"/>
+    <pathelement location="${basedir}/lib-test/testng-6.8.jar"/>
   </path>
-  
+
   <path id="rest-api.runtime.module.classpath">
     <pathelement location="${rest-api.testoutput.dir}"/>
     <pathelement location="${rest-api.output.dir}"/>
@@ -204,7 +202,6 @@
     <path refid="library.teamcity_open_api_common.classpath"/>
     <path refid="library.teamcity_third-party.classpath"/>
     <path refid="library.tomcat.classpath"/>
-    <pathelement location="${basedir}/lib/activation-1.1.1.jar"/>
     <pathelement location="${basedir}/lib/jackson-core-asl-1.9.11.jar"/>
     <pathelement location="${basedir}/lib/jackson-jaxrs-1.9.11.jar"/>
     <pathelement location="${basedir}/lib/jackson-mapper-asl-1.9.11.jar"/>
@@ -214,43 +211,44 @@
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/server.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/db.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/web.jar"/>
-    <pathelement location="${basedir}/lib-test/junit-4.5.jar"/>
+    <pathelement location="${basedir}/lib-test/mockito-all-1.9.5.jar"/>
+    <pathelement location="${basedir}/lib-test/testng-6.8.jar"/>
   </path>
-  
-  
+
+
   <patternset id="excluded.from.module.rest-api">
     <patternset refid="ignored.files"/>
   </patternset>
-  
+
   <patternset id="excluded.from.compilation.rest-api">
     <patternset refid="excluded.from.module.rest-api"/>
   </patternset>
-  
+
   <path id="rest-api.module.sourcepath">
     <dirset dir="${module.rest-api.basedir}">
       <include name="src"/>
     </dirset>
   </path>
-  
+
   <path id="rest-api.module.test.sourcepath">
     <dirset dir="${module.rest-api.basedir}">
       <include name="test"/>
     </dirset>
   </path>
-  
-  
+
+
   <target name="compile.module.rest-api" depends="compile.module.rest-api.production,compile.module.rest-api.tests" description="Compile module rest-api"/>
-  
+
   <target name="compile.module.rest-api.production" depends="register.custom.compilers" description="Compile module rest-api; production classes">
     <mkdir dir="${rest-api.output.dir}"/>
     <javac2 destdir="${rest-api.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true">
-      <compilerarg line="${compiler.args.rest-api}"/>
+    <compilerarg line="${compiler.args.rest-api}"/>
       <bootclasspath refid="rest-api.module.bootclasspath"/>
       <classpath refid="rest-api.module.production.classpath"/>
       <src refid="rest-api.module.sourcepath"/>
       <patternset refid="excluded.from.compilation.rest-api"/>
     </javac2>
-    
+
     <copy todir="${rest-api.output.dir}">
       <fileset dir="${module.rest-api.basedir}/src">
         <patternset refid="compiler.resources"/>
@@ -258,17 +256,17 @@
       </fileset>
     </copy>
   </target>
-  
+
   <target name="compile.module.rest-api.tests" depends="register.custom.compilers,compile.module.rest-api.production" description="compile module rest-api; test classes" unless="skip.tests">
     <mkdir dir="${rest-api.testoutput.dir}"/>
     <javac2 destdir="${rest-api.testoutput.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true">
-      <compilerarg line="${compiler.args.rest-api}"/>
+    <compilerarg line="${compiler.args.rest-api}"/>
       <bootclasspath refid="rest-api.module.bootclasspath"/>
       <classpath refid="rest-api.module.classpath"/>
       <src refid="rest-api.module.test.sourcepath"/>
       <patternset refid="excluded.from.compilation.rest-api"/>
     </javac2>
-    
+
     <copy todir="${rest-api.testoutput.dir}">
       <fileset dir="${module.rest-api.basedir}/test">
         <patternset refid="compiler.resources"/>
@@ -276,19 +274,25 @@
       </fileset>
     </copy>
   </target>
-  
+
   <target name="clean.module.rest-api" description="cleanup module">
     <delete dir="${rest-api.output.dir}"/>
     <delete dir="${rest-api.testoutput.dir}"/>
   </target>
-  
+
   <target name="init" description="Build initialization">
     <!-- Perform any build initialization in this target -->
   </target>
-  
+
   <target name="clean" depends="clean.module.rest-api" description="cleanup all"/>
-  
+
   <target name="build.modules" depends="init, clean, compile.module.rest-api" description="build all modules"/>
-  
+
+  <target name="test" depends="compile.module.rest-api.tests" description="Run tests">
+    <testng classpathref="rest-api.runtime.module.classpath">
+      <xmlfileset file="testng.xml"/>
+    </testng>
+  </target>
+
   <target name="all" depends="build.modules" description="build all"/>
 </project>
