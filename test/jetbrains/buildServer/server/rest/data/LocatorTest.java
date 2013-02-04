@@ -1,14 +1,17 @@
 package jetbrains.buildServer.server.rest.data;
 
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
-import junit.framework.TestCase;
-import org.junit.Test;
+import org.testng.annotations.Test;
+import org.testng.annotations.DataProvider;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * @author Yegor.Yarko
  *         Date: 14.08.2010
  */
-public class LocatorTest extends TestCase {
+public class LocatorTest {
 
   @Test
   public void testSingleValue() {
@@ -33,13 +36,9 @@ public class LocatorTest extends TestCase {
     assertEquals(0, locator.getDimensionsCount());
   }
 
-  @Test
+  @Test(expectedExceptions =  LocatorProcessException.class)
   public void testEmpty() {
-    try {
-      new Locator("");
-      fail();
-    } catch (LocatorProcessException ex) {
-    }
+    new Locator("");
   }
 
   @Test
@@ -144,48 +143,21 @@ public class LocatorTest extends TestCase {
     assertEquals("", locator.getSingleDimensionValue("x"));
   }
 
-  @Test
-  public void testComplexValuesParsingErrors() {
-    try {
-      new Locator("name:(");
-      fail();
-    } catch (LocatorProcessException ex) {
-    }
+  @DataProvider(name = "invalid-complex-values")
+  public Object[][] getInvalidComplexValues() {
+    return new Object[][] {
+        {"name:("},
+        {"name:(value"},
+        {"name:,a"},
+        {":value"},
+        {"name:value,:value2"},
+        {"name:value,(a:b)"},
+        {"name:(val)a"}
+    };
+  }
 
-    try {
-      new Locator("name:(value");
-      fail();
-    } catch (LocatorProcessException ex) {
-    }
-
-    try {
-      new Locator("name:,a");
-      fail();
-    } catch (LocatorProcessException ex) {
-    }
-
-    try {
-      new Locator(":value");
-      fail();
-    } catch (LocatorProcessException ex) {
-    }
-
-    try {
-      new Locator("name:value,:value2");
-      fail();
-    } catch (LocatorProcessException ex) {
-    }
-
-    try {
-      new Locator("name:value,(a:b)");
-      fail();
-    } catch (LocatorProcessException ex) {
-    }
-
-    try {
-      new Locator("name:(val)a");
-      fail();
-    } catch (LocatorProcessException ex) {
-    }
+  @Test(dataProvider = "invalid-complex-values", expectedExceptions = LocatorProcessException.class)
+  public void testComplexValuesParsingErrors(String value) {
+    new Locator(value);
   }
 }
