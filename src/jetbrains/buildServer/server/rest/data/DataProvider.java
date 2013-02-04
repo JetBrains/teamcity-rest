@@ -138,6 +138,7 @@ public class DataProvider {
       locator.checkLocatorFullyProcessed();
     } else {
       // preserve 5.0 logic for personal/canceled/pinned builds
+      //todo: this also changes defaults for request without locator, see http://youtrack.jetbrains.com/issue/TW-25778
       buildsFilter = new GenericBuildsFilter(buildType,
                                       status, null,
                                       getUserIfNotNull(userLocator),

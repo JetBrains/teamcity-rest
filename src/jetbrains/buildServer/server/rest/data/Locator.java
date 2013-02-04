@@ -42,7 +42,7 @@ public class Locator {
     if (StringUtil.isEmpty(locator)) {
       throw new LocatorProcessException("Invalid locator. Cannot be empty.");
     }
-    @SuppressWarnings("ConstantConditions")final boolean hasDimensions = locator.indexOf(DIMENSION_NAME_VALUE_DELIMITER) != -1;
+    @SuppressWarnings("ConstantConditions")final boolean hasDimensions = locator.contains(DIMENSION_NAME_VALUE_DELIMITER);
     if (!hasDimensions) {
       mySingleValue = locator;
       myDimensions = new MultiValuesMap<String, String>();
@@ -187,8 +187,8 @@ public class Locator {
 
   /**
    *
-   * @param dimensionName
-   * @param defaultValue
+   * @param dimensionName name of the dimension
+   * @param defaultValue default value to use if no dimension with the name is found
    * @return value specified by the dimension with name "dimensionName" (one of the possible values can be "null") or
    * "defaultValue" if such dimension is present
    */
@@ -204,7 +204,6 @@ public class Locator {
   /**
    * Extracts the single dimension value from dimensions.
    *
-   * @param dimensions    dimensions to extract value from.
    * @param dimensionName the name of the dimension to extract value.   @return 'null' if no such dimension is found, value of the dimension otherwise.
    * @throws jetbrains.buildServer.server.rest.errors.LocatorProcessException
    *          if there are more then a single dimension definition for a 'dimensionName' name or the dimension has no value specified.
@@ -228,8 +227,8 @@ public class Locator {
 
   /**
    * Should be used only for multi-dimension locators
-   * @param name
-   * @param value
+   * @param name name of the dimension
+   * @param value value of the dimension
    */
   public void setDimension(@NotNull final String name, @NotNull final String value) {
     final Collection<String> oldValues = myDimensions.removeAll(name);
@@ -242,7 +241,7 @@ public class Locator {
 
   /**
    * Provides the names of dimensions whose values were never retrieved
-   * @return
+   * @return names of the dimensions not yet queried
    */
   @NotNull
   public Set<String> getUnusedDimensions() {
