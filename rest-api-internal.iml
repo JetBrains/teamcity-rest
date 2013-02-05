@@ -80,7 +80,6 @@
         <JAVADOC />
         <SOURCES>
           <root url="jar://$MODULE_DIR$/lib-test/mockito-all-1.9.5.jar!/" />
-          <root url="jar://$USER_HOME$/.ideaLibSources/testng-6.8-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>

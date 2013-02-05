@@ -22,6 +22,7 @@ import com.intellij.util.Function;
 import com.sun.jersey.api.core.PackagesResourceConfig;
 import com.sun.jersey.api.core.ResourceConfig;
 import com.sun.jersey.api.json.JSONConfiguration;
+import com.sun.jersey.core.util.FeaturesAndProperties;
 import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.controllers.AuthorizationInterceptor;
 import jetbrains.buildServer.controllers.BaseController;
@@ -65,6 +66,7 @@ import java.util.concurrent.TimeUnit;
 public class APIController extends BaseController implements ServletContextAware {
   final static Logger LOG = Logger.getInstance(APIController.class.getName());
   public static final String REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME = "rest.cors.origins";
+  public static final String REST_RESPONSE_PRETTYFORMAT = "rest.response.prettyformat";
   private JerseyWebComponent myWebComponent;
   private final ConfigurableApplicationContext myConfigurableApplicationContext;
   private final SecurityContextEx mySecurityContext;
@@ -186,6 +188,9 @@ public class APIController extends BaseController implements ServletContextAware
         initParameters.put(ResourceConfig.PROPERTY_WADL_GENERATOR_CONFIG, WadlGenerator.class.getCanonicalName());
         initParameters.put(JSONConfiguration.FEATURE_POJO_MAPPING, "true");
         initParameters.put(PackagesResourceConfig.PROPERTY_PACKAGES, "org.codehaus.jackson.jaxrs;jetbrains.buildServer.server.rest.request;" + getPackagesFromExtensions());
+        if (TeamCityProperties.getBoolean(APIController.REST_RESPONSE_PRETTYFORMAT)) {
+          initParameters.put(FeaturesAndProperties.FEATURE_FORMATTED, "true");
+        }
       }
 
       private String getPackagesFromExtensions() {

@@ -1,7 +1,9 @@
 package jetbrains.buildServer.server.rest.jersey;
 
 import com.intellij.openapi.diagnostic.Logger;
+import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.model.Constants;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
@@ -30,15 +32,15 @@ public class ObjectMapperResolver implements ContextResolver<ObjectMapper> {
     myMapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
     myMapper.setDateFormat(new SimpleDateFormat(Constants.TIME_FORMAT));
     myMapper.configure(SerializationConfig.Feature.WRITE_EMPTY_JSON_ARRAYS, true);
-//    TODO: Add internal property for debug needs
-//    myMapper.configure(SerializationConfig.Feature.INDENT_OUTPUT, true);
+    if (TeamCityProperties.getBoolean(APIController.REST_RESPONSE_PRETTYFORMAT)) {
+      myMapper.configure(SerializationConfig.Feature.INDENT_OUTPUT, true);
+    }
   }
 
   public ObjectMapper getContext(Class<?> type) {
-    LOG.debug("Used for " + type.getCanonicalName());
+    LOG.debug("Using ObjectMapper as context for " + type.getCanonicalName());
 
-//    TODO: Investigate is that code required. Can our mapper been used outside from rest plugin?
-//    final String name = type.getName();
+//    final String name = type.getPackage().getName();
 //    return name.startsWith("jetbrains.buildServer.server.rest") ? myMapper : null;
 
     return myMapper;
