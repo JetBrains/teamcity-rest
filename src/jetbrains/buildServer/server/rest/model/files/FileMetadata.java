@@ -19,7 +19,7 @@ import java.util.Date;
  * @author Vladislav.Rassokhin
  */
 @XmlRootElement(name = "file")
-@XmlType(name = "FileMetadata", propOrder = {"name", "href", "size", "modificationTime", "content", "parent", "children"})
+@XmlType(name = "FileMetadata")
 public class FileMetadata extends FileRef {
 
   protected final FileDef fdr;
