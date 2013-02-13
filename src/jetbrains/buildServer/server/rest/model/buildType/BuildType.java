@@ -86,7 +86,7 @@ public class BuildType {
     return myBuildType.getDescription();
   }
 
-  @XmlAttribute (name = "template")
+  @XmlAttribute (name = "is-template")
   public Boolean getTemplateFlag() {
     return myBuildType.isBuildType() ? null : true;
   }
