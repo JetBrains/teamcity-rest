@@ -144,8 +144,8 @@ public class LocatorTest {
   }
 
   @DataProvider(name = "invalid-complex-values")
-  public Object[][] getInvalidComplexValues() {
-    return new Object[][] {
+  public String[][] getInvalidComplexValues() {
+    return new String[][] {
         {"name:("},
         {"name:(value"},
         {"name:,a"},

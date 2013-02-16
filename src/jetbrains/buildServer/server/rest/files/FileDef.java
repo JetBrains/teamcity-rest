@@ -1,31 +1,29 @@
 package jetbrains.buildServer.server.rest.files;
 
 import com.intellij.util.PathUtil;
-import jetbrains.buildServer.serverSide.artifacts.BuildArtifact;
-import jetbrains.buildServer.util.*;
+import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.impl.Lazy;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
 
 /**
  * @author Vladislav.Rassokhin
+ * @since 8.0
  */
-public abstract class FileDef extends FileDefRef {
+public class FileDef extends FileDefRef {
   private final boolean myIsDirectory;
   private final long mySize;
   private final long myTimestamp;
-  private final boolean myIsInArchive;
-  private Collection<FileDefRef> myChildren = null;
+  private final Lazy<Collection<FileDefRef>> myChildrenLoader;
 
-  public FileDef(String name, String path, boolean isDirectory, long size, long timestamp, boolean isInArchive) {
+  public FileDef(@NotNull final String name, @NotNull final String path, boolean isDirectory, long size, long timestamp, @NotNull final Lazy<Collection<FileDefRef>> children) {
     super(name, path);
-    this.myIsDirectory = isDirectory;
-    this.mySize = size;
-    this.myTimestamp = timestamp;
-    this.myIsInArchive = isInArchive;
+    myIsDirectory = isDirectory;
+    mySize = size;
+    myTimestamp = timestamp;
+    myChildrenLoader = children;
   }
 
 
@@ -41,45 +39,42 @@ public abstract class FileDef extends FileDefRef {
     return myTimestamp;
   }
 
-  protected abstract Collection<FileDefRef> getChildrenLoad() throws IOException;
-
-  public Collection<FileDefRef> getChildren() throws IOException {
-    if (myChildren == null) {
-      synchronized (this) {
-        if (myChildren == null) {
-          myChildren = getChildrenLoad();
-        }
-      }
-    }
-    return myChildren;
+  public Collection<FileDefRef> getChildren() {
+    return myChildrenLoader.getValue();
   }
 
+  /**
+   * @return parent relative path without leading slashes or null if this FileDef is root (relative path is '/' or empty)
+   */
   @Nullable
   public String getParentPath() {
-    final String path = getRelativePath();
-    if (this.isInArchive()) {
-      int slash = path.lastIndexOf('/');
-      int exclamation = path.lastIndexOf('!');
-      if (slash == -1 || exclamation == -1) throw new IllegalStateException("Cannot be in archive if path does not contains '!/': " + path);
-      if (slash == exclamation + 1) { // Means "!/"
-        // Go out of archive
-        return path.substring(0, exclamation);
-      } else {
-        // Still in archive
-        return path.substring(0, slash);
-      }
+    final String path = StringUtil.removeTailingSlash(getRelativePath());
+    if (path.equals("")) {
+      return null;
+    }
+    int slash = path.lastIndexOf('/');
+    if (slash == -1) {
+      return "";
+    }
+    int exclamation = path.lastIndexOf("!/");
+    if (exclamation != -1 && slash == exclamation + 1) {
+      // Means "!/"
+      // Go out of archive
+      return path.substring(0, exclamation);
     } else {
-      if (path.equals("/") || path.equals("")) {
-        return null;
-      }
+      // Still in archive or not in archive
       final String parent = PathUtil.getParentPath(path);
       if ("".equals(parent)) {
-        return "/";
+        return "";
       }
       return parent;
     }
   }
 
+  /**
+   * @return FileDefRef for parent file or null if this FileDef is root (relative path is '/' or empty)
+   * @see #getParentPath()
+   */
   @Nullable
   public FileDefRef getParent() {
     String path = getParentPath();
@@ -87,9 +82,5 @@ public abstract class FileDef extends FileDefRef {
       return null;
     }
     return new FileDefRef(PathUtil.getFileName(path), path);
-  }
-
-  public boolean isInArchive() {
-    return myIsInArchive;
   }
 }

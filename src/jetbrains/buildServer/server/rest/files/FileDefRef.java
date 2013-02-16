@@ -5,12 +5,13 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Vladislav.Rassokhin
+ * @since 8.0
  */
 public class FileDefRef {
   private final String myRelativePath;
   private final String myName;
 
-  public FileDefRef(String name, String relativePath) {
+  public FileDefRef(@NotNull final String name, @NotNull final String relativePath) {
     this.myName = StringUtil.removeLeadingSlash(StringUtil.removeTailingSlash(name));
     this.myRelativePath = StringUtil.removeLeadingSlash(StringUtil.removeTailingSlash(relativePath));
   }

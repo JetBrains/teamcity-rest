@@ -31,8 +31,9 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
-import jetbrains.buildServer.server.rest.model.files.*;
-import jetbrains.buildServer.server.rest.files.Util;
+import jetbrains.buildServer.server.rest.model.files.FileApiUrlBuilder;
+import jetbrains.buildServer.server.rest.model.files.FileChildren;
+import jetbrains.buildServer.server.rest.model.files.FileMetadata;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
@@ -50,6 +51,7 @@ import jetbrains.buildServer.serverSide.statistics.build.BuildValue;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.*;
+import jetbrains.buildServer.util.impl.Lazy;
 import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsManager;
 import jetbrains.buildServer.web.util.SessionUser;
@@ -170,7 +172,7 @@ public class BuildRequest {
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
   public FileMetadata getArtifactMetadata(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String path) {
     final SBuild build = myDataProvider.getBuild(null, buildLocator);
-    final FileDef fd = Util.getFileDef(path, build);
+    final FileDef fd = getArtifactFileDef(build, path);
     return new FileMetadata(fd, FileApiUrlBuilder.forBuild(myApiUrlBuilder, build));
   }
 
@@ -179,25 +181,36 @@ public class BuildRequest {
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
   public FileChildren getArtifactChildren(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String path) {
     final SBuild build = myDataProvider.getBuild(null, buildLocator);
-    final FileDef fd = Util.getFileDef(path, build);
-    Collection<FileDefRef> children;
-    try {
-      children = fd.getChildren();
-    } catch (IOException e) {
-      throw new OperationException("Error while retrieving children for artifact '" + path + "': " + e.getMessage(), e);
-    }
-    return new FileChildren(children, FileApiUrlBuilder.forBuild(myApiUrlBuilder, build));
+    final FileDef fd = getArtifactFileDef(build, path);
+    return new FileChildren(fd.getChildren(), FileApiUrlBuilder.forBuild(myApiUrlBuilder, build));
+  }
+
+  @NotNull
+  private static FileDef getArtifactFileDef(@NotNull final SBuild build, @NotNull final String path) {
+    final BuildArtifacts artifacts = build.getArtifacts(BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
+    final BuildArtifactHolder holder = artifacts.findArtifact(path);
+    checkBuildArtifactHolder(holder);
+    final BuildArtifact artifact = holder.getArtifact();
+    return new FileDef(artifact.getName(), artifact.getRelativePath(), artifact.isDirectory(), artifact.getSize(), artifact.getTimestamp(), new Lazy<Collection<FileDefRef>>() {
+      @Nullable
+      @Override
+      protected Collection<FileDefRef> createValue() {
+        return CollectionsUtil.convertCollection(artifact.getChildren(), new Converter<FileDefRef, BuildArtifact>() {
+          public FileDefRef createFrom(@NotNull BuildArtifact source) {
+            return new FileDefRef(source.getName(), source.getRelativePath());
+          }
+        });
+      }
+    });
   }
 
   //TODO: merge with getArtifactFilesContent?
   @GET
   @Path("/{buildLocator}" + ARTIFACTS_CONTENT + "{path:(/.*)?}")
   @Produces({MediaType.WILDCARD})
-  public Response getArtifactContent(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String fileName, @Context HttpServletRequest request, @Context UriInfo uriInfo) {
+  public Response getArtifactContent(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String path, @Context HttpServletRequest request) {
     final SBuild build = myDataProvider.getBuild(null, buildLocator);
-    UriBuilder uriBuilder = uriInfo.getRequestUriBuilder();
-    Response.ResponseBuilder builder = Response.temporaryRedirect(uriBuilder.replacePath(request.getContextPath() + "/repository/download/" + build.getBuildTypeId() + "/" + build.getBuildId() + ":id/" + fileName).build());
-    return builder.build();
+    return getArtifactContentResponse(build, path, request, BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
   }
 
   //TODO: remove?
@@ -207,35 +220,35 @@ public class BuildRequest {
   @Produces({MediaType.WILDCARD})
   public Response getArtifactFilesContent(@PathParam("buildLocator") final String buildLocator, @PathParam("fileName") final String fileName, @Context HttpServletRequest request) {
     final SBuild build = myDataProvider.getBuild(null, buildLocator);
-    final BuildArtifacts artifacts = build.getArtifacts(BuildArtifactsViewMode.VIEW_ALL);
-    final BuildArtifactHolder artifact = artifacts.findArtifact(fileName);
-    if (!artifact.isAvailable()) {
-      throw new NotFoundException("No artifact found. Relative path: '" + fileName + "'");
-    }
-    if (!artifact.isAccessible()) {
-      throw new AuthorizationFailedException("Artifact is not accessible with current user permissions. Relative path: '" + fileName + "'");
-    }
-    final BuildArtifact buildArtifact = artifact.getArtifact();
-    if (buildArtifact.isDirectory()) {
-      throw new NotFoundException("Requested path is a directory. Relative path: '" + fileName + "'");
+    return getArtifactContentResponse(build, fileName, request, BuildArtifactsViewMode.VIEW_ALL);
+  }
+
+  @NotNull
+  private static Response getArtifactContentResponse(@NotNull final SBuild build, @NotNull final String path, @NotNull final HttpServletRequest request, @NotNull final BuildArtifactsViewMode mode) {
+    final BuildArtifacts artifacts = build.getArtifacts(mode);
+    final BuildArtifactHolder holder = artifacts.findArtifact(path);
+    checkBuildArtifactHolder(holder);
+    final BuildArtifact artifact = holder.getArtifact();
+    if (artifact.isDirectory()) {
+      throw new NotFoundException("Requested path is a directory. Relative path: '" + path + "'");
     }
 
     final StreamingOutput output = new StreamingOutput() {
       public void write(final OutputStream output) throws WebApplicationException {
         InputStream inputStream = null;
         try {
-          inputStream = buildArtifact.getInputStream();
+          inputStream = artifact.getInputStream();
           TCStreamUtil.writeBinary(inputStream, output);
         } catch (IOException e) {
           //todo add better processing
-          throw new OperationException("Error while retrieving file '" + buildArtifact.getRelativePath() + "': " + e.getMessage(), e);
+          throw new OperationException("Error while processing file '" + artifact.getRelativePath() + "' content: " + e.getMessage(), e);
         } finally {
           FileUtil.close(inputStream);
         }
       }
     };
 
-    Response.ResponseBuilder builder = Response.ok().type(WebUtil.getMimeType(request, fileName));
+    Response.ResponseBuilder builder = Response.ok().type(WebUtil.getMimeType(request, path));
     //todo: log build downloading artifacts (also consider an option), see RepositoryDownloadController
     return builder.entity(output).build();
   }
@@ -395,10 +408,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/tags/")
   @Consumes({"text/plain"})
   public void addTag(@PathParam("buildLocator") String buildLocator, String tagName, @Context HttpServletRequest request) {
-    SBuild build = myDataProvider.getBuild(null, buildLocator);
-    final List<String> tags = build.getTags();
-    tags.add(tagName);
-    build.setTags(SessionUser.getUser(request), tags);
+    this.addTags(buildLocator, new Tags(Arrays.asList(tagName)), request);
   }
 //todo: add GET (true/false) and DELETE, amy be PUT (true/false) for a single tag
 
@@ -445,7 +455,7 @@ public class BuildRequest {
   public void unpinBuild(@PathParam("buildLocator") String buildLocator, String comment, @Context HttpServletRequest request) {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
     if (!build.isFinished()) {
-      throw new BadRequestException("Cannot pin build that is not finished.");
+      throw new BadRequestException("Cannot unpin build that is not finished.");
     }
     SFinishedBuild finishedBuild = (SFinishedBuild) build;
     finishedBuild.setPinned(false, SessionUser.getUser(request), comment);
@@ -627,5 +637,14 @@ public class BuildRequest {
 
   private String getRealFileName(final String relativePath) {
     return myServiceLocator.getSingletonService(ServletContext.class).getRealPath(relativePath);
+  }
+
+  public static void checkBuildArtifactHolder(@NotNull final BuildArtifactHolder holder) throws NotFoundException, AuthorizationFailedException {
+    if (!holder.isAvailable()) {
+      throw new NotFoundException("No artifact found. Relative path: '" + holder.getRelativePath() + "'");
+    }
+    if (!holder.isAccessible()) {
+      throw new AuthorizationFailedException("Artifact is not accessible with current user permissions. Relative path: '" + holder.getRelativePath() + "'");
+    }
   }
 }
