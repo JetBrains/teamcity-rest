@@ -1141,7 +1141,10 @@ public class DataProvider {
   }
 
   public void deleteBuild(final SBuild build) {
-    myBuildHistory.removeEntry(build.getBuildId());
+    if (build.isFinished())
+      myBuildHistory.removeEntry((SFinishedBuild)build);
+    else
+      LOG.warn("Attempted to remove build which is not yet finished: " + build);
   }
 
   @NotNull
