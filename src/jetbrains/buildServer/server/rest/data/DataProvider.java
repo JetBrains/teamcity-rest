@@ -1142,7 +1142,7 @@ public class DataProvider {
 
   public void deleteBuild(final SBuild build) {
     if (build.isFinished()){
-      myBuildHistory.removeEntry((SFinishedBuild)build, LOG); //todo:  (TeamCity) open API: passing logger is strange, should also add entry into audit and check permisisons (see also deleteBuild callers)
+      myBuildHistory.removeEntry((SFinishedBuild)build); //todo:  (TeamCity) open API: should also add entry into audit and check permisisons (see also deleteBuild callers)
     }else{
       throw new BadRequestException("Deleting not finished builds is not supported. Cancel the build and only then delete it.");
     }
