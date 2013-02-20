@@ -26,6 +26,7 @@ import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.groups.UserGroupManager;
+import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.plugins.PluginManager;
 import jetbrains.buildServer.plugins.bean.PluginInfo;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
@@ -1142,7 +1143,7 @@ public class DataProvider {
 
   public void deleteBuild(final SBuild build) {
     if (build.isFinished())
-      myBuildHistory.removeEntry((SFinishedBuild)build);
+      myBuildHistory.removeEntry((SFinishedBuild)build, Loggers.CLEANUP);
     else
       LOG.warn("Attempted to remove build which is not yet finished: " + build);
   }
