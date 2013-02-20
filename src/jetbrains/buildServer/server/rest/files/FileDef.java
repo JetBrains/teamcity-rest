@@ -1,6 +1,7 @@
 package jetbrains.buildServer.server.rest.files;
 
 import com.intellij.util.PathUtil;
+import jetbrains.buildServer.util.ArchiveUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.impl.Lazy;
 import org.jetbrains.annotations.NotNull;
@@ -48,27 +49,11 @@ public class FileDef extends FileDefRef {
    */
   @Nullable
   public String getParentPath() {
-    final String path = StringUtil.removeTailingSlash(getRelativePath());
+    final String path = StringUtil.removeTailingSlash(StringUtil.convertAndCollapseSlashes(getRelativePath()));
     if (path.equals("")) {
       return null;
     }
-    int slash = path.lastIndexOf('/');
-    if (slash == -1) {
-      return "";
-    }
-    int exclamation = path.lastIndexOf("!/");
-    if (exclamation != -1 && slash == exclamation + 1) {
-      // Means "!/"
-      // Go out of archive
-      return path.substring(0, exclamation);
-    } else {
-      // Still in archive or not in archive
-      final String parent = PathUtil.getParentPath(path);
-      if ("".equals(parent)) {
-        return "";
-      }
-      return parent;
-    }
+    return ArchiveUtil.getParentPath(path);
   }
 
   /**

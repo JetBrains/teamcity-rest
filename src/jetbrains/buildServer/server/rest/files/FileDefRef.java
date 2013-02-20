@@ -12,8 +12,8 @@ public class FileDefRef {
   private final String myName;
 
   public FileDefRef(@NotNull final String name, @NotNull final String relativePath) {
-    this.myName = StringUtil.removeLeadingSlash(StringUtil.removeTailingSlash(name));
-    this.myRelativePath = StringUtil.removeLeadingSlash(StringUtil.removeTailingSlash(relativePath));
+    this.myName = StringUtil.removeLeadingAndTailingSlash(name);
+    this.myRelativePath = StringUtil.removeLeadingAndTailingSlash(StringUtil.convertAndCollapseSlashes(relativePath));
   }
 
   @NotNull
