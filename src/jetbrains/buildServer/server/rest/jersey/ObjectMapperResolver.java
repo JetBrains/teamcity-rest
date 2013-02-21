@@ -1,6 +1,11 @@
 package jetbrains.buildServer.server.rest.jersey;
 
 import com.intellij.openapi.diagnostic.Logger;
+import java.text.SimpleDateFormat;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.ext.ContextResolver;
+import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.model.Constants;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
@@ -8,12 +13,6 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.codehaus.jackson.xc.JaxbAnnotationIntrospector;
-
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.ext.ContextResolver;
-import javax.ws.rs.ext.Provider;
-import java.text.SimpleDateFormat;
 
 /**
  * @author Vladislav.Rassokhin
@@ -38,7 +37,7 @@ public class ObjectMapperResolver implements ContextResolver<ObjectMapper> {
   }
 
   public ObjectMapper getContext(Class<?> type) {
-    LOG.debug("Using ObjectMapper as context for " + type.getCanonicalName());
+    LOG.debug("Using own customized ObjectMapper for class '" + type.getCanonicalName() + "'");
 
 //    final String name = type.getPackage().getName();
 //    return name.startsWith("jetbrains.buildServer.server.rest") ? myMapper : null;
