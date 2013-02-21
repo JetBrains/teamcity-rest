@@ -23,6 +23,17 @@ import com.sun.jersey.api.core.PackagesResourceConfig;
 import com.sun.jersey.api.core.ResourceConfig;
 import com.sun.jersey.api.json.JSONConfiguration;
 import com.sun.jersey.core.util.FeaturesAndProperties;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
+import javax.servlet.http.HttpServletResponse;
 import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.controllers.AuthorizationInterceptor;
 import jetbrains.buildServer.controllers.BaseController;
@@ -46,18 +57,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.web.context.ServletContextAware;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.ModelAndView;
-
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author Yegor.Yarko
@@ -226,15 +225,12 @@ public class APIController extends BaseController implements ServletContextAware
     };
   }
 
-  static final boolean ENABLE_DISABLING_CHECK = TeamCityProperties.getBoolean("rest.enable.disabling.check");
   protected ModelAndView doHandle(@NotNull final HttpServletRequest request, @NotNull final HttpServletResponse response) throws Exception {
-    if (ENABLE_DISABLING_CHECK){ //necessary until TW-16750 is fixed
-      if (TeamCityProperties.getBoolean("rest.disable")){
-        reportRestErrorResponse(response, HttpServletResponse.SC_NOT_IMPLEMENTED, null,
-                                "REST API is disabled on TeamCity server with 'rest.disable' internal property.", request.getRequestURI(),
-                                Level.INFO);
-        return null;
-      }
+    if (TeamCityProperties.getBoolean("rest.disable")) {
+      reportRestErrorResponse(response, HttpServletResponse.SC_NOT_IMPLEMENTED, null,
+                              "REST API is disabled on TeamCity server with 'rest.disable' internal property.", request.getRequestURI(),
+                              Level.INFO);
+      return null;
     }
 
     final long requestStartProcessing = System.nanoTime();
