@@ -25,15 +25,13 @@ import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
-import jetbrains.buildServer.server.rest.files.FileDef;
-import jetbrains.buildServer.server.rest.files.FileDefRef;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
+import jetbrains.buildServer.server.rest.model.files.File;
 import jetbrains.buildServer.server.rest.model.files.FileApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.files.FileChildren;
-import jetbrains.buildServer.server.rest.model.files.FileMetadata;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
@@ -50,10 +48,16 @@ import jetbrains.buildServer.serverSide.statistics.ValueProvider;
 import jetbrains.buildServer.serverSide.statistics.build.BuildValue;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
-import jetbrains.buildServer.util.*;
-import jetbrains.buildServer.util.impl.Lazy;
+import jetbrains.buildServer.util.ArchiveUtil;
+import jetbrains.buildServer.util.FileUtil;
+import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.TCStreamUtil;
+import jetbrains.buildServer.util.browser.BrowserException;
+import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsManager;
+import jetbrains.buildServer.web.artifacts.browser.ArtifactElement;
+import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
 import jetbrains.buildServer.web.util.SessionUser;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
@@ -80,9 +84,13 @@ public class BuildRequest {
   private DataProvider myDataProvider;
   public static final String API_BUILDS_URL = Constants.API_URL + "/builds";
 
-  public static final String ARTIFACTS_METADATA = "/artifacts/metadata";
-  public static final String ARTIFACTS_CONTENT = "/artifacts/content";
-  public static final String ARTIFACTS_CHILDREN = "/artifacts/children";
+  public static final String ARTIFACTS = "/artifacts";
+  public static final String METADATA = "/metadata";
+  public static final String ARTIFACTS_METADATA = ARTIFACTS + METADATA;
+  public static final String CONTENT = "/content";
+  public static final String ARTIFACTS_CONTENT = ARTIFACTS + CONTENT;
+  public static final String CHILDREN = "/children";
+  public static final String ARTIFACTS_CHILDREN = ARTIFACTS + CHILDREN;
 
   @Context
   private ApiUrlBuilder myApiUrlBuilder;
@@ -170,10 +178,13 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}" + ARTIFACTS_METADATA + "{path:(/.*)?}")
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-  public FileMetadata getArtifactMetadata(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String path) {
+  public File getArtifactMetadata(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String path) {
     final SBuild build = myDataProvider.getBuild(null, buildLocator);
-    final FileDef fd = getArtifactFileDef(build, path);
-    return new FileMetadata(fd, FileApiUrlBuilder.forBuild(myApiUrlBuilder, build));
+    final ArtifactTreeElement element = getArtifactElement(build, path);
+    final FileApiUrlBuilder builder = fileApiUrlBuilderForBuild(myApiUrlBuilder, build);
+    final String par = StringUtil.removeTailingSlash(StringUtil.convertAndCollapseSlashes(element.getFullName()));
+    final ArtifactTreeElement parent = par.equals("") ? null : getArtifactElement(build, ArchiveUtil.getParentPath(par));
+    return new File(element, parent, builder);
   }
 
   @GET
@@ -181,30 +192,45 @@ public class BuildRequest {
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
   public FileChildren getArtifactChildren(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String path) {
     final SBuild build = myDataProvider.getBuild(null, buildLocator);
-    final FileDef fd = getArtifactFileDef(build, path);
-    return new FileChildren(fd.getChildren(), FileApiUrlBuilder.forBuild(myApiUrlBuilder, build));
+    final ArtifactTreeElement element = getArtifactElement(build, path);
+    try {
+      final Iterable<Element> children = element.getChildren();
+      if (element.isLeaf() || children == null) {
+        throw new BadRequestException("Cannot provide children list for artifact \"" + path + "\": artifact is a leaf.");
+      }
+      return new FileChildren(children, fileApiUrlBuilderForBuild(myApiUrlBuilder, build));
+    } catch (BrowserException e) {
+      throw new OperationException("Exception due to collecting children for artifact \"" + path + "\"", e);
+    }
   }
 
   @NotNull
-  private static FileDef getArtifactFileDef(@NotNull final SBuild build, @NotNull final String path) {
+  public static FileApiUrlBuilder fileApiUrlBuilderForBuild(@NotNull final ApiUrlBuilder apiUrlBuilder, @NotNull final SBuild build) {
+    return new FileApiUrlBuilder() {
+      private final String myHrefBase = apiUrlBuilder.getHref(build) + BuildRequest.ARTIFACTS;
+
+      public String getMetadataHref(Element e) {
+        return myHrefBase + BuildRequest.METADATA + "/" + e.getFullName();
+      }
+
+      public String getChildrenHref(Element e) {
+        return myHrefBase + BuildRequest.CHILDREN + "/" + e.getFullName();
+      }
+
+      public String getContentHref(Element e) {
+        return myHrefBase + BuildRequest.CONTENT + "/" + e.getFullName();
+      }
+    };
+  }
+
+  @NotNull
+  private static ArtifactTreeElement getArtifactElement(@NotNull final SBuild build, @NotNull final String path) {
     final BuildArtifacts artifacts = build.getArtifacts(BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
     final BuildArtifactHolder holder = artifacts.findArtifact(path);
     checkBuildArtifactHolder(holder);
-    final BuildArtifact artifact = holder.getArtifact();
-    return new FileDef(artifact.getName(), artifact.getRelativePath(), artifact.isDirectory(), artifact.getSize(), artifact.getTimestamp(), new Lazy<Collection<FileDefRef>>() {
-      @Nullable
-      @Override
-      protected Collection<FileDefRef> createValue() {
-        return CollectionsUtil.convertCollection(artifact.getChildren(), new Converter<FileDefRef, BuildArtifact>() {
-          public FileDefRef createFrom(@NotNull BuildArtifact source) {
-            return new FileDefRef(source.getName(), source.getRelativePath());
-          }
-        });
-      }
-    });
+    return new ArtifactElement(holder.getArtifact());
   }
 
-  //TODO: merge with getArtifactFilesContent?
   @GET
   @Path("/{buildLocator}" + ARTIFACTS_CONTENT + "{path:(/.*)?}")
   @Produces({MediaType.WILDCARD})
@@ -213,12 +239,14 @@ public class BuildRequest {
     return getArtifactContentResponse(build, path, request, BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
   }
 
-  //TODO: remove?
-  //todo: need to expose file name and type?
+  /**
+   * @deprecated needed for backward compatibility. Use #getArtifactContent instead.
+   */
+  @Deprecated
   @GET
-  @Path("/{buildLocator}/artifacts/files/{fileName:.+}")
+  @Path("/{buildLocator}" + ARTIFACTS + "/files{path:(/.*)?}")
   @Produces({MediaType.WILDCARD})
-  public Response getArtifactFilesContent(@PathParam("buildLocator") final String buildLocator, @PathParam("fileName") final String fileName, @Context HttpServletRequest request) {
+  public Response getArtifactFilesContent(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String fileName, @Context HttpServletRequest request) {
     final SBuild build = myDataProvider.getBuild(null, buildLocator);
     return getArtifactContentResponse(build, fileName, request, BuildArtifactsViewMode.VIEW_ALL);
   }
@@ -508,12 +536,12 @@ public class BuildRequest {
     final String iconFileName = getIconFileName(buildLocator);
     final String resultIconFileName = getRealFileName(iconFileName);
 
-    if (resultIconFileName == null || !new File(resultIconFileName).isFile()) {
+    if (resultIconFileName == null || !new java.io.File(resultIconFileName).isFile()) {
       LOG.debug("Failed to find resource file: " + iconFileName);
       throw new NotFoundException("Error finding resource file '" + iconFileName + "' (installation corrupted?)");
     }
 
-    final File resultIconFile = new File(resultIconFileName);
+    final java.io.File resultIconFile = new java.io.File(resultIconFileName);
     final StreamingOutput streamingOutput = new StreamingOutput() {
       public void write(final OutputStream output) throws WebApplicationException {
         InputStream inputStream = null;

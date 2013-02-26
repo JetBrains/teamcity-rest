@@ -1,11 +1,9 @@
 package jetbrains.buildServer.server.rest.model.files;
 
-import jetbrains.buildServer.server.rest.files.FileDef;
-import jetbrains.buildServer.server.rest.files.FileDefRef;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Util;
-import jetbrains.buildServer.util.ArchiveType;
-import jetbrains.buildServer.util.ArchiveUtil;
+import jetbrains.buildServer.util.browser.Element;
+import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,63 +17,65 @@ import java.util.Date;
  * @author Vladislav.Rassokhin
  */
 @XmlRootElement(name = "file")
-@XmlType(name = "FileMetadata")
-public class FileMetadata extends FileRef {
+@XmlType
+public class File extends FileRef {
 
-  protected final FileDef fdr;
   protected final FileApiUrlBuilder fileApiUrlBuilder;
+  protected final Element parent;
+  protected final ArtifactTreeElement element;
 
   @SuppressWarnings("UnusedDeclaration")
-  public FileMetadata() {
-    this.fdr = null;
-    this.fileApiUrlBuilder = null;
+  public File() {
+    fileApiUrlBuilder = null;
+    parent = null;
+    element = null;
   }
 
-  public FileMetadata(@NotNull final FileDef fd, @NotNull FileApiUrlBuilder builder) {
-    super(fd, builder);
-    this.fdr = fd;
+  public File(@NotNull final ArtifactTreeElement element, @Nullable final Element parent, @NotNull final FileApiUrlBuilder builder) {
+    super(element, builder);
+    this.element = element;
     this.fileApiUrlBuilder = builder;
+    this.parent = parent;
   }
 
   @Nullable
   @XmlAttribute(name = "size")
   public Long getSize() {
-    return fdr.isDirectory() ? null : fdr.getSize();
+    return element.isContentAvailable() ? element.getSize() : null;
   }
 
-  @NotNull
+  @Nullable
   @XmlAttribute(name = "modificationTime")
   public String getModificationTime() {
+    final Long lastModified = element.getLastModified();
+    if (lastModified == null || lastModified <= 0) {
+      return null;
+    }
     //noinspection ConstantConditions
-    return Util.formatTime(new Date(fdr.getTimestamp()));
+    return Util.formatTime(new Date(lastModified));
   }
 
   @Nullable
   @XmlElement(name = "children")
   public Href getChildren() {
-    if (!fdr.isDirectory() && ArchiveUtil.getArchiveType(fdr.getName()) == ArchiveType.NOT_ARCHIVE) {
+    if (element.isLeaf()) {
       return null;
     }
-    return new Href(fileApiUrlBuilder.getChildrenHref(fdr));
+    return new Href(fileApiUrlBuilder.getChildrenHref(element));
   }
 
   @Nullable
   @XmlElement(name = "content")
   public Href getContent() {
-    if (fdr.isDirectory()) {
+    if (!element.isContentAvailable()) {
       return null;
     }
-    return new Href(fileApiUrlBuilder.getContentHref(fdr));
+    return new Href(fileApiUrlBuilder.getContentHref(element));
   }
 
   @Nullable
   @XmlElement(name = "parent")
   public FileRef getParent() {
-    FileDefRef parent = fdr.getParent();
-    if (parent == null) {
-      return null;
-    }
-    return new FileRef(parent, fileApiUrlBuilder);
+    return parent != null ? new FileRef(parent, fileApiUrlBuilder) : null;
   }
-
 }
