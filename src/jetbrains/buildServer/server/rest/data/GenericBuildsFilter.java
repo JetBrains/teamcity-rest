@@ -17,7 +17,11 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.util.text.StringUtil;
 import java.util.List;
+import java.util.regex.Pattern;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -195,7 +199,32 @@ public class GenericBuildsFilter implements BuildsFilter {
     if (!isIncludedByBooleanFilter(myPinned, build.isPinned())) {
       return false;
     }
-    if (myTags != null && myTags.size() > 0 && !build.getTags().containsAll(myTags)) {
+    if (myTags != null && myTags.size() > 0 && myTags.get(0).startsWith("format:regexp")) {
+      //unofficial experimental support for "tag:(format:regexp,value:.*)" tag specification
+      //todo: locator parsing logic should be moved to build locator parsing
+      final Locator tagsLocator;
+      try {
+        tagsLocator = new Locator(myTags.get(0));
+      } catch (LocatorProcessException e) {
+        throw new BadRequestException("Invalid locator 'tag': " + e.getMessage(), e);
+      }
+      if ("regexp".equals(tagsLocator.getSingleDimensionValue("format"))) {
+        final String patternString = tagsLocator.getSingleDimensionValue("value");
+        if (StringUtil.isEmpty(patternString)) {
+          throw new BadRequestException("'value' dimension should not be empty");
+        }
+        final Pattern pattern = Pattern.compile(patternString);
+        boolean atLestOneMatches = false;
+        for (String tag : build.getTags()) {
+          atLestOneMatches = atLestOneMatches || pattern.matcher(tag).matches();
+        }
+        if (!atLestOneMatches) {
+          return false;
+        }
+      } else {
+        throw new BadRequestException("Only 'regexp' calue is supported for 'format' dimension of 'tag' dimension");
+      }
+    }else if (myTags != null && myTags.size() > 0 && !build.getTags().containsAll(myTags)) {
       return false;
     }
     if (!matchesBranchLocator(myBranchLocator, build)) {
