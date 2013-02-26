@@ -61,6 +61,7 @@ import org.jetbrains.annotations.Nullable;
 public class DataProvider {
   private static final Logger LOG = Logger.getInstance(DataProvider.class.getName());
   public static final String TEMPLATE_ID_PREFIX = "template:";
+  public static final String SERVER_VERSION_RQUEST_PATH = "version";
 
   @NotNull private final SBuildServer myServer;
   @NotNull private final BuildHistory myBuildHistory;
@@ -205,7 +206,7 @@ public class DataProvider {
   @Nullable
   public String getServerFieldValue(@Nullable final String field) {
     // Note: "build", "majorVersion" and "minorVersion" for backward compatibility.
-    if ("version".equals(field)) {
+    if (SERVER_VERSION_RQUEST_PATH.equals(field)) {
       return myServer.getFullServerVersion();
     } else if ("buildNumber".equals(field) || "build".equals(field)) {
       return myServer.getBuildNumber();

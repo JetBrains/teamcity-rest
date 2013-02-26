@@ -38,9 +38,11 @@ import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.controllers.AuthorizationInterceptor;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
+import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
 import jetbrains.buildServer.server.rest.jersey.JerseyWebComponent;
 import jetbrains.buildServer.server.rest.jersey.WadlGenerator;
+import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SecurityContextEx;
@@ -149,7 +151,9 @@ public class APIController extends BaseController implements ServletContextAware
       for (String controllerBindPath : bindPaths) {
         LOG.debug("Binding REST API to path '" + controllerBindPath + "'");
         webControllerManager.registerController(controllerBindPath + "/**", this);
-        myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + "/builds/*/statusIcon");
+        myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + BuildRequest.BUILDS_ROOT_REQUEST_PATH + "/*/" + BuildRequest.STATUS_ICON_REQUEST_NAME);
+        myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + "/" + DataProvider.SERVER_VERSION_RQUEST_PATH);
+        myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + Constants.EXTERNAL_APPLICATION_WADL_NAME);
       }
     } catch (Exception e) {
       LOG.error("Error registering controller", e);

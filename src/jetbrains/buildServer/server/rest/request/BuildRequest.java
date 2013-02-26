@@ -17,6 +17,12 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
+import java.io.*;
+import java.util.*;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildLocator;
@@ -63,13 +69,6 @@ import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
-import java.io.*;
-import java.util.*;
-
 /*
  * User: Yegor Yarko
  * Date: 11.04.2009
@@ -78,11 +77,13 @@ import java.util.*;
 public class BuildRequest {
   private static final Logger LOG = Logger.getInstance(BuildRequest.class.getName());
   public static final String IMG_STATUS_WIDGET_ROOT_DIRECTORY = "/img/statusWidget";
+  public static final String STATUS_ICON_REQUEST_NAME = "statusIcon";
 
   @Context
   @NotNull
   private DataProvider myDataProvider;
-  public static final String API_BUILDS_URL = Constants.API_URL + "/builds";
+  public static final String BUILDS_ROOT_REQUEST_PATH = "/builds";
+  public static final String API_BUILDS_URL = Constants.API_URL + BUILDS_ROOT_REQUEST_PATH;
 
   public static final String ARTIFACTS = "/artifacts";
   public static final String METADATA = "/metadata";
@@ -527,7 +528,7 @@ public class BuildRequest {
 
   // Note: authentication for this request is disabled in APIController configuration
   @GET
-  @Path("/{buildLocator}/statusIcon")
+  @Path("/{buildLocator}/" + STATUS_ICON_REQUEST_NAME)
   public Response serveBuildStatusIcon(@PathParam("buildLocator") final String buildLocator, @Context HttpServletRequest request) {
     //todo: may also use HTTP 304 for different resources in order to make it browser-cached
     //todo: return something appropriate when in maintenance
