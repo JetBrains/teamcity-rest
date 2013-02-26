@@ -47,5 +47,5 @@
         class="jetbrains.buildServer.server.rest.jersey.ServiceLocatorContextProvider"/>
   <bean id="beanFactoryContextProvider" class="jetbrains.buildServer.server.rest.jersey.BeanFactoryContextProvider"/>
 
-  <bean id="jacksonObjectMapperResolver" class="jetbrains.buildServer.server.rest.jersey.ObjectMapperResolver"/>
+  <bean id="jacksonObjectMapperResolver" class="jetbrains.buildServer.server.rest.jersey.JacksonObjectMapperResolver"/>
 </beans>
