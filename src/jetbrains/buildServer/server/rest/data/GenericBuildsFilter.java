@@ -19,7 +19,9 @@ package jetbrains.buildServer.server.rest.data;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.serverSide.Branch;
@@ -199,30 +201,22 @@ public class GenericBuildsFilter implements BuildsFilter {
     if (!isIncludedByBooleanFilter(myPinned, build.isPinned())) {
       return false;
     }
-    if (myTags != null && myTags.size() > 0 && myTags.get(0).startsWith("format:regexp")) {
+    if (myTags != null && myTags.size() > 0 && myTags.get(0).startsWith("format:extended")) {
+      @NotNull final List<String> buildTags = build.getTags();
       //unofficial experimental support for "tag:(format:regexp,value:.*)" tag specification
       //todo: locator parsing logic should be moved to build locator parsing
       final Locator tagsLocator;
       try {
         tagsLocator = new Locator(myTags.get(0));
+          if (!isTagsMatchLocator(buildTags, tagsLocator)){
+            return false;
+          }
+        final Set<String> unusedDimensions = tagsLocator.getUnusedDimensions();
+        if (unusedDimensions.size() > 0) {
+          throw new BadRequestException("Unknown dimensions in locator 'tag': " + unusedDimensions);
+        }
       } catch (LocatorProcessException e) {
         throw new BadRequestException("Invalid locator 'tag': " + e.getMessage(), e);
-      }
-      if ("regexp".equals(tagsLocator.getSingleDimensionValue("format"))) {
-        final String patternString = tagsLocator.getSingleDimensionValue("value");
-        if (StringUtil.isEmpty(patternString)) {
-          throw new BadRequestException("'value' dimension should not be empty");
-        }
-        final Pattern pattern = Pattern.compile(patternString);
-        boolean atLestOneMatches = false;
-        for (String tag : build.getTags()) {
-          atLestOneMatches = atLestOneMatches || pattern.matcher(tag).matches();
-        }
-        if (!atLestOneMatches) {
-          return false;
-        }
-      } else {
-        throw new BadRequestException("Only 'regexp' calue is supported for 'format' dimension of 'tag' dimension");
       }
     }else if (myTags != null && myTags.size() > 0 && !build.getTags().containsAll(myTags)) {
       return false;
@@ -251,6 +245,50 @@ public class GenericBuildsFilter implements BuildsFilter {
       }
     }
     return true;
+  }
+
+  private boolean isTagsMatchLocator(final List<String> buildTags, final Locator tagsLocator) {
+    if (!"extended".equals(tagsLocator.getSingleDimensionValue("format"))) {
+      throw new BadRequestException("Only 'extended' value is supported for 'format' dimension of 'tag' dimension");
+    }
+    final Boolean present = tagsLocator.getSingleDimensionValueAsBoolean("present", true);
+    final String patternString = tagsLocator.getSingleDimensionValue("regexp");
+    if (present == null) {
+      return true;
+    }
+    Boolean tagsMatchPattern = null;
+    if (patternString != null) {
+      if (StringUtil.isEmpty(patternString)) {
+        throw new BadRequestException("'regexp' sub-dimension should not be empty for 'tag' dimension");
+      }
+      try {
+        tagsMatchPattern = tagsMatchPattern(buildTags, patternString);
+      } catch (PatternSyntaxException e) {
+        throw new BadRequestException(
+          "Bad syntax for Java regular expression in 'regexp' sub-dimension of 'tag' dimension: " + e.getMessage(), e);
+      }
+    }
+    if (tagsMatchPattern == null) {
+      if ((present && buildTags.size() != 0) || (!present && (buildTags.size() == 0))) {
+        return true;
+      }
+    } else {
+      if (present && tagsMatchPattern) {
+        return true;
+      } else if (!present && !tagsMatchPattern) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private Boolean tagsMatchPattern(@NotNull final List<String> tags, @NotNull final String patternString) throws PatternSyntaxException {
+    final Pattern pattern = Pattern.compile(patternString);
+    boolean atLestOneMatches = false;
+    for (String tag : tags) {
+      atLestOneMatches = atLestOneMatches || pattern.matcher(tag).matches();
+    }
+    return atLestOneMatches;
   }
 
   private boolean matchesBranchLocator(@Nullable Locator branchLocator, @NotNull final SBuild build) {
