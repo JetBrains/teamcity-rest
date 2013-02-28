@@ -21,6 +21,7 @@ public class Href {
     this.href = href;
   }
 
+  @NotNull
   @XmlAttribute(name = "href")
   public String getHref() {
     return href;

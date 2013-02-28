@@ -16,16 +16,12 @@
 
 package jetbrains.buildServer.server.rest.model.build;
 
-import java.util.*;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.issueTracker.Issue;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.Comment;
+import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.agent.AgentRef;
@@ -34,6 +30,7 @@ import jetbrains.buildServer.server.rest.model.change.ChangesRef;
 import jetbrains.buildServer.server.rest.model.change.Revisions;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
+import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.Branch;
@@ -41,6 +38,12 @@ import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
+import java.util.*;
 
 /**
  * User: Yegor Yarko
@@ -51,7 +54,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @XmlRootElement(name = "build")
 @XmlType(name = "build", propOrder = {"id", "number", "status", "href", "webUrl", "branchName", "defaultBranch", "unspecifiedBranch", "personal", "history", "pinned", "running",
   "runningBuildInfo", "statusText", "buildType", "startDate", "finishDate", "agent", "comment", "tags", "pinInfo", "personalBuildUser", "properties",
-  "buildDependencies", "buildArtifactDependencies", "revisions", "triggered", "changes", "issues"})
+  "buildDependencies", "buildArtifactDependencies", "revisions", "triggered", "changes", "issues", "artifacts"})
 public class Build {
   @NotNull
   protected SBuild myBuild;
@@ -272,6 +275,12 @@ public class Build {
   public UserRef getPersonalBuildUser() {
     final SUser owner = myBuild.getOwner();
     return owner == null ? null : new UserRef(owner, myApiUrlBuilder);
+  }
+
+  @NotNull
+  @XmlElement(name = "artifacts")
+  public Href getArtifacts() {
+    return new Href(myApiUrlBuilder.getHref(myBuild) + BuildRequest.ARTIFACTS);
   }
 
   private List<BuildRef> getBuildRefs(@NotNull Collection<? extends BuildDependency> dependencies,

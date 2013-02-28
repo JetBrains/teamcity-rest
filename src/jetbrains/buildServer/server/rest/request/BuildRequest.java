@@ -17,12 +17,6 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.io.*;
-import java.util.*;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildLocator;
@@ -37,7 +31,7 @@ import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
 import jetbrains.buildServer.server.rest.model.files.File;
 import jetbrains.buildServer.server.rest.model.files.FileApiUrlBuilder;
-import jetbrains.buildServer.server.rest.model.files.FileChildren;
+import jetbrains.buildServer.server.rest.model.files.Files;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
@@ -54,10 +48,7 @@ import jetbrains.buildServer.serverSide.statistics.ValueProvider;
 import jetbrains.buildServer.serverSide.statistics.build.BuildValue;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
-import jetbrains.buildServer.util.ArchiveUtil;
-import jetbrains.buildServer.util.FileUtil;
-import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.util.TCStreamUtil;
+import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.browser.BrowserException;
 import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.vcs.VcsException;
@@ -68,6 +59,13 @@ import jetbrains.buildServer.web.util.SessionUser;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
+import java.io.*;
+import java.util.*;
 
 /*
  * User: Yegor Yarko
@@ -177,6 +175,17 @@ public class BuildRequest {
   }
 
   @GET
+  @Path("/{buildLocator}" + ARTIFACTS)
+  @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+  public Response getArtifacts(@PathParam("buildLocator") final String buildLocator, @Context UriInfo uriInfo) {
+    // Lets check that required build exists
+    myDataProvider.getBuild(null, buildLocator);
+    // And answer with permanent redirect (301) to /artifacts/children/
+    final UriBuilder builder = uriInfo.getRequestUriBuilder().path(CHILDREN);
+    return Response.status(Response.Status.MOVED_PERMANENTLY).location(builder.build()).build();
+  }
+
+  @GET
   @Path("/{buildLocator}" + ARTIFACTS_METADATA + "{path:(/.*)?}")
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
   public File getArtifactMetadata(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String path) {
@@ -191,7 +200,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}" + ARTIFACTS_CHILDREN + "{path:(/.*)?}")
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-  public FileChildren getArtifactChildren(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String path) {
+  public Files getArtifactChildren(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String path) {
     final SBuild build = myDataProvider.getBuild(null, buildLocator);
     final ArtifactTreeElement element = getArtifactElement(build, path);
     try {
@@ -199,7 +208,13 @@ public class BuildRequest {
       if (element.isLeaf() || children == null) {
         throw new BadRequestException("Cannot provide children list for artifact \"" + path + "\": artifact is a leaf.");
       }
-      return new FileChildren(children, fileApiUrlBuilderForBuild(myApiUrlBuilder, build));
+      // children is a collection of ArtifactTreeElement, but we ensure it.
+      return new Files(CollectionsUtil.convertCollection(children, new Converter<File, Element>() {
+        public File createFrom(@NotNull Element source) {
+          final ArtifactTreeElement ate = source instanceof ArtifactTreeElement ? (ArtifactTreeElement) source : getArtifactElement(build, source.getFullName());
+          return new File(ate, null, fileApiUrlBuilderForBuild(myApiUrlBuilder, build));
+        }
+      }));
     } catch (BrowserException e) {
       throw new OperationException("Exception due to collecting children for artifact \"" + path + "\"", e);
     }
