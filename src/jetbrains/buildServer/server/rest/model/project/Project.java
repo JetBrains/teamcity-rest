@@ -65,7 +65,7 @@ public class Project extends ProjectRef {
     archived = project.isArchived();
     webUrl = dataProvider.getProjectUrl(project);
     buildTypes = BuildTypes.createFromBuildTypes(project.getBuildTypes(), dataProvider, apiUrlBuilder);
-    templates = BuildTypes.createFromTemplates(project.getBuildTypeTemplates(), dataProvider, apiUrlBuilder);
+    templates = BuildTypes.createFromTemplates(project.getOwnBuildTypeTemplates(), dataProvider, apiUrlBuilder);
     parameters = new Properties(project.getParameters());
   }
 

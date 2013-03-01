@@ -227,7 +227,7 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   public BuildTypes serveTemplatesInProject(@PathParam("projectLocator") String projectLocator) {
     SProject project = myDataProvider.getProject(projectLocator);
-    return BuildTypes.createFromTemplates(project.getBuildTypeTemplates(), myDataProvider, myApiUrlBuilder);
+    return BuildTypes.createFromTemplates(project.getOwnBuildTypeTemplates(), myDataProvider, myApiUrlBuilder);
   }
 
   @POST
