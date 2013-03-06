@@ -284,7 +284,7 @@ public class BuildTypeRequest {
   public void getTemplateAssociation(@PathParam("btLocator") String buildTypeLocator, String templateLocator) {
     SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
     BuildTypeTemplate template = myDataProvider.getBuildTemplate(null, templateLocator);
-    buildType.attachToTemplate(template, false);
+    buildType.attachToTemplate(template);
     buildType.persist();
   }
 //todo: allow also to post back the XML from GET request (http://devnet.jetbrains.net/message/5466528#5466528)
