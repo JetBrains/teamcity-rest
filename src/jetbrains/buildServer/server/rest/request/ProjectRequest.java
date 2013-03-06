@@ -146,7 +146,7 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   public BuildTypes serveBuildTypesInProject(@PathParam("projectLocator") String projectLocator) {
     SProject project = myDataProvider.getProject(projectLocator);
-    return BuildTypes.createFromBuildTypes(project.getBuildTypes(), myDataProvider, myApiUrlBuilder);
+    return BuildTypes.createFromBuildTypes(project.getOwnBuildTypes(), myDataProvider, myApiUrlBuilder);
   }
 
   @POST
