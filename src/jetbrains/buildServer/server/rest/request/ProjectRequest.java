@@ -90,7 +90,7 @@ public class ProjectRequest {
     SProject resultingProject;
     if (StringUtil.isEmpty(descriptor.sourceProjectLocator)) {
       if (!StringUtil.isEmpty(descriptor.id)) {
-        resultingProject = myDataProvider.getServer().getProjectManager().createProject(descriptor.id, ProjectManager.ROOT_PROJECT_ID, descriptor.name);
+        resultingProject = myDataProvider.getServer().getProjectManager().createProject(descriptor.id, descriptor.name, myDataProvider.getServer().getProjectManager().getRootProject());
       } else {
         resultingProject = myDataProvider.getServer().getProjectManager().createProject(descriptor.name);
       }
