@@ -49,8 +49,17 @@ public class ExceptionMapperUtil {
     final String statusDescription = (status != null) ? status.toString() : Integer.toString(statusCode);
     Response.ResponseBuilder builder = Response.status(statusCode);
     builder.type("text/plain");
-    builder.entity("Error has occurred during request processing (" + statusDescription +
-                   ").\nError: " + getMessageWithCauses(e) + (message != null ? "\n" + message : ""));
+    StringBuffer responseText = new StringBuffer();
+    responseText.append("Error has occurred during request processing (").append(statusDescription).append(").");
+
+    //provide user-friendly message on missing or wrong Content-Type header
+    if (statusCode == Response.Status.UNSUPPORTED_MEDIA_TYPE.getStatusCode()){
+      //todo: response with supported content-types instead
+      responseText.append("\nMake sure you have supplied correct Content-Type header.");
+    }else{
+      responseText.append("\nError: ").append(getMessageWithCauses(e)).append(message != null ? "\n" + message : "");
+    }
+    builder.entity(responseText.toString());
     final String logMessage = "Error" + (message != null ? " '" + message + "'" : "") + " for request " + requestUri +
                               ". Sending " + statusDescription + " error in response: " + e.toString();
     LOG.warn(logMessage);
