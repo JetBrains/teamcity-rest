@@ -1,10 +1,10 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
+import com.intellij.openapi.util.text.StringUtil;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.artifacts.RevisionRule;
 import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -67,39 +67,24 @@ public class PropEntityArtifactDep extends PropEntity {
       throw new BadRequestException("Artifact dependency should have type '" + ARTIFACT_DEPENDENCY_TYPE_NAME + "'.");
     }
 
-    if (properties == null){
-      throw new BadRequestException("Artifact dependency properties should contian properties.");
-    }
-
     final Map<String,String> propertiesMap = properties.getMap();
     if (!propertiesMap.containsKey(NAME_SOURCE_BUILD_TYPE_ID)){
       throw new BadRequestException("Artifact dependency properties should contian '" + NAME_SOURCE_BUILD_TYPE_ID + "' property.");
     }
 
+    final String revisionName = propertiesMap.get(NAME_REVISION_NAME);
+    if (StringUtil.isEmpty(revisionName)){
+      throw new BadRequestException("Missing or empty artifact dependency property '" + NAME_REVISION_NAME + "'. Should contain one of supported values.");
+    }
+
     final SArtifactDependency artifactDependency = factory.createArtifactDependency(
       propertiesMap.get(NAME_SOURCE_BUILD_TYPE_ID),
       propertiesMap.get(NAME_PATH_RULES),
-      getRevisionRule(propertiesMap));
+      RevisionRules.newRevisionRule(revisionName, propertiesMap.get(NAME_REVISION_VALUE)));
     final String cleanDir = propertiesMap.get(NAME_CLEAN_DESTINATION_DIRECTORY);
     if (cleanDir != null) {
       artifactDependency.setCleanDestinationFolder(Boolean.parseBoolean(cleanDir));
     }
     return artifactDependency;
-  }
-
-  private RevisionRule getRevisionRule(final Map<String, String> properties) {
-    return new RevisionRules.AbstractRevisionRule() {
-      public String getName() {
-        return properties.get(NAME_REVISION_NAME);
-      }
-
-      public String getRevision() {
-        return properties.get(NAME_REVISION_VALUE);
-      }
-
-      public String getDescription() {
-        return "Generated";
-      }
-    };
   }
 }
