@@ -56,7 +56,7 @@ public class PropEntityAgentRequirement extends PropEntity {
     return foundType;
   }
 
-  public PropEntityAgentRequirement addRequirement(final BuildTypeOrTemplate buildType) {
+  public Requirement addRequirement(final BuildTypeOrTemplate buildType) {
     final Map<String, String> propertiesMap = properties.getMap();
     final Requirement requirementToAdd = new Requirement(getId(), propertiesMap.get(NAME_PROPERTY_VALUE), getType());
 
@@ -75,6 +75,6 @@ public class PropEntityAgentRequirement extends PropEntity {
     }
     buildTypeSettings.addRequirement(requirementToAdd);
 
-    return new PropEntityAgentRequirement(DataProvider.getAgentRequirementOrNull(buildTypeSettings, requirementPropertyName));
+    return DataProvider.getAgentRequirementOrNull(buildTypeSettings, requirementPropertyName);
   }
 }
