@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data;
+package jetbrains.buildServer.server.rest.data.build;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
@@ -22,9 +22,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import jetbrains.buildServer.server.rest.data.BranchMatcher;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.ParameterCondition;
+import jetbrains.buildServer.server.rest.data.RangeLimit;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
-import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.users.SUser;
@@ -46,7 +49,7 @@ public class GenericBuildsFilter implements BuildsFilter {
   @Nullable private final Boolean myRunning;
   @Nullable private final Boolean myPinned;
   @Nullable private final List<String> myTags;
-  @Nullable private final Locator myBranchLocator;
+  @NotNull private final BranchMatcher myBranchMatcher;
   @Nullable private final String myAgentName;
   @Nullable private final RangeLimit mySince;
   @Nullable private final RangeLimit myUntil;
@@ -64,7 +67,7 @@ public class GenericBuildsFilter implements BuildsFilter {
    * @param canceled        if set, limits the builds by canceled status (return only canceled if "true", only non-canceled if "false")
    * @param running         if set, limits the builds by running state (return only running if "true", only finished if "false")
    * @param pinned          if set, limits the builds by pinned status (return only pinned if "true", only non-pinned if "false")
-   * @param branchLocator   if not set, only builds from default branch match. The locator supports dimensions: "name"/String, "default"/boolean and "unspecified"/boolean.
+   * @param branchMatcher   if not set, only builds from default branch match. The locator supports dimensions: "name"/String, "default"/boolean and "unspecified"/boolean.
    * @param agentName       limit builds to those ran on specified agent, can be null to return all builds
    * @param parameterCondition  limit builds to those with a finish parameter matching the condition specified, can be null to return all builds
    * @param since           the RangeLimit to return only the builds since the limit. If contains build, it is not included, if contains the date, the builds that were started at and later then the date are included
@@ -82,7 +85,7 @@ public class GenericBuildsFilter implements BuildsFilter {
                              @Nullable final Boolean running,
                              @Nullable final Boolean pinned,
                              @Nullable final List<String> tags,
-                             @Nullable final Locator branchLocator,
+                             @NotNull final BranchMatcher branchMatcher,
                              @Nullable final String agentName,
                              @Nullable final ParameterCondition parameterCondition,
                              @Nullable final RangeLimit since,
@@ -103,7 +106,7 @@ public class GenericBuildsFilter implements BuildsFilter {
     myRunning = running;
     myPinned = pinned;
     myTags = tags;
-    myBranchLocator = branchLocator;
+    myBranchMatcher = branchMatcher;
     //todo: support agent locator
     myAgentName = agentName;
     mySince = since;
@@ -221,7 +224,7 @@ public class GenericBuildsFilter implements BuildsFilter {
     }else if (myTags != null && myTags.size() > 0 && !build.getTags().containsAll(myTags)) {
       return false;
     }
-    if (!matchesBranchLocator(myBranchLocator, build)) {
+    if (!myBranchMatcher.matches(build)) {
       return false;
     }
     if (myUser != null) {
@@ -291,64 +294,6 @@ public class GenericBuildsFilter implements BuildsFilter {
     return atLestOneMatches;
   }
 
-  private boolean matchesBranchLocator(@Nullable Locator branchLocator, @NotNull final SBuild build) {
-    //todo consider optimizing by parsing locator beforehand + validating all locator dimensions are used
-    final Branch buildBranch = build.getBranch();
-    if (branchLocator == null){
-      return buildBranch == null || buildBranch.isDefaultBranch();
-    }
-    if (branchLocator.isSingleValue()){//treat as logic branch name with special values
-      @SuppressWarnings("ConstantConditions")
-      @NotNull final String logicalBranchName = branchLocator.getSingleValue();
-      //noinspection ConstantConditions
-      return matchesBranchName(logicalBranchName, buildBranch);
-    }
-
-    final String branchName = branchLocator.getSingleDimensionValue("name");
-    final Boolean defaultBranch = branchLocator.getSingleDimensionValueAsBoolean("default");
-    final Boolean unspecifiedBranch = branchLocator.getSingleDimensionValueAsBoolean("unspecified");
-    final Boolean branched = branchLocator.getSingleDimensionValueAsBoolean("branched");
-    if (defaultBranch != null) {
-      if (buildBranch != null && !defaultBranch.equals(buildBranch.isDefaultBranch())) {
-        return false;
-      }
-      if (buildBranch == null && !defaultBranch) { //making default:true match not-branched builds
-        return false;
-      }
-    }
-    if (unspecifiedBranch != null) {
-      if (buildBranch != null && !unspecifiedBranch.equals(Branch.UNSPECIFIED_BRANCH_NAME.equals(buildBranch.getName()))){
-        return false;
-      }
-      if (buildBranch == null && unspecifiedBranch) {
-        return false;
-      }
-    }
-    if (branchName != null && !matchesBranchName(branchName, buildBranch)) {
-      return false;
-    }
-    if (branched != null){
-      if (!branched.equals(buildBranch != null)){
-        return false;
-      }
-    }
-    //todo: provide a way to get only builds without a branch
-    return true;
-  }
-
-  private boolean matchesBranchName(@NotNull final String branchNameToMatch, @Nullable final Branch buildBranch) {
-    if (branchNameToMatch.equals(BRANCH_NAME_ANY)){
-      return true;
-    }
-    if (buildBranch == null){ //may be can return true if branchNameToMatch.equals("")
-      return false;
-    }
-    if (branchNameToMatch.equals(buildBranch.getDisplayName()) || branchNameToMatch.equals(buildBranch.getName())){
-      return true;
-    }
-    return false;
-  }
-
   public boolean isExcludedBySince(final SBuild build) {
     if (mySince != null) {
       if (mySince.getDate().after(build.getStartDate())) {
@@ -381,7 +326,7 @@ public class GenericBuildsFilter implements BuildsFilter {
     if (myRunning!= null) result.append("running:").append(myRunning).append(", ");
     if (myPinned!= null) result.append("pinned:").append(myPinned).append(", ");
     if (myTags!= null) result.append("tag:").append(myTags).append(", ");
-    if (myBranchLocator != null) result.append("branchLocator:").append(myBranchLocator).append(", ");
+    if (myBranchMatcher.isDefined()) result.append("branchMatcher:").append(myBranchMatcher).append(", ");
     if (myAgentName!= null) result.append("agentName:").append(myAgentName).append(", ");
     if (myParameterCondition!= null) result.append("parameterCondition:").append(myParameterCondition).append(", ");
     if (mySince!= null) result.append("since:").append(mySince).append(", ");

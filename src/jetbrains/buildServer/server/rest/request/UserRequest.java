@@ -22,6 +22,7 @@ import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
+import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -36,6 +37,7 @@ import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.SimplePropertyKey;
 import jetbrains.buildServer.util.StringUtil;
+import org.jetbrains.annotations.NotNull;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
@@ -44,12 +46,10 @@ import jetbrains.buildServer.util.StringUtil;
 
 @Path(UserRequest.API_USERS_URL)
 public class UserRequest {
-  @Context
-  private DataProvider myDataProvider;
-  @Context
-  private DataUpdater myDataUpdater;
-  @Context
-  private ApiUrlBuilder myApiUrlBuilder;
+  @Context @NotNull private DataProvider myDataProvider;
+  @Context @NotNull private UserFinder myUserFinder;
+  @Context @NotNull private DataUpdater myDataUpdater;
+  @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
 
   public static final String API_USERS_URL = Constants.API_URL + "/users";
 
@@ -81,7 +81,7 @@ public class UserRequest {
   private void checkViewUserPermission(String userLocator) {
     SUser user;
     try {
-      user = myDataProvider.getUser(userLocator);
+      user = myUserFinder.getUser(userLocator);
     } catch (RuntimeException e) { // ensuring user without permissions could not get details on existing users by error messages
       checkViewAllUsersPermission();
       return;
@@ -101,7 +101,7 @@ public class UserRequest {
   private void checkModifyUserPermission(String userLocator) {
     SUser user;
     try {
-      user = myDataProvider.getUser(userLocator);
+      user = myUserFinder.getUser(userLocator);
     } catch (RuntimeException e) { // ensuring user without permissions could not get details on existing users by error messages
       checkModifyAllUsersPermission();
       return;
@@ -127,14 +127,14 @@ public class UserRequest {
   @Path("/{userLocator}")
   @Produces({"application/xml", "application/json"})
   public User serveUser(@PathParam("userLocator") String userLocator) {
-    return new User(myDataProvider.getUser(userLocator), myApiUrlBuilder);
+    return new User(myUserFinder.getUser(userLocator), myApiUrlBuilder);
   }
 
   @PUT
   @Path("/{userLocator}")
   @Consumes({"application/xml", "application/json"})
   public void updateUser(@PathParam("userLocator") String userLocator, User userData) {
-    SUser user = myDataProvider.getUser(userLocator);
+    SUser user = myUserFinder.getUser(userLocator);
     myDataUpdater.modify(user, userData);
   }
 
@@ -142,21 +142,21 @@ public class UserRequest {
   @Path("/{userLocator}/{field}")
   @Produces("text/plain")
   public String serveUserField(@PathParam("userLocator") String userLocator, @PathParam("field") String fieldName) {
-    return User.getFieldValue(myDataProvider.getUser(userLocator), fieldName);
+    return User.getFieldValue(myUserFinder.getUser(userLocator), fieldName);
   }
 
   @PUT
   @Path("/{userLocator}/{field}")
   @Consumes("text/plain")
   public void setUserField(@PathParam("userLocator") String userLocator, @PathParam("field") String fieldName, String value) {
-    User.setFieldValue(myDataProvider.getUser(userLocator), fieldName, value);
+    User.setFieldValue(myUserFinder.getUser(userLocator), fieldName, value);
   }
 
   @GET
   @Path("/{userLocator}/properties")
   @Produces({"application/xml", "application/json"})
   public Properties serveUserProperties(@PathParam("userLocator") String userLocator) {
-    SUser user = myDataProvider.getUser(userLocator);
+    SUser user = myUserFinder.getUser(userLocator);
 
     return new Properties(User.getUserProperties(user));
   }
@@ -165,7 +165,7 @@ public class UserRequest {
   @Path("/{userLocator}/properties/{name}")
   @Produces("text/plain")
   public String serveUserProperties(@PathParam("userLocator") String userLocator, @PathParam("name") String parameterName) {
-    SUser user = myDataProvider.getUser(userLocator);
+    SUser user = myUserFinder.getUser(userLocator);
     if (StringUtil.isEmpty(parameterName)) {
       throw new BadRequestException("Property name cannot be empty.");
     }
@@ -184,7 +184,7 @@ public class UserRequest {
   public void putUserProperty(@PathParam("userLocator") String userLocator,
                               @PathParam("name") String name,
                               String newValue) {
-    SUser user = myDataProvider.getUser(userLocator);
+    SUser user = myUserFinder.getUser(userLocator);
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Property name cannot be empty.");
     }
@@ -196,7 +196,7 @@ public class UserRequest {
   @Path("/{userLocator}/properties/{name}")
   public void removeUserProperty(@PathParam("userLocator") String userLocator,
                                  @PathParam("name") String name) {
-    SUser user = myDataProvider.getUser(userLocator);
+    SUser user = myUserFinder.getUser(userLocator);
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Property name cannot be empty.");
     }
@@ -210,7 +210,7 @@ public class UserRequest {
   @Produces({"application/xml", "application/json"})
   public RoleAssignments listRoles(@PathParam("userLocator") String userLocator) {
     checkViewUserPermission(userLocator); //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
-    SUser user = myDataProvider.getUser(userLocator);
+    SUser user = myUserFinder.getUser(userLocator);
     return new RoleAssignments(user.getRoles(), user, myApiUrlBuilder);
   }
 
@@ -229,7 +229,7 @@ public class UserRequest {
   @Path("/{userLocator}/roles")
   @Consumes({"application/xml", "application/json"})
   public void addRole(@PathParam("userLocator") String userLocator, RoleAssignment roleAssignment) {
-    SUser user = myDataProvider.getUser(userLocator);
+    SUser user = myUserFinder.getUser(userLocator);
     user.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
   }
 
@@ -238,7 +238,7 @@ public class UserRequest {
   public RoleAssignment listRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
                                  @PathParam("scope") String scopeValue) {
     checkViewUserPermission(userLocator);  //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
-    SUser user = myDataProvider.getUser(userLocator);
+    SUser user = myUserFinder.getUser(userLocator);
     return new RoleAssignment(myDataProvider.getUserRoleEntry(user, roleId, scopeValue), user, myApiUrlBuilder);
   }
 
@@ -246,7 +246,7 @@ public class UserRequest {
   @Path("/{userLocator}/roles/{roleId}/{scope}")
   public void deleteRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
                          @PathParam("scope") String scopeValue) {
-    SUser user = myDataProvider.getUser(userLocator);
+    SUser user = myUserFinder.getUser(userLocator);
     user.removeRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
   }
 
@@ -267,7 +267,7 @@ public class UserRequest {
   public void addRoleSimple(@PathParam("userLocator") String userLocator,
                             @PathParam("roleId") String roleId,
                             @PathParam("scope") String scopeValue) {
-    SUser user = myDataProvider.getUser(userLocator);
+    SUser user = myUserFinder.getUser(userLocator);
     user.addRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
   }
 }

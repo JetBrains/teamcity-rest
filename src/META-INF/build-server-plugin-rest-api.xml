@@ -35,6 +35,13 @@
   <bean id="apiController" class="jetbrains.buildServer.server.rest.APIController"/>
 
   <bean id="restDataProvider" class="jetbrains.buildServer.server.rest.data.DataProvider"/>
+  <bean id="restbuildFinder" class="jetbrains.buildServer.server.rest.data.BuildFinder"/>
+  <bean id="restbuildTypeFinder" class="jetbrains.buildServer.server.rest.data.BuildTypeFinder"/>
+  <bean id="restProjectFinder" class="jetbrains.buildServer.server.rest.data.ProjectFinder"/>
+  <bean id="restUserGroupFinder" class="jetbrains.buildServer.server.rest.data.UserGroupFinder"/>
+  <bean id="restUserFinder" class="jetbrains.buildServer.server.rest.data.UserFinder"/>
+  <bean id="restVcsRootFinder" class="jetbrains.buildServer.server.rest.data.VcsRootFinder"/>
+
   <bean id="restDataUpdater" class="jetbrains.buildServer.server.rest.data.DataUpdater"/>
   <bean id="beanFactory" class="jetbrains.buildServer.server.rest.util.BeanFactory"/>
 
@@ -42,9 +49,15 @@
 
   <bean id="urlBuilderProvider" class="jetbrains.buildServer.server.rest.jersey.UrlBuilderProvider"/>
   <bean id="dataProviderContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataProviderContextProvider"/>
+  <bean id="buildFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.BuildFinderContextProvider"/>
+  <bean id="buildTypeFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.BuildTypeFinderContextProvider"/>
+  <bean id="projectFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.ProjectFinderContextProvider"/>
+  <bean id="userGroupFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.UserGroupFinderContextProvider"/>
+  <bean id="userFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.UserFinderContextProvider"/>
+  <bean id="vcsRootFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.VcsRootFinderContextProvider"/>
+
   <bean id="dataUpdaterContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataUpdaterContextProvider"/>
-  <bean id="serviceLocatorContextProvider"
-        class="jetbrains.buildServer.server.rest.jersey.ServiceLocatorContextProvider"/>
+  <bean id="serviceLocatorContextProvider" class="jetbrains.buildServer.server.rest.jersey.ServiceLocatorContextProvider"/>
   <bean id="beanFactoryContextProvider" class="jetbrains.buildServer.server.rest.jersey.BeanFactoryContextProvider"/>
 
   <bean id="jacksonObjectMapperResolver" class="jetbrains.buildServer.server.rest.jersey.JacksonObjectMapperResolver"/>

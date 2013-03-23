@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data;
+package jetbrains.buildServer.server.rest.data.build;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import jetbrains.buildServer.server.rest.data.AbstractFilter;
+import jetbrains.buildServer.server.rest.data.FilterItemProcessor;
 import jetbrains.buildServer.serverSide.BuildHistory;
 import jetbrains.buildServer.serverSide.RunningBuildsManager;
 import jetbrains.buildServer.serverSide.SFinishedBuild;

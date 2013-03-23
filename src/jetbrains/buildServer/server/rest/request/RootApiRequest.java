@@ -22,11 +22,16 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.BuildFinder;
+import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.ProjectFinder;
+import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.plugin.PluginInfo;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
@@ -34,10 +39,11 @@ import jetbrains.buildServer.serverSide.SProject;
  */
 @Path(Constants.API_URL)
 public class RootApiRequest {
-  @Context
-  private DataProvider myDataProvider;
-  @Context
-  private ApiUrlBuilder myApiUrlBuilder;
+  @Context @NotNull private DataProvider myDataProvider;
+  @Context @NotNull private BuildFinder myBuildFinder;
+  @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
+  @Context @NotNull private ProjectFinder myProjectFinder;
+  @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
 
   @GET
   @Produces("text/plain")
@@ -67,10 +73,10 @@ public class RootApiRequest {
                                      @PathParam("btLocator") String buildTypeLocator,
                                      @PathParam("buildLocator") String buildLocator,
                                      @PathParam("field") String field) {
-    SProject project = myDataProvider.getProject(projectLocator);
-    SBuildType buildType = myDataProvider.getBuildType(project, buildTypeLocator);
-    SBuild build = myDataProvider.getBuild(buildType, buildLocator);
+    SProject project = myProjectFinder.getProject(projectLocator);
+    SBuildType buildType = myBuildTypeFinder.getBuildType(project, buildTypeLocator);
+    SBuild build = myBuildFinder.getBuild(buildType, buildLocator);
 
-    return myDataProvider.getFieldValue(build, field);
+    return Build.getFieldValue(build, field);
   }
 }

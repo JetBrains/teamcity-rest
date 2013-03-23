@@ -17,10 +17,18 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
+import java.io.*;
+import java.util.*;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.BuildLocator;
+import jetbrains.buildServer.server.rest.data.BuildFinder;
+import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -60,13 +68,6 @@ import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
-import java.io.*;
-import java.util.*;
-
 /*
  * User: Yegor Yarko
  * Date: 11.04.2009
@@ -77,9 +78,10 @@ public class BuildRequest {
   public static final String IMG_STATUS_WIDGET_ROOT_DIRECTORY = "/img/statusWidget";
   public static final String STATUS_ICON_REQUEST_NAME = "statusIcon";
 
-  @Context
-  @NotNull
-  private DataProvider myDataProvider;
+  @Context @NotNull private DataProvider myDataProvider;
+  @Context @NotNull private BuildFinder myBuildFinder;
+  @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
+
   public static final String BUILDS_ROOT_REQUEST_PATH = "/builds";
   public static final String API_BUILDS_URL = Constants.API_URL + BUILDS_ROOT_REQUEST_PATH;
 
@@ -134,25 +136,26 @@ public class BuildRequest {
                                @QueryParam("sinceDate") String sinceDate,
                                @QueryParam("start") Long start,
                                @QueryParam("count") Integer count,
-                               @QueryParam("locator") BuildLocator locator,
+                               @QueryParam("locator") Locator locator,
                                @Context UriInfo uriInfo, @Context HttpServletRequest request) {
-    return myDataProvider.getBuildsForRequest(myDataProvider.getBuildTypeIfNotNull(buildTypeLocator),
-        status, userLocator, includePersonal, includeCanceled, onlyPinned, tags, agentName,
-        sinceBuildLocator, sinceDate, start, count, locator, uriInfo, request, myApiUrlBuilder);
+    return myBuildFinder.getBuildsForRequest(myBuildTypeFinder.getBuildTypeIfNotNull(buildTypeLocator), status, userLocator, includePersonal,
+                                           includeCanceled, onlyPinned, tags, agentName, sinceBuildLocator, sinceDate, start, count,
+                                           locator, uriInfo, request, myApiUrlBuilder
+    );
   }
 
   @GET
   @Path("/{buildLocator}")
   @Produces({"application/xml", "application/json"})
   public Build serveBuild(@PathParam("buildLocator") String buildLocator) {
-    return new Build(myDataProvider.getBuild(null, buildLocator), myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
+    return new Build(myBuildFinder.getBuild(null, buildLocator), myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
   }
 
   @GET
   @Path("/{buildLocator}/resulting-properties/")
   @Produces({"application/xml", "application/json"})
   public Properties serveBuildActualParameters(@PathParam("buildLocator") String buildLocator) {
-    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
     return new Properties(build.getParametersProvider().getAll());
     /* alternative
     try {
@@ -167,7 +170,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/resulting-properties/{propertyName}")
   @Produces({"text/plain"})
   public String getParameter(@PathParam("buildLocator") String buildLocator, @PathParam("propertyName") String propertyName) {
-    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
     if (StringUtil.isEmpty(propertyName)) {
       throw new BadRequestException("Property name should not be empty");
     }
@@ -179,7 +182,7 @@ public class BuildRequest {
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
   public Response getArtifacts(@PathParam("buildLocator") final String buildLocator, @Context UriInfo uriInfo) {
     // Lets check that required build exists
-    myDataProvider.getBuild(null, buildLocator);
+    myBuildFinder.getBuild(null, buildLocator);
     // And answer with permanent redirect (301) to /artifacts/children/
     final UriBuilder builder = uriInfo.getRequestUriBuilder().path(CHILDREN);
     return Response.status(Response.Status.MOVED_PERMANENTLY).location(builder.build()).build();
@@ -189,7 +192,7 @@ public class BuildRequest {
   @Path("/{buildLocator}" + ARTIFACTS_METADATA + "{path:(/.*)?}")
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
   public File getArtifactMetadata(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String path) {
-    final SBuild build = myDataProvider.getBuild(null, buildLocator);
+    final SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final ArtifactTreeElement element = getArtifactElement(build, path);
     final FileApiUrlBuilder builder = fileApiUrlBuilderForBuild(myApiUrlBuilder, build);
     final String par = StringUtil.removeTailingSlash(StringUtil.convertAndCollapseSlashes(element.getFullName()));
@@ -201,7 +204,7 @@ public class BuildRequest {
   @Path("/{buildLocator}" + ARTIFACTS_CHILDREN + "{path:(/.*)?}")
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
   public Files getArtifactChildren(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String path) {
-    final SBuild build = myDataProvider.getBuild(null, buildLocator);
+    final SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final ArtifactTreeElement element = getArtifactElement(build, path);
     try {
       final Iterable<Element> children = element.getChildren();
@@ -251,7 +254,7 @@ public class BuildRequest {
   @Path("/{buildLocator}" + ARTIFACTS_CONTENT + "{path:(/.*)?}")
   @Produces({MediaType.WILDCARD})
   public Response getArtifactContent(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String path, @Context HttpServletRequest request) {
-    final SBuild build = myDataProvider.getBuild(null, buildLocator);
+    final SBuild build = myBuildFinder.getBuild(null, buildLocator);
     return getArtifactContentResponse(build, path, request, BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
   }
 
@@ -263,7 +266,7 @@ public class BuildRequest {
   @Path("/{buildLocator}" + ARTIFACTS + "/files{path:(/.*)?}")
   @Produces({MediaType.WILDCARD})
   public Response getArtifactFilesContent(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String fileName, @Context HttpServletRequest request) {
-    final SBuild build = myDataProvider.getBuild(null, buildLocator);
+    final SBuild build = myBuildFinder.getBuild(null, buildLocator);
     return getArtifactContentResponse(build, fileName, request, BuildArtifactsViewMode.VIEW_ALL);
   }
 
@@ -301,7 +304,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/sources/files/{fileName:.+}")
   @Produces({"application/octet-stream"})
   public Response serveSourceFile(@PathParam("buildLocator") final String buildLocator, @PathParam("fileName") final String fileName) {
-    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
     byte[] fileContent;
     try {
       fileContent = myServiceLocator.getSingletonService(VcsManager.class).getFileContent(build, fileName);
@@ -315,7 +318,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/related-issues/")
   @Produces({"application/xml", "application/json"})
   public IssueUsages serveBuildRelatedIssues(@PathParam("buildLocator") String buildLocator) {
-    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
     return new IssueUsages(build.getRelatedIssues(), build, myApiUrlBuilder, myFactory);
   }
 
@@ -325,16 +328,16 @@ public class BuildRequest {
   @Produces("text/plain")
   public String serveBuildFieldByBuildOnly(@PathParam("buildLocator") String buildLocator,
                                            @PathParam("field") String field) {
-    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
 
-    return myDataProvider.getFieldValue(build, field);
+    return Build.getFieldValue(build, field);
   }
 
   @GET
   @Path("/{buildLocator}/statistics/")
   @Produces({"application/xml", "application/json"})
   public Properties serveBuildStatisticValues(@PathParam("buildLocator") String buildLocator) {
-    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
     return new Properties(getBuildStatisticsValues(build));
   }
 
@@ -343,7 +346,7 @@ public class BuildRequest {
   @Produces("text/plain")
   public String serveBuildStatisticValue(@PathParam("buildLocator") String buildLocator,
                                          @PathParam("name") String statisticValueName) {
-    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
 
     return getBuildStatisticValue(build, statisticValueName);
   }
@@ -365,7 +368,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/tags/")
   @Produces({"application/xml", "application/json"})
   public Tags serveTags(@PathParam("buildLocator") String buildLocator) {
-    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
     return new Tags(build.getTags());
   }
 
@@ -423,7 +426,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
   public void replaceTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
-    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
     build.setTags(SessionUser.getUser(request), tags.tags);
   }
 
@@ -436,7 +439,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
   public void addTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
-    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final List<String> resultingTags = build.getTags();
     resultingTags.addAll(tags.tags);
     build.setTags(SessionUser.getUser(request), resultingTags);
@@ -467,7 +470,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/pin/")
   @Produces({"text/plain"})
   public String getPinned(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
-    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
     return Boolean.toString(build.isPinned());
   }
 
@@ -480,7 +483,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/pin/")
   @Consumes({"text/plain"})
   public void pinBuild(@PathParam("buildLocator") String buildLocator, String comment, @Context HttpServletRequest request) {
-    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
     if (!build.isFinished()) {
       throw new BadRequestException("Cannot pin build that is not finished.");
     }
@@ -497,7 +500,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/pin/")
   @Consumes({"text/plain"})
   public void unpinBuild(@PathParam("buildLocator") String buildLocator, String comment, @Context HttpServletRequest request) {
-    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
     if (!build.isFinished()) {
       throw new BadRequestException("Cannot unpin build that is not finished.");
     }
@@ -509,14 +512,14 @@ public class BuildRequest {
   @Path("/{buildLocator}/comment")
   @Consumes({"text/plain"})
   public void replaceComment(@PathParam("buildLocator") String buildLocator, String text, @Context HttpServletRequest request) {
-    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
     build.setBuildComment(SessionUser.getUser(request), text);
   }
 
   @DELETE
   @Path("/{buildLocator}/comment")
   public void deleteComment(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
-    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
     build.setBuildComment(SessionUser.getUser(request), null);
   }
 
@@ -527,7 +530,7 @@ public class BuildRequest {
    * May not work for non-personal builds: http://youtrack.jetbrains.net/issue/TW-9858
    */
   public void deleteBuild(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
-    SBuild build = myDataProvider.getBuild(null, buildLocator);
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
 
     final SUser user = SessionUser.getUser(request);  //todo: support "run as system" case
     // workaround for http://youtrack.jetbrains.net/issue/TW-10538
@@ -592,7 +595,7 @@ public class BuildRequest {
       try {
         securityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
           public void run() throws Throwable {
-            SBuild build = myDataProvider.getBuild(null, buildLocator);
+            SBuild build = myBuildFinder.getBuild(null, buildLocator);
             holderHasPermission[0] = hasPermissionsToViewStatus(build, currentUserAuthorityHolder);
             holderFinished[0] = build.isFinished();
             holderSuccessful[0] = build.getStatusDescriptor().isSuccessful();

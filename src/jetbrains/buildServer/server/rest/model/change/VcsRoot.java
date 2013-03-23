@@ -26,6 +26,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -180,7 +181,11 @@ public class VcsRoot {
     throw new NotFoundException("Field '" + field + "' is not supported. Supported are: id, name, vcsName, shared, projectId, modificationCheckInterval");
   }
 
-  public static void setFieldValue(final SVcsRoot vcsRoot, final String field, final String newValue, final DataProvider dataProvider) {
+  public static void setFieldValue(@NotNull final SVcsRoot vcsRoot,
+                                   @Nullable final String field,
+                                   @Nullable final String newValue,
+                                   @NotNull final DataProvider dataProvider,
+                                   @NotNull final ProjectFinder projectFinder) {
     if ("name".equals(field)) {
       updateVCSRoot(vcsRoot, null, newValue, dataProvider.getVcsManager());
       return;
@@ -215,7 +220,7 @@ public class VcsRoot {
       }
       throw new BadRequestException("Setting field 'defaultModificationCheckIntervalInUse' to false is not supported, set modificationCheckInterval instead.");
     } else if ("projectId".equals(field) || "project".equals(field)) { //project locator is acually supported, "projectId" is preserved for compatibility with previous versions
-      dataProvider.getVcsManager().setVcsRootScope(vcsRoot.getId(), VcsRootScope.projectScope(dataProvider.getProject(newValue)));
+      dataProvider.getVcsManager().setVcsRootScope(vcsRoot.getId(), VcsRootScope.projectScope(projectFinder.getProject(newValue)));
       return;
     }
 

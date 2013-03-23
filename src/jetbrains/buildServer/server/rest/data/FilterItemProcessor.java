@@ -7,7 +7,7 @@ import jetbrains.buildServer.util.ItemProcessor;
 * @author Yegor.Yarko
 *         Date: 13.09.2010
 */
-class FilterItemProcessor<T> implements ItemProcessor<T> {
+public class FilterItemProcessor<T> implements ItemProcessor<T> {
   private long myCurrentIndex = 0;
   private final AbstractFilter<T> myFilter;
   private final ArrayList<T> myList = new ArrayList<T>();

@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.BuildTypeDescriptor;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
@@ -125,7 +125,7 @@ public class BuildTypeUtil {
   }
 
   // see also VCSRootRequest.getProjectLocator
-  public static SVcsRoot getVcsRoot(final VcsRootEntry description, DataProvider dataProvider) {
+  public static SVcsRoot getVcsRoot(final VcsRootEntry description, VcsRootFinder vcsRootFinder) {
       if (description.vcsRootRef == null){
         throw new BadRequestException("Element vcs-root should be specified.");
       }
@@ -133,7 +133,7 @@ public class BuildTypeUtil {
       if (StringUtil.isEmpty(vcsRootId)){
         throw new BadRequestException("Element vcs-root should have id attribute with valid VCS root id.");
       }
-      return dataProvider.getVcsRoot("id:" + vcsRootId);
+      return vcsRootFinder.getVcsRoot("id:" + vcsRootId);
   }
 
   public static String getLastPathPart(final String vcsRootHref) {

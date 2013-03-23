@@ -16,10 +16,16 @@
 
 package jetbrains.buildServer.server.rest.model.build;
 
+import java.util.*;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.issueTracker.Issue;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -37,13 +43,8 @@ import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
-import java.util.*;
 
 /**
  * User: Yegor Yarko
@@ -301,5 +302,37 @@ public class Build {
       final int buildTypesCompare = o1.getBuildTypeId().compareTo(o2.getBuildTypeId());
       return buildTypesCompare != 0 ? buildTypesCompare : (int)(o1.getId() - o2.getId());
     }
+  }
+
+  @Nullable
+  public static String getFieldValue(@NotNull final SBuild build, @Nullable final String field) {
+    if ("number".equals(field)) {
+      return build.getBuildNumber();
+    } else if ("status".equals(field)) {
+      return build.getStatusDescriptor().getStatus().getText();
+    } else if ("id".equals(field)) {
+      return (new Long(build.getBuildId())).toString();
+    } else if ("startDate".equals(field)) {
+      return Util.formatTime(build.getStartDate());
+    } else if ("finishDate".equals(field)) {
+      return Util.formatTime(build.getFinishDate());
+    } else if ("buildTypeId".equals(field)) {
+      return (build.getBuildTypeId());
+    } else if ("branchName".equals(field)) {
+      Branch branch = build.getBranch();
+      return branch == null ? "" : branch.getDisplayName();
+    } else if ("branch".equals(field)) {
+      Branch branch = build.getBranch();
+      return branch == null ? "" : branch.getName();
+    } else if ("defaultBranch".equals(field)) {
+      Branch branch = build.getBranch();
+      return branch == null ? "" : String.valueOf(branch.isDefaultBranch());
+    } else if ("unspecifiedBranch".equals(field)) {
+      Branch branch = build.getBranch();
+      return branch == null ? "" : String.valueOf(Branch.UNSPECIFIED_BRANCH_NAME.equals(branch.getName()));
+    } else if ("promotionId".equals(field)) { //this is not exposed in any other way
+      return (String.valueOf(build.getBuildPromotion().getId()));
+    }
+    throw new NotFoundException("Field '" + field + "' is not supported.");
   }
 }
