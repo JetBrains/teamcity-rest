@@ -22,8 +22,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.ChangesFilter;
-import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.change.Change;
 import jetbrains.buildServer.server.rest.model.change.Changes;
@@ -33,16 +32,18 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModification;
+import org.jetbrains.annotations.NotNull;
 
 @Path(ChangeRequest.API_CHANGES_URL)
 public class ChangeRequest {
   public static final String API_CHANGES_URL = Constants.API_URL + "/changes";
-  @Context
-  private DataProvider myDataProvider;
-  @Context
-  private ApiUrlBuilder myApiUrlBuilder;
-  @Context
-  private BeanFactory myFactory;
+  @Context @NotNull private DataProvider myDataProvider;
+  @Context @NotNull private BuildFinder myBuildFinder;
+  @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
+  @Context @NotNull private ProjectFinder myProjectFinder;
+  @Context @NotNull private VcsRootFinder myVcsRootFinder;
+  @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
+  @Context @NotNull private BeanFactory myFactory;
 
   public static String getChangeHref(VcsModification modification) {
     return API_CHANGES_URL + "/id:" + modification.getId() + (modification.isPersonal() ? ",personal:true" : "");
@@ -52,7 +53,8 @@ public class ChangeRequest {
     return API_CHANGES_URL + "?build=id:" + build.getBuildId();
   }
 
-  //todo: use locator here, like for builds with limitLookup, etc.
+  //todo: use locator here, like for builds with limitLookup, changes from dependencies falg, etc.
+  //todo: mark changes from dependencies
   @GET
   @Produces({"application/xml", "application/json"})
   public Changes serveChanges(@QueryParam("project") String projectLocator,
@@ -65,13 +67,13 @@ public class ChangeRequest {
                               @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     List<SVcsModification> buildModifications;
 
-    final SProject project = myDataProvider.getProjectIfNotNull(projectLocator);
-    final SBuildType buildType = myDataProvider.getBuildTypeIfNotNull(buildTypeLocator);
+    final SProject project = myProjectFinder.getProjectIfNotNull(projectLocator);
+    final SBuildType buildType = myBuildTypeFinder.getBuildTypeIfNotNull(buildTypeLocator);
     buildModifications = myDataProvider.getModifications(
       new ChangesFilter(project,
                         buildType,
-                        myDataProvider.getBuildIfNotNull(buildType, buildLocator),
-                        myDataProvider.getVcsRootInstanceIfNotNull(vcsRootLocator),
+                        myBuildFinder.getBuildIfNotNull(buildType, buildLocator),
+                        vcsRootLocator == null ? null : myVcsRootFinder.getVcsRootInstance(vcsRootLocator),
                         myDataProvider.getChangeIfNotNull(sinceChangeLocator),
                         start,
                         count));
