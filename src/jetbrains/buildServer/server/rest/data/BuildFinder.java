@@ -50,46 +50,48 @@ public class BuildFinder {
                                     final String sinceDate,
                                     final Long start,
                                     final Integer count,
-                                    final Locator locator,
+                                    final String locatorText,
+                                    final String locatorParameterName,
                                     final UriInfo uriInfo,
                                     final HttpServletRequest request,
                                     final ApiUrlBuilder apiUrlBuilder) {
     BuildsFilter buildsFilter;
-    if (locator != null) {
+    if (locatorText != null) {
+      Locator locator = new Locator(locatorText);
       buildsFilter = getBuildsFilter(locator, buildType);
       locator.checkLocatorFullyProcessed();
+      // override start and count only if set in URL query parameters and not set in locator
+      if (start != null && buildsFilter.getStart() == null) {
+        buildsFilter.setStart(start);
+      }
+      if (count != null && buildsFilter.getCount() == null) {
+        buildsFilter.setCount(count);
+      }
     } else {
       // preserve 5.0 logic for personal/canceled/pinned builds
       //todo: this also changes defaults for request without locator, see http://youtrack.jetbrains.com/issue/TW-25778
       buildsFilter = new GenericBuildsFilter(buildType,
-                                      status, null,
-                                      myUserFinder.getUserIfNotNull(userLocator),
-                                      includePersonal ? null : false, includeCanceled ? null : false,
-                                      false, onlyPinned ? true : null, tags, null, agentName,
-                                      null, getRangeLimit(buildType, sinceBuildLocator, DataProvider.parseDate(sinceDate)),
-                                      null,
-                                      start, count, null);
+                                             status, null,
+                                             myUserFinder.getUserIfNotNull(userLocator),
+                                             includePersonal ? null : false, includeCanceled ? null : false,
+                                             false, onlyPinned ? true : null, tags, new BranchMatcher(null), agentName,
+                                             null, getRangeLimit(buildType, sinceBuildLocator, DataProvider.parseDate(sinceDate)),
+                                             null,
+                                             start, count, null);
     }
 
-    // override start and count if set in URL query parameters
-    if (start != null){
-      buildsFilter.setStart(start);
-    }
-
-    if (count != null){
-      buildsFilter.setCount(count);
-    }else{
-      final Integer c = buildsFilter.getCount();
-      if (c != null){
-        buildsFilter.setCount(c != -1 ? c : null);
-      }else{
-        buildsFilter.setCount(jetbrains.buildServer.server.rest.request.Constants.DEFAULT_PAGE_ITEMS_COUNT_INT);
-      }
+    final Integer c = buildsFilter.getCount();
+    if (c != null) {
+      buildsFilter.setCount(c != -1 ? c : null);
+    } else {
+      buildsFilter.setCount(jetbrains.buildServer.server.rest.request.Constants.DEFAULT_PAGE_ITEMS_COUNT_INT);
     }
 
     final List<SBuild> buildsList = getBuilds(buildsFilter);
-    return new Builds(buildsList, myDataProvider, new PagerData(uriInfo.getRequestUriBuilder(), request, buildsFilter.getStart(), buildsFilter.getCount(), buildsList.size()),
-                      apiUrlBuilder);
+    return new Builds(buildsList, myDataProvider,
+                      new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), buildsFilter.getStart(),
+                                    buildsFilter.getCount(), buildsList.size(), (locatorText != null ? locatorText : null),
+                                    locatorParameterName), apiUrlBuilder);
   }
 
   /**
@@ -224,7 +226,7 @@ public class BuildFinder {
       tagsList = Arrays.asList(tagsString.split(","));
     }
 
-    final Long count = buildLocator.getSingleDimensionValueAsLong("count");
+    final Long count = buildLocator.getSingleDimensionValueAsLong(PagerData.COUNT);
 
     BranchMatcher branchMatcher;
     final String branchLocatorValue = buildLocator.getSingleDimensionValue("branch");
@@ -250,7 +252,7 @@ public class BuildFinder {
                                           DataProvider.parseDate(buildLocator.getSingleDimensionValue("sinceDate"))),
                             getRangeLimit(actualBuildType, buildLocator.getSingleDimensionValue("untilBuild"),
                                           DataProvider.parseDate(buildLocator.getSingleDimensionValue("untilDate"))),
-                            buildLocator.getSingleDimensionValueAsLong("start"),
+                            buildLocator.getSingleDimensionValueAsLong(PagerData.START),
                             count == null?null:count.intValue(),
                             buildLocator.getSingleDimensionValueAsLong("lookupLimit")
     );

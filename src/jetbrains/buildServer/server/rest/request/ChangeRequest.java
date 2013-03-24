@@ -79,7 +79,8 @@ public class ChangeRequest {
                         count));
 
     return new Changes(buildModifications,
-                       new PagerData(uriInfo.getRequestUriBuilder(), request, start, count, buildModifications.size()),
+                       new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), start, count, buildModifications.size(),
+                                     null, null),
                        myApiUrlBuilder, myFactory);
   }
 

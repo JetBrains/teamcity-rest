@@ -1059,12 +1059,12 @@ public class BuildTypeRequest {
                             @QueryParam("sinceDate") String sinceDate,
                             @QueryParam("start") Long start,
                             @QueryParam("count") Integer count,
-                            @QueryParam("locator") Locator locator,
+                            @QueryParam("locator") String locator,
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
 
     return myBuildFinder.getBuildsForRequest(buildType, status, userLocator, includePersonal, includeCanceled, onlyPinned, tags, agentName,
-                                           sinceBuildLocator, sinceDate, start, count, locator, uriInfo, request, myApiUrlBuilder
+                                           sinceBuildLocator, sinceDate, start, count, locator, "locator", uriInfo, request, myApiUrlBuilder
     );
   }
 

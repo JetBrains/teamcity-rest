@@ -5,6 +5,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.StringUtil;
@@ -249,5 +251,24 @@ public class Locator {
       return myUnusedDimensions;
     }
     return Collections.singleton(LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+  }
+
+  /**
+   *  Returns a locator based on the supplied one replacing the numeric value of the dimention specified with the passed number.
+   *  Only a limited subset of locators is supported (e.g. no brackets)
+   * @param locator existing locator, should be valid!
+   * @param dimensionName only alpha-numeric characters are supported! Only numeric vaues withour brackets are supported!
+   * @param value new value for the dimention, only alpha-numeric characters are supported!
+   * @return
+   */
+  public static String setDimension(final String locator, final String dimensionName, final long value) {
+    final Matcher matcher = Pattern.compile(dimensionName + DIMENSION_NAME_VALUE_DELIMITER + "\\d+").matcher(locator);
+    String result = matcher.replaceFirst(dimensionName + DIMENSION_NAME_VALUE_DELIMITER + Long.toString(value));
+    try {
+      matcher.end();
+    } catch (IllegalStateException e) {
+      result = locator + DIMENSIONS_DELIMITER + dimensionName + DIMENSION_NAME_VALUE_DELIMITER + Long.toString(value);
+    }
+    return result;
   }
 }

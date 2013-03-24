@@ -23,7 +23,10 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.BuildFinder;
+import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
+import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.CopyOptionsDescription;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -392,13 +395,13 @@ public class ProjectRequest {
                             @QueryParam("sinceDate") String sinceDate,
                             @QueryParam("start") Long start,
                             @QueryParam("count") Integer count,
-                            @QueryParam("locator") Locator locator,
+                            @QueryParam("locator") String locator,
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(myProjectFinder.getProject(projectLocator
     ),
                                                           buildTypeLocator);
     return myBuildFinder.getBuildsForRequest(buildType, status, userLocator, includePersonal, includeCanceled, onlyPinned, tags, agentName,
-                                           sinceBuildLocator, sinceDate, start, count, locator, uriInfo, request, myApiUrlBuilder
+                                           sinceBuildLocator, sinceDate, start, count, locator, "locator", uriInfo, request, myApiUrlBuilder
     );
   }
 

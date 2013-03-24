@@ -16,9 +16,10 @@
 
 package jetbrains.buildServer.server.rest.model;
 
+import com.intellij.openapi.util.text.StringUtil;
 import java.net.URI;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.UriBuilder;
+import jetbrains.buildServer.server.rest.data.Locator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,6 +33,8 @@ import org.jetbrains.annotations.Nullable;
  */
 public class PagerData {
 
+  public static final String START = "start";
+  public static final String COUNT = "count";
   @Nullable
   private URI myNextHref;
   @Nullable
@@ -43,44 +46,56 @@ public class PagerData {
 
   /**
    * @param uriBuilder           UriBuilder for the current Url
-   * @param request              Request in the scope of which the pagerData will be used
    * @param start                number of the starting item on the current page
    * @param count                count of the items on a page
    * @param currentPageRealCount number of items on the current page
+   * @param locatorText          if specified, 'locatorQueryParameterName' should also be specified, replaces/adds start/count in the locator query parameter instead of the URL query parameters
+   * @param locatorQueryParameterName
    */
   public PagerData(@NotNull final UriBuilder uriBuilder,
-                   @NotNull final HttpServletRequest request,
+                   @NotNull final String contextPath,
                    @Nullable final Long start,
                    @Nullable final Integer count,
-                   long currentPageRealCount) {
-    //todo: set start and count in locator, if specified
-    myContextPath = request.getContextPath();
+                   long currentPageRealCount,
+                   @Nullable final String locatorText, @Nullable final String locatorQueryParameterName) {
+    myContextPath = contextPath;
     if (start == null || start == 0) {
       myPrevHref = null;
       if (count == null || currentPageRealCount < count) {
         myNextHref = null;
       } else {
-        myNextHref = uriBuilder.replaceQueryParam("start", 0 + count).replaceQueryParam("count", count).build();
+        myNextHref = getModifiedHref(uriBuilder, 0 + count, count, locatorText, locatorQueryParameterName);
       }
     } else {
       if (count == null) {
         myNextHref = null;
 
-        myPrevHref = uriBuilder.replaceQueryParam("start", 0).replaceQueryParam("count", start).build();
+        myPrevHref = getModifiedHref(uriBuilder, 0, start, locatorText, locatorQueryParameterName);
       } else {
         if (currentPageRealCount < count) {
           myNextHref = null;
         } else {
-          myNextHref = uriBuilder.replaceQueryParam("start", start + count).replaceQueryParam("count", count).build();
+          myNextHref = getModifiedHref(uriBuilder, start + count, count, locatorText, locatorQueryParameterName);
         }
         final long itemsFromStart = start - count;
         if (itemsFromStart < 0) {
-          myPrevHref = uriBuilder.replaceQueryParam("start", 0).replaceQueryParam("count", start).build();
+          myPrevHref = getModifiedHref(uriBuilder, 0, start, locatorText, locatorQueryParameterName);
         } else {
-          myPrevHref = uriBuilder.replaceQueryParam("start", itemsFromStart).replaceQueryParam("count", count).build();
+          myPrevHref = getModifiedHref(uriBuilder, itemsFromStart, count, locatorText, locatorQueryParameterName);
         }
       }
     }
+  }
+
+  private URI getModifiedHref(@NotNull final UriBuilder uriBuilder, final long start, final long count,
+                              @Nullable final String locatorText, @Nullable final String locatorQueryParameterName) {
+    if (StringUtil.isEmpty(locatorText) || StringUtil.isEmpty(locatorQueryParameterName)) {
+      return uriBuilder.replaceQueryParam(START, start).replaceQueryParam(COUNT, count).build();
+    }
+    assert locatorText != null;
+
+    String newLocator = Locator.setDimension(Locator.setDimension(locatorText, START, start), COUNT, count);
+    return uriBuilder.replaceQueryParam(locatorQueryParameterName, newLocator).build();
   }
 
   @Nullable

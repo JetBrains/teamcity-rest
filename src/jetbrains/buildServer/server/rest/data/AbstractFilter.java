@@ -56,4 +56,14 @@ public abstract class AbstractFilter<T> {
   public boolean shouldStop(final T item) {
     return false;
   }
+
+  @Nullable
+  public Long getStart() {
+    return myStart;
+  }
+
+  @Nullable
+  public Integer getCount() {
+    return myCount;
+  }
 }

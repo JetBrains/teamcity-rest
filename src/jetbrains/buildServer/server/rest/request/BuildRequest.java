@@ -28,7 +28,6 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildFinder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -136,11 +135,11 @@ public class BuildRequest {
                                @QueryParam("sinceDate") String sinceDate,
                                @QueryParam("start") Long start,
                                @QueryParam("count") Integer count,
-                               @QueryParam("locator") Locator locator,
+                               @QueryParam("locator") String locator,
                                @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     return myBuildFinder.getBuildsForRequest(myBuildTypeFinder.getBuildTypeIfNotNull(buildTypeLocator), status, userLocator, includePersonal,
                                            includeCanceled, onlyPinned, tags, agentName, sinceBuildLocator, sinceDate, start, count,
-                                           locator, uriInfo, request, myApiUrlBuilder
+                                           locator, "locator", uriInfo, request, myApiUrlBuilder
     );
   }
 
