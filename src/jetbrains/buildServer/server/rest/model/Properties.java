@@ -55,7 +55,7 @@ public class Properties {
     }
   }
 
-  private boolean isPropertyToExclude(@NotNull final String key) {
+  public static boolean isPropertyToExclude(@NotNull final String key) {
     //todo: openAPI (TeamCity) or should jetbrains.buildServer.agent.Constants.SECURE_PROPERTY_PREFIX be used here?
     return key.startsWith(SVcsRoot.SECURE_PROPERTY_PREFIX) && !TeamCityProperties.getBoolean("rest.listSecureProperties");
   }
