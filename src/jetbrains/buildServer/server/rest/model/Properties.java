@@ -55,7 +55,7 @@ public class Properties {
     }
   }
 
-  private boolean isPropertyToExclude(@NotNull final String key) {
+  public static boolean isPropertyToExclude(@NotNull final String key) {
     return key.startsWith(SVcsRoot.SECURE_PROPERTY_PREFIX) && !TeamCityProperties.getBoolean("rest.listSecureProperties");
   }
 

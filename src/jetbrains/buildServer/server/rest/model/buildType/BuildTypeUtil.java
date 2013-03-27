@@ -25,6 +25,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeOptions;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
@@ -147,9 +148,13 @@ public class BuildTypeUtil {
 
     Map<String, String> parameters = parametrizedEntity.getParameters();
     if (parameters.containsKey(parameterName)) {
-      //TODO: need to process spec type to filter secure fields, may be include display value
-      //TODO: might support type spec here
-      return parameters.get(parameterName);
+      if (!Properties.isPropertyToExclude(parameterName)) {
+        //TODO: need to process spec type to filter secure fields, may be include display value
+        //TODO: might support type spec here
+        return parameters.get(parameterName);
+      }else{
+        throw new BadRequestException("Secure parameters cannot be retrieved via remote API by default.");
+      }
     }
     throw new NotFoundException("No parameter with name '" + parameterName + "' is found.");
   }
