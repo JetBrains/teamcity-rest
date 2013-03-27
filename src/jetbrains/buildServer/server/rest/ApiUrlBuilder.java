@@ -92,7 +92,7 @@ public class ApiUrlBuilder {
   }
 
   public String getHref(final VcsRootInstance root) {
-    return myPathTransformer.transform(VcsRootInstancesRequest.getVcsRootInstanceHref(root));  //todo use    VcsRootInstancesRequest
+    return myPathTransformer.transform(VcsRootInstancesRequest.getVcsRootInstanceHref(root));
   }
 
   public String getGlobalWadlHref() {

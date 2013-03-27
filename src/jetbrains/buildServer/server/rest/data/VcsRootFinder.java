@@ -67,41 +67,6 @@ public class VcsRootFinder{
     return vcsRoots.myEntries.get(0);
   }
 
-  private SVcsRoot getVcsRootByLocator(@NotNull final Locator locator, @NotNull final String vcsRootLocatorForMessage) {
-    //todo: Support generic which returns only one value, the same for vcs root instances
-    if (locator.isSingleValue()) {
-      // no dimensions found, assume it's root id
-      @SuppressWarnings("ConstantConditions") SVcsRoot root = myVcsManager.findRootById(locator.getSingleValueAsLong());
-      if (root == null) {
-        throw new NotFoundException("No root can be found by id '" + vcsRootLocatorForMessage + "'.");
-      }
-      return root;
-    }
-
-    Long rootId = locator.getSingleDimensionValueAsLong("id");
-    if (rootId != null){
-      SVcsRoot root = myVcsManager.findRootById(rootId);
-      if (root == null) {
-        throw new NotFoundException("No root can be found by id '" + vcsRootLocatorForMessage + "'.");
-      }
-      return root;
-    }
-
-    String rootName = locator.getSingleDimensionValue("name");
-    if (rootName != null) {
-      SVcsRoot root = myVcsManager.findRootByName(rootName);
-      if (root == null) {
-        throw new NotFoundException("No root can be found by name '" + rootName + "'.");
-      }
-      if (locator.getDimensionsCount() > 1) {
-        LOG.info("VCS root locator '" + vcsRootLocatorForMessage + "' has 'name' dimension and others. Others are ignored.");
-      }
-      return root;
-    }
-
-    throw new NotFoundException("VCS root locator '" + vcsRootLocatorForMessage + "' is not supported.");
-  }
-
   public PagedSearchResult<SVcsRoot> getVcsRoots(@Nullable final Locator locator) {
     if (locator == null) {
       return new PagedSearchResult<SVcsRoot>(myVcsManager.getAllRegisteredVcsRoots(), null, null);
