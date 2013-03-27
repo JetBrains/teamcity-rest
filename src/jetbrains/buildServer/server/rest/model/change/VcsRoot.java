@@ -16,10 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.change;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -28,6 +25,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
@@ -35,10 +33,10 @@ import jetbrains.buildServer.server.rest.model.project.ProjectRef;
 import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.serverSide.UserParametersHolder;
-import jetbrains.buildServer.vcs.SVcsRoot;
-import jetbrains.buildServer.vcs.VcsManager;
-import jetbrains.buildServer.vcs.VcsRootScope;
-import jetbrains.buildServer.vcs.VcsRootStatus;
+import jetbrains.buildServer.vcs.*;
+import jetbrains.vcs.api.VcsSettings;
+import jetbrains.vcs.api.services.tc.MappingGeneratorService;
+import jetbrains.vcs.api.services.tc.VcsMappingElement;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -177,6 +175,12 @@ public class VcsRoot {
       return String.valueOf(vcsRoot.getModificationCheckInterval());
     } else if ("defaultModificationCheckIntervalInUse".equals(field)) { //Not documented
       return String.valueOf(vcsRoot.isUseDefaultModificationCheckInterval());
+    } else if ("repositoryMappings".equals(field)) { //Not documented
+      try {
+        return String.valueOf(getRepositoryMappings(vcsRoot, dataProvider.getVcsManager()));
+      } catch (VcsException e) {
+        throw new InvalidStateException("Error retrieving mapping", e);
+      }
     }
     throw new NotFoundException("Field '" + field + "' is not supported. Supported are: id, name, vcsName, shared, projectId, modificationCheckInterval");
   }
@@ -225,6 +229,16 @@ public class VcsRoot {
     }
 
     throw new NotFoundException("Setting field '" + field + "' is not supported. Supported are: name, shared, project, modificationCheckInterval");
+  }
+
+  public static Collection<VcsMappingElement> getRepositoryMappings(@NotNull final SVcsRoot root, @NotNull final VcsManager vcsManager) throws VcsException {
+    final VcsSettings vcsSettings = root.createVcsSettings(CheckoutRules.DEFAULT);
+    final MappingGeneratorService mappingGenerator = vcsManager.getVcsService(vcsSettings, MappingGeneratorService.class);
+
+    if (mappingGenerator == null) {
+      return Collections.EMPTY_LIST;
+    }
+    return mappingGenerator.generateMapping();
   }
 }
 

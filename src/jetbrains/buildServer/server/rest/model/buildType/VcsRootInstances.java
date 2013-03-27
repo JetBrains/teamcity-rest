@@ -19,13 +19,16 @@ package jetbrains.buildServer.server.rest.model.buildType;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.change.VcsRootInstanceRef;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -37,13 +40,31 @@ public class VcsRootInstances {
   @XmlElement(name = "vcs-root-instance")
   public List<VcsRootInstanceRef> vcsRoots;
 
+  @XmlAttribute
+  public long count;
+
+  @XmlAttribute(required = false)
+  @Nullable
+  public String nextHref;
+
+  @XmlAttribute(required = false)
+  @Nullable
+  public String prevHref;
+
   public VcsRootInstances() {
   }
 
-  public VcsRootInstances(final Collection<VcsRootInstance> serverVcsRoots, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public VcsRootInstances(@NotNull final Collection<VcsRootInstance> serverVcsRoots,
+                  @Nullable final PagerData pagerData,
+                  @NotNull final ApiUrlBuilder apiUrlBuilder) {
     vcsRoots = new ArrayList<VcsRootInstanceRef>(serverVcsRoots.size());
     for (VcsRootInstance root : serverVcsRoots) {
       vcsRoots.add(new VcsRootInstanceRef(root, apiUrlBuilder));
     }
+    if (pagerData != null) {
+      nextHref = pagerData.getNextHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;
+      prevHref = pagerData.getPrevHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getPrevHref()) : null;
+    }
+    count = vcsRoots.size();
   }
 }

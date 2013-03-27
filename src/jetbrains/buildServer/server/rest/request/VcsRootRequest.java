@@ -19,14 +19,15 @@ package jetbrains.buildServer.server.rest.request;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.data.ProjectFinder;
-import jetbrains.buildServer.server.rest.data.VcsRootFinder;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
@@ -59,14 +60,15 @@ public class VcsRootRequest {
     return API_VCS_ROOTS_URL + "/id:" + root.getId();
   }
 
-  public static String getVcsRootInstanceHref(final jetbrains.buildServer.vcs.VcsRootInstance vcsRootInstance) {
-    return API_VCS_ROOTS_URL + "/id:" + vcsRootInstance.getParentId() + "/instances/id:" + vcsRootInstance.getId();
-  }
-
   @GET
   @Produces({"application/xml", "application/json"})
-  public VcsRoots serveRoots() {
-    return new VcsRoots(myDataProvider.getAllVcsRoots(), myApiUrlBuilder);
+  public VcsRoots serveRoots(@QueryParam("locator") String locatorText, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+    final PagedSearchResult<SVcsRoot> vcsRoots = myVcsRootFinder.getVcsRoots(locatorText != null ? new Locator(locatorText) : null);
+    return new VcsRoots(vcsRoots.myEntries,
+                        new PagerData(uriInfo.getRequestUriBuilder(),
+                                      request.getContextPath(), vcsRoots.myStart, vcsRoots.myCount, vcsRoots.myEntries.size(), locatorText,
+                                      "locator"),
+                        myApiUrlBuilder);
   }
 
   @POST
@@ -84,48 +86,7 @@ public class VcsRootRequest {
     return new VcsRoot(newVcsRoot, myDataProvider, myApiUrlBuilder);
   }
 
-  private void checkVcsRootDescription(final VcsRoot description) {
-    //might need to check for validity: not specified id, status, lastChecked attributes, etc.
-    if (StringUtil.isEmpty(description.vcsName)) {
-      //todo: include list of available supports here
-      throw new BadRequestException("Attribute 'vcsName' must be specified when creating VCS root. Should be a valid VCS support name.");
-    }
-    if (description.properties == null) {
-      throw new BadRequestException("Element 'properties' must be specified when creating VCS root.");
-    }
-  }
-
-  @NotNull
-  private VcsRootScope createScope(final VcsRoot vcsRootDescription) {
-    if (vcsRootDescription.shared != null && vcsRootDescription.shared){
-      if (vcsRootDescription.project != null){
-        throw new BadRequestException("Project should not be specified if the VCS root is shared.");
-      }
-      return VcsRootScope.globalScope();
-    }else{
-      return VcsRootScope.projectScope(myProjectFinder.getProject(getProjectLocator(vcsRootDescription)
-      ));
-    }
-  }
-
-  // see also BuildTypeUtil.getVcsRoot
-  private String getProjectLocator(final VcsRoot description) {
-    if (!StringUtil.isEmpty(description.projectLocator)){
-      if (description.project != null){
-        throw new BadRequestException("Only one from projectLocator attribute and project element should be specified.");
-      }
-      return description.projectLocator;
-    }else{
-      if (description.project == null){
-        throw new BadRequestException("Either projectLocator attribute or project element should be specified.");
-      }
-      final String projectHref = description.project.href;
-      if (StringUtil.isEmpty(projectHref)){
-        throw new BadRequestException("project element should have valid href attribute.");
-      }
-      return BuildTypeUtil.getLastPathPart(projectHref);
-    }  }
-
+  public static final String INSTANCES_PATH = "instances";
 
   @GET
   @Path("/{vcsRootLocator}")
@@ -144,7 +105,7 @@ public class VcsRootRequest {
   }
 
   @GET
-  @Path("/{vcsRootLocator}/instances")
+  @Path("/{vcsRootLocator}/" + INSTANCES_PATH)
   @Produces({"application/xml", "application/json"})
   public VcsRootInstances serveRootInstances(@PathParam("vcsRootLocator") String vcsRootLocator) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
@@ -158,11 +119,16 @@ public class VcsRootRequest {
         result.add(rootInstance);
       }
     }
-    return new VcsRootInstances(result, myApiUrlBuilder);
+    return new VcsRootInstances(result, null, myApiUrlBuilder);
   }
 
+  /**
+   * @param vcsRootLocator this is effectively ignored as vcsRootInstanceLocator should specify instance fully
+   * @param vcsRootInstanceLocator
+   * @return
+   */
   @GET
-  @Path("/{vcsRootLocator}/instances/{vcsRootInstanceLocator}")
+  @Path("/{vcsRootLocator}/" + INSTANCES_PATH + "/{vcsRootInstanceLocator}")
   @Produces({"application/xml", "application/json"})
   public VcsRootInstance serveRootInstance(@PathParam("vcsRootLocator") String vcsRootLocator,
                                            @PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator) {
@@ -170,7 +136,7 @@ public class VcsRootRequest {
   }
 
   @GET
-  @Path("/{vcsRootLocator}/instances/{vcsRootInstanceLocator}/properties")
+  @Path("/{vcsRootLocator}/" + INSTANCES_PATH + "/{vcsRootInstanceLocator}/properties")
   @Produces({"application/xml", "application/json"})
   public Properties serveRootInstanceProperties(@PathParam("vcsRootLocator") String vcsRootLocator,
                                            @PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator) {
@@ -179,24 +145,22 @@ public class VcsRootRequest {
 
 
   @GET
-  @Path("/{vcsRootLocator}/instances/{vcsRootInstanceLocator}/{field}")
+  @Path("/{vcsRootLocator}/" + INSTANCES_PATH + "/{vcsRootInstanceLocator}/{field}")
   @Produces("text/plain")
   public String serveInstanceField(@PathParam("vcsRootLocator") String vcsRootLocator,
                                    @PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
                                    @PathParam("field") String fieldName) {
-    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator
-    );
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
     return VcsRootInstance.getFieldValue(rootInstance, fieldName, myDataProvider);
   }
 
   @PUT
-  @Path("/{vcsRootLocator}/instances/{vcsRootInstanceLocator}/{field}")
+  @Path("/{vcsRootLocator}/" + INSTANCES_PATH + "/{vcsRootInstanceLocator}/{field}")
   @Consumes("text/plain")
   public void setInstanceField(@PathParam("vcsRootLocator") String vcsRootLocator,
                                @PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
                                @PathParam("field") String fieldName, String newValue) {
-    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator
-    );
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
     VcsRootInstance.setFieldValue(rootInstance, fieldName, newValue, myDataProvider);
     myDataProvider.getVcsManager().persistVcsRoots();
   }
@@ -242,7 +206,8 @@ public class VcsRootRequest {
                                     @PathParam("name") String parameterName,
                                     String newValue) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
-    BuildTypeUtil.changeParameter(parameterName, newValue, VcsRoot.getUserParametersHolder(vcsRoot, myDataProvider.getVcsManager()), myServiceLocator);
+    BuildTypeUtil.changeParameter(parameterName, newValue, VcsRoot.getUserParametersHolder(vcsRoot, myDataProvider.getVcsManager()),
+                                  myServiceLocator);
     myDataProvider.getVcsManager().persistVcsRoots();
   }
 
@@ -273,4 +238,45 @@ public class VcsRootRequest {
     myDataProvider.getVcsManager().persistVcsRoots();
   }
 
+  private void checkVcsRootDescription(final VcsRoot description) {
+    //might need to check for validity: not specified id, status, lastChecked attributes, etc.
+    if (StringUtil.isEmpty(description.vcsName)) {
+      //todo: include list of available supports here
+      throw new BadRequestException("Attribute 'vcsName' must be specified when creating VCS root. Should be a valid VCS support name.");
+    }
+    if (description.properties == null) {
+      throw new BadRequestException("Element 'properties' must be specified when creating VCS root.");
+    }
+  }
+
+  @NotNull
+  private VcsRootScope createScope(final VcsRoot vcsRootDescription) {
+    if (vcsRootDescription.shared != null && vcsRootDescription.shared){
+      if (vcsRootDescription.project != null){
+        throw new BadRequestException("Project should not be specified if the VCS root is shared.");
+      }
+      return VcsRootScope.globalScope();
+    }else{
+      return VcsRootScope.projectScope(myProjectFinder.getProject(getProjectLocator(vcsRootDescription)
+      ));
+    }
+  }
+
+  // see also BuildTypeUtil.getVcsRoot
+  private String getProjectLocator(final VcsRoot description) {
+    if (!StringUtil.isEmpty(description.projectLocator)){
+      if (description.project != null){
+        throw new BadRequestException("Only one from projectLocator attribute and project element should be specified.");
+      }
+      return description.projectLocator;
+    }else{
+      if (description.project == null){
+        throw new BadRequestException("Either projectLocator attribute or project element should be specified.");
+      }
+      final String projectHref = description.project.href;
+      if (StringUtil.isEmpty(projectHref)){
+        throw new BadRequestException("project element should have valid href attribute.");
+      }
+      return BuildTypeUtil.getLastPathPart(projectHref);
+    }  }
 }

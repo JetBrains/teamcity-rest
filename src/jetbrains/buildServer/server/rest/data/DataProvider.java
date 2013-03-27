@@ -39,6 +39,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
+import jetbrains.buildServer.serverSide.impl.VcsModificationChecker;
 import jetbrains.buildServer.serverSide.statistics.ValueProviderRegistry;
 import jetbrains.buildServer.serverSide.statistics.build.BuildDataStorage;
 import jetbrains.buildServer.users.SUser;
@@ -46,9 +47,7 @@ import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsModification;
-import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsManager;
-import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -77,6 +76,7 @@ public class DataProvider {
   @NotNull private final ValueProviderRegistry myValueProviderRegistry;
   @NotNull private final BuildDataStorage myBuildDataStorage;
   @NotNull private final BuildPromotionManager myPromotionManager;
+  @NotNull private final VcsModificationChecker myVcsModificationChecker;
 
   public DataProvider(@NotNull final SBuildServer myServer,
                       @NotNull final BuildHistory myBuildHistory,
@@ -94,7 +94,8 @@ public class DataProvider {
                       @NotNull final RunningBuildsManager runningBuildsManager,
                       @NotNull final ValueProviderRegistry valueProviderRegistry,
                       @NotNull final BuildDataStorage buildDataStorage,
-                      @NotNull final BuildPromotionManager promotionManager
+                      @NotNull final BuildPromotionManager promotionManager,
+                      @NotNull final VcsModificationChecker vcsModificationChecker
   ) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
@@ -113,6 +114,7 @@ public class DataProvider {
     myValueProviderRegistry = valueProviderRegistry;
     myBuildDataStorage = buildDataStorage;
     myPromotionManager = promotionManager;
+    myVcsModificationChecker = vcsModificationChecker;
   }
 
   @Nullable
@@ -185,15 +187,6 @@ public class DataProvider {
     final Collection<User> result = new ArrayList<User>(serverUsers.size());
     for (SUser group : serverUsers) {
       result.add(group);
-    }
-    return result;
-  }
-
-  public Collection<VcsRoot> getAllVcsRoots() {
-    final Collection<SVcsRoot> serverVcsRoots = myVcsManager.getAllRegisteredVcsRoots();
-    final Collection<VcsRoot> result = new ArrayList<VcsRoot>(serverVcsRoots.size());
-    for (SVcsRoot root : serverVcsRoots) {
-      result.add(root);
     }
     return result;
   }
@@ -556,5 +549,10 @@ public class DataProvider {
   @NotNull
   public RunningBuildsManager getRunningBuildsManager() {
     return myRunningBuildsManager;
+  }
+
+  @NotNull
+  public VcsModificationChecker getVcsModificationChecker() {
+    return myVcsModificationChecker;
   }
 }

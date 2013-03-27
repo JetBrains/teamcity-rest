@@ -25,8 +25,13 @@ import java.util.List;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SQLRunner;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
@@ -36,6 +41,7 @@ import jetbrains.buildServer.serverSide.db.queries.QueryOptions;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.filters.Filter;
+import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -48,8 +54,9 @@ import org.jetbrains.annotations.Nullable;
 public class DebugRequest {
   public static final String REST_VALID_QUERY_PROPERTY_NAME = "rest.debug.allow.query.prefixes";
 
-  @Context private DataProvider myDataProvider;
-  @Context private ServiceLocator myServiceLocator;
+  @Context @NotNull private DataProvider myDataProvider;
+  @Context @NotNull private VcsRootFinder myVcsRootFinder;
+  @Context @NotNull private ServiceLocator myServiceLocator;
 
   //todo: in addition support text/csv for the response, also support json, make it List<Array<String>>
   //todo: consider requiring POST for write operations
@@ -87,6 +94,19 @@ public class DebugRequest {
       final int result = genericQuery.executeUpdate(sqlRunner);
       return String.valueOf(result);
     }
+  }
+
+  /**
+   * Experimental use only!
+   */
+  @POST
+  @Path("/vcsCheckingForChangesQueue")
+  @Produces({"application/xml", "application/json"})
+  public VcsRootInstances scheduleCheckingForChanges(@QueryParam("locator") Locator vcsRootInstancesLocator,
+                                                     @Context @NotNull ApiUrlBuilder apiUrlBuilder) {
+    final PagedSearchResult<VcsRootInstance> vcsRootInstances = myVcsRootFinder.getVcsRootInstances(vcsRootInstancesLocator);
+    myDataProvider.getVcsModificationChecker().forceCheckingFor(vcsRootInstances.myEntries);
+    return new VcsRootInstances(vcsRootInstances.myEntries, null, apiUrlBuilder);
   }
 
   private void checkQuery(final String query) {

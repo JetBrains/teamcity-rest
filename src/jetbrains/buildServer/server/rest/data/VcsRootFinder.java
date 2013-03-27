@@ -1,8 +1,15 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.TreeSet;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.serverSide.ProjectManager;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsManager;
@@ -17,23 +24,56 @@ import org.jetbrains.annotations.Nullable;
 public class VcsRootFinder{
   private static final Logger LOG = Logger.getInstance(VcsRootFinder.class.getName());
   @NotNull private final VcsManager myVcsManager;
+  @NotNull private final ProjectFinder myProjectFinder;
+  @NotNull private final BuildTypeFinder myBuildTypeFinder;
+  @NotNull private final ProjectManager myProjectManager;
 
-  public VcsRootFinder(@NotNull VcsManager vcsManager){
+  public VcsRootFinder(@NotNull VcsManager vcsManager,
+                       @NotNull ProjectFinder projectFinder,
+                       @NotNull BuildTypeFinder buildTypeFinder,
+                       @NotNull ProjectManager projectManager) {
     myVcsManager = vcsManager;
+    myProjectFinder = projectFinder;
+    myBuildTypeFinder = buildTypeFinder;
+    myProjectManager = projectManager;
   }
 
   @NotNull
-  public SVcsRoot getVcsRoot(final String vcsRootLocator) {
-    if (StringUtil.isEmpty(vcsRootLocator)) {
+  public SVcsRoot getVcsRoot(@Nullable final String locatorText) {
+    if (StringUtil.isEmpty(locatorText)) {
       throw new BadRequestException("Empty VCS root locator is not supported.");
     }
+    final Locator locator = new Locator(locatorText);
+    if (locator.isSingleValue()) {
+      // no dimensions found, assume it's root id
+      final Long parsedId = locator.getSingleValueAsLong();
+      if (parsedId == null) {
+        throw new BadRequestException("Expecting VCS root id, found empty value.");
+      }
+      SVcsRoot root = myVcsManager.findRootById(parsedId);
+      if (root == null) {
+        throw new NotFoundException("No VCS root can be found by id '" + locatorText + "'.");
+      }
+      locator.reportUnprocessedLocatorIsIgnored();
+      return root;
+    }
 
-    final Locator locator = new Locator(vcsRootLocator);
+    locator.setDimension(PagerData.COUNT, "1"); //get only the first one that matches
+    final PagedSearchResult<SVcsRoot> vcsRoots = getVcsRoots(locator);
+    if (vcsRoots.myEntries.size() == 0) {
+      throw new NotFoundException("No VCS roots are found by locator '" + locatorText + "'.");
+    }
+    assert vcsRoots.myEntries.size()== 1;
+    return vcsRoots.myEntries.get(0);
+  }
+
+  private SVcsRoot getVcsRootByLocator(@NotNull final Locator locator, @NotNull final String vcsRootLocatorForMessage) {
+    //todo: Support generic which returns only one value, the same for vcs root instances
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's root id
       @SuppressWarnings("ConstantConditions") SVcsRoot root = myVcsManager.findRootById(locator.getSingleValueAsLong());
       if (root == null) {
-        throw new NotFoundException("No root can be found by id '" + vcsRootLocator + "'.");
+        throw new NotFoundException("No root can be found by id '" + vcsRootLocatorForMessage + "'.");
       }
       return root;
     }
@@ -42,7 +82,7 @@ public class VcsRootFinder{
     if (rootId != null){
       SVcsRoot root = myVcsManager.findRootById(rootId);
       if (root == null) {
-        throw new NotFoundException("No root can be found by id '" + vcsRootLocator + "'.");
+        throw new NotFoundException("No root can be found by id '" + vcsRootLocatorForMessage + "'.");
       }
       return root;
     }
@@ -54,42 +94,125 @@ public class VcsRootFinder{
         throw new NotFoundException("No root can be found by name '" + rootName + "'.");
       }
       if (locator.getDimensionsCount() > 1) {
-        LOG.info("VCS root locator '" + vcsRootLocator + "' has 'name' dimension and others. Others are ignored.");
+        LOG.info("VCS root locator '" + vcsRootLocatorForMessage + "' has 'name' dimension and others. Others are ignored.");
       }
       return root;
     }
 
-    throw new NotFoundException("VCS root locator '" + vcsRootLocator + "' is not supported.");
+    throw new NotFoundException("VCS root locator '" + vcsRootLocatorForMessage + "' is not supported.");
+  }
+
+  public PagedSearchResult<SVcsRoot> getVcsRoots(@Nullable final Locator locator) {
+    if (locator == null) {
+      return new PagedSearchResult<SVcsRoot>(myVcsManager.getAllRegisteredVcsRoots(), null, null);
+    }
+
+    if (locator.isSingleValue()){
+      throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported.");
+    }
+
+    Long rootId = locator.getSingleDimensionValueAsLong("id");
+    if (rootId != null) {
+      SVcsRoot root = myVcsManager.findRootById(rootId);
+      if (root == null) {
+        throw new NotFoundException("No VCS root can be found by id '" + rootId + "'.");
+      }
+      locator.reportUnprocessedLocatorIsIgnored();
+      return new PagedSearchResult<SVcsRoot>(Collections.singletonList(root), null, null);
+    }
+
+    String rootName = locator.getSingleDimensionValue("name");
+    if (rootName != null) {
+      SVcsRoot root = myVcsManager.findRootByName(rootName);
+      if (root == null) {
+        throw new NotFoundException("No VCS root can be found by name '" + rootName + "'.");
+      }
+      locator.reportUnprocessedLocatorIsIgnored();
+      return new PagedSearchResult<SVcsRoot>(Collections.singletonList(root), null, null);
+    }
+
+    VcsRootsFilter filter = new VcsRootsFilter(locator, myProjectFinder, myVcsManager);
+    locator.checkLocatorFullyProcessed();
+
+    return new PagedSearchResult<SVcsRoot>(getVcsRoots(filter), filter.getStart(), filter.getCount());
+  }
+
+  private List<SVcsRoot> getVcsRoots(final VcsRootsFilter filter) {
+    final FilterItemProcessor<SVcsRoot> filterItemProcessor = new FilterItemProcessor<SVcsRoot>(filter);
+    AbstractFilter.processList(myVcsManager.getAllRegisteredVcsRoots(), filterItemProcessor);
+    return filterItemProcessor.getResult();
   }
 
   @NotNull
-  public VcsRootInstance getVcsRootInstance(@Nullable final String vcsRootLocator) {
-    if (StringUtil.isEmpty(vcsRootLocator)) {
-      throw new BadRequestException("Empty VCS root instance locator is not supported.");
+  public VcsRootInstance getVcsRootInstance(@Nullable final String locatorText) {
+    if (StringUtil.isEmpty(locatorText)) {
+      throw new BadRequestException("Empty VCS root intance locator is not supported.");
     }
-
-    final Locator locator = new Locator(vcsRootLocator);
+    final Locator locator = new Locator(locatorText);
     if (locator.isSingleValue()) {
-      // no dimensions found, assume it's root id
+      // no dimensions found, assume it's root instance id
       final Long parsedId = locator.getSingleValueAsLong();
       if (parsedId == null) {
         throw new BadRequestException("Expecting VCS root instance id, found empty value.");
       }
       VcsRootInstance root = myVcsManager.findRootInstanceById(parsedId);
       if (root == null) {
-        throw new NotFoundException("No root instance can be found by id '" + parsedId + "'.");
+        throw new NotFoundException("No VCS root instance can be found by id '" + parsedId + "'.");
       }
+      locator.reportUnprocessedLocatorIsIgnored();
       return root;
     }
 
-    Long rootId = locator.getSingleDimensionValueAsLong("id");
-    if (rootId == null) {
-      throw new BadRequestException("No 'id' dimension found in locator '" + vcsRootLocator + "'.");
+    locator.setDimension(PagerData.COUNT, "1"); //get only the first one that matches
+    final PagedSearchResult<VcsRootInstance> vcsRoots = getVcsRootInstances(locator);
+    if (vcsRoots.myEntries.size() == 0) {
+      throw new NotFoundException("No VCS root instances are found by locator '" + locatorText + "'.");
     }
-    VcsRootInstance root = myVcsManager.findRootInstanceById(rootId);
-    if (root == null) {
-      throw new NotFoundException("No root instance can be found by id '" + rootId + "'.");
+    assert vcsRoots.myEntries.size()== 1;
+    return vcsRoots.myEntries.get(0);
+  }
+
+  public PagedSearchResult<VcsRootInstance> getVcsRootInstances(@Nullable final Locator locator) {
+    if (locator == null) {
+       return new PagedSearchResult<VcsRootInstance>(getAllVcsRootInstances(myProjectManager), null, null);
+     }
+
+     if (locator.isSingleValue()){
+       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported.");
+     }
+
+     Long rootId = locator.getSingleDimensionValueAsLong("id");
+     if (rootId != null) {
+       VcsRootInstance root = myVcsManager.findRootInstanceById(rootId);
+       if (root == null) {
+         throw new NotFoundException("No VCS root instance root can be found by id '" + rootId + "'.");
+       }
+       locator.reportUnprocessedLocatorIsIgnored();
+       return new PagedSearchResult<VcsRootInstance>(Collections.singletonList(root), null, null);
+     }
+
+    VcsRootInstancesFilter filter = new VcsRootInstancesFilter(locator, myProjectFinder, myBuildTypeFinder, this, myVcsManager);
+    locator.checkLocatorFullyProcessed();
+
+    return new PagedSearchResult<VcsRootInstance>(getVcsRootInstances(filter), filter.getStart(), filter.getCount());
+  }
+
+
+  private List<VcsRootInstance> getVcsRootInstances(final VcsRootInstancesFilter filter) {
+    //todo: current implementation is not effective: consider pre-filtering by vcs root, project, type, if specified
+    final FilterItemProcessor<VcsRootInstance> filterItemProcessor = new FilterItemProcessor<VcsRootInstance>(filter);
+    AbstractFilter.processList(getAllVcsRootInstances(myProjectManager), filterItemProcessor);
+    return filterItemProcessor.getResult();
+  }
+
+  private List<VcsRootInstance> getAllVcsRootInstances(ProjectManager projectManager) {
+    //todo: (TeamCity) open API is there a better way to do this?
+    final TreeSet<VcsRootInstance> rootInstancesSet = new TreeSet<jetbrains.buildServer.vcs.VcsRootInstance>();
+    for (SBuildType buildType : projectManager.getAllBuildTypes()) {
+        rootInstancesSet.addAll(buildType.getVcsRootInstances());
     }
-    return root;
+    final List<VcsRootInstance> result = new ArrayList<VcsRootInstance>(rootInstancesSet.size());
+    result.addAll(rootInstancesSet);
+    return result;
   }
 }

@@ -1,5 +1,6 @@
 package jetbrains.buildServer.server.rest.data;
 
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.MultiValuesMap;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,6 +30,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 13.08.2010
  */
 public class Locator {
+  private static final Logger LOG = Logger.getInstance(Locator.class.getName());
   private static final String DIMENSION_NAME_VALUE_DELIMITER = ":";
   private static final String DIMENSIONS_DELIMITER = ",";
   private static final String DIMENSION_COMPLEX_VALUE_START_DELIMITER = "(";
@@ -132,6 +134,29 @@ public class Locator {
       }else{
         // LOG.debug("Some supplied locator dimensions are unknown: " + unusedDimensions);
       }
+    }
+  }
+
+  //todo: use this whenever possible
+  public void reportUnprocessedLocatorIsIgnored() {
+    if (!LOG.isDebugEnabled()) {
+      return;
+    }
+    final Set<String> unusedDimensions = getUnusedDimensions();
+    if (unusedDimensions.size() > 0) {
+      String message;
+      if (unusedDimensions.size() > 1) {
+        message = "Locator dimensions " + unusedDimensions + " are ignored.";
+      } else {
+        if (!unusedDimensions.contains(LOCATOR_SINGLE_VALUE_UNUSED_NAME)) {
+          message = "Locator dimension " + unusedDimensions + " is ignored.";
+        } else {
+          message = "Single value locator is ignored.";
+        }
+      }
+      LOG.debug(message);
+    } else {
+      // LOG.debug("Some supplied locator dimensions are unknown: " + unusedDimensions);
     }
   }
 
