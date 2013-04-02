@@ -426,7 +426,7 @@ public class BuildRequest {
   @Consumes({"application/xml", "application/json"})
   public void replaceTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    build.setTags(SessionUser.getUser(request), tags.tags);
+    build.setTags(SessionUser.getUser(request), tags.tags != null ? tags.tags : Collections.<String>emptyList());
   }
 
   /**
@@ -439,6 +439,10 @@ public class BuildRequest {
   @Consumes({"application/xml", "application/json"})
   public void addTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
+    if (tags.tags == null || tags.tags.isEmpty()) {
+      // Nothing to add
+      return;
+    }
     final List<String> resultingTags = build.getTags();
     resultingTags.addAll(tags.tags);
     build.setTags(SessionUser.getUser(request), resultingTags);
