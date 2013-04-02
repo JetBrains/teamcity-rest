@@ -443,7 +443,7 @@ public class BuildRequest {
       // Nothing to add
       return;
     }
-    final List<String> resultingTags = build.getTags();
+    final List<String> resultingTags = new ArrayList<String>(build.getTags());
     resultingTags.addAll(tags.tags);
     build.setTags(SessionUser.getUser(request), resultingTags);
   }
