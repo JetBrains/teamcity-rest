@@ -72,4 +72,9 @@ public class Server {
   public String getCurrentTime() {
     return Util.formatTime(new Date());
   }
+
+  @XmlAttribute
+  public String getBuildDate() {
+    return Util.formatTime(myServer.getBuildDate());
+  }
 }
