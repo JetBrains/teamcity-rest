@@ -1026,6 +1026,14 @@ public class BuildTypeRequest {
     return new Investigations(buildType, myDataProvider, myApiUrlBuilder);
   }
 
+  @GET
+  @Path("/{btLocator}/vcs-root-instances")
+  @Produces({"application/xml", "application/json"})
+  public VcsRootInstances getCurrentVcsInstances(@PathParam("btLocator") String buildTypeLocator) {
+      SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
+    return new VcsRootInstances(buildType.getVcsRootInstances(), null, myApiUrlBuilder);
+    }
+
   /**
    * Serves builds matching supplied condition.
    *
