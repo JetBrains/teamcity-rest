@@ -1,5 +1,6 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
+import java.util.Collections;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.BuildRunnerDescriptor;
@@ -29,7 +30,8 @@ public class PropEntityStep extends PropEntity {
 
     @SuppressWarnings("ConstantConditions")
     final SBuildRunnerDescriptor runnerToCreate =
-      factory.createNewBuildRunner(StringUtil.isEmpty(name) ? "" : name, type, properties.getMap());
+    factory.createNewBuildRunner(StringUtil.isEmpty(name) ? "" : name, type,
+                                 properties != null ? properties.getMap() : Collections.<String, String>emptyMap());
     buildType.addBuildRunner(runnerToCreate);
     if (disabled != null) {
       buildType.setEnabled(runnerToCreate.getId(), !disabled);
