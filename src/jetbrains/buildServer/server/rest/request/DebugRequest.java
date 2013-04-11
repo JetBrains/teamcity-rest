@@ -65,7 +65,7 @@ public class DebugRequest {
   @Produces({"text/plain; charset=UTF-8"})
   public String serveServerVersion(@PathParam("query") String query,
                                    @QueryParam("fieldDelimiter") @DefaultValue(", ") String fieldDelimiter,
-                                   @QueryParam("maxRows") @DefaultValue("1000") int maxRows) {
+                                   @QueryParam("count") @DefaultValue("1000") int maxRows) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     checkQuery(query);
     final boolean selectQuery = query.trim().toLowerCase().startsWith("select");
@@ -89,7 +89,9 @@ public class DebugRequest {
       if (result == null) {
         return "";
       }
-      return StringUtil.join(result, "\n");
+      String comment = result.size() == maxRows ? "# First " + maxRows +
+                                                  " rows are served. Add '?count=N' parameter to change the number of rows to return.\n" : "";
+      return comment + StringUtil.join(result, "\n");
     }else{
       final int result = genericQuery.executeUpdate(sqlRunner);
       return String.valueOf(result);
