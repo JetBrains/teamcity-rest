@@ -22,10 +22,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import jetbrains.buildServer.server.rest.data.BranchMatcher;
-import jetbrains.buildServer.server.rest.data.Locator;
-import jetbrains.buildServer.server.rest.data.ParameterCondition;
-import jetbrains.buildServer.server.rest.data.RangeLimit;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -192,16 +189,16 @@ public class GenericBuildsFilter implements BuildsFilter {
     if (myNumber != null && !myNumber.equals(build.getBuildNumber())) {
       return false;
     }
-    if (!isIncludedByBooleanFilter(myPersonal, build.isPersonal())) {
+    if (!FilterUtil.isIncludedByBooleanFilter(myPersonal, build.isPersonal())) {
       return false;
     }
-    if (!isIncludedByBooleanFilter(myCanceled, build.getCanceledInfo() != null)) {
+    if (!FilterUtil.isIncludedByBooleanFilter(myCanceled, build.getCanceledInfo() != null)) {
       return false;
     }
-    if (!isIncludedByBooleanFilter(myRunning, !build.isFinished())) {
+    if (!FilterUtil.isIncludedByBooleanFilter(myRunning, !build.isFinished())) {
       return false;
     }
-    if (!isIncludedByBooleanFilter(myPinned, build.isPinned())) {
+    if (!FilterUtil.isIncludedByBooleanFilter(myPinned, build.isPinned())) {
       return false;
     }
     if (myTags != null && myTags.size() > 0 && myTags.get(0).startsWith("format:extended")) {
@@ -307,11 +304,6 @@ public class GenericBuildsFilter implements BuildsFilter {
     }
     return false;
   }
-
-  private boolean isIncludedByBooleanFilter(final Boolean filterValue, final boolean actualValue) {
-    return filterValue == null || (!(filterValue ^ actualValue));
-  }
-
 
   @Override
   public String toString() {

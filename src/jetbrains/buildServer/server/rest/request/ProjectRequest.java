@@ -182,14 +182,22 @@ public class ProjectRequest {
   public BuildType createBuildType(@PathParam("projectLocator") String projectLocator, NewBuildTypeDescription descriptor) {
     SProject project = myProjectFinder.getProject(projectLocator);
     if (StringUtil.isEmpty(descriptor.name)) {
-      throw new BadRequestException("Build type name cannot be empty.");
+      throw new BadRequestException("Should specify build type name to create a new one.");
     }
     SBuildType resultingBuildType;
     if (StringUtil.isEmpty(descriptor.sourceBuildTypeLocator)) {
-      resultingBuildType = project.createBuildType(descriptor.name);
+      if (!StringUtil.isEmpty(descriptor.id)){
+        resultingBuildType = project.createBuildType(descriptor.id, descriptor.name);
+      }else{
+        resultingBuildType = project.createBuildType(descriptor.name);
+      }
     }else{
       SBuildType sourceBuildType = myBuildTypeFinder.getBuildType(null, descriptor.sourceBuildTypeLocator);
-      resultingBuildType = project.createBuildType(sourceBuildType, descriptor.name, getCopyOptions(descriptor));
+      if (!StringUtil.isEmpty(descriptor.id)){
+        resultingBuildType = project.createBuildType(sourceBuildType, descriptor.id, descriptor.name, getCopyOptions(descriptor));
+      }else{
+        resultingBuildType = project.createBuildType(sourceBuildType, descriptor.name, getCopyOptions(descriptor));
+      }
     }
     project.persist();
     return new BuildType(resultingBuildType, myDataProvider, myApiUrlBuilder);
@@ -265,14 +273,22 @@ public class ProjectRequest {
   public BuildType createBuildTypeTemplate(@PathParam("projectLocator") String projectLocator, NewBuildTypeDescription descriptor) {
     SProject project = myProjectFinder.getProject(projectLocator);
     if (StringUtil.isEmpty(descriptor.name)) {
-      throw new BadRequestException("Build type template name cannot be empty.");
+      throw new BadRequestException("Should specify build type template name to create a new one.");
     }
     BuildTypeTemplate resultingBuildType;
     if (StringUtil.isEmpty(descriptor.sourceBuildTypeLocator)) {
-      resultingBuildType = project.createBuildTypeTemplate(descriptor.name);
+      if (!StringUtil.isEmpty(descriptor.id)){
+        resultingBuildType = project.createBuildTypeTemplate(descriptor.id, descriptor.name);
+      }else{
+        resultingBuildType = project.createBuildTypeTemplate(descriptor.name);
+      }
     }else{
       BuildTypeTemplate sourceTemplate = myBuildTypeFinder.getBuildTemplate(null, descriptor.sourceBuildTypeLocator);
-      resultingBuildType = project.createBuildTypeTemplate(sourceTemplate, descriptor.name, getCopyOptions(descriptor));
+      if (!StringUtil.isEmpty(descriptor.id)){
+        resultingBuildType = project.createBuildTypeTemplate(sourceTemplate, descriptor.id, descriptor.name, getCopyOptions(descriptor));
+      }else{
+        resultingBuildType = project.createBuildTypeTemplate(sourceTemplate, descriptor.name, getCopyOptions(descriptor));
+      }
     }
     project.persist();
     return new BuildType(resultingBuildType, myDataProvider, myApiUrlBuilder);

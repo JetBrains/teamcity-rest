@@ -21,6 +21,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -29,13 +30,14 @@ import jetbrains.buildServer.server.rest.model.project.ProjectRef;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeTemplate;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 
 /**
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "buildType")
-@XmlType(name = "buildType", propOrder = { "id", "name", "href", "templateFlag", "webUrl", "description", "paused",
+@XmlType(name = "buildType", propOrder = { "id", "internalId", "name", "href", "templateFlag", "webUrl", "description", "paused",
   "project", "template", "vcsRootEntries", "builds", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
   "artifactDependencies", "agentRequirements"})
 public class BuildType {
@@ -66,9 +68,17 @@ public class BuildType {
     myApiUrlBuilder = apiUrlBuilder;
   }
 
+  /**
+   * @return External id of the build configuration
+   */
   @XmlAttribute
   public String getId() {
     return myBuildType.getId();
+  }
+
+  @XmlAttribute
+  public String getInternalId() {
+    return TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? myBuildType.getInternalId() : null;
   }
 
   @XmlAttribute

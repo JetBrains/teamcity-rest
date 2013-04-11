@@ -33,5 +33,11 @@ public class NewBuildTypeDescription extends CopyOptionsDescription{
 
   @XmlAttribute public String name;
 
+  /**
+   * External id
+   */
+  @XmlAttribute public String id;
+  //todo: would be cool to support specifying internalId here
+
   @XmlAttribute public String sourceBuildTypeLocator;
 }

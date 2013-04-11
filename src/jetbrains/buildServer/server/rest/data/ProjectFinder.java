@@ -1,6 +1,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
+import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.ProjectManager;
@@ -54,7 +55,7 @@ public class ProjectFinder {
     if (id != null) {
       SProject project = myProjectManager.findProjectByExternalId(id);
       if (project == null) {
-        if (TeamCityProperties.getBoolean("rest.compatibility.allowExternalIdAsInternal")){
+        if (TeamCityProperties.getBoolean(APIController.REST_COMPATIBILITY_ALLOW_EXTERNAL_ID_AS_INTERNAL)){
           project = myProjectManager.findProjectById(id);
           if (project == null) {
             throw new NotFoundException("No project found by locator '" + projectLocator +
@@ -83,6 +84,7 @@ public class ProjectFinder {
     }
 
     String name = locator.getSingleDimensionValue("name");
+    //todo: support parent project locator here
     if (name != null) {
       SProject project = myProjectManager.findProjectByName(name);
       if (project == null) {

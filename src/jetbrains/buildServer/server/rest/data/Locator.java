@@ -119,44 +119,25 @@ public class Locator {
   public void checkLocatorFullyProcessed() {
     final Set<String> unusedDimensions = getUnusedDimensions();
     if (unusedDimensions.size() > 0){
-      if (TeamCityProperties.getBooleanOrTrue("rest.report.locator.errors")){
+      final String reportKindString = TeamCityProperties.getProperty("rest.report.unused.locator", "off");
+      if (!reportKindString.equals("off") || TeamCityProperties.getBooleanOrTrue("rest.report.locator.errors")){
         String message;
         if (unusedDimensions.size() > 1){
-          message = "Locator dimensions " + unusedDimensions + " are unknown.";
+          message = "Locator dimensions " + unusedDimensions + " are ignored or unknown.";
         }else{
           if (!unusedDimensions.contains(LOCATOR_SINGLE_VALUE_UNUSED_NAME)){
-            message = "Locator dimension " + unusedDimensions + " is unknown.";
+            message = "Locator dimension " + unusedDimensions + " is ignored or unknown.";
           }else{
             message = "Single value locator is not supported here.";
           }
         }
-        throw new LocatorProcessException(message);
-      }else{
-        // LOG.debug("Some supplied locator dimensions are unknown: " + unusedDimensions);
-      }
-    }
-  }
-
-  //todo: use this whenever possible
-  public void reportUnprocessedLocatorIsIgnored() {
-    if (!LOG.isDebugEnabled()) {
-      return;
-    }
-    final Set<String> unusedDimensions = getUnusedDimensions();
-    if (unusedDimensions.size() > 0) {
-      String message;
-      if (unusedDimensions.size() > 1) {
-        message = "Locator dimensions " + unusedDimensions + " are ignored.";
-      } else {
-        if (!unusedDimensions.contains(LOCATOR_SINGLE_VALUE_UNUSED_NAME)) {
-          message = "Locator dimension " + unusedDimensions + " is ignored.";
-        } else {
-          message = "Single value locator is ignored.";
+        if (reportKindString.equals("error") || TeamCityProperties.getBooleanOrTrue("rest.report.locator.errors")){
+          throw new LocatorProcessException(message);
+        }
+        if (reportKindString.startsWith("log")){
+          LOG.debug(message);
         }
       }
-      LOG.debug(message);
-    } else {
-      // LOG.debug("Some supplied locator dimensions are unknown: " + unusedDimensions);
     }
   }
 

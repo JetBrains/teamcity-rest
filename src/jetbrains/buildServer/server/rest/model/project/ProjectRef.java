@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.model.project;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
@@ -30,7 +31,6 @@ import jetbrains.buildServer.serverSide.TeamCityProperties;
 @XmlRootElement(name = "project-ref")
 @XmlType(name = "project-ref", propOrder = {"id", "internalId", "name", "href"})
 public class ProjectRef {
-  public static final String INCLUDE_INTERNAL_PROJECT_ID_PROPERTY_NAME = "rest.beans.includeInternalProjectId";
   @XmlAttribute
   public String id;
 
@@ -48,7 +48,7 @@ public class ProjectRef {
 
   public ProjectRef(SProject project, final ApiUrlBuilder apiUrlBuilder) {
     id = project.getExternalId();
-    internalId = TeamCityProperties.getBoolean(INCLUDE_INTERNAL_PROJECT_ID_PROPERTY_NAME) ? project.getProjectId() : null;
+    internalId = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? project.getProjectId() : null;
     name = project.getName();
     href = apiUrlBuilder.getHref(project);
   }

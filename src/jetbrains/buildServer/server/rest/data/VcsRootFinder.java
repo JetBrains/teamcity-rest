@@ -54,7 +54,7 @@ public class VcsRootFinder{
       if (root == null) {
         throw new NotFoundException("No VCS root can be found by id '" + locatorText + "'.");
       }
-      locator.reportUnprocessedLocatorIsIgnored();
+      locator.checkLocatorFullyProcessed();
       return root;
     }
 
@@ -82,7 +82,7 @@ public class VcsRootFinder{
       if (root == null) {
         throw new NotFoundException("No VCS root can be found by id '" + rootId + "'.");
       }
-      locator.reportUnprocessedLocatorIsIgnored();
+      locator.checkLocatorFullyProcessed();
       return new PagedSearchResult<SVcsRoot>(Collections.singletonList(root), null, null);
     }
 
@@ -92,7 +92,7 @@ public class VcsRootFinder{
       if (root == null) {
         throw new NotFoundException("No VCS root can be found by name '" + rootName + "'.");
       }
-      locator.reportUnprocessedLocatorIsIgnored();
+      locator.checkLocatorFullyProcessed();
       return new PagedSearchResult<SVcsRoot>(Collections.singletonList(root), null, null);
     }
 
@@ -124,7 +124,7 @@ public class VcsRootFinder{
       if (root == null) {
         throw new NotFoundException("No VCS root instance can be found by id '" + parsedId + "'.");
       }
-      locator.reportUnprocessedLocatorIsIgnored();
+      locator.checkLocatorFullyProcessed();
       return root;
     }
 
@@ -152,7 +152,7 @@ public class VcsRootFinder{
        if (root == null) {
          throw new NotFoundException("No VCS root instance root can be found by id '" + rootId + "'.");
        }
-       locator.reportUnprocessedLocatorIsIgnored();
+       locator.checkLocatorFullyProcessed();
        return new PagedSearchResult<VcsRootInstance>(Collections.singletonList(root), null, null);
      }
 

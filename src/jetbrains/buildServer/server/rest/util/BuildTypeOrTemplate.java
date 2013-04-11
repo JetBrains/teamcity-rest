@@ -1,9 +1,11 @@
 package jetbrains.buildServer.server.rest.util;
 
+import jetbrains.buildServer.log.Loggable;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -11,7 +13,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 14.01.12
  */
-public class BuildTypeOrTemplate {
+public class BuildTypeOrTemplate implements Loggable {
   final private SBuildType myBuildType;
   final private BuildTypeTemplate myTemplate;
   final private  boolean hasBuildType;
@@ -35,6 +37,11 @@ public class BuildTypeOrTemplate {
 
   @NotNull
   public String getId(){
+    return hasBuildType ? myBuildType.getExternalId() : myTemplate.getExternalId();
+  }
+
+  @NotNull
+  public String getInternalId(){
     return hasBuildType ? myBuildType.getBuildTypeId() : myTemplate.getId();
   }
 
@@ -117,6 +124,8 @@ public class BuildTypeOrTemplate {
   public String getFieldValue(final String field) {
     if ("id".equals(field)) {
       return getId();
+    } else if ("internalId".equals(field)) {
+      return getInternalId();
     } else if ("description".equals(field)) {
       return getDescription();
     } else if ("name".equals(field)) {
@@ -132,6 +141,11 @@ public class BuildTypeOrTemplate {
 
   public boolean isEnabled(final String id) {
     return hasBuildType ? myBuildType.isEnabled(id) : myTemplate.isEnabled(id);
+  }
+
+  @NotNull
+  public String describe(final boolean verbose) {
+      return hasBuildType ? LogUtil.describe(myBuildType) : LogUtil.describe(myTemplate);
   }
 }
 

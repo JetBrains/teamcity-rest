@@ -65,6 +65,8 @@ import org.springframework.web.servlet.ModelAndView;
  *         Date: 23.03.2009
  */
 public class APIController extends BaseController implements ServletContextAware {
+  public static final String REST_COMPATIBILITY_ALLOW_EXTERNAL_ID_AS_INTERNAL = "rest.compatibility.allowExternalIdAsInternal";
+  public static final String INCLUDE_INTERNAL_ID_PROPERTY_NAME = "rest.beans.includeInternalId";
   final static Logger LOG = Logger.getInstance(APIController.class.getName());
   public static final String REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME = "rest.cors.origins";
   public static final String REST_RESPONSE_PRETTYFORMAT = "rest.response.prettyformat";

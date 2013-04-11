@@ -79,11 +79,12 @@ public class BuildTypeRequest {
   }
 
   public static String getBuildTypeHref(@NotNull SBuildType buildType) {
-    return API_BUILD_TYPES_URL + "/id:" + buildType.getBuildTypeId();
+    //non-template flag is required until http://youtrack.jetbrains.com/issue/TW-27459 is fixed
+    return API_BUILD_TYPES_URL + "/id:" + buildType.getExternalId()+ "," + BuildTypeFinder.TEMPLATE_DIMENSION_NAME + ":false";
   }
 
   public static String getBuildTypeHref(@NotNull final BuildTypeTemplate template) {
-    return API_BUILD_TYPES_URL + "/id:(" + BuildTypeFinder.TEMPLATE_ID_PREFIX + template.getId() + ")";
+    return API_BUILD_TYPES_URL + "/id:"+ template.getExternalId() + "," + BuildTypeFinder.TEMPLATE_DIMENSION_NAME + ":true";
   }
 
 
@@ -115,9 +116,9 @@ public class BuildTypeRequest {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     final SProject project = buildType.getProject();
     if (buildType.isBuildType()) {
-      project.removeBuildType(buildType.getId());
+      project.removeBuildType(buildType.getInternalId());
     } else {
-      project.removeBuildTypeTemplate(buildType.getId());
+      project.removeBuildTypeTemplate(buildType.getInternalId());
     }
     project.persist();
   }
