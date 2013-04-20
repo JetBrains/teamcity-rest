@@ -82,6 +82,10 @@ public class VcsRootFinder{
       if (root == null) {
         throw new NotFoundException("No VCS root can be found by id '" + rootId + "'.");
       }
+      final Long count = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
+      if (count != null && count != 1) {
+        throw new BadRequestException("Dimension 'id' is specified and 'count' is not 1.");
+      }
       locator.checkLocatorFullyProcessed();
       return new PagedSearchResult<SVcsRoot>(Collections.singletonList(root), null, null);
     }
@@ -91,6 +95,10 @@ public class VcsRootFinder{
       SVcsRoot root = myVcsManager.findRootByName(rootName);
       if (root == null) {
         throw new NotFoundException("No VCS root can be found by name '" + rootName + "'.");
+      }
+      final Long count = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
+      if (count != null && count != 1) {
+        throw new BadRequestException("Dimension 'name' is specified and 'count' is not 1.");
       }
       locator.checkLocatorFullyProcessed();
       return new PagedSearchResult<SVcsRoot>(Collections.singletonList(root), null, null);
