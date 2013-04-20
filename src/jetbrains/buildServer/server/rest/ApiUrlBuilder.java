@@ -67,6 +67,10 @@ public class ApiUrlBuilder {
     return myPathTransformer.transform(ChangeRequest.getBuildChangesHref(build));
   }
 
+  public String getBuildIssuesHref(final SBuild build) {
+    return myPathTransformer.transform(BuildRequest.getBuildIssuesHref(build));
+  }
+
   public String getHref(final UserGroup userGroup) {
     return myPathTransformer.transform(GroupRequest.getGroupHref(userGroup));
   }

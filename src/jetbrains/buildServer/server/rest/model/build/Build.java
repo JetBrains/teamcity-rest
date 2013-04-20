@@ -35,6 +35,7 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildTypeRef;
 import jetbrains.buildServer.server.rest.model.change.ChangesRef;
 import jetbrains.buildServer.server.rest.model.change.Revisions;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
+import jetbrains.buildServer.server.rest.model.issue.IssueUsagesRef;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
@@ -55,7 +56,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @XmlRootElement(name = "build")
 @XmlType(name = "build", propOrder = {"id", "number", "status", "href", "webUrl", "branchName", "defaultBranch", "unspecifiedBranch", "personal", "history", "pinned", "running",
   "runningBuildInfo", "statusText", "buildType", "startDate", "finishDate", "agent", "comment", "tags", "pinInfo", "personalBuildUser", "properties",
-  "buildDependencies", "buildArtifactDependencies", "revisions", "triggered", "changes", "issues", "artifacts"})
+  "buildDependencies", "buildArtifactDependencies", "revisions", "triggered", "changes", "issues", "issuesRef", "artifacts"})
 public class Build {
   @NotNull
   protected SBuild myBuild;
@@ -265,11 +266,16 @@ public class Build {
   
   @XmlElement(name = "relatedIssues")
   public IssueUsages getIssues() {
-    if (TeamCityProperties.getBoolean("rest.disableBuildRelatedIssues")){
+    if (TeamCityProperties.getBooleanOrTrue("rest.disableBuildRelatedIssues")){
       return null;
     }
     final Collection<Issue> relatedIssues = myBuild.getRelatedIssues();
     return relatedIssues.size() == 0 ? null : new IssueUsages(relatedIssues, myBuild, myApiUrlBuilder, myFactory);
+  }
+
+  @XmlElement(name = "related-issues")
+  public IssueUsagesRef getIssuesRef() {
+    return new IssueUsagesRef(myBuild, myApiUrlBuilder);
   }
 
   @XmlElement(name = "user")

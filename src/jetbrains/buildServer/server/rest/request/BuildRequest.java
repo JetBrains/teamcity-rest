@@ -76,6 +76,7 @@ public class BuildRequest {
   private static final Logger LOG = Logger.getInstance(BuildRequest.class.getName());
   public static final String IMG_STATUS_WIDGET_ROOT_DIRECTORY = "/img/statusWidget";
   public static final String STATUS_ICON_REQUEST_NAME = "statusIcon";
+  public static final String RELATED_ISSUES = "/related-issues";
 
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private BuildFinder myBuildFinder;
@@ -101,6 +102,10 @@ public class BuildRequest {
 
   public static String getBuildHref(SBuild build) {
     return API_BUILDS_URL + "/id:" + build.getBuildId();
+  }
+
+  public static String getBuildIssuesHref(final SBuild build) {
+    return getBuildHref(build) + RELATED_ISSUES;
   }
 
   /**
@@ -314,7 +319,7 @@ public class BuildRequest {
   }
 
   @GET
-  @Path("/{buildLocator}/related-issues/")
+  @Path("/{buildLocator}" + RELATED_ISSUES)
   @Produces({"application/xml", "application/json"})
   public IssueUsages serveBuildRelatedIssues(@PathParam("buildLocator") String buildLocator) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
