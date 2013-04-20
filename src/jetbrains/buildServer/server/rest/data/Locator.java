@@ -119,8 +119,11 @@ public class Locator {
   public void checkLocatorFullyProcessed() {
     final Set<String> unusedDimensions = getUnusedDimensions();
     if (unusedDimensions.size() > 0){
-      final String reportKindString = TeamCityProperties.getProperty("rest.report.unused.locator", "off");
-      if (!reportKindString.equals("off") || TeamCityProperties.getBooleanOrTrue("rest.report.locator.errors")){
+      String reportKindString = TeamCityProperties.getProperty("rest.report.unused.locator", "error");
+      if (!TeamCityProperties.getBooleanOrTrue("rest.report.locator.errors")){
+        reportKindString = "off";
+      }
+      if (!reportKindString.equals("off")){
         String message;
         if (unusedDimensions.size() > 1){
           message = "Locator dimensions " + unusedDimensions + " are ignored or unknown.";
@@ -131,11 +134,15 @@ public class Locator {
             message = "Single value locator is not supported here.";
           }
         }
-        if (reportKindString.equals("error") || TeamCityProperties.getBooleanOrTrue("rest.report.locator.errors")){
-          throw new LocatorProcessException(message);
+        if (reportKindString.contains("log")) {
+          if (reportKindString.contains("log-warn")) {
+            LOG.warn(message);
+          } else {
+            LOG.debug(message);
+          }
         }
-        if (reportKindString.startsWith("log")){
-          LOG.debug(message);
+        if (reportKindString.equals("error")){
+          throw new LocatorProcessException(message);
         }
       }
     }
