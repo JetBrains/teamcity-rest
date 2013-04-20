@@ -27,6 +27,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
@@ -34,7 +35,10 @@ import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRoots;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsManager;
@@ -76,10 +80,12 @@ public class VcsRootRequest {
   @Produces({"application/xml", "application/json"})
   public VcsRoot addRoot(VcsRoot vcsRootDescription) {
     checkVcsRootDescription(vcsRootDescription);
-    final SVcsRoot newVcsRoot = myDataProvider.getVcsManager()
-      .createNewVcsRoot(vcsRootDescription.vcsName, vcsRootDescription.name != null ? vcsRootDescription.name : null,
-                        vcsRootDescription.properties.getMap(), createScope(vcsRootDescription));
-    if (vcsRootDescription.modificationCheckInterval != null){
+    final SVcsRoot newVcsRoot = myDataProvider.getVcsManager().createNewVcsRoot(
+      vcsRootDescription.vcsName,
+      vcsRootDescription.name != null ? vcsRootDescription.name : null,
+      vcsRootDescription.properties.getMap(),
+      createScope(vcsRootDescription, new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder)));
+    if (vcsRootDescription.modificationCheckInterval != null) {
       newVcsRoot.setModificationCheckInterval(vcsRootDescription.modificationCheckInterval);
     }
     myDataProvider.getVcsManager().persistVcsRoots();
@@ -250,33 +256,29 @@ public class VcsRootRequest {
   }
 
   @NotNull
-  private VcsRootScope createScope(final VcsRoot vcsRootDescription) {
-    if (vcsRootDescription.shared != null && vcsRootDescription.shared){
-      if (vcsRootDescription.project != null){
-        throw new BadRequestException("Project should not be specified if the VCS root is shared.");
-      }
-      return VcsRootScope.globalScope();
-    }else{
-      return VcsRootScope.projectScope(myProjectFinder.getProject(getProjectLocator(vcsRootDescription)
-      ));
-    }
+  private VcsRootScope createScope(@NotNull final VcsRoot vcsRootDescription, @NotNull final BeanContext context) {
+    return VcsRootScope.projectScope(getProjectInternalId(vcsRootDescription, context));
   }
 
   // see also BuildTypeUtil.getVcsRoot
-  private String getProjectLocator(final VcsRoot description) {
+  @NotNull
+  private String getProjectInternalId(@NotNull final VcsRoot description, @NotNull final BeanContext context) {
     if (!StringUtil.isEmpty(description.projectLocator)){
       if (description.project != null){
-        throw new BadRequestException("Only one from projectLocator attribute and project element should be specified.");
+        throw new BadRequestException("Only one from 'projectLocator' attribute and 'project' element should be specified.");
       }
-      return description.projectLocator;
+      return myProjectFinder.getProject(description.projectLocator).getProjectId();
     }else{
       if (description.project == null){
-        throw new BadRequestException("Either projectLocator attribute or project element should be specified.");
+        if (TeamCityProperties.getBoolean("rest.compatibility.allowNoProjectOnVcsRootCreation")){
+          return context.getSingletonService(ProjectManager.class).getRootProject().getProjectId();
+        }
+        throw new BadRequestException("Either 'project' element or 'projectLocator' attribute should be specified.");
       }
-      final String projectHref = description.project.href;
-      if (StringUtil.isEmpty(projectHref)){
-        throw new BadRequestException("project element should have valid href attribute.");
+      final String internalIdFromPosted = description.project.getInternalIdFromPosted(context);
+      if (internalIdFromPosted == null){
+        throw new NotFoundException("Could not find project internal id defined by 'project' element.");
       }
-      return BuildTypeUtil.getLastPathPart(projectHref);
+      return internalIdFromPosted;
     }  }
 }

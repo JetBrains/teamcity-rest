@@ -45,7 +45,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 16.04.2009
  */
 @XmlRootElement(name = "vcs-root")
-@XmlType(name = "vcs-root", propOrder = { "id", "name","vcsName", "shared", "modificationCheckInterval", "status", "lastChecked",
+@XmlType(name = "vcs-root", propOrder = { "id", "name","vcsName", "modificationCheckInterval", "status", "lastChecked",
   "project", "properties"})
 @SuppressWarnings("PublicField")
 public class VcsRoot {
@@ -59,14 +59,6 @@ public class VcsRoot {
   public String vcsName;
 
   @XmlAttribute
-  public Boolean shared;
-
-
-  @XmlAttribute
-  public String projectLocator; // used only when creating new VCS roots
-
-
-  @XmlAttribute
   public  Integer  modificationCheckInterval;
 
   @XmlAttribute
@@ -78,6 +70,13 @@ public class VcsRoot {
 
   @XmlElement
   public Properties properties;
+
+  /**
+   * Used only when creating new VCS roots
+   * @deprecated Specify project element instead
+   */
+  @XmlAttribute
+  public String projectLocator;
 
   @XmlElement(name = "project")
   public ProjectRef project;
@@ -95,10 +94,7 @@ public class VcsRoot {
     id = root.getId();
     name = root.getName();
     vcsName = root.getVcsName();
-    shared = root.getScope().isGlobal();
-    if (!shared){
-      project = new ProjectRef(dataProvider.getProjectByInternalId(root.getScope().getOwnerProjectId()), apiUrlBuilder);
-    }
+    project = new ProjectRef(dataProvider.getProjectByInternalId(root.getScope().getOwnerProjectId()), apiUrlBuilder);
     properties = new Properties(root.getProperties());
     modificationCheckInterval = root.isUseDefaultModificationCheckInterval() ? null : root.getModificationCheckInterval();
     final VcsRootStatus rootStatus = dataProvider.getVcsManager().getStatus(root);
@@ -159,17 +155,9 @@ public class VcsRoot {
       return vcsRoot.getName();
     } else if ("vcsName".equals(field)) {
       return vcsRoot.getVcsName();
-    } else if ("shared".equals(field)) {
-      return String.valueOf(vcsRoot.getScope().isGlobal());
     } else if ("projectInternalId".equals(field)) { //Not documented, do we actually need this?
-      if (vcsRoot.getScope().isGlobal()) {
-        return "";
-      }
       return vcsRoot.getScope().getOwnerProjectId();
-    }  else if ("projectId".equals(field)) { //todo: do we actually need this?
-      if (vcsRoot.getScope().isGlobal()) {
-        return "";
-      }
+    } else if ("projectId".equals(field)) { //todo: do we actually need this?
       return dataProvider.getProjectByInternalId(vcsRoot.getScope().getOwnerProjectId()).getExternalId();
     } else if ("modificationCheckInterval".equals(field)) {
       return String.valueOf(vcsRoot.getModificationCheckInterval());
@@ -182,7 +170,7 @@ public class VcsRoot {
         throw new InvalidStateException("Error retrieving mapping", e);
       }
     }
-    throw new NotFoundException("Field '" + field + "' is not supported. Supported are: id, name, vcsName, shared, projectId, modificationCheckInterval");
+    throw new NotFoundException("Field '" + field + "' is not supported. Supported are: id, name, vcsName, projectId, modificationCheckInterval");
   }
 
   public static void setFieldValue(@NotNull final SVcsRoot vcsRoot,
@@ -193,13 +181,6 @@ public class VcsRoot {
     if ("name".equals(field)) {
       updateVCSRoot(vcsRoot, null, newValue, dataProvider.getVcsManager());
       return;
-    } else if ("shared".equals(field)) {
-      boolean newShared = Boolean.valueOf(newValue);
-      if (newShared) {
-        dataProvider.getVcsManager().setVcsRootScope(vcsRoot.getId(), VcsRootScope.globalScope());
-        return;
-      }
-      throw new BadRequestException("Setting field 'shared' to false is not supported, set projectId instead.");
     } else if ("modificationCheckInterval".equals(field)) {
       if ("".equals(newValue)) {
         vcsRoot.restoreDefaultModificationCheckInterval();
@@ -228,7 +209,7 @@ public class VcsRoot {
       return;
     }
 
-    throw new NotFoundException("Setting field '" + field + "' is not supported. Supported are: name, shared, project, modificationCheckInterval");
+    throw new NotFoundException("Setting field '" + field + "' is not supported. Supported are: name, project, modificationCheckInterval");
   }
 
   public static Collection<VcsMappingElement> getRepositoryMappings(@NotNull final SVcsRoot root, @NotNull final VcsManager vcsManager) throws VcsException {
