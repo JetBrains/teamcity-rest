@@ -21,12 +21,17 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeTemplate;
+import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * User: Yegor Yarko
@@ -39,6 +44,16 @@ public class BuildTypeRef {
   private DataProvider myDataProvider;
   private ApiUrlBuilder myApiUrlBuilder;
 
+  /**
+   * @return External id of the build configuration
+   */
+  @XmlAttribute public String id;
+  @XmlAttribute public String internalId;
+  /**
+   * This is used only when posting a link to a build type.
+   */
+  @XmlAttribute public String locator;
+
   public BuildTypeRef() {
   }
 
@@ -46,25 +61,15 @@ public class BuildTypeRef {
     myBuildType = new BuildTypeOrTemplate(buildType);
     myDataProvider = dataProvider;
     myApiUrlBuilder = apiUrlBuilder;
+
+    id = myBuildType.getId();
+    internalId = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? myBuildType.getInternalId() : null;
   }
 
   public BuildTypeRef(BuildTypeTemplate buildType, @NotNull final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
     myBuildType = new BuildTypeOrTemplate(buildType);
     myDataProvider = dataProvider;
     myApiUrlBuilder = apiUrlBuilder;
-  }
-
-  /**
-   * @return External id of the build configuration
-   */
-  @XmlAttribute
-  public String getId() {
-    return myBuildType.getId();
-  }
-
-  @XmlAttribute
-  public String getInternalId() {
-    return TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? myBuildType.getInternalId() : null;
   }
 
   @XmlAttribute
@@ -97,5 +102,47 @@ public class BuildTypeRef {
   @XmlAttribute
   public String getWebUrl() {
     return myBuildType.isBuildType() ? myDataProvider.getBuildTypeUrl(myBuildType.getBuildType()) : null;
+  }
+
+  @Nullable
+  public String getExternalIdFromPosted(@NotNull final BeanContext context) {
+    if (id != null) {
+      if (internalId == null) {
+        return id;
+      }
+      String externalByInternal = context.getSingletonService(ProjectManager.class).getBuildTypeExternalIdByInternalId(internalId);
+      if (externalByInternal == null || id.equals(externalByInternal)) {
+        return id;
+      }
+      throw new BadRequestException("Both external id '" + id + "' and internal id '" + internalId + "' attributes are present and they reference different build types.");
+    }
+    if (internalId != null) {
+      return context.getSingletonService(ProjectManager.class).getBuildTypeExternalIdByInternalId(internalId);
+    }
+    if (locator != null){
+      return context.getSingletonService(BuildTypeFinder.class).getBuildType(null, locator).getExternalId();
+    }
+    throw new BadRequestException("Could not find build type by the data. Either 'id' or 'internalId' or 'locator' attributes should be specified.");
+  }
+
+  @Nullable
+  public String getInternalIdFromPosted(@NotNull final BeanContext context) {
+    if (internalId != null) {
+      if (id == null) {
+        return internalId;
+      }
+      String internalByExternal = context.getSingletonService(ProjectManager.class).getBuildTypeInternalIdByExternalId(id);
+      if (internalByExternal == null || internalId.equals(internalByExternal)) {
+        return internalId;
+      }
+      throw new BadRequestException("Both id '" + id + "' and internal id '" + internalId + "' attributes are present and they reference different build types.");
+    }
+    if (id != null) {
+      return context.getSingletonService(ProjectManager.class).getBuildTypeInternalIdByExternalId(id);
+    }
+    if (locator != null){
+      return context.getSingletonService(BuildTypeFinder.class).getBuildType(null, locator).getBuildTypeId();
+    }
+    throw new BadRequestException("Could not find build type by the data. Either 'id' or 'internalId' or 'locator' attributes should be specified.");
   }
 }

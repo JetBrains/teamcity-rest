@@ -27,6 +27,7 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.BuildsRef;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeTemplate;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -162,12 +163,14 @@ public class BuildType {
 
   @XmlElement(name = "snapshot-dependencies")
   public PropEntitiesSnapshotDep getSnapshotDependencies() {
-    return new PropEntitiesSnapshotDep(myBuildType.get());
+    return new PropEntitiesSnapshotDep(myBuildType.get(),
+                                       new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
   }
 
   @XmlElement(name = "artifact-dependencies")
   public PropEntitiesArtifactDep getArtifactDependencies() {
-    return new PropEntitiesArtifactDep(myBuildType.get());
+    return new PropEntitiesArtifactDep(myBuildType.get(),
+                                       new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
   }
 
   @XmlElement(name = "agent-requirements")

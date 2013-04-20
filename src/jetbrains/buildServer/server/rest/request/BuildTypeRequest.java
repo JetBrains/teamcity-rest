@@ -38,13 +38,13 @@ import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.build.Branch;
 import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.buildType.*;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
-import jetbrains.buildServer.serverSide.impl.dependency.DependencyFactoryImpl;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
@@ -695,7 +695,7 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntitiesArtifactDep getArtifactDeps(@PathParam("btLocator") String buildTypeLocator) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    return new PropEntitiesArtifactDep(buildType.get());
+    return new PropEntitiesArtifactDep(buildType.get(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   /**
@@ -713,7 +713,7 @@ public class BuildTypeRequest {
       final List<SArtifactDependency> dependencyObjects =
         CollectionsUtil.convertCollection(deps.propEntities, new Converter<SArtifactDependency, PropEntityArtifactDep>() {
           public SArtifactDependency createFrom(@NotNull final PropEntityArtifactDep source) {
-            return source.createDependency(myServiceLocator.getSingletonService(ArtifactDependencyFactory.class));
+            return source.createDependency(new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
           }
         });
       buildType.get().setArtifactDependencies(dependencyObjects);
@@ -724,7 +724,7 @@ public class BuildTypeRequest {
       buildType.get().persist();
       throw new BadRequestException("Error setting artifact dependencies", e);
     }
-    return new PropEntitiesArtifactDep(buildType.get());
+    return new PropEntitiesArtifactDep(buildType.get(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @POST
@@ -734,12 +734,13 @@ public class BuildTypeRequest {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
 
     final List<SArtifactDependency> dependencies = buildType.get().getArtifactDependencies();
-    dependencies.add(description.createDependency(myServiceLocator.getSingletonService(ArtifactDependencyFactory.class)));
+    dependencies.add(description.createDependency(new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder)));
     int orderNum = dependencies.size() - 1;
     buildType.get().setArtifactDependencies(dependencies);
     buildType.get().persist();
     //todo: might not be a good way to get just added dependency
-    return new PropEntityArtifactDep(buildType.get().getArtifactDependencies().get(orderNum), orderNum);
+    return new PropEntityArtifactDep(buildType.get().getArtifactDependencies().get(orderNum), orderNum,
+                                     new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @GET
@@ -749,7 +750,7 @@ public class BuildTypeRequest {
                                               @PathParam("artifactDepLocator") String artifactDepLocator) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     final SArtifactDependency artifactDependency = DataProvider.getArtifactDep(buildType.get(), artifactDepLocator);
-    return new PropEntityArtifactDep(artifactDependency, buildType.get());
+    return new PropEntityArtifactDep(artifactDependency, buildType.get(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @DELETE
@@ -772,7 +773,7 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntitiesSnapshotDep getSnapshotDeps(@PathParam("btLocator") String buildTypeLocator) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    return new PropEntitiesSnapshotDep(buildType.get());
+    return new PropEntitiesSnapshotDep(buildType.get(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   /**
@@ -788,7 +789,7 @@ public class BuildTypeRequest {
     final List<Dependency> originalDependencies = buildType.get().getDependencies();
     try {
       for (PropEntitySnapshotDep entity : suppliedEntities.propEntities) {
-        entity.addSnapshotDependency(buildType.get(), myServiceLocator.getSingletonService(DependencyFactoryImpl.class));
+        entity.addSnapshotDependency(buildType.get(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
       }
       buildType.get().persist();
     } catch (Exception e) {
@@ -802,7 +803,7 @@ public class BuildTypeRequest {
       buildType.get().persist();
       throw new BadRequestException("Error setting snapshot dependencies", e);
     }
-    return new PropEntitiesSnapshotDep(buildType.get());
+    return new PropEntitiesSnapshotDep(buildType.get(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   /**
@@ -816,10 +817,10 @@ public class BuildTypeRequest {
   public PropEntitySnapshotDep addSnapshotDep(@PathParam("btLocator") String buildTypeLocator, PropEntitySnapshotDep description) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
 
-    Dependency createdDependency = description.addSnapshotDependency(buildType.get(),
-                                                                     myServiceLocator.getSingletonService(DependencyFactoryImpl.class));
+    Dependency createdDependency =
+      description.addSnapshotDependency(buildType.get(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
     buildType.get().persist();
-    return new PropEntitySnapshotDep(createdDependency);
+    return new PropEntitySnapshotDep(createdDependency, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @GET
@@ -829,7 +830,7 @@ public class BuildTypeRequest {
                                               @PathParam("snapshotDepLocator") String snapshotDepLocator) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     final Dependency dependency = DataProvider.getSnapshotDep(buildType.get(), snapshotDepLocator);
-    return new PropEntitySnapshotDep(dependency);
+    return new PropEntitySnapshotDep(dependency, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @DELETE

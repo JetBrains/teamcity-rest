@@ -35,6 +35,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Constants;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.*;
@@ -77,6 +78,7 @@ public class DataProvider {
   @NotNull private final BuildDataStorage myBuildDataStorage;
   @NotNull private final BuildPromotionManager myPromotionManager;
   @NotNull private final VcsModificationChecker myVcsModificationChecker;
+  @NotNull private final BeanFactory myBeanFactory;
 
   public DataProvider(@NotNull final SBuildServer myServer,
                       @NotNull final BuildHistory myBuildHistory,
@@ -95,7 +97,8 @@ public class DataProvider {
                       @NotNull final ValueProviderRegistry valueProviderRegistry,
                       @NotNull final BuildDataStorage buildDataStorage,
                       @NotNull final BuildPromotionManager promotionManager,
-                      @NotNull final VcsModificationChecker vcsModificationChecker
+                      @NotNull final VcsModificationChecker vcsModificationChecker,
+                      @NotNull final BeanFactory beanFactory
   ) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
@@ -115,6 +118,7 @@ public class DataProvider {
     myBuildDataStorage = buildDataStorage;
     myPromotionManager = promotionManager;
     myVcsModificationChecker = vcsModificationChecker;
+    myBeanFactory = beanFactory;
   }
 
   @Nullable
@@ -554,5 +558,10 @@ public class DataProvider {
   @NotNull
   public VcsModificationChecker getVcsModificationChecker() {
     return myVcsModificationChecker;
+  }
+
+  @NotNull
+  public BeanFactory getBeanFactory() {
+    return myBeanFactory;
   }
 }
