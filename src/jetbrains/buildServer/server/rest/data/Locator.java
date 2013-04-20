@@ -50,7 +50,7 @@ public class Locator {
     if (!hasDimensions) {
       mySingleValue = locator;
       myDimensions = new MultiValuesMap<String, String>();
-      myUnusedDimensions = new HashSet<String>();
+      myUnusedDimensions = new HashSet<String>(Collections.singleton(LOCATOR_SINGLE_VALUE_UNUSED_NAME));
     } else {
       mySingleValue = null;
       myDimensions = parse(locator);
@@ -150,18 +150,20 @@ public class Locator {
    */
   @Nullable
   public String getSingleValue() {
+    myUnusedDimensions.remove(LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     return mySingleValue;
   }
 
   @Nullable
   public Long getSingleValueAsLong() {
-    if (mySingleValue == null) {
+    final String singleValue = getSingleValue();
+    if (singleValue == null) {
       return null;
     }
     try {
-      return Long.parseLong(mySingleValue);
+      return Long.parseLong(singleValue);
     } catch (NumberFormatException e) {
-      throw new LocatorProcessException("Invalid single value: " + mySingleValue + ". Should be a number.");
+      throw new LocatorProcessException("Invalid single value: " + singleValue + ". Should be a number.");
     }
   }
 
@@ -253,10 +255,7 @@ public class Locator {
    */
   @NotNull
   public Set<String> getUnusedDimensions() {
-    if (!isSingleValue()){
-      return myUnusedDimensions;
-    }
-    return Collections.singleton(LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    return myUnusedDimensions;
   }
 
   /**
