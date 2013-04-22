@@ -24,6 +24,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.parameters.ProcessingResult;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildFinder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
@@ -160,6 +161,7 @@ public class BuildRequest {
   @Produces({"application/xml", "application/json"})
   public Properties serveBuildActualParameters(@PathParam("buildLocator") String buildLocator) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
+    myDataProvider.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
     return new Properties(build.getParametersProvider().getAll());
     /* alternative
     try {
@@ -175,6 +177,7 @@ public class BuildRequest {
   @Produces({"text/plain"})
   public String getParameter(@PathParam("buildLocator") String buildLocator, @PathParam("propertyName") String propertyName) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
+    myDataProvider.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
     if (StringUtil.isEmpty(propertyName)) {
       throw new BadRequestException("Property name should not be empty");
     }
@@ -195,9 +198,11 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}" + ARTIFACTS_METADATA + "{path:(/.*)?}")
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-  public File getArtifactMetadata(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String path) {
+  public File getArtifactMetadata(@PathParam("buildLocator") final String buildLocator,
+                                  @PathParam("path") final String path,
+                                  @QueryParam("resolveParameters") Boolean resolveParameters) {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    final ArtifactTreeElement element = getArtifactElement(build, path);
+    final ArtifactTreeElement element = getArtifactElement(build, getResolvedIfNecessary(build, path, resolveParameters));
     final FileApiUrlBuilder builder = fileApiUrlBuilderForBuild(myApiUrlBuilder, build);
     final String par = StringUtil.removeTailingSlash(StringUtil.convertAndCollapseSlashes(element.getFullName()));
     final ArtifactTreeElement parent = par.equals("") ? null : getArtifactElement(build, ArchiveUtil.getParentPath(par));
@@ -207,13 +212,18 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}" + ARTIFACTS_CHILDREN + "{path:(/.*)?}")
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-  public Files getArtifactChildren(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String path) {
+  public Files getArtifactChildren(@PathParam("buildLocator") final String buildLocator,
+                                   @PathParam("path") final String path,
+                                   @QueryParam("resolveParameters") Boolean resolveParameters) {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    final ArtifactTreeElement element = getArtifactElement(build, path);
+    final String resolvedPath = getResolvedIfNecessary(build, path, resolveParameters);
+    final ArtifactTreeElement element = getArtifactElement(build, resolvedPath);
     try {
       final Iterable<Element> children = element.getChildren();
       if (element.isLeaf() || children == null) {
-        throw new BadRequestException("Cannot provide children list for artifact \"" + path + "\": artifact is a leaf.");
+        throw new BadRequestException(
+          "Cannot provide children list for artifact \"" + resolvedPath + "\": artifact is a leaf. To get content use '" +
+          fileApiUrlBuilderForBuild(myApiUrlBuilder, build).getContentHref(element) + "'");
       }
       // children is a collection of ArtifactTreeElement, but we ensure it.
       return new Files(CollectionsUtil.convertCollection(children, new Converter<File, Element>() {
@@ -223,7 +233,7 @@ public class BuildRequest {
         }
       }));
     } catch (BrowserException e) {
-      throw new OperationException("Exception due to collecting children for artifact \"" + path + "\"", e);
+      throw new OperationException("Exception due to collecting children for artifact \"" + resolvedPath + "\"", e);
     }
   }
 
@@ -257,9 +267,23 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}" + ARTIFACTS_CONTENT + "{path:(/.*)?}")
   @Produces({MediaType.WILDCARD})
-  public Response getArtifactContent(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String path, @Context HttpServletRequest request) {
+  public Response getArtifactContent(@PathParam("buildLocator") final String buildLocator,
+                                     @PathParam("path") final String path,
+                                     @QueryParam("resolveParameters") Boolean resolveParameters,
+                                     @Context HttpServletRequest request) {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return getArtifactContentResponse(build, path, request, BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
+    return getArtifactContentResponse(build, getResolvedIfNecessary(build, path, resolveParameters), request,
+                                      BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
+  }
+
+  private String getResolvedIfNecessary(@NotNull final SBuild build, @Nullable final String value, @Nullable final Boolean resolveSupported) {
+    if (resolveSupported == null || !resolveSupported || StringUtil.isEmpty(value)) {
+      return value;
+    }
+    assert value != null;
+    myDataProvider.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
+    final ProcessingResult resolveResult = build.getValueResolver().resolve(value);
+    return resolveResult.getResult();
   }
 
   /**
