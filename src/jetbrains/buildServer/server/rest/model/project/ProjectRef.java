@@ -56,11 +56,16 @@ public class ProjectRef {
   public ProjectRef() {
   }
 
-  public ProjectRef(SProject project, final ApiUrlBuilder apiUrlBuilder) {
+  public ProjectRef(@NotNull final SProject project, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     id = project.getExternalId();
     internalId = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? project.getProjectId() : null;
     name = project.getName();
     href = apiUrlBuilder.getHref(project);
+  }
+
+  public ProjectRef(@Nullable final String externalId, @Nullable final String internalId, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    id = externalId;
+    this.internalId = internalId; //todo: check usages: externalId should actually be NotNull and internal id should never be necessary
   }
 
   @Nullable

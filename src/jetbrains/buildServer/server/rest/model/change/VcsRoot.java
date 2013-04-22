@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
 import jetbrains.buildServer.serverSide.Parameter;
+import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.serverSide.UserParametersHolder;
 import jetbrains.buildServer.vcs.*;
@@ -94,7 +95,15 @@ public class VcsRoot {
     id = root.getId();
     name = root.getName();
     vcsName = root.getVcsName();
-    project = new ProjectRef(dataProvider.getProjectByInternalId(root.getScope().getOwnerProjectId()), apiUrlBuilder);
+
+    final String ownerProjectId = root.getScope().getOwnerProjectId();
+    final SProject projectById = dataProvider.getServer().getProjectManager().findProjectById(ownerProjectId);
+    if (projectById != null) {
+      project = new ProjectRef(projectById, apiUrlBuilder);
+    } else {
+      project = new ProjectRef(null, ownerProjectId, apiUrlBuilder);
+    }
+
     properties = new Properties(root.getProperties());
     modificationCheckInterval = root.isUseDefaultModificationCheckInterval() ? null : root.getModificationCheckInterval();
     final VcsRootStatus rootStatus = dataProvider.getVcsManager().getStatus(root);

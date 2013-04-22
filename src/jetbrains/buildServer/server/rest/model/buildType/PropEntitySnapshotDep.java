@@ -61,8 +61,13 @@ public class PropEntitySnapshotDep extends PropEntity {
     this.properties = new Properties(properties);
 
     final SBuildType dependOn = dependency.getDependOn();
-    sourceBuildType = dependOn != null ? new BuildTypeRef(dependOn, context.getSingletonService(DataProvider.class),
-                                                          context.getContextService(ApiUrlBuilder.class)) : null;
+    if (dependOn != null) {
+      sourceBuildType = new BuildTypeRef(dependOn, context.getSingletonService(DataProvider.class),
+                                         context.getContextService(ApiUrlBuilder.class));
+    } else {
+      sourceBuildType = new BuildTypeRef(null, dependency.getDependOnId(), context.getSingletonService(DataProvider.class),
+                                         context.getContextService(ApiUrlBuilder.class));
+    }
   }
 
   public Dependency addSnapshotDependency(final BuildTypeSettings buildType,
@@ -122,7 +127,8 @@ public class PropEntitySnapshotDep extends PropEntity {
     if (internalIdFromPosted != null) {
       return internalIdFromPosted;
     }
-    throw new NotFoundException("Cound not find internal id defined by '" + SOURCE_BUILD_TYPE + "' element.");
+    throw new NotFoundException("Cound not find internal id of the build configuration defined by '" + SOURCE_BUILD_TYPE +
+                                "' element. No such build configuration exists?");
   }
 
   private void addOptionToProperty(final HashMap<String, String> properties, final Dependency dependency,

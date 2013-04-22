@@ -40,7 +40,7 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "buildType-ref")
 @XmlType(name = "buildType-ref", propOrder = {"id", "internalId", "name", "href", "projectName", "projectId", "projectInternalId", "webUrl"})
 public class BuildTypeRef {
-  protected BuildTypeOrTemplate myBuildType;
+  @Nullable protected BuildTypeOrTemplate myBuildType;
   private DataProvider myDataProvider;
   private ApiUrlBuilder myApiUrlBuilder;
 
@@ -57,51 +57,70 @@ public class BuildTypeRef {
   public BuildTypeRef() {
   }
 
-  public BuildTypeRef(@NotNull SBuildType buildType, @NotNull final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
+  public BuildTypeRef(@NotNull final SBuildType buildType, @NotNull final DataProvider dataProvider, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     myBuildType = new BuildTypeOrTemplate(buildType);
     myDataProvider = dataProvider;
     myApiUrlBuilder = apiUrlBuilder;
 
-    id = myBuildType.getId();
-    internalId = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? myBuildType.getInternalId() : null;
+    init(myBuildType);
   }
 
-  public BuildTypeRef(BuildTypeTemplate buildType, @NotNull final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
+  private void init(@NotNull final BuildTypeOrTemplate buildType) {
+    id = buildType.getId();
+    internalId = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? buildType.getInternalId() : null;
+  }
+
+  public BuildTypeRef(@NotNull final BuildTypeTemplate buildType, @NotNull final DataProvider dataProvider, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     myBuildType = new BuildTypeOrTemplate(buildType);
+    myDataProvider = dataProvider;
+    myApiUrlBuilder = apiUrlBuilder;
+
+    init(myBuildType);
+  }
+
+  /**
+   * Creates a reference on a missing build type which has only external id known.
+   * @param externalId
+   */
+  public BuildTypeRef(@Nullable final String externalId, @Nullable final String internalId, @NotNull final DataProvider dataProvider, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    myBuildType = null;
+    id = externalId;
+    this.internalId = internalId; //todo: check usages: externalId should actually be NotNull and internal id should never be necessary
+
     myDataProvider = dataProvider;
     myApiUrlBuilder = apiUrlBuilder;
   }
 
   @XmlAttribute
   public String getName() {
-    return myBuildType.getName();
+    return myBuildType == null ? null : myBuildType.getName();
   }
 
   @XmlAttribute
   public String getHref() {
-    return myApiUrlBuilder.getHref(myBuildType);
+    return myBuildType == null ? null : myApiUrlBuilder.getHref(myBuildType);
   }
 
   @XmlAttribute
   public String getProjectId() {
-    return myBuildType.getProject().getExternalId();
+    return myBuildType == null ? null : myBuildType.getProject().getExternalId();
   }
 
   @XmlAttribute
   public String getProjectInternalId() {
-    return TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME)
+    return myBuildType == null ? null : (TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME)
            ? myBuildType.getProject().getProjectId()
-           : null;
+           : null);
   }
 
   @XmlAttribute
   public String getProjectName() {
-    return myBuildType.getProject().getName();
+    return myBuildType == null ? null : myBuildType.getProject().getName();
   }
 
   @XmlAttribute
   public String getWebUrl() {
-    return myBuildType.isBuildType() ? myDataProvider.getBuildTypeUrl(myBuildType.getBuildType()) : null;
+    return myBuildType == null ? null : (myBuildType.isBuildType() ? myDataProvider.getBuildTypeUrl(myBuildType.getBuildType()) : null);
   }
 
   @Nullable

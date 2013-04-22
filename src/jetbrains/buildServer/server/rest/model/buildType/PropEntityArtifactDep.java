@@ -63,8 +63,13 @@ public class PropEntityArtifactDep extends PropEntity {
     this.properties = new Properties(properties);
 
     final SBuildType dependOn = dependency.getSourceBuildType();
-    sourceBuildType = dependOn != null ? new BuildTypeRef(dependOn, context.getSingletonService(DataProvider.class),
-                                                          context.getContextService(ApiUrlBuilder.class)) : null;
+    if (dependOn != null) {
+      sourceBuildType = new BuildTypeRef(dependOn, context.getSingletonService(DataProvider.class),
+                                         context.getContextService(ApiUrlBuilder.class));
+    } else {
+      sourceBuildType = new BuildTypeRef(null, dependency.getSourceBuildTypeId(), context.getSingletonService(DataProvider.class),
+                                         context.getContextService(ApiUrlBuilder.class));
+    }
   }
 
   public PropEntityArtifactDep(final SArtifactDependency artifactDependency,
