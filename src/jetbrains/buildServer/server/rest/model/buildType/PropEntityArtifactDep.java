@@ -105,7 +105,7 @@ public class PropEntityArtifactDep extends PropEntity {
     }
 
     //todo: review internal/external id usage
-    final SArtifactDependency artifactDependency = context.getSingletonService(ArtifactDependencyFactory.class).createArtifactDependency(
+    final SArtifactDependency artifactDependency = context.getSingletonService(ArtifactDependencyFactory.class).createArtifactDependencyByInternalId(
       buildTypeIdDependOn,
       propertiesMap.get(NAME_PATH_RULES),
       RevisionRules.newRevisionRule(revisionName, propertiesMap.get(NAME_REVISION_VALUE)));
