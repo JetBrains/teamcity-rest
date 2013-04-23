@@ -324,6 +324,7 @@ public class BuildRequest {
     };
 
     Response.ResponseBuilder builder = Response.ok().type(WebUtil.getMimeType(request, path));
+    builder = builder.header("Content-Disposition", "attachment; filename=\"" + artifact.getName() + "\"");
     //todo: log build downloading artifacts (also consider an option), see RepositoryDownloadController
     return builder.entity(output).build();
   }
