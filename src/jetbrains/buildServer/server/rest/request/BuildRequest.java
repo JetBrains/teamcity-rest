@@ -236,40 +236,6 @@ public class BuildRequest {
     }
   }
 
-  @NotNull
-  public static FileApiUrlBuilder fileApiUrlBuilderForBuild(@NotNull final ApiUrlBuilder apiUrlBuilder, @NotNull final SBuild build) {
-    return new FileApiUrlBuilder() {
-      private final String myHrefBase = apiUrlBuilder.getHref(build) + BuildRequest.ARTIFACTS;
-
-      public String getMetadataHref(Element e) {
-        return myHrefBase + BuildRequest.METADATA + "/" + e.getFullName();
-      }
-
-      public String getChildrenHref(Element e) {
-        return myHrefBase + BuildRequest.CHILDREN + "/" + e.getFullName();
-      }
-
-      public String getContentHref(Element e) {
-        return myHrefBase + BuildRequest.CONTENT + "/" + e.getFullName();
-      }
-    };
-  }
-
-  @NotNull
-  private static ArtifactTreeElement getArtifactElement(@NotNull final SBuild build, @NotNull final String path) {
-    return new ArtifactElement(getBuildArtifact(build, path, BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT));
-  }
-
-  @NotNull
-  private static BuildArtifact getBuildArtifact(@NotNull final SBuild build,
-                                                @NotNull final String path,
-                                                @NotNull final BuildArtifactsViewMode mode) {
-    final BuildArtifacts artifacts = build.getArtifacts(mode);
-    final BuildArtifactHolder holder = artifacts.findArtifact(path);
-    checkBuildArtifactHolder(holder);
-    return holder.getArtifact();
-  }
-
   @GET
   @Path("/{buildLocator}" + ARTIFACTS_CONTENT + "{path:(/.*)?}")
   @Produces({MediaType.WILDCARD})
@@ -304,18 +270,8 @@ public class BuildRequest {
     return builder.entity(output).build();
   }
 
-  private String getResolvedIfNecessary(@NotNull final SBuild build, @Nullable final String value, @Nullable final Boolean resolveSupported) {
-    if (resolveSupported == null || !resolveSupported || StringUtil.isEmpty(value)) {
-      return value;
-    }
-    assert value != null;
-    myDataProvider.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
-    final ProcessingResult resolveResult = build.getValueResolver().resolve(value);
-    return resolveResult.getResult();
-  }
-
   /**
-   * @deprecated Compatibility with 7.0 API. Use #getArtifactContent instead.
+   * @deprecated Compatibility. Use #getArtifactContent instead.
    */
   @Deprecated
   @GET
@@ -326,8 +282,51 @@ public class BuildRequest {
   }
 
 
+  @NotNull
+  public static FileApiUrlBuilder fileApiUrlBuilderForBuild(@NotNull final ApiUrlBuilder apiUrlBuilder, @NotNull final SBuild build) {
+    return new FileApiUrlBuilder() {
+      private final String myHrefBase = apiUrlBuilder.getHref(build) + BuildRequest.ARTIFACTS;
 
-  private static StreamingOutput getStreamingOutput(final BuildArtifact artifact) {
+      public String getMetadataHref(Element e) {
+        return myHrefBase + BuildRequest.METADATA + "/" + e.getFullName();
+      }
+
+      public String getChildrenHref(Element e) {
+        return myHrefBase + BuildRequest.CHILDREN + "/" + e.getFullName();
+      }
+
+      public String getContentHref(Element e) {
+        return myHrefBase + BuildRequest.CONTENT + "/" + e.getFullName();
+      }
+    };
+  }
+
+  @NotNull
+  private static ArtifactTreeElement getArtifactElement(@NotNull final SBuild build, @NotNull final String path) {
+    return new ArtifactElement(getBuildArtifact(build, path, BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT));
+  }
+
+  @NotNull
+  private static BuildArtifact getBuildArtifact(@NotNull final SBuild build,
+                                                @NotNull final String path,
+                                                @NotNull final BuildArtifactsViewMode mode) {
+    final BuildArtifacts artifacts = build.getArtifacts(mode);
+    final BuildArtifactHolder holder = artifacts.findArtifact(path);
+    checkBuildArtifactHolder(holder);
+    return holder.getArtifact();
+  }
+
+  private String getResolvedIfNecessary(@NotNull final SBuild build, @Nullable final String value, @Nullable final Boolean resolveSupported) {
+    if (resolveSupported == null || !resolveSupported || StringUtil.isEmpty(value)) {
+      return value;
+    }
+    assert value != null;
+    myDataProvider.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
+    final ProcessingResult resolveResult = build.getValueResolver().resolve(value);
+    return resolveResult.getResult();
+  }
+
+  private static StreamingOutput getStreamingOutput(@NotNull final BuildArtifact artifact) {
     return new StreamingOutput() {
         public void write(final OutputStream output) throws WebApplicationException {
           InputStream inputStream = null;
@@ -427,42 +426,6 @@ public class BuildRequest {
     return val;
   }
 
-  @NotNull
-  private Map<String, BuildValue> getRawBuildStatisticValue(final SBuild build, final String valueTypeKey) {
-    ValueProvider vt = myDataProvider.getValueProviderRegistry().getValueProvider(valueTypeKey);
-    if (vt instanceof BuildValueProvider) { // also checks for null
-      return ((BuildValueProvider) vt).getData(build);
-    }
-    return Collections.emptyMap();
-  }
-
-  public Map<String, String> getBuildStatisticsValues(final SBuild build) {
-    final Collection<ValueProvider> valueProviders = myDataProvider.getValueProviderRegistry().getValueProviders();
-    final Map<String, String> result = new HashMap<String, String>();
-
-    //todo: this should be based not on currently registered providers, but on the real values published for a build,
-    // see also http://youtrack.jetbrains.net/issue/TW-4003
-    for (ValueProvider valueProvider : valueProviders) {
-      addValueIfPresent(build, valueProvider.getKey(), result);
-    }
-
-    return result;
-  }
-
-  private void addValueIfPresent(@NotNull final SBuild build, @NotNull final String valueTypeKey, @NotNull final Map<String, String> result) {
-    final Map<String, BuildValue> statValues = getRawBuildStatisticValue(build, valueTypeKey);
-    for (Map.Entry<String, BuildValue> bve : statValues.entrySet()) {
-      BuildValue value = bve.getValue();
-      if (value != null) { // should never happen
-        if (value.getValue() == null) {
-          // some value providers can return BuildValue without value itself (see TimeToFixValueType), however in REST we do not need such values
-          continue;
-        }
-        result.put(bve.getKey(), value.getValue().toString());
-      }
-    }
-  }
-
   /**
    * Replaces build's tags.
    *
@@ -508,7 +471,6 @@ public class BuildRequest {
     this.addTags(buildLocator, new Tags(Arrays.asList(tagName)), request);
   }
 //todo: add GET (true/false) and DELETE, amy be PUT (true/false) for a single tag
-
 
   /**
    * Fetches current build pinned status.
@@ -742,6 +704,43 @@ public class BuildRequest {
     }
     if (!holder.isAccessible()) {
       throw new AuthorizationFailedException("Artifact is not accessible with current user permissions. Relative path: '" + holder.getRelativePath() + "'");
+    }
+  }
+
+
+  @NotNull
+  private Map<String, BuildValue> getRawBuildStatisticValue(final SBuild build, final String valueTypeKey) {
+    ValueProvider vt = myDataProvider.getValueProviderRegistry().getValueProvider(valueTypeKey);
+    if (vt instanceof BuildValueProvider) { // also checks for null
+      return ((BuildValueProvider) vt).getData(build);
+    }
+    return Collections.emptyMap();
+  }
+
+  public Map<String, String> getBuildStatisticsValues(final SBuild build) {
+    final Collection<ValueProvider> valueProviders = myDataProvider.getValueProviderRegistry().getValueProviders();
+    final Map<String, String> result = new HashMap<String, String>();
+
+    //todo: this should be based not on currently registered providers, but on the real values published for a build,
+    // see also http://youtrack.jetbrains.net/issue/TW-4003
+    for (ValueProvider valueProvider : valueProviders) {
+      addValueIfPresent(build, valueProvider.getKey(), result);
+    }
+
+    return result;
+  }
+
+  private void addValueIfPresent(@NotNull final SBuild build, @NotNull final String valueTypeKey, @NotNull final Map<String, String> result) {
+    final Map<String, BuildValue> statValues = getRawBuildStatisticValue(build, valueTypeKey);
+    for (Map.Entry<String, BuildValue> bve : statValues.entrySet()) {
+      BuildValue value = bve.getValue();
+      if (value != null) { // should never happen
+        if (value.getValue() == null) {
+          // some value providers can return BuildValue without value itself (see TimeToFixValueType), however in REST we do not need such values
+          continue;
+        }
+        result.put(bve.getKey(), value.getValue().toString());
+      }
     }
   }
 }
