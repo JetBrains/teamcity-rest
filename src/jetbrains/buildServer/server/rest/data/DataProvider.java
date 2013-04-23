@@ -492,7 +492,7 @@ public class DataProvider {
   public void checkProjectPermission(@NotNull final Permission permission, @Nullable final String projectId) throws AuthorizationFailedException{
     final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
     if (projectId == null){
-      if (authorityHolder.isPermissionGrantedGlobally(Permission.CHANGE_SERVER_SETTINGS)){
+      if (authorityHolder.isPermissionGrantedGlobally(permission)){
         return;
       }
       throw new AuthorizationFailedException("Not existing project with internal id: '" + projectId + "'. Treating as no permission.");

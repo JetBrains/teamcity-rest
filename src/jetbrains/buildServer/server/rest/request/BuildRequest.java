@@ -200,7 +200,7 @@ public class BuildRequest {
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
   public File getArtifactMetadata(@PathParam("buildLocator") final String buildLocator,
                                   @PathParam("path") final String path,
-                                  @QueryParam("resolveParameters") Boolean resolveParameters) {
+                                  @QueryParam("resolveParameters") final Boolean resolveParameters) {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final ArtifactTreeElement element = getArtifactElement(build, getResolvedIfNecessary(build, path, resolveParameters));
     final FileApiUrlBuilder builder = fileApiUrlBuilderForBuild(myApiUrlBuilder, build);
@@ -214,16 +214,15 @@ public class BuildRequest {
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
   public Files getArtifactChildren(@PathParam("buildLocator") final String buildLocator,
                                    @PathParam("path") final String path,
-                                   @QueryParam("resolveParameters") Boolean resolveParameters) {
+                                   @QueryParam("resolveParameters") final Boolean resolveParameters) {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final String resolvedPath = getResolvedIfNecessary(build, path, resolveParameters);
     final ArtifactTreeElement element = getArtifactElement(build, resolvedPath);
     try {
       final Iterable<Element> children = element.getChildren();
       if (element.isLeaf() || children == null) {
-        throw new BadRequestException(
-          "Cannot provide children list for artifact \"" + resolvedPath + "\": artifact is a leaf. To get content use '" +
-          fileApiUrlBuilderForBuild(myApiUrlBuilder, build).getContentHref(element) + "'");
+        throw new BadRequestException("Cannot provide children list for file \'" + resolvedPath + "\'. To get content use '" +
+                                      fileApiUrlBuilderForBuild(myApiUrlBuilder, build).getContentHref(element) + "'.");
       }
       // children is a collection of ArtifactTreeElement, but we ensure it.
       return new Files(CollectionsUtil.convertCollection(children, new Converter<File, Element>() {
@@ -258,10 +257,17 @@ public class BuildRequest {
 
   @NotNull
   private static ArtifactTreeElement getArtifactElement(@NotNull final SBuild build, @NotNull final String path) {
-    final BuildArtifacts artifacts = build.getArtifacts(BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
+    return new ArtifactElement(getBuildArtifact(build, path, BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT));
+  }
+
+  @NotNull
+  private static BuildArtifact getBuildArtifact(@NotNull final SBuild build,
+                                                @NotNull final String path,
+                                                @NotNull final BuildArtifactsViewMode mode) {
+    final BuildArtifacts artifacts = build.getArtifacts(mode);
     final BuildArtifactHolder holder = artifacts.findArtifact(path);
     checkBuildArtifactHolder(holder);
-    return new ArtifactElement(holder.getArtifact());
+    return holder.getArtifact();
   }
 
   @GET
@@ -269,11 +275,33 @@ public class BuildRequest {
   @Produces({MediaType.WILDCARD})
   public Response getArtifactContent(@PathParam("buildLocator") final String buildLocator,
                                      @PathParam("path") final String path,
-                                     @QueryParam("resolveParameters") Boolean resolveParameters,
+                                     @QueryParam("resolveParameters") final Boolean resolveParameters,
                                      @Context HttpServletRequest request) {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return getArtifactContentResponse(build, getResolvedIfNecessary(build, path, resolveParameters), request,
-                                      BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
+    final String resolvedPath = getResolvedIfNecessary(build, path, resolveParameters);
+    final BuildArtifact artifact = getBuildArtifact(build, resolvedPath, BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
+    if (artifact.isDirectory()) {
+      throw new NotFoundException("Cannot provide content for directory '" + resolvedPath + "'. To get children use '" +
+                                  fileApiUrlBuilderForBuild(myApiUrlBuilder, build).getChildrenHref(
+                                    new ArtifactElement(artifact)) + "'.");
+    }
+
+    final StreamingOutput output = getStreamingOutput(artifact);
+
+    Response.ResponseBuilder builder = Response.ok();
+    if (TeamCityProperties.getBooleanOrTrue("rest.build.artifacts.setMimeType")) {
+      builder = builder.type(WebUtil.getMimeType(request, resolvedPath));
+    } else{
+      builder = builder.type(MediaType.APPLICATION_OCTET_STREAM_TYPE);
+    }
+    if (TeamCityProperties.getBooleanOrTrue("rest.build.artifacts.forceContentDisposition.Attachment")) {
+      // make sure the file is not displayed in the browser (TW-27206)
+      builder = builder.header("Content-Disposition", "attachment; filename=\"" + artifact.getName() + "\"");
+    } else {
+      builder = builder.header("Content-Disposition", "filename=\"" + artifact.getName() + "\"");
+    }
+    //todo: log build downloading artifacts (also consider an option), see RepositoryDownloadController
+    return builder.entity(output).build();
   }
 
   private String getResolvedIfNecessary(@NotNull final SBuild build, @Nullable final String value, @Nullable final Boolean resolveSupported) {
@@ -287,47 +315,36 @@ public class BuildRequest {
   }
 
   /**
-   * @deprecated needed for backward compatibility. Use #getArtifactContent instead.
+   * @deprecated Compatibility with 7.0 API. Use #getArtifactContent instead.
    */
   @Deprecated
   @GET
   @Path("/{buildLocator}" + ARTIFACTS + "/files{path:(/.*)?}")
   @Produces({MediaType.WILDCARD})
   public Response getArtifactFilesContent(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String fileName, @Context HttpServletRequest request) {
-    final SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return getArtifactContentResponse(build, fileName, request, BuildArtifactsViewMode.VIEW_ALL);
+    return getArtifactContent(buildLocator, fileName, false, request);
   }
 
-  @NotNull
-  private static Response getArtifactContentResponse(@NotNull final SBuild build, @NotNull final String path, @NotNull final HttpServletRequest request, @NotNull final BuildArtifactsViewMode mode) {
-    final BuildArtifacts artifacts = build.getArtifacts(mode);
-    final BuildArtifactHolder holder = artifacts.findArtifact(path);
-    checkBuildArtifactHolder(holder);
-    final BuildArtifact artifact = holder.getArtifact();
-    if (artifact.isDirectory()) {
-      throw new NotFoundException("Requested path is a directory. Relative path: '" + path + "'");
-    }
 
-    final StreamingOutput output = new StreamingOutput() {
-      public void write(final OutputStream output) throws WebApplicationException {
-        InputStream inputStream = null;
-        try {
-          inputStream = artifact.getInputStream();
-          TCStreamUtil.writeBinary(inputStream, output);
-        } catch (IOException e) {
-          //todo add better processing
-          throw new OperationException("Error while processing file '" + artifact.getRelativePath() + "' content: " + e.getMessage(), e);
-        } finally {
-          FileUtil.close(inputStream);
+
+  private static StreamingOutput getStreamingOutput(final BuildArtifact artifact) {
+    return new StreamingOutput() {
+        public void write(final OutputStream output) throws WebApplicationException {
+          InputStream inputStream = null;
+          try {
+            inputStream = artifact.getInputStream();
+            TCStreamUtil.writeBinary(inputStream, output);
+          } catch (IOException e) {
+            //todo add better processing
+            throw new OperationException("Error while processing file '" + artifact.getRelativePath() + "' content: " + e.getMessage(), e);
+          } finally {
+            FileUtil.close(inputStream);
+          }
         }
-      }
-    };
-
-    Response.ResponseBuilder builder = Response.ok().type(WebUtil.getMimeType(request, path));
-    builder = builder.header("Content-Disposition", "attachment; filename=\"" + artifact.getName() + "\"");
-    //todo: log build downloading artifacts (also consider an option), see RepositoryDownloadController
-    return builder.entity(output).build();
+      };
   }
+
+
 
   @GET
   @Path("/{buildLocator}/sources/files/{fileName:.+}")
