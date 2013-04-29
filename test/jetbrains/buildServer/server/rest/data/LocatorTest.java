@@ -1,11 +1,10 @@
 package jetbrains.buildServer.server.rest.data;
 
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
-import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
+import org.testng.annotations.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  * @author Yegor.Yarko
@@ -94,34 +93,66 @@ public class LocatorTest {
 
   @Test
   public void testComplexValues1() {
-    final Locator locator = new Locator("name:(Bob:32(,age:2),mood:permissive");
+    final Locator locator = new Locator("name:(Bob:32_,age:2),mood:permissive");
     assertEquals(false, locator.isSingleValue());
     assertEquals(null, locator.getSingleValue());
     assertEquals(2, locator.getDimensionsCount());
     assertEquals(null, locator.getSingleDimensionValue("age"));
-    assertEquals("Bob:32(,age:2", locator.getSingleDimensionValue("name"));
+    assertEquals("Bob:32_,age:2", locator.getSingleDimensionValue("name"));
     assertEquals("permissive", locator.getSingleDimensionValue("mood"));
+  }
+
+  @Test
+  public void testComplexValues1a(){
+    try {
+      final Locator locator = new Locator("name:(Bob:32(,age:2),mood:permissive");
+      assertTrue("Should never reach here", false);
+    } catch (LocatorProcessException e) {
+      assertTrue(e.getMessage().contains("Could not find matching ')'"));
+      assertTrue(e.getMessage().contains("at position 6"));
+    }
   }
 
   @Test
   public void testComplexValues2() {
-    final Locator locator = new Locator("a:smth,name:(Bob:32(,age:2),mood:permissive");
+    final Locator locator = new Locator("a:smth,name:(Bob:32_,age:2),mood:permissive");
     assertEquals(false, locator.isSingleValue());
     assertEquals(null, locator.getSingleValue());
     assertEquals(3, locator.getDimensionsCount());
     assertEquals("smth", locator.getSingleDimensionValue("a"));
-    assertEquals("Bob:32(,age:2", locator.getSingleDimensionValue("name"));
+    assertEquals("Bob:32_,age:2", locator.getSingleDimensionValue("name"));
     assertEquals("permissive", locator.getSingleDimensionValue("mood"));
   }
 
   @Test
+  public void testComplexValues2a(){
+    try {
+      final Locator locator = new Locator("a:smth,name:(Bob:32(,age:2),mood:permissive");
+      assertTrue("Should never reach here", false);
+    } catch (LocatorProcessException e) {
+      assertTrue(e.getMessage().contains("Could not find matching ')'"));
+      assertTrue(e.getMessage().contains("at position 13"));
+    }
+  }
+
+  @Test
   public void testComplexValues3() {
-    final Locator locator = new Locator("name:(Bob:32(,age:2),mood:(permissive)");
+    final Locator locator = new Locator("name:(Bob:32_,age:2),mood:(permissive)");
     assertEquals(false, locator.isSingleValue());
     assertEquals(null, locator.getSingleValue());
     assertEquals(2, locator.getDimensionsCount());
-    assertEquals("Bob:32(,age:2", locator.getSingleDimensionValue("name"));
+    assertEquals("Bob:32_,age:2", locator.getSingleDimensionValue("name"));
     assertEquals("permissive", locator.getSingleDimensionValue("mood"));
+  }
+
+  @Test
+  public void testComplexValues3a(){
+    try {
+      final Locator locator = new Locator("name:(Bob:32(,age:2),mood:(permissive)");
+      assertTrue("Should never reach here", false);
+    } catch (LocatorProcessException e) {
+      assertTrue(e.getMessage().contains("Could not find matching ')'"));
+    }
   }
 
   @Test
@@ -132,6 +163,35 @@ public class LocatorTest {
     assertEquals(2, locator.getDimensionsCount());
     assertEquals("17", locator.getSingleDimensionValue("name"));
     assertEquals("permiss:ive", locator.getSingleDimensionValue("mood"));
+  }
+
+  @Test
+  public void testNestedComplexValues1() {
+    final Locator locator = new Locator("buildType:(name:5,project:(id:Project_1))");
+    assertEquals(false, locator.isSingleValue());
+    assertEquals("name:5,project:(id:Project_1)", locator.getSingleDimensionValue("buildType"));
+  }
+
+  @Test
+  public void testNestedComplexValues2() {
+    final Locator locator = new Locator("buildType:(name:5),project:(id:Project_1)");
+    assertEquals(false, locator.isSingleValue());
+    assertEquals("name:5", locator.getSingleDimensionValue("buildType"));
+    assertEquals("id:Project_1", locator.getSingleDimensionValue("project"));
+  }
+
+  @Test
+  public void testNestedComplexValues3() {
+    final Locator locator = new Locator("buildType:((name:5,project:(id:Project_1)))");
+    assertEquals(false, locator.isSingleValue());
+    assertEquals("(name:5,project:(id:Project_1))", locator.getSingleDimensionValue("buildType"));
+  }
+
+  @Test
+  public void testNestedComplexValues4() {
+    final Locator locator = new Locator("buildType:(name:5,(project:(id:Project_1)),a:b(c),d),f:d");
+    assertEquals(false, locator.isSingleValue());
+    assertEquals("name:5,(project:(id:Project_1)),a:b(c),d", locator.getSingleDimensionValue("buildType"));
   }
 
   @Test

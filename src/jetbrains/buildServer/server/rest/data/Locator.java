@@ -2,10 +2,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.MultiValuesMap;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -35,7 +32,7 @@ public class Locator {
   private static final String DIMENSIONS_DELIMITER = ",";
   private static final String DIMENSION_COMPLEX_VALUE_START_DELIMITER = "(";
   private static final String DIMENSION_COMPLEX_VALUE_END_DELIMITER = ")";
-  public static final String LOCATOR_SINGLE_VALUE_UNUSED_NAME = "locator_single_value";
+  public static final String LOCATOR_SINGLE_VALUE_UNUSED_NAME = "single value";
 
   private final MultiValuesMap<String, String> myDimensions;
   private final String mySingleValue;
@@ -75,19 +72,16 @@ public class Locator {
       final String valueAndRest = locator.substring(nameEnd + DIMENSION_NAME_VALUE_DELIMITER.length());
       if (valueAndRest.startsWith(DIMENSION_COMPLEX_VALUE_START_DELIMITER)) {
         //complex value detected
-        final int complexValueEnd =
-          valueAndRest.indexOf(DIMENSION_COMPLEX_VALUE_END_DELIMITER, DIMENSION_COMPLEX_VALUE_START_DELIMITER.length());
+        final int complexValueEnd = findMatchingEndDelimeterIndex(valueAndRest);
         if (complexValueEnd == -1) {
-          throw new LocatorProcessException(locator, nameEnd + DIMENSION_NAME_VALUE_DELIMITER.length() +
-                                                     DIMENSION_COMPLEX_VALUE_START_DELIMITER.length(),
-                                            "Could not find '" + DIMENSION_COMPLEX_VALUE_END_DELIMITER + "'");
+          throw new LocatorProcessException(locator, nameEnd + DIMENSION_NAME_VALUE_DELIMITER.length() + DIMENSION_COMPLEX_VALUE_START_DELIMITER.length(),
+                                            "Could not find matching '" + DIMENSION_COMPLEX_VALUE_END_DELIMITER + "'");
         }
         currentDimensionValue = valueAndRest.substring(DIMENSION_COMPLEX_VALUE_START_DELIMITER.length(), complexValueEnd);
         parsedIndex = nameEnd + DIMENSION_NAME_VALUE_DELIMITER.length() + complexValueEnd + DIMENSION_COMPLEX_VALUE_END_DELIMITER.length();
         if (parsedIndex != locator.length()) {
           if (!locator.startsWith(DIMENSIONS_DELIMITER, parsedIndex)) {
-            throw new LocatorProcessException(locator, parsedIndex,
-                                              "No dimensions delimiter " + DIMENSIONS_DELIMITER + " after complex value");
+            throw new LocatorProcessException(locator, parsedIndex, "No dimensions delimiter '" + DIMENSIONS_DELIMITER + "' after complex value");
           } else {
             parsedIndex += DIMENSIONS_DELIMITER.length();
           }
@@ -108,6 +102,26 @@ public class Locator {
     return result;
   }
 
+  private static int findMatchingEndDelimeterIndex(final String valueAndRest) {
+    int pos = DIMENSION_COMPLEX_VALUE_START_DELIMITER.length();
+    int nesting = 1;
+    while (nesting !=0) {
+      final int endDelimeterPosition = valueAndRest.indexOf(DIMENSION_COMPLEX_VALUE_END_DELIMITER, pos);
+      final int startDelimeterPosition = valueAndRest.indexOf(DIMENSION_COMPLEX_VALUE_START_DELIMITER, pos);
+      if (endDelimeterPosition == -1){
+        return -1;
+      }
+      if (startDelimeterPosition == -1 || endDelimeterPosition < startDelimeterPosition) {
+        nesting--;
+        pos = endDelimeterPosition + DIMENSION_COMPLEX_VALUE_END_DELIMITER.length();
+      } else if (endDelimeterPosition > startDelimeterPosition) {
+        nesting++;
+        pos = startDelimeterPosition + DIMENSION_COMPLEX_VALUE_START_DELIMITER.length();
+      }
+    }
+    return pos - DIMENSION_COMPLEX_VALUE_END_DELIMITER.length();
+  }
+
   private static boolean isValidName(final String name) {
     for (int i = 0; i < name.length(); i++) {
       if (!Character.isLetter(name.charAt(i)) && !Character.isDigit(name.charAt(i))) return false;
@@ -115,8 +129,12 @@ public class Locator {
     return true;
   }
 
-  //todo: use this whenever possible
   public void checkLocatorFullyProcessed() {
+    checkLocatorFullyProcessedWithMessage();
+  }
+
+  //todo: use this whenever possible
+  public void checkLocatorFullyProcessedWithMessage(final String ... supportedDimensionsText) {
     final Set<String> unusedDimensions = getUnusedDimensions();
     if (unusedDimensions.size() > 0){
       String reportKindString = TeamCityProperties.getProperty("rest.report.unused.locator", "error");
@@ -134,6 +152,7 @@ public class Locator {
             message = "Single value locator is not supported here.";
           }
         }
+        if (supportedDimensionsText != null && supportedDimensionsText.length > 0) message += " Supported dimensions are: " + Arrays.toString(supportedDimensionsText);
         if (reportKindString.contains("log")) {
           if (reportKindString.contains("log-warn")) {
             LOG.warn(message);
