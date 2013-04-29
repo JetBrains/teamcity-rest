@@ -43,7 +43,7 @@ public class BuildTypeFinder {
     }
     assert buildTypeLocator != null;
 
-    final Locator locator = new Locator(buildTypeLocator);
+    final Locator locator = new Locator(buildTypeLocator, DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_PROJECT, DIMENSION_NAME, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's an internal id, external id or name
       final String value = locator.getSingleValue();
@@ -130,10 +130,11 @@ public class BuildTypeFinder {
       if (buildTypeByName != null){
         return buildTypeByName;
       }
-      throw new NotFoundException("No build type or template is found by name '" + name + "' in project '" + actualProject.getFullName() +"'.");
+      throw new NotFoundException(
+        "No build type or template is found by name '" + name + "'" + (actualProject != null ? " in project '" + LogUtil.describe(actualProject) + "'": "") + ".");
     }
 
-    locator.checkLocatorFullyProcessedWithMessage(DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_PROJECT, DIMENSION_NAME, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    locator.checkLocatorFullyProcessed();
     throw new BadRequestException("Build type locator '" + buildTypeLocator + "' is not supported.");
   }
 
