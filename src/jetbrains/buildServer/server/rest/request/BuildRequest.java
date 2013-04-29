@@ -26,9 +26,7 @@ import javax.ws.rs.core.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.ProcessingResult;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.BuildFinder;
-import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -41,6 +39,7 @@ import jetbrains.buildServer.server.rest.model.files.File;
 import jetbrains.buildServer.server.rest.model.files.FileApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.files.Files;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifact;
@@ -56,7 +55,10 @@ import jetbrains.buildServer.serverSide.statistics.ValueProvider;
 import jetbrains.buildServer.serverSide.statistics.build.BuildValue;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
-import jetbrains.buildServer.util.*;
+import jetbrains.buildServer.util.ArchiveUtil;
+import jetbrains.buildServer.util.FileUtil;
+import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.TCStreamUtil;
 import jetbrains.buildServer.util.browser.BrowserException;
 import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.vcs.VcsException;
@@ -82,6 +84,7 @@ public class BuildRequest {
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private BuildFinder myBuildFinder;
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
+//  @Context @NotNull private BuildArtifactsFinder myBuildArtifactsFinder;
 
   public static final String BUILDS_ROOT_REQUEST_PATH = "/builds";
   public static final String API_BUILDS_URL = Constants.API_URL + BUILDS_ROOT_REQUEST_PATH;
@@ -93,6 +96,10 @@ public class BuildRequest {
   public static final String ARTIFACTS_CONTENT = ARTIFACTS + CONTENT;
   public static final String CHILDREN = "/children";
   public static final String ARTIFACTS_CHILDREN = ARTIFACTS + CHILDREN;
+
+  public static final String ARCHIVES_DIMENSION_NAME = "browseArchives";
+  public static final String HIDDEN_DIMENSION_NAME = "hidden";
+  public static final String DIRECTORY_DIMENSION_NAME = "directory";
 
   @Context
   private ApiUrlBuilder myApiUrlBuilder;
@@ -202,10 +209,10 @@ public class BuildRequest {
                                   @PathParam("path") final String path,
                                   @QueryParam("resolveParameters") final Boolean resolveParameters) {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    final ArtifactTreeElement element = getArtifactElement(build, getResolvedIfNecessary(build, path, resolveParameters));
-    final FileApiUrlBuilder builder = fileApiUrlBuilderForBuild(myApiUrlBuilder, build);
+    final ArtifactTreeElement element = getArtifactElement(build, getResolvedIfNecessary(build, path, resolveParameters), BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
+    final FileApiUrlBuilder builder = fileApiUrlBuilderForBuild(myApiUrlBuilder, build, null);
     final String par = StringUtil.removeTailingSlash(StringUtil.convertAndCollapseSlashes(element.getFullName()));
-    final ArtifactTreeElement parent = par.equals("") ? null : getArtifactElement(build, ArchiveUtil.getParentPath(par));
+    final ArtifactTreeElement parent = par.equals("") ? null : getArtifactElement(build, ArchiveUtil.getParentPath(par), BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
     return new File(element, parent, builder);
   }
 
@@ -213,27 +220,78 @@ public class BuildRequest {
   @Path("/{buildLocator}" + ARTIFACTS_CHILDREN + "{path:(/.*)?}")
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
   public Files getArtifactChildren(@PathParam("buildLocator") final String buildLocator,
-                                   @PathParam("path") final String path,
-                                   @QueryParam("resolveParameters") final Boolean resolveParameters) {
+                                   @PathParam("path") @DefaultValue("") final String path,
+                                   @QueryParam("resolveParameters") final Boolean resolveParameters,
+                                   @QueryParam("locator") final String locator) {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final String resolvedPath = getResolvedIfNecessary(build, path, resolveParameters);
-    final ArtifactTreeElement element = getArtifactElement(build, resolvedPath);
+    return getFiles(build, resolvedPath, locator, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+  }
+
+  public Files getFiles(@NotNull final SBuild build, @NotNull final String path, @Nullable final String filesLocator, @NotNull final BeanContext context) {
+    @Nullable final Locator locator =
+      StringUtil.isEmpty(filesLocator) ? null : new Locator(filesLocator, BuildRequest.HIDDEN_DIMENSION_NAME, BuildRequest.ARCHIVES_DIMENSION_NAME, DIRECTORY_DIMENSION_NAME);
+    final BuildArtifactsViewMode viewMode = getViewMode(locator, build, context);
+    final ArtifactTreeElement element = BuildRequest.getArtifactElement(build, path, viewMode);
     try {
       final Iterable<Element> children = element.getChildren();
       if (element.isLeaf() || children == null) {
-        throw new BadRequestException("Cannot provide children list for file \'" + resolvedPath + "\'. To get content use '" +
-                                      fileApiUrlBuilderForBuild(myApiUrlBuilder, build).getContentHref(element) + "'.");
+        throw new BadRequestException("Cannot provide children list for file '" + path + "'. To get content use '" +
+                                      BuildRequest.fileApiUrlBuilderForBuild(context.getContextService(ApiUrlBuilder.class), build, null).getContentHref(element) + "'.");
       }
+
+      final List<File> result = new ArrayList<File>();
+      for (Element artifactItem : children) {
       // children is a collection of ArtifactTreeElement, but we ensure it.
-      return new Files(CollectionsUtil.convertCollection(children, new Converter<File, Element>() {
-        public File createFrom(@NotNull Element source) {
-          final ArtifactTreeElement ate = source instanceof ArtifactTreeElement ? (ArtifactTreeElement) source : getArtifactElement(build, source.getFullName());
-          return new File(ate, null, fileApiUrlBuilderForBuild(myApiUrlBuilder, build));
+        final ArtifactTreeElement ate = artifactItem instanceof ArtifactTreeElement
+                                        ? (ArtifactTreeElement)artifactItem
+                                        : BuildRequest.getArtifactElement(build, artifactItem.getFullName(), viewMode);
+        if (checkInclude(ate, locator)){
+          result.add(new File(ate, null, BuildRequest.fileApiUrlBuilderForBuild(context.getContextService(ApiUrlBuilder.class), build, filesLocator)));
         }
-      }));
+      }
+      if (locator != null) locator.checkLocatorFullyProcessed();
+      return new Files(result);
     } catch (BrowserException e) {
-      throw new OperationException("Exception due to collecting children for artifact \"" + resolvedPath + "\"", e);
+      throw new OperationException("Error listing children for artifact '" + path + "'.", e);
     }
+  }
+
+  private boolean checkInclude(@NotNull final ArtifactTreeElement artifact, @Nullable final Locator locator) {
+    if (locator == null){
+      return true;
+    }
+    final Boolean directory = locator.getSingleDimensionValueAsBoolean(DIRECTORY_DIMENSION_NAME);
+    return FilterUtil.isIncludedByBooleanFilter(directory, !artifact.isLeaf() && !artifact.isContentAvailable());
+  }
+
+  private BuildArtifactsViewMode getViewMode(@Nullable final Locator locator, @NotNull final SBuild build, @NotNull final BeanContext context) {
+    if (locator == null){
+      return BuildArtifactsViewMode.VIEW_DEFAULT_WITH_ARCHIVES_CONTENT;
+    }
+
+    final Boolean viewHidden = locator.getSingleDimensionValueAsBoolean(BuildRequest.HIDDEN_DIMENSION_NAME, false);
+    final Boolean browseArchivesValue = locator.getSingleDimensionValueAsBoolean(BuildRequest.ARCHIVES_DIMENSION_NAME, !(viewHidden != null && viewHidden));
+    final boolean browseArchives = browseArchivesValue == null ? true : browseArchivesValue;
+
+    if (viewHidden == null) {
+      if (browseArchives) {
+        return BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT;
+      } else {
+        return BuildArtifactsViewMode.VIEW_ALL;
+      }
+    } else if (!viewHidden) {
+      if (browseArchives) {
+        return BuildArtifactsViewMode.VIEW_DEFAULT_WITH_ARCHIVES_CONTENT;
+      } else {
+        return BuildArtifactsViewMode.VIEW_DEFAULT;
+      }
+    } else if (!browseArchives) {
+      myDataProvider.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
+      return BuildArtifactsViewMode.VIEW_HIDDEN_ONLY;
+    }
+
+    throw new BadRequestException("Unsupported combination of '" + BuildRequest.HIDDEN_DIMENSION_NAME + "' and '" + BuildRequest.ARCHIVES_DIMENSION_NAME + "' dimensions.");
   }
 
   @GET
@@ -248,8 +306,7 @@ public class BuildRequest {
     final BuildArtifact artifact = getBuildArtifact(build, resolvedPath, BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
     if (artifact.isDirectory()) {
       throw new NotFoundException("Cannot provide content for directory '" + resolvedPath + "'. To get children use '" +
-                                  fileApiUrlBuilderForBuild(myApiUrlBuilder, build).getChildrenHref(
-                                    new ArtifactElement(artifact)) + "'.");
+                                  fileApiUrlBuilderForBuild(myApiUrlBuilder, build, null).getChildrenHref(new ArtifactElement(artifact)) + "'.");
     }
 
     final StreamingOutput output = getStreamingOutput(artifact);
@@ -283,7 +340,7 @@ public class BuildRequest {
 
 
   @NotNull
-  public static FileApiUrlBuilder fileApiUrlBuilderForBuild(@NotNull final ApiUrlBuilder apiUrlBuilder, @NotNull final SBuild build) {
+  public static FileApiUrlBuilder fileApiUrlBuilderForBuild(@NotNull final ApiUrlBuilder apiUrlBuilder, @NotNull final SBuild build, @Nullable final String locator) {
     return new FileApiUrlBuilder() {
       private final String myHrefBase = apiUrlBuilder.getHref(build) + BuildRequest.ARTIFACTS;
 
@@ -292,7 +349,7 @@ public class BuildRequest {
       }
 
       public String getChildrenHref(Element e) {
-        return myHrefBase + BuildRequest.CHILDREN + "/" + e.getFullName();
+        return myHrefBase + BuildRequest.CHILDREN + "/" + e.getFullName() + (locator == null ? "" : "?" + "locator" + "=" + locator);
       }
 
       public String getContentHref(Element e) {
@@ -302,8 +359,8 @@ public class BuildRequest {
   }
 
   @NotNull
-  private static ArtifactTreeElement getArtifactElement(@NotNull final SBuild build, @NotNull final String path) {
-    return new ArtifactElement(getBuildArtifact(build, path, BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT));
+  private static ArtifactTreeElement getArtifactElement(@NotNull final SBuild build, @NotNull final String path, final BuildArtifactsViewMode viewMode) {
+    return new ArtifactElement(getBuildArtifact(build, path, viewMode));
   }
 
   @NotNull
@@ -312,7 +369,18 @@ public class BuildRequest {
                                                 @NotNull final BuildArtifactsViewMode mode) {
     final BuildArtifacts artifacts = build.getArtifacts(mode);
     final BuildArtifactHolder holder = artifacts.findArtifact(path);
-    checkBuildArtifactHolder(holder);
+    if (!holder.isAvailable()) {
+      final BuildArtifactHolder testHolder = build.getArtifacts(BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT).findArtifact(path);
+      if (testHolder.isAvailable()){
+        throw new NotFoundException("No artifact with relative path '" + holder.getRelativePath() + "' found with current view mode." +
+                                    " Try adding parameter 'locator=" + HIDDEN_DIMENSION_NAME + ":any' to the request.");
+      }else{
+        throw new NotFoundException("No artifact with relative path '" + holder.getRelativePath() + "' found in build " + LogUtil.describe(build));
+      }
+    }
+    if (!holder.isAccessible()) {
+      throw new AuthorizationFailedException("Artifact is not accessible with current user permissions. Relative path: '" + holder.getRelativePath() + "'");
+    }
     return holder.getArtifact();
   }
 
@@ -696,15 +764,6 @@ public class BuildRequest {
 
   private String getRealFileName(final String relativePath) {
     return myServiceLocator.getSingletonService(ServletContext.class).getRealPath(relativePath);
-  }
-
-  public static void checkBuildArtifactHolder(@NotNull final BuildArtifactHolder holder) throws NotFoundException, AuthorizationFailedException {
-    if (!holder.isAvailable()) {
-      throw new NotFoundException("No artifact found. Relative path: '" + holder.getRelativePath() + "'");
-    }
-    if (!holder.isAccessible()) {
-      throw new AuthorizationFailedException("Artifact is not accessible with current user permissions. Relative path: '" + holder.getRelativePath() + "'");
-    }
   }
 
 
