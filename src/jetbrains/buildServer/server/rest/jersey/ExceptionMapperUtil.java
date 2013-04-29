@@ -17,6 +17,9 @@
 package jetbrains.buildServer.server.rest.jersey;
 
 import com.intellij.openapi.diagnostic.Logger;
+import com.sun.jersey.spi.inject.Errors;
+import java.lang.reflect.Field;
+import java.util.List;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
@@ -73,7 +76,31 @@ public class ExceptionMapperUtil {
     }
     final String message = e.getMessage();
     String result = e.getClass().getName() + (message != null ? ": " + message : "");
+    result = addKnownExceptionsData(e, result);
     result += appendCauseInfo(e);
+    return result;
+  }
+
+  private static String addKnownExceptionsData(final Throwable e, String result) {
+    if (e instanceof Errors.ErrorMessagesException) { //error message does not contain details
+      final List<Errors.ErrorMessage> messages = ((Errors.ErrorMessagesException)e).messages;
+      if (messages != null) {
+        try {
+          final Field field = Errors.ErrorMessage.class.getDeclaredField("message");
+          field.setAccessible(true);
+          result += " (messages: ";
+          for (Errors.ErrorMessage errorMessage : messages) {
+            // the data is not accessible otherwise
+            result += "\"" + field.get(errorMessage) + "\",";
+          }
+          result += ")";
+        } catch (NoSuchFieldException e1) {
+          //ignore
+        } catch (IllegalAccessException e1) {
+          //ignore
+        }
+      }
+    }
     return result;
   }
 
