@@ -37,9 +37,20 @@ public class Locator {
   private final MultiValuesMap<String, String> myDimensions;
   private final String mySingleValue;
 
-  private final Set<String> myUnusedDimensions;
+  private final Set<String> myUsedDimensions;
+  @Nullable private final String[] mySupportedDimensions;
 
   public Locator(@Nullable final String locator) throws LocatorProcessException{
+    this(locator, null);
+  }
+
+  /**
+   *
+   * @param locator
+   * @param supportedDimensions dimensions supported in this locator, used in {@link #checkLocatorFullyProcessed()}
+   * @throws LocatorProcessException
+   */
+  public Locator(@Nullable final String locator, final String ... supportedDimensions) throws LocatorProcessException{
     if (StringUtil.isEmpty(locator)) {
       throw new LocatorProcessException("Invalid locator. Cannot be empty.");
     }
@@ -47,12 +58,12 @@ public class Locator {
     if (!hasDimensions) {
       mySingleValue = locator;
       myDimensions = new MultiValuesMap<String, String>();
-      myUnusedDimensions = new HashSet<String>(Collections.singleton(LOCATOR_SINGLE_VALUE_UNUSED_NAME));
     } else {
       mySingleValue = null;
       myDimensions = parse(locator);
-      myUnusedDimensions = new HashSet<String>(myDimensions.keySet());
     }
+    myUsedDimensions = new HashSet<String>();
+    mySupportedDimensions = supportedDimensions;
   }
 
   private static MultiValuesMap<String, String> parse(final String locator) {
@@ -129,12 +140,8 @@ public class Locator {
     return true;
   }
 
-  public void checkLocatorFullyProcessed() {
-    checkLocatorFullyProcessedWithMessage();
-  }
-
   //todo: use this whenever possible
-  public void checkLocatorFullyProcessedWithMessage(final String ... supportedDimensionsText) {
+  public void checkLocatorFullyProcessed() {
     final Set<String> unusedDimensions = getUnusedDimensions();
     if (unusedDimensions.size() > 0){
       String reportKindString = TeamCityProperties.getProperty("rest.report.unused.locator", "error");
@@ -152,7 +159,10 @@ public class Locator {
             message = "Single value locator is not supported here.";
           }
         }
-        if (supportedDimensionsText != null && supportedDimensionsText.length > 0) message += " Supported dimensions are: " + Arrays.toString(supportedDimensionsText);
+        if (mySupportedDimensions != null && mySupportedDimensions.length > 0) message += " Supported dimensions are: " + Arrays.toString(mySupportedDimensions);
+        if (reportKindString.contains("reportKnownButNotReportedDimensions")) {
+          reportKnownButNotReportedDimensions();
+        }
         if (reportKindString.contains("log")) {
           if (reportKindString.contains("log-warn")) {
             LOG.warn(message);
@@ -160,10 +170,23 @@ public class Locator {
             LOG.debug(message);
           }
         }
-        if (reportKindString.equals("error")){
+        if (reportKindString.contains("error")){
           throw new LocatorProcessException(message);
         }
       }
+    }
+  }
+
+  private void reportKnownButNotReportedDimensions() {
+    final Set<String> usedDimensions = new HashSet<String>(myUsedDimensions);
+    if (mySupportedDimensions != null) usedDimensions.removeAll(Arrays.asList(mySupportedDimensions));
+    if (usedDimensions.size() > 0){
+      //found used dimensions which are not declared as used.
+
+      //noinspection ThrowableInstanceNeverThrown
+      final Exception exception = new Exception("Helper exception to get stacktrace");
+      LOG.info("Locator dimensions " + usedDimensions + " are actually used but not declared as such in the message to the user (" +
+               Arrays.toString(mySupportedDimensions) + ").", exception);
     }
   }
 
@@ -176,7 +199,7 @@ public class Locator {
    */
   @Nullable
   public String getSingleValue() {
-    myUnusedDimensions.remove(LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    myUsedDimensions.add(LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     return mySingleValue;
   }
 
@@ -246,11 +269,11 @@ public class Locator {
    */
   @Nullable
   public String getSingleDimensionValue(@NotNull final String dimensionName) {
+    myUsedDimensions.add(dimensionName);
     Collection<String> idDimension = myDimensions.get(dimensionName);
     if (idDimension == null || idDimension.size() == 0) {
       return null;
     }
-    myUnusedDimensions.remove(dimensionName);
     if (idDimension.size() > 1) {
       throw new LocatorProcessException("Only single '" + dimensionName + "' dimension is supported in locator. Found: " + idDimension);
     }
@@ -267,12 +290,8 @@ public class Locator {
    * @param value value of the dimension
    */
   public void setDimension(@NotNull final String name, @NotNull final String value) {
-    final Collection<String> oldValues = myDimensions.removeAll(name);
+    myDimensions.removeAll(name);
     myDimensions.put(name, value);
-
-    if (oldValues == null || oldValues.size() == 0){
-      myUnusedDimensions.add(name);
-    }
   }
 
   /**
@@ -281,7 +300,14 @@ public class Locator {
    */
   @NotNull
   public Set<String> getUnusedDimensions() {
-    return myUnusedDimensions;
+    Set<String> result;
+    if (isSingleValue()){
+      result = new HashSet<String>(Collections.singleton(LOCATOR_SINGLE_VALUE_UNUSED_NAME));
+    }else{
+      result = new HashSet<String>(myDimensions.keySet());
+    }
+    result.removeAll(myUsedDimensions);
+    return result;
   }
 
   /**
