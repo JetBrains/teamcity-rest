@@ -142,27 +142,27 @@ public class Locator {
 
   //todo: use this whenever possible
   public void checkLocatorFullyProcessed() {
-    final Set<String> unusedDimensions = getUnusedDimensions();
-    if (unusedDimensions.size() > 0){
-      String reportKindString = TeamCityProperties.getProperty("rest.report.unused.locator", "error");
-      if (!TeamCityProperties.getBooleanOrTrue("rest.report.locator.errors")){
-        reportKindString = "off";
+    String reportKindString = TeamCityProperties.getProperty("rest.report.unused.locator", "error");
+    if (!TeamCityProperties.getBooleanOrTrue("rest.report.locator.errors")) {
+      reportKindString = "off";
+    }
+    if (!reportKindString.equals("off")) {
+      if (reportKindString.contains("reportKnownButNotReportedDimensions")) {
+        reportKnownButNotReportedDimensions();
       }
-      if (!reportKindString.equals("off")){
+      final Set<String> unusedDimensions = getUnusedDimensions();
+      if (unusedDimensions.size() > 0) {
         String message;
-        if (unusedDimensions.size() > 1){
+        if (unusedDimensions.size() > 1) {
           message = "Locator dimensions " + unusedDimensions + " are ignored or unknown.";
-        }else{
-          if (!unusedDimensions.contains(LOCATOR_SINGLE_VALUE_UNUSED_NAME)){
+        } else {
+          if (!unusedDimensions.contains(LOCATOR_SINGLE_VALUE_UNUSED_NAME)) {
             message = "Locator dimension " + unusedDimensions + " is ignored or unknown.";
-          }else{
+          } else {
             message = "Single value locator is not supported here.";
           }
         }
         if (mySupportedDimensions != null && mySupportedDimensions.length > 0) message += " Supported dimensions are: " + Arrays.toString(mySupportedDimensions);
-        if (reportKindString.contains("reportKnownButNotReportedDimensions")) {
-          reportKnownButNotReportedDimensions();
-        }
         if (reportKindString.contains("log")) {
           if (reportKindString.contains("log-warn")) {
             LOG.warn(message);
@@ -170,7 +170,7 @@ public class Locator {
             LOG.debug(message);
           }
         }
-        if (reportKindString.contains("error")){
+        if (reportKindString.contains("error")) {
           throw new LocatorProcessException(message);
         }
       }
