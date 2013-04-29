@@ -27,7 +27,10 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -54,9 +57,11 @@ public class GenericBuildsFilter implements BuildsFilter {
   @Nullable private final ParameterCondition myParameterCondition;
   @Nullable private final SUser myUser;
   @Nullable private final SBuildType myBuildType;
+  @Nullable private final SProject myProject;
 
   /**
    * @param buildType       build type to return builds from, can be null to return all builds
+   * @param project         build type to return builds from, can be null
    * @param status          status of the builds to include
    * @param number          build number of the builds to include
    * @param user            limit builds to those triggered by user, can be null to return all builds
@@ -74,6 +79,7 @@ public class GenericBuildsFilter implements BuildsFilter {
    * @param lookupLimit     the number of builds to search. Matching results only within first 'lookupLimit' builds will be returned
    */
   public GenericBuildsFilter(@Nullable final SBuildType buildType,
+                             @Nullable final SProject project,
                              @Nullable final String status,
                              @Nullable final String number,
                              @Nullable final SUser user,
@@ -95,6 +101,7 @@ public class GenericBuildsFilter implements BuildsFilter {
     myCount = count;
 
     myBuildType = buildType;
+    myProject = project;
     myStatus = status;
     myNumber = number;
     myUser = user;
@@ -167,6 +174,11 @@ public class GenericBuildsFilter implements BuildsFilter {
   }
 
   @Nullable
+  public SProject getProject() {
+    return myProject;
+  }
+
+  @Nullable
   public Long getLookupLimit() {
     return myLookupLimit;
   }
@@ -181,6 +193,9 @@ public class GenericBuildsFilter implements BuildsFilter {
       return false;
     }
     if (myBuildType != null && !myBuildType.getBuildTypeId().equals(build.getBuildTypeId())) {
+      return false;
+    }
+    if (myProject != null && !isUnderProject(myProject, build)) {
       return false;
     }
     if (myStatus != null && !myStatus.equalsIgnoreCase(build.getStatusDescriptor().getStatus().getText())) {
@@ -247,6 +262,21 @@ public class GenericBuildsFilter implements BuildsFilter {
     return true;
   }
 
+  private boolean isUnderProject(@NotNull final SProject project, @NotNull final SBuild build) {
+    final String projectId = build.getProjectId();
+    if (projectId == null){
+      return false;
+    }
+    if (project.getProjectId().equals(projectId)){
+      return true;
+    }
+    return CollectionsUtil.findFirst(project.getProjects(), new Filter<SProject>() {
+      public boolean accept(@NotNull final SProject data) {
+        return projectId.equals(data.getProjectId());
+      }
+    }) != null;
+  }
+
   private boolean isTagsMatchLocator(final List<String> buildTags, final Locator tagsLocator) {
     if (!"extended".equals(tagsLocator.getSingleDimensionValue("format"))) {
       throw new BadRequestException("Only 'extended' value is supported for 'format' dimension of 'tag' dimension");
@@ -310,6 +340,7 @@ public class GenericBuildsFilter implements BuildsFilter {
     final StringBuilder result = new StringBuilder();
     result.append("Builds filter (");
     if (myBuildType!= null) result.append("buildType:").append(myBuildType).append(", ");
+    if (myProject!= null) result.append("project:").append(myProject.describe(false)).append(", ");
     if (myStatus!= null) result.append("status:").append(myStatus).append(", ");
     if (myNumber!= null) result.append("number:").append(myNumber).append(", ");
     if (myUser!= null) result.append("user:").append(myUser).append(", ");

@@ -17,6 +17,7 @@ import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -30,11 +31,13 @@ public class BuildFinder {
   private static final Logger LOG = Logger.getInstance(BuildFinder.class.getName());
   @NotNull private final DataProvider myDataProvider;
   @NotNull private BuildTypeFinder myBuildTypeFinder;
-  private UserFinder myUserFinder;
+  @NotNull private ProjectFinder myProjectFinder;
+  @NotNull private UserFinder myUserFinder;
 
-  public BuildFinder(@NotNull DataProvider dataProvider, @NotNull BuildTypeFinder buildTypeFinder, @NotNull UserFinder userFinder) {
+  public BuildFinder(@NotNull DataProvider dataProvider, @NotNull BuildTypeFinder buildTypeFinder, @NotNull ProjectFinder projectFinder, @NotNull UserFinder userFinder) {
     myDataProvider = dataProvider;
     myBuildTypeFinder = buildTypeFinder;
+    myProjectFinder = projectFinder;
     myUserFinder = userFinder;
   }
 
@@ -71,7 +74,7 @@ public class BuildFinder {
       // preserve 5.0 logic for personal/canceled/pinned builds
       //todo: this also changes defaults for request without locator, see http://youtrack.jetbrains.com/issue/TW-25778
       buildsFilter = new GenericBuildsFilter(buildType,
-                                             status, null,
+                                             null, status, null,
                                              myUserFinder.getUserIfNotNull(userLocator),
                                              includePersonal ? null : false, includeCanceled ? null : false,
                                              false, onlyPinned ? true : null, tags, new BranchMatcher(null), agentName,
@@ -210,8 +213,9 @@ public class BuildFinder {
   @NotNull
   private BuildsFilter getBuildsFilter(final Locator buildLocator, @Nullable final SBuildType buildType) {
     //todo: report unknown locator dimensions
-    final SBuildType actualBuildType = myBuildTypeFinder
-      .deriveBuildTypeFromLocator(buildType, buildLocator.getSingleDimensionValue("buildType"));
+    final SBuildType actualBuildType = myBuildTypeFinder.deriveBuildTypeFromLocator(buildType, buildLocator.getSingleDimensionValue("buildType"));
+    final String projectFromLocator = buildLocator.getSingleDimensionValue("project");
+    final SProject project = StringUtil.isEmpty(projectFromLocator) ? null : myProjectFinder.getProject(projectFromLocator);
 
     final String userLocator = buildLocator.getSingleDimensionValue("user");
     final String tagsString = buildLocator.getSingleDimensionValue("tags");
@@ -236,25 +240,26 @@ public class BuildFinder {
       throw new LocatorProcessException("Invalid sub-locator 'branch': " + e.getMessage());
     }
     return new GenericBuildsFilter(actualBuildType,
-                            buildLocator.getSingleDimensionValue("status"),
-                            buildLocator.getSingleDimensionValue("number"),
-                            myUserFinder.getUserIfNotNull(userLocator),
-                            buildLocator.getSingleDimensionValueAsBoolean("personal"),
-                            buildLocator.getSingleDimensionValueAsBoolean("canceled"),
-                            buildLocator.getSingleDimensionValueAsBoolean("running", false),
-                            buildLocator.getSingleDimensionValueAsBoolean("pinned"),
-                            tagsList,
-                            branchMatcher,
-                            //todo: support agent locator here
-                            buildLocator.getSingleDimensionValue("agentName"),
-                            ParameterCondition.create(buildLocator.getSingleDimensionValue("property")),
-                            getRangeLimit(actualBuildType, buildLocator.getSingleDimensionValue("sinceBuild"),
-                                          DataProvider.parseDate(buildLocator.getSingleDimensionValue("sinceDate"))),
-                            getRangeLimit(actualBuildType, buildLocator.getSingleDimensionValue("untilBuild"),
-                                          DataProvider.parseDate(buildLocator.getSingleDimensionValue("untilDate"))),
-                            buildLocator.getSingleDimensionValueAsLong(PagerData.START),
-                            count == null?null:count.intValue(),
-                            buildLocator.getSingleDimensionValueAsLong("lookupLimit")
+                                   project,
+                                   buildLocator.getSingleDimensionValue("status"),
+                                   buildLocator.getSingleDimensionValue("number"),
+                                   myUserFinder.getUserIfNotNull(userLocator),
+                                   buildLocator.getSingleDimensionValueAsBoolean("personal"),
+                                   buildLocator.getSingleDimensionValueAsBoolean("canceled"),
+                                   buildLocator.getSingleDimensionValueAsBoolean("running", false),
+                                   buildLocator.getSingleDimensionValueAsBoolean("pinned"),
+                                   tagsList,
+                                   branchMatcher,
+                                   //todo: support agent locator here
+                                   buildLocator.getSingleDimensionValue("agentName"),
+                                   ParameterCondition.create(buildLocator.getSingleDimensionValue("property")),
+                                   getRangeLimit(actualBuildType, buildLocator.getSingleDimensionValue("sinceBuild"),
+                                                 DataProvider.parseDate(buildLocator.getSingleDimensionValue("sinceDate"))),
+                                   getRangeLimit(actualBuildType, buildLocator.getSingleDimensionValue("untilBuild"),
+                                                 DataProvider.parseDate(buildLocator.getSingleDimensionValue("untilDate"))),
+                                   buildLocator.getSingleDimensionValueAsLong(PagerData.START),
+                                   count == null ? null : count.intValue(),
+                                   buildLocator.getSingleDimensionValueAsLong("lookupLimit")
     );
   }
 
