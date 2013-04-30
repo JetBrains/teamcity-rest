@@ -18,7 +18,6 @@ package jetbrains.buildServer.server.rest.request;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -36,13 +35,9 @@ import jetbrains.buildServer.server.rest.model.buildType.VcsRoots;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.ProjectManager;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
-import jetbrains.buildServer.vcs.VcsManager;
-import jetbrains.buildServer.vcs.VcsRootScope;
 import org.jetbrains.annotations.NotNull;
 
 /* todo: investigate logging issues:
@@ -80,15 +75,15 @@ public class VcsRootRequest {
   @Produces({"application/xml", "application/json"})
   public VcsRoot addRoot(VcsRoot vcsRootDescription) {
     checkVcsRootDescription(vcsRootDescription);
-    final SVcsRoot newVcsRoot = myDataProvider.getVcsManager().createNewVcsRoot(
+    BeanContext ctx = new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder);
+    final SVcsRoot newVcsRoot = getVcsRootProject(vcsRootDescription, ctx).createNewVcsRoot(
       vcsRootDescription.vcsName,
       vcsRootDescription.name != null ? vcsRootDescription.name : null,
-      vcsRootDescription.properties.getMap(),
-      createScope(vcsRootDescription, new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder)));
+      vcsRootDescription.properties.getMap());
     if (vcsRootDescription.modificationCheckInterval != null) {
       newVcsRoot.setModificationCheckInterval(vcsRootDescription.modificationCheckInterval);
     }
-    myDataProvider.getVcsManager().persistVcsRoots();
+    newVcsRoot.persist();
     return new VcsRoot(newVcsRoot, myDataProvider, myApiUrlBuilder);
   }
 
@@ -106,8 +101,12 @@ public class VcsRootRequest {
   @Produces({"application/xml", "application/json"})
   public void deleteRoot(@PathParam("vcsRootLocator") String vcsRootLocator) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
-    myDataProvider.getVcsManager().removeVcsRoot(vcsRoot.getId());
-    myDataProvider.getVcsManager().persistVcsRoots();
+    try {
+      SProject project = vcsRoot.getProject();
+      project.removeOwnVcsRoot(vcsRoot);
+    } catch (ProjectNotFoundException e) {
+      throw new NotFoundException("Could not find project for VCS root: " + vcsRoot.getName());
+    }
   }
 
   @GET
@@ -115,11 +114,8 @@ public class VcsRootRequest {
   @Produces({"application/xml", "application/json"})
   public VcsRootInstances serveRootInstances(@PathParam("vcsRootLocator") String vcsRootLocator) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
-    final VcsManager vcsManager = myDataProvider.getVcsManager();
-    //todo: (TeamCity) open API is there a better way to do this?
-    final List<SBuildType> allConfigurationUsages = vcsManager.getAllConfigurationUsages(vcsRoot);
     final HashSet<jetbrains.buildServer.vcs.VcsRootInstance> result = new HashSet<jetbrains.buildServer.vcs.VcsRootInstance>();
-    for (SBuildType buildType : allConfigurationUsages) {
+    for (SBuildType buildType : vcsRoot.getUsages().keySet()) {
       final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = buildType.getVcsRootInstanceForParent(vcsRoot);
       if (rootInstance!=null){
         result.add(rootInstance);
@@ -168,7 +164,7 @@ public class VcsRootRequest {
                                @PathParam("field") String fieldName, String newValue) {
     final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
     VcsRootInstance.setFieldValue(rootInstance, fieldName, newValue, myDataProvider);
-    myDataProvider.getVcsManager().persistVcsRoots();
+    rootInstance.getParent().persist();
   }
 
 
@@ -185,16 +181,16 @@ public class VcsRootRequest {
   @Consumes({"application/xml", "application/json"})
   public void changProperties(@PathParam("vcsRootLocator") String vcsRootLocator, Properties properties) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
-    VcsRoot.updateVCSRoot(vcsRoot, properties.getMap(), null, myDataProvider.getVcsManager());
-    myDataProvider.getVcsManager().persistVcsRoots();
+    VcsRoot.updateVCSRoot(vcsRoot, properties.getMap(), null);
+    vcsRoot.persist();
   }
 
   @DELETE
   @Path("/{vcsRootLocator}/properties")
   public void deleteAllProperties(@PathParam("vcsRootLocator") String vcsRootLocator) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
-    VcsRoot.updateVCSRoot(vcsRoot, new HashMap<String, String>(), null, myDataProvider.getVcsManager());
-    myDataProvider.getVcsManager().persistVcsRoots();
+    VcsRoot.updateVCSRoot(vcsRoot, new HashMap<String, String>(), null);
+    vcsRoot.persist();
   }
 
   @GET
@@ -202,7 +198,7 @@ public class VcsRootRequest {
   @Produces("text/plain")
   public String serveProperty(@PathParam("vcsRootLocator") String vcsRootLocator, @PathParam("name") String parameterName) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
-    return BuildTypeUtil.getParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot, myDataProvider.getVcsManager()));
+    return BuildTypeUtil.getParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot));
   }
 
   @PUT
@@ -212,9 +208,9 @@ public class VcsRootRequest {
                                     @PathParam("name") String parameterName,
                                     String newValue) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
-    BuildTypeUtil.changeParameter(parameterName, newValue, VcsRoot.getUserParametersHolder(vcsRoot, myDataProvider.getVcsManager()),
+    BuildTypeUtil.changeParameter(parameterName, newValue, VcsRoot.getUserParametersHolder(vcsRoot),
                                   myServiceLocator);
-    myDataProvider.getVcsManager().persistVcsRoots();
+    vcsRoot.persist();
   }
 
   @DELETE
@@ -223,8 +219,8 @@ public class VcsRootRequest {
   public void deleteParameter(@PathParam("vcsRootLocator") String vcsRootLocator,
                                        @PathParam("name") String parameterName) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
-    BuildTypeUtil.deleteParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot, myDataProvider.getVcsManager()));
-    myDataProvider.getVcsManager().persistVcsRoots();
+    BuildTypeUtil.deleteParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot));
+    vcsRoot.persist();
   }
 
   @GET
@@ -241,7 +237,7 @@ public class VcsRootRequest {
   public void setField(@PathParam("vcsRootLocator") String vcsRootLocator, @PathParam("field") String fieldName, String newValue) {
     @NotNull final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
     VcsRoot.setFieldValue(vcsRoot, fieldName, newValue, myDataProvider, myProjectFinder);
-    myDataProvider.getVcsManager().persistVcsRoots();
+    vcsRoot.persist();
   }
 
   private void checkVcsRootDescription(final VcsRoot description) {
@@ -255,23 +251,18 @@ public class VcsRootRequest {
     }
   }
 
-  @NotNull
-  private VcsRootScope createScope(@NotNull final VcsRoot vcsRootDescription, @NotNull final BeanContext context) {
-    return VcsRootScope.projectScope(getProjectInternalId(vcsRootDescription, context));
-  }
-
   // see also BuildTypeUtil.getVcsRoot
   @NotNull
-  private String getProjectInternalId(@NotNull final VcsRoot description, @NotNull final BeanContext context) {
+  private SProject getVcsRootProject(@NotNull final VcsRoot description, @NotNull final BeanContext context) {
     if (!StringUtil.isEmpty(description.projectLocator)){
       if (description.project != null){
         throw new BadRequestException("Only one from 'projectLocator' attribute and 'project' element should be specified.");
       }
-      return myProjectFinder.getProject(description.projectLocator).getProjectId();
+      return myProjectFinder.getProject(description.projectLocator);
     }else{
       if (description.project == null){
         if (TeamCityProperties.getBoolean("rest.compatibility.allowNoProjectOnVcsRootCreation")){
-          return context.getSingletonService(ProjectManager.class).getRootProject().getProjectId();
+          return context.getSingletonService(ProjectManager.class).getRootProject();
         }
         throw new BadRequestException("Either 'project' element or 'projectLocator' attribute should be specified.");
       }
@@ -279,6 +270,10 @@ public class VcsRootRequest {
       if (internalIdFromPosted == null){
         throw new NotFoundException("Could not find project internal id defined by 'project' element.");
       }
-      return internalIdFromPosted;
+      SProject project = myDataProvider.getServer().getProjectManager().findProjectById(internalIdFromPosted);
+      if (project == null) {
+        throw new NotFoundException("Could not find project by internal id defined by 'project' element.");
+      }
+      return project;
     }  }
 }

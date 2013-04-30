@@ -30,10 +30,7 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
-import jetbrains.buildServer.serverSide.Parameter;
-import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.SimpleParameter;
-import jetbrains.buildServer.serverSide.UserParametersHolder;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.vcs.*;
 import jetbrains.vcs.api.VcsSettings;
 import jetbrains.vcs.api.services.tc.MappingGeneratorService;
@@ -116,19 +113,19 @@ public class VcsRoot {
   }
 
   @NotNull
-  public static UserParametersHolder getUserParametersHolder(@NotNull final SVcsRoot root, @NotNull final VcsManager vcsManager) {
+  public static UserParametersHolder getUserParametersHolder(@NotNull final SVcsRoot root) {
     //todo (TeamCity) open API: make VCS root UserParametersHolder
     return new UserParametersHolder() {
       public void addParameter(@NotNull final Parameter param) {
         final Map<String, String> newProperties = new HashMap<String, String>(root.getProperties());
         newProperties.put(param.getName(), param.getValue());
-        updateVCSRoot(root, newProperties, null, vcsManager);
+        updateVCSRoot(root, newProperties, null);
       }
 
       public void removeParameter(@NotNull final String paramName) {
         final Map<String, String> newProperties = new HashMap<String, String>(root.getProperties());
         newProperties.remove(paramName);
-        updateVCSRoot(root, newProperties, null, vcsManager);
+        updateVCSRoot(root, newProperties, null);
       }
 
       @NotNull
@@ -147,14 +144,18 @@ public class VcsRoot {
     };
   }
 
-  public static void updateVCSRoot(final SVcsRoot root,
-                                    @Nullable final Map<String, String> newProperties,
-                                    @Nullable final String newName,
-                                    final VcsManager vcsManager) {
-    vcsManager.updateVcsRoot(root.getId(),
-                             root.getVcsName(),
-                             newName != null ? newName : root.getName(),
-                             newProperties != null ? newProperties : root.getProperties());
+  public static void updateVCSRoot(@NotNull final SVcsRoot root,
+                                   @Nullable final Map<String, String> newProperties,
+                                   @Nullable final String newName) {
+    try {
+      SProject owner = root.getProject();
+      owner.updateOwnVcsRoot(root,
+                               root.getVcsName(),
+                               newName != null ? newName : root.getName(),
+                               newProperties != null ? newProperties : root.getProperties());
+    } catch (ProjectNotFoundException e) {
+      throw new NotFoundException("Could not find project for VCS root: " + root.getExternalId());
+    }
   }
 
   public static String getFieldValue(final SVcsRoot vcsRoot, final String field, final DataProvider dataProvider) {
@@ -188,7 +189,7 @@ public class VcsRoot {
                                    @NotNull final DataProvider dataProvider,
                                    @NotNull final ProjectFinder projectFinder) {
     if ("name".equals(field)) {
-      updateVCSRoot(vcsRoot, null, newValue, dataProvider.getVcsManager());
+      updateVCSRoot(vcsRoot, null, newValue);
       return;
     } else if ("modificationCheckInterval".equals(field)) {
       if ("".equals(newValue)) {
@@ -203,18 +204,19 @@ public class VcsRoot {
         }
         vcsRoot.setModificationCheckInterval(newInterval); //todo (TeamCity) open API can set negative value which gets applied
       }
-      dataProvider.getVcsManager().persistVcsRoots();  //todo: (TeamCity) open API need to call persist or not ???
+      vcsRoot.persist();  //todo: (TeamCity) open API need to call persist or not ???
       return;
     } else if ("defaultModificationCheckIntervalInUse".equals(field)){
       boolean newUseDefault = Boolean.valueOf(newValue);
       if (newUseDefault) {
         vcsRoot.restoreDefaultModificationCheckInterval();
-        dataProvider.getVcsManager().persistVcsRoots();  //todo: (TeamCity) open API need to call persist or not ???
+        vcsRoot.persist();  //todo: (TeamCity) open API need to call persist or not ???
         return;
       }
       throw new BadRequestException("Setting field 'defaultModificationCheckIntervalInUse' to false is not supported, set modificationCheckInterval instead.");
     } else if ("projectId".equals(field) || "project".equals(field)) { //project locator is acually supported, "projectId" is preserved for compatibility with previous versions
-      dataProvider.getVcsManager().setVcsRootScope(vcsRoot.getId(), VcsRootScope.projectScope(projectFinder.getProject(newValue)));
+      SProject targetProject = projectFinder.getProject(newValue);
+      dataProvider.getServer().getProjectManager().moveVcsRootToProject(vcsRoot, targetProject);
       return;
     }
 
@@ -226,7 +228,7 @@ public class VcsRoot {
     final MappingGeneratorService mappingGenerator = vcsManager.getVcsService(vcsSettings, MappingGeneratorService.class);
 
     if (mappingGenerator == null) {
-      return Collections.EMPTY_LIST;
+      return Collections.emptyList();
     }
     return mappingGenerator.generateMapping();
   }

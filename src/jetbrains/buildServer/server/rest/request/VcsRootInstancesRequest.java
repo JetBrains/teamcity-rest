@@ -95,6 +95,6 @@ public class VcsRootInstancesRequest {
                                @PathParam("field") String fieldName, String newValue) {
     final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
     VcsRootInstance.setFieldValue(rootInstance, fieldName, newValue, myDataProvider);
-    myDataProvider.getVcsManager().persistVcsRoots();
+    rootInstance.getParent().persist();
   }
 }
