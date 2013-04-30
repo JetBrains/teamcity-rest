@@ -43,7 +43,6 @@ import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -110,7 +109,7 @@ public class ProjectRequest {
       }
       //todo: (TeamCity) open API how to change external id?
       if (!StringUtil.isEmpty(descriptor.id)) {
-        ((ProjectEx)resultingProject).setExternalId(descriptor.id);
+        resultingProject.setExternalId(descriptor.id);
       }
     }
     resultingProject.persist();

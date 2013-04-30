@@ -27,7 +27,6 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -97,7 +96,7 @@ public class Project extends ProjectRef {
       if (StringUtil.isEmpty(value)){
         throw new BadRequestException("Project external id cannot be empty.");
       }
-      ((ProjectEx)project).setExternalId(value);
+      project.setExternalId(value);
       return;
     } else if ("description".equals(field)) {
       project.setDescription(value);
