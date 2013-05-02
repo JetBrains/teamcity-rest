@@ -1,12 +1,14 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
-import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.BuildRunnerDescriptor;
 import jetbrains.buildServer.serverSide.BuildRunnerDescriptorFactory;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.SBuildRunnerDescriptor;
 import jetbrains.buildServer.util.StringUtil;
+
+import javax.xml.bind.annotation.XmlRootElement;
+import java.util.Collections;
 
 /**
  * @author Yegor.Yarko
