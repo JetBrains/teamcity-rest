@@ -164,7 +164,7 @@ public class ProjectRequest {
       throw new BadRequestException("Build type name cannot be empty.");
     }
     final SBuildType buildType = project.createBuildType(name);
-    project.persist();
+    buildType.persist();
     return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
   }
 
@@ -198,7 +198,7 @@ public class ProjectRequest {
         resultingBuildType = project.createBuildType(sourceBuildType, descriptor.name, getCopyOptions(descriptor));
       }
     }
-    project.persist();
+    resultingBuildType.persist();
     return new BuildType(resultingBuildType, myDataProvider, myApiUrlBuilder);
   }
 
@@ -255,7 +255,7 @@ public class ProjectRequest {
       throw new BadRequestException("Build type template name cannot be empty.");
     }
     final BuildTypeTemplate buildType = project.createBuildTypeTemplate(name);
-    project.persist();
+    buildType.persist();
     return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
   }
 
@@ -289,7 +289,7 @@ public class ProjectRequest {
         resultingBuildType = project.createBuildTypeTemplate(sourceTemplate, descriptor.name, getCopyOptions(descriptor));
       }
     }
-    project.persist();
+    resultingBuildType.persist();
     return new BuildType(resultingBuildType, myDataProvider, myApiUrlBuilder);
   }
 
