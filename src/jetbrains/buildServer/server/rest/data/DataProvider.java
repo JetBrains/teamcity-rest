@@ -39,7 +39,6 @@ import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.*;
-import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.impl.VcsModificationChecker;
 import jetbrains.buildServer.serverSide.statistics.ValueProviderRegistry;
 import jetbrains.buildServer.serverSide.statistics.build.BuildDataStorage;
@@ -284,39 +283,6 @@ public class DataProvider {
                                   "'. Locator should be order number of the dependency in the build configuration.");
   }
 
-  public static Dependency getSnapshotDep(final BuildTypeSettings buildType, final String snapshotDepLocator) {
-    if (StringUtil.isEmpty(snapshotDepLocator)) {
-      throw new BadRequestException("Empty snapshot dependency locator is not supported.");
-    }
-
-    final Locator locator = new Locator(snapshotDepLocator);
-
-    if (locator.isSingleValue()) {
-      // no dimensions found, assume it's source build type id
-      final String sourceBuildTypeId = locator.getSingleValue();
-      //todo (TeamCity) seems like no way to get snapshot dependency by source build type
-      final Dependency foundDependency = getSnapshotDepOrNull(buildType, sourceBuildTypeId);
-      if (foundDependency != null) {
-        return foundDependency;
-      } else {
-        throw new NotFoundException("No snapshot dependency found by locator '" + snapshotDepLocator +
-                                    "'. There is no dependency with source build type id " + sourceBuildTypeId + ".");
-      }
-    }
-
-    throw new BadRequestException(
-      "No snapshot dependency found by locator '" + snapshotDepLocator + "'. Locator should be existing dependency source build type id.");
-  }
-
-  public static Dependency getSnapshotDepOrNull(final BuildTypeSettings buildType, final String sourceBuildTypeId){
-    for (Dependency dependency : buildType.getDependencies()) {
-      if (dependency.getDependOnId().equals(sourceBuildTypeId)) {
-        return dependency;
-      }
-    }
-    return null;
-  }
-  
 
   public static BuildTriggerDescriptor getTrigger(final BuildTypeSettings buildType, final String triggerLocator) {
     if (StringUtil.isEmpty(triggerLocator)) {
@@ -499,7 +465,7 @@ public class DataProvider {
     }
     if (!authorityHolder.isPermissionGrantedForProject(projectId, permission)) { //todo: (TeamCity) open API: is it internal or external project id?
       throw new AuthorizationFailedException("User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission +
-                                             "in project with internal id: '" + projectId + "'");
+                                             " in project with internal id: '" + projectId + "'");
     }
   }
 

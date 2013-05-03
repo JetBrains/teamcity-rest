@@ -829,7 +829,7 @@ public class BuildTypeRequest {
   public PropEntitySnapshotDep getSnapshotDep(@PathParam("btLocator") String buildTypeLocator,
                                               @PathParam("snapshotDepLocator") String snapshotDepLocator) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    final Dependency dependency = DataProvider.getSnapshotDep(buildType.get(), snapshotDepLocator);
+    final Dependency dependency = PropEntitySnapshotDep.getSnapshotDep(buildType.get(), snapshotDepLocator, myBuildTypeFinder);
     return new PropEntitySnapshotDep(dependency, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
@@ -838,7 +838,7 @@ public class BuildTypeRequest {
   public void deleteSnapshotDep(@PathParam("btLocator") String buildTypeLocator,
                                 @PathParam("snapshotDepLocator") String snapshotDepLocator) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    final Dependency dependency = DataProvider.getSnapshotDep(buildType.get(), snapshotDepLocator);
+    final Dependency dependency = PropEntitySnapshotDep.getSnapshotDep(buildType.get(), snapshotDepLocator, myBuildTypeFinder);
     buildType.get().removeDependency(dependency);
     buildType.get().persist();
   }

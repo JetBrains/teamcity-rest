@@ -6,7 +6,9 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -16,9 +18,10 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.dependency.CyclicDependencyFoundException;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
+import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
 import jetbrains.buildServer.serverSide.dependency.DependencyOptions;
-import jetbrains.buildServer.serverSide.impl.dependency.DependencyFactoryImpl;
 import jetbrains.buildServer.util.Option;
+import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -44,13 +47,13 @@ public class PropEntitySnapshotDep extends PropEntity {
   }
 
   public PropEntitySnapshotDep(@NotNull final Dependency dependency, @NotNull final BeanContext context) {
-    this.id = dependency.getDependOnId();
+    this.id = dependency.getDependOnExternalId();
     this.type = SNAPSHOT_DEPENDENCY_TYPE_NAME;
 
     //todo: review id, type here
     HashMap<String, String> properties = new HashMap<String, String>();
     if (TeamCityProperties.getBoolean(REST_COMPATIBILITY_INCLUDE_BUILD_TYPE_IN_PROPERTIES)) {
-      properties.put(NAME_SOURCE_BUILD_TYPE_ID, dependency.getDependOnId());
+      properties.put(NAME_SOURCE_BUILD_TYPE_ID, dependency.getDependOnExternalId());
     }
 
     addOptionToProperty(properties, dependency, DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED);
@@ -65,7 +68,7 @@ public class PropEntitySnapshotDep extends PropEntity {
       sourceBuildType = new BuildTypeRef(dependOn, context.getSingletonService(DataProvider.class),
                                          context.getContextService(ApiUrlBuilder.class));
     } else {
-      sourceBuildType = new BuildTypeRef(null, dependency.getDependOnId(), context.getSingletonService(DataProvider.class),
+      sourceBuildType = new BuildTypeRef(dependency.getDependOnExternalId(), dependency.getDependOnId(), context.getSingletonService(DataProvider.class),
                                          context.getContextService(ApiUrlBuilder.class));
     }
   }
@@ -78,14 +81,14 @@ public class PropEntitySnapshotDep extends PropEntity {
 
     final Map<String, String> propertiesMap = properties.getMap();
     final String buildTypeIdFromProperty = propertiesMap.get(NAME_SOURCE_BUILD_TYPE_ID); //compatibility mode with pre-8.0
-    String buildTypeIdDependOn = getBuildTypeInternalIdForDependency(sourceBuildType, buildTypeIdFromProperty, context);
+    String buildTypeIdDependOn = getBuildTypeExternalIdForDependency(sourceBuildType, buildTypeIdFromProperty, context);
 
     //todo: (TeamCity) for some reason API does not report adding dependency with same id. Seems like it just ignores the call
-    if (DataProvider.getSnapshotDepOrNull(buildType, buildTypeIdDependOn) != null) {
-      throw new BadRequestException("Snapshot dependency on build type with internal id '" + buildTypeIdDependOn + "' already exists.");
+    if (getSnapshotDepOrNull(buildType, buildTypeIdDependOn) != null) {
+      throw new BadRequestException("Snapshot dependency on build type with id '" + buildTypeIdDependOn + "' already exists.");
     }
 
-    final Dependency result = context.getSingletonService(DependencyFactoryImpl.class).createDependencyByInternalId(buildTypeIdDependOn);
+    final Dependency result = context.getSingletonService(DependencyFactory.class).createDependency(buildTypeIdDependOn);
     for (Map.Entry<String, String> property : propertiesMap.entrySet()) {
       if (!NAME_SOURCE_BUILD_TYPE_ID.equals(property.getKey())) {
         setDependencyOption(property.getKey(), property.getValue(), result);
@@ -96,19 +99,19 @@ public class PropEntitySnapshotDep extends PropEntity {
     } catch (CyclicDependencyFoundException e) {
       throw new BadRequestException("Error adding dependnecy", e);
     }
-    return DataProvider.getSnapshotDep(buildType, result.getDependOnId());
+    return getSnapshotDep(buildType, result.getDependOnExternalId(), context.getSingletonService(BuildTypeFinder.class));
   }
 
   @NotNull
-  public static String getBuildTypeInternalIdForDependency(@Nullable final BuildTypeRef buildTypeRef,
-                                                            @Nullable final String buildTypeIdFromProperty,
-                                                            @NotNull final BeanContext context) {
+  public static String getBuildTypeExternalIdForDependency(@Nullable final BuildTypeRef buildTypeRef,
+                                                           @Nullable final String buildTypeIdFromProperty,
+                                                           @NotNull final BeanContext context) {
     if (buildTypeIdFromProperty != null) {
       if (buildTypeRef == null) {
         return buildTypeIdFromProperty;
       } else {
-        final String internalIdFromPosted = buildTypeRef.getInternalIdFromPosted(context);
-        if (internalIdFromPosted == null || buildTypeIdFromProperty.equals(internalIdFromPosted)) {
+        final String externalIdFromPosted = buildTypeRef.getExternalIdFromPosted(context);
+        if (externalIdFromPosted == null || buildTypeIdFromProperty.equals(externalIdFromPosted)) {
           return buildTypeIdFromProperty;
         }
         throw new BadRequestException("Dependency descriptor has conflicting '" + NAME_SOURCE_BUILD_TYPE_ID + "' property and '"
@@ -123,12 +126,12 @@ public class PropEntitySnapshotDep extends PropEntity {
                                      : "."));
     }
 
-    final String internalIdFromPosted = buildTypeRef.getInternalIdFromPosted(context);
-    if (internalIdFromPosted != null) {
-      return internalIdFromPosted;
+    final String externalIdFromPosted = buildTypeRef.getExternalIdFromPosted(context);
+    if (externalIdFromPosted != null) {
+      return externalIdFromPosted;
     }
-    throw new NotFoundException("Cound not find internal id of the build configuration defined by '" + SOURCE_BUILD_TYPE +
-                                "' element. No such build configuration exists?");
+    throw new NotFoundException(
+      "Cound not find id of the build configuration defined by '" + SOURCE_BUILD_TYPE + "' element. Make sure to specify existing build configuration 'id' or 'internalId'.");
   }
 
   private void addOptionToProperty(final HashMap<String, String> properties, final Dependency dependency,
@@ -143,5 +146,59 @@ public class PropEntitySnapshotDep extends PropEntity {
     }
     //noinspection unchecked
     dependency.setOption(option, option.fromString(value));
+  }
+
+  public static Dependency getSnapshotDep(@NotNull final BuildTypeSettings buildType, @Nullable final String snapshotDepLocator, @NotNull final BuildTypeFinder buildTypeFinder) {
+    if (StringUtil.isEmpty(snapshotDepLocator)) {
+      throw new BadRequestException("Empty snapshot dependency locator is not supported.");
+    }
+
+    final Locator locator = new Locator(snapshotDepLocator, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, "buildType");
+
+    if (locator.isSingleValue()) {
+      // no dimensions found, assume it's id of the dependency (build type external id)
+      final String snapshotDepId = locator.getSingleValue();
+      //todo (TeamCity) seems like no way to get snapshot dependency by source build type
+      Dependency foundDependency = getSnapshotDepOrNull(buildType, snapshotDepId);
+      if (foundDependency != null) {
+        return foundDependency;
+      }
+      // fall back to internal id for compatibility
+      foundDependency = getSnapshotDepByInternalIdOrNull(buildType, snapshotDepId);
+      if (foundDependency != null) {
+        return foundDependency;
+      }
+    }
+
+    String buildTypeLocator = locator.getSingleDimensionValue("buildType");
+    if (buildTypeLocator != null) {
+      final String externalId = buildTypeFinder.getBuildType(null, buildTypeLocator).getExternalId();
+      final Dependency foundDependency = getSnapshotDepOrNull(buildType, externalId);
+      if (foundDependency != null) {
+        return foundDependency;
+      }
+      throw new NotFoundException("No snapshot dependency found to build type with external id '" + externalId + "'.");
+    }
+
+    locator.checkLocatorFullyProcessed();
+    throw new NotFoundException("No snapshot dependency found by locator '" + snapshotDepLocator + "'. Locator should be existing dependency source build type external id.");
+  }
+
+  public static Dependency getSnapshotDepOrNull(final BuildTypeSettings buildType, final String sourceBuildTypeExternalId){
+    for (Dependency dependency : buildType.getDependencies()) {
+      if (dependency.getDependOnExternalId().equals(sourceBuildTypeExternalId)) {
+        return dependency;
+      }
+    }
+    return null;
+  }
+
+  public static Dependency getSnapshotDepByInternalIdOrNull(final BuildTypeSettings buildType, final String sourceBuildTypeInternalId){
+    for (Dependency dependency : buildType.getDependencies()) {
+      if (dependency.getDependOnId().equals(sourceBuildTypeInternalId)) {
+        return dependency;
+      }
+    }
+    return null;
   }
 }

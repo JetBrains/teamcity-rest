@@ -52,9 +52,8 @@ public class PropEntityArtifactDep extends PropEntity {
     this.type = ARTIFACT_DEPENDENCY_TYPE_NAME;
 
     HashMap<String, String> properties = new HashMap<String, String>();
-    //todo: review internal/external id usage
     if (TeamCityProperties.getBoolean(PropEntitySnapshotDep.REST_COMPATIBILITY_INCLUDE_BUILD_TYPE_IN_PROPERTIES)) {
-      properties.put(NAME_SOURCE_BUILD_TYPE_ID, dependency.getSourceBuildTypeId());
+      properties.put(NAME_SOURCE_BUILD_TYPE_ID, dependency.getSourceExternalId());
     }
     properties.put(NAME_PATH_RULES, dependency.getSourcePaths());
     properties.put(NAME_REVISION_NAME, dependency.getRevisionRule().getName());
@@ -67,7 +66,7 @@ public class PropEntityArtifactDep extends PropEntity {
       sourceBuildType = new BuildTypeRef(dependOn, context.getSingletonService(DataProvider.class),
                                          context.getContextService(ApiUrlBuilder.class));
     } else {
-      sourceBuildType = new BuildTypeRef(null, dependency.getSourceBuildTypeId(), context.getSingletonService(DataProvider.class),
+      sourceBuildType = new BuildTypeRef(dependency.getSourceExternalId(), dependency.getSourceBuildTypeId(), context.getSingletonService(DataProvider.class),
                                          context.getContextService(ApiUrlBuilder.class));
     }
   }
@@ -94,21 +93,18 @@ public class PropEntityArtifactDep extends PropEntity {
     }
 
     final Map<String,String> propertiesMap = properties.getMap();
-    //todo: review internal/external id usage
     final String buildTypeIdFromProperty = propertiesMap.get(NAME_SOURCE_BUILD_TYPE_ID); //compatibility mode with pre-8.0
-    String buildTypeIdDependOn = PropEntitySnapshotDep.getBuildTypeInternalIdForDependency(sourceBuildType, buildTypeIdFromProperty,
-                                                                                           context);
+    String buildTypeIdDependOn = PropEntitySnapshotDep.getBuildTypeExternalIdForDependency(sourceBuildType, buildTypeIdFromProperty, context);
 
     final String revisionName = propertiesMap.get(NAME_REVISION_NAME);
     if (StringUtil.isEmpty(revisionName)){
       throw new BadRequestException("Missing or empty artifact dependency property '" + NAME_REVISION_NAME + "'. Should contain one of supported values.");
     }
 
-    //todo: review internal/external id usage
-    final SArtifactDependency artifactDependency = context.getSingletonService(ArtifactDependencyFactory.class).createArtifactDependencyByInternalId(
-      buildTypeIdDependOn,
-      propertiesMap.get(NAME_PATH_RULES),
-      RevisionRules.newRevisionRule(revisionName, propertiesMap.get(NAME_REVISION_VALUE)));
+    final SArtifactDependency artifactDependency = context.getSingletonService(ArtifactDependencyFactory.class).
+      createArtifactDependency(buildTypeIdDependOn,
+                               propertiesMap.get(NAME_PATH_RULES),
+                               RevisionRules.newRevisionRule(revisionName, propertiesMap.get(NAME_REVISION_VALUE)));
     final String cleanDir = propertiesMap.get(NAME_CLEAN_DESTINATION_DIRECTORY);
     if (cleanDir != null) {
       artifactDependency.setCleanDestinationFolder(Boolean.parseBoolean(cleanDir));

@@ -85,7 +85,7 @@ public class BuildTypeRef {
   public BuildTypeRef(@Nullable final String externalId, @Nullable final String internalId, @NotNull final DataProvider dataProvider, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     myBuildType = null;
     id = externalId;
-    this.internalId = internalId; //todo: check usages: externalId should actually be NotNull and internal id should never be necessary
+    this.internalId = (TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) || externalId == null) ? internalId : null;
 
     myDataProvider = dataProvider;
     myApiUrlBuilder = apiUrlBuilder;
