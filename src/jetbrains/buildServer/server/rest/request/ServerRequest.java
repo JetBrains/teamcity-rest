@@ -21,6 +21,7 @@ import com.sun.jersey.spi.resource.Singleton;
 import java.io.File;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
@@ -41,8 +42,11 @@ import jetbrains.buildServer.util.StringUtil;
 @Path(Constants.API_URL + "/server")
 @Singleton
 public class ServerRequest {
+  public static final String SERVER_VERSION_RQUEST_PATH = "version";
   @Context
   private DataProvider myDataProvider;
+  @Context
+  private ServiceLocator myServiceLocator;
 
   @Context
   private BeanFactory myFactory;
@@ -57,7 +61,7 @@ public class ServerRequest {
   @Path("/{field}")
   @Produces({"text/plain"})
   public String serveServerVersion(@PathParam("field") String fieldName) {
-    return myDataProvider.getServerFieldValue(fieldName);
+    return Server.getFieldValue(fieldName, myServiceLocator);
   }
 
   @GET

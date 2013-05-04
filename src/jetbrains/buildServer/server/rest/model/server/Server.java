@@ -19,10 +19,17 @@ package jetbrains.buildServer.server.rest.model.server;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.request.ServerRequest;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuildServer;
+import jetbrains.buildServer.serverSide.impl.ServerSettings;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -30,9 +37,12 @@ import org.springframework.beans.factory.annotation.Autowired;
  *         Date: 17.11.2009
  */
 @XmlRootElement(name = "server")
+@XmlType(name = "server", propOrder={"version", "versionMajor", "versionMinor", "startTime", "currentTime", "buildNumber", "buildDate", "internalId"})
 public class Server {
   @Autowired
   private SBuildServer myServer;
+  @Autowired
+  private ServerSettings myServerSettings;
   @Autowired
   private DataProvider myDataProvider;
 
@@ -77,4 +87,31 @@ public class Server {
   public String getBuildDate() {
     return Util.formatTime(myServer.getBuildDate());
   }
+
+  @XmlAttribute
+  public String getInternalId() {
+    return myServerSettings.getServerId();
+  }
+
+  @Nullable
+  public static String getFieldValue(@Nullable final String field, @NotNull final ServiceLocator serviceLocator) {
+    // Note: "build", "majorVersion" and "minorVersion" for backward compatibility.
+    if (ServerRequest.SERVER_VERSION_RQUEST_PATH.equals(field)) {
+      return serviceLocator.getSingletonService(SBuildServer.class).getFullServerVersion();
+    } else if ("buildNumber".equals(field) || "build".equals(field)) {
+      return serviceLocator.getSingletonService(SBuildServer.class).getBuildNumber();
+    } else if ("versionMajor".equals(field) || "majorVersion".equals(field)) {
+      return Byte.toString(serviceLocator.getSingletonService(SBuildServer.class).getServerMajorVersion());
+    } else if ("versionMinor".equals(field) || "minorVersion".equals(field)) {
+      return Byte.toString(serviceLocator.getSingletonService(SBuildServer.class).getServerMinorVersion());
+    } else if ("startTime".equals(field)) {
+      return Util.formatTime(serviceLocator.getSingletonService(DataProvider.class).getServerStartTime());
+    } else if ("currentTime".equals(field)) {
+      return Util.formatTime(new Date());
+    } else if ("internalId".equals(field)) {
+      return serviceLocator.getSingletonService(ServerSettings.class).getServerId();
+    }
+    throw new NotFoundException("Field '" + field + "' is not supported. Supported are: version, versionMajor, versionMinor, buildNumber, startTime, currentTime, internalId.");
+  }
+
 }

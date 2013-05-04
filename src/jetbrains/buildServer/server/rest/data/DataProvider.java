@@ -39,6 +39,7 @@ import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.*;
+import jetbrains.buildServer.serverSide.db.DBFunctionsProvider;
 import jetbrains.buildServer.serverSide.impl.VcsModificationChecker;
 import jetbrains.buildServer.serverSide.statistics.ValueProviderRegistry;
 import jetbrains.buildServer.serverSide.statistics.build.BuildDataStorage;
@@ -50,6 +51,7 @@ import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.context.ConfigurableApplicationContext;
 
 /**
  * User: Yegor Yarko
@@ -57,7 +59,6 @@ import org.jetbrains.annotations.Nullable;
  */
 public class DataProvider {
   private static final Logger LOG = Logger.getInstance(DataProvider.class.getName());
-  public static final String SERVER_VERSION_RQUEST_PATH = "version";
 
   @NotNull private final SBuildServer myServer;
   @NotNull private final BuildHistory myBuildHistory;
@@ -78,6 +79,8 @@ public class DataProvider {
   @NotNull private final BuildPromotionManager myPromotionManager;
   @NotNull private final VcsModificationChecker myVcsModificationChecker;
   @NotNull private final BeanFactory myBeanFactory;
+  @NotNull private final ConfigurableApplicationContext myApplicationContext;
+  @NotNull private final DBFunctionsProvider myDbFunctionsProvider;
 
   public DataProvider(@NotNull final SBuildServer myServer,
                       @NotNull final BuildHistory myBuildHistory,
@@ -97,7 +100,9 @@ public class DataProvider {
                       @NotNull final BuildDataStorage buildDataStorage,
                       @NotNull final BuildPromotionManager promotionManager,
                       @NotNull final VcsModificationChecker vcsModificationChecker,
-                      @NotNull final BeanFactory beanFactory
+                      @NotNull final BeanFactory beanFactory,
+                      @NotNull ConfigurableApplicationContext applicationContext,
+                      @NotNull DBFunctionsProvider dbFunctionsProvider
   ) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
@@ -118,25 +123,8 @@ public class DataProvider {
     myPromotionManager = promotionManager;
     myVcsModificationChecker = vcsModificationChecker;
     myBeanFactory = beanFactory;
-  }
-
-  @Nullable
-  public String getServerFieldValue(@Nullable final String field) {
-    // Note: "build", "majorVersion" and "minorVersion" for backward compatibility.
-    if (SERVER_VERSION_RQUEST_PATH.equals(field)) {
-      return myServer.getFullServerVersion();
-    } else if ("buildNumber".equals(field) || "build".equals(field)) {
-      return myServer.getBuildNumber();
-    } else if ("versionMajor".equals(field) || "majorVersion".equals(field)) {
-      return Byte.toString(myServer.getServerMajorVersion());
-    } else if ("versionMinor".equals(field) || "minorVersion".equals(field)) {
-      return Byte.toString(myServer.getServerMinorVersion());
-    } else if ("startTime".equals(field)) {
-      return Util.formatTime(getServerStartTime());
-    } else if ("currentTime".equals(field)) {
-      return Util.formatTime(new Date());
-    }
-    throw new NotFoundException("Field '" + field + "' is not supported. Supported are: version, versionMajor, versionMinor, buildNumber, startTime, currentTime");
+    myApplicationContext = applicationContext;
+    myDbFunctionsProvider = dbFunctionsProvider;
   }
 
   @NotNull
@@ -535,5 +523,11 @@ public class DataProvider {
   @NotNull
   public BeanFactory getBeanFactory() {
     return myBeanFactory;
+  }
+
+  // Workaround for http://youtrack.jetbrains.com/issue/TW-25260
+  public <T> T getBean(Class<T> type){
+    if (type.equals(DBFunctionsProvider.class)) return (T)myDbFunctionsProvider;
+    return myApplicationContext.getBean(type);
   }
 }
