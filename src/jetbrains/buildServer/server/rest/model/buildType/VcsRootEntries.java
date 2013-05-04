@@ -17,11 +17,11 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -36,11 +36,11 @@ public class VcsRootEntries {
   public VcsRootEntries() {
   }
 
-  public VcsRootEntries(final Collection<jetbrains.buildServer.vcs.VcsRootEntry> vcsRootEntries,
-                        @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public VcsRootEntries(@NotNull final BuildTypeOrTemplate buildType, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    final List<jetbrains.buildServer.vcs.VcsRootEntry> vcsRootEntries = buildType.get().getVcsRootEntries();
     vcsRootAssignments = new ArrayList<VcsRootEntry>(vcsRootEntries.size());
     for (jetbrains.buildServer.vcs.VcsRootEntry entry : vcsRootEntries) {
-      vcsRootAssignments.add(new VcsRootEntry(entry, apiUrlBuilder));
+      vcsRootAssignments.add(new VcsRootEntry(entry.getVcsRoot(), buildType, apiUrlBuilder));
     }
   }
 

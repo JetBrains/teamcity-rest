@@ -39,7 +39,7 @@ import jetbrains.buildServer.serverSide.TeamCityProperties;
  */
 @XmlRootElement(name = "buildType")
 @XmlType(name = "buildType", propOrder = { "id", "internalId", "name", "href", "templateFlag", "webUrl", "description", "paused",
-  "project", "template", "vcsRootEntries", "builds", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
+  "project", "template", "builds", "vcsRootEntries", "vcsLabelingOptions", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
   "artifactDependencies", "agentRequirements"})
 public class BuildType {
   private static final Logger LOG = Logger.getInstance(BuildType.class.getName());
@@ -128,7 +128,12 @@ public class BuildType {
 
   @XmlElement(name = "vcs-root-entries")
   public VcsRootEntries getVcsRootEntries() {
-    return new VcsRootEntries(myBuildType.get().getVcsRootEntries(), myApiUrlBuilder);
+    return new VcsRootEntries(myBuildType, myApiUrlBuilder);
+  }
+
+  @XmlElement(name="vcs-labeling")
+  public VCSLabelingOptions getVcsLabelingOptions() {
+    return new VCSLabelingOptions(myBuildType, myApiUrlBuilder);
   }
 
   /**

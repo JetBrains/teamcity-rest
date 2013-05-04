@@ -50,6 +50,7 @@ import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.CheckoutRules;
 import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 
 /*
@@ -323,7 +324,7 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public VcsRootEntries getVcsRootEntries(@PathParam("btLocator") String buildTypeLocator) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    return new VcsRootEntries(buildType.get().getVcsRootEntries(), myApiUrlBuilder);
+    return new VcsRootEntries(buildType, myApiUrlBuilder);
   }
 
   @PUT
@@ -338,7 +339,7 @@ public class BuildTypeRequest {
     }
     buildType.get().persist();
     // not handlingsetting errors... a bit complex here
-    return new VcsRootEntries(buildType.get().getVcsRootEntries(), myApiUrlBuilder);
+    return new VcsRootEntries(buildType, myApiUrlBuilder);
   }
 
   @POST
@@ -350,7 +351,7 @@ public class BuildTypeRequest {
     final SVcsRoot vcsRoot = addVcsRoot(buildType, description);
     buildType.get().persist();
 
-    return new VcsRootEntry(vcsRoot, buildType.get().getCheckoutRules(vcsRoot), myApiUrlBuilder);
+    return new VcsRootEntry(vcsRoot, buildType, myApiUrlBuilder);
   }
 
   private SVcsRoot addVcsRoot(final BuildTypeOrTemplate buildType, final VcsRootEntry description) {
@@ -362,9 +363,15 @@ public class BuildTypeRequest {
       throw new BadRequestException(
         "Could not attach VCS root with id '" + vcsRoot.getId() + "' because of scope issues. Error: " + e.getMessage());
     }
-    if (description.checkoutRules != null) {
-      buildType.get().setCheckoutRules(vcsRoot, new CheckoutRules(description.checkoutRules));
+    buildType.get().setCheckoutRules(vcsRoot, new CheckoutRules(description.checkoutRules != null ? description.checkoutRules : ""));
+
+    final List<VcsRoot> labelingVcsRoots = buildType.get().getLabelingRoots();
+    if (description.labeling != null && description.labeling.label != null && description.labeling.label) {
+      labelingVcsRoots.add(vcsRoot);
+    } else {
+      labelingVcsRoots.remove(vcsRoot);
     }
+    buildType.get().setLabelingRoots(labelingVcsRoots);
     return vcsRoot;
   }
 
@@ -378,7 +385,7 @@ public class BuildTypeRequest {
     if (!buildType.get().containsVcsRoot(vcsRoot.getId())) {
       throw new NotFoundException("No VCS root with id '" + vcsRoot.getId() + "' is attached to the build type.");
     }
-    return new VcsRootEntry(vcsRoot, buildType.get().getCheckoutRules(vcsRoot), myApiUrlBuilder);
+    return new VcsRootEntry(vcsRoot, buildType, myApiUrlBuilder);
   }
 
   @DELETE
@@ -1114,5 +1121,24 @@ public class BuildTypeRequest {
                                                  return new Branch(source);
                                                }
                                              }));
+  }
+
+  @GET
+  @Path("/{btLocator}/vcs-labeling")
+  @Produces({"application/xml", "application/json"})
+  public VCSLabelingOptions getVCSLabelingOptions(@PathParam("btLocator") String buildTypeLocator) {
+    final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
+    return new VCSLabelingOptions(buildType, myApiUrlBuilder);
+  }
+
+  @PUT
+  @Path("/{btLocator}/vcs-labeling")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public VCSLabelingOptions setVCSLabelingOptions(@PathParam("btLocator") String buildTypeLocator, VCSLabelingOptions options) {
+    final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
+    options.applyTo(buildType, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    buildType.get().persist();
+    return new VCSLabelingOptions(buildType, myApiUrlBuilder);
   }
 }
