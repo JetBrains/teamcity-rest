@@ -32,7 +32,8 @@ import org.jetbrains.annotations.NotNull;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "vcs-root-entry")
-@XmlType(name = "vcs-root-entry")
+@XmlType(name = "vcs-root-entry", propOrder = {"id",
+  "vcsRootRef", "checkoutRules", "labeling"})
 public class VcsRootEntry {
   @XmlAttribute(name = "id")
   public String id;

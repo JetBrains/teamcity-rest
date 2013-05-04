@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.project;
 
+import com.intellij.openapi.util.text.StringUtil;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
@@ -23,8 +24,6 @@ import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
@@ -68,25 +67,21 @@ public class ProjectRef {
     this.internalId = internalId; //todo: check usages: externalId should actually be NotNull and internal id should never be necessary
   }
 
-  @Nullable
-  public String getInternalIdFromPosted(@NotNull final BeanContext context) {
-    if (internalId != null) {
-      if (id == null) {
-        return internalId;
+  @NotNull
+  public SProject getProjectFromPosted(@NotNull ProjectFinder projectFinder) {
+    String locatorText = "";
+    if (internalId != null) locatorText = "internalId:" + internalId;
+    if (id != null) locatorText += (!locatorText.isEmpty() ? "," : "") + "id:" + id;
+    if (locatorText.isEmpty()) {
+      locatorText = locator;
+    } else {
+      if (locator != null) {
+        throw new BadRequestException("Both 'locator' and 'id' or 'internalId' attributes are specified. Only one should be present.");
       }
-      String internalByExternal = context.getSingletonService(ProjectManager.class).getProjectInternalIdByExternalId(id);
-      if (internalByExternal == null || internalId.equals(internalByExternal)) {
-        return internalId;
-      }
-      throw new BadRequestException("Both id '" + id + "' and internal id '" + internalId + "' attributes are present and they reference different projects.");
     }
-    if (id != null) {
-      return context.getSingletonService(ProjectManager.class).getProjectInternalIdByExternalId(id);
+    if (StringUtil.isEmpty(locatorText)){
+      throw new BadRequestException("No project specified. Either 'id', 'internalId' or 'locator' attribute should be present.");
     }
-    if (locator != null){
-      return context.getSingletonService(ProjectFinder.class).getProject(locator).getProjectId();
-    }
-    throw new BadRequestException("Could not find project by the data. Either 'id' or 'internalId' or 'locator' attributes should be specified.");
+    return projectFinder.getProject(locatorText);
   }
-
 }

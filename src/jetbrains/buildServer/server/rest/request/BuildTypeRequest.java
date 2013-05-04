@@ -355,7 +355,10 @@ public class BuildTypeRequest {
   }
 
   private SVcsRoot addVcsRoot(final BuildTypeOrTemplate buildType, final VcsRootEntry description) {
-    final SVcsRoot vcsRoot = BuildTypeUtil.getVcsRoot(description, myVcsRootFinder);
+    if (description.vcsRootRef == null){
+      throw new BadRequestException("Element vcs-root should be specified.");
+    }
+    final SVcsRoot vcsRoot = description.vcsRootRef.getVcsRoot(myVcsRootFinder);
 
     try {
       buildType.get().addVcsRoot(vcsRoot);

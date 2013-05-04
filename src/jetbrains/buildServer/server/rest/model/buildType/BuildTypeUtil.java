@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.BuildTypeDescriptor;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -37,7 +36,6 @@ import jetbrains.buildServer.util.Option;
 import jetbrains.buildServer.util.OptionSupport;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.filters.Filter;
-import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -123,22 +121,6 @@ public class BuildTypeUtil {
         return data.getId().equals(featureId);
       }
     });
-  }
-
-  // see also VCSRootRequest.getProjectLocator
-  public static SVcsRoot getVcsRoot(final VcsRootEntry description, VcsRootFinder vcsRootFinder) {
-      if (description.vcsRootRef == null){
-        throw new BadRequestException("Element vcs-root should be specified.");
-      }
-      final String vcsRootId = description.vcsRootRef.id;
-      if (StringUtil.isEmpty(vcsRootId)){
-        throw new BadRequestException("Element vcs-root should have id attribute with valid VCS root id.");
-      }
-      return vcsRootFinder.getVcsRoot("id:" + vcsRootId);
-  }
-
-  public static String getLastPathPart(final String vcsRootHref) {
-    return StringUtil.lastPartOf(vcsRootHref, '/');
   }
 
   public static String getParameter(final String parameterName, final UserParametersHolder parametrizedEntity) {

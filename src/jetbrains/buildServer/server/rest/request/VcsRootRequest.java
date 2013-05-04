@@ -251,7 +251,6 @@ public class VcsRootRequest {
     }
   }
 
-  // see also BuildTypeUtil.getVcsRoot
   @NotNull
   private SProject getVcsRootProject(@NotNull final VcsRoot description, @NotNull final BeanContext context) {
     if (!StringUtil.isEmpty(description.projectLocator)){
@@ -266,14 +265,7 @@ public class VcsRootRequest {
         }
         throw new BadRequestException("Either 'project' element or 'projectLocator' attribute should be specified.");
       }
-      final String internalIdFromPosted = description.project.getInternalIdFromPosted(context);
-      if (internalIdFromPosted == null){
-        throw new NotFoundException("Could not find project internal id defined by 'project' element.");
-      }
-      SProject project = myDataProvider.getServer().getProjectManager().findProjectById(internalIdFromPosted);
-      if (project == null) {
-        throw new NotFoundException("Could not find project by internal id defined by 'project' element.");
-      }
-      return project;
-    }  }
+      return description.project.getProjectFromPosted(context.getSingletonService(ProjectFinder.class));
+    }
+  }
 }
