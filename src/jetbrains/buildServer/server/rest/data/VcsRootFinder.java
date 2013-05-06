@@ -1,10 +1,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.TreeSet;
+import java.util.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -180,7 +177,7 @@ public class VcsRootFinder{
 
   private List<VcsRootInstance> getAllVcsRootInstances(ProjectManager projectManager) {
     //todo: (TeamCity) open API is there a better way to do this?
-    final TreeSet<VcsRootInstance> rootInstancesSet = new TreeSet<jetbrains.buildServer.vcs.VcsRootInstance>();
+    final Set<VcsRootInstance> rootInstancesSet = new LinkedHashSet<VcsRootInstance>();
     for (SBuildType buildType : projectManager.getAllBuildTypes()) {
         rootInstancesSet.addAll(buildType.getVcsRootInstances());
     }
