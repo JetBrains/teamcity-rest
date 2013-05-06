@@ -55,14 +55,16 @@ public class Builds {
 
   public Builds(@NotNull final List buildObjects,
                 @NotNull final DataProvider dataProvider,
-                @NotNull final PagerData pagerData,
+                @Nullable final PagerData pagerData,
                 final ApiUrlBuilder apiUrlBuilder) {
     builds = new ArrayList<BuildRef>(buildObjects.size());
     for (Object build : buildObjects) {
       builds.add(new BuildRef((SBuild)build, dataProvider, apiUrlBuilder));
     }
-    nextHref = pagerData.getNextHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;
-    prevHref = pagerData.getPrevHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getPrevHref()) : null;
+    if (pagerData != null) {
+      nextHref = pagerData.getNextHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;
+      prevHref = pagerData.getPrevHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getPrevHref()) : null;
+    }
     count = builds.size();
   }
 }

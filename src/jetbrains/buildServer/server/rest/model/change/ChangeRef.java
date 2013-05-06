@@ -34,14 +34,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class ChangeRef {
   protected SVcsModification myModification;
   protected ApiUrlBuilder myApiUrlBuilder;
-  @Autowired WebLinks myWebLinks;
+  protected BeanFactory myFactory;
+  @Autowired protected WebLinks myWebLinks;
 
   public ChangeRef() {
   }
 
-  public ChangeRef(SVcsModification modification, final ApiUrlBuilder apiUrlBuilder, final BeanFactory myFactory) {
+  public ChangeRef(SVcsModification modification, final ApiUrlBuilder apiUrlBuilder, final BeanFactory factory) {
     myModification = modification;
     myApiUrlBuilder = apiUrlBuilder;
+    myFactory = factory;
     myFactory.autowire(this);
   }
 

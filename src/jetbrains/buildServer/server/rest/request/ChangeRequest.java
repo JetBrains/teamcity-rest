@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import java.util.ArrayList;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
@@ -23,9 +24,15 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.model.Items;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.build.Builds;
+import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.change.Change;
 import jetbrains.buildServer.server.rest.model.change.Changes;
+import jetbrains.buildServer.server.rest.model.change.VcsRootInstanceRef;
+import jetbrains.buildServer.server.rest.model.issue.Issues;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -89,5 +96,98 @@ public class ChangeRequest {
   @Produces({"application/xml", "application/json"})
   public Change serveChange(@PathParam("changeLocator") String changeLocator) {
     return new Change(myDataProvider.getChange(changeLocator), myApiUrlBuilder, myFactory);
+  }
+
+  @GET
+  @Path("/{changeLocator}/{field}")
+  @Produces("text/plain")
+  public String getChangeField(@PathParam("changeLocator") String changeLocator, @PathParam("field") String field) {
+    final SVcsModification change = myDataProvider.getChange(changeLocator);
+    return Change.getFieldValue(change, field);
+  }
+
+  @GET
+  @Path("/{changeLocator}/parent-changes")
+  @Produces({"application/xml", "application/json"})
+  public Changes getParentChanges(@PathParam("changeLocator") String changeLocator) {
+    final SVcsModification change = myDataProvider.getChange(changeLocator);
+    return new Changes(new ArrayList<SVcsModification>(change.getParentModifications()), myApiUrlBuilder, myFactory);
+  }
+
+  /**
+   * Experimental support only!
+   */
+  @GET
+  @Path("/{changeLocator}/parent-revisions")
+  @Produces({"application/xml", "application/json"})
+  public Items getChangeParentRevisions(@PathParam("changeLocator") String changeLocator) {
+    final SVcsModification change = myDataProvider.getChange(changeLocator);
+    return new Items(change.getParentRevisions());
+  }
+
+  /**
+   * Experimental support only!
+   */
+  @GET
+  @Path("/{changeLocator}/vcs-root")
+  @Produces({"application/xml", "application/json"})
+  public VcsRootInstanceRef getChangeVCSRoot(@PathParam("changeLocator") String changeLocator) {
+    final SVcsModification change = myDataProvider.getChange(changeLocator);
+    return new VcsRootInstanceRef(change.getVcsRoot(), myApiUrlBuilder);
+  }
+
+  /**
+   * Experimental support only!
+   */
+  @GET
+  @Path("/{changeLocator}/attributes")
+  @Produces({"application/xml", "application/json"})
+  public Properties getChangeAttributes(@PathParam("changeLocator") String changeLocator) {
+    final SVcsModification change = myDataProvider.getChange(changeLocator);
+    return new Properties(change.getAttributes());
+  }
+  
+  /**
+   * Experimental support only!
+   */
+  @GET
+  @Path("/{changeLocator}/duplicates")
+  @Produces({"application/xml", "application/json"})
+  public Changes getChangeDuplicates(@PathParam("changeLocator") String changeLocator) {
+    final SVcsModification change = myDataProvider.getChange(changeLocator);
+    return new Changes(new ArrayList<SVcsModification>(change.getDuplicates()), myApiUrlBuilder, myFactory);
+  }
+
+  /**
+   * Experimental support only!
+   */
+  @GET
+  @Path("/{changeLocator}/issues")
+  @Produces({"application/xml", "application/json"})
+  public Issues getChangeIssue(@PathParam("changeLocator") String changeLocator) {
+    final SVcsModification change = myDataProvider.getChange(changeLocator);
+    return new Issues(change.getRelatedIssues());
+  }
+
+  /**
+   * Experimental support only!
+   */
+  @GET
+  @Path("/{changeLocator}/buildTypes")
+  @Produces({"application/xml", "application/json"})
+  public BuildTypes getRelatedBuildTypes(@PathParam("changeLocator") String changeLocator) {
+    final SVcsModification change = myDataProvider.getChange(changeLocator);
+    return BuildTypes.createFromBuildTypes(new ArrayList<SBuildType>(change.getRelatedConfigurations()), myDataProvider, myApiUrlBuilder);
+  }
+
+ /**
+   * Experimental support only!
+   */
+  @GET
+  @Path("/{changeLocator}/first-builds")
+  @Produces({"application/xml", "application/json"})
+  public Builds getChangeFirstBuilds(@PathParam("changeLocator") String changeLocator) {
+    final SVcsModification change = myDataProvider.getChange(changeLocator);
+    return new Builds(new ArrayList<SBuild>(change.getFirstBuilds().values()), myDataProvider, null, myApiUrlBuilder);
   }
 }

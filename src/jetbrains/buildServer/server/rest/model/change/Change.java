@@ -22,6 +22,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
@@ -78,5 +79,28 @@ public class Change extends ChangeRef {
   @XmlElement(name = "files")
   public FileChanges getFileChanges() {
     return new FileChanges(myModification.getChanges());
+  }
+
+  public static String getFieldValue(final SVcsModification vcsModification, final String field) {
+    if ("id".equals(field)) {
+      return String.valueOf(vcsModification.getId());
+    } else if ("version".equals(field)) {
+      return vcsModification.getDisplayVersion();
+    } else if ("username".equals(field)) {
+      return vcsModification.getUserName();
+    } else if ("date".equals(field)) {
+      return Util.formatTime(vcsModification.getVcsDate());
+    } else if ("personal".equals(field)) {
+      return String.valueOf(vcsModification.isPersonal());
+    } else if ("comment".equals(field)) {
+      return vcsModification.getDescription();
+    } else if ("registrationDate".equals(field)) { //not documented
+      return Util.formatTime(vcsModification.getRegistrationDate());
+    } else if ("versionControlName".equals(field)) { //not documented
+      return vcsModification.getVersionControlName();
+    } else if ("internalVersion".equals(field)) { //not documented
+      return vcsModification.getVersion();
+    }
+    throw new NotFoundException("Field '" + field + "' is not supported. Supported fields are: 'id', 'version', 'username', 'date', 'personal', 'comment'.");
   }
 }
