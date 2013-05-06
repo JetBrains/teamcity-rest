@@ -76,7 +76,7 @@ public class PropEntityArtifactDep extends PropEntity {
       throw new BadRequestException("Artifact dependency properties should contian '" + NAME_SOURCE_BUILD_TYPE_ID + "' property.");
     }
 
-    final SArtifactDependency artifactDependency = factory.createArtifactDependency(
+    final SArtifactDependency artifactDependency = factory.createArtifactDependencyByInternalId(
       propertiesMap.get(NAME_SOURCE_BUILD_TYPE_ID),
       propertiesMap.get(NAME_PATH_RULES),
       getRevisionRule(propertiesMap));

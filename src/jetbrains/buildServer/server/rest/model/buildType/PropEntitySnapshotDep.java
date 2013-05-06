@@ -59,7 +59,7 @@ public class PropEntitySnapshotDep extends PropEntity {
       throw new BadRequestException("Snapshot dependency on build type with id '" + buildTypeIdDependOn + "' already exists.");
     }
 
-    final Dependency result = factory.createDependency(buildTypeIdDependOn);
+    final Dependency result = factory.createDependencyByInternalId(buildTypeIdDependOn);
     for (Map.Entry<String, String> property : propertiesMap.entrySet()) {
       if (!NAME_SOURCE_BUILD_TYPE_ID.equals(property.getKey())) {
         setDependencyOption(property.getKey(), property.getValue(), result);
