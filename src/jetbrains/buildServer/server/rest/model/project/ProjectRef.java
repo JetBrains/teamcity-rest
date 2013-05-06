@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.model.project;
 
-import com.intellij.openapi.util.text.StringUtil;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
@@ -26,6 +25,7 @@ import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -80,6 +80,10 @@ public class ProjectRef {
       }
     }
     if (StringUtil.isEmpty(locatorText)){
+      //find by href for compatibility with 7.0
+      if (!StringUtil.isEmpty(href)){
+        return projectFinder.getProject(StringUtil.lastPartOf(href, '/'));
+      }
       throw new BadRequestException("No project specified. Either 'id', 'internalId' or 'locator' attribute should be present.");
     }
     return projectFinder.getProject(locatorText);
