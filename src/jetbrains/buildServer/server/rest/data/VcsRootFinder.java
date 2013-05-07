@@ -183,6 +183,11 @@ public class VcsRootFinder{
     }
     final List<VcsRootInstance> result = new ArrayList<VcsRootInstance>(rootInstancesSet.size());
     result.addAll(rootInstancesSet);
+    Collections.sort(result, new Comparator<VcsRootInstance>() {
+      public int compare(final VcsRootInstance o1, final VcsRootInstance o2) {
+        return (int)(o1.getId() - o2.getId());
+      }
+    });
     return result;
   }
 }
