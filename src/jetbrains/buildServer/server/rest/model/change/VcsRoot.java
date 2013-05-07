@@ -148,11 +148,12 @@ public class VcsRoot {
                                    @Nullable final Map<String, String> newProperties,
                                    @Nullable final String newName) {
     try {
-      SProject owner = root.getProject();
-      owner.updateOwnVcsRoot(root,
-                               root.getVcsName(),
-                               newName != null ? newName : root.getName(),
-                               newProperties != null ? newProperties : root.getProperties());
+      if (newName != null) {
+        root.setName(newName);
+      }
+      if (newProperties != null) {
+        root.setProperties(newProperties);
+      }
     } catch (ProjectNotFoundException e) {
       throw new NotFoundException("Could not find project for VCS root: " + root.getExternalId());
     }
