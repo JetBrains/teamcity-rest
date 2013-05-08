@@ -101,6 +101,7 @@ public class BuildType {
 
   @XmlElement
   public Properties getRunParameters() {
-    return new Properties(myBuildType.getRunParameters());
+    List<SBuildRunnerDescriptor> runners = myBuildType.getBuildRunners();
+    return new Properties(runners.isEmpty() ? Collections.<String, String>emptyMap() : runners.get(0).getParameters());
   }
 }
