@@ -76,7 +76,7 @@ public class VcsRootRequest {
   public VcsRoot addRoot(VcsRoot vcsRootDescription) {
     checkVcsRootDescription(vcsRootDescription);
     BeanContext ctx = new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder);
-    final SVcsRoot newVcsRoot = getVcsRootProject(vcsRootDescription, ctx).createNewVcsRoot(
+    final SVcsRoot newVcsRoot = getVcsRootProject(vcsRootDescription, ctx).createVcsRoot(
       vcsRootDescription.vcsName,
       vcsRootDescription.name != null ? vcsRootDescription.name : null,
       vcsRootDescription.properties.getMap());
