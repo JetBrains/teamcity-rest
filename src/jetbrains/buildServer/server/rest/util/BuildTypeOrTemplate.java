@@ -51,7 +51,7 @@ public class BuildTypeOrTemplate implements Loggable {
 
   @NotNull
   public SProject getProject() {
-    return hasBuildType ? myBuildType.getProject() : myTemplate.getParentProject();
+    return hasBuildType ? myBuildType.getProject() : myTemplate.getProject();
   }
 
   public boolean isBuildType() {
