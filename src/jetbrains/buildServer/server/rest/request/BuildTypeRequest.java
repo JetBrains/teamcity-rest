@@ -16,11 +16,6 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import java.util.List;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildsFilter;
@@ -33,10 +28,17 @@ import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.util.StringUtil;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
+import java.util.List;
 
 /**
  * User: Yegor Yarko
@@ -145,7 +147,7 @@ public class BuildTypeRequest {
     if (StringUtil.isEmpty(newValue)) {
       throw new BadRequestException("Parameter value cannot be empty.");
     }
-    buildType.addRunParameter(new SimpleParameter(parameterName, newValue));
+    ((BuildTypeEx)buildType).addRunParameter(new SimpleParameter(parameterName, newValue));
     buildType.getProject().persist();
   }
 
