@@ -24,7 +24,10 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.ProjectFinder;
+import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -62,7 +65,7 @@ public class VcsRootRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public VcsRoots serveRoots(@QueryParam("locator") String locatorText, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
-    final PagedSearchResult<SVcsRoot> vcsRoots = myVcsRootFinder.getVcsRoots(locatorText != null ? new Locator(locatorText) : null);
+    final PagedSearchResult<SVcsRoot> vcsRoots = myVcsRootFinder.getVcsRoots(locatorText != null ? VcsRootFinder.createVcsRootLocator(locatorText) : null);
     return new VcsRoots(vcsRoots.myEntries,
                         new PagerData(uriInfo.getRequestUriBuilder(),
                                       request.getContextPath(), vcsRoots.myStart, vcsRoots.myCount, vcsRoots.myEntries.size(), locatorText,

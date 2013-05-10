@@ -40,7 +40,7 @@ public class VcsRootFinder{
     if (StringUtil.isEmpty(locatorText)) {
       throw new BadRequestException("Empty VCS root locator is not supported.");
     }
-    final Locator locator = new Locator(locatorText);
+    final Locator locator = createVcsRootLocator(locatorText);
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's root id
       final Long parsedId = locator.getSingleValueAsLong();
@@ -62,6 +62,11 @@ public class VcsRootFinder{
     }
     assert vcsRoots.myEntries.size()== 1;
     return vcsRoots.myEntries.get(0);
+  }
+
+  @NotNull
+  public static Locator createVcsRootLocator(@Nullable final String locatorText){
+    return new Locator(locatorText, "id", "name", "type", "project", "count", "start", "repositoryIdString", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
   }
 
   public PagedSearchResult<SVcsRoot> getVcsRoots(@Nullable final Locator locator) {
