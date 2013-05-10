@@ -80,8 +80,10 @@ public class Project extends ProjectRef {
       return project.getName();
     } else if ("archived".equals(field)) {
       return String.valueOf(project.isArchived());
+    } else if ("status".equals(field)) { //Experimental support
+      return project.getStatus().getText();
     }
-    throw new NotFoundException("Field '" + field + "' is not supported.");
+    throw new NotFoundException("Field '" + field + "' is not supported.  Supported are: id, name, description, archived, internalId.");
   }
 
   public static void setFieldValue(final SProject project, final String field, final String value, @NotNull final DataProvider dataProvider) {

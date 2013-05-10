@@ -134,9 +134,11 @@ public class BuildTypeOrTemplate implements Loggable {
     if (isBuildType()){
       if ("paused".equals(field)){
         return String.valueOf(myBuildType.isPaused());
+      } else if ("status".equals(field)){ //Experimental support
+        return  myBuildType.getStatus().getText();
       }
     }
-    throw new NotFoundException("Field '" + field + "' is not supported. Supported are: id, name, description, paused");
+    throw new NotFoundException("Field '" + field + "' is not supported. Supported are: id, name, description, paused, internalId.");
   }
 
   public boolean isEnabled(final String id) {
