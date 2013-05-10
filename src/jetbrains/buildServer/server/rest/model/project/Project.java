@@ -20,6 +20,7 @@ import com.intellij.openapi.util.text.StringUtil;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -35,6 +36,8 @@ import org.jetbrains.annotations.Nullable;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "project")
+@XmlType(name = "project", propOrder = {"description", "archived", "webUrl",
+  "buildTypes", "templates", "parameters"})
 @SuppressWarnings("PublicField")
 public class Project extends ProjectRef {
   @XmlAttribute
