@@ -21,7 +21,9 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
@@ -36,8 +38,13 @@ import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SQLRunner;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.db.DBAction;
+import jetbrains.buildServer.serverSide.db.DBException;
+import jetbrains.buildServer.serverSide.db.DBFunctions;
+import jetbrains.buildServer.serverSide.db.DBFunctionsProvider;
 import jetbrains.buildServer.serverSide.db.queries.GenericQuery;
 import jetbrains.buildServer.serverSide.db.queries.QueryOptions;
+import jetbrains.buildServer.util.CaseInsensitiveStringComparator;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.filters.Filter;
@@ -58,12 +65,28 @@ public class DebugRequest {
   @Context @NotNull private VcsRootFinder myVcsRootFinder;
   @Context @NotNull private ServiceLocator myServiceLocator;
 
+  @GET
+   @Path("/database/tables")
+   @Produces({"text/plain; charset=UTF-8"})
+   public String listDBTables() {
+    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    final Set<String> tableNames = myDataProvider.getBean(DBFunctionsProvider.class).withDB(new DBAction<Set<String>>() {
+      public Set<String> run(final DBFunctions dbf) throws DBException {
+        return dbf.retrieveSchemaTableNames(true, false, false);
+      }
+    });
+    ArrayList<String> sortedNames = new ArrayList<String>(tableNames.size());
+    sortedNames.addAll(tableNames);
+    Collections.sort(sortedNames, new CaseInsensitiveStringComparator());
+    return StringUtil.join(sortedNames, "\n");
+  }
+
   //todo: in addition support text/csv for the response, also support json, make it List<Array<String>>
   //todo: consider requiring POST for write operations
   @GET
   @Path("/database/query/{query}")
   @Produces({"text/plain; charset=UTF-8"})
-  public String serveServerVersion(@PathParam("query") String query,
+  public String executeDBQuery(@PathParam("query") String query,
                                    @QueryParam("fieldDelimiter") @DefaultValue(", ") String fieldDelimiter,
                                    @QueryParam("count") @DefaultValue("1000") int maxRows) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
@@ -89,8 +112,7 @@ public class DebugRequest {
       if (result == null) {
         return "";
       }
-      String comment = result.size() == maxRows ? "# First " + maxRows +
-                                                  " rows are served. Add '?count=N' parameter to change the number of rows to return.\n" : "";
+      String comment = result.size() == maxRows ? "# First " + maxRows + " rows are served. Add '?count=N' parameter to change the number of rows to return.\n" : "";
       return comment + StringUtil.join(result, "\n");
     }else{
       final int result = genericQuery.executeUpdate(sqlRunner);
@@ -106,6 +128,7 @@ public class DebugRequest {
   @Produces({"application/xml", "application/json"})
   public VcsRootInstances scheduleCheckingForChanges(@QueryParam("locator") Locator vcsRootInstancesLocator,
                                                      @Context @NotNull ApiUrlBuilder apiUrlBuilder) {
+    //todo: check whether permission checks are necessary
     final PagedSearchResult<VcsRootInstance> vcsRootInstances = myVcsRootFinder.getVcsRootInstances(vcsRootInstancesLocator);
     myDataProvider.getVcsModificationChecker().forceCheckingFor(vcsRootInstances.myEntries);
     return new VcsRootInstances(vcsRootInstances.myEntries, null, apiUrlBuilder);
