@@ -1,5 +1,10 @@
 package jetbrains.buildServer.server.rest.model.files;
 
+import java.util.Date;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.util.browser.Element;
@@ -7,17 +12,12 @@ import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
-import java.util.Date;
-
 /**
  * @author Vladislav.Rassokhin
  */
 @XmlRootElement(name = "file")
-@XmlType
+@XmlType(name = "file", propOrder = {"size", "modificationTime",
+"parent", "content", "children"})
 public class File extends FileRef {
 
   protected final FileApiUrlBuilder fileApiUrlBuilder;
@@ -56,12 +56,9 @@ public class File extends FileRef {
   }
 
   @Nullable
-  @XmlElement(name = "children")
-  public Href getChildren() {
-    if (element.isLeaf()) {
-      return null;
-    }
-    return new Href(fileApiUrlBuilder.getChildrenHref(element));
+  @XmlElement(name = "parent")
+  public FileRef getParent() {
+    return parent != null ? new FileRef(parent, fileApiUrlBuilder) : null;
   }
 
   @Nullable
@@ -74,8 +71,11 @@ public class File extends FileRef {
   }
 
   @Nullable
-  @XmlElement(name = "parent")
-  public FileRef getParent() {
-    return parent != null ? new FileRef(parent, fileApiUrlBuilder) : null;
+  @XmlElement(name = "children")
+  public Href getChildren() {
+    if (element.isLeaf()) {
+      return null;
+    }
+    return new Href(fileApiUrlBuilder.getChildrenHref(element));
   }
 }
