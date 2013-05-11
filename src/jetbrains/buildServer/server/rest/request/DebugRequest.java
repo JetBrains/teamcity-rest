@@ -29,7 +29,6 @@ import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -126,10 +125,10 @@ public class DebugRequest {
   @POST
   @Path("/vcsCheckingForChangesQueue")
   @Produces({"application/xml", "application/json"})
-  public VcsRootInstances scheduleCheckingForChanges(@QueryParam("locator") Locator vcsRootInstancesLocator,
+  public VcsRootInstances scheduleCheckingForChanges(@QueryParam("locator") String vcsRootInstancesLocator,
                                                      @Context @NotNull ApiUrlBuilder apiUrlBuilder) {
     //todo: check whether permission checks are necessary
-    final PagedSearchResult<VcsRootInstance> vcsRootInstances = myVcsRootFinder.getVcsRootInstances(vcsRootInstancesLocator);
+    final PagedSearchResult<VcsRootInstance> vcsRootInstances = myVcsRootFinder.getVcsRootInstances(myVcsRootFinder.createVcsRootInstanceLocator(vcsRootInstancesLocator));
     myDataProvider.getVcsModificationChecker().forceCheckingFor(vcsRootInstances.myEntries);
     return new VcsRootInstances(vcsRootInstances.myEntries, null, apiUrlBuilder);
   }

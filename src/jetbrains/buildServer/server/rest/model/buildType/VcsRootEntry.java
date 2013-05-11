@@ -23,7 +23,7 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.change.VcsRootRef;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
-import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -48,7 +48,7 @@ public class VcsRootEntry {
   public VcsRootEntry() {
   }
 
-  public VcsRootEntry(final @NotNull VcsRoot vcsRootParam, @NotNull final BuildTypeOrTemplate buildType, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public VcsRootEntry(final @NotNull SVcsRoot vcsRootParam, @NotNull final BuildTypeOrTemplate buildType, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     id = String.valueOf(vcsRootParam.getId());
     vcsRootRef = new VcsRootRef(vcsRootParam, apiUrlBuilder);
     checkoutRules =  buildType.get().getCheckoutRules(vcsRootParam).getAsString();

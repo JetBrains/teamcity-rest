@@ -39,6 +39,7 @@ public class Locator {
 
   private final Set<String> myUsedDimensions;
   @Nullable private final String[] mySupportedDimensions;
+  @NotNull private Collection<String> myIgnoreUnusedDimensions = new HashSet<String>();
 
   public Locator(@Nullable final String locator) throws LocatorProcessException{
     this(locator, null);
@@ -64,6 +65,10 @@ public class Locator {
     }
     myUsedDimensions = new HashSet<String>();
     mySupportedDimensions = supportedDimensions;
+  }
+
+  public void addIgnoreUnusedDimensions(final String ... ignoreUnusedDimensions) {
+    myIgnoreUnusedDimensions.addAll(Arrays.asList(ignoreUnusedDimensions));
   }
 
   private static MultiValuesMap<String, String> parse(final String locator) {
@@ -151,6 +156,7 @@ public class Locator {
         reportKnownButNotReportedDimensions();
       }
       final Set<String> unusedDimensions = getUnusedDimensions();
+      unusedDimensions.removeAll(myIgnoreUnusedDimensions);
       if (unusedDimensions.size() > 0) {
         String message;
         if (unusedDimensions.size() > 1) {

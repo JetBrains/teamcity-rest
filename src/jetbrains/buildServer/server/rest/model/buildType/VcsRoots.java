@@ -57,7 +57,7 @@ public class VcsRoots {
                   @Nullable final PagerData pagerData,
                   @NotNull final ApiUrlBuilder apiUrlBuilder) {
     vcsRoots = new ArrayList<VcsRootRef>(serverVcsRoots.size());
-    for (jetbrains.buildServer.vcs.VcsRoot root : serverVcsRoots) {
+    for (jetbrains.buildServer.vcs.SVcsRoot root : serverVcsRoots) {
       vcsRoots.add(new VcsRootRef(root, apiUrlBuilder));
     }
     if (pagerData != null) {

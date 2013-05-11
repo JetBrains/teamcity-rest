@@ -26,8 +26,8 @@ import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsModification;
-import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 
@@ -91,7 +91,7 @@ public class ApiUrlBuilder {
     return myPathTransformer.transform(UserRequest.getUserHref(user));
   }
 
-  public String getHref(final VcsRoot root) {
+  public String getHref(final SVcsRoot root) {
     return myPathTransformer.transform(VcsRootRequest.getVcsRootHref(root));
   }
 

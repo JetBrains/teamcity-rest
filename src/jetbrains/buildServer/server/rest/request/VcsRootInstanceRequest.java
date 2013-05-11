@@ -21,7 +21,10 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.VcsRootFinder;
+import jetbrains.buildServer.server.rest.data.VcsRootInstancesFilter;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
@@ -55,7 +58,7 @@ public class VcsRootInstanceRequest {
                                          @Context UriInfo uriInfo,
                                          @Context HttpServletRequest request) {
     final PagedSearchResult<jetbrains.buildServer.vcs.VcsRootInstance> vcsRootInstances =
-      myVcsRootFinder.getVcsRootInstances(vcsRootInstanceLocator != null ? new Locator(vcsRootInstanceLocator) : null);
+      myVcsRootFinder.getVcsRootInstances(vcsRootInstanceLocator != null ? VcsRootFinder.createVcsRootInstanceLocator(vcsRootInstanceLocator) : null);
 
     return new VcsRootInstances(vcsRootInstances.myEntries,
                                 new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), vcsRootInstances.myStart,

@@ -4,9 +4,11 @@ import com.intellij.openapi.util.text.StringUtil;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 
@@ -16,10 +18,12 @@ import org.jetbrains.annotations.NotNull;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "vcs-root-ref")
-@XmlType(name = "vcs-root-ref", propOrder = {"id", "name", "href"})
+@XmlType(name = "vcs-root-ref", propOrder = {"id", "internalId", "name", "href"})
 public class VcsRootRef {
   @XmlAttribute
   public String id;
+  @XmlAttribute
+  public Long internalId;
   @XmlAttribute
   public String name;
   @XmlAttribute
@@ -32,8 +36,9 @@ public class VcsRootRef {
   public VcsRootRef() {
   }
 
-  public VcsRootRef(jetbrains.buildServer.vcs.VcsRoot root, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    this.id = String.valueOf(root.getId());
+  public VcsRootRef(jetbrains.buildServer.vcs.SVcsRoot root, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    this.id = root.getExternalId();
+    this.internalId =  TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? root.getId() : null;
     this.href = apiUrlBuilder.getHref(root);
     this.name = root.getName();
   }

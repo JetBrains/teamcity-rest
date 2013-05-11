@@ -2,11 +2,13 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
+import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsManager;
@@ -42,17 +44,8 @@ public class VcsRootFinder{
     }
     final Locator locator = createVcsRootLocator(locatorText);
     if (locator.isSingleValue()) {
-      // no dimensions found, assume it's root id
-      final Long parsedId = locator.getSingleValueAsLong();
-      if (parsedId == null) {
-        throw new BadRequestException("Expecting VCS root id, found empty value.");
-      }
-      SVcsRoot root = myVcsManager.findRootById(parsedId);
-      if (root == null) {
-        throw new NotFoundException("No VCS root can be found by id '" + locatorText + "'.");
-      }
-      locator.checkLocatorFullyProcessed();
-      return root;
+      // no dimensions found, assume it's an internal id or external id
+      return getVcsRootByExternalOrInternalId(locator.getSingleValue());
     }
 
     locator.setDimension(PagerData.COUNT, "1"); //get only the first one that matches
@@ -65,8 +58,37 @@ public class VcsRootFinder{
   }
 
   @NotNull
+  private SVcsRoot getVcsRootByExternalOrInternalId(final String id) {
+    assert id != null;
+    SVcsRoot vcsRoot = myProjectManager.findVcsRootByExternalId(id);
+    if (vcsRoot != null){
+      return vcsRoot;
+    }
+    try {
+      vcsRoot = myProjectManager.findVcsRootById(Long.parseLong(id));
+      if (vcsRoot != null){
+        return vcsRoot;
+      }
+    } catch (NumberFormatException e) {
+      //ignore
+    }
+    throw new NotFoundException("No VCS root found by internal or external id '" + id + "'.");
+  }
+
+  @NotNull
   public static Locator createVcsRootLocator(@Nullable final String locatorText){
-    return new Locator(locatorText, "id", "name", "type", "project", "count", "start", "repositoryIdString", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    final Locator result =
+      new Locator(locatorText, "id", "name", "type", "project", VcsRootsFilter.REPOSITORY_ID_STRING, "internalId", "count", "start", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    result.addIgnoreUnusedDimensions(PagerData.COUNT);
+    return result;
+  }
+
+  @NotNull
+  public static Locator createVcsRootInstanceLocator(@Nullable final String locatorText){
+    final Locator result =
+      new Locator(locatorText, "id", "name", "type", "project", "buildType", VcsRootInstancesFilter.VCS_ROOT_DIMENSION, VcsRootInstancesFilter.REPOSITORY_ID_STRING, "count", "start", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    result.addIgnoreUnusedDimensions(PagerData.COUNT);
+    return result;
   }
 
   public PagedSearchResult<SVcsRoot> getVcsRoots(@Nullable final Locator locator) {
@@ -75,18 +97,37 @@ public class VcsRootFinder{
     }
 
     if (locator.isSingleValue()){
-      throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported.");
+      return new PagedSearchResult<SVcsRoot>(Collections.singletonList(getVcsRootByExternalOrInternalId(locator.getSingleValue())), null, null);
     }
 
-    Long rootId = locator.getSingleDimensionValueAsLong("id");
-    if (rootId != null) {
-      SVcsRoot root = myVcsManager.findRootById(rootId);
+    String externalId = locator.getSingleDimensionValue("id");
+    if (externalId != null) {
+      SVcsRoot root;
+      if (TeamCityProperties.getBoolean(APIController.REST_COMPATIBILITY_ALLOW_EXTERNAL_ID_AS_INTERNAL)) {
+        root = getVcsRootByExternalOrInternalId(externalId);
+      } else {
+        root = myProjectManager.findVcsRootByExternalId(externalId);
+        if (root == null) {
+          throw new NotFoundException("No VCS root can be found by id '" + externalId + "'.");
+        }
+        final Long count = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
+        if (count != null && count != 1) {
+          throw new BadRequestException("Dimension 'id' is specified and 'count' is not 1.");
+        }
+      }
+      locator.checkLocatorFullyProcessed();
+      return new PagedSearchResult<SVcsRoot>(Collections.singletonList(root), null, null);
+    }
+
+    Long internalId = locator.getSingleDimensionValueAsLong("internalId");
+    if (internalId != null) {
+      SVcsRoot root = myVcsManager.findRootById(internalId);
       if (root == null) {
-        throw new NotFoundException("No VCS root can be found by id '" + rootId + "'.");
+        throw new NotFoundException("No VCS root can be found by internal id '" + internalId + "'.");
       }
       final Long count = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
       if (count != null && count != 1) {
-        throw new BadRequestException("Dimension 'id' is specified and 'count' is not 1.");
+        throw new BadRequestException("Dimension 'internalId' is specified and 'count' is not 1.");
       }
       locator.checkLocatorFullyProcessed();
       return new PagedSearchResult<SVcsRoot>(Collections.singletonList(root), null, null);
@@ -123,7 +164,8 @@ public class VcsRootFinder{
     if (StringUtil.isEmpty(locatorText)) {
       throw new BadRequestException("Empty VCS root intance locator is not supported.");
     }
-    final Locator locator = new Locator(locatorText);
+    final Locator locator = createVcsRootInstanceLocator(locatorText);
+
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's root instance id
       final Long parsedId = locator.getSingleValueAsLong();

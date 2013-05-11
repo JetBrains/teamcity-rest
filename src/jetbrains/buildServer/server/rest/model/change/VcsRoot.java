@@ -21,6 +21,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
@@ -45,12 +46,15 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 16.04.2009
  */
 @XmlRootElement(name = "vcs-root")
-@XmlType(name = "vcs-root", propOrder = { "id", "name","vcsName", "modificationCheckInterval", "status", "lastChecked",
+@XmlType(name = "vcs-root", propOrder = { "id", "internalId", "name","vcsName", "modificationCheckInterval", "status", "lastChecked",
   "project", "properties", "vcsRootInstances"})
 @SuppressWarnings("PublicField")
 public class VcsRoot {
   @XmlAttribute
-  public Long id;
+  public String id;
+
+  @XmlAttribute
+  public Long internalId;
 
   @XmlAttribute
   public String name;
@@ -59,13 +63,13 @@ public class VcsRoot {
   public String vcsName;
 
   @XmlAttribute
-  public  Integer  modificationCheckInterval;
+  public Integer modificationCheckInterval;
 
   @XmlAttribute
-  public  String status;
+  public String status;
 
   @XmlAttribute
-  public  String lastChecked;
+  public String lastChecked;
 
 
   @XmlElement
@@ -93,7 +97,8 @@ public class VcsRoot {
   }
 
   public VcsRoot(final SVcsRoot root, final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
-    id = root.getId();
+    id = root.getExternalId();
+    internalId =  TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? root.getId() : null;
     name = root.getName();
     vcsName = root.getVcsName();
 
@@ -112,10 +117,6 @@ public class VcsRoot {
     lastChecked = Util.formatTime(rootStatus.getTimestamp());
 
     vcsRootInstances = new Href(VcsRootInstanceRequest.getVcsRootInstancesHref(root), apiUrlBuilder);
-    /*
-    final RepositoryVersion revision = ((VcsRootInstance)root).getLastUsedRevision();
-    currentVersion = revision != null ? revision.getDisplayVersion() : null; //todo: consider using smth like "NONE" ?
-    */
   }
 
   @NotNull
@@ -166,7 +167,9 @@ public class VcsRoot {
   }
 
   public static String getFieldValue(final SVcsRoot vcsRoot, final String field, final DataProvider dataProvider) {
-    if ("if".equals(field)) {
+    if ("id".equals(field)) {
+      return vcsRoot.getExternalId();
+    } else if ("internalId".equals(field)) {
       return String.valueOf(vcsRoot.getId());
     } else if ("name".equals(field)) {
       return vcsRoot.getName();

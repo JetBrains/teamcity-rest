@@ -17,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class VcsRootsFilter extends AbstractFilter<SVcsRoot> {
   private static final Logger LOG = Logger.getInstance(VcsRootsFilter.class.getName());
+  public static final String REPOSITORY_ID_STRING = "repositoryIdString";
 
   @Nullable private final String myVcsType;
   @Nullable private final String myRepositoryIdString;
@@ -35,7 +36,7 @@ public class VcsRootsFilter extends AbstractFilter<SVcsRoot> {
     } else {
       myProject = null;
     }
-    myRepositoryIdString = locator.getSingleDimensionValue("repositoryIdString");
+    myRepositoryIdString = locator.getSingleDimensionValue(REPOSITORY_ID_STRING);
   }
 
   @Override

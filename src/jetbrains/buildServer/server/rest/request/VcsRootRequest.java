@@ -58,8 +58,8 @@ public class VcsRootRequest {
 
   public static final String API_VCS_ROOTS_URL = Constants.API_URL + "/vcs-roots";
 
-  public static String getVcsRootHref(final jetbrains.buildServer.vcs.VcsRoot root) {
-    return API_VCS_ROOTS_URL + "/id:" + root.getId();
+  public static String getVcsRootHref(final jetbrains.buildServer.vcs.SVcsRoot root) {
+    return API_VCS_ROOTS_URL + "/id:" + root.getExternalId();
   }
 
   @GET
