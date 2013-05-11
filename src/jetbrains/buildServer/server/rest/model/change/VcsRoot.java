@@ -31,7 +31,7 @@ import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
-import jetbrains.buildServer.server.rest.request.VcsRootInstancesRequest;
+import jetbrains.buildServer.server.rest.request.VcsRootInstanceRequest;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.vcs.*;
 import jetbrains.vcs.api.VcsSettings;
@@ -111,7 +111,7 @@ public class VcsRoot {
     status = rootStatus.getType().toString();
     lastChecked = Util.formatTime(rootStatus.getTimestamp());
 
-    vcsRootInstances = new Href(VcsRootInstancesRequest.getVcsRootInstancesHref(root), apiUrlBuilder);
+    vcsRootInstances = new Href(VcsRootInstanceRequest.getVcsRootInstancesHref(root), apiUrlBuilder);
     /*
     final RepositoryVersion revision = ((VcsRootInstance)root).getLastUsedRevision();
     currentVersion = revision != null ? revision.getDisplayVersion() : null; //todo: consider using smth like "NONE" ?

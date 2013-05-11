@@ -33,8 +33,8 @@ import org.jetbrains.annotations.NotNull;
     - too long number passed as finish for builds produces 404
 */
 
-@Path(VcsRootInstancesRequest.API_VCS_ROOT_INSTANCES_URL)
-public class VcsRootInstancesRequest {
+@Path(VcsRootInstanceRequest.API_VCS_ROOT_INSTANCES_URL)
+public class VcsRootInstanceRequest {
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private VcsRootFinder myVcsRootFinder;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
