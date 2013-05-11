@@ -218,7 +218,7 @@ public class Locator {
     try {
       return Long.parseLong(singleValue);
     } catch (NumberFormatException e) {
-      throw new LocatorProcessException("Invalid single value: " + singleValue + ". Should be a number.");
+      throw new LocatorProcessException("Invalid single value: '" + singleValue + "'. Should be a number.");
     }
   }
 
@@ -231,7 +231,7 @@ public class Locator {
     try {
       return Long.parseLong(value);
     } catch (NumberFormatException e) {
-      throw new LocatorProcessException("Invalid value of dimension '" + dimensionName + "': " + value + ". Should be a number.");
+      throw new LocatorProcessException("Invalid value of dimension '" + dimensionName + "': '" + value + "'. Should be a number.");
     }
   }
 
@@ -247,7 +247,7 @@ public class Locator {
     if ("false".equalsIgnoreCase(value) || "off".equalsIgnoreCase(value) || "no".equalsIgnoreCase(value) || "out".equalsIgnoreCase(value)){
       return false;
     }
-    throw new LocatorProcessException("Invalid value of dimension '" + dimensionName + "': " + value + ". Should be 'true', 'false' or 'any'.");
+    throw new LocatorProcessException("Invalid value of dimension '" + dimensionName + "': '" + value + "'. Should be 'true', 'false' or 'any'.");
   }
 
   /**
