@@ -385,7 +385,7 @@ public class APIController extends BaseController implements ServletContextAware
       LOG.debug("Error while adding error description into response: " + nestedException.getMessage(), nestedException);
     }
     final String logMessage = "Error" + (message != null ? " '" + message + "'" : "") + " for request " + requestUri +
-                              ". Sending '" + statusDescription + "' error in response: " + (e != null ? e.toString() : "");
+                              ". Sending '" + statusDescription + "' error in response: " + ExceptionMapperUtil.getMessageWithCauses(e);
     if (level.isGreaterOrEqual(Level.ERROR)) {
       LOG.error(logMessage);
     } else if (level.isGreaterOrEqual(Level.WARN)) {
