@@ -38,7 +38,6 @@ import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
 import jetbrains.buildServer.server.rest.model.files.File;
-import jetbrains.buildServer.server.rest.model.files.FileApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.files.Files;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -55,14 +54,12 @@ import jetbrains.buildServer.serverSide.statistics.ValueProvider;
 import jetbrains.buildServer.serverSide.statistics.build.BuildValue;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
-import jetbrains.buildServer.util.ArchiveUtil;
 import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.TCStreamUtil;
 import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsManager;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactElement;
-import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
 import jetbrains.buildServer.web.util.SessionUser;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
@@ -201,15 +198,10 @@ public class BuildRequest {
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
   public File getArtifactMetadata(@PathParam("buildLocator") final String buildLocator,
                                   @PathParam("path") final String path,
-                                  @QueryParam("resolveParameters") final Boolean resolveParameters) {
+                                  @QueryParam("resolveParameters") final Boolean resolveParameters,
+                                  @QueryParam("locator") final String locator) {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    final ArtifactTreeElement element = BuildArtifactsFinder.getArtifactElement(build, getResolvedIfNecessary(build, path, resolveParameters),
-                                                                                BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
-    final FileApiUrlBuilder builder = BuildArtifactsFinder.fileApiUrlBuilderForBuild(myApiUrlBuilder, build, null);
-    final String par = StringUtil.removeTailingSlash(StringUtil.convertAndCollapseSlashes(element.getFullName()));
-    final ArtifactTreeElement parent = par.equals("") ? null : BuildArtifactsFinder.getArtifactElement(build, ArchiveUtil.getParentPath(par),
-                                                                                                       BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
-    return new File(element, parent, builder);
+    return myBuildArtifactsFinder.getFile(build, getResolvedIfNecessary(build, path, resolveParameters), locator, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @GET
@@ -269,9 +261,10 @@ public class BuildRequest {
   }
 
 
+  @NotNull
   private String getResolvedIfNecessary(@NotNull final SBuild build, @Nullable final String value, @Nullable final Boolean resolveSupported) {
     if (resolveSupported == null || !resolveSupported || StringUtil.isEmpty(value)) {
-      return value;
+      return value == null ? "" : value;
     }
     assert value != null;
     myDataProvider.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());

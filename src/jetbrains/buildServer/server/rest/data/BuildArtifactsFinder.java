@@ -24,6 +24,7 @@ import jetbrains.buildServer.serverSide.artifacts.BuildArtifacts;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactsViewMode;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.util.ArchiveUtil;
 import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.TCStreamUtil;
@@ -66,8 +67,7 @@ public class BuildArtifactsFinder {
   }
 
   public Files getFiles(@NotNull final SBuild build, @NotNull final String path, @Nullable final String filesLocator, @NotNull final BeanContext context) {
-    @Nullable final Locator locator =
-      StringUtil.isEmpty(filesLocator) ? null : new Locator(filesLocator, HIDDEN_DIMENSION_NAME, ARCHIVES_DIMENSION_NAME, DIRECTORY_DIMENSION_NAME);
+    @Nullable final Locator locator = getLocator(filesLocator);
     final BuildArtifactsViewMode viewMode = getViewMode(locator, build, context);
     final ArtifactTreeElement element = getArtifactElement(build, path, viewMode);
     try {
@@ -92,6 +92,19 @@ public class BuildArtifactsFinder {
     } catch (BrowserException e) {
       throw new OperationException("Error listing children for artifact '" + path + "'.", e);
     }
+  }
+
+  private Locator getLocator(final String filesLocator) {
+    return StringUtil.isEmpty(filesLocator) ? null : new Locator(filesLocator, HIDDEN_DIMENSION_NAME, ARCHIVES_DIMENSION_NAME, DIRECTORY_DIMENSION_NAME);
+  }
+
+  public File getFile(@NotNull final SBuild build, @NotNull final String path, @Nullable final String locatorText, @NotNull final BeanContext context) {
+    @Nullable final Locator locator = getLocator(locatorText);
+    final BuildArtifactsViewMode viewMode = getViewMode(locator, build, context);
+    final ArtifactTreeElement element = getArtifactElement(build, path, viewMode);
+    final String par = StringUtil.removeTailingSlash(StringUtil.convertAndCollapseSlashes(element.getFullName()));
+    final ArtifactTreeElement parent = par.equals("") ? null : getArtifactElement(build, ArchiveUtil.getParentPath(par), viewMode);
+    return new File(element, parent, fileApiUrlBuilderForBuild(context.getContextService(ApiUrlBuilder.class), build, locatorText));
   }
 
   private static boolean checkInclude(@NotNull final ArtifactTreeElement artifact, @Nullable final Locator locator) {
@@ -137,7 +150,7 @@ public class BuildArtifactsFinder {
       private final String myHrefBase = apiUrlBuilder.getHref(build) + BuildRequest.ARTIFACTS;
 
       public String getMetadataHref(Element e) {
-        return myHrefBase + BuildRequest.METADATA + "/" + e.getFullName();
+        return myHrefBase + BuildRequest.METADATA + "/" + e.getFullName() + (locator == null ? "" : "?" + "locator" + "=" + locator);
       }
 
       public String getChildrenHref(Element e) {
