@@ -1,10 +1,10 @@
 package jetbrains.buildServer.server.rest.model;
 
-import org.jetbrains.annotations.NotNull;
-
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Vladislav.Rassokhin
@@ -17,8 +17,12 @@ public class Href {
   public Href() {
   }
 
-  public Href(@NotNull final String href) {
-    this.href = href;
+  public Href(@NotNull final String longHref) {
+    href = longHref;
+  }
+
+  public Href(@NotNull final String shortHref, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    href = apiUrlBuilder.transformRelativePath(shortHref);
   }
 
   @NotNull

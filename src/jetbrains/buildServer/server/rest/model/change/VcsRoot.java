@@ -27,9 +27,11 @@ import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
+import jetbrains.buildServer.server.rest.request.VcsRootInstancesRequest;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.vcs.*;
 import jetbrains.vcs.api.VcsSettings;
@@ -44,7 +46,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "vcs-root")
 @XmlType(name = "vcs-root", propOrder = { "id", "name","vcsName", "modificationCheckInterval", "status", "lastChecked",
-  "project", "properties"})
+  "project", "properties", "vcsRootInstances"})
 @SuppressWarnings("PublicField")
 public class VcsRoot {
   @XmlAttribute
@@ -79,6 +81,8 @@ public class VcsRoot {
   @XmlElement(name = "project")
   public ProjectRef project;
 
+  @XmlElement
+  public Href vcsRootInstances;
 
   /*
   @XmlAttribute
@@ -106,6 +110,8 @@ public class VcsRoot {
     final VcsRootStatus rootStatus = dataProvider.getVcsManager().getStatus(root);
     status = rootStatus.getType().toString();
     lastChecked = Util.formatTime(rootStatus.getTimestamp());
+
+    vcsRootInstances = new Href(VcsRootInstancesRequest.getVcsRootInstancesHref(root), apiUrlBuilder);
     /*
     final RepositoryVersion revision = ((VcsRootInstance)root).getLastUsedRevision();
     currentVersion = revision != null ? revision.getDisplayVersion() : null; //todo: consider using smth like "NONE" ?

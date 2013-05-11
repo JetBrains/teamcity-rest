@@ -17,16 +17,17 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.sun.jersey.api.core.InjectParam;
-import com.sun.jersey.spi.resource.Singleton;
 import java.io.File;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.plugin.PluginInfos;
 import jetbrains.buildServer.server.rest.model.server.Server;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.maintenance.BackupConfig;
@@ -39,22 +40,23 @@ import jetbrains.buildServer.util.StringUtil;
  * User: Yegor Yarko
  * Date: 11.04.2009
  */
-@Path(Constants.API_URL + "/server")
-@Singleton
+@Path(ServerRequest.API_SERVER_URL)
 public class ServerRequest {
   public static final String SERVER_VERSION_RQUEST_PATH = "version";
+  public static final String API_SERVER_URL = Constants.API_URL + "/server";
   @Context
   private DataProvider myDataProvider;
   @Context
   private ServiceLocator myServiceLocator;
-
+  @Context
+  private ApiUrlBuilder myApiUrlBuilder;
   @Context
   private BeanFactory myFactory;
 
   @GET
   @Produces({"application/xml", "application/json"})
   public Server serveServerInfo() {
-    return new Server(myFactory);
+    return new Server(new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @GET

@@ -21,10 +21,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.data.Locator;
-import jetbrains.buildServer.server.rest.data.PagedSearchResult;
-import jetbrains.buildServer.server.rest.data.VcsRootFinder;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
@@ -46,6 +43,10 @@ public class VcsRootInstancesRequest {
 
   public static String getVcsRootInstanceHref(final jetbrains.buildServer.vcs.VcsRootInstance vcsRootInstance) {
     return API_VCS_ROOT_INSTANCES_URL + "/id:" + vcsRootInstance.getId();
+  }
+
+  public static String getVcsRootInstancesHref(final jetbrains.buildServer.vcs.VcsRoot vcsRoot) {
+    return API_VCS_ROOT_INSTANCES_URL + "?locator=" + VcsRootInstancesFilter.VCS_ROOT_DIMENSION + ":(id:" + vcsRoot.getId() + ")";
   }
 
   @GET
