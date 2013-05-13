@@ -29,6 +29,7 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 
 /* todo: investigate logging issues:
@@ -48,8 +49,8 @@ public class VcsRootInstanceRequest {
     return API_VCS_ROOT_INSTANCES_URL + "/id:" + vcsRootInstance.getId();
   }
 
-  public static String getVcsRootInstancesHref(final jetbrains.buildServer.vcs.VcsRoot vcsRoot) {
-    return API_VCS_ROOT_INSTANCES_URL + "?locator=" + VcsRootInstancesFilter.VCS_ROOT_DIMENSION + ":(id:" + vcsRoot.getId() + ")";
+  public static String getVcsRootInstancesHref(final SVcsRoot vcsRoot) {
+    return API_VCS_ROOT_INSTANCES_URL + "?locator=" + VcsRootInstancesFilter.VCS_ROOT_DIMENSION + ":(id:" + vcsRoot.getExternalId() + ")";
   }
 
   @GET

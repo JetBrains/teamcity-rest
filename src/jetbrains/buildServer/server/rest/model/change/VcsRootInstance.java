@@ -38,7 +38,7 @@ import jetbrains.buildServer.vcs.VcsRootStatus;
  *         Date: 16.04.2009
  */
 @XmlRootElement(name = "vcs-root-instance")
-@XmlType(name = "vcs-root-instance", propOrder = {"id", "name","vcsName", "status", "lastChecked", "lastVersion", "lastVersionInternal",
+@XmlType(name = "vcs-root-instance", propOrder = {"id", "name","vcsName", "status", "lastChecked", "lastVersion", "lastVersionInternal", "href",
   "parent", "properties"})
 @SuppressWarnings("PublicField")
 public class VcsRootInstance {
@@ -59,6 +59,9 @@ public class VcsRootInstance {
 
   @XmlAttribute
   public String lastChecked;
+
+  @XmlAttribute
+  public String href;
 
   /**
    * Used only when creating new VCS roots
@@ -84,6 +87,7 @@ public class VcsRootInstance {
     final VcsRootStatus vcsRootStatus = ((VcsRootInstanceEx)myRoot).getStatus();
     status = vcsRootStatus.getType().toString();
     lastChecked = Util.formatTime(vcsRootStatus.getTimestamp());
+    href = apiUrlBuilder.getHref(root);
   }
 
   @XmlAttribute

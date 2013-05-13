@@ -49,7 +49,7 @@ public class VcsRootEntry {
   }
 
   public VcsRootEntry(final @NotNull SVcsRoot vcsRootParam, @NotNull final BuildTypeOrTemplate buildType, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    id = String.valueOf(vcsRootParam.getId());
+    id = vcsRootParam.getExternalId();
     vcsRootRef = new VcsRootRef(vcsRootParam, apiUrlBuilder);
     checkoutRules =  buildType.get().getCheckoutRules(vcsRootParam).getAsString();
     labeling = new LabelingOptions(buildType.get().getLabelingRoots().contains(vcsRootParam));

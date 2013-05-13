@@ -49,7 +49,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 16.04.2009
  */
 @XmlRootElement(name = "vcs-root")
-@XmlType(name = "vcs-root", propOrder = { "id", "internalId", "name","vcsName", "modificationCheckInterval", "status", "lastChecked",
+@XmlType(name = "vcs-root", propOrder = { "id", "internalId", "name","vcsName", "modificationCheckInterval", "status", "lastChecked", "href",
   "project", "properties", "vcsRootInstances"})
 @SuppressWarnings("PublicField")
 public class VcsRoot {
@@ -73,6 +73,9 @@ public class VcsRoot {
 
   @XmlAttribute
   public String lastChecked;
+
+  @XmlAttribute
+  public String href;
 
 
   @XmlElement
@@ -118,6 +121,7 @@ public class VcsRoot {
     final VcsRootStatus rootStatus = dataProvider.getVcsManager().getStatus(root);
     status = rootStatus.getType().toString();
     lastChecked = Util.formatTime(rootStatus.getTimestamp());
+    href = apiUrlBuilder.getHref(root);
 
     vcsRootInstances = new Href(VcsRootInstanceRequest.getVcsRootInstancesHref(root), apiUrlBuilder);
   }

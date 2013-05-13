@@ -363,8 +363,7 @@ public class BuildTypeRequest {
     try {
       buildType.get().addVcsRoot(vcsRoot);
     } catch (InvalidVcsRootScopeException e) {
-      throw new BadRequestException(
-        "Could not attach VCS root with id '" + vcsRoot.getId() + "' because of scope issues. Error: " + e.getMessage());
+      throw new BadRequestException("Could not attach VCS root with id '" + vcsRoot.getExternalId() + "' because of scope issues. Error: " + e.getMessage());
     }
     buildType.get().setCheckoutRules(vcsRoot, new CheckoutRules(description.checkoutRules != null ? description.checkoutRules : ""));
 
@@ -386,7 +385,7 @@ public class BuildTypeRequest {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
 
     if (!buildType.get().containsVcsRoot(vcsRoot.getId())) {
-      throw new NotFoundException("No VCS root with id '" + vcsRoot.getId() + "' is attached to the build type.");
+      throw new NotFoundException("VCS root with id '" + vcsRoot.getExternalId() + "' is not attached to the build type.");
     }
     return new VcsRootEntry(vcsRoot, buildType, myApiUrlBuilder);
   }
@@ -395,9 +394,9 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/vcs-root-entries/{id}")
   public void deleteVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("id") String vcsRootLocator) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
+    final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator); //this assumes VCS root id are unique throughout the server
     if (!buildType.get().containsVcsRoot(vcsRoot.getId())) {
-      throw new NotFoundException("No VCS root with id '" + vcsRoot.getId() + "' is attached to the build type.");
+      throw new NotFoundException("VCS root with id '" + vcsRoot.getExternalId() + "' is not attached to the build type.");
     }
     buildType.get().removeVcsRoot(vcsRoot);
     buildType.get().persist();
