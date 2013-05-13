@@ -49,7 +49,6 @@ import org.jetbrains.annotations.Nullable;
 @Path(ChangeRequest.API_CHANGES_URL)
 public class ChangeRequest {
   public static final String API_CHANGES_URL = Constants.API_URL + "/changes";
-  public static final String MY_TMP_DIMENSION = "myTmpDimension";
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private BeanFactory myFactory;
@@ -72,7 +71,7 @@ public class ChangeRequest {
    * @param projectLocator      Deprecated, use "locator" parameter instead
    * @param buildTypeLocator    Deprecated, use "locator" parameter instead
    * @param buildLocator        Deprecated, use "locator" parameter instead
-   * @param vcsRootLocator      Deprecated, use "locator" parameter instead
+   * @param vcsRootInstanceLocator      Deprecated, use "locator" parameter instead. Note that corresponding locator dimension is "vcsRootInstance"
    * @param sinceChangeLocator  Deprecated, use "locator" parameter instead
    * @param start               Deprecated, use "locator" parameter instead
    * @param count               Deprecated, use "locator" parameter instead
@@ -85,7 +84,7 @@ public class ChangeRequest {
   public Changes serveChanges(@QueryParam("project") String projectLocator,
                               @QueryParam("buildType") String buildTypeLocator,
                               @QueryParam("build") String buildLocator,
-                              @QueryParam("vcsRoot") String vcsRootLocator,
+                              @QueryParam("vcsRoot") String vcsRootInstanceLocator,
                               @QueryParam("sinceChange") String sinceChangeLocator,
                               @QueryParam("start") Long start,
                               @QueryParam("count") Integer count,
@@ -100,12 +99,14 @@ public class ChangeRequest {
     updateLocatorDimension(actualLocator, "project", projectLocator);
     updateLocatorDimension(actualLocator, "buildType", buildTypeLocator);
     updateLocatorDimension(actualLocator, "build", buildLocator);
-    updateLocatorDimension(actualLocator, "vcsRoot", vcsRootLocator);
+    updateLocatorDimension(actualLocator, "vcsRootInstance", vcsRootInstanceLocator);
     updateLocatorDimension(actualLocator, "sinceChange", sinceChangeLocator);
     updateLocatorDimension(actualLocator, "start", start != null ? String.valueOf(start) : null);
     updateLocatorDimension(actualLocator, "count", count != null ? String.valueOf(count) : null);
     updateLocatorDimensionIfNotPresent(actualLocator, "start", String.valueOf(0));
     updateLocatorDimensionIfNotPresent(actualLocator, "count", String.valueOf(Constants.DEFAULT_PAGE_ITEMS_COUNT));
+    actualLocator.addIgnoreUnusedDimensions("start");
+    actualLocator.addIgnoreUnusedDimensions("count");
 
     if (actualLocator.isEmpty()){
       throw new BadRequestException("No 'locator' or other parameters are specified.");

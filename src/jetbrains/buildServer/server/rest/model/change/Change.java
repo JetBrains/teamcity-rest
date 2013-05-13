@@ -21,6 +21,7 @@ import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Util;
@@ -34,6 +35,8 @@ import jetbrains.buildServer.vcs.SVcsModification;
  * Date: 12.04.2009
  */
 @XmlRootElement(name = "change")
+@XmlType(name= "change", propOrder = {"username", "date", "personal",
+  "comment", "user", "fileChanges", "vcsRootInstance"})
 public class Change extends ChangeRef {
 
 //  @Autowired VcsManager myVcsManager;
@@ -79,6 +82,11 @@ public class Change extends ChangeRef {
   @XmlElement(name = "files")
   public FileChanges getFileChanges() {
     return new FileChanges(myModification.getChanges());
+  }
+
+  @XmlElement(name = "vcsRootInstance")
+  public VcsRootInstanceRef getVcsRootInstance() {
+    return new VcsRootInstanceRef(myModification.getVcsRoot(), myApiUrlBuilder);
   }
 
   public static String getFieldValue(final SVcsModification vcsModification, final String field) {

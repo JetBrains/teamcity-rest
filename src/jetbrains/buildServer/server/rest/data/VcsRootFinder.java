@@ -202,7 +202,7 @@ public class VcsRootFinder{
      if (rootId != null) {
        VcsRootInstance root = myVcsManager.findRootInstanceById(rootId);
        if (root == null) {
-         throw new NotFoundException("No VCS root instance root can be found by id '" + rootId + "'.");
+         throw new NotFoundException("No VCS root instance can be found by id '" + rootId + "'.");
        }
        locator.checkLocatorFullyProcessed();
        return new PagedSearchResult<VcsRootInstance>(Collections.singletonList(root), null, null);

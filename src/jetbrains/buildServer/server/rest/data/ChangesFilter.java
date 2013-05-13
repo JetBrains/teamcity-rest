@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.*;
@@ -34,7 +35,8 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
   @Nullable private final SProject myProject;
   @Nullable private final SBuildType myBuildType;
   @Nullable private final SBuild myBuild;
-  @Nullable private final VcsRootInstance myVcsRoot;
+  @Nullable private final VcsRootInstance myVcsRootInstance;
+  @Nullable private final SVcsRoot myVcsRoot;
   @Nullable private final SVcsModification mySinceChange;
   @Nullable private final String myVcsUsername;
   @Nullable private final SUser myUser;
@@ -48,7 +50,8 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
   public ChangesFilter(@Nullable final SProject project,
                        @Nullable final SBuildType buildType,
                        @Nullable final SBuild build,
-                       @Nullable final VcsRootInstance vcsRoot,
+                       @Nullable final VcsRootInstance vcsRootInstance,
+                       @Nullable final SVcsRoot vcsRoot,
                        @Nullable final SVcsModification sinceChange,
                        @Nullable final String vcsUsername,
                        @Nullable final SUser user,
@@ -64,6 +67,7 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
     myProject = project;
     myBuildType = buildType;
     myBuild = build;
+    myVcsRootInstance = vcsRootInstance;
     myVcsRoot = vcsRoot;
     mySinceChange = sinceChange;
     myVcsUsername = vcsUsername;
@@ -74,15 +78,32 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
     myCommentLocator = commentLocator != null ? new Locator(commentLocator) : null;
     myFileLocator = fileLocator != null ? new Locator(fileLocator) : null;
     myLookupLimit = lookupLimit;
+
+    if (myVcsRoot != null && myPersonal != null && myPersonal){
+      throw new BadRequestException("filtering personal changes by VCS root is not supported.");
+    }
+    if (myVcsRootInstance != null && myPersonal != null && myPersonal){
+      throw new BadRequestException("filtering personal changes by VCS root instance is not supported.");
+    }
   }
 
   @Override
   protected boolean isIncluded(@NotNull final SVcsModification change) {
+    if (myVcsRootInstance != null) {
+      if (change.isPersonal()) {
+        return false;
+      } else {
+        if (myVcsRootInstance.getId() != change.getVcsRoot().getId()) {
+          return false;
+        }
+      }
+    }
+
     if (myVcsRoot != null) {
       if (change.isPersonal()) {
         return false;
       } else {
-        if (myVcsRoot.getId() != change.getVcsRoot().getId()) {
+        if (myVcsRoot.getId() != change.getVcsRoot().getParentId()) {
           return false;
         }
       }
@@ -104,18 +125,19 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
       return false;
     }
 
-    if (myInternalVersion != null && (myInternalVersion.equals(change.getVersion()))){
+    if (myInternalVersion != null && !myInternalVersion.equals(change.getVersion())){
       return false;
     }
 
-    if (myDisplayVersion != null && (myDisplayVersion.equals(change.getDisplayVersion()))){
+    if (myDisplayVersion != null && !myDisplayVersion.equals(change.getDisplayVersion())){
       return false;
     }
 
     if (myCommentLocator != null){
       final String containsText = myCommentLocator.getSingleDimensionValue("contains"); //todo: check uncnown locator dimensions
-      if (containsText != null && !change.getDescription().contains(containsText))
-      return false;
+      if (containsText != null && !change.getDescription().contains(containsText)) {
+        return false;
+      }
     }
 
     if (myFileLocator != null){
@@ -151,12 +173,12 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
       processList(getBuildChanges(myBuild), filterItemProcessor);
     } else if (myBuildType != null) {
       processList(getBuildTypeChanges(vcsHistory, myBuildType), filterItemProcessor);
-    } else if (myVcsRoot != null) {
+    } else if (myVcsRootInstance != null) {
       if (mySinceChange != null) {
-        processList(vcsHistory.getModificationsInRange(myVcsRoot, mySinceChange.getId(), null), filterItemProcessor);
+        processList(vcsHistory.getModificationsInRange(myVcsRootInstance, mySinceChange.getId(), null), filterItemProcessor);
       } else {
         //todo: highly inefficient!
-        processList(vcsHistory.getAllModifications(myVcsRoot), filterItemProcessor);
+        processList(vcsHistory.getAllModifications(myVcsRootInstance), filterItemProcessor);
       }
     } else if (myProject != null) {
       processList(getProjectChanges(vcsHistory, myProject, mySinceChange), filterItemProcessor);

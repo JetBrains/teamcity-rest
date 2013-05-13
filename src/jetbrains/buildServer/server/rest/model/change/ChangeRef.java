@@ -30,7 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  *         Date: 21.07.2009
  */
 @XmlRootElement(name = "change-ref")
-@XmlType(name = "change-ref")
+@XmlType(name = "change-ref", propOrder = {"id", "version", "href", "webLink"})
 public class ChangeRef {
   protected SVcsModification myModification;
   protected ApiUrlBuilder myApiUrlBuilder;

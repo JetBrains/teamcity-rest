@@ -1,6 +1,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
+import java.util.Collections;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -42,19 +43,27 @@ public class ChangeFinder {
   }
 
   public static String[] getChangesLocatorSupportedDimensions(){
-    return new String[]{"project", "buildType", "build", "vcsRoot", "username", "user", "personal", "version", "internalVersion", "comment", "file", "sinceChange", "start", "count", "lookupLimit"};
+    return new String[]{"id", "project", "buildType", "build", "vcsRoot", "vcsRootInstance", "username", "user", "personal", "version", "internalVersion", "comment", "file", "sinceChange", "start", "count", "lookupLimit", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME};
   }
 
   @NotNull
   public PagedSearchResult<SVcsModification> getModifications(@NotNull Locator locator) {
+    final SVcsModification singleChange = getSingleChange(locator);
+    if (singleChange != null){
+      return new PagedSearchResult<SVcsModification>(Collections.singletonList(singleChange), null, null);
+    }
+
     ChangesFilter changesFilter;
     final SBuildType buildType = myBuildTypeFinder.getBuildTypeIfNotNull(locator.getSingleDimensionValue("buildType"));
     final String userLocator = locator.getSingleDimensionValue("user");
     final Long count = locator.getSingleDimensionValueAsLong("count");
+    final String vcsRootInstance = locator.getSingleDimensionValue("vcsRootInstance");
+    final String vcsRoot = locator.getSingleDimensionValue("vcsRoot");
     changesFilter = new ChangesFilter(myProjectFinder.getProjectIfNotNull(locator.getSingleDimensionValue("project")),
                                       buildType,
                                       myBuildFinder.getBuildIfNotNull(buildType, locator.getSingleDimensionValue("build")),
-                                      locator.getSingleDimensionValue("vcsRoot") == null ? null : myVcsRootFinder.getVcsRootInstance(locator.getSingleDimensionValue("vcsRoot")),
+                                      vcsRootInstance == null ? null : myVcsRootFinder.getVcsRootInstance(vcsRootInstance),
+                                      vcsRoot == null ? null : myVcsRootFinder.getVcsRoot(vcsRoot),
                                       getChangeIfNotNull(locator.getSingleDimensionValue("sinceChange")),
                                       locator.getSingleDimensionValue("username"),
                                       userLocator == null ? null : myUserFinder.getUser(userLocator),
@@ -69,30 +78,25 @@ public class ChangeFinder {
     return new PagedSearchResult<SVcsModification>(changesFilter.getMatchingChanges(myVcsManager.getVcsHistory()), changesFilter.getStart(), changesFilter.getCount());
   }
 
-  @NotNull
-  public SVcsModification getChange(final String changeLocator) {
-    if (StringUtil.isEmpty(changeLocator)) {
-      throw new BadRequestException("Empty change locator is not supported.");
-    }
-
-    final Locator locator = new Locator(changeLocator);
+  @Nullable
+  private SVcsModification getSingleChange(@NotNull Locator locator){
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's id
       @SuppressWarnings("ConstantConditions") SVcsModification modification = myVcsManager.findModificationById(locator.getSingleValueAsLong(), false);
       if (modification == null) {
-        throw new NotFoundException("No change can be found by id '" + changeLocator + "'.");
+        throw new NotFoundException("No change can be found by id '" + locator.getSingleValueAsLong() + "'.");
       }
       return modification;
     }
 
     Long id = locator.getSingleDimensionValueAsLong("id");
-    Boolean isPersonal = locator.getSingleDimensionValueAsBoolean("personal", false);
-    if (isPersonal == null) {
-      throw new BadRequestException("Only true/false values are supported for 'personal' dimension. Was: '" +
-                                    locator.getSingleDimensionValue("personal") + "'");
-    }
-
     if (id != null) {
+      Boolean isPersonal = locator.getSingleDimensionValueAsBoolean("personal", false);
+      if (isPersonal == null) {
+        throw new BadRequestException("When 'id' dimension is present, only true/false values are supported for 'personal' dimension. Was: '" +
+                                      locator.getSingleDimensionValue("personal") + "'");
+      }
+
       SVcsModification modification = myVcsManager.findModificationById(id, isPersonal);
       if (modification == null) {
         throw new NotFoundException("No change can be found by id '" + locator.getSingleDimensionValue("id") + "' (searching " +
@@ -100,7 +104,26 @@ public class ChangeFinder {
       }
       return modification;
     }
-    throw new NotFoundException("VCS root locator '" + changeLocator + "' is not supported.");
+
+    return null;
+  }
+
+  @NotNull
+  public SVcsModification getChange(final String changeLocator) {
+    if (StringUtil.isEmpty(changeLocator)) {
+      throw new BadRequestException("Empty change locator is not supported.");
+    }
+
+    final Locator locator = new Locator(changeLocator, getChangesLocatorSupportedDimensions());
+
+    locator.setDimension("count", String.valueOf(1));
+    locator.addIgnoreUnusedDimensions("count");
+    final PagedSearchResult<SVcsModification> changes = getModifications(locator);
+    locator.checkLocatorFullyProcessed();
+    if (changes.myEntries.size() > 0){
+      return changes.myEntries.iterator().next();
+    }
+    throw new NotFoundException("No changes found by locator '" + changeLocator + "'.");
   }
 
   @Nullable
