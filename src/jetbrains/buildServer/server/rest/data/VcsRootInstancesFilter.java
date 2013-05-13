@@ -32,9 +32,9 @@ public class VcsRootInstancesFilter extends AbstractFilter<VcsRootInstance> {
                                 @NotNull BuildTypeFinder buildTypeFinder,
                                 @NotNull VcsRootFinder vcsRootFinder,
                                 @NotNull VcsManager vcsManager) {
-    super(locator.getSingleDimensionValueAsLong(PagerData.START), locator.getSingleDimensionValueAsLong(PagerData.COUNT) != null
-                                                                  ? locator.getSingleDimensionValueAsLong(PagerData.COUNT).intValue()
-                                                                  : null);
+    super(locator.getSingleDimensionValueAsLong(PagerData.START),
+          locator.getSingleDimensionValueAsLong(PagerData.COUNT) != null ? locator.getSingleDimensionValueAsLong(PagerData.COUNT).intValue() : null,
+          null);
     myVcsManager = vcsManager;
     myVcsType = locator.getSingleDimensionValue("type");
     final String projectLocator = locator.getSingleDimensionValue("project"); //todo: what this project should mean?

@@ -47,7 +47,6 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -180,40 +179,6 @@ public class DataProvider {
       result.add(group);
     }
     return result;
-  }
-
-  @NotNull
-  public SVcsModification getChange(final String changeLocator) {
-    if (StringUtil.isEmpty(changeLocator)) {
-      throw new BadRequestException("Empty change locator is not supported.");
-    }
-
-    final Locator locator = new Locator(changeLocator);
-    if (locator.isSingleValue()) {
-      // no dimensions found, assume it's id
-      @SuppressWarnings("ConstantConditions") SVcsModification modification = myVcsManager.findModificationById(locator.getSingleValueAsLong(), false);
-      if (modification == null) {
-        throw new NotFoundException("No change can be found by id '" + changeLocator + "'.");
-      }
-      return modification;
-    }
-
-    Long id = locator.getSingleDimensionValueAsLong("id");
-    Boolean isPersonal = locator.getSingleDimensionValueAsBoolean("personal", false);
-    if (isPersonal == null){
-      throw new BadRequestException("Only true/false values are supported for 'personal' dimension. Was: '" +
-                                    locator.getSingleDimensionValue("personal") + "'");
-    }
-
-    if (id != null) {
-      SVcsModification modification = myVcsManager.findModificationById(id, isPersonal);
-      if (modification == null) {
-        throw new NotFoundException("No change can be found by id '" + locator.getSingleDimensionValue("id") + "' (searching " +
-                                    (isPersonal ? "personal" : "non-personal") + " changes).");
-      }
-      return modification;
-    }
-    throw new NotFoundException("VCS root locator '" + changeLocator + "' is not supported.");
   }
 
   @NotNull
@@ -361,16 +326,6 @@ public class DataProvider {
       result.addAll(myAgentManager.getUnregisteredAgents());
     }
     return result;
-  }
-
-  @NotNull
-  public List<SVcsModification> getModifications(ChangesFilter changesFilter) {
-    return changesFilter.getMatchingChanges(myVcsManager.getVcsHistory());
-  }
-
-  @Nullable
-  public SVcsModification getChangeIfNotNull(@Nullable final String ChangeLocator) {
-    return ChangeLocator == null ? null : getChange(ChangeLocator);
   }
 
   @Nullable

@@ -9,6 +9,7 @@ import jetbrains.buildServer.util.ItemProcessor;
 */
 public class FilterItemProcessor<T> implements ItemProcessor<T> {
   private long myCurrentIndex = 0;
+  private long myTotalItemsProcessed = 0;
   private final AbstractFilter<T> myFilter;
   private final ArrayList<T> myList = new ArrayList<T>();
 
@@ -17,17 +18,21 @@ public class FilterItemProcessor<T> implements ItemProcessor<T> {
   }
 
   public boolean processItem(final T item) {
+    final boolean withinRange = myFilter.isBelowUpperRangeLimit(myCurrentIndex, myTotalItemsProcessed++);
+    if (!withinRange){
+      return false;
+    }
+
     if (myFilter.shouldStop(item)){
       return false;
     }
     if (!myFilter.isIncluded(item)) {
       return true;
     }
-    if (myFilter.isIncludedByRange(myCurrentIndex)) {
+    if (myFilter.isIncludedByRange(myCurrentIndex++)) {
       myList.add(item);
     }
-    ++myCurrentIndex;
-    return myFilter.isBelowUpperRangeLimit(myCurrentIndex);
+    return true;
   }
 
   public ArrayList<T> getResult() {

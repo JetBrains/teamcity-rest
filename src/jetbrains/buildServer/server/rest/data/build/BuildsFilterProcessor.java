@@ -75,12 +75,13 @@ public class BuildsFilterProcessor {
     return null;
   }
 
+  //todo: just use AbstractFilter
   private static class FinishedBuildsFilter extends AbstractFilter<SFinishedBuild> {
     private int processedItems;
     @NotNull private final BuildsFilter myBuildsFilter;
 
     public FinishedBuildsFilter(@NotNull final BuildsFilter buildsFilter) {
-      super(buildsFilter.getStart(), buildsFilter.getCount());
+      super(buildsFilter.getStart(), buildsFilter.getCount(), null);
       processedItems = 0;
       myBuildsFilter = buildsFilter;
     }
@@ -105,7 +106,7 @@ public class BuildsFilterProcessor {
     @NotNull private final BuildsFilter myBuildsFilter;
 
     public RunningBuildsFilter(@NotNull final BuildsFilter buildsFilter) {
-      super(buildsFilter.getStart(), buildsFilter.getCount());
+      super(buildsFilter.getStart(), buildsFilter.getCount(), null);
       this.myBuildsFilter = buildsFilter;
     }
 

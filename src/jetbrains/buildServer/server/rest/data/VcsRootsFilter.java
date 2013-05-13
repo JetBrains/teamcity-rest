@@ -25,9 +25,9 @@ public class VcsRootsFilter extends AbstractFilter<SVcsRoot> {
   private VcsManager myVcsManager;
 
   public VcsRootsFilter(@NotNull final Locator locator, @NotNull ProjectFinder projectFinder, @NotNull VcsManager vcsManager) {
-    super(locator.getSingleDimensionValueAsLong(PagerData.START), locator.getSingleDimensionValueAsLong(PagerData.COUNT) != null
-                                                                  ? locator.getSingleDimensionValueAsLong(PagerData.COUNT).intValue()
-                                                                  : null);
+    super(locator.getSingleDimensionValueAsLong(PagerData.START),
+          locator.getSingleDimensionValueAsLong(PagerData.COUNT) != null ? locator.getSingleDimensionValueAsLong(PagerData.COUNT).intValue() : null,
+          null);
     myVcsManager = vcsManager;
     myVcsType = locator.getSingleDimensionValue("type");
     final String projectLocator = locator.getSingleDimensionValue("project");

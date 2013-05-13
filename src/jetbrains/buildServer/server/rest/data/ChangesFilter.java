@@ -20,10 +20,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.vcs.SVcsModification;
-import jetbrains.buildServer.vcs.SelectPrevBuildPolicy;
-import jetbrains.buildServer.vcs.VcsModificationHistory;
-import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.vcs.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,20 +36,44 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
   @Nullable private final SBuild myBuild;
   @Nullable private final VcsRootInstance myVcsRoot;
   @Nullable private final SVcsModification mySinceChange;
+  @Nullable private final String myVcsUsername;
+  @Nullable private final SUser myUser;
+  @Nullable private final Boolean myPersonal;
+  @Nullable private final String myDisplayVersion;
+  @Nullable private final String myInternalVersion;
+  @Nullable private final Locator myCommentLocator;
+  @Nullable private final Locator myFileLocator;
+  @Nullable private final Long myLookupLimit;
 
   public ChangesFilter(@Nullable final SProject project,
                        @Nullable final SBuildType buildType,
                        @Nullable final SBuild build,
                        @Nullable final VcsRootInstance vcsRoot,
                        @Nullable final SVcsModification sinceChange,
+                       @Nullable final String vcsUsername,
+                       @Nullable final SUser user,
+                       @Nullable final Boolean personal,
+                       @Nullable final String displayVersion,
+                       @Nullable final String internalVersion,
+                       @Nullable final String commentLocator,
+                       @Nullable final String fileLocator,
                        @Nullable final Long start,
-                       @Nullable final Integer count) {
-    super(start, count);
+                       @Nullable final Integer count,
+                       @Nullable final Long lookupLimit) {
+    super(start, count, lookupLimit);
     myProject = project;
     myBuildType = buildType;
     myBuild = build;
     myVcsRoot = vcsRoot;
     mySinceChange = sinceChange;
+    myVcsUsername = vcsUsername;
+    myUser = user;
+    myPersonal = personal;
+    myDisplayVersion = displayVersion;
+    myInternalVersion = internalVersion;
+    myCommentLocator = commentLocator != null ? new Locator(commentLocator) : null;
+    myFileLocator = fileLocator != null ? new Locator(fileLocator) : null;
+    myLookupLimit = lookupLimit;
   }
 
   @Override
@@ -68,6 +90,50 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
 
     if (mySinceChange != null && mySinceChange.getId() >= change.getId()) {
       return false;
+    }
+
+    if (myVcsUsername != null && !myVcsUsername.equalsIgnoreCase(change.getUserName())){ //todo: is ignoreCase is right here?
+      return false;
+    }
+
+    if (myUser != null){
+      if (!change.getCommitters().contains(myUser)) return false;
+    }
+
+    if (!FilterUtil.isIncludedByBooleanFilter(myPersonal, change.isPersonal())){
+      return false;
+    }
+
+    if (myInternalVersion != null && (myInternalVersion.equals(change.getVersion()))){
+      return false;
+    }
+
+    if (myDisplayVersion != null && (myDisplayVersion.equals(change.getDisplayVersion()))){
+      return false;
+    }
+
+    if (myCommentLocator != null){
+      final String containsText = myCommentLocator.getSingleDimensionValue("contains"); //todo: check uncnown locator dimensions
+      if (containsText != null && !change.getDescription().contains(containsText))
+      return false;
+    }
+
+    if (myFileLocator != null){
+      final String pathLocatorText = myFileLocator.getSingleDimensionValue("path"); //todo: check uncnown locator dimensions
+      if (pathLocatorText != null){
+        final Locator pathLocator = new Locator(pathLocatorText);
+        final String containsText = pathLocator.getSingleDimensionValue("contains");
+        if (containsText != null) {
+          boolean oneOfFileMatches = false;
+          for (VcsFileModification vcsFileModification : change.getChanges()) {
+            if (vcsFileModification.getFileName().contains(containsText)){
+              oneOfFileMatches = true;
+              break;
+            }
+          }
+          if (!oneOfFileMatches) return false;
+        }
+      }
     }
 
     // include by myBuild should be already handled by this time on the upper level

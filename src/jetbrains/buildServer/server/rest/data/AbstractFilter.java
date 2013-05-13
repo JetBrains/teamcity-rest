@@ -28,20 +28,23 @@ import org.jetbrains.annotations.Nullable;
 public abstract class AbstractFilter<T> {
   @Nullable protected final Long myStart;
   @Nullable protected final Integer myCount;
+  @Nullable private final Long myLookupLimit;
+  private long myActualStart;
 
-  public AbstractFilter(@Nullable final Long start, @Nullable final Integer count) {
+  public AbstractFilter(@Nullable final Long start, @Nullable final Integer count, @Nullable final Long lookupLimit) {
     myStart = start;
     myCount = count;
+    myLookupLimit = lookupLimit;
+
+    myActualStart = myStart == null ? 0 : myStart;
   }
 
-  protected boolean isIncludedByRange(final long index) {
-    final long actualStart = myStart == null ? 0 : myStart;
-    return (index >= actualStart) && (myCount == null || index < actualStart + myCount);
+  protected boolean isIncludedByRange(final long matchedItemsIndex) {
+    return (matchedItemsIndex >= myActualStart) && (myCount == null || matchedItemsIndex < myActualStart + myCount);
   }
 
-  protected boolean isBelowUpperRangeLimit(final long index) {
-    final long actualStart = myStart == null ? 0 : myStart;
-    return myCount == null || index < actualStart + myCount;
+  protected boolean isBelowUpperRangeLimit(final long matchedItemsIndex, final long processedItemsIndex) {
+    return  (myCount == null || matchedItemsIndex < myActualStart + myCount) && (myLookupLimit == null || processedItemsIndex < myLookupLimit);
   }
 
 
@@ -49,7 +52,9 @@ public abstract class AbstractFilter<T> {
 
   public static <P> void processList(final List<P> entries, final ItemProcessor<P> processor) {
     for (P entry : entries) {
-      processor.processItem(entry);
+      if (!processor.processItem(entry)){
+        break;
+      }
     }
   }
 
@@ -65,5 +70,10 @@ public abstract class AbstractFilter<T> {
   @Nullable
   public Integer getCount() {
     return myCount;
+  }
+
+  @Nullable
+  public Long getLookupLimit() {
+    return myLookupLimit;
   }
 }
