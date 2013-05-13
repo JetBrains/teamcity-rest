@@ -34,7 +34,10 @@ import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
 import jetbrains.buildServer.server.rest.request.VcsRootInstanceRequest;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.vcs.*;
+import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.vcs.VcsException;
+import jetbrains.buildServer.vcs.VcsManager;
+import jetbrains.buildServer.vcs.VcsRootStatus;
 import jetbrains.vcs.api.VcsSettings;
 import jetbrains.vcs.api.services.tc.MappingGeneratorService;
 import jetbrains.vcs.api.services.tc.VcsMappingElement;
@@ -234,7 +237,7 @@ public class VcsRoot {
   }
 
   public static Collection<VcsMappingElement> getRepositoryMappings(@NotNull final SVcsRoot root, @NotNull final VcsManager vcsManager) throws VcsException {
-    final VcsSettings vcsSettings = root.createVcsSettings(CheckoutRules.DEFAULT);
+    final VcsSettings vcsSettings = new VcsSettings(root, "");
     final MappingGeneratorService mappingGenerator = vcsManager.getVcsService(vcsSettings, MappingGeneratorService.class);
 
     if (mappingGenerator == null) {
