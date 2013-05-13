@@ -47,6 +47,8 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
   @Nullable private final Locator myFileLocator;
   @Nullable private final Long myLookupLimit;
 
+  @NotNull private final DataProvider myDataProvider;
+
   public ChangesFilter(@Nullable final SProject project,
                        @Nullable final SBuildType buildType,
                        @Nullable final SBuild build,
@@ -62,7 +64,8 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
                        @Nullable final String fileLocator,
                        @Nullable final Long start,
                        @Nullable final Integer count,
-                       @Nullable final Long lookupLimit) {
+                       @Nullable final Long lookupLimit,
+                       @NotNull final DataProvider dataProvider) {
     super(start, count, lookupLimit);
     myProject = project;
     myBuildType = buildType;
@@ -75,6 +78,7 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
     myPersonal = personal;
     myDisplayVersion = displayVersion;
     myInternalVersion = internalVersion;
+    myDataProvider = dataProvider;
     myCommentLocator = commentLocator != null ? new Locator(commentLocator) : null;
     myFileLocator = fileLocator != null ? new Locator(fileLocator) : null;
     myLookupLimit = lookupLimit;
@@ -159,6 +163,10 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
     }
 
     // include by myBuild should be already handled by this time on the upper level
+
+    if (!myDataProvider.checkCanView(change)){
+      return false;
+    }
 
     return true;
   }

@@ -47,6 +47,7 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -411,6 +412,22 @@ public class DataProvider {
                                              " in project with internal id: '" + projectId + "'");
     }
   }
+
+  // workaround for http://youtrack.jetbrains.com/issue/TW-28306
+  public boolean checkCanView(final SVcsModification change) {
+    final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
+    if (authorityHolder.isPermissionGrantedGlobally(Permission.VIEW_PROJECT)){
+      return true;
+    }
+    final Collection<SProject> relatedProjects = change.getRelatedProjects();
+    for (SProject project : relatedProjects) {
+      if (authorityHolder.isPermissionGrantedForProject(project.getProjectId(), Permission.VIEW_PROJECT)){
+        return true;
+      }
+    }
+    return false;
+  }
+
 
   @NotNull
   public VcsManager getVcsManager() {

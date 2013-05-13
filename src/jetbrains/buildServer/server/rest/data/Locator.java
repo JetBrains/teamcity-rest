@@ -320,7 +320,7 @@ public class Locator {
    */
   public void setDimension(@NotNull final String name, @NotNull final String value) {
     if (isSingleValue()){
-      throw new LocatorProcessException("Attemt to set dimension '" + name + "' for single value locator.");
+      throw new LocatorProcessException("Attempt to set dimension '" + name + "' for single value locator.");
     }
     myDimensions.removeAll(name);
     myDimensions.put(name, value);

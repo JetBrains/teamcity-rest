@@ -2,9 +2,12 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.Collections;
+import java.util.List;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsManager;
@@ -50,7 +53,12 @@ public class ChangeFinder {
   public PagedSearchResult<SVcsModification> getModifications(@NotNull Locator locator) {
     final SVcsModification singleChange = getSingleChange(locator);
     if (singleChange != null){
-      return new PagedSearchResult<SVcsModification>(Collections.singletonList(singleChange), null, null);
+      if (!myDataProvider.checkCanView(singleChange)){
+        throw new AuthorizationFailedException("Current user does not have permission " + Permission.VIEW_PROJECT +
+                                               " in any of the projects associated with the change with id: '" + singleChange.getId() + "'");
+      }
+      final List<SVcsModification> result = Collections.singletonList(singleChange);
+      return new PagedSearchResult<SVcsModification>(result, null, null);
     }
 
     ChangesFilter changesFilter;
@@ -74,7 +82,7 @@ public class ChangeFinder {
                                       locator.getSingleDimensionValue("file"),
                                       locator.getSingleDimensionValueAsLong("start"),
                                       count == null ? null : count.intValue(),
-                                      locator.getSingleDimensionValueAsLong("lookupLimit"));
+                                      locator.getSingleDimensionValueAsLong("lookupLimit"), myDataProvider);
     return new PagedSearchResult<SVcsModification>(changesFilter.getMatchingChanges(myVcsManager.getVcsHistory()), changesFilter.getStart(), changesFilter.getCount());
   }
 
