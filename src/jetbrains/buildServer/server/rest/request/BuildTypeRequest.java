@@ -229,6 +229,7 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public Properties replaceBuildTypeSettings(@PathParam("btLocator") String buildTypeLocator, Properties suppliedEntities) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
+    //todo: TeamCity API: how to reset settings to defaults?
     for (Property property : suppliedEntities.properties) {
       setSetting(buildType, property.name, property.value);
     }
@@ -327,7 +328,9 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public VcsRootEntries replaceVcsRootEntries(@PathParam("btLocator") String buildTypeLocator, VcsRootEntries suppliedEntities) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-
+    for (jetbrains.buildServer.vcs.VcsRootEntry entry : buildType.get().getVcsRootEntries()) {
+      buildType.get().removeVcsRoot((SVcsRoot)entry.getVcsRoot());
+    }
     for (VcsRootEntry entity : suppliedEntities.vcsRootAssignments) {
       addVcsRoot(buildType, entity);
     }
@@ -412,6 +415,7 @@ public class BuildTypeRequest {
   public PropEntitiesStep replaceSteps(@PathParam("btLocator") String buildTypeLocator, PropEntitiesStep suppliedEntities) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     final Collection<SBuildRunnerDescriptor> originals = buildType.get().getBuildRunners();
+    removeSteps(buildType, originals);
     try {
       for (PropEntityStep entity : suppliedEntities.propEntities) {
         entity.addStep(buildType.get(), myServiceLocator.getSingletonService(BuildRunnerDescriptorFactory.class));
@@ -419,9 +423,7 @@ public class BuildTypeRequest {
       buildType.get().persist();
     }catch (Exception e){
       //restore original settings
-      for (SBuildRunnerDescriptor entry : buildType.get().getBuildRunners()) {
-        buildType.get().removeBuildRunner(entry.getId());  //todo: (TeamCity API): why srting and not ojbect?
-      }
+      removeSteps(buildType, buildType.get().getBuildRunners());
       for (SBuildRunnerDescriptor entry : originals) {
         buildType.get().addBuildRunner(entry);
       }
@@ -429,6 +431,12 @@ public class BuildTypeRequest {
       throw new BadRequestException("Error replacing items", e);
     }
     return new PropEntitiesStep(buildType.get());
+  }
+
+  private void removeSteps(final BuildTypeOrTemplate buildType, final Collection<SBuildRunnerDescriptor> runners) {
+    for (SBuildRunnerDescriptor entry : runners) {
+      buildType.get().removeBuildRunner(entry.getId());  //todo: (TeamCity API): why srting and not ojbect?
+    }
   }
 
   @POST
@@ -571,6 +579,7 @@ public class BuildTypeRequest {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
 
     final Collection<SBuildFeatureDescriptor> originals = buildType.get().getBuildFeatures();
+    removeFeatures(buildType, originals);
     try {
       for (PropEntityFeature entity : suppliedEntities.propEntities) {
         entity.addFeature(buildType.get(), myServiceLocator.getSingletonService(BuildFeatureDescriptorFactory.class));
@@ -578,9 +587,7 @@ public class BuildTypeRequest {
       buildType.get().persist();
     }catch (Exception e){
       //restore original settings
-      for (SBuildFeatureDescriptor entry : buildType.get().getBuildFeatures()) {
-        buildType.get().removeBuildFeature(entry.getId());  //todo: (TeamCity API): why srting and not ojbect?
-      }
+      removeFeatures(buildType, buildType.get().getBuildFeatures());
       for (SBuildFeatureDescriptor entry : originals) {
         buildType.get().addBuildFeature(entry);
       }
@@ -588,6 +595,12 @@ public class BuildTypeRequest {
       throw new BadRequestException("Error replacing items", e);
     }
     return new PropEntitiesFeature(buildType.get());
+  }
+
+  private void removeFeatures(final BuildTypeOrTemplate buildType, final Collection<SBuildFeatureDescriptor> features) {
+    for (SBuildFeatureDescriptor entry : features) {
+      buildType.get().removeBuildFeature(entry.getId());  //todo: (TeamCity API): why srting and not ojbect?
+    }
   }
 
   @POST
@@ -790,6 +803,8 @@ public class BuildTypeRequest {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
 
     final List<Dependency> originalDependencies = buildType.get().getDependencies();
+    removeDependencies(buildType, originalDependencies);
+
     try {
       for (PropEntitySnapshotDep entity : suppliedEntities.propEntities) {
         entity.addSnapshotDependency(buildType.get(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
@@ -797,9 +812,7 @@ public class BuildTypeRequest {
       buildType.get().persist();
     } catch (Exception e) {
       //restore original settings
-      for (Dependency dependency : buildType.get().getDependencies()) {
-        buildType.get().removeDependency(dependency);
-      }
+      removeDependencies(buildType, buildType.get().getDependencies());
       for (Dependency dependency : originalDependencies) {
         buildType.get().addDependency(dependency);
       }
@@ -807,6 +820,12 @@ public class BuildTypeRequest {
       throw new BadRequestException("Error setting snapshot dependencies", e);
     }
     return new PropEntitiesSnapshotDep(buildType.get(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+  }
+
+  private void removeDependencies(final BuildTypeOrTemplate buildType, final List<Dependency> dependencies) {
+    for (Dependency originalDependency : dependencies) {
+      buildType.get().removeDependency(originalDependency);
+    }
   }
 
   /**
@@ -866,6 +885,7 @@ public class BuildTypeRequest {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
 
     final Collection<BuildTriggerDescriptor> originals = buildType.get().getBuildTriggersCollection();
+    removeTriggers(buildType, originals);
     try {
       for (PropEntityTrigger entity : suppliedEntities.propEntities) {
         entity.addTrigger(buildType.get(), myServiceLocator.getSingletonService(BuildTriggerDescriptorFactory.class));
@@ -873,9 +893,7 @@ public class BuildTypeRequest {
       buildType.get().persist();
     } catch (Exception e) {
       //restore original settings
-      for (BuildTriggerDescriptor entry : buildType.get().getBuildTriggersCollection()) {
-        buildType.get().removeBuildTrigger(entry);
-      }
+      removeTriggers(buildType, buildType.get().getBuildTriggersCollection());
       for (BuildTriggerDescriptor entry : originals) {
         buildType.get().addBuildTrigger(entry);
       }
@@ -883,6 +901,12 @@ public class BuildTypeRequest {
       throw new BadRequestException("Error setting triggers", e);
     }
     return new PropEntitiesTrigger(buildType.get());
+  }
+
+  private void removeTriggers(final BuildTypeOrTemplate buildType, final Collection<BuildTriggerDescriptor> triggers) {
+    for (BuildTriggerDescriptor entry : triggers) {
+      buildType.get().removeBuildTrigger(entry);
+    }
   }
 
   /**
@@ -967,6 +991,7 @@ public class BuildTypeRequest {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
 
     final List<Requirement> originals = buildType.get().getRequirements();
+    removeRequirements(buildType, originals);
     try {
       for (PropEntityAgentRequirement entity : suppliedEntities.propEntities) {
         entity.addRequirement(buildType);
@@ -974,9 +999,7 @@ public class BuildTypeRequest {
       buildType.get().persist();
     } catch (Exception e) {
       //restore original settings
-      for (Requirement entry : buildType.get().getRequirements()) {
-        buildType.get().removeRequirement(entry.getPropertyName());  //todo: (TeamCity API): why srting and not Requirement?
-      }
+      removeRequirements(buildType, buildType.get().getRequirements());
       for (Requirement entry : originals) {
         buildType.get().addRequirement(entry);
       }
@@ -984,6 +1007,12 @@ public class BuildTypeRequest {
       throw new BadRequestException("Error replacing items", e);
     }
     return new PropEntitiesAgentRequirement(buildType.get());
+  }
+
+  private void removeRequirements(final BuildTypeOrTemplate buildType, final List<Requirement> requirements) {
+    for (Requirement entry : requirements) {
+      buildType.get().removeRequirement(entry.getPropertyName());  //todo: (TeamCity API): why srtring and not Requirement?
+    }
   }
 
   /**
