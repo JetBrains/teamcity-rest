@@ -97,7 +97,7 @@ public class Server {
 
   @XmlAttribute
   public String getInternalId() {
-    return myServerSettings.getServerId();
+    return myServerSettings.getServerUUID();
   }
 
   @XmlElement
@@ -146,7 +146,7 @@ public class Server {
     } else if ("currentTime".equals(field)) {
       return Util.formatTime(new Date());
     } else if ("internalId".equals(field)) {
-      return serviceLocator.getSingletonService(ServerSettings.class).getServerId();
+      return serviceLocator.getSingletonService(ServerSettings.class).getServerUUID();
     }
     throw new NotFoundException("Field '" + field + "' is not supported. Supported are: version, versionMajor, versionMinor, buildNumber, startTime, currentTime, internalId.");
   }
