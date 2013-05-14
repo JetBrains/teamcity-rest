@@ -16,17 +16,20 @@ import org.jetbrains.annotations.Nullable;
 public class BuildTypeOrTemplate implements Loggable {
   final private SBuildType myBuildType;
   final private BuildTypeTemplate myTemplate;
+  final private BuildTypeIdentity myBuildTypeIdentity;
   final private  boolean hasBuildType;
 
   public BuildTypeOrTemplate(@NotNull SBuildType buildType) {
     myBuildType = buildType;
     myTemplate = null;
+    myBuildTypeIdentity = buildType;
     hasBuildType = true;
   }
 
   public BuildTypeOrTemplate(@NotNull BuildTypeTemplate template) {
     myTemplate = template;
     myBuildType = null;
+    myBuildTypeIdentity = template;
     hasBuildType = false;
   }
 
@@ -37,21 +40,21 @@ public class BuildTypeOrTemplate implements Loggable {
 
   @NotNull
   public String getId(){
-    return hasBuildType ? myBuildType.getExternalId() : myTemplate.getExternalId();
+    return myBuildTypeIdentity.getExternalId();
   }
 
   @NotNull
   public String getInternalId(){
-    return hasBuildType ? myBuildType.getBuildTypeId() : myTemplate.getId();
+    return myBuildTypeIdentity.getInternalId();
   }
 
   public String getName(){
-    return hasBuildType ? myBuildType.getName() : myTemplate.getName();
+    return myBuildTypeIdentity.getName();
   }
 
   @NotNull
   public SProject getProject() {
-    return hasBuildType ? myBuildType.getProject() : myTemplate.getProject();
+    return myBuildTypeIdentity.getProject();
   }
 
   public boolean isBuildType() {
@@ -68,6 +71,10 @@ public class BuildTypeOrTemplate implements Loggable {
 
   public BuildTypeTemplate getTemplate() {
     return myTemplate;
+  }
+
+  public BuildTypeIdentity getBuildTypeIdentity() {
+    return myBuildTypeIdentity;
   }
 
   @Nullable

@@ -115,13 +115,7 @@ public class BuildTypeRequest {
   @Path("/{btLocator}")
   public void deleteBuildType(@PathParam("btLocator") String buildTypeLocator) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    final SProject project = buildType.getProject();
-    if (buildType.isBuildType()) {
-      project.removeBuildType(buildType.getInternalId());
-    } else {
-      project.removeBuildTypeTemplate(buildType.getInternalId());
-    }
-    project.persist();
+    buildType.getBuildTypeIdentity().remove();
   }
 
   @GET
