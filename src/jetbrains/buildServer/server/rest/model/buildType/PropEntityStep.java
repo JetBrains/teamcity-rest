@@ -30,11 +30,11 @@ public class PropEntityStep extends PropEntity {
 
     @SuppressWarnings("ConstantConditions")
     final SBuildRunnerDescriptor runnerToCreate =
-    buildType.addBuildRunner(StringUtil.isEmpty(name) ? "" : name, type, properties != null ? properties.getMap() : Collections.<String, String>emptyMap());
+      buildType.addBuildRunner(StringUtil.isEmpty(name) ? "" : name, type, properties != null ? properties.getMap() : Collections.<String, String>emptyMap());
     if (disabled != null) {
       buildType.setEnabled(runnerToCreate.getId(), !disabled);
     }
-    return buildType.findBuildRunnerById(runnerToCreate.getId());
+    return runnerToCreate;
   }
 
 

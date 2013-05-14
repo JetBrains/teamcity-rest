@@ -184,7 +184,7 @@ public class VcsRootRequest {
   @Consumes({"application/xml", "application/json"})
   public void changProperties(@PathParam("vcsRootLocator") String vcsRootLocator, Properties properties) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
-    VcsRoot.updateVCSRoot(vcsRoot, properties.getMap(), null);
+    vcsRoot.setProperties(properties.getMap());
     vcsRoot.persist();
   }
 
@@ -192,7 +192,7 @@ public class VcsRootRequest {
   @Path("/{vcsRootLocator}/properties")
   public void deleteAllProperties(@PathParam("vcsRootLocator") String vcsRootLocator) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
-    VcsRoot.updateVCSRoot(vcsRoot, new HashMap<String, String>(), null);
+    vcsRoot.setProperties(new HashMap<String, String>());
     vcsRoot.persist();
   }
 

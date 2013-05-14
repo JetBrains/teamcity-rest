@@ -133,13 +133,13 @@ public class VcsRoot {
       public void addParameter(@NotNull final Parameter param) {
         final Map<String, String> newProperties = new HashMap<String, String>(root.getProperties());
         newProperties.put(param.getName(), param.getValue());
-        updateVCSRoot(root, newProperties, null);
+        root.setProperties(newProperties);
       }
 
       public void removeParameter(@NotNull final String paramName) {
         final Map<String, String> newProperties = new HashMap<String, String>(root.getProperties());
         newProperties.remove(paramName);
-        updateVCSRoot(root, newProperties, null);
+        root.setProperties(newProperties);
       }
 
       @NotNull
@@ -156,21 +156,6 @@ public class VcsRoot {
         return root.getProperties();
       }
     };
-  }
-
-  public static void updateVCSRoot(@NotNull final SVcsRoot root,
-                                   @Nullable final Map<String, String> newProperties,
-                                   @Nullable final String newName) {
-    try {
-      if (newName != null) {
-        root.setName(newName);
-      }
-      if (newProperties != null) {
-        root.setProperties(newProperties);
-      }
-    } catch (ProjectNotFoundException e) {
-      throw new NotFoundException("Could not find project for VCS root: " + root.getExternalId());
-    }
   }
 
   public static String getFieldValue(final SVcsRoot vcsRoot, final String field, final DataProvider dataProvider) {
@@ -206,7 +191,11 @@ public class VcsRoot {
                                    @NotNull final DataProvider dataProvider,
                                    @NotNull final ProjectFinder projectFinder) {
     if ("name".equals(field)) {
-      updateVCSRoot(vcsRoot, null, newValue);
+      if (newValue != null){
+        vcsRoot.setName(newValue);
+      }else{
+        throw new BadRequestException("Name cannot be empty");
+      }
       return;
     } else if ("modificationCheckInterval".equals(field)) {
       if ("".equals(newValue)) {
@@ -221,13 +210,11 @@ public class VcsRoot {
         }
         vcsRoot.setModificationCheckInterval(newInterval); //todo (TeamCity) open API can set negative value which gets applied
       }
-      vcsRoot.persist();  //todo: (TeamCity) open API need to call persist or not ???
       return;
     } else if ("defaultModificationCheckIntervalInUse".equals(field)){
       boolean newUseDefault = Boolean.valueOf(newValue);
       if (newUseDefault) {
         vcsRoot.restoreDefaultModificationCheckInterval();
-        vcsRoot.persist();  //todo: (TeamCity) open API need to call persist or not ???
         return;
       }
       throw new BadRequestException("Setting field 'defaultModificationCheckIntervalInUse' to false is not supported, set modificationCheckInterval instead.");

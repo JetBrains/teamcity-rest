@@ -73,10 +73,6 @@ public class BuildTypeOrTemplate implements Loggable {
     return myTemplate;
   }
 
-  public BuildTypeIdentity getBuildTypeIdentity() {
-    return myBuildTypeIdentity;
-  }
-
   @Nullable
   public String getDescription() {
     return hasBuildType ? myBuildType.getDescription() : null;
@@ -106,6 +102,10 @@ public class BuildTypeOrTemplate implements Loggable {
     }else{
       throw new BadRequestException("Template does not have description field");
     }
+  }
+
+  public void remove() {
+    myBuildTypeIdentity.remove();
   }
 
   public void setFieldValue(final String field, final String value, @NotNull final DataProvider dataProvider) {

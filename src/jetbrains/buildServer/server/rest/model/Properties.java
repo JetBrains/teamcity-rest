@@ -60,6 +60,7 @@ public class Properties {
     return key.startsWith(SVcsRoot.SECURE_PROPERTY_PREFIX) && !TeamCityProperties.getBoolean("rest.listSecureProperties");
   }
 
+  @NotNull
   public Map<String, String> getMap() {
     final HashMap<String, String> result = new HashMap<String, String>(properties.size());
     for (Property property : properties) {
