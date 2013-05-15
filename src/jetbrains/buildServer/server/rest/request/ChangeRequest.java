@@ -96,17 +96,19 @@ public class ChangeRequest {
     }else{
       actualLocator = Locator.createEmptyLocator(ChangeFinder.getChangesLocatorSupportedDimensions());
     }
-    updateLocatorDimension(actualLocator, "project", projectLocator);
-    updateLocatorDimension(actualLocator, "buildType", buildTypeLocator);
-    updateLocatorDimension(actualLocator, "build", buildLocator);
-    updateLocatorDimension(actualLocator, "vcsRootInstance", vcsRootInstanceLocator);
-    updateLocatorDimension(actualLocator, "sinceChange", sinceChangeLocator);
-    updateLocatorDimension(actualLocator, "start", start != null ? String.valueOf(start) : null);
-    updateLocatorDimension(actualLocator, "count", count != null ? String.valueOf(count) : null);
-    updateLocatorDimensionIfNotPresent(actualLocator, "start", String.valueOf(0));
-    updateLocatorDimensionIfNotPresent(actualLocator, "count", String.valueOf(Constants.DEFAULT_PAGE_ITEMS_COUNT));
-    actualLocator.addIgnoreUnusedDimensions("start");
-    actualLocator.addIgnoreUnusedDimensions("count");
+    if (!actualLocator.isSingleValue()) {
+      updateLocatorDimension(actualLocator, "project", projectLocator);
+      updateLocatorDimension(actualLocator, "buildType", buildTypeLocator);
+      updateLocatorDimension(actualLocator, "build", buildLocator);
+      updateLocatorDimension(actualLocator, "vcsRootInstance", vcsRootInstanceLocator);
+      updateLocatorDimension(actualLocator, "sinceChange", sinceChangeLocator);
+      updateLocatorDimension(actualLocator, "start", start != null ? String.valueOf(start) : null);
+      updateLocatorDimension(actualLocator, "count", count != null ? String.valueOf(count) : null);
+      updateLocatorDimensionIfNotPresent(actualLocator, "start", String.valueOf(0));
+      updateLocatorDimensionIfNotPresent(actualLocator, "count", String.valueOf(Constants.DEFAULT_PAGE_ITEMS_COUNT));
+      actualLocator.addIgnoreUnusedDimensions("start");
+      actualLocator.addIgnoreUnusedDimensions("count");
+    }
 
     if (actualLocator.isEmpty()){
       throw new BadRequestException("No 'locator' or other parameters are specified.");
