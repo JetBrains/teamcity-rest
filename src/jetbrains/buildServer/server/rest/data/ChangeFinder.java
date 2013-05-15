@@ -124,7 +124,9 @@ public class ChangeFinder {
 
     final Locator locator = new Locator(changeLocator, getChangesLocatorSupportedDimensions());
 
-    locator.setDimension("count", String.valueOf(1));
+    if (!locator.isSingleValue()) {
+      locator.setDimension("count", String.valueOf(1));
+    }
     locator.addIgnoreUnusedDimensions("count");
     final PagedSearchResult<SVcsModification> changes = getModifications(locator);
     locator.checkLocatorFullyProcessed();
