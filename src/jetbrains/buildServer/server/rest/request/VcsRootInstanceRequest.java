@@ -96,10 +96,12 @@ public class VcsRootInstanceRequest {
   @PUT
   @Path("/{vcsRootInstanceLocator}/{field}")
   @Consumes("text/plain")
-  public void setInstanceField(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
+  @Produces("text/plain")
+  public String setInstanceField(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
                                @PathParam("field") String fieldName, String newValue) {
     final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
     VcsRootInstance.setFieldValue(rootInstance, fieldName, newValue, myDataProvider);
     rootInstance.getParent().persist();
+    return VcsRootInstance.getFieldValue(rootInstance, fieldName, myDataProvider);
   }
 }

@@ -161,12 +161,14 @@ public class VcsRootRequest {
   @PUT
   @Path("/{vcsRootLocator}/" + INSTANCES_PATH + "/{vcsRootInstanceLocator}/{field}")
   @Consumes("text/plain")
-  public void setInstanceField(@PathParam("vcsRootLocator") String vcsRootLocator,
+  @Produces("text/plain")
+  public String setInstanceField(@PathParam("vcsRootLocator") String vcsRootLocator,
                                @PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
                                @PathParam("field") String fieldName, String newValue) {
     final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
     VcsRootInstance.setFieldValue(rootInstance, fieldName, newValue, myDataProvider);
     rootInstance.getParent().persist();
+    return VcsRootInstance.getFieldValue(rootInstance, fieldName, myDataProvider);
   }
 
 
@@ -181,10 +183,12 @@ public class VcsRootRequest {
   @PUT
   @Path("/{vcsRootLocator}/properties")
   @Consumes({"application/xml", "application/json"})
-  public void changProperties(@PathParam("vcsRootLocator") String vcsRootLocator, Properties properties) {
+  @Produces({"application/xml", "application/json"})
+  public Properties changProperties(@PathParam("vcsRootLocator") String vcsRootLocator, Properties properties) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
     vcsRoot.setProperties(properties.getMap());
     vcsRoot.persist();
+    return new Properties(vcsRoot.getProperties());
   }
 
   @DELETE
@@ -200,19 +204,21 @@ public class VcsRootRequest {
   @Produces("text/plain")
   public String serveProperty(@PathParam("vcsRootLocator") String vcsRootLocator, @PathParam("name") String parameterName) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
-    return BuildTypeUtil.getParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot));
+    return BuildTypeUtil.getParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot), true, true);
   }
 
   @PUT
   @Path("/{vcsRootLocator}/properties/{name}")
   @Consumes("text/plain")
-  public void putParameter(@PathParam("vcsRootLocator") String vcsRootLocator,
+  @Produces("text/plain")
+  public String putParameter(@PathParam("vcsRootLocator") String vcsRootLocator,
                                     @PathParam("name") String parameterName,
                                     String newValue) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
     BuildTypeUtil.changeParameter(parameterName, newValue, VcsRoot.getUserParametersHolder(vcsRoot),
                                   myServiceLocator);
     vcsRoot.persist();
+    return BuildTypeUtil.getParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot), false, true);
   }
 
   @DELETE
@@ -236,10 +242,12 @@ public class VcsRootRequest {
   @PUT
   @Path("/{vcsRootLocator}/{field}")
   @Consumes("text/plain")
-  public void setField(@PathParam("vcsRootLocator") String vcsRootLocator, @PathParam("field") String fieldName, String newValue) {
+  @Produces("text/plain")
+  public String setField(@PathParam("vcsRootLocator") String vcsRootLocator, @PathParam("field") String fieldName, String newValue) {
     @NotNull final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
     VcsRoot.setFieldValue(vcsRoot, fieldName, newValue, myDataProvider, myProjectFinder);
     vcsRoot.persist();
+    return VcsRoot.getFieldValue(vcsRoot, fieldName, myDataProvider);
   }
 
   private void checkVcsRootDescription(final VcsRoot description) {

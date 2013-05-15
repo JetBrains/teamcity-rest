@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import java.util.Map;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -25,8 +24,8 @@ import jetbrains.buildServer.server.rest.data.DataUpdater;
 import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.server.rest.model.user.User;
@@ -133,9 +132,11 @@ public class UserRequest {
   @PUT
   @Path("/{userLocator}")
   @Consumes({"application/xml", "application/json"})
-  public void updateUser(@PathParam("userLocator") String userLocator, User userData) {
+  @Produces({"application/xml", "application/json"})
+  public User updateUser(@PathParam("userLocator") String userLocator, User userData) {
     SUser user = myUserFinder.getUser(userLocator);
     myDataUpdater.modify(user, userData);
+    return new User(user, myApiUrlBuilder);
   }
 
   @GET
@@ -148,8 +149,11 @@ public class UserRequest {
   @PUT
   @Path("/{userLocator}/{field}")
   @Consumes("text/plain")
-  public void setUserField(@PathParam("userLocator") String userLocator, @PathParam("field") String fieldName, String value) {
-    User.setFieldValue(myUserFinder.getUser(userLocator), fieldName, value);
+  @Produces("text/plain")
+  public String setUserField(@PathParam("userLocator") String userLocator, @PathParam("field") String fieldName, String value) {
+    final SUser user = myUserFinder.getUser(userLocator);
+    User.setFieldValue(user, fieldName, value);
+    return User.getFieldValue(user, fieldName);
   }
 
   @GET
@@ -165,23 +169,14 @@ public class UserRequest {
   @Path("/{userLocator}/properties/{name}")
   @Produces("text/plain")
   public String serveUserProperties(@PathParam("userLocator") String userLocator, @PathParam("name") String parameterName) {
-    SUser user = myUserFinder.getUser(userLocator);
-    if (StringUtil.isEmpty(parameterName)) {
-      throw new BadRequestException("Property name cannot be empty.");
-    }
-
-    Map<String, String> parameters = User.getUserProperties(user);
-    if (parameters.containsKey(parameterName)) {
-      //TODO: process secure fields
-      return parameters.get(parameterName);
-    }
-    throw new NotFoundException("No property with name '" + parameterName + "' is found.");
+    return BuildTypeUtil.getParameter(parameterName, User.getUserProperties(myUserFinder.getUser(userLocator)), true, true);
   }
 
   @PUT
   @Path("/{userLocator}/properties/{name}")
   @Consumes("text/plain")
-  public void putUserProperty(@PathParam("userLocator") String userLocator,
+  @Produces("text/plain")
+  public String putUserProperty(@PathParam("userLocator") String userLocator,
                               @PathParam("name") String name,
                               String newValue) {
     SUser user = myUserFinder.getUser(userLocator);
@@ -190,6 +185,7 @@ public class UserRequest {
     }
 
     user.setUserProperty(new SimplePropertyKey(name), newValue);
+    return BuildTypeUtil.getParameter(name, User.getUserProperties(myUserFinder.getUser(userLocator)), false, true);
   }
 
   @DELETE
@@ -222,7 +218,7 @@ public class UserRequest {
   @Path("/{userLocator}/roles")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public RoleAssignments addRolePut(@PathParam("userLocator") String userLocator, RoleAssignments roleAssignments) {
+  public RoleAssignments replaceRoles(@PathParam("userLocator") String userLocator, RoleAssignments roleAssignments) {
     SUser user = myUserFinder.getUser(userLocator);
     for (RoleEntry roleEntry : user.getRoles()) {
       user.removeRole(roleEntry.getScope(), roleEntry.getRole());
@@ -245,6 +241,7 @@ public class UserRequest {
 
   @GET
   @Path("/{userLocator}/roles/{roleId}/{scope}")
+  @Produces({"application/xml", "application/json"})
   public RoleAssignment listRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
                                  @PathParam("scope") String scopeValue) {
     checkViewUserPermission(userLocator);  //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
@@ -274,10 +271,12 @@ public class UserRequest {
 
   @PUT
   @Path("/{userLocator}/roles/{roleId}/{scope}")
-  public void addRoleSimple(@PathParam("userLocator") String userLocator,
+  @Produces({"application/xml", "application/json"})
+  public RoleAssignment addRoleSimple(@PathParam("userLocator") String userLocator,
                             @PathParam("roleId") String roleId,
                             @PathParam("scope") String scopeValue) {
     SUser user = myUserFinder.getUser(userLocator);
     user.addRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
+    return new RoleAssignment(myDataProvider.getUserRoleEntry(user, roleId, scopeValue), user, myApiUrlBuilder);
   }
 }

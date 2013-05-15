@@ -66,7 +66,10 @@ public class AgentRequest {
   @PUT
   @Path("/{agentLocator}/{field}")
   @Consumes("text/plain")
-  public void setAgentField(@PathParam("agentLocator") String agentLocator, @PathParam("field") String fieldName, String value) {
-    Agent.setFieldValue(myDataProvider.getAgent(agentLocator), fieldName, value, myDataProvider);
+  @Produces("text/plain")
+  public String setAgentField(@PathParam("agentLocator") String agentLocator, @PathParam("field") String fieldName, String value) {
+    final SBuildAgent agent = myDataProvider.getAgent(agentLocator);
+    Agent.setFieldValue(agent, fieldName, value, myDataProvider);
+    return Agent.getFieldValue(agent, fieldName);
   }
 }

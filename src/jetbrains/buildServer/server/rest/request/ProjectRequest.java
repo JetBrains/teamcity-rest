@@ -140,10 +140,12 @@ public class ProjectRequest {
   @PUT
   @Path("/{projectLocator}/{field}")
   @Consumes("text/plain")
-  public void setProjectFiled(@PathParam("projectLocator") String projectLocator, @PathParam("field") String fieldName, String newValue) {
+  @Produces("text/plain")
+  public String setProjectFiled(@PathParam("projectLocator") String projectLocator, @PathParam("field") String fieldName, String newValue) {
     final SProject project = myProjectFinder.getProject(projectLocator);
     Project.setFieldValue(project, fieldName, newValue, myDataProvider);
     project.persist();
+    return Project.getFieldValue(myProjectFinder.getProject(projectLocator), fieldName);
   }
 
   @GET
@@ -316,13 +318,15 @@ public class ProjectRequest {
   @PUT
   @Path("/{projectLocator}/parameters")
   @Consumes({"application/xml", "application/json"})
-  public void changeAllParameters(@PathParam("projectLocator") String projectLocator, Properties properties) {
+  @Produces({"application/xml", "application/json"})
+  public Properties changeAllParameters(@PathParam("projectLocator") String projectLocator, Properties properties) {
     SProject project = myProjectFinder.getProject(projectLocator);
     BuildTypeUtil.removeAllParameters(project);
     for (Property p : properties.properties) {
       BuildTypeUtil.changeParameter(p.name, p.value, project, myServiceLocator);
     }
     project.persist();
+    return new Properties(project.getParameters());
   }
 
   @DELETE
@@ -338,18 +342,20 @@ public class ProjectRequest {
   @Produces("text/plain")
   public String serveParameter(@PathParam("projectLocator") String projectLocator, @PathParam("name") String parameterName) {
     SProject project = myProjectFinder.getProject(projectLocator);
-    return BuildTypeUtil.getParameter(parameterName, project);
+    return BuildTypeUtil.getParameter(parameterName, project, true, false);
   }
 
   @PUT
   @Path("/{projectLocator}/parameters/{name}")
   @Consumes("text/plain")
-  public void putParameter(@PathParam("projectLocator") String projectLocator,
+  @Produces("text/plain")
+  public String putParameter(@PathParam("projectLocator") String projectLocator,
                                     @PathParam("name") String parameterName,
                                     String newValue) {
     SProject project = myProjectFinder.getProject(projectLocator);
     BuildTypeUtil.changeParameter(parameterName, newValue, project, myServiceLocator);
     project.persist();
+    return BuildTypeUtil.getParameter(parameterName, project, false, false);
   }
 
   @DELETE

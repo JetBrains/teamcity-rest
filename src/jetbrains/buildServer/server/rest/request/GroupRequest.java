@@ -121,6 +121,7 @@ public class GroupRequest {
 
   @GET
   @Path("/{groupLocator}/roles/{roleId}/{scope}")
+  @Produces({"application/xml", "application/json"})
   public RoleAssignment listRole(@PathParam("groupLocator") String groupLocator, @PathParam("roleId") String roleId,
                                  @PathParam("scope") String scopeValue) {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
@@ -137,10 +138,12 @@ public class GroupRequest {
 
   @POST
   @Path("/{groupLocator}/roles/{roleId}/{scope}")
-  public void addRoleSimple(@PathParam("groupLocator") String groupLocator,
+  @Produces({"application/xml", "application/json"})
+  public RoleAssignment addRoleSimple(@PathParam("groupLocator") String groupLocator,
                             @PathParam("roleId") String roleId,
                             @PathParam("scope") String scopeValue) {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
     group.addRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
+    return new RoleAssignment(myDataProvider.getGroupRoleEntry(group, roleId, scopeValue), group, myApiUrlBuilder);
   }
 }

@@ -362,9 +362,11 @@ public class BuildRequest {
   @PUT
   @Path("/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
-  public void replaceTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
+  @Produces({"application/xml", "application/json"})
+  public Tags replaceTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     build.setTags(SessionUser.getUser(request), tags.tags != null ? tags.tags : Collections.<String>emptyList());
+    return new Tags(build.getTags());
   }
 
   /**
@@ -395,8 +397,10 @@ public class BuildRequest {
   @POST
   @Path("/{buildLocator}/tags/")
   @Consumes({"text/plain"})
-  public void addTag(@PathParam("buildLocator") String buildLocator, String tagName, @Context HttpServletRequest request) {
+  @Produces({"text/plain"})
+  public String addTag(@PathParam("buildLocator") String buildLocator, String tagName, @Context HttpServletRequest request) {
     this.addTags(buildLocator, new Tags(Arrays.asList(tagName)), request);
+    return tagName;
   }
 //todo: add GET (true/false) and DELETE, amy be PUT (true/false) for a single tag
 

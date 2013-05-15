@@ -37,6 +37,7 @@ import jetbrains.buildServer.util.OptionSupport;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -123,22 +124,28 @@ public class BuildTypeUtil {
     });
   }
 
-  public static String getParameter(final String parameterName, final UserParametersHolder parametrizedEntity) {
-    if (StringUtil.isEmpty(parameterName)) {
-      throw new BadRequestException("Parameter name cannot be empty.");
-    }
+  public static String getParameter(@Nullable final String parameterName,
+                                    @NotNull final UserParametersHolder parametrizedEntity,
+                                    final boolean checkSecure,
+                                    final boolean nameItProperty) {
+    return getParameter(parameterName, parametrizedEntity.getParameters(), checkSecure, nameItProperty);
+  }
 
-    Map<String, String> parameters = parametrizedEntity.getParameters();
+  public static String getParameter(@Nullable final String parameterName, @NotNull final Map<String, String> parameters, final boolean checkSecure, final boolean nameItProperty) {
+    if (StringUtil.isEmpty(parameterName)) {
+      throw new BadRequestException(nameItProperty ? "Property" : "Parameter" + " name cannot be empty.");
+    }
+    assert parameterName != null;
     if (parameters.containsKey(parameterName)) {
-      if (!Properties.isPropertyToExclude(parameterName)) {
+      if (!checkSecure || !Properties.isPropertyToExclude(parameterName)) {
         //TODO: need to process spec type to filter secure fields, may be include display value
         //TODO: might support type spec here
         return parameters.get(parameterName);
-      }else{
-        throw new BadRequestException("Secure parameters cannot be retrieved via remote API by default.");
+      } else {
+        throw new BadRequestException("Secure " + (nameItProperty ? "properties" : "parameters") + " cannot be retrieved via remote API by default.");
       }
     }
-    throw new NotFoundException("No parameter with name '" + parameterName + "' is found.");
+    throw new NotFoundException((nameItProperty ? "No property" : "No parameter") + " with name '" + parameterName + "' is found.");
   }
 
   public static void changeParameter(final String parameterName,

@@ -193,7 +193,7 @@ public class BuildTypeRequest {
   @Produces("text/plain")
   public String serveBuildTypeParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("name") String parameterName) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    return BuildTypeUtil.getParameter(parameterName, buildType.get());
+    return BuildTypeUtil.getParameter(parameterName, buildType.get(), true, false);
   }
 
   @PUT
@@ -206,7 +206,7 @@ public class BuildTypeRequest {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     BuildTypeUtil.changeParameter(parameterName, newValue, buildType.get(), myServiceLocator);
     buildType.get().persist();
-    return BuildTypeUtil.getParameter(parameterName, buildType.get());
+    return BuildTypeUtil.getParameter(parameterName, buildType.get(), false, false);
   }
 
   @DELETE
