@@ -16,10 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -129,10 +126,12 @@ public class BuildTypeRequest {
   @PUT
   @Path("/{btLocator}/{field}")
   @Consumes("text/plain")
-  public void setBuildTypeField(@PathParam("btLocator") String buildTypeLocator, @PathParam("field") String fieldName, String newValue) {
+  @Produces("text/plain")
+  public String setBuildTypeField(@PathParam("btLocator") String buildTypeLocator, @PathParam("field") String fieldName, String newValue) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     buildType.setFieldValue(fieldName, newValue, myDataProvider);
     buildType.get().persist();
+    return buildType.getFieldValue(fieldName);
   }
 
   @GET
@@ -168,13 +167,17 @@ public class BuildTypeRequest {
   @PUT
   @Path("/{btLocator}/parameters")
   @Consumes({"application/xml", "application/json"})
-  public void changeBuildTypeParameters(@PathParam("btLocator") String buildTypeLocator, Properties properties) {
+  @Produces({"application/xml", "application/json"})
+  public Properties changeBuildTypeParameters(@PathParam("btLocator") String buildTypeLocator, Properties properties) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     BuildTypeUtil.removeAllParameters(buildType.get());
-    for (Property p : properties.properties) {
-      BuildTypeUtil.changeParameter(p.name, p.value, buildType.get(), myServiceLocator);
+    if (properties.properties != null) {
+      for (Property p : properties.properties) {
+        BuildTypeUtil.changeParameter(p.name, p.value, buildType.get(), myServiceLocator);
+      }
     }
     buildType.get().persist();
+    return new Properties(buildType.get().getParameters());
   }
 
   @DELETE
@@ -196,12 +199,14 @@ public class BuildTypeRequest {
   @PUT
   @Path("/{btLocator}/parameters/{name}")
   @Consumes("text/plain")
-  public void putBuildTypeParameter(@PathParam("btLocator") String buildTypeLocator,
+  @Produces("text/plain")
+  public String putBuildTypeParameter(@PathParam("btLocator") String buildTypeLocator,
                                     @PathParam("name") String parameterName,
                                     String newValue) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     BuildTypeUtil.changeParameter(parameterName, newValue, buildType.get(), myServiceLocator);
     buildType.get().persist();
+    return BuildTypeUtil.getParameter(parameterName, buildType.get());
   }
 
   @DELETE
@@ -230,8 +235,10 @@ public class BuildTypeRequest {
   public Properties replaceBuildTypeSettings(@PathParam("btLocator") String buildTypeLocator, Properties suppliedEntities) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     //todo: TeamCity API: how to reset settings to defaults?
-    for (Property property : suppliedEntities.properties) {
-      setSetting(buildType, property.name, property.value);
+    if (suppliedEntities.properties != null) {
+      for (Property property : suppliedEntities.properties) {
+        setSetting(buildType, property.name, property.value);
+      }
     }
     buildType.get().persist();
     return new Properties(BuildTypeUtil.getSettingsParameters(buildType));
@@ -246,6 +253,10 @@ public class BuildTypeRequest {
       throw new BadRequestException("Setting parameter name cannot be empty.");
     }
 
+    return getSetting(buildType, parameterName);
+  }
+
+  private String getSetting(final BuildTypeOrTemplate buildType, final String parameterName) {
     Map<String, String> parameters = BuildTypeUtil.getSettingsParameters(buildType);
     if (parameters.containsKey(parameterName)) {
       return parameters.get(parameterName);
@@ -256,12 +267,13 @@ public class BuildTypeRequest {
   @PUT
   @Path("/{btLocator}/settings/{name}")
   @Produces("text/plain")
-  public void putBuildTypeSetting(@PathParam("btLocator") String buildTypeLocator,
+  public String putBuildTypeSetting(@PathParam("btLocator") String buildTypeLocator,
                                   @PathParam("name") String parameterName,
                                   String newValue) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     setSetting(buildType, parameterName, newValue);
     buildType.get().persist();
+    return getSetting(buildType, parameterName);
   }
 
   private void setSetting(final BuildTypeOrTemplate buildType, final String parameterName, final String newValue) {
@@ -297,11 +309,13 @@ public class BuildTypeRequest {
   @PUT
   @Path("/{btLocator}/template")
   @Consumes("text/plain")
-  public void getTemplateAssociation(@PathParam("btLocator") String buildTypeLocator, String templateLocator) {
+  @Produces({"application/xml", "application/json"})
+  public BuildTypeRef getTemplateAssociation(@PathParam("btLocator") String buildTypeLocator, String templateLocator) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
     BuildTypeTemplate template = myBuildTypeFinder.getBuildTemplate(null, templateLocator);
     buildType.attachToTemplate(template);
     buildType.persist();
+    return new BuildTypeRef(template, myDataProvider, myApiUrlBuilder);
   }
 //todo: allow also to post back the XML from GET request (http://devnet.jetbrains.net/message/5466528#5466528)
 
@@ -331,8 +345,10 @@ public class BuildTypeRequest {
     for (jetbrains.buildServer.vcs.VcsRootEntry entry : buildType.get().getVcsRootEntries()) {
       buildType.get().removeVcsRoot((SVcsRoot)entry.getVcsRoot());
     }
-    for (VcsRootEntry entity : suppliedEntities.vcsRootAssignments) {
-      addVcsRoot(buildType, entity);
+    if (suppliedEntities.vcsRootAssignments != null) {
+      for (VcsRootEntry entity : suppliedEntities.vcsRootAssignments) {
+        addVcsRoot(buildType, entity);
+      }
     }
     buildType.get().persist();
     // not handlingsetting errors... a bit complex here
@@ -417,8 +433,10 @@ public class BuildTypeRequest {
     final Collection<SBuildRunnerDescriptor> originals = buildType.get().getBuildRunners();
     removeSteps(buildType, originals);
     try {
-      for (PropEntityStep entity : suppliedEntities.propEntities) {
-        entity.addStep(buildType.get(), myServiceLocator.getSingletonService(BuildRunnerDescriptorFactory.class));
+      if (suppliedEntities.propEntities != null) {
+        for (PropEntityStep entity : suppliedEntities.propEntities) {
+          entity.addStep(buildType.get(), myServiceLocator.getSingletonService(BuildRunnerDescriptorFactory.class));
+        }
       }
       buildType.get().persist();
     }catch (Exception e){
@@ -528,7 +546,8 @@ public class BuildTypeRequest {
   @PUT
   @Path("/{btLocator}/steps/{stepId}/parameters/{parameterName}")
   @Consumes({"text/plain"})
-  public void addStepParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId,
+  @Produces({"text/plain"})
+  public String addStepParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId,
                                @PathParam("parameterName") String parameterName, String newValue) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     SBuildRunnerDescriptor step = getBuildTypeStep(buildType.get(), stepId);
@@ -539,6 +558,7 @@ public class BuildTypeRequest {
     parameters.put(parameterName, newValue);
     buildType.get().updateBuildRunner(step.getId(), step.getName(), step.getType(), parameters);
     buildType.get().persist();
+    return getParameterValue(step, parameterName);
   }
 
   @GET
@@ -554,12 +574,14 @@ public class BuildTypeRequest {
   @PUT
   @Path("/{btLocator}/steps/{stepId}/{fieldName}")
   @Consumes({"text/plain"})
-  public void changeStepSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId,
+  @Produces({"text/plain"})
+  public String changeStepSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId,
                                 @PathParam("fieldName") String name, String newValue) {
     final BuildTypeSettings buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator).get();
     final SBuildRunnerDescriptor step = getBuildTypeStep(buildType, stepId);
     PropEntityStep.setSetting(buildType, step, name, newValue);
     buildType.persist();
+    return PropEntityStep.getSetting(buildType, step, name);
   }
 
 
@@ -581,8 +603,10 @@ public class BuildTypeRequest {
     final Collection<SBuildFeatureDescriptor> originals = buildType.get().getBuildFeatures();
     removeFeatures(buildType, originals);
     try {
-      for (PropEntityFeature entity : suppliedEntities.propEntities) {
-        entity.addFeature(buildType.get(), myServiceLocator.getSingletonService(BuildFeatureDescriptorFactory.class));
+      if (suppliedEntities.propEntities != null) {
+        for (PropEntityFeature entity : suppliedEntities.propEntities) {
+          entity.addFeature(buildType.get(), myServiceLocator.getSingletonService(BuildFeatureDescriptorFactory.class));
+        }
       }
       buildType.get().persist();
     }catch (Exception e){
@@ -668,7 +692,8 @@ public class BuildTypeRequest {
 
   @PUT
   @Path("/{btLocator}/features/{featureId}/parameters/{parameterName}")
-  public void addFeatureParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId,
+  @Produces({"text/plain"})
+  public String addFeatureParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId,
                                   @PathParam("parameterName") String parameterName, String newValue) {
 
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
@@ -681,6 +706,7 @@ public class BuildTypeRequest {
     parameters.put(parameterName, newValue);
     buildType.get().updateBuildFeature(feature.getId(), feature.getType(), parameters);
     buildType.get().persist();
+    return feature.getParameters().get(parameterName);
   }
 
 
@@ -697,12 +723,14 @@ public class BuildTypeRequest {
   @PUT
   @Path("/{btLocator}/features/{featureId}/{name}")
   @Consumes({"text/plain"})
-  public void changeFeatureSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId,
+  @Produces({"text/plain"})
+  public String changeFeatureSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId,
                                    @PathParam("name") String name, String newValue) {
     final BuildTypeSettings buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator).get();
     final SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType, featureId);
     PropEntityStep.setSetting(buildType, feature, name, newValue);
     buildType.persist();
+    return PropEntityStep.getSetting(buildType, feature, name);
   }
 
 
@@ -726,13 +754,17 @@ public class BuildTypeRequest {
 
     final List<SArtifactDependency> originalDependencies = buildType.get().getArtifactDependencies();
     try {
-      final List<SArtifactDependency> dependencyObjects =
-        CollectionsUtil.convertCollection(deps.propEntities, new Converter<SArtifactDependency, PropEntityArtifactDep>() {
-          public SArtifactDependency createFrom(@NotNull final PropEntityArtifactDep source) {
-            return source.createDependency(new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
-          }
-        });
-      buildType.get().setArtifactDependencies(dependencyObjects);
+      if (deps.propEntities != null){
+        final List<SArtifactDependency> dependencyObjects =
+          CollectionsUtil.convertCollection(deps.propEntities, new Converter<SArtifactDependency, PropEntityArtifactDep>() {
+            public SArtifactDependency createFrom(@NotNull final PropEntityArtifactDep source) {
+              return source.createDependency(new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+            }
+          });
+        buildType.get().setArtifactDependencies(dependencyObjects);
+      }else{
+        buildType.get().setArtifactDependencies(Collections.EMPTY_LIST);
+      }
       buildType.get().persist();
     } catch (Exception e) {
       //restore previous state
@@ -806,8 +838,10 @@ public class BuildTypeRequest {
     removeDependencies(buildType, originalDependencies);
 
     try {
-      for (PropEntitySnapshotDep entity : suppliedEntities.propEntities) {
-        entity.addSnapshotDependency(buildType.get(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+      if (suppliedEntities.propEntities != null) {
+        for (PropEntitySnapshotDep entity : suppliedEntities.propEntities) {
+          entity.addSnapshotDependency(buildType.get(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+        }
       }
       buildType.get().persist();
     } catch (Exception e) {
@@ -887,8 +921,10 @@ public class BuildTypeRequest {
     final Collection<BuildTriggerDescriptor> originals = buildType.get().getBuildTriggersCollection();
     removeTriggers(buildType, originals);
     try {
-      for (PropEntityTrigger entity : suppliedEntities.propEntities) {
-        entity.addTrigger(buildType.get(), myServiceLocator.getSingletonService(BuildTriggerDescriptorFactory.class));
+      if (suppliedEntities.propEntities != null) {
+        for (PropEntityTrigger entity : suppliedEntities.propEntities) {
+          entity.addTrigger(buildType.get(), myServiceLocator.getSingletonService(BuildTriggerDescriptorFactory.class));
+        }
       }
       buildType.get().persist();
     } catch (Exception e) {
@@ -962,12 +998,14 @@ public class BuildTypeRequest {
   @PUT
   @Path("/{btLocator}/triggers/{triggerLocator}/{fieldName}")
   @Consumes({"text/plain"})
-  public void changeTriggerSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("triggerLocator") String triggerLocator,
+  @Produces({"text/plain"})
+  public String changeTriggerSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("triggerLocator") String triggerLocator,
                                    @PathParam("fieldName") String name, String newValue) {
     final BuildTypeSettings buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator).get();
     final BuildTriggerDescriptor trigger = DataProvider.getTrigger(buildType, triggerLocator);
     PropEntityStep.setSetting(buildType, trigger, name, newValue);
     buildType.persist();
+    return PropEntityStep.getSetting(buildType, trigger, name);
   }
 
 
@@ -993,8 +1031,10 @@ public class BuildTypeRequest {
     final List<Requirement> originals = buildType.get().getRequirements();
     removeRequirements(buildType, originals);
     try {
-      for (PropEntityAgentRequirement entity : suppliedEntities.propEntities) {
-        entity.addRequirement(buildType);
+      if (suppliedEntities.propEntities != null) {
+        for (PropEntityAgentRequirement entity : suppliedEntities.propEntities) {
+          entity.addRequirement(buildType);
+        }
       }
       buildType.get().persist();
     } catch (Exception e) {
