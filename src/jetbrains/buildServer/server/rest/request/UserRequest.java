@@ -216,21 +216,31 @@ public class UserRequest {
 
 
   /**
-   * @deprecated Use POST instead, preserving PUT for compatibility
+   * Replaces user's roles with the submitted ones
    */
   @PUT
   @Path("/{userLocator}/roles")
   @Consumes({"application/xml", "application/json"})
-  public void addRolePut(@PathParam("userLocator") String userLocator, RoleAssignment roleAssignment) {
-    addRole(userLocator, roleAssignment);
+  @Produces({"application/xml", "application/json"})
+  public RoleAssignments addRolePut(@PathParam("userLocator") String userLocator, RoleAssignments roleAssignments) {
+    SUser user = myUserFinder.getUser(userLocator);
+    for (RoleEntry roleEntry : user.getRoles()) {
+      user.removeRole(roleEntry.getScope(), roleEntry.getRole());
+    }
+    for (RoleAssignment roleAssignment : roleAssignments.roleAssignments) {
+      user.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
+    }
+    return new RoleAssignments(user.getRoles(), user, myApiUrlBuilder);
   }
 
   @POST
   @Path("/{userLocator}/roles")
   @Consumes({"application/xml", "application/json"})
-  public void addRole(@PathParam("userLocator") String userLocator, RoleAssignment roleAssignment) {
+  @Produces({"application/xml", "application/json"})
+  public RoleAssignment addRole(@PathParam("userLocator") String userLocator, RoleAssignment roleAssignment) {
     SUser user = myUserFinder.getUser(userLocator);
     user.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
+    return new RoleAssignment(myDataProvider.getUserRoleEntry(user, roleAssignment.roleId, roleAssignment.scope), user, myApiUrlBuilder);
   }
 
   @GET
