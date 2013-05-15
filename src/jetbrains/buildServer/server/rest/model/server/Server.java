@@ -22,6 +22,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.maintenance.StartupContext;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -30,6 +31,7 @@ import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.request.*;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SBuildServer;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.ServerSettings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -147,8 +149,10 @@ public class Server {
       return Util.formatTime(new Date());
     } else if ("internalId".equals(field)) {
       return serviceLocator.getSingletonService(ServerSettings.class).getServerUUID();
+    } else if ("superUserToken".equals(field)) {
+      serviceLocator.getSingletonService(DataProvider.class).checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+      return serviceLocator.getSingletonService(DataProvider.class).getBean(StartupContext.class).getMaintenanceAuthenticationToken();
     }
     throw new NotFoundException("Field '" + field + "' is not supported. Supported are: version, versionMajor, versionMinor, buildNumber, startTime, currentTime, internalId.");
   }
-
 }
