@@ -105,8 +105,7 @@ public class VcsRootRequest {
   public void deleteRoot(@PathParam("vcsRootLocator") String vcsRootLocator) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
     try {
-      SProject project = vcsRoot.getProject();
-      project.removeOwnVcsRoot(vcsRoot);
+      vcsRoot.remove();
     } catch (ProjectNotFoundException e) {
       throw new NotFoundException("Could not find project for VCS root: " + vcsRoot.getName());
     }
