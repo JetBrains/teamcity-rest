@@ -22,6 +22,7 @@ import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -40,6 +41,8 @@ import org.jetbrains.annotations.Nullable;
  * Date: 12.04.2009
  */
 @XmlRootElement(name = "user")
+@XmlType(name="user", propOrder = {"username", "name", "id", "email", "lastLogin", "href",
+"properties", "roles", "groups"})
 public class User {
   private SUser myUser;
   private BeanContext myContext;
@@ -74,6 +77,11 @@ public class User {
       return Util.formatTime(lastLoginTimestamp);
     }
     return null;
+  }
+
+  @XmlAttribute
+  public String getHref() {
+    return myContext.getContextService(ApiUrlBuilder.class).getHref(myUser);
   }
 
   @XmlAttribute

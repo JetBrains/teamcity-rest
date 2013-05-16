@@ -27,7 +27,7 @@ import org.jetbrains.annotations.NotNull;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "user-ref")
-@XmlType(name = "user-ref")
+@XmlType(name = "user-ref", propOrder = {"username", "name", "id", "href"})
 public class UserRef {
   @NotNull private jetbrains.buildServer.users.User myUser;
   private ApiUrlBuilder myApiUrlBuilder;
