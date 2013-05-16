@@ -173,7 +173,7 @@ public class ProjectRequest {
   /**
    * Creates a new build configuration by copying existing one.
    * @param projectLocator
-   * @param descriptor reference to the build configuration to copy and copy options. e.g. <newBuildTypeDescription name='Conf Name' sourceBuildTypeLocator='id:bt42' copyAllAssociatedSettings='true' shareVCSRoots='false'/>
+   * @param descriptor reference to the build configuration to copy and copy options. e.g. <newBuildTypeDescription name='Conf Name' id='ProjectId_ConfName' sourceBuildTypeLocator='id:bt42' copyAllAssociatedSettings='true'/>
    * @return the build configuration created
    */
   @POST
@@ -211,15 +211,10 @@ public class ProjectRequest {
       result.addOption(CopyOptions.Option.COPY_AGENT_POOL_ASSOCIATIONS);
       result.addOption(CopyOptions.Option.COPY_AGENT_RESTRICTIONS);
       result.addOption(CopyOptions.Option.COPY_MUTED_TESTS);
-      result.addOption(CopyOptions.Option.COPY_PROJECT_TEMPLATES);
       result.addOption(CopyOptions.Option.COPY_USER_NOTIFICATION_RULES);
       result.addOption(CopyOptions.Option.COPY_USER_ROLES);
     }
-    if (toBoolean(description.shareVCSRoots)) {
-      result.addOption(CopyOptions.Option.SHARE_VCS_ROOTS);
-    }else{
-      result.addOption(CopyOptions.Option.COPY_VCS_ROOTS);
-    }
+    result.addOption(CopyOptions.Option.COPY_VCS_ROOTS); //todo: TeamCity API: this option seems unnecessary and is always implied
     return result;
   }
 
@@ -264,7 +259,7 @@ public class ProjectRequest {
   /**
    * Creates a new build configuration template by copying existing one.
    * @param projectLocator
-   * @param descriptor reference to the build configuration template to copy and copy options. e.g. <newBuildTypeDescription name='Conf Name' sourceBuildTypeLocator='id:bt42' copyAllAssociatedSettings='true' shareVCSRoots='false'/>
+   * @param descriptor reference to the build configuration template to copy and copy options. e.g. <newBuildTypeDescription name='Conf Name' id='ProjectId_ConfName' sourceBuildTypeLocator='id:bt42' copyAllAssociatedSettings='true'/>
    * @return the build configuration created
    */
   @POST
