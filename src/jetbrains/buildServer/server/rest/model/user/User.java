@@ -82,7 +82,7 @@ public class User {
   }
 
   @XmlElement(name = "roles")
-  public RoleAssignments getRoleAssignments() {
+  public RoleAssignments getRoles() {
     return new RoleAssignments(myUser.getRoles(), myUser, myContext);
   }
 
