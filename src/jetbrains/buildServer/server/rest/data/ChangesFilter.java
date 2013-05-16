@@ -47,6 +47,7 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
   @Nullable private final Locator myFileLocator;
   @Nullable private final Long myLookupLimit;
 
+  private final boolean myEnforceChangeViewPermissson;
   @NotNull private final DataProvider myDataProvider;
 
   public ChangesFilter(@Nullable final SProject project,
@@ -89,6 +90,8 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
     if (myVcsRootInstance != null && myPersonal != null && myPersonal){
       throw new BadRequestException("filtering personal changes by VCS root instance is not supported.");
     }
+
+    myEnforceChangeViewPermissson = TeamCityProperties.getBoolean("rest.request.changes.check.enforceChangeViewPermissson");
   }
 
   @Override
@@ -164,7 +167,7 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
 
     // include by myBuild should be already handled by this time on the upper level
 
-    if (!myDataProvider.checkCanView(change)){
+    if (myEnforceChangeViewPermissson && !myDataProvider.checkCanView(change)){
       return false;
     }
 
