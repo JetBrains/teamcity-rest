@@ -23,6 +23,7 @@ import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.server.rest.model.user.Users;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -49,12 +50,13 @@ public class Group extends GroupRef {
   public Group() {
   }
 
-  public Group(SUserGroup userGroup, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    super(userGroup, apiUrlBuilder);
+  public Group(SUserGroup userGroup, @NotNull final BeanContext context) {
+    super(userGroup, context.getContextService(ApiUrlBuilder.class));
     description = userGroup.getDescription();
+    final ApiUrlBuilder apiUrlBuilder = context.getContextService(ApiUrlBuilder.class);
     parentGroups = new Groups(userGroup.getParentGroups(), apiUrlBuilder);
     childGroups = new Groups(userGroup.getDirectSubgroups(), apiUrlBuilder);
     users = new Users(userGroup.getDirectUsers(), apiUrlBuilder);
-    roleAssignments = new RoleAssignments(userGroup.getRoles(), userGroup, apiUrlBuilder);
+    roleAssignments = new RoleAssignments(userGroup.getRoles(), userGroup, context);
   }
 }

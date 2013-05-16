@@ -20,11 +20,19 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.ProjectFinder;
+import jetbrains.buildServer.server.rest.errors.InvalidStateException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.serverSide.ProjectManager;
+import jetbrains.buildServer.serverSide.ProjectManagerEx;
+import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
+import jetbrains.buildServer.serverSide.identifiers.EntityId;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * User: Yegor Yarko
@@ -43,19 +51,56 @@ public class RoleAssignment {
   public RoleAssignment() {
   }
 
-  public RoleAssignment(RoleEntry roleEntry, SUser user, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public RoleAssignment(RoleEntry roleEntry, SUser user, @NotNull final BeanContext context) {
     roleId = roleEntry.getRole().getId();
-    scope = getScopeRepresentation(roleEntry.getScope());
-    href = apiUrlBuilder.getHref(roleEntry, user);
+    final String scopeParam = getScopeProject(roleEntry.getScope(), context);
+    scope = getScopeRepresentation(scopeParam);
+    href = context.getContextService(ApiUrlBuilder.class).getHref(roleEntry, user, scopeParam);
   }
 
-  public RoleAssignment(RoleEntry roleEntry, UserGroup group, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public RoleAssignment(RoleEntry roleEntry, UserGroup group, @NotNull final BeanContext context) {
     roleId = roleEntry.getRole().getId();
-    scope = getScopeRepresentation(roleEntry.getScope());
-    href = apiUrlBuilder.getHref(roleEntry, group);
+    final String scopeParam = getScopeProject(roleEntry.getScope(), context);
+    scope = getScopeRepresentation(scopeParam);
+    href = context.getContextService(ApiUrlBuilder.class).getHref(roleEntry, group, scopeParam);
   }
 
-  private static String getScopeRepresentation(@NotNull final RoleScope scope) {
-    return DataProvider.getScopeRepresentation(scope);
+  public static String getScopeRepresentation(@Nullable final String scopeParam) {
+    if (scopeParam == null) {
+      return "g";
+    }
+    return "p:" + scopeParam;
+  }
+
+  @NotNull
+  public static RoleScope getScope(@NotNull String scopeData, @NotNull final BeanContext context) {
+    if ("g".equalsIgnoreCase(scopeData)) {
+      return RoleScope.globalScope();
+    }
+
+    if (!scopeData.startsWith("p:")) {
+      throw new NotFoundException("Cannot find scope by '" + scopeData + "' Valid formats are: 'g' or 'p:<projectId>'.");
+    }
+    final String projectString = scopeData.substring(2);
+    final EntityId<String> internalId = ((ProjectManagerEx)context.getSingletonService(ProjectManager.class)).getProjectIdentifiersManager().findEntityIdByExternalId(projectString);
+    if (internalId == null){
+      //throw new InvalidStateException("Could not find project internal id by external id '" + projectString + "'.");
+      //support locator here just in case
+      final SProject project = context.getSingletonService(ProjectFinder.class).getProject(projectString);
+      return RoleScope.projectScope(project.getProjectId());
+    }
+    return RoleScope.projectScope(internalId.getInternalId());
+  }
+
+  @Nullable
+  private String getScopeProject(@NotNull final RoleScope scope, @NotNull final BeanContext context) {
+    if (scope.isGlobal()){
+      return null;
+    }
+    final EntityId<String> externalId = ((ProjectManagerEx)context.getSingletonService(ProjectManager.class)).getProjectIdentifiersManager().findEntityIdByInternalId(scope.getProjectId());
+    if (externalId == null){
+      throw new InvalidStateException("Could not find project external id by internal id '" + scope.getProjectId() + "'.");
+    }
+    return externalId.getExternalId();
   }
 }

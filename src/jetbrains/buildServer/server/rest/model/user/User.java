@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.group.Groups;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
@@ -41,14 +42,14 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "user")
 public class User {
   private SUser myUser;
-  private ApiUrlBuilder myApiUrlBuilder;
+  private BeanContext myContext;
 
   public User() {
   }
 
-  public User(jetbrains.buildServer.users.SUser user, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public User(SUser user, @NotNull final BeanContext context) {
     this.myUser = user;
-    myApiUrlBuilder = apiUrlBuilder;
+    myContext = context;
   }
 
   @XmlAttribute
@@ -82,12 +83,12 @@ public class User {
 
   @XmlElement(name = "roles")
   public RoleAssignments getRoleAssignments() {
-    return new RoleAssignments(myUser.getRoles(), myUser, myApiUrlBuilder);
+    return new RoleAssignments(myUser.getRoles(), myUser, myContext);
   }
 
   @XmlElement(name = "groups")
   public Groups getGroups() {
-    return new Groups(myUser.getUserGroups(), myApiUrlBuilder);
+    return new Groups(myUser.getUserGroups(), myContext.getContextService(ApiUrlBuilder.class));
   }
 
   @XmlAttribute

@@ -27,6 +27,7 @@ import jetbrains.buildServer.server.rest.model.group.GroupRef;
 import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.users.*;
 import jetbrains.buildServer.util.StringUtil;
@@ -63,13 +64,13 @@ public class DataUpdater {
       throw new BadRequestException("Cannot create user with empty username.", e);
     }
   }
-  public void modify(SUser user, jetbrains.buildServer.server.rest.model.user.User userData) {
+  public void modify(SUser user, jetbrains.buildServer.server.rest.model.user.User userData, @NotNull BeanContext context) {
     updateUserCoreFields(user, userData.getSubmittedUsername(), userData.getSubmittedName(), userData.getSubmittedEmail(),
                          userData.getSubmittedPassword());
 
     if (userData.getSubmittedRoles() != null) {
       removeAllRoles(user);
-      addRoles(user, userData.getSubmittedRoles());
+      addRoles(user, userData.getSubmittedRoles(), context);
     }
 
     if (userData.getSubmittedProperties() != null) {
@@ -171,9 +172,9 @@ public class DataUpdater {
     }
   }
 
-  private void addRoles(final SUser user, final RoleAssignments roles) {
+  private void addRoles(final SUser user, final RoleAssignments roles, @NotNull BeanContext context) {
     for (RoleAssignment roleAssignment : roles.roleAssignments) {
-      user.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
+      user.addRole(RoleAssignment.getScope(roleAssignment.scope, context), myDataProvider.getRoleById(roleAssignment.roleId));
     }
   }
 }

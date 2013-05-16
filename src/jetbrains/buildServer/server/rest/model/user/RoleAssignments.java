@@ -22,7 +22,7 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.groups.UserGroup;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
@@ -39,17 +39,17 @@ public class RoleAssignments {
   public RoleAssignments() {
   }
 
-  public RoleAssignments(Collection<RoleEntry> roleEntries, SUser user, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public RoleAssignments(Collection<RoleEntry> roleEntries, SUser user, @NotNull final BeanContext context) {
     roleAssignments = new ArrayList<RoleAssignment>(roleEntries.size());
     for (RoleEntry roleEntry : roleEntries) {
-      roleAssignments.add(new RoleAssignment(roleEntry, user, apiUrlBuilder));
+      roleAssignments.add(new RoleAssignment(roleEntry, user, context));
     }
   }
 
-  public RoleAssignments(Collection<RoleEntry> roleEntries, UserGroup group, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public RoleAssignments(Collection<RoleEntry> roleEntries, UserGroup group, @NotNull final BeanContext context) {
     roleAssignments = new ArrayList<RoleAssignment>(roleEntries.size());
     for (RoleEntry roleEntry : roleEntries) {
-      roleAssignments.add(new RoleAssignment(roleEntry, group, apiUrlBuilder));
+      roleAssignments.add(new RoleAssignment(roleEntry, group, context));
     }
   }
 }

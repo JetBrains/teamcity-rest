@@ -30,6 +30,7 @@ import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsModification;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -75,12 +76,12 @@ public class ApiUrlBuilder {
     return myPathTransformer.transform(GroupRequest.getGroupHref(userGroup));
   }
 
-  public String getHref(final RoleEntry roleEntry, final UserGroup group) {
-    return myPathTransformer.transform(GroupRequest.getRoleAssignmentHref(roleEntry, group));
+  public String getHref(final RoleEntry roleEntry, final UserGroup group, @Nullable final String project) {
+    return myPathTransformer.transform(GroupRequest.getRoleAssignmentHref(group, roleEntry, project));
   }
 
-  public String getHref(final RoleEntry roleEntry, final SUser user) {
-    return myPathTransformer.transform(UserRequest.getRoleAssignmentHref(roleEntry, user));
+  public String getHref(final RoleEntry roleEntry, final SUser user, @Nullable final String scopeParam) {
+    return myPathTransformer.transform(UserRequest.getRoleAssignmentHref(user, roleEntry, scopeParam));
   }
 
   public String getHref(final SProject project) {

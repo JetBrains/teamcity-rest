@@ -30,13 +30,14 @@ import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.model.user.Users;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
-import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.SimplePropertyKey;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
@@ -58,9 +59,8 @@ public class UserRequest {
     return API_USERS_URL + "/id:" + user.getId();
   }
 
-  public static String getRoleAssignmentHref(final RoleEntry roleEntry, final SUser user) {
-    final RoleScope roleScope = roleEntry.getScope();
-    return getUserHref(user) + "/roles/" + roleEntry.getRole().getId() + "/" + DataProvider.getScopeRepresentation(roleScope);
+  public static String getRoleAssignmentHref(final SUser user, final RoleEntry roleEntry, @Nullable final String scopeParam) {
+    return getUserHref(user) + "/roles/" + roleEntry.getRole().getId() + "/" + RoleAssignment.getScopeRepresentation(scopeParam);
   }
 
   @GET
@@ -118,15 +118,16 @@ public class UserRequest {
   @Consumes({"application/xml", "application/json"})
   public User createUser(User userData) {
     final SUser user = myDataUpdater.createUser(userData.getSubmittedUsername());
-    myDataUpdater.modify(user, userData);
-    return new User(user, myApiUrlBuilder);
+    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
+    myDataUpdater.modify(user, userData, context);
+    return new User(user, context);
   }
 
   @GET
   @Path("/{userLocator}")
   @Produces({"application/xml", "application/json"})
   public User serveUser(@PathParam("userLocator") String userLocator) {
-    return new User(myUserFinder.getUser(userLocator), myApiUrlBuilder);
+    return new User(myUserFinder.getUser(userLocator), new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
   }
 
   @PUT
@@ -135,8 +136,9 @@ public class UserRequest {
   @Produces({"application/xml", "application/json"})
   public User updateUser(@PathParam("userLocator") String userLocator, User userData) {
     SUser user = myUserFinder.getUser(userLocator);
-    myDataUpdater.modify(user, userData);
-    return new User(user, myApiUrlBuilder);
+    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
+    myDataUpdater.modify(user, userData, context);
+    return new User(user, context);
   }
 
   @GET
@@ -207,7 +209,7 @@ public class UserRequest {
   public RoleAssignments listRoles(@PathParam("userLocator") String userLocator) {
     checkViewUserPermission(userLocator); //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
     SUser user = myUserFinder.getUser(userLocator);
-    return new RoleAssignments(user.getRoles(), user, myApiUrlBuilder);
+    return new RoleAssignments(user.getRoles(), user, new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
   }
 
 
@@ -223,10 +225,11 @@ public class UserRequest {
     for (RoleEntry roleEntry : user.getRoles()) {
       user.removeRole(roleEntry.getScope(), roleEntry.getRole());
     }
+    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
     for (RoleAssignment roleAssignment : roleAssignments.roleAssignments) {
-      user.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
+      user.addRole(RoleAssignment.getScope(roleAssignment.scope, context), myDataProvider.getRoleById(roleAssignment.roleId));
     }
-    return new RoleAssignments(user.getRoles(), user, myApiUrlBuilder);
+    return new RoleAssignments(user.getRoles(), user, context);
   }
 
   @POST
@@ -235,8 +238,9 @@ public class UserRequest {
   @Produces({"application/xml", "application/json"})
   public RoleAssignment addRole(@PathParam("userLocator") String userLocator, RoleAssignment roleAssignment) {
     SUser user = myUserFinder.getUser(userLocator);
-    user.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
-    return new RoleAssignment(myDataProvider.getUserRoleEntry(user, roleAssignment.roleId, roleAssignment.scope), user, myApiUrlBuilder);
+    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
+    user.addRole(RoleAssignment.getScope(roleAssignment.scope, context), myDataProvider.getRoleById(roleAssignment.roleId));
+    return new RoleAssignment(DataProvider.getUserRoleEntry(user, roleAssignment.roleId, roleAssignment.scope, context), user, context);
   }
 
   @GET
@@ -246,7 +250,8 @@ public class UserRequest {
                                  @PathParam("scope") String scopeValue) {
     checkViewUserPermission(userLocator);  //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
     SUser user = myUserFinder.getUser(userLocator);
-    return new RoleAssignment(myDataProvider.getUserRoleEntry(user, roleId, scopeValue), user, myApiUrlBuilder);
+    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
+    return new RoleAssignment(DataProvider.getUserRoleEntry(user, roleId, scopeValue, context), user, context);
   }
 
   @DELETE
@@ -254,7 +259,8 @@ public class UserRequest {
   public void deleteRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
                          @PathParam("scope") String scopeValue) {
     SUser user = myUserFinder.getUser(userLocator);
-    user.removeRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
+    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
+    user.removeRole(RoleAssignment.getScope(scopeValue, context), myDataProvider.getRoleById(roleId));
   }
 
 
@@ -276,7 +282,8 @@ public class UserRequest {
                             @PathParam("roleId") String roleId,
                             @PathParam("scope") String scopeValue) {
     SUser user = myUserFinder.getUser(userLocator);
-    user.addRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
-    return new RoleAssignment(myDataProvider.getUserRoleEntry(user, roleId, scopeValue), user, myApiUrlBuilder);
+    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
+    user.addRole(RoleAssignment.getScope(scopeValue, context), myDataProvider.getRoleById(roleId));
+    return new RoleAssignment(DataProvider.getUserRoleEntry(user, roleId, scopeValue, context), user, context);
   }
 }

@@ -35,6 +35,8 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Constants;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
@@ -151,26 +153,6 @@ public class DataProvider {
       throw new NotFoundException("Cannot find role by id '" + roleId + "'.");
     }
     return role;
-  }
-
-  @NotNull
-  public static RoleScope getScope(@NotNull String scopeData) {
-    if ("g".equalsIgnoreCase(scopeData)) {
-      return RoleScope.globalScope();
-    }
-
-    if (!scopeData.startsWith("p:")) {
-      throw new NotFoundException("Cannot find scope by '" + scopeData + "' Valid formats are: 'g' or 'p:<projectId>'.");
-    }
-
-    return RoleScope.projectScope(scopeData.substring(2));
-  }
-
-  public static String getScopeRepresentation(@NotNull final RoleScope scope) {
-    if (scope.isGlobal()) {
-      return "g";
-    }
-    return "p:" + scope.getProjectId(); //todo: (TeamCity) open API: is it internal or external project id?
   }
 
   public Collection<User> getAllUsers() {
@@ -359,11 +341,11 @@ public class DataProvider {
     return myServerListener.getServerStartTime();
   }
 
-  public RoleEntry getGroupRoleEntry(final SUserGroup group, final String roleId, final String scopeValue) {
+  public static RoleEntry getGroupRoleEntry(final SUserGroup group, final String roleId, final String scopeValue, final BeanContext context) {
     if (roleId == null) {
       throw new BadRequestException("Expected roleId is not specified");
     }
-    final RoleScope roleScope = getScope(scopeValue);
+    final RoleScope roleScope = RoleAssignment.getScope(scopeValue, context);
     final Collection<RoleEntry> roles = group.getRoles();
     for (RoleEntry roleEntry : roles) {
       if (roleScope.equals(roleEntry.getScope()) && roleId.equals(roleEntry.getRole().getId())) {
@@ -373,11 +355,11 @@ public class DataProvider {
     throw new NotFoundException("Group " + group + " does not have role with id: '" + roleId + "' and scope '" + scopeValue + "'");
   }
 
-  public RoleEntry getUserRoleEntry(final SUser user, final String roleId, final String scopeValue) {
+  public static RoleEntry getUserRoleEntry(final SUser user, final String roleId, final String scopeValue, final BeanContext context) {
     if (roleId == null) {
       throw new BadRequestException("Expected roleId is not specified");
     }
-    final RoleScope roleScope = getScope(scopeValue);
+    final RoleScope roleScope = RoleAssignment.getScope(scopeValue, context);
     final Collection<RoleEntry> roles = user.getRoles();
     for (RoleEntry roleEntry : roles) {
       if (roleScope.equals(roleEntry.getScope()) && roleId.equals(roleEntry.getRole().getId())) {
@@ -419,13 +401,7 @@ public class DataProvider {
     if (authorityHolder.isPermissionGrantedGlobally(Permission.VIEW_PROJECT)){
       return true;
     }
-    final Collection<SProject> relatedProjects = change.getRelatedProjects();
-    for (SProject project : relatedProjects) {
-      if (authorityHolder.isPermissionGrantedForProject(project.getProjectId(), Permission.VIEW_PROJECT)){
-        return true;
-      }
-    }
-    return false;
+    return AuthUtil.hasReadAccessTo(authorityHolder, change);
   }
 
 

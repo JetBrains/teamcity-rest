@@ -28,9 +28,10 @@ import jetbrains.buildServer.server.rest.model.group.Group;
 import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
-import jetbrains.buildServer.serverSide.auth.RoleScope;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
@@ -51,9 +52,8 @@ public class GroupRequest {
     return API_USER_GROUPS_URL + "/key:" + userGroup.getKey();
   }
 
-  public static String getRoleAssignmentHref(final RoleEntry roleEntry, final UserGroup group) {
-    final RoleScope roleScope = roleEntry.getScope();
-    return getGroupHref(group) + "/roles/" + roleEntry.getRole().getId() + "/" + DataProvider.getScopeRepresentation(roleScope);
+  public static String getRoleAssignmentHref(final UserGroup group, final RoleEntry roleEntry, @Nullable final String scopeParam) {
+    return getGroupHref(group) + "/roles/" + roleEntry.getRole().getId() + "/" + RoleAssignment.getScopeRepresentation(scopeParam);
   }
 
   @GET
@@ -67,14 +67,14 @@ public class GroupRequest {
   @Produces({"application/xml", "application/json"})
   public Group addGroup(Group description) {
     SUserGroup group = myDataUpdater.createUserGroup(description);
-    return new Group(group, myApiUrlBuilder);
+    return new Group(group, new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
   }
 
   @GET
   @Path("/{groupLocator}")
   @Produces({"application/xml", "application/json"})
   public Group serveGroup(@PathParam("groupLocator") String groupLocator) {
-    return new Group(myUserGroupFinder.getGroup(groupLocator), myApiUrlBuilder);
+    return new Group(myUserGroupFinder.getGroup(groupLocator), new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
   }
 
   @DELETE
@@ -88,7 +88,7 @@ public class GroupRequest {
   @Produces({"application/xml", "application/json"})
   public RoleAssignments listRoles(@PathParam("groupLocator") String groupLocator) {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
-    return new RoleAssignments(group.getRoles(), group, myApiUrlBuilder);
+    return new RoleAssignments(group.getRoles(), group, new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
   }
 
   /**
@@ -103,10 +103,11 @@ public class GroupRequest {
     for (RoleEntry roleEntry : group.getRoles()) {
       group.removeRole(roleEntry.getScope(), roleEntry.getRole());
     }
+    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
     for (RoleAssignment roleAssignment : roleAssignments.roleAssignments) {
-      group.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
+      group.addRole(RoleAssignment.getScope(roleAssignment.scope, context), myDataProvider.getRoleById(roleAssignment.roleId));
     }
-    return new RoleAssignments(group.getRoles(), group, myApiUrlBuilder);
+    return new RoleAssignments(group.getRoles(), group, context);
   }
 
   @POST
@@ -115,8 +116,9 @@ public class GroupRequest {
   @Produces({"application/xml", "application/json"})
   public RoleAssignment addRole(@PathParam("groupLocator") String groupLocator, RoleAssignment roleAssignment) {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
-    group.addRole(DataProvider.getScope(roleAssignment.scope), myDataProvider.getRoleById(roleAssignment.roleId));
-    return new RoleAssignment(myDataProvider.getGroupRoleEntry(group, roleAssignment.roleId, roleAssignment.scope), group, myApiUrlBuilder);
+    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
+    group.addRole(RoleAssignment.getScope(roleAssignment.scope, context), myDataProvider.getRoleById(roleAssignment.roleId));
+    return new RoleAssignment(DataProvider.getGroupRoleEntry(group, roleAssignment.roleId, roleAssignment.scope, context), group, context);
   }
 
   @GET
@@ -125,7 +127,8 @@ public class GroupRequest {
   public RoleAssignment listRole(@PathParam("groupLocator") String groupLocator, @PathParam("roleId") String roleId,
                                  @PathParam("scope") String scopeValue) {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
-    return new RoleAssignment(myDataProvider.getGroupRoleEntry(group, roleId, scopeValue), group, myApiUrlBuilder);
+    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
+    return new RoleAssignment(DataProvider.getGroupRoleEntry(group, roleId, scopeValue, context), group, context);
   }
 
   @DELETE
@@ -133,7 +136,8 @@ public class GroupRequest {
   public void deleteRole(@PathParam("groupLocator") String groupLocator, @PathParam("roleId") String roleId,
                          @PathParam("scope") String scopeValue) {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
-    group.removeRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
+    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
+    group.removeRole(RoleAssignment.getScope(scopeValue, context), myDataProvider.getRoleById(roleId));
   }
 
   @POST
@@ -143,7 +147,8 @@ public class GroupRequest {
                             @PathParam("roleId") String roleId,
                             @PathParam("scope") String scopeValue) {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
-    group.addRole(DataProvider.getScope(scopeValue), myDataProvider.getRoleById(roleId));
-    return new RoleAssignment(myDataProvider.getGroupRoleEntry(group, roleId, scopeValue), group, myApiUrlBuilder);
+    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
+    group.addRole(RoleAssignment.getScope(scopeValue, context), myDataProvider.getRoleById(roleId));
+    return new RoleAssignment(DataProvider.getGroupRoleEntry(group, roleId, scopeValue, context), group, context);
   }
 }
