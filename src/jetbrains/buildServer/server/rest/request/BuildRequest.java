@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.io.*;
+import java.math.BigDecimal;
 import java.util.*;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -630,40 +631,17 @@ public class BuildRequest {
     return myServiceLocator.getSingletonService(ServletContext.class).getRealPath(relativePath);
   }
 
-
-  @NotNull
-  private Map<String, BuildValue> getRawBuildStatisticValue(final SBuild build, final String valueTypeKey) {
-    ValueProvider vt = myDataProvider.getValueProviderRegistry().getValueProvider(valueTypeKey);
-    if (vt instanceof BuildValueProvider) { // also checks for null
-      return ((BuildValueProvider) vt).getData(build);
-    }
-    return Collections.emptyMap();
-  }
-
   public Map<String, String> getBuildStatisticsValues(final SBuild build) {
-    final Collection<ValueProvider> valueProviders = myDataProvider.getValueProviderRegistry().getValueProviders();
-    final Map<String, String> result = new HashMap<String, String>();
+    final Map<String,BigDecimal> values = build.getStatisticValues();
 
-    //todo: this should be based not on currently registered providers, but on the real values published for a build,
-    // see also http://youtrack.jetbrains.net/issue/TW-4003
-    for (ValueProvider valueProvider : valueProviders) {
-      addValueIfPresent(build, valueProvider.getKey(), result);
+    final Map<String, String> result = new HashMap<String, String>(values.size());
+    for (Map.Entry<String,BigDecimal> entry : values.entrySet()) {
+      if (entry.getValue() == null) {
+        continue;
+      }
+      result.put(entry.getKey(), entry.getValue().toPlainString());
     }
 
     return result;
-  }
-
-  private void addValueIfPresent(@NotNull final SBuild build, @NotNull final String valueTypeKey, @NotNull final Map<String, String> result) {
-    final Map<String, BuildValue> statValues = getRawBuildStatisticValue(build, valueTypeKey);
-    for (Map.Entry<String, BuildValue> bve : statValues.entrySet()) {
-      BuildValue value = bve.getValue();
-      if (value != null) { // should never happen
-        if (value.getValue() == null) {
-          // some value providers can return BuildValue without value itself (see TimeToFixValueType), however in REST we do not need such values
-          continue;
-        }
-        result.put(bve.getKey(), value.getValue().toString());
-      }
-    }
   }
 }
