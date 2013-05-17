@@ -67,12 +67,26 @@ public class ChangeFinder {
     final Long count = locator.getSingleDimensionValueAsLong("count");
     final String vcsRootInstance = locator.getSingleDimensionValue("vcsRootInstance");
     final String vcsRoot = locator.getSingleDimensionValue("vcsRoot");
+
+    final String sinceChangeDimension = locator.getSingleDimensionValue("sinceChange");
+    Long sinceChangeId = null;
+    if (sinceChangeDimension != null){
+      //if change id - do not find change to support cases when it does not exist
+      try {
+        sinceChangeId = Long.parseLong(sinceChangeDimension);
+      } catch (NumberFormatException e) {
+        //not id - proceed as usual
+        SVcsModification modification = getChange(sinceChangeDimension);
+        sinceChangeId = modification.getId();
+      }
+    }
+
     changesFilter = new ChangesFilter(myProjectFinder.getProjectIfNotNull(locator.getSingleDimensionValue("project")),
                                       buildType,
                                       myBuildFinder.getBuildIfNotNull(buildType, locator.getSingleDimensionValue("build")),
                                       vcsRootInstance == null ? null : myVcsRootFinder.getVcsRootInstance(vcsRootInstance),
                                       vcsRoot == null ? null : myVcsRootFinder.getVcsRoot(vcsRoot),
-                                      getChangeIfNotNull(locator.getSingleDimensionValue("sinceChange")),
+                                      sinceChangeId,
                                       locator.getSingleDimensionValue("username"),
                                       userLocator == null ? null : myUserFinder.getUser(userLocator),
                                       locator.getSingleDimensionValueAsBoolean("personal"),

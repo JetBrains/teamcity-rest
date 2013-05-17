@@ -37,7 +37,7 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
   @Nullable private final SBuild myBuild;
   @Nullable private final VcsRootInstance myVcsRootInstance;
   @Nullable private final SVcsRoot myVcsRoot;
-  @Nullable private final SVcsModification mySinceChange;
+  @Nullable private final Long mySinceChangeId;
   @Nullable private final String myVcsUsername;
   @Nullable private final SUser myUser;
   @Nullable private final Boolean myPersonal;
@@ -55,7 +55,7 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
                        @Nullable final SBuild build,
                        @Nullable final VcsRootInstance vcsRootInstance,
                        @Nullable final SVcsRoot vcsRoot,
-                       @Nullable final SVcsModification sinceChange,
+                       @Nullable final Long sinceChangeId,
                        @Nullable final String vcsUsername,
                        @Nullable final SUser user,
                        @Nullable final Boolean personal,
@@ -73,7 +73,7 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
     myBuild = build;
     myVcsRootInstance = vcsRootInstance;
     myVcsRoot = vcsRoot;
-    mySinceChange = sinceChange;
+    mySinceChangeId = sinceChangeId;
     myVcsUsername = vcsUsername;
     myUser = user;
     myPersonal = personal;
@@ -116,7 +116,7 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
       }
     }
 
-    if (mySinceChange != null && mySinceChange.getId() >= change.getId()) {
+    if (mySinceChangeId != null && mySinceChangeId >= change.getId()) {
       return false;
     }
 
@@ -185,14 +185,14 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
     } else if (myBuildType != null) {
       processList(getBuildTypeChanges(vcsHistory, myBuildType), filterItemProcessor);
     } else if (myVcsRootInstance != null) {
-      if (mySinceChange != null) {
-        processList(vcsHistory.getModificationsInRange(myVcsRootInstance, mySinceChange.getId(), null), filterItemProcessor);
+      if (mySinceChangeId != null) {
+        processList(vcsHistory.getModificationsInRange(myVcsRootInstance, mySinceChangeId, null), filterItemProcessor);
       } else {
         //todo: highly inefficient!
         processList(vcsHistory.getAllModifications(myVcsRootInstance), filterItemProcessor);
       }
     } else if (myProject != null) {
-      processList(getProjectChanges(vcsHistory, myProject, mySinceChange), filterItemProcessor);
+      processList(getProjectChanges(vcsHistory, myProject, mySinceChangeId), filterItemProcessor);
     } else {
       //todo: highly inefficient!
       processList(vcsHistory.getAllModifications(), filterItemProcessor);
@@ -234,12 +234,12 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
 
   static private List<SVcsModification> getProjectChanges(@NotNull final VcsModificationHistory vcsHistory,
                                                           @NotNull final SProject project,
-                                                          @Nullable final SVcsModification sinceChange) {
+                                                          @Nullable final Long sinceChangeId) {
     final List<VcsRootInstance> vcsRoots = project.getVcsRootInstances();
     final List<SVcsModification> result = new ArrayList<SVcsModification>();
     for (VcsRootInstance root : vcsRoots) {
-      if (sinceChange != null) {
-        result.addAll(vcsHistory.getModificationsInRange(root, sinceChange.getId(), null));
+      if (sinceChangeId != null) {
+        result.addAll(vcsHistory.getModificationsInRange(root, sinceChangeId, null));
       } else {
         //todo: highly inefficient!
         result.addAll(vcsHistory.getAllModifications(root));
