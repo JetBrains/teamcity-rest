@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.auth.Permission;
@@ -45,15 +46,16 @@ public class ChangeFinder {
     myVcsManager = vcsManager;
   }
 
-  public static String[] getChangesLocatorSupportedDimensions(){
-    return new String[]{"id", "project", "buildType", "build", "vcsRoot", "vcsRootInstance", "username", "user", "personal", "version", "internalVersion", "comment", "file", "sinceChange", "start", "count", "lookupLimit", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME};
+  public static String[] getChangesLocatorSupportedDimensions() {
+    return new String[]{"id", "project", "buildType", "build", "vcsRoot", "vcsRootInstance", "username", "user", "personal", "version", "internalVersion", "comment", "file",
+      "sinceChange", "branch", "start", "count", "lookupLimit", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME};
   }
 
   @NotNull
   public PagedSearchResult<SVcsModification> getModifications(@NotNull Locator locator) {
     final SVcsModification singleChange = getSingleChange(locator);
-    if (singleChange != null){
-      if (!myDataProvider.checkCanView(singleChange)){
+    if (singleChange != null) {
+      if (!myDataProvider.checkCanView(singleChange)) {
         throw new AuthorizationFailedException("Current user does not have permission " + Permission.VIEW_PROJECT +
                                                " in any of the projects associated with the change with id: '" + singleChange.getId() + "'");
       }
@@ -70,7 +72,7 @@ public class ChangeFinder {
 
     final String sinceChangeDimension = locator.getSingleDimensionValue("sinceChange");
     Long sinceChangeId = null;
-    if (sinceChangeDimension != null){
+    if (sinceChangeDimension != null) {
       //if change id - do not find change to support cases when it does not exist
       try {
         sinceChangeId = Long.parseLong(sinceChangeDimension);
@@ -83,6 +85,7 @@ public class ChangeFinder {
 
     changesFilter = new ChangesFilter(myProjectFinder.getProjectIfNotNull(locator.getSingleDimensionValue("project")),
                                       buildType,
+                                      getBranchName(locator.getSingleDimensionValue("branch")),
                                       myBuildFinder.getBuildIfNotNull(buildType, locator.getSingleDimensionValue("build")),
                                       vcsRootInstance == null ? null : myVcsRootFinder.getVcsRootInstance(vcsRootInstance),
                                       vcsRoot == null ? null : myVcsRootFinder.getVcsRoot(vcsRoot),
@@ -101,7 +104,23 @@ public class ChangeFinder {
   }
 
   @Nullable
-  private SVcsModification getSingleChange(@NotNull Locator locator){
+  private String getBranchName(@Nullable final String branch) {
+    if (branch == null) {
+      return null;
+    }
+    final Locator branchLocator;
+    try {
+      branchLocator = new Locator(branch, "name");
+      final String result = branchLocator.getSingleDimensionValue("name");
+      branchLocator.checkLocatorFullyProcessed();
+      return result;
+    } catch (LocatorProcessException e) {
+      throw new BadRequestException("Error procesing branch locator '" + branch + "'", e);
+    }
+  }
+
+  @Nullable
+  private SVcsModification getSingleChange(@NotNull Locator locator) {
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's id
       @SuppressWarnings("ConstantConditions") SVcsModification modification = myVcsManager.findModificationById(locator.getSingleValueAsLong(), false);
@@ -144,7 +163,7 @@ public class ChangeFinder {
     locator.addIgnoreUnusedDimensions("count");
     final PagedSearchResult<SVcsModification> changes = getModifications(locator);
     locator.checkLocatorFullyProcessed();
-    if (changes.myEntries.size() > 0){
+    if (changes.myEntries.size() > 0) {
       return changes.myEntries.iterator().next();
     }
     throw new NotFoundException("No changes found by locator '" + changeLocator + "'.");

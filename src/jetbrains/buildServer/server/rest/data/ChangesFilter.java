@@ -34,6 +34,7 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
   public static final String IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION = "rest.ignoreChangesFromDependenciesOption";
   @Nullable private final SProject myProject;
   @Nullable private final SBuildType myBuildType;
+  @Nullable private final String myBranchName;
   @Nullable private final SBuild myBuild;
   @Nullable private final VcsRootInstance myVcsRootInstance;
   @Nullable private final SVcsRoot myVcsRoot;
@@ -45,13 +46,13 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
   @Nullable private final String myInternalVersion;
   @Nullable private final Locator myCommentLocator;
   @Nullable private final Locator myFileLocator;
-  @Nullable private final Long myLookupLimit;
 
   private final boolean myEnforceChangeViewPermissson;
   @NotNull private final DataProvider myDataProvider;
 
   public ChangesFilter(@Nullable final SProject project,
                        @Nullable final SBuildType buildType,
+                       @Nullable final String branchName,
                        @Nullable final SBuild build,
                        @Nullable final VcsRootInstance vcsRootInstance,
                        @Nullable final SVcsRoot vcsRoot,
@@ -70,6 +71,7 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
     super(start, count, lookupLimit);
     myProject = project;
     myBuildType = buildType;
+    myBranchName = branchName;
     myBuild = build;
     myVcsRootInstance = vcsRootInstance;
     myVcsRoot = vcsRoot;
@@ -82,7 +84,6 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
     myDataProvider = dataProvider;
     myCommentLocator = commentLocator != null ? new Locator(commentLocator) : null;
     myFileLocator = fileLocator != null ? new Locator(fileLocator) : null;
-    myLookupLimit = lookupLimit;
 
     if (myVcsRoot != null && myPersonal != null && myPersonal){
       throw new BadRequestException("filtering personal changes by VCS root is not supported.");
@@ -174,31 +175,47 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
     return true;
   }
 
+  @Override
+  public boolean shouldStop(final SVcsModification item) {
+    if (mySinceChangeId != null && mySinceChangeId >= item.getId()) {
+      return true;
+    }
+    return super.shouldStop(item);
+  }
+
+  public List<SVcsModification> getMatchingChanges(@NotNull final VcsModificationHistory vcsHistory) {
+    final FilterItemProcessor<SVcsModification> filterItemProcessor = new FilterItemProcessor<SVcsModification>(this);
+    processList(getInitialChangesCollection(vcsHistory), filterItemProcessor);
+    return filterItemProcessor.getResult();
+  }
+
   //todo: BuiltType is ignored if VCS root is specified; sometimes we return filtered changes by checkout rules and sometimes not
   //todo: sometimes with pending sometimes not?
-  public List<SVcsModification> getMatchingChanges(@NotNull final VcsModificationHistory vcsHistory) {
-
-
-    final FilterItemProcessor<SVcsModification> filterItemProcessor = new FilterItemProcessor<SVcsModification>(this);
-    if (myBuild != null) {
-      processList(getBuildChanges(myBuild), filterItemProcessor);
+  //todo: personal builds are not returned
+  @NotNull
+  private List<SVcsModification> getInitialChangesCollection(final VcsModificationHistory vcsHistory) {
+    if (myBranchName != null){
+      if (myBuildType == null){
+        throw new BadRequestException("Filtering changes by branch is only supported when buildType is specified.");
+      }
+      return getBranchChanges(myBuildType, myBranchName);
+    } else if (myBuild != null) {
+      return getBuildChanges(myBuild);
     } else if (myBuildType != null) {
-      processList(getBuildTypeChanges(vcsHistory, myBuildType), filterItemProcessor);
+      return getBuildTypeChanges(vcsHistory, myBuildType);
     } else if (myVcsRootInstance != null) {
       if (mySinceChangeId != null) {
-        processList(vcsHistory.getModificationsInRange(myVcsRootInstance, mySinceChangeId, null), filterItemProcessor);
+        return vcsHistory.getModificationsInRange(myVcsRootInstance, mySinceChangeId, null);
       } else {
         //todo: highly inefficient!
-        processList(vcsHistory.getAllModifications(myVcsRootInstance), filterItemProcessor);
+        return vcsHistory.getAllModifications(myVcsRootInstance);
       }
     } else if (myProject != null) {
-      processList(getProjectChanges(vcsHistory, myProject, mySinceChangeId), filterItemProcessor);
+      return getProjectChanges(vcsHistory, myProject, mySinceChangeId);
     } else {
       //todo: highly inefficient!
-      processList(vcsHistory.getAllModifications(), filterItemProcessor);
+      return vcsHistory.getAllModifications();
     }
-
-    return filterItemProcessor.getResult();
   }
 
   private List<SVcsModification> getBuildTypeChanges(final VcsModificationHistory vcsHistory,
@@ -208,12 +225,22 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
     }
     final List<ChangeDescriptor> changes = ((BuildTypeEx)buildType).getDetectedChanges(SelectPrevBuildPolicy.SINCE_NULL_BUILD);
 
+    return convertChanges(changes);
+  }
+
+  private ArrayList<SVcsModification> convertChanges(final List<ChangeDescriptor> changes) {
     final ArrayList<SVcsModification> result = new ArrayList<SVcsModification>();
     for (ChangeDescriptor change : changes) {
       SVcsModification mod = change.getRelatedVcsChange();
       if (mod != null) result.add(mod);
     }
     return result;
+  }
+
+  private List<SVcsModification> getBranchChanges(@NotNull final SBuildType buildType, @NotNull final String branchName) {
+    final boolean includeDependencyChanges = TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) || !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES);
+    final List<ChangeDescriptor> changes =  ((BuildTypeEx)buildType).getBranch(branchName).getDetectedChanges(SelectPrevBuildPolicy.SINCE_NULL_BUILD, includeDependencyChanges);
+    return convertChanges(changes);
   }
 
   private static List<SVcsModification> getBuildChanges(final SBuild build) {
