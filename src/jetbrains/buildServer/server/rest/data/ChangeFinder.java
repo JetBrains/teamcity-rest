@@ -3,6 +3,7 @@ package jetbrains.buildServer.server.rest.data;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.Collections;
 import java.util.List;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -29,6 +30,7 @@ public class ChangeFinder {
   @NotNull private final VcsRootFinder myVcsRootFinder;
   @NotNull private final UserFinder myUserFinder;
   @NotNull private final VcsManager myVcsManager;
+  @NotNull private final ServiceLocator myServiceLocator;
 
   public ChangeFinder(@NotNull final DataProvider dataProvider,
                       @NotNull final ProjectFinder projectFinder,
@@ -36,7 +38,8 @@ public class ChangeFinder {
                       @NotNull final BuildTypeFinder buildTypeFinder,
                       @NotNull final VcsRootFinder vcsRootFinder,
                       @NotNull final UserFinder userFinder,
-                      @NotNull final VcsManager vcsManager) {
+                      @NotNull final VcsManager vcsManager,
+                      @NotNull final ServiceLocator serviceLocator) {
     myDataProvider = dataProvider;
     myProjectFinder = projectFinder;
     myBuildFinder = buildFinder;
@@ -44,11 +47,25 @@ public class ChangeFinder {
     myVcsRootFinder = vcsRootFinder;
     myUserFinder = userFinder;
     myVcsManager = vcsManager;
+    myServiceLocator = serviceLocator;
   }
 
-  public static String[] getChangesLocatorSupportedDimensions() {
-    return new String[]{"id", "project", "buildType", "build", "vcsRoot", "vcsRootInstance", "username", "user", "personal", "version", "internalVersion", "comment", "file",
-      "sinceChange", "branch", "start", "count", "lookupLimit", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME};
+  @NotNull
+  public static Locator getChangesLocator(@Nullable String locatorText, boolean returnNotEmpty) {
+    if (returnNotEmpty && StringUtil.isEmpty(locatorText)) {
+      throw new BadRequestException("Empty change locator is not supported.");
+    }
+    final String[] supported =
+      {"id", "project", "buildType", "build", "vcsRoot", "vcsRootInstance", "username", "user", "version", "internalVersion", "comment", "file",
+        "sinceChange", "start", "count", "lookupLimit", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME};
+    final Locator result;
+    if (returnNotEmpty) {
+      result = new Locator(locatorText, supported);
+    } else {
+      result = Locator.createEmptyLocator(supported);
+    }
+    result.addHiddenDimensions("branch", "personal"); //hide these for now
+    return result;
   }
 
   @NotNull
@@ -100,7 +117,7 @@ public class ChangeFinder {
                                       locator.getSingleDimensionValueAsLong("start"),
                                       count == null ? null : count.intValue(),
                                       locator.getSingleDimensionValueAsLong("lookupLimit"), myDataProvider);
-    return new PagedSearchResult<SVcsModification>(changesFilter.getMatchingChanges(myVcsManager.getVcsHistory()), changesFilter.getStart(), changesFilter.getCount());
+    return new PagedSearchResult<SVcsModification>(changesFilter.getMatchingChanges(myServiceLocator), changesFilter.getStart(), changesFilter.getCount());
   }
 
   @Nullable
@@ -150,12 +167,8 @@ public class ChangeFinder {
   }
 
   @NotNull
-  public SVcsModification getChange(final String changeLocator) {
-    if (StringUtil.isEmpty(changeLocator)) {
-      throw new BadRequestException("Empty change locator is not supported.");
-    }
-
-    final Locator locator = new Locator(changeLocator, getChangesLocatorSupportedDimensions());
+  public SVcsModification getChange(@Nullable final String changeLocator) {
+    final Locator locator = getChangesLocator(changeLocator, true);
 
     if (!locator.isSingleValue()) {
       locator.setDimension("count", String.valueOf(1));

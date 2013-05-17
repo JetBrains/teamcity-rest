@@ -42,6 +42,7 @@ public class Locator {
   @NotNull private final Set<String> myUsedDimensions = new HashSet<String>();
   @Nullable private String[] mySupportedDimensions;
   @NotNull private final Collection<String> myIgnoreUnusedDimensions = new HashSet<String>();
+  @NotNull private final Collection<String> myHddenSupportedDimensions = new HashSet<String>();
 
   public Locator(@Nullable final String locator) throws LocatorProcessException{
     this(locator, null);
@@ -91,6 +92,14 @@ public class Locator {
 
   public void addIgnoreUnusedDimensions(final String ... ignoreUnusedDimensions) {
     myIgnoreUnusedDimensions.addAll(Arrays.asList(ignoreUnusedDimensions));
+  }
+
+  /**
+   * Sets dimensions which will not be reported by checkLocatorFullyProcessed method as used but not declared
+   * @param hiddenDimensions
+   */
+  public void addHiddenDimensions(final String ... hiddenDimensions) {
+    myHddenSupportedDimensions.addAll(Arrays.asList(hiddenDimensions));
   }
 
   private static MultiValuesMap<String, String> parse(final String locator) {
@@ -208,6 +217,7 @@ public class Locator {
   private void reportKnownButNotReportedDimensions() {
     final Set<String> usedDimensions = new HashSet<String>(myUsedDimensions);
     if (mySupportedDimensions != null) usedDimensions.removeAll(Arrays.asList(mySupportedDimensions));
+    usedDimensions.removeAll(myHddenSupportedDimensions);
     if (usedDimensions.size() > 0){
       //found used dimensions which are not declared as used.
 

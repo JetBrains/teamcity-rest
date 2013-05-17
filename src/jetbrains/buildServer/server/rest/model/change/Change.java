@@ -86,7 +86,7 @@ public class Change extends ChangeRef {
 
   @XmlElement(name = "vcsRootInstance")
   public VcsRootInstanceRef getVcsRootInstance() {
-    return new VcsRootInstanceRef(myModification.getVcsRoot(), myApiUrlBuilder);
+    return myModification.isPersonal() ? null : new VcsRootInstanceRef(myModification.getVcsRoot(), myApiUrlBuilder);
   }
 
   public static String getFieldValue(final SVcsModification vcsModification, final String field) {

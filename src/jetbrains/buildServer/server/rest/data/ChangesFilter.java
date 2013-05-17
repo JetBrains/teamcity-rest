@@ -17,10 +17,14 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.impl.RemoteBuildType;
+import jetbrains.buildServer.serverSide.userChanges.UserChangesFacade;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.*;
 import org.jetbrains.annotations.NotNull;
@@ -97,6 +101,8 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
 
   @Override
   protected boolean isIncluded(@NotNull final SVcsModification change) {
+    //myBuildType, myProject and myBranchName are handled on getting initial collection to filter
+
     if (myVcsRootInstance != null) {
       if (change.isPersonal()) {
         return false;
@@ -131,6 +137,18 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
 
     if (!FilterUtil.isIncludedByBooleanFilter(myPersonal, change.isPersonal())){
       return false;
+    }
+
+    if (myPersonal != null && myPersonal) {
+      //initial collection can contain changes from any buildType/project
+      if (myBuildType != null) {
+        if (!isPersonalChangeMatchesBuildType(change, myBuildType)){
+          return false;
+        }
+      }
+      if (myProject != null && !change.getRelatedProjects().contains(myProject)){
+        return false;
+      }
     }
 
     if (myInternalVersion != null && !myInternalVersion.equals(change.getVersion())){
@@ -175,6 +193,25 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
     return true;
   }
 
+  private static boolean isPersonalChangeMatchesBuildType(@NotNull final SVcsModification change, @NotNull final SBuildType buildType) {
+    final Collection<SBuildType> relatedPersonalConfigurations = change.getRelatedConfigurations();
+    boolean matches = false;
+    for (SBuildType personalConfiguration : relatedPersonalConfigurations) {
+      if (personalConfiguration.isPersonal()){
+         if (buildType.getInternalId().equals(((RemoteBuildType)personalConfiguration).getSourceBuildType().getInternalId())){
+          matches =  true;
+          break;
+         }
+      } else{
+        if (buildType.getInternalId().equals((personalConfiguration.getInternalId()))){
+         matches =  true;
+         break;
+        }
+      }
+    }
+    return matches;
+  }
+
   @Override
   public boolean shouldStop(final SVcsModification item) {
     if (mySinceChangeId != null && mySinceChangeId >= item.getId()) {
@@ -183,22 +220,27 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
     return super.shouldStop(item);
   }
 
-  public List<SVcsModification> getMatchingChanges(@NotNull final VcsModificationHistory vcsHistory) {
+  public List<SVcsModification> getMatchingChanges(@NotNull final ServiceLocator serviceLocator) {
     final FilterItemProcessor<SVcsModification> filterItemProcessor = new FilterItemProcessor<SVcsModification>(this);
-    processList(getInitialChangesCollection(vcsHistory), filterItemProcessor);
+    processList(getInitialChangesCollection(serviceLocator), filterItemProcessor);
     return filterItemProcessor.getResult();
   }
 
   //todo: BuiltType is ignored if VCS root is specified; sometimes we return filtered changes by checkout rules and sometimes not
   //todo: sometimes with pending sometimes not?
-  //todo: personal builds are not returned
   @NotNull
-  private List<SVcsModification> getInitialChangesCollection(final VcsModificationHistory vcsHistory) {
+  private List<SVcsModification> getInitialChangesCollection(@NotNull final ServiceLocator serviceLocator) {
+    final VcsModificationHistory vcsHistory = serviceLocator.getSingletonService(VcsManager.class).getVcsHistory();
     if (myBranchName != null){
       if (myBuildType == null){
         throw new BadRequestException("Filtering changes by branch is only supported when buildType is specified.");
       }
       return getBranchChanges(myBuildType, myBranchName);
+    } if (myPersonal != null && myPersonal){
+      if (myUser == null){
+        throw new BadRequestException("Serving personal changes is only supported when user is specified.");
+      }
+      return serviceLocator.getSingletonService(UserChangesFacade.class).getAllVcsModifications(myUser);
     } else if (myBuild != null) {
       return getBuildChanges(myBuild);
     } else if (myBuildType != null) {

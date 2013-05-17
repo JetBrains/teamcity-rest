@@ -90,12 +90,7 @@ public class ChangeRequest {
                               @QueryParam("count") Integer count,
                               @QueryParam("locator") String locator,
                               @Context UriInfo uriInfo, @Context HttpServletRequest request) {
-    Locator actualLocator;
-    if (locator != null){
-     actualLocator = new Locator(locator, ChangeFinder.getChangesLocatorSupportedDimensions());
-    }else{
-      actualLocator = Locator.createEmptyLocator(ChangeFinder.getChangesLocatorSupportedDimensions());
-    }
+    Locator actualLocator = ChangeFinder.getChangesLocator(locator, locator != null);
     if (!actualLocator.isSingleValue()) {
       updateLocatorDimension(actualLocator, "project", projectLocator);
       updateLocatorDimension(actualLocator, "buildType", buildTypeLocator);
@@ -235,7 +230,7 @@ public class ChangeRequest {
    * Experimental support only!
    */
   @GET
-  @Path("/{changeLocator}/first-builds")
+  @Path("/{changeLocator}/firstBuilds")
   @Produces({"application/xml", "application/json"})
   public Builds getChangeFirstBuilds(@PathParam("changeLocator") String changeLocator) {
     final SVcsModification change = myChangeFinder.getChange(changeLocator);
