@@ -400,7 +400,7 @@ public class Locator {
   }
 
   private String getValueForRendering(final String value) {
-    if (value.contains(DIMENSIONS_DELIMITER)) return DIMENSION_COMPLEX_VALUE_START_DELIMITER + value + DIMENSION_COMPLEX_VALUE_END_DELIMITER;
+    if (value.contains(DIMENSIONS_DELIMITER) || value.contains(DIMENSION_NAME_VALUE_DELIMITER)) return DIMENSION_COMPLEX_VALUE_START_DELIMITER + value + DIMENSION_COMPLEX_VALUE_END_DELIMITER;
     return value;
   }
 }
