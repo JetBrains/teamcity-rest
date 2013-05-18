@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import com.intellij.openapi.diagnostic.Logger;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
@@ -28,6 +29,7 @@ import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.CopyOptionsDescription;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Property;
@@ -39,12 +41,15 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.buildType.NewBuildTypeDescription;
 import jetbrains.buildServer.server.rest.model.project.NewProjectDescription;
 import jetbrains.buildServer.server.rest.model.project.Project;
+import jetbrains.buildServer.server.rest.model.project.ProjectRef;
 import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.identifiers.DuplicateExternalIdException;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /*
  * User: Yegor Yarko
@@ -52,6 +57,8 @@ import org.jetbrains.annotations.NotNull;
  */
 @Path(ProjectRequest.API_PROJECTS_URL)
 public class ProjectRequest {
+  private static final Logger LOG = Logger.getInstance(ProjectRequest.class.getName());
+
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private BuildFinder myBuildFinder;
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
@@ -79,7 +86,7 @@ public class ProjectRequest {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Project name cannot be empty.");
     }
-    final SProject project = myDataProvider.getServer().getProjectManager().createProject(name);
+    final SProject project = ((ProjectManagerEx)myDataProvider.getServer().getProjectManager()).createProject(name);
     project.persist();
     return new Project(project, myDataProvider, myApiUrlBuilder);
   }
@@ -92,28 +99,45 @@ public class ProjectRequest {
       throw new BadRequestException("Project name cannot be empty.");
     }
     SProject resultingProject;
-    if (StringUtil.isEmpty(descriptor.sourceProjectLocator)) {
-      if (!StringUtil.isEmpty(descriptor.id)) {
-        resultingProject = myDataProvider.getServer().getProjectManager().createProject(descriptor.id, descriptor.name, myDataProvider.getServer().getProjectManager().getRootProject());
-      } else {
-        resultingProject = myDataProvider.getServer().getProjectManager().createProject(descriptor.name);
-      }
+    @Nullable SProject sourceProject = descriptor.getSourceProject(myServiceLocator);
+    final ProjectManagerEx projectManager = (ProjectManagerEx)myDataProvider.getServer().getProjectManager();
+    final SProject parentProject = descriptor.getParentProject(myServiceLocator);
+    if (sourceProject == null) {
+      resultingProject = projectManager.createProject(descriptor.getId(myServiceLocator), descriptor.name, parentProject);
     } else {
-      SProject sourceProject = myProjectFinder.getProject(descriptor.sourceProjectLocator
-      );
-      if (!StringUtil.isEmpty(descriptor.id)) {
-        // todo (TeamCity) open API see http://youtrack.jetbrains.com/issue/TW-25556
-        throw new BadRequestException("Sorry, setting project id on copying is not supported. Create project with name only and then change the id.");
-      }else{
-        resultingProject = myDataProvider.getServer().getProjectManager().createProject(sourceProject, descriptor.name, getCopyOptions(descriptor));
+      final CopyOptions copyOptions = getCopyOptions(descriptor);
+      //workaround for http://youtrack.jetbrains.com/issue/TW-28495
+      for (SProject childProject : sourceProject.getProjects()) {
+        copyOptions.addProjectExternalIdMapping(childProject.getExternalId(), childProject.getExternalId() + "_1");
       }
-      //todo: (TeamCity) open API how to change external id?
-      if (!StringUtil.isEmpty(descriptor.id)) {
-        resultingProject.setExternalId(descriptor.id);
+      if (descriptor.id != null)  copyOptions.addProjectExternalIdMapping(sourceProject.getExternalId(), descriptor.id);
+      resultingProject = projectManager.copyProject(sourceProject, parentProject, copyOptions);
+      try {
+        if (descriptor.name != null) resultingProject.setName(descriptor.name);
+        if (descriptor.id != null) resultingProject.setExternalId(descriptor.id);
+      } catch (InvalidIdentifierException e) {
+        processCreatiedProjectFinalizationError(resultingProject, projectManager, e);
+      } catch (DuplicateExternalIdException e) {
+        processCreatiedProjectFinalizationError(resultingProject, projectManager, e);
       }
     }
-    resultingProject.persist();
+
+    try {
+      resultingProject.persist();
+    } catch (PersistFailedException e) {
+      processCreatiedProjectFinalizationError(resultingProject, projectManager, e);
+    }
     return new Project(resultingProject, myDataProvider, myApiUrlBuilder);
+  }
+
+  private void processCreatiedProjectFinalizationError(final SProject resultingProject, final ProjectManager projectManager, final Exception e) {
+    try {
+      projectManager.removeProject(resultingProject.getProjectId());
+    } catch (ProjectRemoveFailedException e1) {
+      LOG.warn("Rallback of project creation failed", e1);
+      //ignore
+    }
+    throw new InvalidStateException("Error during project creation finalization", e);
   }
 
   @GET
@@ -448,5 +472,20 @@ public class ProjectRequest {
     SBuild build = myBuildFinder.getBuild(buildType, buildLocator);
 
     return Build.getFieldValue(build, field);
+  }
+
+  /**
+   * Use this to get an example of the bean to be posted to the /projects request to create a new project
+   * @param projectLocator
+   * @return
+   */
+  @GET
+  @Path("/{projectLocator}/newProjectDescription")
+  @Produces({"application/xml", "application/json"})
+  public NewProjectDescription getExampleNewProjectDescription(@PathParam("projectLocator") String projectLocator){
+    final SProject project = myProjectFinder.getProject(projectLocator);
+    final SProject parentProject = project.getParentProject() != null? project.getParentProject() : myServiceLocator.getSingletonService(ProjectManager.class).getRootProject();
+    assert parentProject != null;
+    return new NewProjectDescription(project.getName(), project.getExternalId(), new ProjectRef(project, myApiUrlBuilder), new ProjectRef(parentProject, myApiUrlBuilder), true);
   }
 }

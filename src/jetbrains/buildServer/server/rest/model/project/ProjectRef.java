@@ -34,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "project-ref")
-@XmlType(name = "project-ref", propOrder = {"id", "internalId", "name", "href"})
+@XmlType(name = "project-ref", propOrder = {"id", "internalId", "name", "parentProjectName", "parentProjectId", "parentProjectInternalId", "href"})
 public class ProjectRef {
   @XmlAttribute
   public String id;
@@ -44,6 +44,15 @@ public class ProjectRef {
 
   @XmlAttribute
   public String name;
+
+  @XmlAttribute
+  public String parentProjectName;
+
+  @XmlAttribute
+  public String parentProjectId;
+
+  @XmlAttribute
+  public String parentProjectInternalId;
 
   @XmlAttribute
   public String href;
@@ -59,6 +68,14 @@ public class ProjectRef {
     id = project.getExternalId();
     internalId = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? project.getProjectId() : null;
     name = project.getName();
+
+    if (TeamCityProperties.getBoolean("rest.beans.project.addParentProjectAttributes")) {
+      final SProject actulParentProject = project.getParentProject();
+      parentProjectName = actulParentProject == null ? null : actulParentProject.getName();
+      parentProjectId = actulParentProject == null ? null : actulParentProject.getExternalId();
+      parentProjectInternalId =
+        actulParentProject != null && TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? actulParentProject.getProjectId() : null;
+    }
     href = apiUrlBuilder.getHref(project);
   }
 
@@ -69,6 +86,7 @@ public class ProjectRef {
 
   @NotNull
   public SProject getProjectFromPosted(@NotNull ProjectFinder projectFinder) {
+    //todo: support posted parentProject fields here
     String locatorText = "";
     if (internalId != null) locatorText = "internalId:" + internalId;
     if (id != null) locatorText += (!locatorText.isEmpty() ? "," : "") + "id:" + id;

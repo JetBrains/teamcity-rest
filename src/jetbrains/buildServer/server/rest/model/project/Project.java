@@ -21,13 +21,17 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
+import jetbrains.buildServer.server.rest.request.VcsRootRequest;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,10 +40,22 @@ import org.jetbrains.annotations.Nullable;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "project")
-@XmlType(name = "project", propOrder = {"description", "archived", "webUrl",
-  "buildTypes", "templates", "parameters"})
+@XmlType(name = "project", propOrder = {"id", "internalId", "name", "href", "description", "archived", "webUrl",
+  "parentProject", "buildTypes", "templates", "parameters", "vcsRoots", "projects"})
 @SuppressWarnings("PublicField")
-public class Project extends ProjectRef {
+public class Project {
+  @XmlAttribute
+  public String id;
+
+  @XmlAttribute
+  public String internalId;
+
+  @XmlAttribute
+  public String name;
+
+  @XmlAttribute
+  public String href;
+
   @XmlAttribute
   public String description;
 
@@ -48,6 +64,9 @@ public class Project extends ProjectRef {
 
   @XmlAttribute
   public String webUrl;
+
+  @XmlElement(name = "parentProject")
+  public ProjectRef parentProject;
 
   @XmlElement
   public BuildTypes buildTypes;
@@ -58,17 +77,32 @@ public class Project extends ProjectRef {
   @XmlElement
   public Properties parameters;
 
+  @XmlElement (name = "vcsRoots")
+  public Href vcsRoots;
+
+  @XmlElement (name = "projects")
+  public Projects projects;
+
   public Project() {
   }
 
   public Project(final SProject project, final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
-    super(project, apiUrlBuilder);
+    id = project.getExternalId();
+    internalId = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? project.getProjectId() : null;
+    name = project.getName();
+    href = apiUrlBuilder.getHref(project);
     description = project.getDescription();
     archived = project.isArchived();
     webUrl = dataProvider.getProjectUrl(project);
+
+    final SProject actulParentProject = project.getParentProject();
+    parentProject = actulParentProject == null ? null : new ProjectRef(actulParentProject, apiUrlBuilder);
     buildTypes = BuildTypes.createFromBuildTypes(project.getOwnBuildTypes(), dataProvider, apiUrlBuilder);
     templates = BuildTypes.createFromTemplates(project.getOwnBuildTypeTemplates(), dataProvider, apiUrlBuilder);
     parameters = new Properties(project.getParameters());
+    vcsRoots = new Href(VcsRootRequest.API_VCS_ROOTS_URL + "?locator=project:(id:" + project.getExternalId() + ")", apiUrlBuilder);
+
+    projects = new Projects(project.getOwnProjects(), apiUrlBuilder);
   }
 
   @Nullable
@@ -83,6 +117,15 @@ public class Project extends ProjectRef {
       return project.getName();
     } else if ("archived".equals(field)) {
       return String.valueOf(project.isArchived());
+    } else if ("parentProjectName".equals(field)) {
+      //noinspection ConstantConditions
+      return project.getParentProject() == null ? null : project.getParentProject().getName();
+    } else if ("parentProjectId".equals(field)) {
+      //noinspection ConstantConditions
+      return project.getParentProject() == null ? null : project.getParentProject().getExternalId();
+    } else if ("parentProjectInternalId".equals(field)) {
+      //noinspection ConstantConditions
+      return project.getParentProject() == null ? null : project.getParentProject().getProjectId();
     } else if ("status".equals(field)) { //Experimental support
       return project.getStatus().getText();
     }
