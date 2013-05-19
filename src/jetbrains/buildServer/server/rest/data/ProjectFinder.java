@@ -1,6 +1,8 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
+import java.util.ArrayList;
+import java.util.List;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -30,19 +32,22 @@ public class ProjectFinder {
       throw new BadRequestException("Empty project locator is not supported.");
     }
 
-    final Locator locator = new Locator(projectLocator);
+    final Locator locator = new Locator(projectLocator, "id", "name", "parentProject", "internalId", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
 
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's a name or internal id or external id
-      SProject project=null;
-      final String singleValue = locator.getSingleValue();
+      SProject project = null;
+      @SuppressWarnings("ConstantConditions") @NotNull final String singleValue = locator.getSingleValue();
       project = myProjectManager.findProjectByExternalId(singleValue);
       if (project != null) {
         return project;
       }
-      project = myProjectManager.findProjectByName(singleValue);
-      if (project != null) {
-        return project;
+      final List<SProject> projectsByName = findProjectsByName(myProjectManager.getRootProject(), singleValue);
+      if (projectsByName.size() == 1) {
+        project = projectsByName.get(0);
+        if (project != null) {
+          return project;
+        }
       }
       project = myProjectManager.findProjectById(singleValue);
       if (project != null) {
@@ -86,20 +91,61 @@ public class ProjectFinder {
     }
 
     String name = locator.getSingleDimensionValue("name");
-    //todo: support parent project locator here
     if (name != null) {
-      SProject project = myProjectManager.findProjectByName(name);
-      if (project == null) {
-        throw new NotFoundException("No project found by locator '" + projectLocator + "'. Project cannot be found by name '" + name + "'.");
+      final String parentProjectLocator = locator.getSingleDimensionValue("parentProject");
+      @NotNull SProject parentProject = myProjectManager.getRootProject();
+      if (parentProjectLocator != null){
+        parentProject = getProject(parentProjectLocator);
       }
-      if (locator.getDimensionsCount() > 1) {
-        LOG.info("Project locator '" + projectLocator + "' has 'name' dimension and others. Others are ignored.");
-      }
+      final SProject projectByName = getProjectByName(parentProject, name);
       locator.checkLocatorFullyProcessed();
-      return project;
+      return projectByName;
     }
     locator.checkLocatorFullyProcessed();
     throw new BadRequestException("Project locator '" + projectLocator + "' is not supported.");
+  }
+
+  @NotNull
+  private SProject getProjectByName(@NotNull final SProject parentProject, @NotNull final String name) {
+    final List<SProject> projectsByName = findProjectsByName(parentProject, name);
+    if (projectsByName.size() == 0) {
+      throw new NotFoundException("No project cannot be found by name '" + name + "'.");
+    }
+    if (projectsByName.size() > 1) {
+      throw new NotFoundException(
+        "Several projects are found by name '" + name + "': " + getPresentable(projectsByName) + ", specify 'parentProject' or 'id' to match exactly one.");
+    }
+    return projectsByName.get(0);
+  }
+
+  private String getPresentable(final List<SProject> projects) {
+    final StringBuilder sb = new StringBuilder();
+    if (projects.size() > 0) {
+      sb.append("[");
+      boolean firstItem = true;
+      for (SProject project : projects) {
+        if (firstItem){
+          firstItem = false;
+        }else{
+          sb.append(", ");
+        }
+        sb.append(project.getExtendedFullName());
+      }
+      sb.append("]");
+      return sb.toString();
+    }
+    return "<empty>";
+  }
+
+  @NotNull
+  private List<SProject> findProjectsByName(@NotNull SProject parentProject, @NotNull final String name) {
+    final ArrayList<SProject> result = new ArrayList<SProject>();
+    for (SProject project : parentProject.getProjects()) {
+      if (name.equals(project.getName())){
+        result.add(project);
+      }
+    }
+    return result;
   }
 
   @Nullable
