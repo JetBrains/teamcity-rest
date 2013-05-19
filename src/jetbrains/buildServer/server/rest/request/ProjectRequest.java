@@ -169,7 +169,7 @@ public class ProjectRequest {
     final SProject project = myProjectFinder.getProject(projectLocator);
     Project.setFieldValue(project, fieldName, newValue, myDataProvider);
     project.persist();
-    return Project.getFieldValue(myProjectFinder.getProject(projectLocator), fieldName);
+    return Project.getFieldValue(project, fieldName);
   }
 
   @GET

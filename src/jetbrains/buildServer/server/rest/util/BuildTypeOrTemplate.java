@@ -88,7 +88,7 @@ public class BuildTypeOrTemplate implements Loggable {
     return hasBuildType ? "Build type": "Template";
   }
 
-  public void setName(final String value) {
+  public void setName(@NotNull final String value) {
     if (hasBuildType){
       myBuildType.setName(value);
     }else{
@@ -96,7 +96,7 @@ public class BuildTypeOrTemplate implements Loggable {
     }
   }
 
-  public void setDescription(final String value) {
+  public void setDescription(@Nullable final String value) {
     if (hasBuildType){
       myBuildType.setDescription(value);
     }else{
@@ -108,9 +108,20 @@ public class BuildTypeOrTemplate implements Loggable {
     myBuildTypeIdentity.remove();
   }
 
-  public void setFieldValue(final String field, final String value, @NotNull final DataProvider dataProvider) {
-    if ("name".equals(field)) {
-      setName(value);
+  public void setFieldValue(@NotNull final String field, @Nullable final String value, @NotNull final DataProvider dataProvider) {
+    if ("id".equals(field)) {
+      if (value != null){
+        myBuildTypeIdentity.setExternalId(value);
+      }else{
+        throw new BadRequestException("Id cannot be empty");
+      }
+      return;
+    } else if ("name".equals(field)) {
+      if (value != null){
+        setName(value);
+      }else{
+        throw new BadRequestException("Name cannot be empty");
+      }
       return;
     } else if ("description".equals(field)) {
       setDescription(value);
@@ -123,7 +134,7 @@ public class BuildTypeOrTemplate implements Loggable {
         return;
       }
     }
-    
+
     throw new BadRequestException("Setting field '" + field + "' is not supported. Supported are: name, description, paused");
   }
 

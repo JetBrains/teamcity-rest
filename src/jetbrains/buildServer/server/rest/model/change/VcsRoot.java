@@ -190,7 +190,14 @@ public class VcsRoot {
                                    @Nullable final String newValue,
                                    @NotNull final DataProvider dataProvider,
                                    @NotNull final ProjectFinder projectFinder) {
-    if ("name".equals(field)) {
+    if ("id".equals(field)) {
+      if (newValue != null){
+        vcsRoot.setExternalId(newValue);
+      }else{
+        throw new BadRequestException("Id cannot be empty");
+      }
+      return;
+    } if ("name".equals(field)) {
       if (newValue != null){
         vcsRoot.setName(newValue);
       }else{
