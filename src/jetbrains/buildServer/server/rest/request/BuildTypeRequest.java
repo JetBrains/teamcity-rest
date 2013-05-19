@@ -77,12 +77,11 @@ public class BuildTypeRequest {
   }
 
   public static String getBuildTypeHref(@NotNull SBuildType buildType) {
-    //non-template flag is required until http://youtrack.jetbrains.com/issue/TW-27459 is fixed
-    return API_BUILD_TYPES_URL + "/id:" + buildType.getExternalId()+ "," + BuildTypeFinder.TEMPLATE_DIMENSION_NAME + ":false";
+    return API_BUILD_TYPES_URL + "/id:" + buildType.getExternalId();
   }
 
   public static String getBuildTypeHref(@NotNull final BuildTypeTemplate template) {
-    return API_BUILD_TYPES_URL + "/id:"+ template.getExternalId() + "," + BuildTypeFinder.TEMPLATE_DIMENSION_NAME + ":true";
+    return API_BUILD_TYPES_URL + "/id:"+ template.getExternalId();
   }
 
 
