@@ -474,6 +474,25 @@ public class ProjectRequest {
     return Build.getFieldValue(build, field);
   }
 
+  @GET
+  @Path("/{projectLocator}/parentProject")
+  @Produces({"application/xml", "application/json"})
+  public ProjectRef getParentProject(@PathParam("projectLocator") String projectLocator) {
+    SProject project = myProjectFinder.getProject(projectLocator);
+    final SProject actulParentProject = project.getParentProject();
+    return actulParentProject == null ? null : new ProjectRef(actulParentProject, myApiUrlBuilder);
+  }
+
+  @PUT
+  @Path("/{projectLocator}/parentProject")
+  @Produces({"application/xml", "application/json"})
+  @Consumes({"application/xml", "application/json"})
+  public ProjectRef setParentProject(@PathParam("projectLocator") String projectLocator, ProjectRef parentProject) {
+    SProject project = myProjectFinder.getProject(projectLocator);
+    project.moveToProject(parentProject.getProjectFromPosted(myProjectFinder));
+    return new ProjectRef(project, myApiUrlBuilder);
+  }
+
   /**
    * Use this to get an example of the bean to be posted to the /projects request to create a new project
    * @param projectLocator
