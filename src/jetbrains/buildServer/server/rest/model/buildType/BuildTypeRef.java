@@ -30,6 +30,7 @@ import jetbrains.buildServer.serverSide.BuildTypeTemplate;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -163,5 +164,24 @@ public class BuildTypeRef {
       return context.getSingletonService(BuildTypeFinder.class).getBuildType(null, locator).getBuildTypeId();
     }
     throw new BadRequestException("Could not find build type by the data. Either 'id' or 'internalId' or 'locator' attributes should be specified.");
+  }
+
+  @NotNull
+  public BuildTypeOrTemplate getBuildTypeFromPosted(@NotNull final BuildTypeFinder buildTypeFinder) {
+    String locatorText = "";
+    if (internalId != null) locatorText = "internalId:" + internalId;
+    if (id != null) locatorText += (!locatorText.isEmpty() ? "," : "") + "id:" + id;
+    if (locatorText.isEmpty()) {
+      locatorText = locator;
+    } else {
+      if (locator != null) {
+        throw new BadRequestException("Both 'locator' and 'id' or 'internalId' attributes are specified. Only one should be present.");
+      }
+    }
+    if (StringUtil.isEmpty(locatorText)){
+      throw new BadRequestException("No project specified. Either 'id', 'internalId' or 'locator' attribute should be present.");
+    }
+    //todo: support/check posted projectId fields here
+    return buildTypeFinder.getBuildTypeOrTemplate(null, locatorText);
   }
 }

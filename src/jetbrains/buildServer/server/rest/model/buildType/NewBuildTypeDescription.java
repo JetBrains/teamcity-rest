@@ -17,8 +17,19 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.CopyOptionsDescription;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.serverSide.ProjectManager;
+import jetbrains.buildServer.serverSide.ProjectManagerEx;
+import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.util.StringUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -31,6 +42,13 @@ public class NewBuildTypeDescription extends CopyOptionsDescription{
   public NewBuildTypeDescription() {
   }
 
+  public NewBuildTypeDescription(final String name, final String id, final BuildTypeRef sourceBuildType, final Boolean copyAllAssociatedSettings) {
+    this.copyAllAssociatedSettings = copyAllAssociatedSettings;
+    this.name = name;
+    this.id = id;
+    this.sourceBuildType = sourceBuildType;
+  }
+
   @XmlAttribute public String name;
 
   /**
@@ -39,5 +57,43 @@ public class NewBuildTypeDescription extends CopyOptionsDescription{
   @XmlAttribute public String id;
   //todo: would be cool to support specifying internalId here
 
+  /**
+   * @deprecated Use 'sourceBuildType' intead.
+   */
   @XmlAttribute public String sourceBuildTypeLocator;
+
+  @XmlElement(name = "sourceBuildType")
+  public BuildTypeRef sourceBuildType;
+
+  @Nullable
+  public BuildTypeOrTemplate getSourceBuildTypeOrTemplate(@NotNull final ServiceLocator serviceLocator) {
+    final BuildTypeFinder buildTypeFinder = serviceLocator.getSingletonService(BuildTypeFinder.class);
+    if (sourceBuildType == null) {
+      if (StringUtil.isEmpty(sourceBuildTypeLocator)) {
+        return null;
+      } else {
+        return buildTypeFinder.getBuildTypeOrTemplate(null, sourceBuildTypeLocator);
+      }
+    }
+    if (!StringUtil.isEmpty(sourceBuildTypeLocator)) {
+      throw new BadRequestException("Both 'sourceBuildType' and 'sourceBuildTypeLocator' are specified. Please use only the former.");
+    }
+    return sourceBuildType.getBuildTypeFromPosted(buildTypeFinder);
+  }
+
+  @NotNull
+  public String getName() {
+    if (StringUtil.isEmpty(name)) {
+      throw new BadRequestException("Not empty 'name' should be specified.");
+    }
+    return name;
+  }
+
+  @NotNull
+  public String getId(@NotNull final ServiceLocator serviceLocator, @NotNull SProject project) {
+    if (id != null){
+      return id;
+    }
+    return ((ProjectManagerEx)serviceLocator.getSingletonService(ProjectManager.class)).getBuildTypeIdentifiersManager().generateNewExternalId(project.getExternalId(), getName());
+  }
 }

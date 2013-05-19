@@ -30,7 +30,6 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
-import jetbrains.buildServer.server.rest.model.CopyOptionsDescription;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.build.Build;
@@ -105,7 +104,7 @@ public class ProjectRequest {
     if (sourceProject == null) {
       resultingProject = projectManager.createProject(descriptor.getId(myServiceLocator), descriptor.name, parentProject);
     } else {
-      final CopyOptions copyOptions = getCopyOptions(descriptor);
+      final CopyOptions copyOptions = descriptor.getCopyOptions();
       //workaround for http://youtrack.jetbrains.com/issue/TW-28495
       for (SProject childProject : sourceProject.getProjects()) {
         copyOptions.addProjectExternalIdMapping(childProject.getExternalId(), childProject.getExternalId() + "_1");
@@ -197,7 +196,8 @@ public class ProjectRequest {
   /**
    * Creates a new build configuration by copying existing one.
    * @param projectLocator
-   * @param descriptor reference to the build configuration to copy and copy options. e.g. <newBuildTypeDescription name='Conf Name' id='ProjectId_ConfName' sourceBuildTypeLocator='id:bt42' copyAllAssociatedSettings='true'/>
+   * @param descriptor reference to the build configuration to copy and copy options.
+   *                   e.g. <newBuildTypeDescription name='Conf Name' id='ProjectId_ConfId' copyAllAssociatedSettings='true'><sourceBuildType id='sourceConfId'/></newBuildTypeDescription>
    * @return the build configuration created
    */
   @POST
@@ -205,45 +205,21 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
   public BuildType createBuildType(@PathParam("projectLocator") String projectLocator, NewBuildTypeDescription descriptor) {
-    SProject project = myProjectFinder.getProject(projectLocator);
-    if (StringUtil.isEmpty(descriptor.name)) {
-      throw new BadRequestException("Should specify build type name to create a new one.");
-    }
+    @NotNull SProject project = myProjectFinder.getProject(projectLocator);
     SBuildType resultingBuildType;
-    if (StringUtil.isEmpty(descriptor.sourceBuildTypeLocator)) {
-      if (!StringUtil.isEmpty(descriptor.id)){
-        resultingBuildType = project.createBuildType(descriptor.id, descriptor.name);
-      }else{
-        resultingBuildType = project.createBuildType(descriptor.name);
-      }
-    }else{
-      SBuildType sourceBuildType = myBuildTypeFinder.getBuildType(null, descriptor.sourceBuildTypeLocator);
-      if (!StringUtil.isEmpty(descriptor.id)){
-        resultingBuildType = project.createBuildType(sourceBuildType, descriptor.id, descriptor.name, getCopyOptions(descriptor));
-      }else{
-        resultingBuildType = project.createBuildType(sourceBuildType, descriptor.name, getCopyOptions(descriptor));
+    @Nullable final BuildTypeOrTemplate sourceBuildType = descriptor.getSourceBuildTypeOrTemplate(myServiceLocator);
+    if (sourceBuildType == null) {
+      resultingBuildType = project.createBuildType(descriptor.getId(myServiceLocator, project), descriptor.getName());
+    } else {
+      if (sourceBuildType.isBuildType()) {
+        resultingBuildType =
+          project.createBuildType(sourceBuildType.getBuildType(), descriptor.getId(myServiceLocator, project), descriptor.getName(), descriptor.getCopyOptions());
+      } else {
+        throw new BadRequestException("Could not create build type as a copy of a template.");
       }
     }
     resultingBuildType.persist();
     return new BuildType(resultingBuildType, myDataProvider, myApiUrlBuilder);
-  }
-
-  private CopyOptions getCopyOptions(@NotNull final CopyOptionsDescription description) {
-    final CopyOptions result = new CopyOptions();
-    if (toBoolean(description.copyAllAssociatedSettings)) {
-      //todo: need to use some API to set all necessary options. e.g. see TW-16948, TW-16934
-      result.addOption(CopyOptions.Option.COPY_AGENT_POOL_ASSOCIATIONS);
-      result.addOption(CopyOptions.Option.COPY_AGENT_RESTRICTIONS);
-      result.addOption(CopyOptions.Option.COPY_MUTED_TESTS);
-      result.addOption(CopyOptions.Option.COPY_USER_NOTIFICATION_RULES);
-      result.addOption(CopyOptions.Option.COPY_USER_ROLES);
-    }
-    result.addOption(CopyOptions.Option.COPY_VCS_ROOTS); //todo: TeamCity API: this option seems unnecessary and is always implied
-    return result;
-  }
-
-  private static boolean toBoolean(final Boolean value) {
-    return (value == null) ? false: value;
   }
 
   @GET
@@ -283,7 +259,8 @@ public class ProjectRequest {
   /**
    * Creates a new build configuration template by copying existing one.
    * @param projectLocator
-   * @param descriptor reference to the build configuration template to copy and copy options. e.g. <newBuildTypeDescription name='Conf Name' id='ProjectId_ConfName' sourceBuildTypeLocator='id:bt42' copyAllAssociatedSettings='true'/>
+   * @param descriptor reference to the build configuration template to copy and copy options.
+   *                   e.g. <newBuildTypeDescription name='Conf Name' id='ProjectId_ConfId' copyAllAssociatedSettings='true'><sourceBuildType id='sourceConfId'/></newBuildTypeDescription>
    * @return the build configuration created
    */
   @POST
@@ -291,23 +268,18 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
   public BuildType createBuildTypeTemplate(@PathParam("projectLocator") String projectLocator, NewBuildTypeDescription descriptor) {
-    SProject project = myProjectFinder.getProject(projectLocator);
-    if (StringUtil.isEmpty(descriptor.name)) {
-      throw new BadRequestException("Should specify build type template name to create a new one.");
-    }
+    @NotNull SProject project = myProjectFinder.getProject(projectLocator);
     BuildTypeTemplate resultingBuildType;
-    if (StringUtil.isEmpty(descriptor.sourceBuildTypeLocator)) {
-      if (!StringUtil.isEmpty(descriptor.id)){
-        resultingBuildType = project.createBuildTypeTemplate(descriptor.id, descriptor.name);
-      }else{
-        resultingBuildType = project.createBuildTypeTemplate(descriptor.name);
-      }
+    @Nullable final BuildTypeOrTemplate sourceBuildType = descriptor.getSourceBuildTypeOrTemplate(myServiceLocator);
+    if (sourceBuildType == null) {
+        resultingBuildType = project.createBuildTypeTemplate(descriptor.getId(myServiceLocator, project), descriptor.getName());
     }else{
-      BuildTypeTemplate sourceTemplate = myBuildTypeFinder.getBuildTemplate(null, descriptor.sourceBuildTypeLocator);
-      if (!StringUtil.isEmpty(descriptor.id)){
-        resultingBuildType = project.createBuildTypeTemplate(sourceTemplate, descriptor.id, descriptor.name, getCopyOptions(descriptor));
-      }else{
-        resultingBuildType = project.createBuildTypeTemplate(sourceTemplate, descriptor.name, getCopyOptions(descriptor));
+      if (sourceBuildType.isBuildType()) {
+        resultingBuildType =
+          project.createBuildTypeTemplate(sourceBuildType.getBuildType(), descriptor.getId(myServiceLocator, project), descriptor.getName(), descriptor.getCopyOptions());
+      } else {
+        resultingBuildType =
+          project.createBuildTypeTemplate(sourceBuildType.getTemplate(), descriptor.getId(myServiceLocator, project), descriptor.getName(), descriptor.getCopyOptions());
       }
     }
     resultingBuildType.persist();

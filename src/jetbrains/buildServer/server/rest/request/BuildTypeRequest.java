@@ -1205,4 +1205,20 @@ public class BuildTypeRequest {
     buildType.get().persist();
     return new VCSLabelingOptions(buildType, myApiUrlBuilder);
   }
+
+  /**
+   * Use this to get an example of the bean to be posted to the /buildTypes request to create a new build type
+   * @param projectLocator
+   * @return
+   */
+  @GET
+  @Path("/{btLocator}/newBuildTypeDescription")
+  @Produces({"application/xml", "application/json"})
+  public NewBuildTypeDescription getExampleNewProjectDescription(@PathParam("btLocator") String buildTypeLocator){
+    final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
+    final BuildTypeRef buildTypeRef = buildType.isBuildType()
+                                         ? new BuildTypeRef(buildType.getBuildType(), myDataProvider, myApiUrlBuilder)
+                                         : new BuildTypeRef(buildType.getTemplate(), myDataProvider, myApiUrlBuilder);
+    return new NewBuildTypeDescription(buildType.getName(), buildType.getId(), buildTypeRef, true);
+  }
 }
