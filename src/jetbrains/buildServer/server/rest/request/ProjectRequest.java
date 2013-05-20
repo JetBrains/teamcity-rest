@@ -85,7 +85,7 @@ public class ProjectRequest {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Project name cannot be empty.");
     }
-    final SProject project = ((ProjectManagerEx)myDataProvider.getServer().getProjectManager()).createProject(name);
+    final SProject project = myDataProvider.getServer().getProjectManager().createProject(name);
     project.persist();
     return new Project(project, myDataProvider, myApiUrlBuilder);
   }
@@ -99,7 +99,7 @@ public class ProjectRequest {
     }
     SProject resultingProject;
     @Nullable SProject sourceProject = descriptor.getSourceProject(myServiceLocator);
-    final ProjectManagerEx projectManager = (ProjectManagerEx)myDataProvider.getServer().getProjectManager();
+    final ProjectManager projectManager = myDataProvider.getServer().getProjectManager();
     final SProject parentProject = descriptor.getParentProject(myServiceLocator);
     if (sourceProject == null) {
       resultingProject = projectManager.createProject(descriptor.getId(myServiceLocator), descriptor.name, parentProject);
