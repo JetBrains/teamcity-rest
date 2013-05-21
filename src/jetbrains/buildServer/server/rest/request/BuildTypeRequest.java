@@ -1207,6 +1207,7 @@ public class BuildTypeRequest {
   }
 
   /**
+   * Experimental support only.
    * Use this to get an example of the bean to be posted to the /buildTypes request to create a new build type
    * @param projectLocator
    * @return

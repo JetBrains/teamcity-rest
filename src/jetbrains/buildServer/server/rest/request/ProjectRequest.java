@@ -466,6 +466,7 @@ public class ProjectRequest {
   }
 
   /**
+   * Experimental support only.
    * Use this to get an example of the bean to be posted to the /projects request to create a new project
    * @param projectLocator
    * @return

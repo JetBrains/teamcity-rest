@@ -111,7 +111,7 @@ public class DebugRequest {
       if (result == null) {
         return "";
       }
-      String comment = result.size() == maxRows ? "# First " + maxRows + " rows are served. Add '?count=N' parameter to change the number of rows to return.\n" : "";
+      String comment = result.size() >= maxRows ? "# First " + maxRows + " rows are served. Add '?count=N' parameter to change the number of rows to return.\n" : "";
       return comment + StringUtil.join(result, "\n");
     }else{
       final int result = genericQuery.executeUpdate(sqlRunner);
@@ -125,8 +125,7 @@ public class DebugRequest {
   @POST
   @Path("/vcsCheckingForChangesQueue")
   @Produces({"application/xml", "application/json"})
-  public VcsRootInstances scheduleCheckingForChanges(@QueryParam("locator") String vcsRootInstancesLocator,
-                                                     @Context @NotNull ApiUrlBuilder apiUrlBuilder) {
+  public VcsRootInstances scheduleCheckingForChanges(@QueryParam("locator") String vcsRootInstancesLocator, @Context @NotNull ApiUrlBuilder apiUrlBuilder) {
     //todo: check whether permission checks are necessary
     final PagedSearchResult<VcsRootInstance> vcsRootInstances = myVcsRootFinder.getVcsRootInstances(myVcsRootFinder.createVcsRootInstanceLocator(vcsRootInstancesLocator));
     myDataProvider.getVcsModificationChecker().forceCheckingFor(vcsRootInstances.myEntries);
