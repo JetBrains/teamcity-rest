@@ -24,11 +24,10 @@ import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.ProjectManager;
-import jetbrains.buildServer.serverSide.ProjectManagerEx;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
+import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
 import jetbrains.buildServer.serverSide.identifiers.EntityId;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
@@ -82,7 +81,7 @@ public class RoleAssignment {
       throw new NotFoundException("Cannot find scope by '" + scopeData + "' Valid formats are: 'g' or 'p:<projectId>'.");
     }
     final String projectString = scopeData.substring(2);
-    final EntityId<String> internalId = ((ProjectManagerEx)context.getSingletonService(ProjectManager.class)).getProjectIdentifiersManager().findEntityIdByExternalId(projectString);
+    final EntityId<String> internalId = context.getSingletonService(BuildTypeIdentifiersManager.class).findEntityIdByExternalId(projectString);
     if (internalId == null){
       //throw new InvalidStateException("Could not find project internal id by external id '" + projectString + "'.");
       //support locator here just in case
@@ -97,7 +96,7 @@ public class RoleAssignment {
     if (scope.isGlobal()){
       return null;
     }
-    final EntityId<String> externalId = ((ProjectManagerEx)context.getSingletonService(ProjectManager.class)).getProjectIdentifiersManager().findEntityIdByInternalId(scope.getProjectId());
+    final EntityId<String> externalId = context.getSingletonService(BuildTypeIdentifiersManager.class).findEntityIdByInternalId(scope.getProjectId());
     if (externalId == null){
       throw new InvalidStateException("Could not find project external id by internal id '" + scope.getProjectId() + "'.");
     }

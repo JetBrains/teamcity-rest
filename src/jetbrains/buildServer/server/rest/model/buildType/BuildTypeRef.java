@@ -27,6 +27,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -127,14 +128,14 @@ public class BuildTypeRef {
       if (internalId == null) {
         return id;
       }
-      String externalByInternal = context.getSingletonService(ProjectManagerEx.class).getBuildTypeIdentifiersManager().internalToExternal(internalId);
+      String externalByInternal = context.getSingletonService(BuildTypeIdentifiersManager.class).internalToExternal(internalId);
       if (externalByInternal == null || id.equals(externalByInternal)) {
         return id;
       }
       throw new BadRequestException("Both external id '" + id + "' and internal id '" + internalId + "' attributes are present and they reference different build types.");
     }
     if (internalId != null) {
-      return context.getSingletonService(ProjectManagerEx.class).getBuildTypeIdentifiersManager().internalToExternal(internalId);
+      return context.getSingletonService(BuildTypeIdentifiersManager.class).internalToExternal(internalId);
     }
     if (locator != null){
       return context.getSingletonService(BuildTypeFinder.class).getBuildType(null, locator).getExternalId();

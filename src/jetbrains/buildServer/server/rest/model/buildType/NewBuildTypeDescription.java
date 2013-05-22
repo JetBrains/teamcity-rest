@@ -24,9 +24,8 @@ import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.CopyOptionsDescription;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
-import jetbrains.buildServer.serverSide.ProjectManager;
-import jetbrains.buildServer.serverSide.ProjectManagerEx;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -94,6 +93,6 @@ public class NewBuildTypeDescription extends CopyOptionsDescription{
     if (id != null){
       return id;
     }
-    return ((ProjectManagerEx)serviceLocator.getSingletonService(ProjectManager.class)).getBuildTypeIdentifiersManager().generateNewExternalId(project.getExternalId(), getName());
+    return serviceLocator.getSingletonService(BuildTypeIdentifiersManager.class).generateNewExternalId(project.getExternalId(), getName());
   }
 }

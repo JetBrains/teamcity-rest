@@ -24,8 +24,8 @@ import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.CopyOptionsDescription;
 import jetbrains.buildServer.serverSide.ProjectManager;
-import jetbrains.buildServer.serverSide.ProjectManagerEx;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.identifiers.ProjectIdentifiersManager;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -96,6 +96,6 @@ public class NewProjectDescription extends CopyOptionsDescription{
     if (name == null){
       throw new BadRequestException("'name' and 'id' should not be empty at the same time.");
     }
-    return ((ProjectManagerEx)serviceLocator.getSingletonService(ProjectManager.class)).getProjectIdentifiersManager().generateNewExternalId(getParentProject(serviceLocator).getExternalId(), name);
+    return serviceLocator.getSingletonService(ProjectIdentifiersManager.class).generateNewExternalId(getParentProject(serviceLocator).getExternalId(), name);
   }
 }
