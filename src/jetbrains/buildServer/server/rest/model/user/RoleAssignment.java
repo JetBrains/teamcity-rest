@@ -27,8 +27,8 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
-import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
 import jetbrains.buildServer.serverSide.identifiers.EntityId;
+import jetbrains.buildServer.serverSide.identifiers.ProjectIdentifiersManager;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -81,7 +81,7 @@ public class RoleAssignment {
       throw new NotFoundException("Cannot find scope by '" + scopeData + "' Valid formats are: 'g' or 'p:<projectId>'.");
     }
     final String projectString = scopeData.substring(2);
-    final EntityId<String> internalId = context.getSingletonService(BuildTypeIdentifiersManager.class).findEntityIdByExternalId(projectString);
+    final EntityId<String> internalId = context.getSingletonService(ProjectIdentifiersManager.class).findEntityIdByExternalId(projectString);
     if (internalId == null){
       //throw new InvalidStateException("Could not find project internal id by external id '" + projectString + "'.");
       //support locator here just in case
@@ -96,7 +96,7 @@ public class RoleAssignment {
     if (scope.isGlobal()){
       return null;
     }
-    final EntityId<String> externalId = context.getSingletonService(BuildTypeIdentifiersManager.class).findEntityIdByInternalId(scope.getProjectId());
+    final EntityId<String> externalId = context.getSingletonService(ProjectIdentifiersManager.class).findEntityIdByInternalId(scope.getProjectId());
     if (externalId == null){
       throw new InvalidStateException("Could not find project external id by internal id '" + scope.getProjectId() + "'.");
     }
