@@ -102,7 +102,7 @@ public class ProjectRequest {
     final ProjectManager projectManager = myDataProvider.getServer().getProjectManager();
     final SProject parentProject = descriptor.getParentProject(myServiceLocator);
     if (sourceProject == null) {
-      resultingProject = projectManager.createProject(descriptor.getId(myServiceLocator), descriptor.name, parentProject);
+      resultingProject = parentProject.createProject(descriptor.getId(myServiceLocator), descriptor.name);
     } else {
       final CopyOptions copyOptions = descriptor.getCopyOptions();
       //workaround for http://youtrack.jetbrains.com/issue/TW-28495
