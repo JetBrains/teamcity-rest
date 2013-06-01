@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.model.issue;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.issueTracker.Issue;
@@ -26,6 +27,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -33,24 +35,34 @@ import org.springframework.beans.factory.annotation.Autowired;
  *         Date: 28.07.2009
  */
 @XmlRootElement(name = "issuesUsages")
-public class IssueUsages {
-  @NotNull private Collection<Issue> myIssues;
-  private SBuild myBuild;
-  private ApiUrlBuilder myApiUrlBuilder;
-  @Autowired private BeanFactory myFactory;
+public class IssueUsages extends IssueUsagesRef{
+  @Nullable private Collection<Issue> myIssues;
+  @NotNull private SBuild myBuild;
+  @NotNull private ApiUrlBuilder myApiUrlBuilder;
+  @Autowired @NotNull private BeanFactory myFactory;
 
   public IssueUsages() {
   }
 
-  public IssueUsages(@NotNull final Collection<Issue> issues, final SBuild build, final ApiUrlBuilder apiUrlBuilder, final BeanFactory myFactory) {
-    myIssues = issues;
+  public IssueUsages(@NotNull final SBuild build, final boolean includeAllInline, @NotNull final ApiUrlBuilder apiUrlBuilder, @NotNull final BeanFactory myFactory) {
+    super(build, apiUrlBuilder);
     myBuild = build;
+    if (includeAllInline) {
+      myIssues = myBuild.getRelatedIssues();
+    }
     myApiUrlBuilder = apiUrlBuilder;
     myFactory.autowire(this);
   }
 
+  @XmlAttribute
+  public Long getCount() {
+    return myIssues != null ? (long)myIssues.size() : null;
+  }
+
   @XmlElement(name = "issueUsage")
   public List<IssueUsage> getIssueUsages() {
+    if (myIssues == null) return null;
+
     List<IssueUsage> result = new ArrayList<IssueUsage>(myIssues.size());
     for (Issue issue : myIssues) {
       result.add(new IssueUsage(issue, myBuild, myApiUrlBuilder, myFactory));

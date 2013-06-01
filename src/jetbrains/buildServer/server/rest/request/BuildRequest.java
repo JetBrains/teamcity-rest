@@ -50,9 +50,6 @@ import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
-import jetbrains.buildServer.serverSide.statistics.BuildValueProvider;
-import jetbrains.buildServer.serverSide.statistics.ValueProvider;
-import jetbrains.buildServer.serverSide.statistics.build.BuildValue;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.FileUtil;
@@ -75,7 +72,7 @@ public class BuildRequest {
   private static final Logger LOG = Logger.getInstance(BuildRequest.class.getName());
   public static final String IMG_STATUS_WIDGET_ROOT_DIRECTORY = "/img/statusWidget";
   public static final String STATUS_ICON_REQUEST_NAME = "statusIcon";
-  public static final String RELATED_ISSUES = "/related-issues";
+  public static final String RELATED_ISSUES = "/relatedIssues";
 
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private BuildFinder myBuildFinder;
@@ -288,12 +285,23 @@ public class BuildRequest {
     return Response.ok().entity(fileContent).build();
   }
 
+  /**
+   * @deprecated Preserved for compatibility with TeamCity 7.1 and will be removed i the future versions
+   * @return
+   */
+  @GET
+  @Path("/{buildLocator}/related-issues")
+  @Produces({"application/xml", "application/json"})
+  public IssueUsages serveBuildRelatedIssuesOld(@PathParam("buildLocator") String buildLocator) {
+    return serveBuildRelatedIssues(buildLocator);
+  }
+
   @GET
   @Path("/{buildLocator}" + RELATED_ISSUES)
   @Produces({"application/xml", "application/json"})
   public IssueUsages serveBuildRelatedIssues(@PathParam("buildLocator") String buildLocator) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return new IssueUsages(build.getRelatedIssues(), build, myApiUrlBuilder, myFactory);
+    return new IssueUsages(build, true, myApiUrlBuilder, myFactory);
   }
 
 
