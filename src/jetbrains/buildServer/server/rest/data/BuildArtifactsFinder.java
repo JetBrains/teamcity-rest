@@ -147,18 +147,18 @@ public class BuildArtifactsFinder {
   @NotNull
   public static FileApiUrlBuilder fileApiUrlBuilderForBuild(@NotNull final ApiUrlBuilder apiUrlBuilder, @NotNull final SBuild build, @Nullable final String locator) {
     return new FileApiUrlBuilder() {
-      private final String myHrefBase = apiUrlBuilder.getHref(build) + BuildRequest.ARTIFACTS;
+      private final String myBuildHref = apiUrlBuilder.getHref(build);
 
-      public String getMetadataHref(Element e) {
-        return myHrefBase + BuildRequest.METADATA + "/" + e.getFullName() + (locator == null ? "" : "?" + "locator" + "=" + locator);
+      public String getMetadataHref(@Nullable Element e) {
+        return myBuildHref + BuildRequest.ARTIFACTS_METADATA + (e == null ? "" : "/" + e.getFullName() + (locator == null ? "" : "?" + "locator" + "=" + locator));
       }
 
-      public String getChildrenHref(Element e) {
-        return myHrefBase + BuildRequest.CHILDREN + "/" + e.getFullName() + (locator == null ? "" : "?" + "locator" + "=" + locator);
+      public String getChildrenHref(@Nullable Element e) {
+        return myBuildHref + BuildRequest.ARTIFACTS_CHILDREN + (e == null ? "" : "/" + e.getFullName() + (locator == null ? "" : "?" + "locator" + "=" + locator));
       }
 
-      public String getContentHref(Element e) {
-        return myHrefBase + BuildRequest.CONTENT + "/" + e.getFullName();
+      public String getContentHref(@Nullable Element e) {
+        return myBuildHref + BuildRequest.ARTIFACTS_CONTENT + (e == null ? "" : "/" + e.getFullName());
       }
     };
   }

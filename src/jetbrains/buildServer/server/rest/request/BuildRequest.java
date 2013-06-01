@@ -180,15 +180,14 @@ public class BuildRequest {
     return build.getParametersProvider().get(propertyName);
   }
 
+  /**
+   * More user-friendly URL for "/{buildLocator}/artifacts/children" one.
+   */
   @GET
   @Path("/{buildLocator}" + ARTIFACTS)
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-  public Response getArtifacts(@PathParam("buildLocator") final String buildLocator, @Context UriInfo uriInfo) {
-    // Lets check that required build exists
-    myBuildFinder.getBuild(null, buildLocator);
-    // And answer with permanent redirect (301) to /artifacts/children/
-    final UriBuilder builder = uriInfo.getRequestUriBuilder().path(CHILDREN);
-    return Response.status(Response.Status.MOVED_PERMANENTLY).location(builder.build()).build();
+  public Files getArtifacts(@PathParam("buildLocator") final String buildLocator, @Context UriInfo uriInfo) {
+    return getArtifactChildren(buildLocator, "", false, null);
   }
 
   @GET
