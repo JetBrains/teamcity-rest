@@ -33,6 +33,7 @@ public class PropEntityArtifactDep extends PropEntity {
   public static final String NAME_PATH_RULES = "pathRules";
   public static final String NAME_REVISION_NAME = "revisionName";
   public static final String NAME_REVISION_VALUE = "revisionValue";
+  public static final String NAME_REVISION_BRANCH = "revisionBranch";
   public static final String NAME_CLEAN_DESTINATION_DIRECTORY = "cleanDestinationDirectory";
 
   @XmlElement(name = PropEntitySnapshotDep.SOURCE_BUILD_TYPE)
@@ -58,6 +59,10 @@ public class PropEntityArtifactDep extends PropEntity {
     properties.put(NAME_PATH_RULES, dependency.getSourcePaths());
     properties.put(NAME_REVISION_NAME, dependency.getRevisionRule().getName());
     properties.put(NAME_REVISION_VALUE, dependency.getRevisionRule().getRevision());
+    final String branch = dependency.getRevisionRule().getBranch();
+    if (!StringUtil.isEmpty(branch)){
+      properties.put(NAME_REVISION_BRANCH, branch);
+    }
     properties.put(NAME_CLEAN_DESTINATION_DIRECTORY, Boolean.toString(dependency.isCleanDestinationFolder()));
     this.properties = new Properties(properties);
 
@@ -104,7 +109,7 @@ public class PropEntityArtifactDep extends PropEntity {
     final SArtifactDependency artifactDependency = context.getSingletonService(ArtifactDependencyFactory.class).
       createArtifactDependency(buildTypeIdDependOn,
                                propertiesMap.get(NAME_PATH_RULES),
-                               RevisionRules.newRevisionRule(revisionName, propertiesMap.get(NAME_REVISION_VALUE)));
+                               RevisionRules.newBranchRevisionRule(revisionName, propertiesMap.get(NAME_REVISION_VALUE), propertiesMap.get(NAME_REVISION_BRANCH)));
     final String cleanDir = propertiesMap.get(NAME_CLEAN_DESTINATION_DIRECTORY);
     if (cleanDir != null) {
       artifactDependency.setCleanDestinationFolder(Boolean.parseBoolean(cleanDir));
