@@ -23,7 +23,6 @@ import com.sun.jersey.api.core.PackagesResourceConfig;
 import com.sun.jersey.api.core.ResourceConfig;
 import com.sun.jersey.api.json.JSONConfiguration;
 import com.sun.jersey.core.util.FeaturesAndProperties;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.*;
@@ -368,52 +367,25 @@ public class APIController extends BaseController implements ServletContextAware
     return myOriginsArray;
   }
 
-  //see ExceptionMapperUtil.getRestErrorResponse
   public static void reportRestErrorResponse(@NotNull final HttpServletResponse response,
                                              final int statusCode,
                                              @Nullable final Throwable e,
                                              @Nullable final String message,
-                                             @NotNull String requestUri, final Level level) throws IOException {
-    final String statusDescription = Integer.toString(statusCode);
+                                             @NotNull String requestUri, final Level level) {
+    final String responseText =
+      ExceptionMapperUtil.getResponseTextAndLogRestErrorErrorMessage(statusCode, e, message, requestUri, statusCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR, level);
+    response.setStatus(statusCode);
+    response.setContentType("text/plain");
+
     try {
-      response.setStatus(statusCode);
-      response.setContentType("text/plain");
-      response.getWriter().print("Error has occurred during request processing (" + statusDescription +
-                                 ").\nError: " + ExceptionMapperUtil.getMessageWithCauses(e) + (message != null ? "\n" + message : ""));
+      response.getWriter().print(responseText);
     } catch (Throwable nestedException) {
-      LOG.warn("Error while adding error description into response: " + nestedException.getMessage());
-      LOG.debug("Error while adding error description into response: " + nestedException.getMessage(), nestedException);
-    }
-    final String logMessage = "Error" + (message != null ? " '" + message + "'" : "") + " for request " + requestUri +
-                              ". Sending '" + statusDescription + "' error in response: " + ExceptionMapperUtil.getMessageWithCauses(e);
-
-    if (e != null && statusCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR) {
-      logMessage(LOG, level, logMessage, e);
-    } else {
-      logMessage(LOG, level, logMessage);
-      LOG.debug(logMessage, e);
+      final String message1 = "Error while adding error description into response: " + nestedException.getMessage();
+      LOG.warn(message1);
+      LOG.debug(message1, nestedException);
     }
   }
 
-  private static void logMessage(final Logger log, final Level level, final String message) {
-    if (level.isGreaterOrEqual(Level.INFO)) {
-      log.info(message);
-    } else if (level.isGreaterOrEqual(Level.WARN)) {
-      log.warn(message);
-    } else if (level.isGreaterOrEqual(Level.ERROR)) {
-      log.error(message);
-    }
-  }
-
-  private static void logMessage(final Logger log, final Level level, final String message, final Throwable e) {
-    if (level.isGreaterOrEqual(Level.INFO)) {
-      log.info(message, e);
-    } else if (level.isGreaterOrEqual(Level.WARN)) {
-      log.warn(message, e);
-    } else if (level.isGreaterOrEqual(Level.ERROR)) {
-      log.error(message, e);
-    }
-  }
 
   //todo: move to RequestWrapper
 

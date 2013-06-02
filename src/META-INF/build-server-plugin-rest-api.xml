@@ -31,6 +31,7 @@
   <bean id="jerseyParamExceptionExceptionMapper" class="jetbrains.buildServer.server.rest.errors.JerseyParamExceptionExceptionMapper"/>
   <bean id="operationExceptionMapper" class="jetbrains.buildServer.server.rest.errors.OperationExceptionMapper"/>
   <bean id="runtimeExceptionMapper" class="jetbrains.buildServer.server.rest.errors.RuntimeExceptionMapper"/>
+  <bean id="illegalArgumentExceptionMapper" class="jetbrains.buildServer.server.rest.errors.IllegalArgumentExceptionMapper"/>
 
   <bean id="apiController" class="jetbrains.buildServer.server.rest.APIController"/>
 

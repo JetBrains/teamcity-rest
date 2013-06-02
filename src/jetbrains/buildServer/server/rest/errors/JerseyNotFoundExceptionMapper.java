@@ -33,6 +33,6 @@ public class JerseyNotFoundExceptionMapper extends ExceptionMapperUtil implement
   protected static final Logger LOG = Logger.getInstance(JerseyNotFoundExceptionMapper.class.getName());
 
   public Response toResponse(com.sun.jersey.api.NotFoundException exception) {
-    return reportError(exception.getResponse().getStatus(), exception, "Please check URL is correct.");
+    return reportError(exception.getResponse().getStatus(), exception, "Please check URL is correct.", false);
   }
 }

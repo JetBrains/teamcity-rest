@@ -48,6 +48,6 @@ public class WebApplicationExceptionMapper extends ExceptionMapperUtil implement
       dump.append("]");
     }
     return reportError(exceptionResponse.getStatus(), exception,
-                       "Not supported request. Please check URL, HTTP method and transfered data are correct. " + dump);
+                       "Not supported request. Please check URL, HTTP method and transfered data are correct. " + dump, true);
   }
 }

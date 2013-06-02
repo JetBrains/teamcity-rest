@@ -31,6 +31,6 @@ public class RuntimeExceptionMapper extends ExceptionMapperUtil implements Excep
   protected static final Logger LOG = Logger.getInstance(RuntimeExceptionMapper.class.getName());
 
   public Response toResponse(RuntimeException exception) {
-    return reportError(Response.Status.INTERNAL_SERVER_ERROR, exception, "Error occurred while processing this request.");
+    return reportError(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), exception, "Error occurred while processing this request.", true);
   }
 }

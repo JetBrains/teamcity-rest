@@ -17,13 +17,14 @@
 package jetbrains.buildServer.server.rest.jersey;
 
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.util.text.StringUtil;
 import com.sun.jersey.spi.inject.Errors;
 import java.lang.reflect.Field;
 import java.util.List;
-import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
+import org.apache.log4j.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,21 +39,33 @@ public class ExceptionMapperUtil {
   UriInfo myUriInfo;
 
   protected Response reportError(@NotNull final Response.Status responseStatus, @NotNull final Exception e, @Nullable final String message) {
-    return reportError(responseStatus.getStatusCode(), e, message);
+    return reportError(responseStatus.getStatusCode(), e, message, false);
   }
 
-  protected Response reportError(final int statusCode, @NotNull final Exception e, @Nullable final String message) {
-    return getRestErrorResponse(statusCode, e, message, myUriInfo.getRequestUri().toString());
+  protected Response reportError(final int statusCode, @NotNull final Exception e, @Nullable final String message, final boolean isInternalError) {
+    return processRestErrorResponse(statusCode, e, message, myUriInfo.getRequestUri().toString(), isInternalError);
   }
 
-  public static Response getRestErrorResponse(final int statusCode,
-                                              @NotNull final Throwable e,
-                                              @Nullable final String message,
-                                              @NotNull String requestUri) {
-    Response.Status status = Response.Status.fromStatusCode(statusCode);
-    final String statusDescription = (status != null) ? status.toString() : Integer.toString(statusCode);
+  public static Response processRestErrorResponse(final int statusCode,
+                                                  @Nullable final Throwable e,
+                                                  @Nullable final String message,
+                                                  @NotNull String requestUri,
+                                                  final boolean isInternalError) {
+    final String responseText = getResponseTextAndLogRestErrorErrorMessage(statusCode, e, message, requestUri, isInternalError, Level.WARN);
     Response.ResponseBuilder builder = Response.status(statusCode);
     builder.type("text/plain");
+    builder.entity(responseText);
+    return builder.build();
+  }
+
+  public static String getResponseTextAndLogRestErrorErrorMessage(final int statusCode,
+                                                                  @Nullable final Throwable e,
+                                                                  @Nullable final String message,
+                                                                  @NotNull String requestUri,
+                                                                  final boolean isInternalError,
+                                                                  final Level level) {
+    Response.Status status = Response.Status.fromStatusCode(statusCode);
+    final String statusDescription = (status != null) ? status.toString() : Integer.toString(statusCode);
     StringBuffer responseText = new StringBuffer();
     responseText.append("Error has occurred during request processing (").append(statusDescription).append(").");
 
@@ -61,21 +74,45 @@ public class ExceptionMapperUtil {
       //todo: response with supported content-types instead
       responseText.append("\nMake sure you have supplied correct Content-Type header.");
     }else{
-      responseText.append("\nError: ").append(getMessageWithCauses(e)).append(message != null ? "\n" + message : "");
+      responseText.append("\nError: ");
+      responseText.append(getMessageWithCauses(e));
+      if (message != null) responseText.append("\n").append(message);
     }
-    builder.entity(responseText.toString());
-    final String logMessage = "Error" + (message != null ? " '" + message + "'" : "") + " for request " + requestUri +
-                              ". Sending " + statusDescription + " error in response: " + e.toString();
-    if (statusCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR) {
-      LOG.warn(logMessage, e);
+    final String result = responseText.toString();
+    final String singleLineMessageStep1 = StringUtil.replace(result, ".\n", ". ");
+    final String singleLineMessage = singleLineMessageStep1 == null ? "" : StringUtil.replace(singleLineMessageStep1, "\n", ". ");
+    final String logMessage = singleLineMessage + " URL: " + requestUri + ".";
+    if (isInternalError) {
+      logMessage(LOG, level, logMessage, e);
     } else {
-      LOG.warn(logMessage);
+      logMessage(LOG, level, logMessage);
       LOG.debug(logMessage, e);
     }
-    return builder.build();
+    return result;
   }
 
-  public static String getMessageWithCauses(Throwable e) {
+
+  private static void logMessage(final Logger log, final Level level, final String message) {
+    if (level.isGreaterOrEqual(Level.ERROR)) {
+      log.error(message);
+    } else if (level.isGreaterOrEqual(Level.WARN)) {
+      log.warn(message);
+    } else if (level.isGreaterOrEqual(Level.INFO)) {
+      log.info(message);
+    }
+  }
+
+  private static void logMessage(final Logger log, final Level level, final String message, final Throwable e) {
+    if (level.isGreaterOrEqual(Level.ERROR)) {
+      log.error(message, e);
+    } else if (level.isGreaterOrEqual(Level.WARN)) {
+      log.warn(message, e);
+    } else if (level.isGreaterOrEqual(Level.INFO)) {
+      log.info(message, e);
+    }
+  }
+
+  public static String getMessageWithCauses(@Nullable Throwable e) {
     if (e == null){
       return "";
     }
