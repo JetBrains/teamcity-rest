@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.sun.jersey.spi.inject.Errors;
 import java.lang.reflect.Field;
 import java.util.List;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
@@ -65,8 +66,12 @@ public class ExceptionMapperUtil {
     builder.entity(responseText.toString());
     final String logMessage = "Error" + (message != null ? " '" + message + "'" : "") + " for request " + requestUri +
                               ". Sending " + statusDescription + " error in response: " + e.toString();
-    LOG.warn(logMessage);
-    LOG.debug(logMessage, e);
+    if (statusCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR) {
+      LOG.warn(logMessage, e);
+    } else {
+      LOG.warn(logMessage);
+      LOG.debug(logMessage, e);
+    }
     return builder.build();
   }
 

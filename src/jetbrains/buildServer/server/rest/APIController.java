@@ -386,15 +386,32 @@ public class APIController extends BaseController implements ServletContextAware
     }
     final String logMessage = "Error" + (message != null ? " '" + message + "'" : "") + " for request " + requestUri +
                               ". Sending '" + statusDescription + "' error in response: " + ExceptionMapperUtil.getMessageWithCauses(e);
-    if (level.isGreaterOrEqual(Level.ERROR)) {
-      LOG.error(logMessage);
-    } else if (level.isGreaterOrEqual(Level.WARN)) {
-      LOG.warn(logMessage);
-    } else if (level.isGreaterOrEqual(Level.INFO)) {
-      LOG.info(logMessage);
-    }
-    if (e != null) {
+
+    if (e != null && statusCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR) {
+      logMessage(LOG, level, logMessage, e);
+    } else {
+      logMessage(LOG, level, logMessage);
       LOG.debug(logMessage, e);
+    }
+  }
+
+  private static void logMessage(final Logger log, final Level level, final String message) {
+    if (level.isGreaterOrEqual(Level.INFO)) {
+      log.info(message);
+    } else if (level.isGreaterOrEqual(Level.WARN)) {
+      log.warn(message);
+    } else if (level.isGreaterOrEqual(Level.ERROR)) {
+      log.error(message);
+    }
+  }
+
+  private static void logMessage(final Logger log, final Level level, final String message, final Throwable e) {
+    if (level.isGreaterOrEqual(Level.INFO)) {
+      log.info(message, e);
+    } else if (level.isGreaterOrEqual(Level.WARN)) {
+      log.warn(message, e);
+    } else if (level.isGreaterOrEqual(Level.ERROR)) {
+      log.error(message, e);
     }
   }
 
