@@ -474,10 +474,10 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/newProjectDescription")
   @Produces({"application/xml", "application/json"})
-  public NewProjectDescription getExampleNewProjectDescription(@PathParam("projectLocator") String projectLocator){
+  public NewProjectDescription getExampleNewProjectDescription(@PathParam("projectLocator") String projectLocator) {
     final SProject project = myProjectFinder.getProject(projectLocator);
-    final SProject parentProject = project.getParentProject() != null? project.getParentProject() : myServiceLocator.getSingletonService(ProjectManager.class).getRootProject();
-    assert parentProject != null;
-    return new NewProjectDescription(project.getName(), project.getExternalId(), new ProjectRef(project, myApiUrlBuilder), new ProjectRef(parentProject, myApiUrlBuilder), true);
+    final SProject parentProject = project.getParentProject();
+    final ProjectRef parentProjectRef = parentProject != null ? new ProjectRef(parentProject, myApiUrlBuilder) : null;
+    return new NewProjectDescription(project.getName(), project.getExternalId(), new ProjectRef(project, myApiUrlBuilder), parentProjectRef, true);
   }
 }
