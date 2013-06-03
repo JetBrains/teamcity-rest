@@ -8,6 +8,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.serverSide.BuildTypeOptions;
 import jetbrains.buildServer.serverSide.vcs.VcsLabelingSettings;
 import org.jetbrains.annotations.NotNull;
 
@@ -33,7 +34,7 @@ public class VCSLabelingOptions {
   public VCSLabelingOptions(@NotNull final BuildTypeOrTemplate buildType, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     labelName = buildType.get().getLabelPattern();
     type = buildType.get().getLabelingType().toString();
-    branchFilter = buildType.get().getBranchFilter();
+    branchFilter = buildType.get().getOption(BuildTypeOptions.VCS_LABELING_BRANCH_FILTER);
   }
 
   public void applyTo(final BuildTypeOrTemplate buildType, @NotNull final BeanContext context) {
@@ -54,9 +55,9 @@ public class VCSLabelingOptions {
     buildType.get().setLabelPattern(labelName);
     buildType.get().setLabelingType(labelingType);
     if (branchFilter != null){
-      buildType.get().setBranchFilter(branchFilter);
+      buildType.get().setOption(BuildTypeOptions.VCS_LABELING_BRANCH_FILTER, branchFilter);
     }else{
-      buildType.get().setBranchFilter(""); //todo: TeamCity API: not clear if this is correct way to reset the value
+      buildType.get().setOption(BuildTypeOptions.VCS_LABELING_BRANCH_FILTER, BuildTypeOptions.DEFAULT_VCS_LABELING_BRANCH_FILTER);
     }
   }
 }
