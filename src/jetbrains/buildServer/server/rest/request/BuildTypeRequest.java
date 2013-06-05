@@ -47,7 +47,6 @@ import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.CheckoutRules;
 import jetbrains.buildServer.vcs.SVcsRoot;
-import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 
 /*
@@ -379,13 +378,6 @@ public class BuildTypeRequest {
     }
     buildType.get().setCheckoutRules(vcsRoot, new CheckoutRules(description.checkoutRules != null ? description.checkoutRules : ""));
 
-    final List<VcsRoot> labelingVcsRoots = buildType.get().getLabelingRoots();
-    if (description.labeling != null && description.labeling.label != null && description.labeling.label) {
-      labelingVcsRoots.add(vcsRoot);
-    } else {
-      labelingVcsRoots.remove(vcsRoot);
-    }
-    buildType.get().setLabelingRoots(labelingVcsRoots);
     return vcsRoot;
   }
 
@@ -1187,16 +1179,24 @@ public class BuildTypeRequest {
                                              }));
   }
 
+  /**
+   * Gets VCS labeling settings
+   * Experimental support only
+   */
   @GET
-  @Path("/{btLocator}/vcs-labeling")
+  @Path("/{btLocator}/vcsLabeling")
   @Produces({"application/xml", "application/json"})
   public VCSLabelingOptions getVCSLabelingOptions(@PathParam("btLocator") String buildTypeLocator) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     return new VCSLabelingOptions(buildType, myApiUrlBuilder);
   }
 
+  /**
+   * Sets VCS labeling settings
+   * Experimental support only
+   */
   @PUT
-  @Path("/{btLocator}/vcs-labeling")
+  @Path("/{btLocator}/vcsLabeling")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public VCSLabelingOptions setVCSLabelingOptions(@PathParam("btLocator") String buildTypeLocator, VCSLabelingOptions options) {

@@ -33,7 +33,7 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "vcs-root-entry")
 @XmlType(name = "vcs-root-entry", propOrder = {"id",
-  "vcsRootRef", "checkoutRules", "labeling"})
+  "vcsRootRef", "checkoutRules"})
 public class VcsRootEntry {
   @XmlAttribute(name = "id")
   public String id;
@@ -42,8 +42,6 @@ public class VcsRootEntry {
   public VcsRootRef vcsRootRef;
   @XmlElement(name = "checkout-rules")
   public String checkoutRules;
-  @XmlElement(name = "labeling")
-  public LabelingOptions labeling;
 
   public VcsRootEntry() {
   }
@@ -52,7 +50,6 @@ public class VcsRootEntry {
     id = vcsRootParam.getExternalId();
     vcsRootRef = new VcsRootRef(vcsRootParam, apiUrlBuilder);
     checkoutRules =  buildType.get().getCheckoutRules(vcsRootParam).getAsString();
-    labeling = new LabelingOptions(buildType.get().getLabelingRoots().contains(vcsRootParam));
   }
 }
 

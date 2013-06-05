@@ -18,14 +18,17 @@ package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.change.VcsRootRef;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -65,5 +68,16 @@ public class VcsRoots {
       prevHref = pagerData.getPrevHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getPrevHref()) : null;
     }
     count = vcsRoots.size();
+  }
+
+  public List<SVcsRoot> getVcsRoots(@NotNull VcsRootFinder vcsRootFinder){
+    if (vcsRoots == null){
+      return Collections.emptyList();
+    }
+    final ArrayList<SVcsRoot> result = new ArrayList<SVcsRoot>(vcsRoots.size());
+    for (VcsRootRef vcsRoot : vcsRoots) {
+      result.add(vcsRoot.getVcsRoot(vcsRootFinder));
+    }
+    return result;
   }
 }
