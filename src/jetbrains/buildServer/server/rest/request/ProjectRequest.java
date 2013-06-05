@@ -109,11 +109,23 @@ public class ProjectRequest {
       for (SProject childProject : sourceProject.getProjects()) {
         copyOptions.addProjectExternalIdMapping(childProject.getExternalId(), childProject.getExternalId() + "_1");
       }
-      if (descriptor.id != null)  copyOptions.addProjectExternalIdMapping(sourceProject.getExternalId(), descriptor.id);
-      resultingProject = projectManager.copyProject(sourceProject, parentProject, copyOptions);
+      copyOptions.addProjectExternalIdMapping(sourceProject.getExternalId(), descriptor.getId(myServiceLocator));
+
+      try {
+        resultingProject = projectManager.copyProject(sourceProject, parentProject, copyOptions);
+      } catch (MaxNumberOfBuildTypesReachedException e) {
+        throw new BadRequestException("Build configurations number limit is reached", e);
+      } catch (NotAllIdentifiersMappedException e) {
+        throw new BadRequestException("Not all ids are mapped", e);
+      } catch (InvalidNameException e) {
+        throw new BadRequestException("Invalid name", e);
+      } catch (DuplicateExternalIdException e) {
+        throw new BadRequestException("Duplicate id", e);
+      }
       try {
         if (descriptor.name != null) resultingProject.setName(descriptor.name);
-        if (descriptor.id != null) resultingProject.setExternalId(descriptor.id);
+        //todo: TeamCity api: is this necessary? http://youtrack.jetbrains.com/issue/TW-28495
+        resultingProject.setExternalId(descriptor.getId(myServiceLocator));
       } catch (InvalidIdentifierException e) {
         processCreatiedProjectFinalizationError(resultingProject, projectManager, e);
       } catch (DuplicateExternalIdException e) {
