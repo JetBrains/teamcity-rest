@@ -45,7 +45,8 @@ public class BuildsFilterProcessor {
     final FilterItemProcessor<SFinishedBuild> buildsFilterItemProcessor =
       new FilterItemProcessor<SFinishedBuild>(new FinishedBuildsFilter(buildsFilter));
     if (buildsFilter.getBuildType() != null) {
-        buildHistory.processEntries(buildsFilter.getBuildType().getBuildTypeId(),
+      //noinspection ConstantConditions
+      buildHistory.processEntries(buildsFilter.getBuildType().getBuildTypeId(),
                                     getUserForProcessEntries(buildsFilter),
                                     buildsFilter.getPersonal() == null || buildsFilter.getPersonal(),
                                     buildsFilter.getCanceled() == null || buildsFilter.getCanceled(),

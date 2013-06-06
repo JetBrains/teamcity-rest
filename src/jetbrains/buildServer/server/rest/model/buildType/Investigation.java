@@ -42,7 +42,7 @@ public class Investigation {
     if (stateOjbect.equals(ResponsibilityEntry.State.NONE)){
       return;
     }
-    id = buildType.getBuildTypeId();
+    id = buildType.getBuildTypeId(); // still uses internal id, TBD if appropriate
     scope = new InvestigationScope(buildType, dataProvider, apiUrlBuilder);
     responsible = new UserRef(responsibilityEntry.getResponsibleUser(), apiUrlBuilder);
 

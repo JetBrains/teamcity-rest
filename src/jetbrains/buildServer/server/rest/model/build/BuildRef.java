@@ -65,7 +65,7 @@ public class BuildRef {
 
   @XmlAttribute
   public String getBuildTypeId() {
-    return myBuild.getBuildTypeId();
+    return myBuild.getBuildTypeExternalId();
   }
 
   @XmlAttribute
