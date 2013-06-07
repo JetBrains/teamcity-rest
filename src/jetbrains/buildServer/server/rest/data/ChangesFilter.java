@@ -281,7 +281,7 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
 
   private List<SVcsModification> getBranchChanges(@NotNull final SBuildType buildType, @NotNull final String branchName) {
     final boolean includeDependencyChanges = TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) || !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES);
-    final List<ChangeDescriptor> changes =  ((BuildTypeEx)buildType).getBranch(branchName).getDetectedChanges(SelectPrevBuildPolicy.SINCE_NULL_BUILD, includeDependencyChanges);
+    final List<ChangeDescriptor> changes =  ((BuildTypeEx)buildType).getBranchByDisplayName(branchName).getDetectedChanges(SelectPrevBuildPolicy.SINCE_NULL_BUILD, includeDependencyChanges);
     return convertChanges(changes);
   }
 
