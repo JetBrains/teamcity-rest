@@ -117,7 +117,7 @@ public class APIController extends BaseController implements ServletContextAware
     if (TeamCityProperties.getBoolean("rest.use.authToken")) {
       try {
         myAuthToken = URLEncoder.encode(UUID.randomUUID().toString() + (new Date()).toString().hashCode(), "UTF-8");
-        LOG.info("Authentication token for superuser generated: '" + myAuthToken + "' (plugin '" + myPluginDescriptor.getPluginName() +
+        LOG.info("Authentication token for Super user generated: '" + myAuthToken + "' (plugin '" + myPluginDescriptor.getPluginName() +
                  "', listening for paths " + originalBindPaths + ").");
       } catch (UnsupportedEncodingException e) {
         LOG.warn(e);
