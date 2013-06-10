@@ -133,22 +133,23 @@ public class User {
     throw new BadRequestException("Unknown field '" + name + "'. Supported fields are: id, name, username, email");
   }
 
-  public static void setFieldValue(@NotNull final SUser user, @Nullable final String name, @NotNull final String value) {
+  @Nullable
+  public static String setFieldValue(@NotNull final SUser user, @Nullable final String name, @NotNull final String value) {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Field name cannot be empty");
     }
     if ("username".equals(name)) {
       DataUpdater.updateUserCoreFields(user, value, null, null, null);
-      return;
+      return getFieldValue(user, name);
     } else if ("name".equals(name)) {
       DataUpdater.updateUserCoreFields(user, null, value, null, null);
-      return;
+      return getFieldValue(user, name);
     } else if ("email".equals(name)) {
       DataUpdater.updateUserCoreFields(user, null, null, value, null);
-      return;
+      return getFieldValue(user, name);
     } else if ("password".equals(name)) {
       DataUpdater.updateUserCoreFields(user, null, null, null, value);
-      return;
+      return null; //do not report password back
     }
     throw new BadRequestException("Changing field '" + name + "' is not supported. Supported fields are: username, name, email, password");
   }

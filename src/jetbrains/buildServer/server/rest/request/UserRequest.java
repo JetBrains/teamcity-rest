@@ -154,8 +154,7 @@ public class UserRequest {
   @Produces("text/plain")
   public String setUserField(@PathParam("userLocator") String userLocator, @PathParam("field") String fieldName, String value) {
     final SUser user = myUserFinder.getUser(userLocator);
-    User.setFieldValue(user, fieldName, value);
-    return User.getFieldValue(user, fieldName);
+    return User.setFieldValue(user, fieldName, value);
   }
 
   @GET
