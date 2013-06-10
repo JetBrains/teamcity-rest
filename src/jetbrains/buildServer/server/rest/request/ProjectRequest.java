@@ -288,10 +288,10 @@ public class ProjectRequest {
     }else{
       if (sourceBuildType.isBuildType()) {
         resultingBuildType =
-          project.createBuildTypeTemplate(sourceBuildType.getBuildType(), descriptor.getId(myServiceLocator, project), descriptor.getName(), descriptor.getCopyOptions());
+          project.createBuildTypeTemplate(sourceBuildType.getBuildType(), descriptor.getId(myServiceLocator, project), descriptor.getName());
       } else {
         resultingBuildType =
-          project.createBuildTypeTemplate(sourceBuildType.getTemplate(), descriptor.getId(myServiceLocator, project), descriptor.getName(), descriptor.getCopyOptions());
+          project.createBuildTypeTemplate(sourceBuildType.getTemplate(), descriptor.getId(myServiceLocator, project), descriptor.getName());
       }
     }
     resultingBuildType.persist();
