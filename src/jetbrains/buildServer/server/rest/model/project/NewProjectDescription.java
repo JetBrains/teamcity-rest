@@ -96,6 +96,6 @@ public class NewProjectDescription extends CopyOptionsDescription{
     if (name == null){
       throw new BadRequestException("'name' and 'id' should not be empty at the same time.");
     }
-    return serviceLocator.getSingletonService(ProjectIdentifiersManager.class).generateNewExternalId(getParentProject(serviceLocator).getExternalId(), name);
+    return serviceLocator.getSingletonService(ProjectIdentifiersManager.class).generateNewExternalId(getParentProject(serviceLocator).getExternalId(), name, null);
   }
 }

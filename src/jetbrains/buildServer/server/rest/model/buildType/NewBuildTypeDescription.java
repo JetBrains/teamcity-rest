@@ -93,6 +93,6 @@ public class NewBuildTypeDescription extends CopyOptionsDescription{
     if (id != null){
       return id;
     }
-    return serviceLocator.getSingletonService(BuildTypeIdentifiersManager.class).generateNewExternalId(project.getExternalId(), getName());
+    return serviceLocator.getSingletonService(BuildTypeIdentifiersManager.class).generateNewExternalId(project.getExternalId(), getName(), null);
   }
 }
