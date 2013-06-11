@@ -1091,6 +1091,9 @@ public class BuildTypeRequest {
     return new Investigations(buildType, myDataProvider, myApiUrlBuilder);
   }
 
+  /**
+   * Experimental support only!
+   */
   @GET
   @Path("/{btLocator}/vcs-root-instances")
   @Produces({"application/xml", "application/json"})

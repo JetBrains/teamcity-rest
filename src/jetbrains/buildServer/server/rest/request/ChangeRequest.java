@@ -152,8 +152,11 @@ public class ChangeRequest {
     return Change.getFieldValue(change, field);
   }
 
+  /**
+   * Experimental support only!
+   */
   @GET
-  @Path("/{changeLocator}/parent-changes")
+  @Path("/{changeLocator}/parentChanges")
   @Produces({"application/xml", "application/json"})
   public Changes getParentChanges(@PathParam("changeLocator") String changeLocator) {
     final SVcsModification change = myChangeFinder.getChange(changeLocator);
@@ -164,7 +167,7 @@ public class ChangeRequest {
    * Experimental support only!
    */
   @GET
-  @Path("/{changeLocator}/parent-revisions")
+  @Path("/{changeLocator}/parentRevisions")
   @Produces({"application/xml", "application/json"})
   public Items getChangeParentRevisions(@PathParam("changeLocator") String changeLocator) {
     final SVcsModification change = myChangeFinder.getChange(changeLocator);
@@ -175,7 +178,7 @@ public class ChangeRequest {
    * Experimental support only!
    */
   @GET
-  @Path("/{changeLocator}/vcs-root")
+  @Path("/{changeLocator}/vcsRoot")
   @Produces({"application/xml", "application/json"})
   public VcsRootInstanceRef getChangeVCSRoot(@PathParam("changeLocator") String changeLocator) {
     final SVcsModification change = myChangeFinder.getChange(changeLocator);
