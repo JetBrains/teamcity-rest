@@ -225,7 +225,7 @@ public class ProjectRequest {
     } else {
       if (sourceBuildType.isBuildType()) {
         resultingBuildType =
-          project.createBuildType(sourceBuildType.getBuildType(), descriptor.getId(myServiceLocator, project), descriptor.getName(), descriptor.getCopyOptions());
+          project.copyBuildType(sourceBuildType.getBuildType(), descriptor.getId(myServiceLocator, project), descriptor.getName(), descriptor.getCopyOptions());
       } else {
         throw new BadRequestException("Could not create build type as a copy of a template.");
       }
