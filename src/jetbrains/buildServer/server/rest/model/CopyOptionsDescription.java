@@ -17,7 +17,6 @@ public class CopyOptionsDescription {
       result.addOption(CopyOptions.Option.COPY_USER_NOTIFICATION_RULES);
       result.addOption(CopyOptions.Option.COPY_USER_ROLES);
     }
-    result.addOption(CopyOptions.Option.COPY_VCS_ROOTS); //todo: TeamCity API: this option seems unnecessary and is always implied
     return result;
   }
 
