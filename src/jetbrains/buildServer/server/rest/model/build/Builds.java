@@ -53,13 +53,13 @@ public class Builds {
   public Builds() {
   }
 
-  public Builds(@NotNull final List buildObjects,
+  public Builds(@NotNull final List<SBuild> buildObjects,
                 @NotNull final DataProvider dataProvider,
                 @Nullable final PagerData pagerData,
                 final ApiUrlBuilder apiUrlBuilder) {
     builds = new ArrayList<BuildRef>(buildObjects.size());
-    for (Object build : buildObjects) {
-      builds.add(new BuildRef((SBuild)build, dataProvider, apiUrlBuilder));
+    for (SBuild build : buildObjects) {
+      builds.add(new BuildRef(build, dataProvider, apiUrlBuilder));
     }
     if (pagerData != null) {
       nextHref = pagerData.getNextHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;

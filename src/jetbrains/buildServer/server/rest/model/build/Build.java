@@ -230,20 +230,20 @@ public class Build {
   }
 
   @XmlElement(name = "snapshot-dependencies")
-  public BuildsList getBuildDependencies() {
-    return new BuildsList(getBuildRefs(myBuild.getBuildPromotion().getDependencies(), myDataProvider));
+  public Builds getBuildDependencies() {
+    return new Builds(getBuilds(myBuild.getBuildPromotion().getDependencies()), myDataProvider, null, myApiUrlBuilder);
   }
 
   @XmlElement(name = "artifact-dependencies")
-  public BuildsList getBuildArtifactDependencies() {
+  public Builds getBuildArtifactDependencies() {
     final Map<jetbrains.buildServer.Build,List<ArtifactInfo>> artifacts = myBuild.getDownloadedArtifacts().getArtifacts();
-    List<BuildRef> builds = new ArrayList<BuildRef>(artifacts.size());
-    for (Map.Entry<jetbrains.buildServer.Build, List<ArtifactInfo>> entry : artifacts.entrySet()) {
-      //todo: cast to SBuild?
-      builds.add(new BuildRef((SBuild)entry.getKey(), myDataProvider, myApiUrlBuilder));
+    List<SBuild> builds = new ArrayList<SBuild>(artifacts.size());
+    for (jetbrains.buildServer.Build sourceBuild : artifacts.keySet()) {
+      //todo: TeamCity API: cast to SBuild?
+      builds.add((SBuild)sourceBuild);
     }
     Collections.sort(builds, new BuildDependenciesComparator());
-    return new BuildsList(builds);
+    return new Builds(builds, myDataProvider, null, myApiUrlBuilder);
   }
 
   @XmlElement(name = "revisions")
@@ -279,23 +279,22 @@ public class Build {
     return new Href(BuildArtifactsFinder.fileApiUrlBuilderForBuild(myApiUrlBuilder, myBuild, null).getChildrenHref(null));
   }
 
-  private List<BuildRef> getBuildRefs(@NotNull Collection<? extends BuildDependency> dependencies,
-                                      @NotNull final DataProvider dataProvider) {
-    List<BuildRef> result = new ArrayList<BuildRef>(dependencies.size());
+  private List<SBuild> getBuilds(@NotNull Collection<? extends BuildDependency> dependencies) {
+    List<SBuild> result = new ArrayList<SBuild>(dependencies.size());
     for (BuildDependency dependency : dependencies) {
       final SBuild dependOnBuild = dependency.getDependOn().getAssociatedBuild();
       if (dependOnBuild != null) {
-        result.add(new BuildRef(dependOnBuild, dataProvider, myApiUrlBuilder));
+        result.add(dependOnBuild);
       }
     }
     Collections.sort(result, new BuildDependenciesComparator());
     return result;
   }
 
-  private class BuildDependenciesComparator implements Comparator<BuildRef> {
-    public int compare(final BuildRef o1, final BuildRef o2) {
+  private class BuildDependenciesComparator implements Comparator<SBuild> {
+    public int compare(final SBuild o1, final SBuild o2) {
       final int buildTypesCompare = o1.getBuildTypeId().compareTo(o2.getBuildTypeId());
-      return buildTypesCompare != 0 ? buildTypesCompare : (int)(o1.getId() - o2.getId());
+      return buildTypesCompare != 0 ? buildTypesCompare : (int)(o1.getBuildId() - o2.getBuildId());
     }
   }
 

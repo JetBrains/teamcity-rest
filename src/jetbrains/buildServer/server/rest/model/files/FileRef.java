@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * @author Vladislav.Rassokhin
  */
-@XmlRootElement(name = "file")
+@XmlRootElement(name = "file-ref")
 @XmlType(name = "file-ref", propOrder = {"name", "href"})
 public class FileRef {
 
