@@ -58,7 +58,7 @@ import org.jetbrains.annotations.Nullable;
 @Path(Constants.API_URL + "/debug")
 @Singleton
 public class DebugRequest {
-  public static final String REST_VALID_QUERY_PROPERTY_NAME = "rest.debug.allow.query.prefixes";
+  public static final String REST_VALID_QUERY_PROPERTY_NAME = "rest.debug.database.allow.query.prefixes";
 
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private VcsRootFinder myVcsRootFinder;
@@ -111,7 +111,7 @@ public class DebugRequest {
       if (result == null) {
         return "";
       }
-      String comment = result.size() >= maxRows ? "# First " + maxRows + " rows are served. Add '?count=N' parameter to change the number of rows to return.\n" : "";
+      String comment = (maxRows >= 0 && result.size() >= maxRows) ? "# First " + maxRows + " rows are served. Add '?count=N' parameter to change the number of rows to return.\n" : "";
       return comment + StringUtil.join(result, "\n");
     }else{
       final int result = genericQuery.executeUpdate(sqlRunner);
