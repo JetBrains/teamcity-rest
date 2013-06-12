@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
+import java.util.Collections;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
@@ -107,9 +108,9 @@ public class ProjectRequest {
       final CopyOptions copyOptions = descriptor.getCopyOptions();
       //workaround for http://youtrack.jetbrains.com/issue/TW-28495
       for (SProject childProject : sourceProject.getProjects()) {
-        copyOptions.addProjectExternalIdMapping(childProject.getExternalId(), childProject.getExternalId() + "_1");
+        copyOptions.addProjectExternalIdMapping(Collections.singletonMap(childProject.getExternalId(), childProject.getExternalId() + "_1"));
       }
-      copyOptions.addProjectExternalIdMapping(sourceProject.getExternalId(), descriptor.getId(myServiceLocator));
+      copyOptions.addProjectExternalIdMapping(Collections.singletonMap(sourceProject.getExternalId(), descriptor.getId(myServiceLocator)));
 
       try {
         resultingProject = projectManager.copyProject(sourceProject, parentProject, copyOptions);
