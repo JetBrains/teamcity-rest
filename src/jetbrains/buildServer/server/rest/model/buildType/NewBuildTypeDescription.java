@@ -42,7 +42,7 @@ public class NewBuildTypeDescription extends CopyOptionsDescription{
   }
 
   public NewBuildTypeDescription(final String name, final String id, final BuildTypeRef sourceBuildType, final Boolean copyAllAssociatedSettings) {
-    this.copyAllAssociatedSettings = copyAllAssociatedSettings;
+    super(copyAllAssociatedSettings, null, null, null);
     this.name = name;
     this.id = id;
     this.sourceBuildType = sourceBuildType;

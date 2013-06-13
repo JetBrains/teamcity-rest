@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.request;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -58,6 +59,7 @@ import org.jetbrains.annotations.Nullable;
 @Path(ProjectRequest.API_PROJECTS_URL)
 public class ProjectRequest {
   private static final Logger LOG = Logger.getInstance(ProjectRequest.class.getName());
+  public static final boolean ID_GENERATION_FLAG = true;
 
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private BuildFinder myBuildFinder;
@@ -106,13 +108,10 @@ public class ProjectRequest {
       resultingProject = parentProject.createProject(descriptor.getId(myServiceLocator), descriptor.name);
     } else {
       final CopyOptions copyOptions = descriptor.getCopyOptions();
-      //workaround for http://youtrack.jetbrains.com/issue/TW-28495
-      for (SProject childProject : sourceProject.getProjects()) {
-        copyOptions.addProjectExternalIdMapping(Collections.singletonMap(childProject.getExternalId(), childProject.getExternalId() + "_1"));
-      }
+      //see also getExampleNewProjectDescription which prepares NewProjectDescription
       copyOptions.addProjectExternalIdMapping(Collections.singletonMap(sourceProject.getExternalId(), descriptor.getId(myServiceLocator)));
-      // copyOptions.setGenerateExternalIdsBasedOnOriginalExternalIds(true);
-
+      copyOptions.setGenerateExternalIdsBasedOnOriginalExternalIds(ID_GENERATION_FLAG);
+      if (descriptor.name != null) copyOptions.setNewProjectName(descriptor.name);
       try {
         resultingProject = projectManager.copyProject(sourceProject, parentProject, copyOptions);
       } catch (MaxNumberOfBuildTypesReachedException e) {
@@ -488,10 +487,23 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/newProjectDescription")
   @Produces({"application/xml", "application/json"})
-  public NewProjectDescription getExampleNewProjectDescription(@PathParam("projectLocator") String projectLocator) {
+  public NewProjectDescription getExampleNewProjectDescription(@PathParam("projectLocator") String projectLocator, @QueryParam("id") String newId) {
     final SProject project = myProjectFinder.getProject(projectLocator);
     final SProject parentProject = project.getParentProject();
     final ProjectRef parentProjectRef = parentProject != null ? new ProjectRef(parentProject, myApiUrlBuilder) : null;
-    return new NewProjectDescription(project.getName(), project.getExternalId(), new ProjectRef(project, myApiUrlBuilder), parentProjectRef, true);
+    @NotNull final String newNotEmptyId = StringUtil.isEmpty(newId) ? project.getExternalId() : newId;
+    final ProjectManagerEx.IdsMaps idsMaps =
+      ((ProjectManagerEx)myDataProvider.getServer().getProjectManager()).generateDefaultExternalIds(project, newNotEmptyId, ID_GENERATION_FLAG, true);
+    final Map<String, String> projectIdsMap = idsMaps.getProjectIdsMap();
+    projectIdsMap.remove(project.getExternalId()); // remove ptoject's own id to make the object more clean
+    return new NewProjectDescription(project.getName(), newNotEmptyId, new ProjectRef(project, myApiUrlBuilder), parentProjectRef, true,
+                                     getNullOrCollection(projectIdsMap),
+                                     getNullOrCollection(idsMaps.getBuildTypeIdsMap()),
+                                     getNullOrCollection(idsMaps.getVcsRootIdsMap()));
+  }
+
+  @Nullable
+  private Map<String, String> getNullOrCollection(final @NotNull Map<String, String> map) {
+    return map.size() > 0 ? map : null;
   }
 }

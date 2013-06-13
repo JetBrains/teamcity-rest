@@ -140,9 +140,8 @@ public class Project {
       project.setName(value);
       return;
     } else if ("id".equals(field)) {
-      //todo: (TeamCity) open API How to set project external id via open API?
       if (StringUtil.isEmpty(value)){
-        throw new BadRequestException("Project external id cannot be empty.");
+        throw new BadRequestException("Project id cannot be empty.");
       }
       project.setExternalId(value);
       return;

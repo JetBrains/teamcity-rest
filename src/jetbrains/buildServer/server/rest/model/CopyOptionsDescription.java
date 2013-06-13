@@ -1,11 +1,31 @@
 package jetbrains.buildServer.server.rest.model;
 
+import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
 import jetbrains.buildServer.serverSide.CopyOptions;
+import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("PublicField")
 public class CopyOptionsDescription {
-  @XmlAttribute public Boolean copyAllAssociatedSettings;
+  @XmlAttribute @Nullable public Boolean copyAllAssociatedSettings;
+
+  @XmlElement @Nullable public Properties projectsIdsMap;
+  @XmlElement @Nullable public Properties buildTypesIdsMap;
+  @XmlElement @Nullable public Properties vcsRootsIdsMap;
+
+  public CopyOptionsDescription() {
+  }
+
+  public CopyOptionsDescription(@Nullable final Boolean copyAllAssociatedSettings,
+                                @Nullable final Map<String, String> projectsIdsMap,
+                                @Nullable final Map<String, String> buildTypesIdsMap,
+                                @Nullable final Map<String, String> vcsRootsIdsMap) {
+    this.copyAllAssociatedSettings = copyAllAssociatedSettings;
+    if (projectsIdsMap!= null) this.projectsIdsMap = new Properties(projectsIdsMap);
+    if (buildTypesIdsMap!= null) this.buildTypesIdsMap = new Properties(buildTypesIdsMap);
+    if (vcsRootsIdsMap!= null) this.vcsRootsIdsMap = new Properties(vcsRootsIdsMap);
+  }
 
   public CopyOptions getCopyOptions() {
     final CopyOptions result = new CopyOptions();
@@ -17,6 +37,10 @@ public class CopyOptionsDescription {
       result.addOption(CopyOptions.Option.COPY_USER_NOTIFICATION_RULES);
       result.addOption(CopyOptions.Option.COPY_USER_ROLES);
     }
+    if (projectsIdsMap!= null) result.addProjectExternalIdMapping(projectsIdsMap.getMap());
+    if (buildTypesIdsMap!= null) result.addBuildTypeAndTemplateExternalIdMapping(buildTypesIdsMap.getMap());
+    if (vcsRootsIdsMap!= null) result.addVcsRootExternalIdMapping(vcsRootsIdsMap.getMap());
+
     return result;
   }
 

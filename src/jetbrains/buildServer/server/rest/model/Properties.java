@@ -46,7 +46,7 @@ public class Properties {
   public Properties() {
   }
 
-  public Properties(final Map<String, String> propertiesP) {
+  public Properties(@NotNull final Map<String, String> propertiesP) {
     for (Map.Entry<String, String> prop : propertiesP.entrySet()) {
       final String key = prop.getKey();
       if (!isPropertyToExclude(key)) {

@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.project;
 
+import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -40,8 +41,15 @@ public class NewProjectDescription extends CopyOptionsDescription{
   public NewProjectDescription() {
   }
 
-  public NewProjectDescription(final String name, final String id, final ProjectRef sourceProject, final ProjectRef parentProject, final Boolean copyAllAssociatedSettings) {
-    this.copyAllAssociatedSettings = copyAllAssociatedSettings;
+  public NewProjectDescription(final String name,
+                               final String id,
+                               final ProjectRef sourceProject,
+                               final ProjectRef parentProject,
+                               @Nullable final Boolean copyAllAssociatedSettings,
+                               @Nullable final Map<String, String> projectsIdsMap,
+                               @Nullable final Map<String, String> buildTypesIdsMap,
+                               @Nullable final Map<String, String> vcsRootsIdsMap) {
+    super(copyAllAssociatedSettings, projectsIdsMap, buildTypesIdsMap, vcsRootsIdsMap);
     this.name = name;
     this.id = id;
     this.sourceProject = sourceProject;
@@ -55,7 +63,7 @@ public class NewProjectDescription extends CopyOptionsDescription{
   @XmlAttribute public String id;
 
   /**
-   * @deprecated Use 'sourceProject' intead.
+   * @deprecated Use 'sourceProject' instead.
    */
   @XmlAttribute public String sourceProjectLocator;
 
