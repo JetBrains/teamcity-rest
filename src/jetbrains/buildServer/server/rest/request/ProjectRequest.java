@@ -111,6 +111,7 @@ public class ProjectRequest {
         copyOptions.addProjectExternalIdMapping(Collections.singletonMap(childProject.getExternalId(), childProject.getExternalId() + "_1"));
       }
       copyOptions.addProjectExternalIdMapping(Collections.singletonMap(sourceProject.getExternalId(), descriptor.getId(myServiceLocator)));
+      // copyOptions.setGenerateExternalIdsBasedOnOriginalExternalIds(true);
 
       try {
         resultingProject = projectManager.copyProject(sourceProject, parentProject, copyOptions);
