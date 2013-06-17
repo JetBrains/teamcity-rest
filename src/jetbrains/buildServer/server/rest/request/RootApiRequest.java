@@ -57,8 +57,15 @@ public class RootApiRequest {
   @GET
   @Path("/version")
   @Produces("text/plain")
-  public String serveApiVersion() {
+  public String serveVersion() {
     return myDataProvider.getPluginInfo().getPluginXml().getInfo().getVersion();
+  }
+
+  @GET
+  @Path("/apiVersion")
+  @Produces("text/plain")
+  public String serveApiVersion() {
+    return myDataProvider.getPluginInfo().getParameterValue("api.version");
   }
 
   @GET
