@@ -16,6 +16,7 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.dependency.CyclicDependencyFoundException;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
@@ -63,7 +64,12 @@ public class PropEntitySnapshotDep extends PropEntity {
 
     this.properties = new Properties(properties);
 
-    final SBuildType dependOn = dependency.getDependOn();
+    @Nullable SBuildType dependOn = null;
+    try {
+      dependOn = dependency.getDependOn();
+    } catch (AccessDeniedException e) {
+      //ignrore, wil use ids later
+    }
     if (dependOn != null) {
       sourceBuildType = new BuildTypeRef(dependOn, context.getSingletonService(DataProvider.class),
                                          context.getContextService(ApiUrlBuilder.class));

@@ -18,7 +18,9 @@ import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -66,7 +68,12 @@ public class PropEntityArtifactDep extends PropEntity {
     properties.put(NAME_CLEAN_DESTINATION_DIRECTORY, Boolean.toString(dependency.isCleanDestinationFolder()));
     this.properties = new Properties(properties);
 
-    final SBuildType dependOn = dependency.getSourceBuildType();
+    @Nullable SBuildType dependOn = null;
+    try {
+      dependOn = dependency.getSourceBuildType();
+    } catch (AccessDeniedException e) {
+      //ignore, will use ids later
+    }
     if (dependOn != null) {
       sourceBuildType = new BuildTypeRef(dependOn, context.getSingletonService(DataProvider.class),
                                          context.getContextService(ApiUrlBuilder.class));
