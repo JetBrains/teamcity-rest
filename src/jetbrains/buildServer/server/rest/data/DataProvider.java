@@ -389,7 +389,7 @@ public class DataProvider {
       }
       throw new AuthorizationFailedException("Not existing project with internal id: '" + projectId + "'. Treating as no permission.");
     }
-    if (!authorityHolder.isPermissionGrantedForProject(projectId, permission)) { //todo: (TeamCity) open API: is it internal or external project id?
+    if (!authorityHolder.isPermissionGrantedForProject(projectId, permission)) {
       throw new AuthorizationFailedException("User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission +
                                              " in project with internal id: '" + projectId + "'");
     }
