@@ -482,14 +482,7 @@ public class BuildRequest {
    * May not work for non-personal builds: http://youtrack.jetbrains.net/issue/TW-9858
    */
   public void deleteBuild(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
-    SBuild build = myBuildFinder.getBuild(null, buildLocator);
-
-    final SUser user = SessionUser.getUser(request);  //todo: support "run as system" case
-    // workaround for http://youtrack.jetbrains.net/issue/TW-10538
-    if (!isPersonalUserBuild(build, user)) {
-      myDataProvider.checkProjectPermission(Permission.EDIT_PROJECT, build.getProjectId());
-    }
-    myDataProvider.deleteBuild(build);
+    myDataProvider.deleteBuild(myBuildFinder.getBuild(null, buildLocator));
   }
 
   private boolean isPersonalUserBuild(final SBuild build, @NotNull final SUser user) {
