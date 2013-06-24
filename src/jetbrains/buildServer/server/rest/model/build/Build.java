@@ -324,8 +324,10 @@ public class Build {
     } else if ("unspecifiedBranch".equals(field)) {
       Branch branch = build.getBranch();
       return branch == null ? "" : String.valueOf(Branch.UNSPECIFIED_BRANCH_NAME.equals(branch.getName()));
-    } else if ("promotionId".equals(field)) { //this is not exposed in any other way
+    } else if ("promotionId".equals(field)) { //Experimental support only, this is not exposed in any other way
       return (String.valueOf(build.getBuildPromotion().getId()));
+    } else if ("modificationId".equals(field)) { //Experimental support only, this is not exposed in any other way
+      return (String.valueOf(build.getBuildPromotion().getLastModificationId()));
     }
     throw new NotFoundException("Field '" + field + "' is not supported.");
   }
