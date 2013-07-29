@@ -6,10 +6,7 @@ import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
-import jetbrains.buildServer.serverSide.BuildTypeTemplate;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -28,11 +25,11 @@ public class BuildTypeFinder {
   public static final String DIMENSION_INTERNAL_ID = "internalId";
   public static final String DIMENSION_PROJECT = "project";
   public static final String DIMENSION_NAME = "name";
-  @NotNull private final DataProvider myDataProvider;
   private ProjectFinder myProjectFinder;
+  private ProjectManager myProjectManager;
 
-  public BuildTypeFinder(@NotNull final DataProvider dataProvider, @NotNull final ProjectFinder projectFinder){
-    myDataProvider = dataProvider;
+  public BuildTypeFinder(@NotNull final ProjectManager projectManager, @NotNull final ProjectFinder projectFinder){
+    myProjectManager = projectManager;
     myProjectFinder = projectFinder;
   }
 
@@ -225,7 +222,7 @@ public class BuildTypeFinder {
       return findBuildTypeinProjects(name, project.getProjects(), isTemplate);
     }
 
-    return findBuildTypeinProjects(name, myDataProvider.getServer().getProjectManager().getProjects(), isTemplate);
+    return findBuildTypeinProjects(name, myProjectManager.getProjects(), isTemplate);
   }
 
   @Nullable
@@ -246,13 +243,13 @@ public class BuildTypeFinder {
   @Nullable
   private BuildTypeOrTemplate findBuildTypeOrTemplateByInternalId(@NotNull final String internalId, @Nullable final Boolean isTemplate) {
     if (isTemplate == null || !isTemplate) {
-      SBuildType buildType = myDataProvider.getServer().getProjectManager().findBuildTypeById(internalId);
+      SBuildType buildType = myProjectManager.findBuildTypeById(internalId);
       if (buildType != null) {
         return new BuildTypeOrTemplate(buildType);
       }
     }
     if (isTemplate == null || isTemplate) {
-      final BuildTypeTemplate buildTypeTemplate = myDataProvider.getServer().getProjectManager().findBuildTypeTemplateById(internalId);
+      final BuildTypeTemplate buildTypeTemplate = myProjectManager.findBuildTypeTemplateById(internalId);
       if (buildTypeTemplate != null) {
         return new BuildTypeOrTemplate(buildTypeTemplate);
       }
@@ -263,13 +260,13 @@ public class BuildTypeFinder {
   @Nullable
   private BuildTypeOrTemplate findBuildTypeOrTemplateByExternalId(@NotNull final String internalId, @Nullable final Boolean isTemplate) {
     if (isTemplate == null || !isTemplate) {
-      SBuildType buildType = myDataProvider.getServer().getProjectManager().findBuildTypeByExternalId(internalId);
+      SBuildType buildType = myProjectManager.findBuildTypeByExternalId(internalId);
       if (buildType != null) {
         return new BuildTypeOrTemplate(buildType);
       }
     }
     if (isTemplate == null || isTemplate) {
-      final BuildTypeTemplate buildTypeTemplate = myDataProvider.getServer().getProjectManager().findBuildTypeTemplateByExternalId(
+      final BuildTypeTemplate buildTypeTemplate = myProjectManager.findBuildTypeTemplateByExternalId(
         internalId);
       if (buildTypeTemplate != null) {
         return new BuildTypeOrTemplate(buildTypeTemplate);
@@ -285,8 +282,7 @@ public class BuildTypeFinder {
     }
 
     String templateId = idWithPrefix.substring(TEMPLATE_ID_PREFIX.length());
-    final BuildTypeTemplate buildTypeTemplateByStrippedId =
-      myDataProvider.getServer().getProjectManager().findBuildTypeTemplateById(templateId);
+    final BuildTypeTemplate buildTypeTemplateByStrippedId = myProjectManager.findBuildTypeTemplateById(templateId);
     if (buildTypeTemplateByStrippedId != null) {
       return new BuildTypeOrTemplate(buildTypeTemplateByStrippedId);
     }
