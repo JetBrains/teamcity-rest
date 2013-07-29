@@ -1,22 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="AntConfiguration">
-    <defaultAnt bundledAnt="true" />
     <buildFile url="file://$PROJECT_DIR$/build.xml">
-      <additionalClassPath />
-      <antReference projectDefault="true" />
-      <customJdkName value="" />
       <maximumHeapSize value="176" />
       <maximumStackSize value="32" />
-      <properties />
     </buildFile>
     <buildFile url="file://$PROJECT_DIR$/rest-api.xml">
-      <additionalClassPath />
-      <antReference projectDefault="true" />
-      <customJdkName value="" />
-      <maximumHeapSize value="128" />
       <maximumStackSize value="32" />
-      <properties />
     </buildFile>
   </component>
   <component name="BuildJarProjectSettings">
@@ -340,6 +330,24 @@
       <SOURCES>
         <root url="jar://$TeamCityDistribution$/devPackage/src/openApi-source.jar!/" />
       </SOURCES>
+    </library>
+    <library name="TeamCity Server Tests">
+      <CLASSES>
+        <root url="jar://$TeamCityDistribution$/devPackage/tests/jmock-1.2.0.jar!/" />
+        <root url="jar://$TeamCityDistribution$/devPackage/tests/junit-3.8.2.jar!/" />
+        <root url="jar://$TeamCityDistribution$/devPackage/tests/tests-integration.jar!/" />
+        <root url="jar://$TeamCityDistribution$/devPackage/tests/tests-support.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/jdom.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/trove4j.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/remote-api-impl.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/hsqldb.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/guava-13.0.1.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/tomcat-jdbc-7.0.23.jar!/" />
+        <root url="file://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES />
+      <jarDirectory url="file://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib" recursive="false" />
     </library>
     <library name="TeamCity Third-Party">
       <CLASSES>

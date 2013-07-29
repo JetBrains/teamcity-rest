@@ -87,4 +87,12 @@
       <fileset dir="${generated.out}"/>
     </copy>
   </target>
+
+  <target name="test" depends="compile.module.rest-api.tests" description="Run tests">
+    <taskdef name="testng" classpathref="rest-api.runtime.module.classpath" classname="org.testng.TestNGAntTask"/>
+    <testng classpathref="rest-api.runtime.module.classpath" haltonfailure="true">
+      <xmlfileset file="testng.xml"/>
+    </testng>
+  </target>
+
 </project>

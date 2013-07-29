@@ -87,6 +87,7 @@
         </SOURCES>
       </library>
     </orderEntry>
+    <orderEntry type="module" module-name="server-test-core" scope="TEST" />
   </component>
 </module>
 
