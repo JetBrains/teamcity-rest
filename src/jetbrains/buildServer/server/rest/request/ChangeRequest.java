@@ -59,10 +59,10 @@ public class ChangeRequest {
   }
 
   public static String getBuildChangesHref(SBuild build) {
-    return API_CHANGES_URL + "?build=id:" + build.getBuildId();
+    return API_CHANGES_URL + "?locator=build:(id:" + build.getBuildId() + ")"; //todo: need to URL-escape the value returned or not?
   }
 
-  //todo: use locator here, like for builds with limitLookup, changes from dependencies falg, etc.
+  //todo: use locator here, like for builds with limitLookup, changes from dependencies flag, etc.
   //todo: mark changes from dependencies
 
   /**
@@ -123,7 +123,8 @@ public class ChangeRequest {
 
   private void updateLocatorDimension(@NotNull final Locator locator, @NotNull final String dimensionName, @Nullable final String value) {
     if (!StringUtil.isEmpty(value)){
-      if (locator.getSingleDimensionValue(dimensionName) != null){
+      final String dimensionValue = locator.getSingleDimensionValue(dimensionName);
+      if (dimensionValue != null && !dimensionValue.equals(value)){
         throw new BadRequestException("Both parameter '" + dimensionName +"' and same-named dimension in 'locator' parameter are specified. Use locator only.");
       }
       assert value != null;
