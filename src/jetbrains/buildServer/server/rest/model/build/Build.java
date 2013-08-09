@@ -311,6 +311,8 @@ public class Build {
     } else if ("finishDate".equals(field)) {
       return Util.formatTime(build.getFinishDate());
     } else if ("buildTypeId".equals(field)) {
+      return (build.getBuildTypeExternalId());
+    } else if ("buildTypeInternalId".equals(field)) {
       return (build.getBuildTypeId());
     } else if ("branchName".equals(field)) {
       Branch branch = build.getBranch();
@@ -328,7 +330,10 @@ public class Build {
       return (String.valueOf(build.getBuildPromotion().getId()));
     } else if ("modificationId".equals(field)) { //Experimental support only, this is not exposed in any other way
       return (String.valueOf(build.getBuildPromotion().getLastModificationId()));
+    } else if ("commentText".equals(field)) { //Experimental support only
+      final jetbrains.buildServer.serverSide.comments.Comment buildComment = build.getBuildComment();
+      return buildComment != null ? buildComment.getComment() : null;
     }
-    throw new NotFoundException("Field '" + field + "' is not supported.");
+    throw new NotFoundException("Field '" + field + "' is not supported. Supported are: number, status, id, startDate, finishDate, buildTypeId, branchName.");
   }
 }
