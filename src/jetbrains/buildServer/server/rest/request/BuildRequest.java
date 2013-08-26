@@ -238,9 +238,9 @@ public class BuildRequest {
     }
     if (TeamCityProperties.getBooleanOrTrue("rest.build.artifacts.forceContentDisposition.Attachment")) {
       // make sure the file is not displayed in the browser (TW-27206)
-      builder = builder.header("Content-Disposition", "attachment; filename=\"" + artifact.getName() + "\"");
+      builder = builder.header("Content-Disposition", WebUtil.getContentDispositionValue(request, "attachment", artifact.getName()));
     } else {
-      builder = builder.header("Content-Disposition", "filename=\"" + artifact.getName() + "\"");
+      builder = builder.header("Content-Disposition", WebUtil.getContentDispositionValue(request, null, artifact.getName()));
     }
     //todo: log build downloading artifacts (also consider an option), see RepositoryDownloadController
     return builder.entity(output).build();
