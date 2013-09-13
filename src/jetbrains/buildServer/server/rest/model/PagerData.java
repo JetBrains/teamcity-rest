@@ -109,7 +109,7 @@ public class PagerData {
   }
 
   private static String getRelativePath(@NotNull final URI uri, @Nullable final String pathPrefixToExclude) {
-    String path = uri.getPath();
+    String path = uri.getRawPath();
     assert path != null;
     StringBuffer sb = new StringBuffer();
 
@@ -118,10 +118,10 @@ public class PagerData {
     }
     sb.append(path);
     if (uri.getQuery() != null) {
-      sb.append('?').append(uri.getQuery());
+      sb.append('?').append(uri.getRawQuery());
     }
     if (uri.getFragment() != null) {
-      sb.append('#').append(uri.getFragment());
+      sb.append('#').append(uri.getRawFragment());
     }
     return sb.toString();
   }
