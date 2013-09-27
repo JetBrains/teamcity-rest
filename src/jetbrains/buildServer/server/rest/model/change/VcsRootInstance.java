@@ -126,9 +126,9 @@ public class VcsRootInstance {
      } else if ("vcsName".equals(field)) {
        return rootInstance.getVcsName();
      } else if ("projectInternalId".equals(field)) { //Not documented, do we actually need this?
-       return rootInstance.getScope().getOwnerProjectId();
+       return rootInstance.getParent().getScope().getOwnerProjectId();
      } else if ("projectId".equals(field)) { //Not documented
-       return rootInstance.getProject().getExternalId();
+       return rootInstance.getParent().getProject().getExternalId();
      } else if ("repositoryMappings".equals(field)) { //Not documented
        try {
          return String.valueOf(VcsRoot.getRepositoryMappings(rootInstance, dataProvider.getVcsManager()));

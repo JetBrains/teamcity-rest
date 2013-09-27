@@ -54,8 +54,9 @@ public class VcsRootsFilter extends AbstractFilter<SVcsRoot> {
     return true;
   }
 
-  static boolean repositoryIdStringMatches(final SVcsRoot root,
-                                                   @NotNull String repositoryIdString, final VcsManager vcsManager) {
+  static boolean repositoryIdStringMatches(@NotNull final SVcsRoot root,
+                                           @NotNull final String repositoryIdString,
+                                           final VcsManager vcsManager) {
     //todo: handle errors
     final VcsSupportCore vcsSupport = vcsManager.findVcsByName(root.getVcsName());
     if (vcsSupport != null) {
