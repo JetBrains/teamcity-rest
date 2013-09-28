@@ -34,10 +34,7 @@ import jetbrains.buildServer.server.rest.model.project.ProjectRef;
 import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.serverSide.UserParametersHolder;
-import jetbrains.buildServer.vcs.SVcsRoot;
-import jetbrains.buildServer.vcs.VcsManager;
-import jetbrains.buildServer.vcs.VcsRootScope;
-import jetbrains.buildServer.vcs.VcsRootStatus;
+import jetbrains.buildServer.vcs.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -105,6 +102,21 @@ public class VcsRoot {
     final RepositoryVersion revision = ((VcsRootInstance)root).getLastUsedRevision();
     currentVersion = revision != null ? revision.getDisplayVersion() : null; //todo: consider using smth like "NONE" ?
     */
+  }
+
+  public VcsRoot(final jetbrains.buildServer.vcs.VcsRootInstance rootInst, final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
+    id = rootInst.getId();
+    name = rootInst.getName();
+    vcsName = rootInst.getVcsName();
+    SVcsRoot parent = rootInst.getParent();
+    shared = parent.getScope().isGlobal();
+    if (!shared){
+      project = new ProjectRef(dataProvider.getProjectById(parent.getScope().getOwnerProjectId()), apiUrlBuilder);
+    }
+    properties = new Properties(rootInst.getProperties());
+    final VcsRootStatus rootStatus = dataProvider.getVcsManager().getStatus(parent);
+    status = rootStatus.getType().toString();
+    lastChecked = Util.formatTime(rootStatus.getTimestamp());
   }
 
   @NotNull

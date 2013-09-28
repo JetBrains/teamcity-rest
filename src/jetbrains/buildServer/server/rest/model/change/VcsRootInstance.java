@@ -43,7 +43,7 @@ public class VcsRootInstance extends VcsRoot {
   public VcsRootInstance(final jetbrains.buildServer.vcs.VcsRootInstance root,
                          final DataProvider dataProvider,
                          final ApiUrlBuilder apiUrlBuilder) {
-    super(root, dataProvider, apiUrlBuilder);
+    super((jetbrains.buildServer.vcs.VcsRootInstance)root, dataProvider, apiUrlBuilder);
     myRoot = root;
     myApiUrlBuilder = apiUrlBuilder;
   }
