@@ -145,6 +145,13 @@ public class BuildRequest {
     );
   }
 
+  /**
+   * Serves a build described by the locator provided searching through those accessible by the current user.
+   * See {@link jetbrains.buildServer.server.rest.request.BuildRequest#serveAllBuilds(String, String, String, boolean, boolean, boolean, java.util.List, String, String, String, Long, Integer, String, javax.ws.rs.core.UriInfo, javax.servlet.http.HttpServletRequest)}
+   * If several builds are matched, the first one is used (the effect is the same as if ",count:1" locator dimension is added)
+   * @param buildLocator
+   * @return A build matching the locator
+   */
   @GET
   @Path("/{buildLocator}")
   @Produces({"application/xml", "application/json"})
@@ -271,7 +278,7 @@ public class BuildRequest {
 
 
   @GET
-  @Path("/{buildLocator}/sources/files/{fileName:.+}")
+  @Path("/{buildLocator}/sources/files/{fileName:.+}") //todo: use "content" like for artifacts here
   @Produces({"application/octet-stream"})
   public Response serveSourceFile(@PathParam("buildLocator") final String buildLocator, @PathParam("fileName") final String fileName) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
