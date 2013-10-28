@@ -123,7 +123,7 @@ public class DebugRequest {
   @Produces({"application/xml", "application/json"})
   public VcsRootInstances scheduleCheckingForChanges(@QueryParam("locator") String vcsRootInstancesLocator, @Context @NotNull ApiUrlBuilder apiUrlBuilder) {
     //todo: check whether permission checks are necessary
-    final PagedSearchResult<VcsRootInstance> vcsRootInstances = myVcsRootFinder.getVcsRootInstances(myVcsRootFinder.createVcsRootInstanceLocator(vcsRootInstancesLocator));
+    final PagedSearchResult<VcsRootInstance> vcsRootInstances = myVcsRootFinder.getVcsRootInstances(VcsRootFinder.createVcsRootInstanceLocator(vcsRootInstancesLocator));
     myDataProvider.getVcsModificationChecker().forceCheckingFor(vcsRootInstances.myEntries);
     return new VcsRootInstances(vcsRootInstances.myEntries, null, apiUrlBuilder);
   }
