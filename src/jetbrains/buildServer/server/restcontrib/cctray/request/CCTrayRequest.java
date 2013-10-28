@@ -45,12 +45,10 @@ public class CCTrayRequest {
     @Path("/projects.xml")
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public Projects serveProjects() {
-        final Projects result = new Projects(myServiceLocator, getBuildTypes());
-        return result;
+      return new Projects(myServiceLocator, getBuildTypes());
     }
 
     private List<SBuildType> getBuildTypes() {
-        final List<SBuildType> allBuildTypes = myDataProvider.getServer().getProjectManager().getAllBuildTypes();
-        return allBuildTypes;
+      return myDataProvider.getServer().getProjectManager().getAllBuildTypes();
     }
 }
