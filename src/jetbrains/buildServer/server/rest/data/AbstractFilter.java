@@ -29,7 +29,7 @@ public abstract class AbstractFilter<T> {
   @Nullable protected final Long myStart;
   @Nullable protected final Integer myCount;
   @Nullable private final Long myLookupLimit;
-  private long myActualStart;
+  private final long myActualStart;
 
   public AbstractFilter(@Nullable final Long start, @Nullable final Integer count, @Nullable final Long lookupLimit) {
     myStart = start;

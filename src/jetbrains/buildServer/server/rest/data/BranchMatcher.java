@@ -13,7 +13,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 18.01.12
  */
 public class BranchMatcher {
-  @Nullable private Locator myLocator;
+  @Nullable private final Locator myLocator;
 
   public BranchMatcher(@Nullable final String locatorText) {
     if (StringUtil.isEmpty(locatorText)){

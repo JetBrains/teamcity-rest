@@ -28,7 +28,7 @@ import org.springframework.context.ApplicationContext;
  *         Date: 09.08.2010
  */
 public class BeanFactory {
-  private ApplicationContext ctx;
+  private final ApplicationContext ctx;
 
   public BeanFactory(ApplicationContext ctx) {
     this.ctx = ctx;

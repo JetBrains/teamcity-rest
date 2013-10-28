@@ -25,7 +25,7 @@ public class VcsRootInstancesFilter extends AbstractFilter<VcsRootInstance> {
   @Nullable private final SVcsRoot myVcsRoot;
   @Nullable private final SBuildType myBuildType;
 
-  @NotNull private VcsManager myVcsManager;
+  @NotNull private final VcsManager myVcsManager;
 
   public VcsRootInstancesFilter(@NotNull final Locator locator,
                                 @NotNull ProjectFinder projectFinder,

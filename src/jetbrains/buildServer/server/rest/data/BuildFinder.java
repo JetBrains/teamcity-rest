@@ -30,9 +30,9 @@ import org.jetbrains.annotations.Nullable;
 public class BuildFinder {
   private static final Logger LOG = Logger.getInstance(BuildFinder.class.getName());
   @NotNull private final DataProvider myDataProvider;
-  @NotNull private BuildTypeFinder myBuildTypeFinder;
-  @NotNull private ProjectFinder myProjectFinder;
-  @NotNull private UserFinder myUserFinder;
+  @NotNull private final BuildTypeFinder myBuildTypeFinder;
+  @NotNull private final ProjectFinder myProjectFinder;
+  @NotNull private final UserFinder myUserFinder;
 
   public BuildFinder(@NotNull DataProvider dataProvider, @NotNull BuildTypeFinder buildTypeFinder, @NotNull ProjectFinder projectFinder, @NotNull UserFinder userFinder) {
     myDataProvider = dataProvider;

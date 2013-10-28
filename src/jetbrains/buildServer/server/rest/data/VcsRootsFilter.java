@@ -22,7 +22,7 @@ public class VcsRootsFilter extends AbstractFilter<SVcsRoot> {
   @Nullable private final String myVcsType;
   @Nullable private final String myRepositoryIdString;
   @Nullable private final SProject myProject;
-  private VcsManager myVcsManager;
+  private final VcsManager myVcsManager;
 
   public VcsRootsFilter(@NotNull final Locator locator, @NotNull ProjectFinder projectFinder, @NotNull VcsManager vcsManager) {
     super(locator.getSingleDimensionValueAsLong(PagerData.START),

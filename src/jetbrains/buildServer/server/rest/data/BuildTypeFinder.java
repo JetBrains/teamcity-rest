@@ -25,8 +25,8 @@ public class BuildTypeFinder {
   public static final String DIMENSION_INTERNAL_ID = "internalId";
   public static final String DIMENSION_PROJECT = "project";
   public static final String DIMENSION_NAME = "name";
-  private ProjectFinder myProjectFinder;
-  private ProjectManager myProjectManager;
+  private final ProjectFinder myProjectFinder;
+  private final ProjectManager myProjectManager;
 
   public BuildTypeFinder(@NotNull final ProjectManager projectManager, @NotNull final ProjectFinder projectFinder){
     myProjectManager = projectManager;

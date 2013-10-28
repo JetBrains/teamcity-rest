@@ -72,13 +72,13 @@ public class APIController extends BaseController implements ServletContextAware
   private JerseyWebComponent myWebComponent;
   private final ConfigurableApplicationContext myConfigurableApplicationContext;
   private final SecurityContextEx mySecurityContext;
-  private ServerPluginInfo myPluginDescriptor;
+  private final ServerPluginInfo myPluginDescriptor;
   private final ExtensionHolder myExtensionHolder;
-  private AuthorizationInterceptor myAuthorizationInterceptor;
+  private final AuthorizationInterceptor myAuthorizationInterceptor;
 
   private final ClassLoader myClassloader;
   private String myAuthToken;
-  private RequestPathTransformInfo myRequestPathTransformInfo;
+  private final RequestPathTransformInfo myRequestPathTransformInfo;
 
   public APIController(final SBuildServer server,
                        WebControllerManager webControllerManager,
