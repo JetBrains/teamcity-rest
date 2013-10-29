@@ -84,10 +84,7 @@ public class BranchMatcher {
     if (buildBranch == null){ //may be can return true if branchNameToMatch.equals("")
       return false;
     }
-    if (branchNameToMatch.equals(buildBranch.getDisplayName()) || branchNameToMatch.equals(buildBranch.getName())){
-      return true;
-    }
-    return false;
+    return branchNameToMatch.equals(buildBranch.getDisplayName()) || branchNameToMatch.equals(buildBranch.getName());
   }
 
   @Override

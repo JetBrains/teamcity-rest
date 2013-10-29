@@ -612,11 +612,8 @@ public class BuildRequest {
     }
 
     final SUser guestUser = myServiceLocator.getSingletonService(UserModel.class).getGuestUser();
-    if (myDataProvider.getServer().getLoginConfiguration().isGuestLoginAllowed() &&
-        guestUser.isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_PROJECT)) {
-      return true;
-    }
-    return false;
+    return myDataProvider.getServer().getLoginConfiguration().isGuestLoginAllowed() &&
+           guestUser.isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_PROJECT);
   }
 
   private boolean hasPermissionsToViewStatusGlobally(@NotNull final SecurityContextEx securityContext) {
@@ -627,11 +624,8 @@ public class BuildRequest {
       return true;
     }
     final SUser guestUser = myServiceLocator.getSingletonService(UserModel.class).getGuestUser();
-    if (myDataProvider.getServer().getLoginConfiguration().isGuestLoginAllowed() &&
-        guestUser.isPermissionGrantedGlobally(Permission.VIEW_PROJECT)) {
-      return true;
-    }
-    return false;
+    return myDataProvider.getServer().getLoginConfiguration().isGuestLoginAllowed() &&
+           guestUser.isPermissionGrantedGlobally(Permission.VIEW_PROJECT);
   }
 
   private String getRealFileName(final String relativePath) {

@@ -186,11 +186,7 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
 
     // include by myBuild should be already handled by this time on the upper level
 
-    if (myEnforceChangeViewPermissson && !myDataProvider.checkCanView(change)){
-      return false;
-    }
-
-    return true;
+    return !myEnforceChangeViewPermissson || myDataProvider.checkCanView(change);
   }
 
   private static boolean isPersonalChangeMatchesBuildType(@NotNull final SVcsModification change, @NotNull final SBuildType buildType) {
