@@ -41,17 +41,9 @@ public class VcsRootsFilter extends AbstractFilter<SVcsRoot> {
 
   @Override
   protected boolean isIncluded(@NotNull SVcsRoot root) {
-    if (myVcsType != null && !myVcsType.equals(root.getVcsName())) {
-      return false;
-    }
-    if (myProject != null && !myProject.equals(root.getProject())) {
-      return false;
-    }
-    if (myRepositoryIdString != null && !repositoryIdStringMatches(root, myRepositoryIdString, myVcsManager)) {
-      return false;
-    }
-
-    return true;
+    return (myVcsType == null || myVcsType.equals(root.getVcsName())) &&
+           (myProject == null || myProject.equals(root.getProject())) &&
+           (myRepositoryIdString == null || repositoryIdStringMatches(root, myRepositoryIdString, myVcsManager));
   }
 
   static boolean repositoryIdStringMatches(@NotNull final SVcsRoot root,

@@ -61,22 +61,10 @@ public class VcsRootInstancesFilter extends AbstractFilter<VcsRootInstance> {
 
   @Override
   protected boolean isIncluded(@NotNull VcsRootInstance root) {
-    if (myVcsType != null && !myVcsType.equals(root.getVcsName())) {
-      return false;
-    }
-    if (myProject != null && !myProject.equals(root.getParent().getProject())) {
-      return false;
-    }
-    if (myBuildType != null && !root.getUsages().keySet().contains(myBuildType)) { // todo: how to find usages in templates?
-      return false;
-    }
-    if (myVcsRoot != null && !myVcsRoot.equals(root.getParent())) {
-      return false;
-    }
-    if (myRepositoryIdString != null && !VcsRootsFilter.repositoryIdStringMatches(root.getParent(), myRepositoryIdString, myVcsManager)) {
-      return false;
-    }
-
-    return true;
+    return (myVcsType == null || myVcsType.equals(root.getVcsName())) &&
+           (myProject == null || myProject.equals(root.getParent().getProject())) &&
+           (myBuildType == null || root.getUsages().keySet().contains(myBuildType)) &&
+           (myVcsRoot == null || myVcsRoot.equals(root.getParent())) &&
+           (myRepositoryIdString == null || VcsRootsFilter.repositoryIdStringMatches(root.getParent(), myRepositoryIdString, myVcsManager));
   }
 }
