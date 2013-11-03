@@ -82,6 +82,14 @@ public class TriggeredBy {
 
     final Map<String, String> triggeredByParams = triggeredBy.getParameters();
 
+    String buildTypeId = triggeredByParams.get(TriggeredByBuilder.BUILD_TYPE_ID_PARAM_NAME);
+    if (buildTypeId != null) {
+      type = "buildType";
+      final SBuildType foundBuildType = dataProvider.getServer().getProjectManager().findBuildTypeById(buildTypeId);
+      buildType = foundBuildType != null ? new BuildTypeRef(foundBuildType, dataProvider, apiUrlBuilder) : null;
+      return;
+    }
+
     if (triggeredByParams.get(BuildServerImpl.UNEXPECTED_FINISH) != null ||
         triggeredByParams.get(TriggeredByBuilder.RE_ADDED_AFTER_STOP_NAME) != null) {
       type = "restarted";
@@ -99,14 +107,8 @@ public class TriggeredBy {
     if (vcsName != null) {
       type = "vcs";
       details = vcsName;
+      //noinspection UnnecessaryReturnStatement
       return;
-    }
-
-    String buildTypeId = triggeredByParams.get(TriggeredByBuilder.BUILD_TYPE_ID_PARAM_NAME);
-    if (buildTypeId != null) {
-      type = "buildType";
-      final SBuildType foundBuildType = dataProvider.getServer().getProjectManager().findBuildTypeById(buildTypeId);
-      buildType = foundBuildType != null ? new BuildTypeRef(foundBuildType, dataProvider, apiUrlBuilder) : null;
     }
   }
 }
