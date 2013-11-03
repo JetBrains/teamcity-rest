@@ -14,10 +14,7 @@ import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.Builds;
-import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -29,6 +26,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class BuildFinder {
   private static final Logger LOG = Logger.getInstance(BuildFinder.class.getName());
+  public static final String DIMENSION_ID = "id";
   @NotNull private final DataProvider myDataProvider;
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
   @NotNull private final ProjectFinder myProjectFinder;
@@ -297,4 +295,42 @@ public class BuildFinder {
     }
     return result;
   }
+
+  @NotNull
+  public SQueuedBuild getQueuedBuild(@Nullable final String buildLocator) {
+    if (StringUtil.isEmpty(buildLocator)) {
+      throw new BadRequestException("Empty queued build locator is not supported.");
+    }
+
+    final Locator locator = new Locator(buildLocator, DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+
+    if (locator.isSingleValue()) { // assume it's promotion id
+      @SuppressWarnings("ConstantConditions") @NotNull final Long singleValueAsLong = locator.getSingleValueAsLong();
+      locator.checkLocatorFullyProcessed();
+      return getQueuedBuildByPromotion(singleValueAsLong);
+    }
+
+    Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
+    if (id != null) {
+      locator.checkLocatorFullyProcessed();
+      return getQueuedBuildByPromotion(id);
+    }
+
+    locator.checkLocatorFullyProcessed();
+    throw new BadRequestException("Queued build locator '" + buildLocator + "' is not supported.");
+  }
+
+  private SQueuedBuild getQueuedBuildByPromotion(final long promotionId) {
+    final BuildPromotion buildPromotion = myDataProvider.getPromotionManager().findPromotionById(promotionId);
+    if (buildPromotion == null) {
+      throw new NotFoundException("No build promotion can be found by id '" + promotionId + "'.");
+    }
+    final SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+    if (queuedBuild == null){
+      throw new NotFoundException("No queued build can be found by id '" + promotionId + "' (while promotion exists).");
+    }
+    return queuedBuild;
+  }
+
+
 }

@@ -61,7 +61,7 @@ public class Build {
   @NotNull
   private DataProvider myDataProvider;
   private ApiUrlBuilder myApiUrlBuilder;
-  @Autowired BeanFactory myFactory;
+  @Autowired private BeanFactory myFactory;
 
   private ServiceLocator myServiceLocator;
 
@@ -71,12 +71,12 @@ public class Build {
   public Build(@NotNull final SBuild build,
                @NotNull final DataProvider dataProvider,
                final ApiUrlBuilder apiUrlBuilder,
-               @NotNull final ServiceLocator serviceLocator, final BeanFactory myFactory) {
+               @NotNull final ServiceLocator serviceLocator, final BeanFactory factory) {
     myBuild = build;
     myDataProvider = dataProvider;
     myApiUrlBuilder = apiUrlBuilder;
     myServiceLocator = serviceLocator;
-    myFactory.autowire(this);
+    factory.autowire(this);
   }
 
   @XmlAttribute
@@ -279,7 +279,7 @@ public class Build {
     return new Href(BuildArtifactsFinder.fileApiUrlBuilderForBuild(myApiUrlBuilder, myBuild, null).getChildrenHref(null));
   }
 
-  private List<SBuild> getBuilds(@NotNull Collection<? extends BuildDependency> dependencies) {
+  static List<SBuild> getBuilds(@NotNull Collection<? extends BuildDependency> dependencies) {
     List<SBuild> result = new ArrayList<SBuild>(dependencies.size());
     for (BuildDependency dependency : dependencies) {
       final SBuild dependOnBuild = dependency.getDependOn().getAssociatedBuild();
@@ -291,7 +291,7 @@ public class Build {
     return result;
   }
 
-  private class BuildDependenciesComparator implements Comparator<SBuild> {
+  private static class BuildDependenciesComparator implements Comparator<SBuild> {
     public int compare(final SBuild o1, final SBuild o2) {
       final int buildTypesCompare = o1.getBuildTypeId().compareTo(o2.getBuildTypeId());
       return buildTypesCompare != 0 ? buildTypesCompare : (int)(o1.getBuildId() - o2.getBuildId());
