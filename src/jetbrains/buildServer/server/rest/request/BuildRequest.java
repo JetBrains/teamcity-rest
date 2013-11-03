@@ -34,8 +34,10 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.Build;
+import jetbrains.buildServer.server.rest.model.build.BuildCancelRequest;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
 import jetbrains.buildServer.server.rest.model.files.File;
@@ -51,6 +53,7 @@ import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.StringUtil;
@@ -482,6 +485,51 @@ public class BuildRequest {
     build.setBuildComment(SessionUser.getUser(request), null);
   }
 
+  @GET
+  @Path("/{buildLocator}/" + Build.CANCELED_INFO)
+  @Produces({"application/xml", "application/json"})
+  public Comment getCanceledInfo(@PathParam("buildLocator") String buildLocator) {
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
+    return Build.getCanceledComment(build, myApiUrlBuilder, myServiceLocator);
+  }
+
+  @PUT
+  @Path("/{buildLocator}/" + Build.CANCELED_INFO)
+  @Consumes({"application/xml", "application/json"})
+  public Build cancelBuild(@PathParam("buildLocator") String buildLocator, BuildCancelRequest cancelRequest, @Context HttpServletRequest request) {
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
+    final SRunningBuild runningBuild = Build.getRunningBuild(build, myServiceLocator);
+    if (runningBuild == null){
+      throw new BadRequestException("Cannot cancel not running build.");
+    }
+    final SUser currentUser = SessionUser.getUser(request);
+    runningBuild.stop(currentUser, cancelRequest.comment);
+    if (cancelRequest.readdIntoQueue){
+      if (currentUser == null){
+        throw new BadRequestException("Cannot readd build into queue when no current user is present. Please make sure the operation is performed uinder a regular user.");
+      }
+      restoreInQueue(runningBuild, currentUser);
+    }
+    final SBuild associatedBuild = build.getBuildPromotion().getAssociatedBuild();
+    if (associatedBuild == null){
+      return null;
+    }
+    return new Build(associatedBuild, myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
+  }
+
+  private void restoreInQueue(final SRunningBuild runningBuild, final User user) {
+    //todo: TeamCity openAPI expose in the API. THis one is copy-paste from jetbrains.buildServer.controllers.actions.StopBuildAction.restoreInQueue
+    final SAgentRestrictor agentRestrictor = ((RunningBuildEx)runningBuild).getQueuedAgentRestrictor();
+    final TriggeredBy origTriggeredBy = runningBuild.getTriggeredBy();
+    BuildPromotionEx promotionEx = (BuildPromotionEx)runningBuild.getBuildPromotion();
+
+    TriggeredByBuilder tbb = new TriggeredByBuilder();
+    tbb.addParameters(origTriggeredBy.getParameters());
+    tbb.addParameter(TriggeredByBuilder.RE_ADDED_AFTER_STOP_NAME, String.valueOf(user.getId()));
+
+    myServiceLocator.getSingletonService(BuildQueueEx.class).restoreInQueue(promotionEx, agentRestrictor, tbb.toString());
+  }
+
   @DELETE
   @Path("/{buildLocator}")
   @Produces("text/plain")
@@ -489,7 +537,19 @@ public class BuildRequest {
    * May not work for non-personal builds: http://youtrack.jetbrains.net/issue/TW-9858
    */
   public void deleteBuild(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
-    myDataProvider.deleteBuild(myBuildFinder.getBuild(null, buildLocator));
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
+    if (!build.isFinished()) {
+      final SRunningBuild runningBuild = Build.getRunningBuild(build, myServiceLocator);
+      if (runningBuild != null) {
+        final SUser currentUser = SessionUser.getUser(request);
+        runningBuild.stop(currentUser, null);
+        build = runningBuild.getBuildPromotion().getAssociatedBuild();
+        if (build == null) {
+          throw new OperationException("Cannot find associated build for promotion '" + runningBuild.getBuildPromotion().getId() + "'.");
+        }
+      }
+    }
+    myDataProvider.deleteBuild(build);
   }
 
   private boolean isPersonalUserBuild(final SBuild build, @NotNull final SUser user) {

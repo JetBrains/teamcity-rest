@@ -40,7 +40,10 @@ import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
+import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.users.UserModel;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,8 +57,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 @XmlRootElement(name = "build")
 @XmlType(name = "build", propOrder = {"id", "number", "status", "href", "webUrl", "branchName", "defaultBranch", "unspecifiedBranch", "personal", "history", "pinned", "running",
   "runningBuildInfo", "statusText", "buildType", "startDate", "finishDate", "agent", "comment", "tags", "pinInfo", "personalBuildUser", "properties",
-  "buildDependencies", "buildArtifactDependencies", "revisions", "triggered", "changes", "issues", "artifacts"})
+  "buildDependencies", "buildArtifactDependencies", "revisions", "triggered", "changes", "issues", "artifacts", "canceledInfo"})
 public class Build {
+  public static final String CANCELED_INFO = "canceledInfo";
   @NotNull
   protected SBuild myBuild;
   @NotNull
@@ -219,14 +223,19 @@ public class Build {
 
   @XmlElement(name = "running-info")
   public RunningBuildInfo getRunningBuildInfo() {
-    if (myBuild.isFinished()) {
-      return null;
-    }
-    SRunningBuild runningBuild = myServiceLocator.getSingletonService(RunningBuildsManager.class).findRunningBuildById(myBuild.getBuildId());
+    SRunningBuild runningBuild = getRunningBuild(myBuild, myServiceLocator);
     if (runningBuild == null){
       return null;
     }
     return new RunningBuildInfo(runningBuild);
+  }
+
+  @Nullable
+  public static SRunningBuild getRunningBuild(final SBuild build, final ServiceLocator serviceLocator) {
+    if (build.isFinished()) {
+      return null;
+    }
+    return serviceLocator.getSingletonService(RunningBuildsManager.class).findRunningBuildById(build.getBuildId());
   }
 
   @XmlElement(name = "snapshot-dependencies")
@@ -296,6 +305,24 @@ public class Build {
       final int buildTypesCompare = o1.getBuildTypeId().compareTo(o2.getBuildTypeId());
       return buildTypesCompare != 0 ? buildTypesCompare : (int)(o1.getBuildId() - o2.getBuildId());
     }
+  }
+
+  @XmlElement(name = CANCELED_INFO)
+  public Comment getCanceledInfo() {
+    return getCanceledComment(myBuild, myApiUrlBuilder, myServiceLocator);
+  }
+
+  public static Comment getCanceledComment(final SBuild build, final ApiUrlBuilder apiUrlBuilder, final ServiceLocator serviceLocator) {
+    final CanceledInfo canceledInfo = build.getCanceledInfo();
+    if (canceledInfo == null) return null;
+
+    User user = null;
+    if (canceledInfo.isCanceledByUser()){
+      final Long userId = canceledInfo.getUserId();
+      assert userId != null;
+      user = serviceLocator.getSingletonService(UserModel.class).findUserById(userId);
+    }
+    return new Comment(user, new Date(canceledInfo.getCreatedAt()), canceledInfo.getComment(), apiUrlBuilder);
   }
 
   @Nullable

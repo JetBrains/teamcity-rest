@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import java.util.Collections;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -25,11 +26,16 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildFinder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
+import jetbrains.buildServer.server.rest.model.build.Build;
+import jetbrains.buildServer.server.rest.model.build.BuildCancelRequest;
 import jetbrains.buildServer.server.rest.model.build.BuildQueue;
 import jetbrains.buildServer.server.rest.model.build.QueuedBuild;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SQueuedBuild;
+import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -81,6 +87,37 @@ public class BuildQueueRequest {
   public QueuedBuild serveQueuedBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator) {
     return new QueuedBuild(myBuildFinder.getQueuedBuild(queuedBuildLocator), myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
   }
+
+  @DELETE
+  @Path("/{queuedBuildLocator}")
+  public void deleteBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator, @Context HttpServletRequest request) {
+    SQueuedBuild build = myBuildFinder.getQueuedBuild(queuedBuildLocator);
+    myServiceLocator.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class).removeItems(Collections.singleton(build.getItemId()),
+                                                                                                        SessionUser.getUser(request),
+                                                                                                        null);
+    final SBuild associatedBuild = build.getBuildPromotion().getAssociatedBuild();
+    myDataProvider.deleteBuild(associatedBuild);
+  }
+
+  @PUT
+  @Path("/{queuedBuildLocator}/" + Build.CANCELED_INFO)
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public Build cancelBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator, BuildCancelRequest cancelRequest, @Context HttpServletRequest request) {
+    SQueuedBuild build = myBuildFinder.getQueuedBuild(queuedBuildLocator);
+    myServiceLocator.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class).removeItems(Collections.singleton(build.getItemId()),
+                                                                                                        SessionUser.getUser(request),
+                                                                                                        cancelRequest.comment);
+    if (cancelRequest.readdIntoQueue) {
+      throw new BadRequestException("Restore in queue is not supported for queued builds.");
+    }
+    final SBuild associatedBuild = build.getBuildPromotion().getAssociatedBuild();
+    if (associatedBuild == null){
+      return null;
+    }
+    return new Build(associatedBuild, myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
+  }
+
 
   @GET
   @Path("/{queuedBuildLocator}" + COMPATIBLE_AGENTS)
