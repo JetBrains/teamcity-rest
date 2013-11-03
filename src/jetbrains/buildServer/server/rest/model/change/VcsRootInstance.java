@@ -131,7 +131,7 @@ public class VcsRootInstance {
        return rootInstance.getParent().getProject().getExternalId();
      } else if ("repositoryMappings".equals(field)) { //Not documented
        try {
-         return String.valueOf(VcsRoot.getRepositoryMappings(rootInstance, dataProvider.getVcsManager()));
+         return String.valueOf(VcsRoot.getRepositoryMappings(rootInstance, dataProvider.getVcsManager()));  //todo: fix presentation. Curently this returns "[MappingElement{..."
        } catch (VcsException e) {
          throw new InvalidStateException("Error retrieving mapping", e);
        }

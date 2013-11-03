@@ -169,6 +169,7 @@ public class LocatorTest {
   public void testNestedComplexValues1() {
     final Locator locator = new Locator("buildType:(name:5,project:(id:Project_1))");
     assertEquals(false, locator.isSingleValue());
+    assertEquals(1, locator.getDimensionsCount());
     assertEquals("name:5,project:(id:Project_1)", locator.getSingleDimensionValue("buildType"));
   }
 

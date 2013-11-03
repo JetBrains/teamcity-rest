@@ -46,6 +46,7 @@ public class Investigation {
     scope = new InvestigationScope(buildType, dataProvider, apiUrlBuilder);
     responsible = new UserRef(responsibilityEntry.getResponsibleUser(), apiUrlBuilder);
 
+    //todo: add all investigation fields: state, removeType, etc.
     assignment = new Comment(responsibilityEntry.getReporterUser(), responsibilityEntry.getTimestamp(), responsibilityEntry.getComment(), apiUrlBuilder);
   }
 }
