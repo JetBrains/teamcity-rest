@@ -35,12 +35,13 @@ import org.jetbrains.annotations.NotNull;
 @XmlType(name = "vcs-root-entry", propOrder = {"id",
   "vcsRootRef", "checkoutRules"})
 public class VcsRootEntry {
+  public static final String CHECKOUT_RULES = "checkout-rules";
   @XmlAttribute(name = "id")
   public String id;
 
   @XmlElement(name = "vcs-root")
   public VcsRootRef vcsRootRef;
-  @XmlElement(name = "checkout-rules")
+  @XmlElement(name = CHECKOUT_RULES)
   public String checkoutRules;
 
   public VcsRootEntry() {

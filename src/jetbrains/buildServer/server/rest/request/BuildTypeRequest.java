@@ -394,6 +394,61 @@ public class BuildTypeRequest {
     return new VcsRootEntry(vcsRoot, buildType, myApiUrlBuilder);
   }
 
+  @PUT
+  @Path("/{btLocator}/vcs-root-entries/{id}")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public VcsRootEntry updateVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("id") String vcsRootLocator, VcsRootEntry entry) {
+    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
+    final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
+
+    if (!buildType.get().containsVcsRoot(vcsRoot.getId())) {
+      throw new NotFoundException("VCS root with id '" + vcsRoot.getExternalId() + "' is not attached to the build type.");
+    }
+    if (entry == null){
+      throw new BadRequestException("No VCS root entry description is posted (Use GET request to get an example).");
+    }
+    if (entry.vcsRootRef == null){
+      throw new BadRequestException("No VCS root is specified in the entry description.");
+    }
+    buildType.get().removeVcsRoot(vcsRoot);
+    final SVcsRoot resultVcsRoot = addVcsRoot(buildType, entry);
+    buildType.get().persist();
+    //not handling setting errors...
+    return new VcsRootEntry(resultVcsRoot, buildType, myApiUrlBuilder);
+  }
+
+  @GET
+  @Path("/{btLocator}/vcs-root-entries/{id}/" + VcsRootEntry.CHECKOUT_RULES)
+  @Produces({"text/plain"})
+  public String getVcsRootEntryCheckoutRules(@PathParam("btLocator") String buildTypeLocator, @PathParam("id") String vcsRootLocator) {
+    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
+    final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
+
+    if (!buildType.get().containsVcsRoot(vcsRoot.getId())) {
+      throw new NotFoundException("VCS root with id '" + vcsRoot.getExternalId() + "' is not attached to the build type.");
+    }
+    return buildType.get().getCheckoutRules(vcsRoot).getAsString();
+  }
+
+  @PUT
+  @Path("/{btLocator}/vcs-root-entries/{id}/" + VcsRootEntry.CHECKOUT_RULES)
+  @Consumes({"text/plain"})
+  @Produces({"text/plain"})
+  public String updateVcsRootEntryCheckoutRules(@PathParam("btLocator") String buildTypeLocator, @PathParam("id") String vcsRootLocator, String newCheckoutRules) {
+    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
+    final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
+
+    if (!buildType.get().containsVcsRoot(vcsRoot.getId())) {
+      throw new NotFoundException("VCS root with id '" + vcsRoot.getExternalId() + "' is not attached to the build type.");
+    }
+    buildType.get().setCheckoutRules(vcsRoot, new CheckoutRules(newCheckoutRules != null ? newCheckoutRules : ""));
+
+    buildType.get().persist();
+    //not handling setting errors...
+    return buildType.get().getCheckoutRules(vcsRoot).getAsString();
+  }
+
   @DELETE
   @Path("/{btLocator}/vcs-root-entries/{id}")
   public void deleteVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("id") String vcsRootLocator) {
