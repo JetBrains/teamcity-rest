@@ -24,7 +24,6 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.VcsRootFinder;
-import jetbrains.buildServer.server.rest.data.VcsRootInstancesFilter;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
@@ -50,7 +49,7 @@ public class VcsRootInstanceRequest {
   }
 
   public static String getVcsRootInstancesHref(final SVcsRoot vcsRoot) {
-    return API_VCS_ROOT_INSTANCES_URL + "?locator=" + VcsRootInstancesFilter.VCS_ROOT_DIMENSION + ":(id:" + vcsRoot.getExternalId() + ")";
+    return API_VCS_ROOT_INSTANCES_URL + "?locator=" + VcsRootFinder.VCS_ROOT_DIMENSION + ":(id:" + vcsRoot.getExternalId() + ")";
   }
 
   @GET

@@ -46,7 +46,7 @@ public class VcsRootsFilter extends AbstractFilter<SVcsRoot> {
            (myRepositoryIdString == null || repositoryIdStringMatches(root, myRepositoryIdString, myVcsManager));
   }
 
-  static boolean repositoryIdStringMatches(@NotNull final SVcsRoot root,
+  static boolean repositoryIdStringMatches(@NotNull final jetbrains.buildServer.vcs.VcsRoot root,
                                            @NotNull final String repositoryIdString,
                                            final VcsManager vcsManager) {
     //todo: handle errors
@@ -70,7 +70,7 @@ public class VcsRootsFilter extends AbstractFilter<SVcsRoot> {
     try {
       Collection<VcsMappingElement> vcsMappingElements = VcsRoot.getRepositoryMappings(root, vcsManager);
       for (VcsMappingElement vcsMappingElement : vcsMappingElements) {
-        if (repositoryIdString.equals(vcsMappingElement.getFrom())) {
+        if (repositoryIdString.equals(vcsMappingElement.getTo())) {
           return true;
         }
       }

@@ -8,6 +8,7 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
@@ -22,6 +23,9 @@ import org.jetbrains.annotations.Nullable;
  */
 public class VcsRootFinder{
   private static final Logger LOG = Logger.getInstance(VcsRootFinder.class.getName());
+  public static final String VCS_ROOT_DIMENSION = "vcsRoot";
+  public static final String REPOSITORY_ID_STRING = "repositoryIdString";
+
   @NotNull private final VcsManager myVcsManager;
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
@@ -86,11 +90,12 @@ public class VcsRootFinder{
   @NotNull
   public static Locator createVcsRootInstanceLocator(@Nullable final String locatorText){
     final Locator result =
-      new Locator(locatorText, "id", "name", "type", "project", "buildType", VcsRootInstancesFilter.VCS_ROOT_DIMENSION, VcsRootInstancesFilter.REPOSITORY_ID_STRING, "count", "start", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+      new Locator(locatorText, "id", "name", "type", "project", "buildType", VcsRootFinder.VCS_ROOT_DIMENSION, VcsRootFinder.REPOSITORY_ID_STRING, "count", "start", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     result.addIgnoreUnusedDimensions(PagerData.COUNT);
     return result;
   }
 
+  @NotNull
   public PagedSearchResult<SVcsRoot> getVcsRoots(@Nullable final Locator locator) {
     if (locator == null) {
       return new PagedSearchResult<SVcsRoot>(myVcsManager.getAllRegisteredVcsRoots(), null, null);
@@ -208,14 +213,14 @@ public class VcsRootFinder{
        return new PagedSearchResult<VcsRootInstance>(Collections.singletonList(root), null, null);
      }
 
-    VcsRootInstancesFilter filter = new VcsRootInstancesFilter(locator, myProjectFinder, myBuildTypeFinder, this, myVcsManager);
+    AbstractFilter<VcsRootInstance> filter = getVcsRootInstancesFilter(locator, myProjectFinder, myBuildTypeFinder, this, myVcsManager);
     locator.checkLocatorFullyProcessed();
 
     return new PagedSearchResult<VcsRootInstance>(getVcsRootInstances(filter), filter.getStart(), filter.getCount());
   }
 
 
-  private List<VcsRootInstance> getVcsRootInstances(final VcsRootInstancesFilter filter) {
+  private List<VcsRootInstance> getVcsRootInstances(final AbstractFilter<VcsRootInstance> filter) {
     //todo: current implementation is not effective: consider pre-filtering by vcs root, project, type, if specified
     final FilterItemProcessor<VcsRootInstance> filterItemProcessor = new FilterItemProcessor<VcsRootInstance>(filter);
     AbstractFilter.processList(getAllVcsRootInstances(myProjectManager), filterItemProcessor);
@@ -237,4 +242,68 @@ public class VcsRootFinder{
     });
     return result;
   }
+
+
+  public static MultiCheckerFilter<VcsRootInstance> getVcsRootInstancesFilter(@NotNull final Locator locator,
+                                                                   @NotNull final ProjectFinder projectFinder,
+                                                                   @NotNull final BuildTypeFinder buildTypeFinder,
+                                                                   @NotNull final VcsRootFinder vcsRootFinder,
+                                                                   @NotNull final VcsManager vcsManager) {
+    final Long counFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
+    final MultiCheckerFilter<VcsRootInstance> result =
+      new MultiCheckerFilter<VcsRootInstance>(locator.getSingleDimensionValueAsLong(PagerData.START), counFromFilter != null ? counFromFilter.intValue() : null, null);
+
+    final String vcsType = locator.getSingleDimensionValue("type");
+    if (vcsType != null) {
+      result.add(new FilterConditionChecker<VcsRootInstance>() {
+        public boolean isIncluded(@NotNull final VcsRootInstance item) {
+          return vcsType.equals(item.getVcsName());
+        }
+      });
+    }
+
+
+    final String projectLocator = locator.getSingleDimensionValue("project"); //uses project as "defined in", but might also need "accessible from" operation
+    SProject project = null;
+    if (projectLocator != null) {
+      project = projectFinder.getProject(projectLocator);
+      final SProject internalProject = project;
+      result.add(new FilterConditionChecker<VcsRootInstance>() {
+        public boolean isIncluded(@NotNull final VcsRootInstance item) {
+          return internalProject.equals(item.getParent().getProject());
+        }
+      });
+    }
+
+    final String buildTypeLocator = locator.getSingleDimensionValue("buildType"); //uses buildType as "used in", but might also need "accessible from" operation
+    if (buildTypeLocator != null) {
+      final SBuildType buildType = buildTypeFinder.getBuildType(project, buildTypeLocator);
+      result.add(new FilterConditionChecker<VcsRootInstance>() {
+        public boolean isIncluded(@NotNull final VcsRootInstance item) {
+          return item.getUsages().keySet().contains(buildType);  // todo: how to find usages in templates?
+        }
+      });
+    }
+
+    final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
+    if (vcsRootLocator != null) {
+      final SVcsRoot vcsRoot = vcsRootFinder.getVcsRoot(vcsRootLocator);
+      result.add(new FilterConditionChecker<VcsRootInstance>() {
+        public boolean isIncluded(@NotNull final VcsRootInstance item) {
+          return vcsRoot.equals(item.getParent());
+        }
+      });
+    }
+
+    final String repositoryIdString = locator.getSingleDimensionValue(REPOSITORY_ID_STRING);
+    if (repositoryIdString != null){
+      result.add(new FilterConditionChecker<VcsRootInstance>() {
+        public boolean isIncluded(@NotNull final VcsRootInstance item) {
+          return VcsRootsFilter.repositoryIdStringMatches(item.getParent(), repositoryIdString, vcsManager);
+        }
+      });
+    }
+    return result;
+  }
+
 }

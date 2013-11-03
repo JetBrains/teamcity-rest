@@ -79,6 +79,7 @@ public class VcsRootRequest {
   public VcsRoot addRoot(VcsRoot vcsRootDescription) {
     checkVcsRootDescription(vcsRootDescription);
     BeanContext ctx = new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder);
+    //todo: TeamCity openAPI: not consistent methods for creating VCS root with/without id
     final SVcsRoot newVcsRoot = getVcsRootProject(vcsRootDescription, ctx).createVcsRoot(
       vcsRootDescription.vcsName,
       vcsRootDescription.name != null ? vcsRootDescription.name : null,
