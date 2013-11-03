@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.model.agent;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
@@ -30,9 +31,12 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 16.08.2009
  */
-@XmlRootElement(name = "agents-ref")
+@XmlRootElement(name = "agents")
 @XmlType(name = "agents-ref")
 public class Agents {
+  @XmlAttribute
+  public long count;
+
   @XmlElement(name = "agent")
   public List<AgentRef> agents;
 
@@ -44,5 +48,6 @@ public class Agents {
     for (SBuildAgent agent : agentObjects) {
       agents.add(new AgentRef(agent, apiUrlBuilder));
     }
+    count = agents.size();
   }
 }
