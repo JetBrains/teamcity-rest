@@ -189,6 +189,16 @@ public class DataProvider {
       }
       return agent;
     }
+
+    String name = locator.getSingleDimensionValue("name");
+    if (name != null) {
+      final SBuildAgent agent = findAgentByName(name);
+      if (agent != null) {
+        return agent;
+      }
+      throw new NotFoundException("No agent can be found by name '" + name + "'.");
+
+    }
     throw new NotFoundException("Agent locator '" + locatorString + "' is not supported.");
   }
 
