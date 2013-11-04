@@ -21,6 +21,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -46,16 +47,37 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("PublicField")
 public class BuildTask {
   @XmlAttribute public String branchName;
-  @XmlAttribute public boolean personal;
+  @XmlAttribute public Boolean personal;
+  @XmlAttribute public Boolean cleanSources;
+  @XmlAttribute public Boolean rebuildAllDependencies;
 
-  @XmlElement(name = "buildType") public BuildTypeRef buildType;
-  @XmlElement(name = "agent") public AgentRef agent;
-  @XmlElement(name = "commentText") public String commentText;
-  @XmlElement(name = "properties") public Properties properties;
+  @XmlElement public BuildTypeRef buildType;
+  @XmlElement public AgentRef agent;
+  @XmlElement public String commentText;
+  @XmlElement public Properties properties;
+  //@XmlElement private ChangeRef change;
   //@XmlElement(name = "snapshot-dependencies")  public Builds buildDependencies;
   //@XmlElement(name = "artifact-dependencies")  public Builds buildArtifactDependencies;
 
   public BuildTask() {
+  }
+
+  public static BuildTask getExampleBuildTask(@NotNull final SBuild build, @NotNull final ServiceLocator serviceLocator, @NotNull final ApiUrlBuilder apiUrlBuilder){
+    final BuildTask buildTask = new BuildTask();
+    if (build.getBranch() != null) buildTask.branchName = build.getBranch().getName();
+    buildTask.personal = build.isPersonal();
+
+    final Object cleanSourcesAttribute = ((BuildPromotionEx)build.getBuildPromotion()).getAttribute(BuildAttributes.CLEAN_SOURCES);
+    if (cleanSourcesAttribute != null) buildTask.cleanSources = Boolean.valueOf((String)cleanSourcesAttribute);
+
+//    buildTask.cleanSources =
+//    buildTask.rebuildAllDependencies =
+    //noinspection ConstantConditions
+    buildTask.buildType = new BuildTypeRef(build.getBuildType(), serviceLocator.findSingletonService(DataProvider.class), apiUrlBuilder);
+    buildTask.agent = new AgentRef(build.getAgent(), apiUrlBuilder);
+    if (build.getBuildComment() != null) buildTask.commentText = build.getBuildComment().getComment();
+    buildTask.properties = new Properties(build.getBuildPromotion().getCustomParameters());
+    return buildTask;
   }
 
   @Nullable
@@ -66,7 +88,7 @@ public class BuildTask {
     return agent.getAgentFromPosted(dataProvider);
   }
 
-  public SBuildType getBuildType(@NotNull final BuildTypeFinder buildTypeFinder) {
+  private SBuildType getBuildType(@NotNull final BuildTypeFinder buildTypeFinder) {
     if (buildType == null) {
       throw new BadRequestException("No 'buildType' element in the posted entiry.");
     }
@@ -81,8 +103,12 @@ public class BuildTask {
     BuildCustomizer customizer = serviceLocator.getSingletonService(BuildCustomizerFactory.class).createBuildCustomizer(getBuildType(buildTypeFinder), user);
     if (commentText != null) customizer.setBuildComment(commentText);
     if (properties != null) customizer.setParameters(properties.getMap());
-    if (personal) customizer.setPersonal(true);
+
     if (branchName != null) customizer.setDesiredBranchName(branchName);
+    if (personal != null) customizer.setPersonal(personal);
+    if (cleanSources != null) customizer.setCleanSources(cleanSources);
+    if (rebuildAllDependencies != null) customizer.setRebuildDependencies(rebuildAllDependencies);
+
     return customizer.createPromotion();
   }
 }

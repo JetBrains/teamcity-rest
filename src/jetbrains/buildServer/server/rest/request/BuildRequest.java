@@ -36,16 +36,14 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.server.rest.model.build.Build;
-import jetbrains.buildServer.server.rest.model.build.BuildCancelRequest;
-import jetbrains.buildServer.server.rest.model.build.Builds;
-import jetbrains.buildServer.server.rest.model.build.Tags;
+import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.files.File;
 import jetbrains.buildServer.server.rest.model.files.Files;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.TriggeredBy;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifact;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactsViewMode;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
@@ -522,6 +520,14 @@ public class BuildRequest {
       return null;
     }
     return new Build(associatedBuild, myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
+  }
+
+  @GET
+  @Path("/{buildLocator}/example/buildTask")
+  @Produces({"application/xml", "application/json"})
+  public BuildTask getExampleBuildTask(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
+    return BuildTask.getExampleBuildTask(build, myServiceLocator, myApiUrlBuilder);
   }
 
   private void restoreInQueue(final SRunningBuild runningBuild, final User user) {
