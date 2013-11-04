@@ -33,9 +33,14 @@ import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
+import jetbrains.buildServer.serverSide.BuildServerEx;
+import jetbrains.buildServer.serverSide.SQLRunner;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.Permission;
-import jetbrains.buildServer.serverSide.db.*;
+import jetbrains.buildServer.serverSide.db.DBAction;
+import jetbrains.buildServer.serverSide.db.DBException;
+import jetbrains.buildServer.serverSide.db.DBFunctions;
+import jetbrains.buildServer.serverSide.db.DBFunctionsProvider;
 import jetbrains.buildServer.serverSide.db.queries.GenericQuery;
 import jetbrains.buildServer.serverSide.db.queries.QueryOptions;
 import jetbrains.buildServer.util.CaseInsensitiveStringComparator;
@@ -100,7 +105,8 @@ public class DebugRequest {
     }
     //final SQLRunner sqlRunner = myServiceLocator.getSingletonService(SQLRunner.class);
     //workaround for http://youtrack.jetbrains.com/issue/TW-25260
-    final SQLRunnerEx sqlRunner = myServiceLocator.getSingletonService(SQLRunnerEx.class);
+    final SQLRunner sqlRunner = myServiceLocator.getSingletonService(BuildServerEx.class).getSQLRunner();
+    //final SQLRunnerEx sqlRunner = myServiceLocator.getSingletonService(SQLRunnerEx.class); // it's the RIGHT way to obtain an instance of SQL runner
     if (selectQuery) {
       final List<String> result = genericQuery.execute(sqlRunner);
       if (result == null) {
