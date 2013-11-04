@@ -41,9 +41,8 @@ import org.jetbrains.annotations.Nullable;
 //todo: reuse fields code from DataProvider
 @XmlRootElement(name = "buildTask")
 @XmlType(name = "buildTask", propOrder = {"branchName", "personal",
-  "buildType", "agent", "commentText", "properties",
+  "buildType", "agent", "commentText", "properties"})
   //"buildDependencies", "buildArtifactDependencies"
-})
 @SuppressWarnings("PublicField")
 public class BuildTask {
   @XmlAttribute public String branchName;
