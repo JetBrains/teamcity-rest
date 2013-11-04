@@ -36,6 +36,7 @@ import jetbrains.buildServer.server.rest.request.BuildQueueRequest;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.buildDistribution.WaitReason;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -46,7 +47,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 @XmlRootElement(name = "queuedBuild")
 @XmlType(name = "queuedBuild", propOrder = {"id", "href", "webUrl", "branchName", "defaultBranch", "unspecifiedBranch", "personal", "history", "buildType",
-  "queuedDate", "agent", "compatibleAgents", "comment", "personalBuildUser", "properties",
+  "queuedDate", "agent", "compatibleAgents", "comment", "personalBuildUser", "properties", "startEstimate", "waitReason",
   "revisions", "triggered"})
 public class QueuedBuild {
   @NotNull
@@ -124,6 +125,7 @@ public class QueuedBuild {
     return myServiceLocator.getSingletonService(WebLinks.class).getQueuedBuildUrl(myBuild);
   }
 
+  //todo: support assignment to agent pools
   @XmlElement(name = "agent")
   @Nullable
   public AgentRef getAgent() {
@@ -132,7 +134,7 @@ public class QueuedBuild {
   }
 
   @XmlElement(name = "compatibleAgents")
-  public Href getCompatibleAgents() { //TODO: IMPLEMENT!
+  public Href getCompatibleAgents() {
     return new Href(BuildQueueRequest.getCompatibleAgentsHref(myBuild), myApiUrlBuilder);
   }
 
@@ -146,12 +148,25 @@ public class QueuedBuild {
     return Util.formatTime(myBuild.getWhenQueued());
   }
 
-/* TODO: implement
   @XmlElement
-  public String getStartEstimateDate() {
-    return Util.formatTime(myBuild.getBuildEstimates().);
+  public String getStartEstimate() {
+    final BuildEstimates buildEstimates = myBuild.getBuildEstimates();
+    if (buildEstimates == null) return null;
+    final TimeInterval timeInterval = buildEstimates.getTimeInterval();
+    if (timeInterval == null) return null;
+    final TimePoint endPoint = timeInterval.getEndPoint();
+    if (endPoint == null) return null;
+    return Util.formatTime(endPoint.getAbsoluteTime());
   }
-*/
+
+  @XmlElement
+  public String getWaitReason() {
+    final BuildEstimates buildEstimates = myBuild.getBuildEstimates();
+    if (buildEstimates == null) return null;
+    final WaitReason waitReason = buildEstimates.getWaitReason();
+    if (waitReason == null) return null;
+    return waitReason.getDescription();
+  }
 
   @XmlElement(defaultValue = "")
   public Comment getComment() {
