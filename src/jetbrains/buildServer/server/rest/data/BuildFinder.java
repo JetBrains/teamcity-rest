@@ -298,8 +298,18 @@ public class BuildFinder {
 
   @NotNull
   public SQueuedBuild getQueuedBuild(@Nullable final String buildLocator) {
+    final BuildPromotion buildPromotion = getBuildPromotion(buildLocator);
+    final SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+    if (queuedBuild == null){
+      throw new NotFoundException("No queued build can be found by id '" + buildPromotion.getId() + "' (while promotion exists).");
+    }
+    return queuedBuild;
+  }
+
+  @NotNull
+  public BuildPromotion getBuildPromotion(@Nullable final String buildLocator) {
     if (StringUtil.isEmpty(buildLocator)) {
-      throw new BadRequestException("Empty queued build locator is not supported.");
+      throw new BadRequestException("Empty build locator is not supported.");
     }
 
     final Locator locator = new Locator(buildLocator, DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
@@ -307,29 +317,26 @@ public class BuildFinder {
     if (locator.isSingleValue()) { // assume it's promotion id
       @SuppressWarnings("ConstantConditions") @NotNull final Long singleValueAsLong = locator.getSingleValueAsLong();
       locator.checkLocatorFullyProcessed();
-      return getQueuedBuildByPromotion(singleValueAsLong);
+      return getBuildPromotion(singleValueAsLong);
     }
 
     Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (id != null) {
       locator.checkLocatorFullyProcessed();
-      return getQueuedBuildByPromotion(id);
+      return getBuildPromotion(id);
     }
 
     locator.checkLocatorFullyProcessed();
-    throw new BadRequestException("Queued build locator '" + buildLocator + "' is not supported.");
+    throw new BadRequestException("Build locator '" + buildLocator + "' is not supported.");
   }
 
-  private SQueuedBuild getQueuedBuildByPromotion(final long promotionId) {
+  @NotNull
+  private BuildPromotion getBuildPromotion(final long promotionId) {
     final BuildPromotion buildPromotion = myDataProvider.getPromotionManager().findPromotionById(promotionId);
     if (buildPromotion == null) {
       throw new NotFoundException("No build promotion can be found by id '" + promotionId + "'.");
     }
-    final SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    if (queuedBuild == null){
-      throw new NotFoundException("No queued build can be found by id '" + promotionId + "' (while promotion exists).");
-    }
-    return queuedBuild;
+    return buildPromotion;
   }
 
 

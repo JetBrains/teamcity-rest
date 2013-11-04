@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.model.agent.AgentRef;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeRef;
 import jetbrains.buildServer.server.rest.model.change.Revisions;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
@@ -45,7 +46,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 @XmlRootElement(name = "queuedBuild")
 @XmlType(name = "queuedBuild", propOrder = {"id", "href", "webUrl", "branchName", "defaultBranch", "unspecifiedBranch", "personal", "history", "buildType",
-  "queuedDate", "compatibleAgents", "comment", "personalBuildUser", "properties",
+  "queuedDate", "agent", "compatibleAgents", "comment", "personalBuildUser", "properties",
   "revisions", "triggered"})
 public class QueuedBuild {
   @NotNull
@@ -72,8 +73,8 @@ public class QueuedBuild {
   }
 
   @XmlAttribute
-  public String getId() {
-    return myBuild.getItemId();
+  public long getId() {
+    return myBuild.getBuildPromotion().getId();
   }
 
   @XmlAttribute
@@ -123,6 +124,13 @@ public class QueuedBuild {
     return myServiceLocator.getSingletonService(WebLinks.class).getQueuedBuildUrl(myBuild);
   }
 
+  @XmlElement(name = "agent")
+  @Nullable
+  public AgentRef getAgent() {
+    final SBuildAgent buildAgent = myBuild.getBuildAgent();
+    return buildAgent == null ? null : new AgentRef(buildAgent, myApiUrlBuilder);
+  }
+
   @XmlElement(name = "compatibleAgents")
   public Href getCompatibleAgents() { //TODO: IMPLEMENT!
     return new Href(BuildQueueRequest.getCompatibleAgentsHref(myBuild), myApiUrlBuilder);
@@ -156,7 +164,7 @@ public class QueuedBuild {
 
   @XmlElement
   public Properties getProperties() {
-    return new Properties(myBuild.getBuildPromotion().getParameters());
+    return new Properties(myBuild.getBuildPromotion().getCustomParameters());
   }
 
   /* todo: add these. requires refactoring of Builds list

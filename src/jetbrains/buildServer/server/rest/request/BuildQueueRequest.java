@@ -18,8 +18,11 @@ package jetbrains.buildServer.server.rest.request;
 
 import java.util.Collections;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -28,6 +31,7 @@ import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.build.BuildQueue;
@@ -60,7 +64,7 @@ public class BuildQueueRequest {
 
   @NotNull
   public static String getQueuedBuildHref(SQueuedBuild build) {
-    return API_BUILD_QUEUE_URL + "/id:" + build.getItemId();
+    return API_BUILD_QUEUE_URL + "/id:" + build.getBuildPromotion().getId();
   }
 
   @NotNull
@@ -76,15 +80,31 @@ public class BuildQueueRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
-  public BuildQueue serveQueue(@QueryParam("locator") String locator, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+  public BuildQueue serveQueue(@QueryParam("locator") String locator) {
     return new BuildQueue(myServiceLocator.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class).getItems(), null, myApiUrlBuilder, myFactory);
   }
 
   @GET
   @Path("/{queuedBuildLocator}")
   @Produces({"application/xml", "application/json"})
-  public QueuedBuild serveQueuedBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator) {
-    return new QueuedBuild(myBuildFinder.getQueuedBuild(queuedBuildLocator), myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
+  public Response serveQueuedBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator, @Context UriInfo uriInfo, @Context HttpServletResponse response) {
+    final BuildPromotion buildPromotion = myBuildFinder.getBuildPromotion(queuedBuildLocator);
+
+    final SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+    if (queuedBuild != null)    {
+      final QueuedBuild result =  new QueuedBuild(myBuildFinder.getQueuedBuild(queuedBuildLocator), myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
+      return Response.ok(result).build();
+    }
+
+    final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
+    if (associatedBuild != null) {
+      // todo: use RedirectionException here instead of Response response when migrated to Jersey 2.0
+      final UriBuilder uriBuilder = UriBuilder.fromPath(BuildRequest.getBuildHref(associatedBuild));
+      return Response.status(Response.Status.MOVED_PERMANENTLY).location(uriBuilder.build()).build();
+    }
+
+    //todo: handle build merges in the queue
+    throw new NotFoundException("No build can be found by id '" + buildPromotion.getId() + "' (while promotion exists).");
   }
 
   @DELETE
