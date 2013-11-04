@@ -20,7 +20,10 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.SBuildAgent;
+import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -29,41 +32,45 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlRootElement(name = "agent-ref")
 @XmlType(name = "agent-ref")
+@SuppressWarnings("PublicField")
 public class AgentRef {
-  private SBuildAgent myAgent;
-  private ApiUrlBuilder myApiUrlBuilder;
-  private String myAgentName;
+  @XmlAttribute(required = false) public Integer id;
+  @XmlAttribute(required = true) public String name;
+  @XmlAttribute(required = false) public String href;
+
+  /**
+   * This is used only when posting a link to an agent.
+   */
+  @XmlAttribute public String locator;
+
 
   public AgentRef() {
   }
 
-  public AgentRef(final SBuildAgent agent, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    myAgent = agent;
-    myApiUrlBuilder = apiUrlBuilder;
+  public AgentRef(@NotNull final SBuildAgent agent, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    id = agent.getId();
+    name = agent.getName();
+    href = apiUrlBuilder.getHref(agent);
   }
 
   public AgentRef(final String agentName) {
-    myAgentName = agentName;
+    name = agentName;
   }
 
-  @XmlAttribute(required = false)
-  public Integer getId() {
-    return myAgent == null ? null : myAgent.getId();
-  }
-
-  @XmlAttribute(required = true)
-  public String getName() {
-    if (myAgent != null) {
-      return myAgent.getName();
+  @NotNull
+  public SBuildAgent getAgentFromPosted(final DataProvider dataProvider) {
+    String locatorText = "";
+    if (id != null) locatorText += (!locatorText.isEmpty() ? "," : "") + "id:" + id;
+    if (locatorText.isEmpty()) {
+      locatorText = locator;
+    } else {
+      if (locator != null) {
+        throw new BadRequestException("Both 'locator' and 'id' attributes are specified. Only one should be present.");
+      }
     }
-    if (myAgentName == null) {
-      throw new IllegalStateException("Either agent or agentName must be specified.");
+    if (StringUtil.isEmpty(locatorText)){
+      throw new BadRequestException("No agent specified. Either 'id' or 'locator' attribute should be present.");
     }
-    return myAgentName;
-  }
-
-  @XmlAttribute(required = false)
-  public String getHref() {
-    return myAgent == null || myApiUrlBuilder == null ? null : myApiUrlBuilder.getHref(myAgent);
+    return dataProvider.getAgent(locatorText);
   }
 }

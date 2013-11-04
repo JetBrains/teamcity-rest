@@ -26,7 +26,9 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
-import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.BuildTypeTemplate;
+import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -156,9 +158,8 @@ public class BuildTypeRef {
       }
     }
     if (StringUtil.isEmpty(locatorText)){
-      throw new BadRequestException("No project specified. Either 'id', 'internalId' or 'locator' attribute should be present.");
+      throw new BadRequestException("No build type specified. Either 'id', 'internalId' or 'locator' attribute should be present.");
     }
-    //todo: support/check posted projectId fields here
     return buildTypeFinder.getBuildTypeOrTemplate(null, locatorText);
   }
 }

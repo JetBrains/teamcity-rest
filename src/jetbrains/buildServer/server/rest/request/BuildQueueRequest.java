@@ -27,14 +27,13 @@ import jetbrains.buildServer.server.rest.data.BuildFinder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
-import jetbrains.buildServer.server.rest.model.build.Build;
-import jetbrains.buildServer.server.rest.model.build.BuildCancelRequest;
+import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.build.BuildQueue;
-import jetbrains.buildServer.server.rest.model.build.QueuedBuild;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SQueuedBuild;
+import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
 
@@ -118,7 +117,6 @@ public class BuildQueueRequest {
     return new Build(associatedBuild, myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
   }
 
-
   @GET
   @Path("/{queuedBuildLocator}" + COMPATIBLE_AGENTS)
   @Produces({"application/xml", "application/json"})
@@ -135,4 +133,25 @@ public class BuildQueueRequest {
     return QueuedBuild.getFieldValue(build, field);
   }
 
+  @POST
+  @Produces({"application/xml", "application/json"})
+  public QueuedBuild queueNewBuild(BuildTask buildTask, @Context HttpServletRequest request){
+    final SUser user = SessionUser.getUser(request);
+    BuildPromotion buildToTrigger = buildTask.getBuildToTrigger(user, myBuildTypeFinder, myServiceLocator);
+    TriggeredByBuilder triggeredByBulder = new TriggeredByBuilder();
+    if (user != null){
+      triggeredByBulder = new TriggeredByBuilder(user);
+    }
+    final SBuildAgent agent = buildTask.getAgent(myDataProvider);
+    SQueuedBuild queuedBuild;
+    if (agent != null){
+      queuedBuild = buildToTrigger.addToQueue(agent, triggeredByBulder.toString());
+    }else{
+      queuedBuild = buildToTrigger.addToQueue(triggeredByBulder.toString());
+    }
+    if (queuedBuild == null){
+      throw new InvalidStateException("Failed to add build into the queue for unknown reason.");
+    }
+    return new QueuedBuild(queuedBuild, myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
+  }
 }
