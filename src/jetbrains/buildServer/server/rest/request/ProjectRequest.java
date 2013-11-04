@@ -479,13 +479,23 @@ public class ProjectRequest {
   }
 
   /**
+   * For compatibility with experimental feature of 8.0
+   */
+  @GET
+  @Path("/{projectLocator}/newProjectDescription")
+  @Produces({"application/xml", "application/json"})
+  public NewProjectDescription getExampleNewProjectDescriptionCompatibilityVersion1(@PathParam("projectLocator") String projectLocator, @QueryParam("id") String newId) {
+    return getExampleNewProjectDescription(projectLocator, newId);
+  }
+
+  /**
    * Experimental support only.
    * Use this to get an example of the bean to be posted to the /projects request to create a new project
    * @param projectLocator
    * @return
    */
   @GET
-  @Path("/{projectLocator}/newProjectDescription")
+  @Path("/{projectLocator}/example/newProjectDescription")
   @Produces({"application/xml", "application/json"})
   public NewProjectDescription getExampleNewProjectDescription(@PathParam("projectLocator") String projectLocator, @QueryParam("id") String newId) {
     final SProject project = myProjectFinder.getProject(projectLocator);

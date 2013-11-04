@@ -14,6 +14,11 @@ public class BuildCancelRequest {
   public BuildCancelRequest() {
   }
 
+  public BuildCancelRequest(final String comment, final boolean readdIntoQueue) {
+    this.comment = comment;
+    this.readdIntoQueue = readdIntoQueue;
+  }
+
   @XmlAttribute(name = "comment")
   public String comment;
 

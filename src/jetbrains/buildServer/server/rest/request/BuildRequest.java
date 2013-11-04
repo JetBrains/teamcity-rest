@@ -493,8 +493,15 @@ public class BuildRequest {
     return Build.getCanceledComment(build, myApiUrlBuilder, myServiceLocator);
   }
 
-  @PUT
-  @Path("/{buildLocator}/" + Build.CANCELED_INFO)
+  @GET
+  @Path("/{buildLocator}/example/buildCancelRequest")
+  @Produces({"application/xml", "application/json"})
+  public BuildCancelRequest cancelBuild(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
+    return new BuildCancelRequest("example build cancel comment", false);
+  }
+
+  @POST
+  @Path("/{buildLocator}")
   @Consumes({"application/xml", "application/json"})
   public Build cancelBuild(@PathParam("buildLocator") String buildLocator, BuildCancelRequest cancelRequest, @Context HttpServletRequest request) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);

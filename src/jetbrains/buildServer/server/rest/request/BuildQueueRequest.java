@@ -98,8 +98,15 @@ public class BuildQueueRequest {
     myDataProvider.deleteBuild(associatedBuild);
   }
 
-  @PUT
-  @Path("/{queuedBuildLocator}/" + Build.CANCELED_INFO)
+  @GET
+  @Path("/{buildLocator}/example/buildCancelRequest")
+  @Produces({"application/xml", "application/json"})
+  public BuildCancelRequest cancelBuild(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
+    return new BuildCancelRequest("example build cancel comment", false);
+  }
+
+  @POST
+  @Path("/{queuedBuildLocator}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Build cancelBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator, BuildCancelRequest cancelRequest, @Context HttpServletRequest request) {

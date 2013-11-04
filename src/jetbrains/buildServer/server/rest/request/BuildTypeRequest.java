@@ -1265,13 +1265,23 @@ public class BuildTypeRequest {
   }
 
   /**
+   * For compatibility with experimental feature of 8.0
+   */
+  @GET
+  @Path("/{btLocator}/newBuildTypeDescription")
+  @Produces({"application/xml", "application/json"})
+  public NewBuildTypeDescription getExampleNewProjectDescriptionCompatibilityVersion1(@PathParam("btLocator") String buildTypeLocator){
+    return getExampleNewProjectDescription(buildTypeLocator);
+  }
+
+  /**
    * Experimental support only.
    * Use this to get an example of the bean to be posted to the /buildTypes request to create a new build type
    * @param projectLocator
    * @return
    */
   @GET
-  @Path("/{btLocator}/newBuildTypeDescription")
+  @Path("/{btLocator}/example/newBuildTypeDescription")
   @Produces({"application/xml", "application/json"})
   public NewBuildTypeDescription getExampleNewProjectDescription(@PathParam("btLocator") String buildTypeLocator){
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
