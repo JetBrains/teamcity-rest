@@ -185,6 +185,9 @@ public class BuildQueueRequest {
     if (queuedBuild == null){
       throw new InvalidStateException("Failed to add build into the queue for unknown reason.");
     }
+    if (buildTask.queueAtTop != null && buildTask.queueAtTop ){
+      myServiceLocator.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class).moveTop(queuedBuild.getItemId());
+    }
     return new QueuedBuild(queuedBuild, myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
   }
 }

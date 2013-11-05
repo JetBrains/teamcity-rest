@@ -51,8 +51,10 @@ public class BuildTask {
   @XmlAttribute public Boolean cleanSources;
   @XmlAttribute public Boolean rebuildAllDependencies;
 
-  @XmlElement public BuildTypeRef buildType;
+  @XmlAttribute public Boolean queueAtTop;
   @XmlElement public AgentRef agent;
+
+  @XmlElement public BuildTypeRef buildType;
   @XmlElement public String commentText;
   @XmlElement public Properties properties;
   //@XmlElement private ChangeRef change;
