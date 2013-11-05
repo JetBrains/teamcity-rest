@@ -13,6 +13,7 @@ import jetbrains.buildServer.server.rest.model.user.UserRef;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.TriggeredByBuilder;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.impl.BuildServerImpl;
 import jetbrains.buildServer.users.SUser;
 
@@ -85,8 +86,12 @@ public class TriggeredBy {
     String buildTypeId = triggeredByParams.get(TriggeredByBuilder.BUILD_TYPE_ID_PARAM_NAME);
     if (buildTypeId != null) {
       type = "buildType";
-      final SBuildType foundBuildType = dataProvider.getServer().getProjectManager().findBuildTypeById(buildTypeId);
-      buildType = foundBuildType != null ? new BuildTypeRef(foundBuildType, dataProvider, apiUrlBuilder) : null;
+      try {
+        final SBuildType foundBuildType = dataProvider.getServer().getProjectManager().findBuildTypeById(buildTypeId);
+        buildType = foundBuildType != null ? new BuildTypeRef(foundBuildType, dataProvider, apiUrlBuilder) : null;
+      } catch (AccessDeniedException e) {
+        buildType = null; //ignoring inability to view the triggering build type
+      }
       return;
     }
 
