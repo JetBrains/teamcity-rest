@@ -62,6 +62,7 @@ public class BuildTask {
   public BuildTask() {
   }
 
+  //todo: support the same for queued build
   public static BuildTask getExampleBuildTask(@NotNull final SBuild build, @NotNull final ServiceLocator serviceLocator, @NotNull final ApiUrlBuilder apiUrlBuilder){
     final BuildTask buildTask = new BuildTask();
     if (build.getBranch() != null) buildTask.branchName = build.getBranch().getName();
@@ -70,7 +71,6 @@ public class BuildTask {
     final Object cleanSourcesAttribute = ((BuildPromotionEx)build.getBuildPromotion()).getAttribute(BuildAttributes.CLEAN_SOURCES);
     if (cleanSourcesAttribute != null) buildTask.cleanSources = Boolean.valueOf((String)cleanSourcesAttribute);
 
-//    buildTask.cleanSources =
 //    buildTask.rebuildAllDependencies =
     //noinspection ConstantConditions
     buildTask.buildType = new BuildTypeRef(build.getBuildType(), serviceLocator.findSingletonService(DataProvider.class), apiUrlBuilder);

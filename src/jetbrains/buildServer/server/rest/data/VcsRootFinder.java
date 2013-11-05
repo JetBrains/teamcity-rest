@@ -82,7 +82,7 @@ public class VcsRootFinder{
   @NotNull
   public static Locator createVcsRootLocator(@Nullable final String locatorText){
     final Locator result =
-      new Locator(locatorText, "id", "name", "type", "project", VcsRootsFilter.REPOSITORY_ID_STRING, "internalId", "count", "start", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+      new Locator(locatorText, "id", "name", "type", "project", VcsRootsFilter.REPOSITORY_ID_STRING, "internalId", PagerData.COUNT, PagerData.START, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     result.addIgnoreUnusedDimensions(PagerData.COUNT);
     return result;
   }
@@ -90,7 +90,7 @@ public class VcsRootFinder{
   @NotNull
   public static Locator createVcsRootInstanceLocator(@Nullable final String locatorText){
     final Locator result =
-      new Locator(locatorText, "id", "name", "type", "project", "buildType", VcsRootFinder.VCS_ROOT_DIMENSION, VcsRootFinder.REPOSITORY_ID_STRING, "count", "start", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+      new Locator(locatorText, "id", "name", "type", "project", "buildType", VcsRootFinder.VCS_ROOT_DIMENSION, VcsRootFinder.REPOSITORY_ID_STRING, PagerData.COUNT, PagerData.START, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     result.addIgnoreUnusedDimensions(PagerData.COUNT);
     return result;
   }
@@ -249,9 +249,9 @@ public class VcsRootFinder{
                                                                    @NotNull final BuildTypeFinder buildTypeFinder,
                                                                    @NotNull final VcsRootFinder vcsRootFinder,
                                                                    @NotNull final VcsManager vcsManager) {
-    final Long counFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
+    final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
     final MultiCheckerFilter<VcsRootInstance> result =
-      new MultiCheckerFilter<VcsRootInstance>(locator.getSingleDimensionValueAsLong(PagerData.START), counFromFilter != null ? counFromFilter.intValue() : null, null);
+      new MultiCheckerFilter<VcsRootInstance>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
 
     final String vcsType = locator.getSingleDimensionValue("type");
     if (vcsType != null) {
