@@ -19,11 +19,14 @@ package jetbrains.buildServer.server.rest.jersey;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 import com.sun.jersey.spi.inject.Errors;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.util.List;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.apache.log4j.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -34,6 +37,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class ExceptionMapperUtil {
   protected static final Logger LOG = Logger.getInstance(ExceptionMapperUtil.class.getName());
+  public static final String REST_INCLUDE_EXCEPTION_STACKTRACE_PROPERTY = "rest.response.debug.includeExceptionStacktrace";
 
   @Context
   UriInfo myUriInfo;
@@ -78,7 +82,7 @@ public class ExceptionMapperUtil {
       responseText.append(getMessageWithCauses(e));
       if (message != null) responseText.append("\n").append(message);
     }
-    final String result = responseText.toString();
+    String result = responseText.toString();
     final String singleLineMessageStep1 = StringUtil.replace(result, ".\n", ". ");
     final String singleLineMessage = singleLineMessageStep1 == null ? "" : StringUtil.replace(singleLineMessageStep1, "\n", ". ");
     final String logMessage = singleLineMessage + " URL: " + requestUri + ".";
@@ -87,6 +91,14 @@ public class ExceptionMapperUtil {
     } else {
       logMessage(LOG, level, logMessage);
       LOG.debug(logMessage, e);
+    }
+
+    if (e != null && TeamCityProperties.getBoolean(REST_INCLUDE_EXCEPTION_STACKTRACE_PROPERTY)){
+      StringWriter sw = new StringWriter();
+      sw.write("\n\n");
+      e.printStackTrace(new PrintWriter(sw));
+      sw.write("\nThe stacktrace is included as '" + REST_INCLUDE_EXCEPTION_STACKTRACE_PROPERTY + "' internal property is set.");
+      result += sw.toString();
     }
     return result;
   }
