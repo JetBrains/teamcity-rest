@@ -20,6 +20,7 @@ import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.request.*;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
@@ -42,6 +43,10 @@ public class ApiUrlBuilder {
 
   public String getHref(@NotNull final SBuildAgent agent) {
     return myPathTransformer.transform(AgentRequest.getAgentHref(agent));
+  }
+
+  public String getHref(@NotNull final AgentPool agent) {
+    return myPathTransformer.transform(AgentPoolRequest.getAgentPoolHref(agent));
   }
 
 

@@ -22,6 +22,8 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.ProjectFinder;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
 
@@ -43,5 +45,17 @@ public class Projects {
     for (SProject project : projectObjects) {
       projects.add(new ProjectRef(project, apiUrlBuilder));
     }
+  }
+
+  @NotNull
+  public List<SProject> getProjectsFromPosted(@NotNull ProjectFinder projectFinder) {
+    if (projects == null) {
+      throw new BadRequestException("List of projects should be supplied");
+    }
+    final ArrayList<SProject> result = new ArrayList<SProject>(projects.size());
+    for (ProjectRef project : projects) {
+      result.add(project.getProjectFromPosted(projectFinder));
+    }
+    return result;
   }
 }

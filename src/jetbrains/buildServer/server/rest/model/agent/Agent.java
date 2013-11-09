@@ -20,6 +20,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -34,62 +35,40 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 01.08.2009
  */
 @XmlRootElement(name = "agent")
+@SuppressWarnings("PublicField")
 public class Agent {
-  private SBuildAgent myAgent;
-  private ApiUrlBuilder myApiUrlBuilder;
+
+  @XmlAttribute public String href;
+  @XmlAttribute public Integer id;
+  @XmlAttribute public String name;
+  @XmlAttribute public boolean connected;
+  @XmlAttribute public boolean enabled;
+  @XmlAttribute public boolean authorized;
+  @XmlAttribute public boolean uptodate;
+  @XmlAttribute public String ip;
+  @XmlElement public Properties properties;
+  @XmlElement public AgentPoolRef pool;
+
+  /**
+   * This is used only when posting a link to an agent.
+   */
+  @XmlAttribute public String locator;
 
   public Agent() {
   }
 
-  public Agent(final SBuildAgent agent, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    myAgent = agent;
-    myApiUrlBuilder = apiUrlBuilder;
-  }
-
-  @XmlAttribute
-  public String getHref() {
-    return myApiUrlBuilder.getHref(myAgent);
-  }
-
-  @XmlAttribute
-  public Integer getId() {
-    return myAgent.getId();
-  }
-
-  @XmlAttribute
-  public String getName() {
-    return myAgent.getName();
-  }
-
-  @XmlAttribute
-  public boolean isConnected() {
-    return myAgent.isRegistered();
-  }
-
-  @XmlAttribute
-  public boolean isEnabled() {
-    return myAgent.isEnabled();
-  }
-
-  @XmlAttribute
-  public boolean isAuthorized() {
-    return myAgent.isAuthorized();
-  }
-
-  @XmlAttribute
-  public boolean isUptodate() {
-    return !myAgent.isOutdated() && !myAgent.isPluginsOutdated();
-  }
-
-  @XmlAttribute
-  public String getIp() {
-    return myAgent.getHostAddress();
-  }
-
-  @XmlElement
-  public Properties getProperties() {
+  public Agent(@NotNull final SBuildAgent agent, @NotNull final AgentPoolsFinder agentPoolsFinder, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    id = agent.getId();
+    name = agent.getName();
+    connected = agent.isRegistered();
+    enabled = agent.isEnabled();
+    authorized = agent.isAuthorized();
+    uptodate = !agent.isOutdated() && !agent.isPluginsOutdated();
+    ip = agent.getHostAddress();
     //TODO: review, if it should return all parameters on agent, use #getDefinedParameters()
-    return new Properties(myAgent.getAvailableParameters());
+    properties = new Properties(agent.getAvailableParameters());
+    pool = new AgentPoolRef(agentPoolsFinder.getAgentPool(agent), apiUrlBuilder);
+    href = apiUrlBuilder.getHref(agent);
   }
 
   public static String getFieldValue(@NotNull final SBuildAgent agent, @Nullable final String name) {
@@ -126,5 +105,15 @@ public class Agent {
       return;
     }
     throw new BadRequestException("Changing field '" + name + "' is not supported. Supported fields are: enabled, authorized");
+  }
+
+  @NotNull
+  public SBuildAgent getAgentFromPosted(@NotNull final DataProvider dataProvider) {
+    final AgentRef agentRef = new AgentRef();
+    agentRef.id = id;
+    agentRef.locator = locator;
+    agentRef.name = name;
+    agentRef.href = href;
+    return agentRef.getAgentFromPosted(dataProvider);
   }
 }

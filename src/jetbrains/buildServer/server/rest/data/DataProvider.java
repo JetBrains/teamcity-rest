@@ -19,10 +19,8 @@ package jetbrains.buildServer.server.rest.data;
 import com.intellij.openapi.diagnostic.Logger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroupManager;
@@ -39,6 +37,8 @@ import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
+import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.db.DBFunctionsProvider;
@@ -83,6 +83,7 @@ public class DataProvider {
   @NotNull private final BeanFactory myBeanFactory;
   @NotNull private final ConfigurableApplicationContext myApplicationContext;
   @NotNull private final DBFunctionsProvider myDbFunctionsProvider;
+  @NotNull private final ServiceLocator myServiceLocator;
 
   public DataProvider(@NotNull final SBuildServer myServer,
                       @NotNull final BuildHistory myBuildHistory,
@@ -103,8 +104,9 @@ public class DataProvider {
                       @NotNull final BuildPromotionManager promotionManager,
                       @NotNull final VcsModificationChecker vcsModificationChecker,
                       @NotNull final BeanFactory beanFactory,
-                      @NotNull ConfigurableApplicationContext applicationContext,
-                      @NotNull DBFunctionsProvider dbFunctionsProvider
+                      @NotNull final ConfigurableApplicationContext applicationContext,
+                      @NotNull final DBFunctionsProvider dbFunctionsProvider,
+                      @NotNull final ServiceLocator serviceLocator
   ) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
@@ -127,6 +129,7 @@ public class DataProvider {
     myBeanFactory = beanFactory;
     myApplicationContext = applicationContext;
     myDbFunctionsProvider = dbFunctionsProvider;
+    myServiceLocator = serviceLocator;
   }
 
   @NotNull
@@ -487,5 +490,15 @@ public class DataProvider {
   public <T> T getBean(Class<T> type){
     if (type.equals(DBFunctionsProvider.class)) return (T)myDbFunctionsProvider;
     return myApplicationContext.getBean(type);
+  }
+
+  public void addAgentToPool(@NotNull final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool, @NotNull final SBuildAgent postedAgent) {
+    final AgentPoolManager agentPoolManager = myServiceLocator.getSingletonService(AgentPoolManager.class);
+    final int agentPoolId = agentPool.getAgentPoolId();
+    try {
+      agentPoolManager.moveAgentTypesToPool(agentPoolId, Collections.singleton(postedAgent.getId()));
+    } catch (NoSuchAgentPoolException e) {
+      throw new IllegalStateException("Agent pool with id \'" + agentPoolId + "' is not found.");
+    }
   }
 }

@@ -24,43 +24,30 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.serverSide.SBuildAgent;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
- *         Date: 16.08.2009
+ *         Date: 07.11.13
  */
-@XmlRootElement(name = "agents")
-@XmlType(name = "agents-ref")
+@XmlRootElement(name = "agentPools")
+@XmlType(name = "agentPools")
 @SuppressWarnings("PublicField")
-public class Agents {
+public class AgentPools {
   @XmlAttribute
   public long count;
 
-  @XmlElement(name = "agent")
-  public List<AgentRef> agents;
+  @XmlElement(name = "agentPool")
+  public List<AgentPoolRef> items;
 
-  public Agents() {
+  public AgentPools() {
   }
 
-  public Agents(Collection<SBuildAgent> agentObjects, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    agents = new ArrayList<AgentRef>(agentObjects.size());
-    for (SBuildAgent agent : agentObjects) {
-      agents.add(new AgentRef(agent, apiUrlBuilder));
+  public AgentPools(Collection<jetbrains.buildServer.serverSide.agentPools.AgentPool> items, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    this.items = new ArrayList<AgentPoolRef>(items.size());
+    for (jetbrains.buildServer.serverSide.agentPools.AgentPool item : items) {
+      this.items.add(new AgentPoolRef(item, apiUrlBuilder));
     }
-    count = agents.size();
+    count = this.items.size();
   }
-
-  public List<SBuildAgent> getAgentFromPosted(final DataProvider dataProvider) {
-    if (agents == null) {
-      throw new BadRequestException("List of agents should be supplied");
-    }
-    final ArrayList<SBuildAgent> result = new ArrayList<SBuildAgent>(agents.size());
-    for (AgentRef agent : agents) {
-      result.add(agent.getAgentFromPosted(dataProvider));
-    }
-    return result;
-  }}
+}

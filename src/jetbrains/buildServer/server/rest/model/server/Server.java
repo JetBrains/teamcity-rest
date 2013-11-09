@@ -43,7 +43,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 @XmlRootElement(name = "server")
 @XmlType(name = "server", propOrder={"version", "versionMajor", "versionMinor", "startTime", "currentTime", "buildNumber", "buildDate", "internalId",
-"projects", "vcsRoots", "builds", "users", "userGroups", "agents", "buildQueue"})
+"projects", "vcsRoots", "builds", "users", "userGroups", "agents", "buildQueue", "agentPools"})
 public class Server {
   @Autowired
   private SBuildServer myServer;
@@ -135,6 +135,11 @@ public class Server {
   @XmlElement
   public Href getBuildQueue() {
     return new Href(BuildQueueRequest.getHref(), myApiUrlBuilder);
+  }
+
+  @XmlElement
+  public Href getAgentPools() {
+    return new Href(AgentPoolRequest.getHref(), myApiUrlBuilder);
   }
 
   @Nullable

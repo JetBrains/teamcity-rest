@@ -35,6 +35,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "project-ref")
 @XmlType(name = "project-ref", propOrder = {"id", "internalId", "name", "parentProjectName", "parentProjectId", "parentProjectInternalId", "href"})
+@SuppressWarnings("PublicField")
 public class ProjectRef {
   @XmlAttribute
   public String id;
@@ -57,7 +58,7 @@ public class ProjectRef {
   @XmlAttribute
   public String href;
   /**
-   * This is used only when posting a link to a build type.
+   * This is used only when posting a link to a project
    */
   @XmlAttribute public String locator;
 

@@ -24,6 +24,7 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Href;
@@ -82,6 +83,11 @@ public class Project {
 
   @XmlElement (name = "projects")
   public Projects projects;
+
+  /**
+   * This is used only when posting a link to a project
+   */
+  @XmlAttribute public String locator;
 
   public Project() {
   }
@@ -153,5 +159,15 @@ public class Project {
       return;
     }
     throw new BadRequestException("Setting field '" + field + "' is not supported. Supported are: name, description, archived");
+  }
+
+  @NotNull
+  public SProject getProjectFromPosted(@NotNull final ProjectFinder projectFinder) {
+    final ProjectRef projectRef = new ProjectRef();
+    projectRef.id = id;
+    projectRef.internalId = internalId;
+    projectRef.locator = locator;
+    projectRef.href = href;
+    return projectRef.getProjectFromPosted(projectFinder);
   }
 }

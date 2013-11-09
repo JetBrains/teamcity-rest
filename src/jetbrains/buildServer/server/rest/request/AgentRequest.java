@@ -19,9 +19,11 @@ package jetbrains.buildServer.server.rest.request;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
 import jetbrains.buildServer.server.rest.data.AgentsSearchFields;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
+import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import org.jetbrains.annotations.NotNull;
@@ -32,10 +34,10 @@ import org.jetbrains.annotations.NotNull;
  */
 @Path(AgentRequest.API_AGENTS_URL)
 public class AgentRequest {
-  @Context
-  private DataProvider myDataProvider;
-  @Context
-  private ApiUrlBuilder myApiUrlBuilder;
+  @Context private DataProvider myDataProvider;
+  @Context private ApiUrlBuilder myApiUrlBuilder;
+  @Context @NotNull private AgentPoolsFinder myAgentPoolsFinder;
+
   public static final String API_AGENTS_URL = Constants.API_URL + "/agents";
 
   public static String getAgentHref(@NotNull final SBuildAgent agent) {
@@ -53,7 +55,25 @@ public class AgentRequest {
   @Path("/{agentLocator}")
   @Produces({"application/xml", "application/json"})
   public Agent serveAgent(@PathParam("agentLocator") String agentLocator) {
-    return new Agent(myDataProvider.getAgent(agentLocator), myApiUrlBuilder);
+    return new Agent(myDataProvider.getAgent(agentLocator), myAgentPoolsFinder, myApiUrlBuilder);
+  }
+
+  @GET
+  @Path("/{agentLocator}/pool")
+  @Produces({"application/xml", "application/json"})
+  public AgentPool getAgentPool(@PathParam("agentLocator") String agentLocator) {
+    final SBuildAgent agent = myDataProvider.getAgent(agentLocator);
+    return new AgentPool(myAgentPoolsFinder.getAgentPool(agent), myApiUrlBuilder, myAgentPoolsFinder);
+  }
+
+  @PUT
+  @Path("/{agentLocator}/pool")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public AgentPool setAgentPool(@PathParam("agentLocator") String agentLocator, AgentPool agentPool) {
+    final SBuildAgent agent = myDataProvider.getAgent(agentLocator);
+    myDataProvider.addAgentToPool(agentPool.getAgentPoolFromPosted(myAgentPoolsFinder), agent);
+    return new AgentPool(myAgentPoolsFinder.getAgentPool(agent), myApiUrlBuilder, myAgentPoolsFinder);
   }
 
   @GET
