@@ -6,8 +6,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
-import jetbrains.buildServer.server.rest.data.Locator;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.project.Projects;
 import org.jetbrains.annotations.NotNull;
 
@@ -45,22 +43,10 @@ public class AgentPool {
 
   @NotNull
   public jetbrains.buildServer.serverSide.agentPools.AgentPool getAgentPoolFromPosted(@NotNull final AgentPoolsFinder agentPoolsFinder) {
-    Locator resultLocator = Locator.createEmptyLocator();
-    boolean otherDimensionsSet = false;
-    if (id != null) {
-      otherDimensionsSet = true;
-      resultLocator.setDimension("id", String.valueOf(id));
-    }
-    if (name != null) {
-      otherDimensionsSet = true;
-      resultLocator.setDimension("name", name);
-    }
-    if (locator != null) {
-      if (otherDimensionsSet) {
-        throw new BadRequestException("Either 'locator' or other attributes should be specified.");
-      }
-      resultLocator = new Locator(locator);
-    }
-    return agentPoolsFinder.getAgentPool(resultLocator.getStringRepresentation());
+    AgentPoolRef agentPoolRef = new AgentPoolRef();
+    agentPoolRef.id = id;
+    agentPoolRef.name = name;
+    agentPoolRef.locator = locator;
+    return agentPoolRef.getAgentPoolFromPosted(agentPoolsFinder);
   }
 }

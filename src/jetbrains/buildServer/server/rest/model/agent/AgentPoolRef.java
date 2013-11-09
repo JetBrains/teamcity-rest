@@ -20,6 +20,9 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -33,6 +36,10 @@ public class AgentPoolRef {
   @XmlAttribute(required = false) public Integer id;
   @XmlAttribute(required = true) public String name;
   @XmlAttribute(required = false) public String href;
+  /**
+   * This is used only when posting a link to a project
+   */
+  @XmlAttribute public String locator;
 
   public AgentPoolRef() {
   }
@@ -42,4 +49,26 @@ public class AgentPoolRef {
     name = agentPool.getName();
     href = apiUrlBuilder.getHref(agentPool);
   }
+
+  @NotNull
+  public jetbrains.buildServer.serverSide.agentPools.AgentPool getAgentPoolFromPosted(@NotNull final AgentPoolsFinder agentPoolsFinder) {
+    Locator resultLocator = Locator.createEmptyLocator();
+    boolean otherDimensionsSet = false;
+    if (id != null) {
+      otherDimensionsSet = true;
+      resultLocator.setDimension("id", String.valueOf(id));
+    }
+    if (name != null) {
+      otherDimensionsSet = true;
+      resultLocator.setDimension("name", name);
+    }
+    if (locator != null) {
+      if (otherDimensionsSet) {
+        throw new BadRequestException("Either 'locator' or other attributes should be specified.");
+      }
+      resultLocator = new Locator(locator);
+    }
+    return agentPoolsFinder.getAgentPool(resultLocator.getStringRepresentation());
+  }
+
 }

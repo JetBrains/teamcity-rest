@@ -37,6 +37,7 @@ import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
@@ -500,5 +501,21 @@ public class DataProvider {
     } catch (NoSuchAgentPoolException e) {
       throw new IllegalStateException("Agent pool with id \'" + agentPoolId + "' is not found.");
     }
+  }
+
+  public void setProjectPools(final SProject project, final List<AgentPool> pools) {
+    final AgentPoolManager poolManager = myServiceLocator.getSingletonService(AgentPoolManager.class);
+      for (AgentPool agentPool : poolManager.getAllAgentPools()) {
+        final int agentPoolId = agentPool.getAgentPoolId();
+        try {
+        if (pools.contains(agentPool)){
+          poolManager.associateProjectsWithPool(agentPoolId, Collections.singleton(project.getProjectId()));
+        }else{
+          poolManager.dissociateProjectsFromPool(agentPoolId, Collections.singleton(project.getProjectId()));
+        }
+        } catch (NoSuchAgentPoolException e) {
+          throw new NotFoundException("No agent pool is found by id '" + agentPoolId + "'.");
+        }
+      }
   }
 }

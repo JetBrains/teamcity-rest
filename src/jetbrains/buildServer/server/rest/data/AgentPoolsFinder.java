@@ -92,17 +92,29 @@ public class AgentPoolsFinder {
     if (StringUtil.isEmpty(locatorText)) {
       throw new BadRequestException("Empty agent pool locator is not supported.");
     }
-    final Locator locator = new Locator(locatorText);
+    final Locator locator = new Locator(locatorText, "id", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's an id
+      locator.checkLocatorFullyProcessed();
       //noinspection ConstantConditions
       return getAgentPoolById(locator.getSingleValueAsLong());
     }
     Long id = locator.getSingleDimensionValueAsLong("id");
     if (id != null) {
+      locator.checkLocatorFullyProcessed();
       return getAgentPoolById(id);
     }
     locator.checkLocatorFullyProcessed();
     throw new NotFoundException("Agent pool locator '" + locatorText + "' is not supported.");
+  }
+
+  public Collection<AgentPool> getPoolsForProject(final SProject project) {
+    final AgentPoolManager poolManager = myServiceLocator.getSingletonService(AgentPoolManager.class);
+    final Set<Integer> projectPoolsIds = poolManager.getProjectPools(project.getProjectId());
+    final ArrayList<AgentPool> result = new ArrayList<AgentPool>(projectPoolsIds.size());
+    for (Integer poolId : projectPoolsIds) {
+      result.add(getAgentPoolById(poolId));
+    }
+    return result;
   }
 }

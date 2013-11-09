@@ -24,6 +24,9 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -43,11 +46,23 @@ public class AgentPools {
   public AgentPools() {
   }
 
-  public AgentPools(Collection<jetbrains.buildServer.serverSide.agentPools.AgentPool> items, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public AgentPools(Collection<AgentPool> items, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     this.items = new ArrayList<AgentPoolRef>(items.size());
-    for (jetbrains.buildServer.serverSide.agentPools.AgentPool item : items) {
+    for (AgentPool item : items) {
       this.items.add(new AgentPoolRef(item, apiUrlBuilder));
     }
     count = this.items.size();
   }
+
+  @NotNull
+  public List<AgentPool> getPoolsFromPosted(@NotNull final AgentPoolsFinder agentPoolsFinder) {
+      if (items == null) {
+        throw new BadRequestException("List of agent pools should be supplied");
+      }
+      final ArrayList<AgentPool> result = new ArrayList<AgentPool>(items.size());
+      for (AgentPoolRef agentPoolRef : items) {
+        result.add(agentPoolRef.getAgentPoolFromPosted(agentPoolsFinder));
+      }
+      return result;
+    }
 }
