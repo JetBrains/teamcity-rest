@@ -25,8 +25,11 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptorFactory;
 import jetbrains.buildServer.requirements.Requirement;
+import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
+import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
@@ -65,6 +68,8 @@ public class BuildTypeRequest {
   @Context @NotNull private BuildFinder myBuildFinder;
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
   @Context @NotNull private VcsRootFinder myVcsRootFinder;
+  @Context @NotNull private InvestigationFinder myInvestigationFinder;
+
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private BeanFactory myFactory;
@@ -1143,7 +1148,15 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public Investigations getInvestigations(@PathParam("btLocator") String buildTypeLocator) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
-    return new Investigations(buildType, myDataProvider, myApiUrlBuilder);
+
+    final ResponsibilityEntry responsibilityInfo = buildType.getResponsibilityInfo();
+    final ResponsibilityEntry.State state = responsibilityInfo.getState();
+    if (state.equals(ResponsibilityEntry.State.NONE)) {
+      return new Investigations(Collections.<InvestigationWrapper>emptyList(), null, myDataProvider, myApiUrlBuilder);
+    } else {
+      return new Investigations(Collections.singletonList(new InvestigationWrapper(myInvestigationFinder.getResponsibilityEntryBridge().getBuildTypeRE(buildType))), null,
+                                myDataProvider, myApiUrlBuilder);
+    }
   }
 
   /**

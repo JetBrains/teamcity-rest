@@ -7,7 +7,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import org.jetbrains.annotations.NotNull;
 
-interface FilterConditionChecker<T> {
+public interface FilterConditionChecker<T> {
 
   boolean isIncluded(@NotNull T item);
 }

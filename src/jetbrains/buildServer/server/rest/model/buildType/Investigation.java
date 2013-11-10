@@ -6,9 +6,9 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
-import jetbrains.buildServer.serverSide.SBuildType;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -35,18 +35,27 @@ public class Investigation {
   public Investigation() {
   }
 
-  public Investigation(final @NotNull SBuildType buildType, final @NotNull DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
-    final ResponsibilityEntry responsibilityEntry = buildType.getResponsibilityInfo();
-    final ResponsibilityEntry.State stateOjbect = responsibilityEntry.getState();
+  public Investigation(final @NotNull InvestigationWrapper investigation, final @NotNull DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
+    final ResponsibilityEntry.State stateOjbect = investigation.getState();
     state = stateOjbect.name();
     if (stateOjbect.equals(ResponsibilityEntry.State.NONE)){
       return;
     }
-    id = buildType.getBuildTypeId(); // still uses internal id, TBD if appropriate
-    scope = new InvestigationScope(buildType, dataProvider, apiUrlBuilder);
-    responsible = new UserRef(responsibilityEntry.getResponsibleUser(), apiUrlBuilder);
+
+    //todo: suport ids for other cases here!
+    if (investigation.isBuildType()){
+      id = investigation.getBuildTypeRE().getBuildType().getBuildTypeId(); // still uses internal id, TBD if appropriate
+    }
+    /*
+    //todo: THIS MIGHT NOT WORK!!!
+    final ResponsibilityEntryEx responsibilityEntryEx = (ResponsibilityEntryEx)investigation;
+    id = responsibilityEntryEx.getProblemId();
+    */
+
+    scope = new InvestigationScope(investigation, dataProvider, apiUrlBuilder);
+    responsible = new UserRef(investigation.getResponsibleUser(), apiUrlBuilder);
 
     //todo: add all investigation fields: state, removeType, etc.
-    assignment = new Comment(responsibilityEntry.getReporterUser(), responsibilityEntry.getTimestamp(), responsibilityEntry.getComment(), apiUrlBuilder);
+    assignment = new Comment(investigation.getReporterUser(), investigation.getTimestamp(), investigation.getComment(), apiUrlBuilder);
   }
 }
