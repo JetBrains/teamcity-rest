@@ -2,10 +2,10 @@ package jetbrains.buildServer.server.rest.model.buildType;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.responsibility.BuildProblemResponsibilityEntry;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
@@ -44,10 +44,12 @@ public class InvestigationScope {
    public InvestigationScope() {
   }
 
-  public InvestigationScope(final @NotNull InvestigationWrapper investigation, @NotNull final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
+  public InvestigationScope(final @NotNull InvestigationWrapper investigation,
+                            @NotNull final ServiceLocator serviceLocator,
+                            final ApiUrlBuilder apiUrlBuilder) {
     type = investigation.getType();
     if (investigation.isBuildType()) {
-      buildType = new BuildTypeRef((SBuildType)investigation.getBuildTypeRE().getBuildType(), dataProvider, apiUrlBuilder);  //TeamCity open API issue: cast
+      buildType = new BuildTypeRef((SBuildType)investigation.getBuildTypeRE().getBuildType(), serviceLocator, apiUrlBuilder);  //TeamCity open API issue: cast
     } else if (investigation.isTest()) {
       final TestNameResponsibilityEntry testRE = investigation.getTestRE();
       testName = testRE.getTestName().getAsString();

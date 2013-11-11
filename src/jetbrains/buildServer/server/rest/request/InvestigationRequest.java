@@ -7,8 +7,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
@@ -23,7 +23,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @Path(InvestigationRequest.API_SUB_URL)
 public class InvestigationRequest {
-  @Context @NotNull private DataProvider myDataProvider;
+  @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private InvestigationFinder myInvestigationFinder;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
 
@@ -55,9 +55,7 @@ public class InvestigationRequest {
                               new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
                                             result.myCount, result.myEntries.size(),
                                             locatorText,
-                                            "locator"),
-                              myDataProvider,
-                              myApiUrlBuilder);
+                                            "locator"), myServiceLocator, myApiUrlBuilder);
   }
 
   /*

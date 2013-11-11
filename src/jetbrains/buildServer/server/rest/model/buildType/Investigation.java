@@ -3,9 +3,9 @@ package jetbrains.buildServer.server.rest.model.buildType;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
@@ -35,7 +35,9 @@ public class Investigation {
   public Investigation() {
   }
 
-  public Investigation(final @NotNull InvestigationWrapper investigation, final @NotNull DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
+  public Investigation(final @NotNull InvestigationWrapper investigation,
+                       final @NotNull ServiceLocator serviceLocator,
+                       final @NotNull ApiUrlBuilder apiUrlBuilder) {
     final ResponsibilityEntry.State stateOjbect = investigation.getState();
     state = stateOjbect.name();
     if (stateOjbect.equals(ResponsibilityEntry.State.NONE)){
@@ -52,7 +54,7 @@ public class Investigation {
     id = responsibilityEntryEx.getProblemId();
     */
 
-    scope = new InvestigationScope(investigation, dataProvider, apiUrlBuilder);
+    scope = new InvestigationScope(investigation, serviceLocator, apiUrlBuilder);
     responsible = new UserRef(investigation.getResponsibleUser(), apiUrlBuilder);
 
     //todo: add all investigation fields: state, removeType, etc.

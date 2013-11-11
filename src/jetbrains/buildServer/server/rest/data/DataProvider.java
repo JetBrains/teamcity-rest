@@ -457,6 +457,15 @@ public class DataProvider {
     return myUserModel.findUserAccount(null, associatedUser.getUsername());
   }
 
+  @Nullable
+  public static SUser getCurrentUser(@NotNull final ServiceLocator serviceLocator) {
+    final User associatedUser = serviceLocator.getSingletonService(SecurityContext.class).getAuthorityHolder().getAssociatedUser();
+    if (associatedUser == null){
+      return null;
+    }
+    return serviceLocator.getSingletonService(UserModel.class).findUserAccount(null, associatedUser.getUsername());
+  }
+
   @NotNull
   public UserModel getUserModel() {
     return myUserModel;

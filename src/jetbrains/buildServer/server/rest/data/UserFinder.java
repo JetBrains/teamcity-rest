@@ -1,6 +1,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.users.SUser;
@@ -15,10 +16,10 @@ import org.jetbrains.annotations.Nullable;
  */
 public class UserFinder {
   private static final Logger LOG = Logger.getInstance(UserFinder.class.getName());
-  @NotNull private final DataProvider myDataProvider;
+  @NotNull private final ServiceLocator myServiceLocator;
 
-  public UserFinder(@NotNull DataProvider dataProvider) {
-    myDataProvider = dataProvider;
+  public UserFinder(final @NotNull ServiceLocator serviceLocator) {
+    myServiceLocator = serviceLocator;
   }
 
   @Nullable
@@ -32,7 +33,7 @@ public class UserFinder {
       throw new BadRequestException("Empty user locator is not supported.");
     }
 
-    final UserModel userModel = myDataProvider.getUserModel();
+    final UserModel userModel = myServiceLocator.getSingletonService(UserModel.class);
     final Locator locator = new Locator(userLocator);
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's username
@@ -42,7 +43,7 @@ public class UserFinder {
           throw new NotFoundException("No user can be found by username '" + userLocator + "'.");
         }
         // support for predefined "current" keyword to get current user
-        final SUser currentUser = myDataProvider.getCurrentUser();
+        final SUser currentUser = DataProvider.getCurrentUser(myServiceLocator);
         if (currentUser == null) {
           throw new NotFoundException("No current user.");
         } else {

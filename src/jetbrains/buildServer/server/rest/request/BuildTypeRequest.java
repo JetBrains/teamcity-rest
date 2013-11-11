@@ -1152,10 +1152,10 @@ public class BuildTypeRequest {
     final ResponsibilityEntry responsibilityInfo = buildType.getResponsibilityInfo();
     final ResponsibilityEntry.State state = responsibilityInfo.getState();
     if (state.equals(ResponsibilityEntry.State.NONE)) {
-      return new Investigations(Collections.<InvestigationWrapper>emptyList(), null, myDataProvider, myApiUrlBuilder);
+      return new Investigations(Collections.<InvestigationWrapper>emptyList(), null, myServiceLocator, myApiUrlBuilder);
     } else {
       return new Investigations(Collections.singletonList(new InvestigationWrapper(myInvestigationFinder.getResponsibilityEntryBridge().getBuildTypeRE(buildType))), null,
-                                myDataProvider, myApiUrlBuilder);
+                                myServiceLocator, myApiUrlBuilder);
     }
   }
 

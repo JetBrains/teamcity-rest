@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.model.buildType;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
@@ -29,6 +30,7 @@ import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeTemplate;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -42,7 +44,7 @@ import org.jetbrains.annotations.Nullable;
 @XmlType(name = "buildType-ref", propOrder = {"id", "internalId", "name", "href", "projectName", "projectId", "projectInternalId", "webUrl"})
 public class BuildTypeRef {
   @Nullable protected BuildTypeOrTemplate myBuildType;
-  private DataProvider myDataProvider;
+  private ServiceLocator myServiceLocator;
   private ApiUrlBuilder myApiUrlBuilder;
 
   /**
@@ -60,7 +62,15 @@ public class BuildTypeRef {
 
   public BuildTypeRef(@NotNull final SBuildType buildType, @NotNull final DataProvider dataProvider, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     myBuildType = new BuildTypeOrTemplate(buildType);
-    myDataProvider = dataProvider;
+    myServiceLocator = dataProvider.getServer();
+    myApiUrlBuilder = apiUrlBuilder;
+
+    init(myBuildType);
+  }
+
+  public BuildTypeRef(@NotNull final SBuildType buildType, @NotNull final ServiceLocator serviceLocator, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    myBuildType = new BuildTypeOrTemplate(buildType);
+    myServiceLocator = serviceLocator;
     myApiUrlBuilder = apiUrlBuilder;
 
     init(myBuildType);
@@ -73,7 +83,7 @@ public class BuildTypeRef {
 
   public BuildTypeRef(@NotNull final BuildTypeTemplate buildType, @NotNull final DataProvider dataProvider, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     myBuildType = new BuildTypeOrTemplate(buildType);
-    myDataProvider = dataProvider;
+    myServiceLocator = dataProvider.getServer();
     myApiUrlBuilder = apiUrlBuilder;
 
     init(myBuildType);
@@ -88,7 +98,7 @@ public class BuildTypeRef {
     id = externalId;
     this.internalId = (TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) || externalId == null) ? internalId : null;
 
-    myDataProvider = dataProvider;
+    myServiceLocator = dataProvider.getServer();
     myApiUrlBuilder = apiUrlBuilder;
   }
 
@@ -121,7 +131,9 @@ public class BuildTypeRef {
 
   @XmlAttribute
   public String getWebUrl() {
-    return myBuildType == null ? null : (myBuildType.isBuildType() ? myDataProvider.getBuildTypeUrl(myBuildType.getBuildType()) : null);
+    return myBuildType == null
+           ? null
+           : (myBuildType.isBuildType() ? myServiceLocator.getSingletonService(WebLinks.class).getConfigurationHomePageUrl(myBuildType.getBuildType()) : null);
   }
 
   @Nullable

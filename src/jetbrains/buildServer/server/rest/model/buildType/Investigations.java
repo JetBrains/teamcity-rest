@@ -6,8 +6,8 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import org.jetbrains.annotations.NotNull;
@@ -28,10 +28,13 @@ public class Investigations {
   public Investigations() {
   }
 
-  public Investigations(@NotNull final Collection<InvestigationWrapper> itemsP, @Nullable final PagerData pagerData, @NotNull final DataProvider dataProvider, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public Investigations(@NotNull final Collection<InvestigationWrapper> itemsP,
+                        @Nullable final PagerData pagerData,
+                        final ServiceLocator serviceLocator,
+                        @NotNull final ApiUrlBuilder apiUrlBuilder) {
     items = new ArrayList<Investigation>(itemsP.size());
     for (InvestigationWrapper item : itemsP) {
-      items.add(new Investigation(item, dataProvider, apiUrlBuilder));
+      items.add(new Investigation(item, serviceLocator, apiUrlBuilder));
     }
     if (pagerData != null) {
       nextHref = pagerData.getNextHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;
