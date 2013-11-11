@@ -112,8 +112,10 @@ public class TriggeredBy {
     if (vcsName != null) {
       type = "vcs";
       details = vcsName;
-      //noinspection UnnecessaryReturnStatement
       return;
     }
+
+    type = "unknown";
+    details = rawTriggeredBy;
   }
 }
