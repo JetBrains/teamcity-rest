@@ -15,15 +15,12 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 09.11.13
  */
 public class ResponsibilityEntryBridge extends ItemBridge<InvestigationWrapper> {
-  private final ResponsibilityManager myResponsibilityManager;
   private final BuildTypeResponsibilityFacade myBuildTypeResponsibilityFacade;
   private final TestNameResponsibilityFacade myTestNameResponsibilityFacade;
   private final BuildProblemResponsibilityFacade myBuildProblemResponsibilityFacade;
 
-  public ResponsibilityEntryBridge(ResponsibilityManager responsibilityManager,
-                                   final BuildTypeResponsibilityFacade buildTypeResponsibilityFacade,
+  public ResponsibilityEntryBridge(final BuildTypeResponsibilityFacade buildTypeResponsibilityFacade,
                                    final TestNameResponsibilityFacade testNameResponsibilityFacade, final BuildProblemResponsibilityFacade buildProblemResponsibilityFacade) {
-    myResponsibilityManager = responsibilityManager;
     myBuildTypeResponsibilityFacade = buildTypeResponsibilityFacade;
     myTestNameResponsibilityFacade = testNameResponsibilityFacade;
     myBuildProblemResponsibilityFacade = buildProblemResponsibilityFacade;
