@@ -46,8 +46,10 @@
   <bean id="restChangeFinder" class="jetbrains.buildServer.server.rest.data.ChangeFinder"/>
   <bean id="restAgentPoolsFinder" class="jetbrains.buildServer.server.rest.data.AgentPoolsFinder"/>
   <bean id="restInvestigationFinder" class="jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder"/>
+  <bean id="restProblemFinder" class="jetbrains.buildServer.server.rest.data.problem.ProblemFinder"/>
 
   <bean id="restResponsibilityEntryBridge" class="jetbrains.buildServer.server.rest.data.investigations.ResponsibilityEntryBridge"/>
+  <bean id="restBuildProblemBridge" class="jetbrains.buildServer.server.rest.data.problem.BuildProblemBridge"/>
 
   <bean id="restDataUpdater" class="jetbrains.buildServer.server.rest.data.DataUpdater"/>
   <bean id="beanFactory" class="jetbrains.buildServer.server.rest.util.BeanFactory"/>
@@ -66,6 +68,7 @@
   <bean id="changeFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.ChangeFinderContextProvider"/>
   <bean id="restAgentPoolsFinderProvider" class="jetbrains.buildServer.server.rest.jersey.AgentPoolsFinderProvider"/>
   <bean id="restInvestigationFinderProvider" class="jetbrains.buildServer.server.rest.jersey.InvestigationFinderProvider"/>
+  <bean id="restProblemFinderProvider" class="jetbrains.buildServer.server.rest.jersey.ProblemFinderProvider"/>
 
   <bean id="dataUpdaterContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataUpdaterContextProvider"/>
   <bean id="serviceLocatorContextProvider" class="jetbrains.buildServer.server.rest.jersey.ServiceLocatorContextProvider"/>

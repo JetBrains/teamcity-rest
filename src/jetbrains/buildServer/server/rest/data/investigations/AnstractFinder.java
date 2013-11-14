@@ -20,7 +20,7 @@ public abstract class AnstractFinder<ITEM> {
   private final ItemBridge<ITEM> myBridge;
   public static final String[] ADDITIONAL = new String[]{DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME};
 
-  AnstractFinder(final ItemBridge<ITEM> bridge, final String[] knownDimensions) {
+  public AnstractFinder(final ItemBridge<ITEM> bridge, final String[] knownDimensions) {
     myBridge = bridge;
     myKnownDimensions = new String[knownDimensions.length + 2];
     System.arraycopy(knownDimensions, 0, myKnownDimensions, 0, knownDimensions.length);

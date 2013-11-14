@@ -8,7 +8,7 @@ import jetbrains.buildServer.server.rest.data.FilterItemProcessor;
  * @author Yegor.Yarko
  *         Date: 09.11.13
  */
-abstract class ItemBridge<ITEM> {
+public abstract class ItemBridge<ITEM> {
   public List<ITEM> getItems(final AbstractFilter<ITEM> filter) {
     //todo: current implementation is not effective: consider pre-filtering by filter fields, if specified
     final FilterItemProcessor<ITEM> filterItemProcessor = new FilterItemProcessor<ITEM>(filter);
