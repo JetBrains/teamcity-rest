@@ -23,6 +23,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.ChangeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -50,6 +51,7 @@ import org.jetbrains.annotations.Nullable;
 public class ChangeRequest {
   public static final String API_CHANGES_URL = Constants.API_URL + "/changes";
   @Context @NotNull private DataProvider myDataProvider;
+  @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private BeanFactory myFactory;
   @Context @NotNull private ChangeFinder myChangeFinder;
@@ -238,6 +240,6 @@ public class ChangeRequest {
   @Produces({"application/xml", "application/json"})
   public Builds getChangeFirstBuilds(@PathParam("changeLocator") String changeLocator) {
     final SVcsModification change = myChangeFinder.getChange(changeLocator);
-    return new Builds(new ArrayList<SBuild>(change.getFirstBuilds().values()), myDataProvider, null, myApiUrlBuilder);
+    return new Builds(new ArrayList<SBuild>(change.getFirstBuilds().values()), myServiceLocator, null, myApiUrlBuilder);
   }
 }

@@ -4,6 +4,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.UriInfo;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.build.BuildsFilter;
 import jetbrains.buildServer.server.rest.data.build.BuildsFilterProcessor;
@@ -28,12 +29,18 @@ public class BuildFinder {
   private static final Logger LOG = Logger.getInstance(BuildFinder.class.getName());
   public static final String DIMENSION_ID = "id";
   @NotNull private final DataProvider myDataProvider;
+  @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final UserFinder myUserFinder;
 
-  public BuildFinder(@NotNull DataProvider dataProvider, @NotNull BuildTypeFinder buildTypeFinder, @NotNull ProjectFinder projectFinder, @NotNull UserFinder userFinder) {
+  public BuildFinder(@NotNull DataProvider dataProvider,
+                     final @NotNull ServiceLocator serviceLocator,
+                     @NotNull BuildTypeFinder buildTypeFinder,
+                     @NotNull ProjectFinder projectFinder,
+                     @NotNull UserFinder userFinder) {
     myDataProvider = dataProvider;
+    myServiceLocator = serviceLocator;
     myBuildTypeFinder = buildTypeFinder;
     myProjectFinder = projectFinder;
     myUserFinder = userFinder;
@@ -89,7 +96,7 @@ public class BuildFinder {
     }
 
     final List<SBuild> buildsList = getBuilds(buildsFilter);
-    return new Builds(buildsList, myDataProvider,
+    return new Builds(buildsList, myServiceLocator,
                       new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), buildsFilter.getStart(),
                                     buildsFilter.getCount(), buildsList.size(), (locatorText != null ? locatorText : null),
                                     locatorParameterName), apiUrlBuilder);

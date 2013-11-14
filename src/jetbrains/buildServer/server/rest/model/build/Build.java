@@ -240,7 +240,7 @@ public class Build {
 
   @XmlElement(name = "snapshot-dependencies")
   public Builds getBuildDependencies() {
-    return new Builds(getBuilds(myBuild.getBuildPromotion().getDependencies()), myDataProvider, null, myApiUrlBuilder);
+    return new Builds(getBuilds(myBuild.getBuildPromotion().getDependencies()), myServiceLocator, null, myApiUrlBuilder);
   }
 
   @XmlElement(name = "artifact-dependencies")
@@ -252,7 +252,7 @@ public class Build {
       builds.add((SBuild)sourceBuild);
     }
     Collections.sort(builds, new BuildDependenciesComparator());
-    return new Builds(builds, myDataProvider, null, myApiUrlBuilder);
+    return new Builds(builds, myServiceLocator, null, myApiUrlBuilder);
   }
 
   @XmlElement(name = "revisions")

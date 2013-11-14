@@ -19,12 +19,13 @@ package jetbrains.buildServer.server.rest.model.build;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SRunningBuild;
+import jetbrains.buildServer.serverSide.WebLinks;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -36,15 +37,15 @@ import org.jetbrains.annotations.NotNull;
          propOrder = {"id", "number", "running", "percentageComplete", "status", "buildTypeId", "branchName", "defaultBranch", "unspecifiedBranch", "startDate", "href", "webUrl"})
 public class BuildRef {
   protected SBuild myBuild;
-  private DataProvider myDataProvider;
+  private ServiceLocator myServiceLocator;
   private ApiUrlBuilder myApiUrlBuilder;
 
   public BuildRef() {
   }
 
-  public BuildRef(@NotNull final SBuild build, @NotNull final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
+  public BuildRef(@NotNull final SBuild build, @NotNull final ServiceLocator serviceLocator, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     myBuild = build;
-    myDataProvider = dataProvider;
+    myServiceLocator = serviceLocator;
     myApiUrlBuilder = apiUrlBuilder;
   }
 
@@ -108,7 +109,7 @@ public class BuildRef {
 
   @XmlAttribute
   public String getWebUrl() {
-    return myDataProvider.getBuildUrl(myBuild);
+    return myServiceLocator.getSingletonService(WebLinks.class).getViewResultsUrl(myBuild);
   }
 
   @XmlAttribute

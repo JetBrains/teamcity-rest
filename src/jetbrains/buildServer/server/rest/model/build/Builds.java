@@ -22,8 +22,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.SBuild;
 import org.jetbrains.annotations.NotNull;
@@ -54,12 +54,12 @@ public class Builds {
   }
 
   public Builds(@NotNull final List<SBuild> buildObjects,
-                @NotNull final DataProvider dataProvider,
+                final ServiceLocator serviceLocator,
                 @Nullable final PagerData pagerData,
                 final ApiUrlBuilder apiUrlBuilder) {
     builds = new ArrayList<BuildRef>(buildObjects.size());
     for (SBuild build : buildObjects) {
-      builds.add(new BuildRef(build, dataProvider, apiUrlBuilder));
+      builds.add(new BuildRef(build, serviceLocator, apiUrlBuilder));
     }
     if (pagerData != null) {
       nextHref = pagerData.getNextHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;

@@ -146,7 +146,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     assertEquals("The comment", investigation.assignment.text);
     assertEquals("Problem", investigation.scope.type);
 
-    assertEquals(String.valueOf(getProblemId(PROBLEM_IDENTITY)), investigation.scope.problem.identity);
+    assertEquals(PROBLEM_IDENTITY, investigation.scope.problem.identity);
     assertEquals(myProject.getExternalId(), investigation.scope.project.id);
   }
 

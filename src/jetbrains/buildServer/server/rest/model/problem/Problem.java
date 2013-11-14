@@ -5,7 +5,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.build.BuildRef;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -48,7 +47,7 @@ public class Problem {
     final BuildPromotion buildPromotion = problem.getBuildPromotion();
     final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
     if (associatedBuild != null){
-      buildRef = new BuildRef(associatedBuild, serviceLocator.getSingletonService(DataProvider.class), apiUrlBuilder);
+      buildRef = new BuildRef(associatedBuild, serviceLocator, apiUrlBuilder);
     }
   }
 }
