@@ -1,7 +1,7 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
 import jetbrains.buildServer.server.rest.data.*;
-import jetbrains.buildServer.server.rest.data.investigations.AnstractFinder;
+import jetbrains.buildServer.server.rest.data.investigations.AbstractFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -14,7 +14,7 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 09.11.13
  */
-public class ProblemFinder extends AnstractFinder<BuildProblem> {
+public class ProblemFinder extends AbstractFinder<BuildProblem> {
   @NotNull private final BuildProblemBridge myBuildProblemBridge;
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final UserFinder myUserFinder;
@@ -36,7 +36,7 @@ public class ProblemFinder extends AnstractFinder<BuildProblem> {
   }
 
   @Override
-  protected BuildProblem findSingleItemAsList(final Locator locator) {
+  protected BuildProblem findSingleItem(final Locator locator) {
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's id
       final Long parsedId = locator.getSingleValueAsLong();

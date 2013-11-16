@@ -17,14 +17,14 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 09.11.13
  */
-public abstract class AnstractFinder<ITEM> {
+public abstract class AbstractFinder<ITEM> {
   public static final String DIMENSION_ID = "id";
 
   private final String[] myKnownDimensions;
   private final ItemBridge<ITEM> myBridge;
   public static final String[] ADDITIONAL = new String[]{DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME};
 
-  public AnstractFinder(final ItemBridge<ITEM> bridge, final String[] knownDimensions) {
+  public AbstractFinder(final ItemBridge<ITEM> bridge, final String[] knownDimensions) {
     myBridge = bridge;
     myKnownDimensions = new String[knownDimensions.length + 2];
     System.arraycopy(knownDimensions, 0, myKnownDimensions, 0, knownDimensions.length);
@@ -52,7 +52,7 @@ public abstract class AnstractFinder<ITEM> {
       return new PagedSearchResult<ITEM>(myBridge.getAllItems(), null, null);
     }
 
-    ITEM singleItem = findSingleItemAsList(locator);
+    ITEM singleItem = findSingleItem(locator);
     if (singleItem != null){
       locator.checkLocatorFullyProcessed();
       return new PagedSearchResult<ITEM>(Collections.singletonList(singleItem), null, null);
@@ -71,13 +71,8 @@ public abstract class AnstractFinder<ITEM> {
     }
     final Locator locator = createLocator(locatorText);
 
-    final ITEM singleFoundItem = findSingleItemAsList(locator);
-    if (singleFoundItem != null){
-      return singleFoundItem;
-    }
-
     locator.setDimension(PagerData.COUNT, "1"); //get only the first one that matches
-    final PagedSearchResult<ITEM> items = getItems(locator);  //todo: do not search for single item once more inside
+    final PagedSearchResult<ITEM> items = getItems(locator);
     if (items.myEntries.size() == 0) {
       throw new NotFoundException("Nothing is found by locator '" + locatorText + "'.");
     }
@@ -90,7 +85,7 @@ public abstract class AnstractFinder<ITEM> {
   }
 
   @Nullable
-  protected ITEM findSingleItemAsList(final Locator locator){
+  protected ITEM findSingleItem(final Locator locator){
     return null;
   }
 

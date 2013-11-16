@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 09.11.13
  */
-public class InvestigationFinder extends AnstractFinder<InvestigationWrapper> {
+public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   public static final String PROBLEM_DIMENSION = "problem";
   private final ResponsibilityEntryBridge myResponsibilityEntryBridge;
   private final ProjectFinder myProjectFinder;
@@ -39,7 +39,7 @@ public class InvestigationFinder extends AnstractFinder<InvestigationWrapper> {
   }
 
   @Override
-  protected InvestigationWrapper findSingleItemAsList(final Locator locator) {
+  protected InvestigationWrapper findSingleItem(final Locator locator) {
     return null;
 
     /*
