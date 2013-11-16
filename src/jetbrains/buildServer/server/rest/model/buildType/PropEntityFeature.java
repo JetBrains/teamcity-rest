@@ -2,6 +2,7 @@ package jetbrains.buildServer.server.rest.model.buildType;
 
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.serverSide.BuildFeatureDescriptorFactory;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.ParametersDescriptor;
@@ -38,6 +39,22 @@ public class PropEntityFeature extends PropEntity {
       buildType.setEnabled(newBuildFeature.getId(), !disabled);
     }
     return BuildTypeUtil.getBuildTypeFeatureOrNull(buildType, newBuildFeature.getId());
+  }
+
+  public SBuildFeatureDescriptor updateFeature(@NotNull final BuildTypeSettings buildType, @NotNull final SBuildFeatureDescriptor feature) {
+    if (StringUtil.isEmpty(type)) {
+      throw new BadRequestException("Build feature cannot have empty 'type'.");
+    }
+    if (!type.equals(feature.getType())) {
+      throw new BadRequestException("Cannot change type of existing build feature.");
+    }
+    if (!buildType.updateBuildFeature(feature.getId(), type, properties.getMap())) {
+      throw new InvalidStateException("Update failed");
+    }
+    if (disabled != null) {
+      buildType.setEnabled(feature.getId(), !disabled);
+    }
+    return BuildTypeUtil.getBuildTypeFeatureOrNull(buildType, feature.getId());
   }
 
   private String getDetails(final BuildTypeSettings buildType, final SBuildFeatureDescriptor newBuildFeature, final Exception e) {

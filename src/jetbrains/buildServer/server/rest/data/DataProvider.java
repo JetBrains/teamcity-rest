@@ -208,29 +208,38 @@ public class DataProvider {
 
   @NotNull
   public static SArtifactDependency getArtifactDep(final BuildTypeSettings buildType, final String artifactDepLocator) {
-      if (StringUtil.isEmpty(artifactDepLocator)) {
-        throw new BadRequestException("Empty artifact dependency locator is not supported.");
+    final int order = getArtifactDepOrderNum(buildType, artifactDepLocator);
+    try {
+      return buildType.getArtifactDependencies().get(order);
+    } catch (IndexOutOfBoundsException e) {
+      throw new NotFoundException("No artifact dependency found by locator '" + artifactDepLocator + "'. There is no dependency with order " + order + ".");
+    }
+  }
+
+  public static int getArtifactDepOrderNum(final BuildTypeSettings buildType, final String artifactDepLocator) {
+    final Long result;
+    if (StringUtil.isEmpty(artifactDepLocator)) {
+      throw new BadRequestException("Empty artifact dependency locator is not supported.");
+    }
+
+    final Locator locator = new Locator(artifactDepLocator);
+
+    if (locator.isSingleValue()) {
+      // no dimensions found, assume it's an result number
+      result = locator.getSingleValueAsLong();
+      if (result == null) {
+        throw new NotFoundException("No artifact dependency found by locator '" + artifactDepLocator +
+                                    ". Locator should be result number of the dependency in the build configuration.");
       }
 
-      final Locator locator = new Locator(artifactDepLocator);
-
-      if (locator.isSingleValue()) {
-        // no dimensions found, assume it's an order number
-        final Long order = locator.getSingleValueAsLong();
-        if (order == null) {
-          throw new NotFoundException("No artifact dependency found by locator '" + artifactDepLocator +
-                                      ". Locator should be order number of the dependency in the build configuration.");
-        }
-        try {
-          return buildType.getArtifactDependencies().get(order.intValue());
-        } catch (IndexOutOfBoundsException e) {
-          throw new NotFoundException(
-            "No artifact dependency found by locator '" + artifactDepLocator + "'. There is no dependency with order " + order + ".");
-        }
+      if (result >= buildType.getArtifactDependencies().size()) {
+        throw new NotFoundException("No artifact dependency found by locator '" + artifactDepLocator + "'. There is no dependency at position " + result + ".");
       }
+      return result.intValue();
+    }
 
     throw new BadRequestException("No artifact dependency found by locator '" + artifactDepLocator +
-                                  "'. Locator should be order number of the dependency in the build configuration.");
+                                  "'. Locator should be result number of the dependency in the build configuration.");
   }
 
 

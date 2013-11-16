@@ -3,11 +3,12 @@ package jetbrains.buildServer.server.rest.model.buildType;
 import java.util.Collections;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.serverSide.BuildRunnerDescriptor;
-import jetbrains.buildServer.serverSide.BuildRunnerDescriptorFactory;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.SBuildRunnerDescriptor;
 import jetbrains.buildServer.util.StringUtil;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
@@ -23,7 +24,7 @@ public class PropEntityStep extends PropEntity {
           descriptor.getParameters());
   }
 
-  public SBuildRunnerDescriptor addStep(final BuildTypeSettings buildType, final BuildRunnerDescriptorFactory factory) {
+  public SBuildRunnerDescriptor addStep(final BuildTypeSettings buildType) {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Created step cannot have empty 'type'.");
     }
@@ -35,6 +36,20 @@ public class PropEntityStep extends PropEntity {
       buildType.setEnabled(runnerToCreate.getId(), !disabled);
     }
     return runnerToCreate;
+  }
+
+  public SBuildRunnerDescriptor updateStep(@NotNull final BuildTypeSettings buildType, @NotNull SBuildRunnerDescriptor step) {
+    if (StringUtil.isEmpty(type)) {
+      throw new BadRequestException("Created step cannot have empty 'type'.");
+    }
+
+    if (!buildType.updateBuildRunner(step.getId(), StringUtil.isEmpty(name) ? "" : name, type, properties != null ? properties.getMap() : Collections.<String, String>emptyMap())) {
+      throw new InvalidStateException("Update failed");
+    }
+    if (disabled != null) {
+      buildType.setEnabled(step.getId(), !disabled);
+    }
+    return buildType.findBuildRunnerById(step.getId());
   }
 
 
