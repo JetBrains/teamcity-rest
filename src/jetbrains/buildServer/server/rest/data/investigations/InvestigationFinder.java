@@ -1,9 +1,14 @@
 package jetbrains.buildServer.server.rest.data.investigations;
 
+import java.util.ArrayList;
+import java.util.List;
+import jetbrains.buildServer.responsibility.BuildProblemResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 
@@ -12,14 +17,20 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 09.11.13
  */
 public class InvestigationFinder extends AnstractFinder<InvestigationWrapper> {
+  public static final String PROBLEM_DIMENSION = "problem";
   private final ResponsibilityEntryBridge myResponsibilityEntryBridge;
   private final ProjectFinder myProjectFinder;
+  private final ProblemFinder myProblemFinder;
   private final UserFinder myUserFinder;
 
-  public InvestigationFinder(final ResponsibilityEntryBridge responsibilityEntryBridge, final ProjectFinder projectFinder, final UserFinder userFinder) {
-    super(responsibilityEntryBridge, new String[]{"assignee", "reporter", "type", "state", "assignmentProject"});
+  public InvestigationFinder(final ResponsibilityEntryBridge responsibilityEntryBridge,
+                             final ProjectFinder projectFinder,
+                             final ProblemFinder problemFinder,
+                             final UserFinder userFinder) {
+    super(responsibilityEntryBridge, new String[]{"assignee", "reporter", "type", "state", "assignmentProject", PROBLEM_DIMENSION});
     myResponsibilityEntryBridge = responsibilityEntryBridge;
     myProjectFinder = projectFinder;
+    myProblemFinder = problemFinder;
     myUserFinder = userFinder;
   }
 
@@ -29,9 +40,7 @@ public class InvestigationFinder extends AnstractFinder<InvestigationWrapper> {
 
   @Override
   protected InvestigationWrapper findSingleItemAsList(final Locator locator) {
-    if (locator.isSingleValue()) {
-      throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
-    }
+    return null;
 
     /*
     // dimension-specific item search
@@ -44,8 +53,6 @@ public class InvestigationFinder extends AnstractFinder<InvestigationWrapper> {
       return item;
     }
     */
-
-    return null;
   }
 
   @Override
@@ -107,6 +114,25 @@ public class InvestigationFinder extends AnstractFinder<InvestigationWrapper> {
     }
 
 //todo: add affectedProject, affectedBuildType
+    return result;
+  }
+
+  @Override
+  protected List<InvestigationWrapper> getPrefilteredItems(@NotNull final Locator locator) {
+    final String problemDimension = locator.getSingleDimensionValue(PROBLEM_DIMENSION);
+    if (problemDimension != null){
+      final BuildProblem problem = myProblemFinder.getItem(problemDimension);
+      return getInvestigationWrappers(problem);
+    }
+    return super.getPrefilteredItems(locator);
+  }
+
+  private List<InvestigationWrapper> getInvestigationWrappers(final BuildProblem problem) {
+    final List<BuildProblemResponsibilityEntry> responsibilities = problem.getAllResponsibilities();
+    final ArrayList<InvestigationWrapper> result = new ArrayList<InvestigationWrapper>(responsibilities.size());
+    for (BuildProblemResponsibilityEntry responsibility : responsibilities) {
+      result.add(new InvestigationWrapper(responsibility));
+    }
     return result;
   }
 

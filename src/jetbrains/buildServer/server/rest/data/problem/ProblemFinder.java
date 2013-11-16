@@ -3,6 +3,7 @@ package jetbrains.buildServer.server.rest.data.problem;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.AnstractFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SProject;
@@ -23,7 +24,7 @@ public class ProblemFinder extends AnstractFinder<BuildProblem> {
                        final @NotNull ProjectFinder projectFinder,
                        final @NotNull UserFinder userFinder,
                        final @NotNull BuildFinder buildFinder) {
-    super(buildProblemBridge, new String[]{"identity", "affectedProject"});
+    super(buildProblemBridge, new String[]{"identity", "type", "build", "affectedProject"});
     myBuildProblemBridge = buildProblemBridge;
     myProjectFinder = projectFinder;
     myUserFinder = userFinder;
@@ -37,20 +38,28 @@ public class ProblemFinder extends AnstractFinder<BuildProblem> {
   @Override
   protected BuildProblem findSingleItemAsList(final Locator locator) {
     if (locator.isSingleValue()) {
-      throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
+      // no dimensions found, assume it's id
+      final Long parsedId = locator.getSingleValueAsLong();
+      if (parsedId == null) {
+        throw new BadRequestException("Expecting id, found empty value.");
+      }
+      BuildProblem item = myBuildProblemBridge.findProblemById(parsedId);
+      if (item == null) {
+        throw new NotFoundException("No problem can be found by id '" + parsedId + "'.");
+      }
+      locator.checkLocatorFullyProcessed();
+      return item;
     }
 
-    /*
     // dimension-specific item search
-    String id = locator.getSingleDimensionValue(DIMENSION_ID);
+    Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (id != null) {
-      BuildProblem item = findItemById(id);
+      BuildProblem item =  myBuildProblemBridge.findProblemById(id);
       if (item == null) {
-        throw new NotFoundException("No investigation" + " can be found by " + DIMENSION_ID + " '" + id + "'.");
+        throw new NotFoundException("No problem" + " can be found by " + DIMENSION_ID + " '" + id + "'.");
       }
       return item;
     }
-    */
 
     return null;
   }

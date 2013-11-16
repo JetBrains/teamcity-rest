@@ -26,6 +26,7 @@ public class ResponsibilityEntryBridge extends ItemBridge<InvestigationWrapper> 
     myBuildProblemResponsibilityFacade = buildProblemResponsibilityFacade;
   }
 
+  @NotNull
   @Override
   public List<InvestigationWrapper> getAllItems() {
     final ArrayList<InvestigationWrapper> result = new ArrayList<InvestigationWrapper>();

@@ -1,6 +1,5 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
-import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
@@ -8,14 +7,17 @@ import jetbrains.buildServer.responsibility.BuildProblemResponsibilityEntry;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
+import jetbrains.buildServer.server.rest.data.problem.BuildProblemBridge;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.problem.Problem;
+import jetbrains.buildServer.server.rest.model.problem.Test;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
-import jetbrains.buildServer.serverSide.ProjectManager;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.problems.BuildProblem;
-import jetbrains.buildServer.serverSide.problems.BuildProblemManager;
+import jetbrains.buildServer.serverSide.STest;
+import jetbrains.buildServer.serverSide.STestManager;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -35,7 +37,7 @@ public class InvestigationScope {
    * Experimental! will change in future versions.
    */
   @XmlElement
-  public String testName;
+  public Test test;
 
   /**
    * Experimental! will change in future versions.
@@ -54,27 +56,29 @@ public class InvestigationScope {
                             final ApiUrlBuilder apiUrlBuilder) {
     type = investigation.getType();
     if (investigation.isBuildType()) {
+      //noinspection ConstantConditions
       buildType = new BuildTypeRef((SBuildType)investigation.getBuildTypeRE().getBuildType(), serviceLocator, apiUrlBuilder);  //TeamCity open API issue: cast
     } else if (investigation.isTest()) {
-      final TestNameResponsibilityEntry testRE = investigation.getTestRE();
-      testName = testRE.getTestName().getAsString();
+      @SuppressWarnings("ConstantConditions") @NotNull final TestNameResponsibilityEntry testRE = investigation.getTestRE();
+      final BeanContext beanContext = new BeanContext(serviceLocator.getSingletonService(BeanFactory.class), serviceLocator, apiUrlBuilder);
+      //final TestBridge testBridge = beanContext.getSingletonService(TestBridge.class);
+      //test = new Test(testBridge.getTest(testRE.getTestNameId(), testRE.getProjectId()), beanContext);
+      final STest sTest = beanContext.getSingletonService(STestManager.class).findTest(testRE.getTestNameId(), testRE.getProjectId());
+      if (sTest == null){
+        throw new InvalidStateException("Cannot find test for responsibility entry.");
+      }
+      test = new Test(sTest, beanContext);
+
+
       project = new ProjectRef((SProject)testRE.getProject(), apiUrlBuilder); //TeamCity open API issue: cast
     } else if (investigation.isProblem()) {
       final BuildProblemResponsibilityEntry problemRE = investigation.getProblemRE();
-      problem = new Problem(getBuildProblem(problemRE.getBuildProblemInfo().getId(), serviceLocator), serviceLocator, apiUrlBuilder);
+      final BuildProblemBridge problemBridge = serviceLocator.getSingletonService(BuildProblemBridge.class);
+      //noinspection ConstantConditions
+      problem = new Problem(problemBridge.getBuildProblem(problemRE.getBuildProblemInfo()), serviceLocator, apiUrlBuilder, false);
       project = new ProjectRef((SProject)problemRE.getProject(), apiUrlBuilder); //TeamCity open API issue: cast
     } else {
       throw new InvalidStateException("Investigation wrapper type is not supported");
     }
-  }
-
-  //todo: TeamCity API: how to do this effectively?
-  private BuildProblem getBuildProblem(final int id, final ServiceLocator serviceLocator) {
-    final List<BuildProblem> currentBuildProblemsList =
-      serviceLocator.getSingletonService(BuildProblemManager.class).getCurrentBuildProblemsList(serviceLocator.getSingletonService(ProjectManager.class).getRootProject());
-    for (BuildProblem buildProblem : currentBuildProblemsList) {
-      if (id == buildProblem.getId()) return buildProblem;
-    }
-    return null;
   }
 }

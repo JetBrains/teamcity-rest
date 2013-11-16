@@ -10,11 +10,11 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 20.04.13
  */
 public class BeanContext {
-  @NotNull private final BeanFactory myFactory;
+  private final BeanFactory myFactory;
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final ApiUrlBuilder myApiUrlBuilder;
 
-  public BeanContext(@NotNull final BeanFactory factory, @NotNull final ServiceLocator serviceLocator, @NotNull ApiUrlBuilder apiUrlBuilder) {
+  public BeanContext(final BeanFactory factory, @NotNull final ServiceLocator serviceLocator, @NotNull ApiUrlBuilder apiUrlBuilder) {
     myFactory = factory;
     myServiceLocator = serviceLocator;
     myApiUrlBuilder = apiUrlBuilder;
@@ -27,6 +27,11 @@ public class BeanContext {
   @NotNull
   public <T> T getSingletonService(@NotNull Class<T> serviceClass) throws ServiceNotFoundException {
     return myServiceLocator.getSingletonService(serviceClass);
+  }
+
+  @NotNull
+  public ApiUrlBuilder getApiUrlBuilder(){
+        return myApiUrlBuilder;
   }
 
   @NotNull

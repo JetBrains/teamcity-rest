@@ -1,10 +1,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
@@ -13,7 +10,9 @@ import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.buildType.Investigation;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
+import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -31,6 +30,10 @@ public class InvestigationRequest {
 
   public static String getHref() {
     return API_SUB_URL;
+  }
+
+  public static String getHref(@NotNull final BuildProblem problem) {
+    return API_SUB_URL + "?locator=" + InvestigationFinder.PROBLEM_DIMENSION + ":(id:" + problem.getId() + ")";
   }
 
   /*
@@ -58,14 +61,14 @@ public class InvestigationRequest {
                                             "locator"), myServiceLocator, myApiUrlBuilder);
   }
 
-  /*
   @GET
   @Path("/{investigationLocator}")
   @Produces({"application/xml", "application/json"})
   public Investigation serveInstance(@PathParam("investigationLocator") String locatorText) {
-    return new Investigation(myInvestigationFinder.getItem(locatorText), myDataProvider, myApiUrlBuilder);
+    return new Investigation(myInvestigationFinder.getItem(locatorText), myServiceLocator, myApiUrlBuilder);
   }
 
+  /*
   @GET
   @Path("/{investigationLocator}/{field}")
   @Produces("text/plain")

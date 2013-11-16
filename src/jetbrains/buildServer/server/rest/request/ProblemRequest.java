@@ -1,10 +1,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
@@ -12,6 +9,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.problem.Problem;
 import jetbrains.buildServer.server.rest.model.problem.Problems;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import org.jetbrains.annotations.NotNull;
@@ -32,6 +30,10 @@ public class ProblemRequest {
     return API_SUB_URL;
   }
 
+  public static String getHref(@NotNull final BuildProblem problem) {
+    return API_SUB_URL + "/id:" + problem.getId() + "";
+  }
+
   /**
    * Experimental, the requests and results returned will change in future versions!
    *
@@ -50,5 +52,12 @@ public class ProblemRequest {
                                             result.myCount, result.myEntries.size(),
                                             locatorText,
                                             "locator"), myServiceLocator, myApiUrlBuilder);
+  }
+
+  @GET
+  @Path("/{problemLocator}")
+  @Produces({"application/xml", "application/json"})
+  public Problem serveInstance(@PathParam("problemLocator") String locatorText) {
+    return new Problem(myProblemFinder.getItem(locatorText), myServiceLocator, myApiUrlBuilder, true);
   }
 }

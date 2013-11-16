@@ -2,10 +2,14 @@ package jetbrains.buildServer.server.rest.data.investigations;
 
 
 import java.util.Collections;
+import java.util.List;
 import jetbrains.buildServer.server.rest.data.AbstractFilter;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -55,12 +59,40 @@ public abstract class AnstractFinder<ITEM> {
     }
 
     AbstractFilter<ITEM> filter = getFilter(locator);
+    final List<ITEM> unfilteredItems = getPrefilteredItems(locator);
     locator.checkLocatorFullyProcessed();
-
-    return new PagedSearchResult<ITEM>(myBridge.getItems(filter), filter.getStart(), filter.getCount());
+    return new PagedSearchResult<ITEM>(myBridge.getItems(filter, unfilteredItems), filter.getStart(), filter.getCount());
   }
 
-  protected abstract ITEM findSingleItemAsList(final Locator locator);
+  @NotNull
+  public ITEM getItem(@Nullable final String locatorText) {
+    if (StringUtil.isEmpty(locatorText)) {
+      throw new BadRequestException("Empty locator is not supported.");
+    }
+    final Locator locator = createLocator(locatorText);
+
+    final ITEM singleFoundItem = findSingleItemAsList(locator);
+    if (singleFoundItem != null){
+      return singleFoundItem;
+    }
+
+    locator.setDimension(PagerData.COUNT, "1"); //get only the first one that matches
+    final PagedSearchResult<ITEM> items = getItems(locator);  //todo: do not search for single item once more inside
+    if (items.myEntries.size() == 0) {
+      throw new NotFoundException("Nothing is found by locator '" + locatorText + "'.");
+    }
+    assert items.myEntries.size()== 1;
+    return items.myEntries.get(0);
+  }
+
+  protected List<ITEM> getPrefilteredItems(@NotNull Locator locator) {
+    return myBridge.getAllItems();
+  }
+
+  @Nullable
+  protected ITEM findSingleItemAsList(final Locator locator){
+    return null;
+  }
 
   protected abstract AbstractFilter<ITEM> getFilter(final Locator locator);
 }

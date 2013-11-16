@@ -32,9 +32,9 @@ public class Problems {
                   @Nullable final PagerData pagerData,
                   final ServiceLocator serviceLocator,
                   @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    items = new ArrayList<Problem>(itemsP.size());
+    items = new ArrayList<Problem>(itemsP.size());  //todo: consider adding ordering/sorting
     for (BuildProblem item : itemsP) {
-      items.add(new Problem(item, serviceLocator, apiUrlBuilder));
+      items.add(new Problem(item, serviceLocator, apiUrlBuilder, true));
     }
     if (pagerData != null) {
       nextHref = pagerData.getNextHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;
