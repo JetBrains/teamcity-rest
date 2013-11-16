@@ -261,7 +261,7 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
     if (TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) || !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES)){
       return vcsHistory.getAllModifications(buildType);
     }
-    final List<ChangeDescriptor> changes = ((BuildTypeEx)buildType).getDetectedChanges(SelectPrevBuildPolicy.SINCE_NULL_BUILD);
+    final List<ChangeDescriptor> changes = ((BuildTypeEx)buildType).getDetectedChanges(SelectPrevBuildPolicy.SINCE_FIRST_BUILD);
 
     return convertChanges(changes);
   }
@@ -277,7 +277,7 @@ public class ChangesFilter extends AbstractFilter<SVcsModification> {
 
   private List<SVcsModification> getBranchChanges(@NotNull final SBuildType buildType, @NotNull final String branchName) {
     final boolean includeDependencyChanges = TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) || !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES);
-    final List<ChangeDescriptor> changes =  ((BuildTypeEx)buildType).getBranchByDisplayName(branchName).getDetectedChanges(SelectPrevBuildPolicy.SINCE_NULL_BUILD, includeDependencyChanges);
+    final List<ChangeDescriptor> changes =  ((BuildTypeEx)buildType).getBranchByDisplayName(branchName).getDetectedChanges(SelectPrevBuildPolicy.SINCE_FIRST_BUILD, includeDependencyChanges);
     return convertChanges(changes);
   }
 
