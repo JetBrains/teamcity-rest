@@ -36,7 +36,7 @@ import jetbrains.buildServer.server.rest.model.change.ChangesRef;
 import jetbrains.buildServer.server.rest.model.change.Revisions;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
-import jetbrains.buildServer.server.rest.request.BuildRequest;
+import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.Branch;
@@ -291,7 +291,7 @@ public class Build {
 
   @XmlElement(name = "testOccurrences")
   public Href getTestOccurrences() {
-    return new Href(BuildRequest.getBuildHref(myBuild) + "/" + BuildRequest.TESTS, myApiUrlBuilder);
+    return new Href(TestOccurrenceRequest.getHref(myBuild), myApiUrlBuilder);
   }
 
   static List<SBuild> getBuilds(@NotNull Collection<? extends BuildDependency> dependencies) {

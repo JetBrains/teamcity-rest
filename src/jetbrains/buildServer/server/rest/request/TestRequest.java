@@ -51,7 +51,7 @@ public class TestRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
-  public Tests getgetTests(@QueryParam("locator") String locatorText, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+  public Tests getTests(@QueryParam("locator") String locatorText, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final PagedSearchResult<STest> result = myTestFinder.getItems(locatorText);
 
     return new Tests(result.myEntries,

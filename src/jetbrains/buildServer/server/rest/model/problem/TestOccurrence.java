@@ -5,6 +5,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.build.BuildRef;
+import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.STestRun;
@@ -17,13 +18,14 @@ import org.jetbrains.annotations.NotNull;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "testOccurrence")
-@XmlType(name = "testOccurrence", propOrder = {"id", "name", "status", "ignored",
+@XmlType(name = "testOccurrence", propOrder = {"id", "name", "status", "ignored", "href",
   "duration", "ignoreDetails", "details", "test", "mute", "build"})
 public class TestOccurrence {
-  @XmlAttribute public long id;
+  @XmlAttribute public String id;
   @XmlAttribute public String name;
   @XmlAttribute public String status;
   @XmlAttribute public Boolean ignored;
+  @XmlAttribute public String href;
 
   //test run duration in milliseconds
   @XmlElement public Integer duration;
@@ -40,10 +42,13 @@ public class TestOccurrence {
 
   public TestOccurrence(final @NotNull STestRun testRun, final @NotNull BeanContext beanContext, final boolean fullDetails) {
     final STest sTest = testRun.getTest();
-    id = sTest.getTestNameId();
+    id = String.valueOf(testRun.getTestRunId());
+//    id = getId(testRun);
     name = sTest.getName().getAsString();
 
     status = testRun.getStatus().getText();
+
+    href = beanContext.getApiUrlBuilder().transformRelativePath(TestOccurrenceRequest.getHref(testRun));
 
     duration = testRun.getDuration();
     //testRun.getOrderId();

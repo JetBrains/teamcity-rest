@@ -101,7 +101,11 @@ public class BuildRequest {
   private BeanFactory myFactory;
 
   public static String getBuildHref(SBuild build) {
-    return API_BUILDS_URL + "/id:" + build.getBuildId();
+    return API_BUILDS_URL + "/" + getBuildLocator(build);
+  }
+
+  public static String getBuildLocator(final SBuild build) {
+    return "id:" + build.getBuildId();  //todo: use locator rendering here
   }
 
   public static String getBuildIssuesHref(final SBuild build) {
