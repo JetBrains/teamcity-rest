@@ -8,6 +8,7 @@ import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.data.problem.BuildProblemBridge;
+import jetbrains.buildServer.server.rest.data.problem.TestBridge;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.problem.Problem;
 import jetbrains.buildServer.server.rest.model.problem.Test;
@@ -16,8 +17,6 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.STest;
-import jetbrains.buildServer.serverSide.STestManager;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -61,13 +60,8 @@ public class InvestigationScope {
     } else if (investigation.isTest()) {
       @SuppressWarnings("ConstantConditions") @NotNull final TestNameResponsibilityEntry testRE = investigation.getTestRE();
       final BeanContext beanContext = new BeanContext(serviceLocator.getSingletonService(BeanFactory.class), serviceLocator, apiUrlBuilder);
-      //final TestBridge testBridge = beanContext.getSingletonService(TestBridge.class);
-      //test = new Test(testBridge.getTest(testRE.getTestNameId(), testRE.getProjectId()), beanContext);
-      final STest sTest = beanContext.getSingletonService(STestManager.class).findTest(testRE.getTestNameId(), testRE.getProjectId());
-      if (sTest == null){
-        throw new InvalidStateException("Cannot find test for responsibility entry.");
-      }
-      test = new Test(sTest, beanContext);
+      final TestBridge testBridge = beanContext.getSingletonService(TestBridge.class);
+      test = new Test(testBridge.getTest(testRE.getTestNameId(), testRE.getProjectId()), beanContext, false);
 
 
       project = new ProjectRef((SProject)testRE.getProject(), apiUrlBuilder); //TeamCity open API issue: cast

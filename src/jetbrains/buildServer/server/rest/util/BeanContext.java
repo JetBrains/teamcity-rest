@@ -35,6 +35,11 @@ public class BeanContext {
   }
 
   @NotNull
+  public ServiceLocator getServiceLocator(){
+        return myServiceLocator;
+  }
+
+  @NotNull
   public ApiUrlBuilder getContextService(@NotNull Class<ApiUrlBuilder> serviceClass) throws ServiceNotFoundException {
         return myApiUrlBuilder;
   }

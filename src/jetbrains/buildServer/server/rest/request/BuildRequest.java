@@ -40,6 +40,7 @@ import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.files.File;
 import jetbrains.buildServer.server.rest.model.files.Files;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
+import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
@@ -74,6 +75,7 @@ public class BuildRequest {
   public static final String IMG_STATUS_WIDGET_ROOT_DIRECTORY = "/img/statusWidget";
   public static final String STATUS_ICON_REQUEST_NAME = "statusIcon";
   public static final String RELATED_ISSUES = "/relatedIssues";
+  public static final String TESTS = "testOccurrences";
 
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private BuildFinder myBuildFinder;
@@ -496,6 +498,28 @@ public class BuildRequest {
   @Produces({"application/xml", "application/json"})
   public BuildCancelRequest cancelBuild(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
     return new BuildCancelRequest("example build cancel comment", false);
+  }
+
+  /*
+  //todo: list occurrencies here, not types
+  @GET
+  @Path("/{buildLocator}/problems")
+  @Produces({"application/xml", "application/json"})
+  public Problems getProblems(@PathParam("buildLocator") String buildLocator) {
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
+    final List<BuildProblem> buildProblems = ((BuildPromotionEx)build.getBuildPromotion()).getBuildProblems();//todo: (TeamCity) is this OK to use?
+    return new Problems(buildProblems, null, myServiceLocator, myApiUrlBuilder);
+  }
+  */
+
+  @GET
+  @Path("/{buildLocator}/" + TESTS)
+  @Produces({"application/xml", "application/json"})
+  public TestOccurrences getTests(@PathParam("buildLocator") String buildLocator) {
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
+    final List<STestRun> allTests = build.getFullStatistics().getAllTests();
+//todo: investigate test repeat counts support
+    return new TestOccurrences(allTests, null, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @POST

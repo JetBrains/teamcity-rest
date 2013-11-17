@@ -3,11 +3,14 @@ package jetbrains.buildServer.server.rest.data.investigations;
 import java.util.ArrayList;
 import java.util.List;
 import jetbrains.buildServer.responsibility.BuildProblemResponsibilityEntry;
+import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
+import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
@@ -18,19 +21,23 @@ import org.jetbrains.annotations.NotNull;
  */
 public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   public static final String PROBLEM_DIMENSION = "problem";
+  public static final String TEST_DIMENSION = "test";
   private final ResponsibilityEntryBridge myResponsibilityEntryBridge;
   private final ProjectFinder myProjectFinder;
   private final ProblemFinder myProblemFinder;
+  private final TestFinder myTestFinder;
   private final UserFinder myUserFinder;
 
   public InvestigationFinder(final ResponsibilityEntryBridge responsibilityEntryBridge,
                              final ProjectFinder projectFinder,
                              final ProblemFinder problemFinder,
+                             final TestFinder testFinder,
                              final UserFinder userFinder) {
     super(responsibilityEntryBridge, new String[]{"assignee", "reporter", "type", "state", "assignmentProject", PROBLEM_DIMENSION});
     myResponsibilityEntryBridge = responsibilityEntryBridge;
     myProjectFinder = projectFinder;
     myProblemFinder = problemFinder;
+    myTestFinder = testFinder;
     myUserFinder = userFinder;
   }
 
@@ -124,6 +131,12 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
       final BuildProblem problem = myProblemFinder.getItem(problemDimension);
       return getInvestigationWrappers(problem);
     }
+
+    final String testDimension = locator.getSingleDimensionValue(TEST_DIMENSION);
+    if (testDimension != null){
+      final STest test = myTestFinder.getItem(testDimension);
+      return getInvestigationWrappers(test);
+    }
     return super.getPrefilteredItems(locator);
   }
 
@@ -131,6 +144,15 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     final List<BuildProblemResponsibilityEntry> responsibilities = problem.getAllResponsibilities();
     final ArrayList<InvestigationWrapper> result = new ArrayList<InvestigationWrapper>(responsibilities.size());
     for (BuildProblemResponsibilityEntry responsibility : responsibilities) {
+      result.add(new InvestigationWrapper(responsibility));
+    }
+    return result;
+  }
+
+  private List<InvestigationWrapper> getInvestigationWrappers(final STest item) {
+    final List<TestNameResponsibilityEntry> responsibilities = item.getAllResponsibilities();
+    final ArrayList<InvestigationWrapper> result = new ArrayList<InvestigationWrapper>(responsibilities.size());
+    for (TestNameResponsibilityEntry responsibility : responsibilities) {
       result.add(new InvestigationWrapper(responsibility));
     }
     return result;

@@ -6,7 +6,10 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
+import jetbrains.buildServer.server.rest.request.InvestigationRequest;
+import jetbrains.buildServer.server.rest.request.TestRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
@@ -17,41 +20,51 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
- *         Date: 11.02.12
+ *         Date: 16.11.13
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "test")
 @XmlType(name = "test", propOrder = {"id", "name",
-  "project", "mutes"})
+  "project", "mutes", "investigations"})
 public class Test {
   @XmlAttribute public long id;
   @XmlAttribute public String name;
+  @XmlAttribute public String href;
 
   @XmlElement public ProjectRef project;
-  @XmlElement public Mutes mutes;
-  //todo: add investigations
+  @XmlElement public Mutes mutes;  // todo: also make this href
+  @XmlElement public Href investigations;
 
   public Test() {
   }
 
-  public Test(final @NotNull STest test, final @NotNull BeanContext beanContext) {
+  public Test(final @NotNull STest test, final @NotNull BeanContext beanContext, final boolean fullDetails) {
     id = test.getTestNameId();
     name = test.getName().getAsString();
-    final SProject projectById = beanContext.getSingletonService(ProjectManager.class).findProjectById(test.getProjectId());
-    if (projectById != null) {
-      project = new ProjectRef(projectById, beanContext.getContextService(ApiUrlBuilder.class));
-    } else {
-      project = new ProjectRef(null, test.getProjectId(), beanContext.getContextService(ApiUrlBuilder.class));
-    }
 
-    final ArrayList<MuteInfo> muteInfos = new ArrayList<MuteInfo>();
-    final CurrentMuteInfo currentMuteInfo = test.getCurrentMuteInfo();
-    if (currentMuteInfo != null) {
-      muteInfos.addAll(currentMuteInfo.getProjectsMuteInfo().values());
-      muteInfos.addAll(currentMuteInfo.getBuildTypeMuteInfo().values());
-    }
-    if (muteInfos.size() > 0) {
-      mutes = new Mutes(muteInfos, null, beanContext);
+    final ApiUrlBuilder apiUrlBuilder = beanContext.getApiUrlBuilder();
+    href = apiUrlBuilder.transformRelativePath(TestRequest.getHref(test));
+
+    if (fullDetails) {
+      final SProject projectById = beanContext.getSingletonService(ProjectManager.class).findProjectById(test.getProjectId());
+      if (projectById != null) {
+        project = new ProjectRef(projectById, apiUrlBuilder);
+      } else {
+        project = new ProjectRef(null, test.getProjectId(), apiUrlBuilder);
+      }
+
+      final ArrayList<MuteInfo> muteInfos = new ArrayList<MuteInfo>();
+      final CurrentMuteInfo currentMuteInfo = test.getCurrentMuteInfo();
+      if (currentMuteInfo != null) {
+        muteInfos.addAll(currentMuteInfo.getProjectsMuteInfo().values());
+        muteInfos.addAll(currentMuteInfo.getBuildTypeMuteInfo().values());
+      }
+      if (muteInfos.size() > 0) {
+        mutes = new Mutes(muteInfos, null, beanContext);
+      }
+      if (test.getAllResponsibilities().size() > 0) {
+        investigations = new Href(InvestigationRequest.getHref(test), apiUrlBuilder);
+      }
     }
   }
 }

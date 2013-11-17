@@ -12,6 +12,7 @@ import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrappe
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.Investigation;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
+import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import org.jetbrains.annotations.NotNull;
 
@@ -34,6 +35,10 @@ public class InvestigationRequest {
 
   public static String getHref(@NotNull final BuildProblem problem) {
     return API_SUB_URL + "?locator=" + InvestigationFinder.PROBLEM_DIMENSION + ":(id:" + problem.getId() + ")";
+  }
+
+  public static String getHref(@NotNull final STest test) {
+    return API_SUB_URL + "?locator=" + InvestigationFinder.TEST_DIMENSION + ":(" +  TestRequest.getTestLocator(test)+ ")";
   }
 
   /*

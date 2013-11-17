@@ -36,6 +36,7 @@ import jetbrains.buildServer.server.rest.model.change.ChangesRef;
 import jetbrains.buildServer.server.rest.model.change.Revisions;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
+import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.Branch;
@@ -57,7 +58,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @XmlRootElement(name = "build")
 @XmlType(name = "build", propOrder = {"id", "number", "status", "href", "webUrl", "branchName", "defaultBranch", "unspecifiedBranch", "personal", "history", "pinned", "running",
   "runningBuildInfo", "statusText", "buildType", "startDate", "finishDate", "agent", "comment", "tags", "pinInfo", "personalBuildUser", "properties",
-  "buildDependencies", "buildArtifactDependencies", "revisions", "triggered", "changes", "issues", "artifacts", "canceledInfo"})
+  "buildDependencies", "buildArtifactDependencies", "revisions", "triggered", "changes", "issues", "artifacts", "canceledInfo", "testOccurrences"})
 public class Build {
   public static final String CANCELED_INFO = "canceledInfo";
   @NotNull
@@ -286,6 +287,11 @@ public class Build {
   @XmlElement(name = "artifacts")
   public Href getArtifacts() {
     return new Href(BuildArtifactsFinder.fileApiUrlBuilderForBuild(myApiUrlBuilder, myBuild, null).getChildrenHref(null));
+  }
+
+  @XmlElement(name = "testOccurrences")
+  public Href getTestOccurrences() {
+    return new Href(BuildRequest.getBuildHref(myBuild) + "/" + BuildRequest.TESTS, myApiUrlBuilder);
   }
 
   static List<SBuild> getBuilds(@NotNull Collection<? extends BuildDependency> dependencies) {

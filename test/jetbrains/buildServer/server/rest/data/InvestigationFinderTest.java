@@ -45,7 +45,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     final UserFinder userFinder = new UserFinder(myFixture);
     final ResponsibilityEntryBridge responsibilityEntryBridge = new ResponsibilityEntryBridge(myFixture.getResponsibilityFacadeEx(), myFixture.getResponsibilityFacadeEx(),
                                                                                               myFixture.getResponsibilityFacadeEx());
-    myInvestigationFinder = new InvestigationFinder(responsibilityEntryBridge, projectFinder, null, userFinder);
+    myInvestigationFinder = new InvestigationFinder(responsibilityEntryBridge, projectFinder, null, null, userFinder);
   }
 
   @Test
