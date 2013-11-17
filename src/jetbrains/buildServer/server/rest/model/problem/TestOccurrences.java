@@ -12,7 +12,6 @@ import jetbrains.buildServer.serverSide.STestRun;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-
 /**
  * @author Yegor.Yarko
  *         Date: 16.11.13
