@@ -34,7 +34,7 @@ public class Problems {
                   @NotNull final ApiUrlBuilder apiUrlBuilder) {
     items = new ArrayList<Problem>(itemsP.size());  //todo: consider adding ordering/sorting
     for (BuildProblem item : itemsP) {
-      items.add(new Problem(item, serviceLocator, apiUrlBuilder, true));
+      items.add(new Problem(item, serviceLocator, apiUrlBuilder, false));
     }
     if (pagerData != null) {
       nextHref = pagerData.getNextHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;

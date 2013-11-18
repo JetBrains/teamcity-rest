@@ -40,6 +40,7 @@ import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.files.File;
 import jetbrains.buildServer.server.rest.model.files.Files;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
+import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
@@ -51,6 +52,7 @@ import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
@@ -504,17 +506,14 @@ public class BuildRequest {
     return new BuildCancelRequest("example build cancel comment", false);
   }
 
-  /*
-  //todo: list occurrencies here, not types
   @GET
-  @Path("/{buildLocator}/problems")
+  @Path("/{buildLocator}/problemOccurrences")
   @Produces({"application/xml", "application/json"})
-  public Problems getProblems(@PathParam("buildLocator") String buildLocator) {
+  public ProblemOccurrences getProblems(@PathParam("buildLocator") String buildLocator) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final List<BuildProblem> buildProblems = ((BuildPromotionEx)build.getBuildPromotion()).getBuildProblems();//todo: (TeamCity) is this OK to use?
-    return new Problems(buildProblems, null, myServiceLocator, myApiUrlBuilder);
+    return new ProblemOccurrences(buildProblems, null, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
-  */
 
   @GET
   @Path("/{buildLocator}/" + TESTS)
