@@ -30,7 +30,7 @@ public class TestOccurrence {
   //test run duration in milliseconds
   @XmlElement public Integer duration;
   @XmlElement public String ignoreDetails;
-  @XmlElement public String details;
+  @XmlElement public String details; //todo: consider using CDATA output here
 
   @XmlElement public Test test;
   @XmlElement public Mute mute;

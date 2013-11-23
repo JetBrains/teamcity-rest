@@ -32,7 +32,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     if (locator.isSingleValue()) {
       Long idDimension = locator.getSingleValueAsLong();
       if (idDimension != null) {
-        STestRun item = findTest(idDimension);
+        STestRun item = findTestByTestRunId(idDimension);
         if (item != null) {
           return item;
         }
@@ -44,7 +44,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
     Long idDimension = locator.getSingleDimensionValueAsLong("id");
     if (idDimension != null) {
-      STestRun item = findTest(idDimension);
+      STestRun item = findTestByTestRunId(idDimension);
       if (item != null) {
         return item;
       }
@@ -137,7 +137,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   @Nullable
-  private STestRun findTest(final Long testRunId) {
+  private STestRun findTestByTestRunId(final Long testRunId) {
     throw new InvalidStateException("Searching by test run id is not yet supported"); //todo: (TeamCity) how to implement this?
   }
 }

@@ -9,6 +9,7 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.STestManager;
+import jetbrains.buildServer.tests.TestName;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -60,16 +61,11 @@ public class TestFinder extends AbstractFinder<STest> {
         return item;
       }
 
-      /*
       String nameDimension = locator.getSingleDimensionValue("name");
       if (nameDimension != null) {
-        STest item = findTestByName(nameDimension);
-        if (item == null) {
-          throw new NotFoundException("No test" + " can be found by name '" + nameDimension + "'.");
-        }
+        STest item = myTestManager.createTest(new TestName(nameDimension), project.getProjectId()); //todo: TeamCity API: what does it mean to create a test? Can I check if the test is reported?
         return item;
       }
-      */
     }
     return null;
   }
