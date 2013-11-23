@@ -1,6 +1,7 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.responsibility.BuildProblemResponsibilityEntry;
@@ -74,10 +75,10 @@ public class ProblemWrapper {
   public List<MuteInfo> getMutes() {
     if (mutes == null) {
       mutes = new ArrayList<MuteInfo>();
-      final CurrentMuteInfo currentMuteInfo = myProblem.getCurrentMuteInfo();
+      final CurrentMuteInfo currentMuteInfo = myProblem.getCurrentMuteInfo(); //todo: TeamCity API: how to get unique mutes?
       if (currentMuteInfo != null) {
-        mutes.addAll(currentMuteInfo.getProjectsMuteInfo().values());
-        mutes.addAll(currentMuteInfo.getBuildTypeMuteInfo().values());
+        mutes.addAll(new LinkedHashSet<MuteInfo>(currentMuteInfo.getProjectsMuteInfo().values())); //add with deduplication
+        mutes.addAll(new LinkedHashSet<MuteInfo>(currentMuteInfo.getBuildTypeMuteInfo().values())); //add with deduplication
       }
     }
     return mutes;

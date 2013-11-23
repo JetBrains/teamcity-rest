@@ -1,6 +1,7 @@
 package jetbrains.buildServer.server.rest.model.problem;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -31,6 +32,9 @@ public class Test {
   @XmlAttribute public String name;
   @XmlAttribute public String href;
 
+  /**
+   * Experimental: project is an attribute of a problem in TeamCity API currently, but is subject to be removed
+   */
   @XmlElement public ProjectRef project;
   @XmlElement public Mutes mutes;  // todo: also make this href
   @XmlElement public Href investigations;
@@ -54,10 +58,10 @@ public class Test {
       }
 
       final ArrayList<MuteInfo> muteInfos = new ArrayList<MuteInfo>();
-      final CurrentMuteInfo currentMuteInfo = test.getCurrentMuteInfo();
+      final CurrentMuteInfo currentMuteInfo = test.getCurrentMuteInfo(); //todo: TeamCity API: how to get unique mutes?
       if (currentMuteInfo != null) {
-        muteInfos.addAll(currentMuteInfo.getProjectsMuteInfo().values());
-        muteInfos.addAll(currentMuteInfo.getBuildTypeMuteInfo().values());
+        muteInfos.addAll(new LinkedHashSet<MuteInfo>(currentMuteInfo.getProjectsMuteInfo().values())); //add with deduplication
+        muteInfos.addAll(new LinkedHashSet<MuteInfo>(currentMuteInfo.getBuildTypeMuteInfo().values())); //add with deduplication
       }
       if (muteInfos.size() > 0) {
         mutes = new Mutes(muteInfos, null, beanContext);
