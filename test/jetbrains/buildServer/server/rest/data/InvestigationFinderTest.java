@@ -9,7 +9,6 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.PathTransformer;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
-import jetbrains.buildServer.server.rest.data.investigations.ResponsibilityEntryBridge;
 import jetbrains.buildServer.server.rest.model.buildType.Investigation;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
@@ -43,9 +42,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     myProjectManager = myFixture.getProjectManager();
     final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
     final UserFinder userFinder = new UserFinder(myFixture);
-    final ResponsibilityEntryBridge responsibilityEntryBridge = new ResponsibilityEntryBridge(myFixture.getResponsibilityFacadeEx(), myFixture.getResponsibilityFacadeEx(),
-                                                                                              myFixture.getResponsibilityFacadeEx());
-    myInvestigationFinder = new InvestigationFinder(responsibilityEntryBridge, projectFinder, null, null, userFinder, myFixture.getResponsibilityFacadeEx(), myFixture.getResponsibilityFacadeEx(),
+    myInvestigationFinder = new InvestigationFinder(projectFinder, null, null, userFinder, myFixture.getResponsibilityFacadeEx(), myFixture.getResponsibilityFacadeEx(),
                                                     myFixture.getResponsibilityFacadeEx());
   }
 

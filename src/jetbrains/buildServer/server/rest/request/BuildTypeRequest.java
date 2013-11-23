@@ -1266,7 +1266,7 @@ public class BuildTypeRequest {
     if (state.equals(ResponsibilityEntry.State.NONE)) {
       return new Investigations(Collections.<InvestigationWrapper>emptyList(), null, myServiceLocator, myApiUrlBuilder);
     } else {
-      return new Investigations(Collections.singletonList(new InvestigationWrapper(myInvestigationFinder.getResponsibilityEntryBridge().getBuildTypeRE(buildType))), null,
+      return new Investigations(Collections.singletonList(new InvestigationWrapper(myInvestigationFinder.getBuildTypeRE(buildType))), null,
                                 myServiceLocator, myApiUrlBuilder);
     }
   }

@@ -8,7 +8,9 @@ import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.users.User;
@@ -23,7 +25,6 @@ import org.jetbrains.annotations.NotNull;
 public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   public static final String PROBLEM_DIMENSION = "problem";
   public static final String TEST_DIMENSION = "test";
-  private final ResponsibilityEntryBridge myResponsibilityEntryBridge;
   private final ProjectFinder myProjectFinder;
   private final ProblemFinder myProblemFinder;
   private final TestFinder myTestFinder;
@@ -33,8 +34,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   private final TestNameResponsibilityFacade myTestNameResponsibilityFacade;
   private final BuildProblemResponsibilityFacade myBuildProblemResponsibilityFacade;
 
-  public InvestigationFinder(final ResponsibilityEntryBridge responsibilityEntryBridge,
-                             final ProjectFinder projectFinder,
+  public InvestigationFinder(final ProjectFinder projectFinder,
                              final ProblemFinder problemFinder,
                              final TestFinder testFinder,
                              final UserFinder userFinder,
@@ -42,7 +42,6 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
                              final TestNameResponsibilityFacade testNameResponsibilityFacade,
                              final BuildProblemResponsibilityFacade buildProblemResponsibilityFacade) {
     super(new String[]{"assignee", "reporter", "type", "state", "assignmentProject", PROBLEM_DIMENSION});
-    myResponsibilityEntryBridge = responsibilityEntryBridge;
     myProjectFinder = projectFinder;
     myProblemFinder = problemFinder;
     myTestFinder = testFinder;
@@ -50,10 +49,6 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     myBuildTypeResponsibilityFacade = buildTypeResponsibilityFacade;
     myTestNameResponsibilityFacade = testNameResponsibilityFacade;
     myBuildProblemResponsibilityFacade = buildProblemResponsibilityFacade;
-  }
-
-  public ResponsibilityEntryBridge getResponsibilityEntryBridge() {
-    return myResponsibilityEntryBridge;
   }
 
   @Override
@@ -155,7 +150,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
       @NotNull final SProject project = myProjectFinder.getProject(projectDimension);
       result.add(new FilterConditionChecker<InvestigationWrapper>() {
         public boolean isIncluded(@NotNull final InvestigationWrapper item) {
-          return myResponsibilityEntryBridge.isInvestigationRelatedToProject(item, project);
+          return isInvestigationRelatedToProject(item, project);
         }
       });
     }
@@ -189,35 +184,29 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     return result;
   }
 
-  /*
-  @NotNull
-  public InvestigationWrapper getItem(@Nullable final String locatorText) {
-    if (StringUtil.isEmpty(locatorText)) {
-      throw new BadRequestException("Empty VCS root intance locator is not supported.");
-    }
-    final Locator locator = createVcsRootInstanceLocator(locatorText);
 
-    if (locator.isSingleValue()) {
-      // no dimensions found, assume it's root instance id
-      final Long parsedId = locator.getSingleValueAsLong();
-      if (parsedId == null) {
-        throw new BadRequestException("Expecting VCS root instance id, found empty value.");
-      }
-      VcsRootInstance root = myVcsManager.findRootInstanceById(parsedId);
-      if (root == null) {
-        throw new NotFoundException("No VCS root instance can be found by id '" + parsedId + "'.");
-      }
-      locator.checkLocatorFullyProcessed();
-      return root;
+  @SuppressWarnings("RedundantIfStatement")
+  private boolean isInvestigationRelatedToProject(final InvestigationWrapper item, final SProject project) {
+    if (myBuildTypeResponsibilityFacade.getUserBuildTypeResponsibilities(null, project.getProjectId()).contains(item.getBuildTypeRE())){
+      return true;
     }
-
-    locator.setDimension(PagerData.COUNT, "1"); //get only the first one that matches
-    final PagedSearchResult<VcsRootInstance> vcsRoots = getVcsRootInstances(locator);
-    if (vcsRoots.myEntries.size() == 0) {
-      throw new NotFoundException("No VCS root instances are found by locator '" + locatorText + "'.");
+    if (myTestNameResponsibilityFacade.getUserTestNameResponsibilities(null, project.getProjectId()).contains(item.getTestRE())){
+      return true;
     }
-    assert vcsRoots.myEntries.size()== 1;
-    return vcsRoots.myEntries.get(0);
+    if (myBuildProblemResponsibilityFacade.getUserBuildProblemResponsibilities(null, project.getProjectId()).contains(item.getProblemRE())){
+      return true;
+    }
+    return false;
   }
-  */
+
+  public BuildTypeResponsibilityEntry getBuildTypeRE(@NotNull final SBuildType buildType) {
+    final List<BuildTypeResponsibilityEntry> userBuildTypeResponsibilities = myBuildTypeResponsibilityFacade.getUserBuildTypeResponsibilities(null, null);
+    for (BuildTypeResponsibilityEntry responsibility : userBuildTypeResponsibilities) {
+      if (responsibility.getBuildType().equals(buildType)){
+        return responsibility;
+      }
+    }
+    throw new NotFoundException("Build type with id '" + buildType.getExternalId() + "' does not have associated investigation.");
+  }
+
 }

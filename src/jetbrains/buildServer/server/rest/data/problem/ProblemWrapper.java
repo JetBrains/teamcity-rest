@@ -33,7 +33,7 @@ public class ProblemWrapper {
 
   public ProblemWrapper(final @NotNull BuildProblemInfo buildProblemInfo, final @NotNull ServiceLocator serviceLocator) {
     id = (long)buildProblemInfo.getId();
-    myProblem = BuildProblemBridge.findProblemById(id, serviceLocator);
+    myProblem = ProblemOccurrenceFinder.findProblemById(id, serviceLocator);
     if (myProblem == null) {
       throw new NotFoundException("No instances of problem with id '" + id + "' found.");
     }

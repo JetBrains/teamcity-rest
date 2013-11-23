@@ -7,9 +7,8 @@ import jetbrains.buildServer.responsibility.BuildProblemResponsibilityEntry;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
-import jetbrains.buildServer.server.rest.data.problem.BuildProblemBridge;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
-import jetbrains.buildServer.server.rest.data.problem.TestBridge;
+import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.problem.Problem;
 import jetbrains.buildServer.server.rest.model.problem.Test;
@@ -18,6 +17,7 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.STest;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -61,14 +61,17 @@ public class InvestigationScope {
     } else if (investigation.isTest()) {
       @SuppressWarnings("ConstantConditions") @NotNull final TestNameResponsibilityEntry testRE = investigation.getTestRE();
       final BeanContext beanContext = new BeanContext(serviceLocator.getSingletonService(BeanFactory.class), serviceLocator, apiUrlBuilder);
-      final TestBridge testBridge = beanContext.getSingletonService(TestBridge.class);
-      test = new Test(testBridge.getTest(testRE.getTestNameId(), testRE.getProjectId()), beanContext, false);
+
+      final STest foundTest = serviceLocator.getSingletonService(TestFinder.class).findTest(testRE.getTestNameId(), testRE.getProjectId());
+      if (foundTest == null){
+        throw new InvalidStateException("Cannot find test for investigation. Test name id: '" + testRE.getTestNameId() + "', project id: '" + testRE.getProjectId() + "'.");
+      }
+      test = new Test(foundTest, beanContext, false);
 
 
       project = new ProjectRef((SProject)testRE.getProject(), apiUrlBuilder); //TeamCity open API issue: cast
     } else if (investigation.isProblem()) {
       final BuildProblemResponsibilityEntry problemRE = investigation.getProblemRE();
-      final BuildProblemBridge problemBridge = serviceLocator.getSingletonService(BuildProblemBridge.class);
       //noinspection ConstantConditions
       problem = new Problem(new ProblemWrapper(problemRE.getBuildProblemInfo(), serviceLocator), serviceLocator, apiUrlBuilder, false);
       project = new ProjectRef((SProject)problemRE.getProject(), apiUrlBuilder); //TeamCity open API issue: cast

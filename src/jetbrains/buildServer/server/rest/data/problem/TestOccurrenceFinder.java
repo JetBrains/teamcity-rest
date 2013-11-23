@@ -4,6 +4,7 @@ import java.util.List;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.AbstractFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -18,13 +19,10 @@ import org.jetbrains.annotations.Nullable;
 public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   public static final String TEST_NAME_ID = "testNameId";
   public static final String BUILD = "build";
-  @NotNull private final TestOccurrenceBridge myTestOccurrenceBridge;
   @NotNull private final BuildFinder myBuildFinder;
 
-  public TestOccurrenceFinder(final @NotNull TestOccurrenceBridge testBridge,
-                              final @NotNull BuildFinder buildFinder) {
+  public TestOccurrenceFinder(final @NotNull BuildFinder buildFinder) {
     super(new String[]{Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, DIMENSION_ID, TEST_NAME_ID, BUILD, "status"}); //todo: specify dimensions
-    myTestOccurrenceBridge = testBridge;
     myBuildFinder = buildFinder;
   }
 
@@ -34,7 +32,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     if (locator.isSingleValue()) {
       Long idDimension = locator.getSingleValueAsLong();
       if (idDimension != null) {
-        STestRun item = myTestOccurrenceBridge.findTest(idDimension);
+        STestRun item = findTest(idDimension);
         if (item != null) {
           return item;
         }
@@ -46,7 +44,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
     Long idDimension = locator.getSingleDimensionValueAsLong("id");
     if (idDimension != null) {
-      STestRun item = myTestOccurrenceBridge.findTest(idDimension);
+      STestRun item = findTest(idDimension);
       if (item != null) {
         return item;
       }
@@ -59,7 +57,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       String buildDimension = locator.getSingleDimensionValue(BUILD);
       if (buildDimension != null) {
         SBuild build = myBuildFinder.getBuild(null, buildDimension);
-        STestRun item = myTestOccurrenceBridge.findTest(testNameId, build);
+        STestRun item = findTest(testNameId, build);
         if (item == null) {
           throw new NotFoundException("No test run" + " can be found by " + TEST_NAME_ID + " '" + testNameId + "' in build with id " + build.getBuildId());
         }
@@ -126,5 +124,20 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     }
 
     return result;
+  }
+
+
+  @Nullable
+  private STestRun findTest(final @NotNull Long testNameId, final @NotNull SBuild build) {
+    final List<STestRun> allTests = build.getFullStatistics().getAllTests();
+    for (STestRun test : allTests) {
+      if (testNameId == test.getTest().getTestNameId()) return test; //todo: does this support multiple test runs???
+    }
+    return null;
+  }
+
+  @Nullable
+  private STestRun findTest(final Long testRunId) {
+    throw new InvalidStateException("Searching by test run id is not yet supported"); //todo: (TeamCity) how to implement this?
   }
 }

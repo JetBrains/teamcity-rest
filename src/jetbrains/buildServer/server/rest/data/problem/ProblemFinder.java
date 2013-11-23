@@ -13,13 +13,13 @@ import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.serverSide.problems.BuildProblemManager;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
  *         Date: 09.11.13
  */
 public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
-  @NotNull private final BuildProblemBridge myBuildProblemBridge;
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final UserFinder myUserFinder;
   @NotNull private final BuildFinder myBuildFinder;
@@ -28,25 +28,19 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   @NotNull private final ProjectManager myProjectManager;
   @NotNull final ServiceLocator myServiceLocator;
 
-  public ProblemFinder(final @NotNull BuildProblemBridge buildProblemBridge,
-                       final @NotNull ProjectFinder projectFinder,
+  public ProblemFinder(final @NotNull ProjectFinder projectFinder,
                        final @NotNull UserFinder userFinder,
                        final @NotNull BuildFinder buildFinder,
                        final @NotNull BuildProblemManager buildProblemManager,
                        final @NotNull ProjectManager projectManager,
                        final @NotNull ServiceLocator serviceLocator) {
     super(new String[]{"identity", "type", "build", "affectedProject"});
-    myBuildProblemBridge = buildProblemBridge;
     myProjectFinder = projectFinder;
     myUserFinder = userFinder;
     myBuildFinder = buildFinder;
     myBuildProblemManager = buildProblemManager;
     myProjectManager = projectManager;
     myServiceLocator = serviceLocator;
-  }
-
-  public BuildProblemBridge getBuildProblemBridge() {
-    return myBuildProblemBridge;
   }
 
   @Override
@@ -57,7 +51,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
       if (parsedId == null) {
         throw new BadRequestException("Expecting id, found empty value.");
       }
-      ProblemWrapper item = myBuildProblemBridge.findProblemWrapperById(parsedId);
+      ProblemWrapper item = findProblemWrapperById(parsedId);
       if (item == null) {
         throw new NotFoundException("No problem can be found by id '" + parsedId + "'.");
       }
@@ -68,7 +62,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     // dimension-specific item search
     Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (id != null) {
-      ProblemWrapper item =  myBuildProblemBridge.findProblemWrapperById(id);
+      ProblemWrapper item =  findProblemWrapperById(id);
       if (item == null) {
         throw new NotFoundException("No problem" + " can be found by " + DIMENSION_ID + " '" + id + "'.");
       }
@@ -126,5 +120,15 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
       });
     }
     return result;
+  }
+
+  //todo: TeamCity API: how to do this effectively?
+  @Nullable
+  private ProblemWrapper findProblemWrapperById(@NotNull final Long id) {
+    final BuildProblem problemById = ProblemOccurrenceFinder.findProblemById(id, myServiceLocator);
+    if (problemById == null){
+      throw new NotFoundException("Cannot find problem instance by id '" + id + "'");
+    }
+    return new ProblemWrapper(problemById, myServiceLocator);
   }
 }

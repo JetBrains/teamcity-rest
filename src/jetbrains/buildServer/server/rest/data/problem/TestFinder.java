@@ -8,6 +8,7 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.STest;
+import jetbrains.buildServer.serverSide.STestManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -16,18 +17,13 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 09.11.13
  */
 public class TestFinder extends AbstractFinder<STest> {
-  @NotNull private final TestBridge myTestBridge;
   @NotNull private final ProjectFinder myProjectFinder;
+  @NotNull private final STestManager myTestManager;
 
-  public TestFinder(final @NotNull TestBridge testBridge,
-                    final @NotNull ProjectFinder projectFinder) {
+  public TestFinder(final @NotNull ProjectFinder projectFinder, final @NotNull STestManager testManager) {
     super(new String[]{Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, DIMENSION_ID, "name", "project"}); //todo: specify dimensions
-    myTestBridge = testBridge;
+    myTestManager = testManager;
     myProjectFinder = projectFinder;
-  }
-
-  public TestBridge getTestBridge() {
-    return myTestBridge;
   }
 
   @Override
@@ -57,7 +53,7 @@ public class TestFinder extends AbstractFinder<STest> {
       SProject project = myProjectFinder.getProject(projectDimension);
       Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
       if (id != null) {
-        STest item = myTestBridge.findTest(id, project.getProjectId());
+        STest item = findTest(id, project.getProjectId());
         if (item == null) {
           throw new NotFoundException("No test" + " can be found by " + DIMENSION_ID + " '" + id + "' in project " + project.describe(false));
         }
@@ -67,7 +63,7 @@ public class TestFinder extends AbstractFinder<STest> {
       /*
       String nameDimension = locator.getSingleDimensionValue("name");
       if (nameDimension != null) {
-        STest item = myTestBridge.findTestByName(nameDimension);
+        STest item = findTestByName(nameDimension);
         if (item == null) {
           throw new NotFoundException("No test" + " can be found by name '" + nameDimension + "'.");
         }
@@ -102,5 +98,10 @@ public class TestFinder extends AbstractFinder<STest> {
       });
     }
     return result;
+  }
+
+  @Nullable
+  public STest findTest(final @NotNull Long testNameId, final @NotNull String projectInternalId) {
+    return myTestManager.findTest(testNameId, projectInternalId);
   }
 }

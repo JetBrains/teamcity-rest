@@ -9,12 +9,14 @@ import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
+import jetbrains.buildServer.serverSide.BuildPromotionEx;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.serverSide.problems.BuildProblemManager;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -23,7 +25,6 @@ import org.jetbrains.annotations.NotNull;
 public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   public static final String BUILD = "build";
   public static final String IDENTITY = "identity";
-  @NotNull private final BuildProblemBridge myBuildProblemBridge;
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final UserFinder myUserFinder;
   @NotNull private final BuildFinder myBuildFinder;
@@ -32,25 +33,19 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   @NotNull private final ProjectManager myProjectManager;
   @NotNull final jetbrains.buildServer.ServiceLocator myServiceLocator;
 
-  public ProblemOccurrenceFinder(final @NotNull BuildProblemBridge buildProblemBridge,
-                                 final @NotNull ProjectFinder projectFinder,
+  public ProblemOccurrenceFinder(final @NotNull ProjectFinder projectFinder,
                                  final @NotNull UserFinder userFinder,
                                  final @NotNull BuildFinder buildFinder,
                                  final @NotNull BuildProblemManager buildProblemManager,
                                  final @NotNull ProjectManager projectManager,
                                  final @NotNull ServiceLocator serviceLocator) {
     super(new String[]{"identity", "type", "build", "affectedProject"});
-    myBuildProblemBridge = buildProblemBridge;
     myProjectFinder = projectFinder;
     myUserFinder = userFinder;
     myBuildFinder = buildFinder;
     myBuildProblemManager = buildProblemManager;
     myProjectManager = projectManager;
     myServiceLocator = serviceLocator;
-  }
-
-  public BuildProblemBridge getBuildProblemBridge() {
-    return myBuildProblemBridge;
   }
 
   @Override
@@ -60,7 +55,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       // no dimensions found, assume it's id
       final Long idDimension = locator.getSingleValueAsLong();
       if (idDimension != null) {
-        final BuildProblem item = myBuildProblemBridge.findProblemById(idDimension, myServiceLocator);
+        final BuildProblem item = findProblemById(idDimension, myServiceLocator);
         if (item != null) {
           return item;
         }
@@ -72,7 +67,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
     Long idDimension = locator.getSingleDimensionValueAsLong("id");
     if (idDimension != null) {
-      final BuildProblem item = myBuildProblemBridge.findProblemById(idDimension, myServiceLocator);
+      final BuildProblem item = findProblemById(idDimension, myServiceLocator);
       if (item != null) {
         return item;
       }
@@ -85,7 +80,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       String buildDimension = locator.getSingleDimensionValue(BUILD);
       if (buildDimension != null) {
         SBuild build = myBuildFinder.getBuild(null, buildDimension);
-        final BuildProblem item = myBuildProblemBridge.findProblem(problemIdentity, build);
+        final BuildProblem item = findProblem(problemIdentity, build);
         if (item == null) {
           throw new NotFoundException("No problem" + " can be found by " + IDENTITY + " '" + problemIdentity + "' in build with id " + build.getBuildId());
         }
@@ -106,7 +101,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
       SBuild build = myBuildFinder.getBuild(null, buildDimension);
-      return BuildProblemBridge.getBuildProblems(build);
+      return getBuildProblems(build);
     }
 
     return super.getPrefilteredItems(locator);
@@ -168,5 +163,32 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       throw new InvalidStateException("Build problem with id '" + problem.getId() + "' does not have an associated build.");
     }
     return IDENTITY + ":" + problem.getBuildProblemData().getIdentity() + "," + BUILD + ":(" + BuildRequest.getBuildLocator(build) + ")";//todo: use locator rendering here
+  }
+
+  //todo: TeamCity API: how to do this effectively?
+  @Nullable
+  public static BuildProblem findProblemById(@NotNull final Long id, @NotNull final jetbrains.buildServer.ServiceLocator serviceLocator) {
+    final List<BuildProblem> currentBuildProblemsList = serviceLocator.getSingletonService(BuildProblemManager.class).getCurrentBuildProblemsList(
+      serviceLocator.getSingletonService(ProjectManager.class).getRootProject());
+    for (BuildProblem buildProblem : currentBuildProblemsList) {
+      if (id.equals(Long.valueOf(buildProblem.getId()))) return buildProblem; //todo: TeamCity API: can a single id apper several times here?
+    }
+    return null;
+  }
+
+  @Nullable
+  private BuildProblem findProblem(@NotNull final String problemIdentity, @NotNull final SBuild build) {
+    final List<BuildProblem> buildProblems = getBuildProblems(build);
+    for (BuildProblem buildProblem : buildProblems) {
+      if (buildProblem.getBuildProblemData().getIdentity().equals(problemIdentity)){
+        return buildProblem;
+      }
+    }
+    return null;
+  }
+
+  @NotNull
+  private static List<BuildProblem> getBuildProblems(@NotNull final SBuild build) {
+    return ((BuildPromotionEx)build.getBuildPromotion()).getBuildProblems();
   }
 }
