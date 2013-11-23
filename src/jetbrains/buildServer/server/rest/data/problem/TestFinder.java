@@ -1,5 +1,6 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
+import java.util.List;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.AbstractFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -20,7 +21,7 @@ public class TestFinder extends AbstractFinder<STest> {
 
   public TestFinder(final @NotNull TestBridge testBridge,
                     final @NotNull ProjectFinder projectFinder) {
-    super(testBridge, new String[]{Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, DIMENSION_ID, "name", "project"}); //todo: specify dimensions
+    super(new String[]{Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, DIMENSION_ID, "name", "project"}); //todo: specify dimensions
     myTestBridge = testBridge;
     myProjectFinder = projectFinder;
   }
@@ -75,6 +76,11 @@ public class TestFinder extends AbstractFinder<STest> {
       */
     }
     return null;
+  }
+
+  @NotNull
+  public List<STest> getAllItems() {
+    throw new IllegalStateException("Sorry, listing tests is not implemented yet");
   }
 
   @Override

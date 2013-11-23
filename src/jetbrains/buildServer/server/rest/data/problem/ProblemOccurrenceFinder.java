@@ -1,6 +1,7 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
 import java.util.List;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.AbstractFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -8,9 +9,11 @@ import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
+import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
+import jetbrains.buildServer.serverSide.problems.BuildProblemManager;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -25,15 +28,25 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   @NotNull private final UserFinder myUserFinder;
   @NotNull private final BuildFinder myBuildFinder;
 
+  @NotNull private final BuildProblemManager myBuildProblemManager;
+  @NotNull private final ProjectManager myProjectManager;
+  @NotNull final jetbrains.buildServer.ServiceLocator myServiceLocator;
+
   public ProblemOccurrenceFinder(final @NotNull BuildProblemBridge buildProblemBridge,
                                  final @NotNull ProjectFinder projectFinder,
                                  final @NotNull UserFinder userFinder,
-                                 final @NotNull BuildFinder buildFinder) {
-    super(buildProblemBridge, new String[]{"identity", "type", "build", "affectedProject"});
+                                 final @NotNull BuildFinder buildFinder,
+                                 final @NotNull BuildProblemManager buildProblemManager,
+                                 final @NotNull ProjectManager projectManager,
+                                 final @NotNull ServiceLocator serviceLocator) {
+    super(new String[]{"identity", "type", "build", "affectedProject"});
     myBuildProblemBridge = buildProblemBridge;
     myProjectFinder = projectFinder;
     myUserFinder = userFinder;
     myBuildFinder = buildFinder;
+    myBuildProblemManager = buildProblemManager;
+    myProjectManager = projectManager;
+    myServiceLocator = serviceLocator;
   }
 
   public BuildProblemBridge getBuildProblemBridge() {
@@ -47,7 +60,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       // no dimensions found, assume it's id
       final Long idDimension = locator.getSingleValueAsLong();
       if (idDimension != null) {
-        final BuildProblem item = myBuildProblemBridge.findProblemById(idDimension);
+        final BuildProblem item = myBuildProblemBridge.findProblemById(idDimension, myServiceLocator);
         if (item != null) {
           return item;
         }
@@ -59,7 +72,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
     Long idDimension = locator.getSingleDimensionValueAsLong("id");
     if (idDimension != null) {
-      final BuildProblem item = myBuildProblemBridge.findProblemById(idDimension);
+      final BuildProblem item = myBuildProblemBridge.findProblemById(idDimension, myServiceLocator);
       if (item != null) {
         return item;
       }
@@ -80,6 +93,12 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       }
     }
     return null;
+  }
+
+  @NotNull
+  @Override
+  public List<BuildProblem> getAllItems() {
+    return myBuildProblemManager.getCurrentBuildProblemsList(myProjectManager.getRootProject());
   }
 
   @Override

@@ -1,15 +1,16 @@
 package jetbrains.buildServer.server.rest.model.problem;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,12 +29,17 @@ public class Problems {
   public Problems() {
   }
 
-  public Problems(@NotNull final Collection<BuildProblem> itemsP,
+  public Problems(@NotNull final List<ProblemWrapper> itemsP,
                   @Nullable final PagerData pagerData,
                   final ServiceLocator serviceLocator,
                   @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    Collections.sort(itemsP, new Comparator<ProblemWrapper>() {
+      public int compare(final ProblemWrapper o1, final ProblemWrapper o2) {
+        return o1.getId().compareTo(o2.getId());
+      }
+    });
     items = new ArrayList<Problem>(itemsP.size());  //todo: consider adding ordering/sorting
-    for (BuildProblem item : itemsP) {
+    for (ProblemWrapper item : itemsP) {
       items.add(new Problem(item, serviceLocator, apiUrlBuilder, false));
     }
     if (pagerData != null) {

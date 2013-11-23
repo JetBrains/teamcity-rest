@@ -1,7 +1,7 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
 import java.util.List;
-import jetbrains.buildServer.server.rest.data.investigations.ItemBridge;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.BuildPromotionEx;
 import jetbrains.buildServer.serverSide.ProjectManager;
@@ -16,24 +16,20 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 11.11.13
  */
-public class BuildProblemBridge extends ItemBridge<BuildProblem> {
+public class BuildProblemBridge {
   @NotNull private final BuildProblemManager myBuildProblemManager;
   @NotNull private final ProjectManager myProjectManager;
+  @NotNull final ServiceLocator myServiceLocator;
 
-  public BuildProblemBridge(@NotNull final BuildProblemManager buildProblemManager, @NotNull final ProjectManager projectManager) {
+  public BuildProblemBridge(@NotNull final BuildProblemManager buildProblemManager, @NotNull final ProjectManager projectManager, final @NotNull ServiceLocator serviceLocator) {
     myBuildProblemManager = buildProblemManager;
     myProjectManager = projectManager;
-  }
-
-  @NotNull
-  @Override
-  public List<BuildProblem> getAllItems() {
-    return myBuildProblemManager.getCurrentBuildProblemsList(myProjectManager.getRootProject());
+    myServiceLocator = serviceLocator;
   }
 
   @NotNull
   public BuildProblem getBuildProblem(final @NotNull BuildProblemInfo buildProblemInfo) {
-    final BuildProblem problemById = findProblemById((long)buildProblemInfo.getId());
+    final BuildProblem problemById = findProblemById((long)buildProblemInfo.getId(), myServiceLocator);
     if (problemById == null){
       throw new NotFoundException("Cannot find build problem with id '" + buildProblemInfo.getId() + "'");
     }
@@ -42,8 +38,31 @@ public class BuildProblemBridge extends ItemBridge<BuildProblem> {
 
   //todo: TeamCity API: how to do this effectively?
   @Nullable
+  public ProblemWrapper findProblemWrapperById(@NotNull final Long id) {
+    final BuildProblem problemById = findProblemById(id, myServiceLocator);
+    if (problemById == null){
+      throw new NotFoundException("Cannot find problem instance by id '" + id + "'");
+    }
+    return new ProblemWrapper(problemById, myServiceLocator);
+  }
+
+  /*
+  //todo: TeamCity API: how to do this effectively?
+  @Nullable
   public BuildProblem findProblemById(@NotNull final Long id) {
     final List<BuildProblem> currentBuildProblemsList = myBuildProblemManager.getCurrentBuildProblemsList(myProjectManager.getRootProject());
+    for (BuildProblem buildProblem : currentBuildProblemsList) {
+      if (id.equals(Long.valueOf(buildProblem.getId()))) return buildProblem; //todo: TeamCity API: can a single id apper several times here?
+    }
+    return null;
+  }
+  */
+
+  //todo: TeamCity API: how to do this effectively?
+  @Nullable
+  public static BuildProblem findProblemById(@NotNull final Long id, @NotNull final jetbrains.buildServer.ServiceLocator serviceLocator) {
+    final List<BuildProblem> currentBuildProblemsList = serviceLocator.getSingletonService(BuildProblemManager.class).getCurrentBuildProblemsList(
+      serviceLocator.getSingletonService(ProjectManager.class).getRootProject());
     for (BuildProblem buildProblem : currentBuildProblemsList) {
       if (id.equals(Long.valueOf(buildProblem.getId()))) return buildProblem; //todo: TeamCity API: can a single id apper several times here?
     }

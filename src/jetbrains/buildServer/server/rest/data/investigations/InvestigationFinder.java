@@ -2,17 +2,18 @@ package jetbrains.buildServer.server.rest.data.investigations;
 
 import java.util.ArrayList;
 import java.util.List;
-import jetbrains.buildServer.responsibility.BuildProblemResponsibilityEntry;
-import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
+import jetbrains.buildServer.responsibility.*;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
+import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.STest;
-import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -28,17 +29,27 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   private final TestFinder myTestFinder;
   private final UserFinder myUserFinder;
 
+  private final BuildTypeResponsibilityFacade myBuildTypeResponsibilityFacade;
+  private final TestNameResponsibilityFacade myTestNameResponsibilityFacade;
+  private final BuildProblemResponsibilityFacade myBuildProblemResponsibilityFacade;
+
   public InvestigationFinder(final ResponsibilityEntryBridge responsibilityEntryBridge,
                              final ProjectFinder projectFinder,
                              final ProblemFinder problemFinder,
                              final TestFinder testFinder,
-                             final UserFinder userFinder) {
-    super(responsibilityEntryBridge, new String[]{"assignee", "reporter", "type", "state", "assignmentProject", PROBLEM_DIMENSION});
+                             final UserFinder userFinder,
+                             final BuildTypeResponsibilityFacade buildTypeResponsibilityFacade,
+                             final TestNameResponsibilityFacade testNameResponsibilityFacade,
+                             final BuildProblemResponsibilityFacade buildProblemResponsibilityFacade) {
+    super(new String[]{"assignee", "reporter", "type", "state", "assignmentProject", PROBLEM_DIMENSION});
     myResponsibilityEntryBridge = responsibilityEntryBridge;
     myProjectFinder = projectFinder;
     myProblemFinder = problemFinder;
     myTestFinder = testFinder;
     myUserFinder = userFinder;
+    myBuildTypeResponsibilityFacade = buildTypeResponsibilityFacade;
+    myTestNameResponsibilityFacade = testNameResponsibilityFacade;
+    myBuildProblemResponsibilityFacade = buildProblemResponsibilityFacade;
   }
 
   public ResponsibilityEntryBridge getResponsibilityEntryBridge() {
@@ -60,6 +71,35 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
       return item;
     }
     */
+  }
+
+  @NotNull
+  public List<InvestigationWrapper> getAllItems() {
+    final ArrayList<InvestigationWrapper> result = new ArrayList<InvestigationWrapper>();
+
+    final List<BuildTypeResponsibilityEntry> buildTypeResponsibilities = myBuildTypeResponsibilityFacade.getUserBuildTypeResponsibilities(null, null);
+    result.addAll(CollectionsUtil.convertCollection(buildTypeResponsibilities, new Converter<InvestigationWrapper, BuildTypeResponsibilityEntry>() {
+      public InvestigationWrapper createFrom(@NotNull final BuildTypeResponsibilityEntry source) {
+        return new InvestigationWrapper(source);
+      }
+    }));
+
+    final List<TestNameResponsibilityEntry> testResponsibilities = myTestNameResponsibilityFacade.getUserTestNameResponsibilities(null, null);
+    result.addAll(CollectionsUtil.convertCollection(testResponsibilities, new Converter<InvestigationWrapper, TestNameResponsibilityEntry>() {
+      public InvestigationWrapper createFrom(@NotNull final TestNameResponsibilityEntry source) {
+        return new InvestigationWrapper(source);
+      }
+    }));
+
+    final List<BuildProblemResponsibilityEntry> problemResponsibilities = myBuildProblemResponsibilityFacade.getUserBuildProblemResponsibilities(null, null);
+    result.addAll(CollectionsUtil.convertCollection(problemResponsibilities, new Converter<InvestigationWrapper, BuildProblemResponsibilityEntry>() {
+      public InvestigationWrapper createFrom(@NotNull final BuildProblemResponsibilityEntry source) {
+        return new InvestigationWrapper(source);
+      }
+    }));
+
+    //todo: sort!
+    return result;
   }
 
   @Override
@@ -128,8 +168,8 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   protected List<InvestigationWrapper> getPrefilteredItems(@NotNull final Locator locator) {
     final String problemDimension = locator.getSingleDimensionValue(PROBLEM_DIMENSION);
     if (problemDimension != null){
-      final BuildProblem problem = myProblemFinder.getItem(problemDimension);
-      return getInvestigationWrappers(problem);
+      final ProblemWrapper problem = myProblemFinder.getItem(problemDimension);
+      return problem.getInvestigations();
     }
 
     final String testDimension = locator.getSingleDimensionValue(TEST_DIMENSION);
@@ -138,15 +178,6 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
       return getInvestigationWrappers(test);
     }
     return super.getPrefilteredItems(locator);
-  }
-
-  private List<InvestigationWrapper> getInvestigationWrappers(final BuildProblem problem) {
-    final List<BuildProblemResponsibilityEntry> responsibilities = problem.getAllResponsibilities();
-    final ArrayList<InvestigationWrapper> result = new ArrayList<InvestigationWrapper>(responsibilities.size());
-    for (BuildProblemResponsibilityEntry responsibility : responsibilities) {
-      result.add(new InvestigationWrapper(responsibility));
-    }
-    return result;
   }
 
   private List<InvestigationWrapper> getInvestigationWrappers(final STest item) {

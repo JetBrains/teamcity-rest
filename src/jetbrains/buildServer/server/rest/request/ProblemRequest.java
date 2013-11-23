@@ -8,10 +8,10 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
+import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.problem.Problem;
 import jetbrains.buildServer.server.rest.model.problem.Problems;
-import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -30,7 +30,7 @@ public class ProblemRequest {
     return API_SUB_URL;
   }
 
-  public static String getHref(@NotNull final BuildProblem problem) {
+  public static String getHref(@NotNull final ProblemWrapper problem) {
     return API_SUB_URL + "/id:" + problem.getId() + "";
   }
 
@@ -45,7 +45,7 @@ public class ProblemRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public Problems getProblems(@QueryParam("locator") String locatorText, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
-    final PagedSearchResult<BuildProblem> result = myProblemFinder.getItems(locatorText);
+    final PagedSearchResult<ProblemWrapper> result = myProblemFinder.getItems(locatorText);
 
     return new Problems(result.myEntries,
                               new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,

@@ -1,34 +1,48 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
+import java.util.ArrayList;
+import java.util.List;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.AbstractFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
+import jetbrains.buildServer.serverSide.problems.BuildProblemManager;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
  *         Date: 09.11.13
  */
-public class ProblemFinder extends AbstractFinder<BuildProblem> {
+public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   @NotNull private final BuildProblemBridge myBuildProblemBridge;
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final UserFinder myUserFinder;
   @NotNull private final BuildFinder myBuildFinder;
 
+  @NotNull private final BuildProblemManager myBuildProblemManager;
+  @NotNull private final ProjectManager myProjectManager;
+  @NotNull final ServiceLocator myServiceLocator;
+
   public ProblemFinder(final @NotNull BuildProblemBridge buildProblemBridge,
                        final @NotNull ProjectFinder projectFinder,
                        final @NotNull UserFinder userFinder,
-                       final @NotNull BuildFinder buildFinder) {
-    super(buildProblemBridge, new String[]{"identity", "type", "build", "affectedProject"});
+                       final @NotNull BuildFinder buildFinder,
+                       final @NotNull BuildProblemManager buildProblemManager,
+                       final @NotNull ProjectManager projectManager,
+                       final @NotNull ServiceLocator serviceLocator) {
+    super(new String[]{"identity", "type", "build", "affectedProject"});
     myBuildProblemBridge = buildProblemBridge;
     myProjectFinder = projectFinder;
     myUserFinder = userFinder;
     myBuildFinder = buildFinder;
+    myBuildProblemManager = buildProblemManager;
+    myProjectManager = projectManager;
+    myServiceLocator = serviceLocator;
   }
 
   public BuildProblemBridge getBuildProblemBridge() {
@@ -36,14 +50,14 @@ public class ProblemFinder extends AbstractFinder<BuildProblem> {
   }
 
   @Override
-  protected BuildProblem findSingleItem(final Locator locator) {
+  protected ProblemWrapper findSingleItem(final Locator locator) {
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's id
       final Long parsedId = locator.getSingleValueAsLong();
       if (parsedId == null) {
         throw new BadRequestException("Expecting id, found empty value.");
       }
-      BuildProblem item = myBuildProblemBridge.findProblemById(parsedId);
+      ProblemWrapper item = myBuildProblemBridge.findProblemWrapperById(parsedId);
       if (item == null) {
         throw new NotFoundException("No problem can be found by id '" + parsedId + "'.");
       }
@@ -54,7 +68,7 @@ public class ProblemFinder extends AbstractFinder<BuildProblem> {
     // dimension-specific item search
     Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (id != null) {
-      BuildProblem item =  myBuildProblemBridge.findProblemById(id);
+      ProblemWrapper item =  myBuildProblemBridge.findProblemWrapperById(id);
       if (item == null) {
         throw new NotFoundException("No problem" + " can be found by " + DIMENSION_ID + " '" + id + "'.");
       }
@@ -64,40 +78,40 @@ public class ProblemFinder extends AbstractFinder<BuildProblem> {
     return null;
   }
 
+  @NotNull
+  public List<ProblemWrapper> getAllItems() {
+    final List<BuildProblem> currentBuildProblemsList = myBuildProblemManager.getCurrentBuildProblemsList(myProjectManager.getRootProject());
+    final ArrayList<ProblemWrapper> result = new ArrayList<ProblemWrapper>(currentBuildProblemsList.size());
+    for (BuildProblem buildProblem : currentBuildProblemsList) {
+      result.add(new ProblemWrapper(buildProblem, myServiceLocator));
+    }
+    return result;
+  }
+
   @Override
-  protected AbstractFilter<BuildProblem> getFilter(final Locator locator) {
+  protected AbstractFilter<ProblemWrapper> getFilter(final Locator locator) {
     if (locator.isSingleValue()) {
       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }
 
     final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    final MultiCheckerFilter<BuildProblem> result =
-      new MultiCheckerFilter<BuildProblem>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
+    final MultiCheckerFilter<ProblemWrapper> result =
+      new MultiCheckerFilter<ProblemWrapper>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
 
     final String identityDimension = locator.getSingleDimensionValue("identity");
     if (identityDimension != null) {
-      result.add(new FilterConditionChecker<BuildProblem>() {
-        public boolean isIncluded(@NotNull final BuildProblem item) {
-          return identityDimension.equals(item.getBuildProblemData().getIdentity());
+      result.add(new FilterConditionChecker<ProblemWrapper>() {
+        public boolean isIncluded(@NotNull final ProblemWrapper item) {
+          return identityDimension.equals(item.getIdentity());
         }
       });
     }
 
     final String typeDimension = locator.getSingleDimensionValue("type");
     if (typeDimension != null) {
-      result.add(new FilterConditionChecker<BuildProblem>() {
-        public boolean isIncluded(@NotNull final BuildProblem item) {
-          return typeDimension.equals(item.getBuildProblemData().getType());
-        }
-      });
-    }
-
-    final String buildDimension = locator.getSingleDimensionValue("build");
-    if (buildDimension != null) {
-      final SBuild build = myBuildFinder.getBuild(null, buildDimension);
-      result.add(new FilterConditionChecker<BuildProblem>() {
-        public boolean isIncluded(@NotNull final BuildProblem item) {
-          return build.getBuildPromotion().equals(item.getBuildPromotion());
+      result.add(new FilterConditionChecker<ProblemWrapper>() {
+        public boolean isIncluded(@NotNull final ProblemWrapper item) {
+          return typeDimension.equals(item.getType());
         }
       });
     }
@@ -105,9 +119,9 @@ public class ProblemFinder extends AbstractFinder<BuildProblem> {
     final String affectedProjectDimension = locator.getSingleDimensionValue("affectedProject");
     if (affectedProjectDimension != null) {
       @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
-      result.add(new FilterConditionChecker<BuildProblem>() {
-        public boolean isIncluded(@NotNull final BuildProblem item) {
-          return project.getProjects().contains(myProjectFinder.getProject(item.getProjectId())); //todo: inneffective! is there an API call for this?
+      result.add(new FilterConditionChecker<ProblemWrapper>() {
+        public boolean isIncluded(@NotNull final ProblemWrapper item) {
+          return project.getProjects().contains(item.getProject()); //todo: is there a dedicaed API call for this?
         }
       });
     }

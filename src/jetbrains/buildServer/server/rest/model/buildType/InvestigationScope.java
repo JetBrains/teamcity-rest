@@ -8,6 +8,7 @@ import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.data.problem.BuildProblemBridge;
+import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestBridge;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.problem.Problem;
@@ -69,7 +70,7 @@ public class InvestigationScope {
       final BuildProblemResponsibilityEntry problemRE = investigation.getProblemRE();
       final BuildProblemBridge problemBridge = serviceLocator.getSingletonService(BuildProblemBridge.class);
       //noinspection ConstantConditions
-      problem = new Problem(problemBridge.getBuildProblem(problemRE.getBuildProblemInfo()), serviceLocator, apiUrlBuilder, false);
+      problem = new Problem(new ProblemWrapper(problemRE.getBuildProblemInfo(), serviceLocator), serviceLocator, apiUrlBuilder, false);
       project = new ProjectRef((SProject)problemRE.getProject(), apiUrlBuilder); //TeamCity open API issue: cast
     } else {
       throw new InvalidStateException("Investigation wrapper type is not supported");

@@ -23,7 +23,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   public TestOccurrenceFinder(final @NotNull TestOccurrenceBridge testBridge,
                               final @NotNull BuildFinder buildFinder) {
-    super(testBridge, new String[]{Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, DIMENSION_ID, TEST_NAME_ID, BUILD, "status"}); //todo: specify dimensions
+    super(new String[]{Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, DIMENSION_ID, TEST_NAME_ID, BUILD, "status"}); //todo: specify dimensions
     myTestOccurrenceBridge = testBridge;
     myBuildFinder = buildFinder;
   }
@@ -67,6 +67,11 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       }
     }
     return null;
+  }
+
+  @NotNull
+  public List<STestRun> getAllItems() {
+    throw new IllegalStateException("Sorry, listing tests is not implemented yet");
   }
 
   @Override

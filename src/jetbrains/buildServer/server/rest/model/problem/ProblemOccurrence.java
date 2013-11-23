@@ -4,6 +4,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.model.build.BuildRef;
 import jetbrains.buildServer.server.rest.request.ProblemOccurrenceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -49,7 +50,7 @@ public class ProblemOccurrence {
       details = problemP.getBuildProblemData().getDescription();
       additionalData = problemP.getBuildProblemData().getAdditionalData();
 
-      problem = new Problem(problemP, beanContext.getServiceLocator(), beanContext.getApiUrlBuilder(), false);
+      problem = new Problem(new ProblemWrapper(problemP, beanContext.getServiceLocator()), beanContext.getServiceLocator(), beanContext.getApiUrlBuilder(), false);
 
       final MuteInfo muteInfo = problemP.getMuteInBuildInfo();
       if (muteInfo != null) {
