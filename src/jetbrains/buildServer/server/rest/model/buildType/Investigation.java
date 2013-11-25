@@ -2,6 +2,7 @@ package jetbrains.buildServer.server.rest.model.buildType;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
@@ -17,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @SuppressWarnings("PublicField")
 @XmlType
+@XmlRootElement(name = "investigation")
 public class Investigation {
   @XmlAttribute
   public String id;

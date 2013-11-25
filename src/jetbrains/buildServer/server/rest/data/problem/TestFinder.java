@@ -29,7 +29,7 @@ public class TestFinder extends AbstractFinder<STest> {
 
   @Override
   @Nullable
-  protected STest findSingleItem(final Locator locator) {
+  protected STest findSingleItem(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       return null;
       /*

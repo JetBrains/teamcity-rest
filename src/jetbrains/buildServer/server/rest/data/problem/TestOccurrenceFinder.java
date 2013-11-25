@@ -28,7 +28,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   @Override
   @Nullable
-  protected STestRun findSingleItem(final Locator locator) {
+  protected STestRun findSingleItem(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       Long idDimension = locator.getSingleValueAsLong();
       if (idDimension != null) {

@@ -49,7 +49,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   }
 
   @Override
-  protected BuildProblem findSingleItem(final Locator locator) {
+  protected BuildProblem findSingleItem(@NotNull final Locator locator) {
     //todo: searching occurrence by id does not work: review!!!
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's id
@@ -102,6 +102,12 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     if (buildDimension != null) {
       SBuild build = myBuildFinder.getBuild(null, buildDimension);
       return getBuildProblems(build);
+    }
+
+    final String affectedProjectDimension = locator.getSingleDimensionValue("affectedProject");
+    if (affectedProjectDimension != null) {
+      @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
+      return myBuildProblemManager.getCurrentBuildProblemsList(project);
     }
 
     return super.getPrefilteredItems(locator);

@@ -11,6 +11,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.util.StringUtil;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,14 +39,17 @@ public abstract class AbstractFinder<ITEM> {
   }
 
   @Nullable
+  @Contract("null -> null; !null -> !null")
   public Locator getLocatorOrNull(@Nullable final String locatorText) {
     return locatorText != null ? createLocator(locatorText) : null;
   }
 
+  @NotNull
   public PagedSearchResult<ITEM> getItems(@Nullable final String locatorText) {
     return getItems(getLocatorOrNull(locatorText));
   }
 
+  @NotNull
   public PagedSearchResult<ITEM> getItems(@Nullable final Locator locator) {
     if (locator == null) {
       return new PagedSearchResult<ITEM>(getAllItems(), null, null);
@@ -92,7 +96,7 @@ public abstract class AbstractFinder<ITEM> {
   }
 
   @Nullable
-  protected ITEM findSingleItem(final Locator locator){
+  protected ITEM findSingleItem(@NotNull final Locator locator){
     return null;
   }
 

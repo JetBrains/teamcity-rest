@@ -52,7 +52,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   }
 
   @Override
-  protected InvestigationWrapper findSingleItem(final Locator locator) {
+  protected InvestigationWrapper findSingleItem(@NotNull final Locator locator) {
     return null;
 
     /*
@@ -155,6 +155,16 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
       });
     }
 
+    final String problemDimension = locator.getSingleDimensionValue(PROBLEM_DIMENSION);
+    if (problemDimension != null) {
+      @NotNull final ProblemWrapper problem = myProblemFinder.getSingleItem(problemDimension);
+      result.add(new FilterConditionChecker<InvestigationWrapper>() {
+        public boolean isIncluded(@NotNull final InvestigationWrapper item) {
+          return isInvestigationRelatedToProblem(item, problem);
+        }
+      });
+    }
+
 //todo: add affectedProject, affectedBuildType
     return result;
   }
@@ -199,6 +209,14 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     return false;
   }
 
+  private boolean isInvestigationRelatedToProblem(final InvestigationWrapper item, final ProblemWrapper problem) {
+    if (!item.isProblem()){
+      return false;
+    }
+    @SuppressWarnings("ConstantConditions") @NotNull final BuildProblemResponsibilityEntry problemRE = item.getProblemRE();
+    return problemRE.getBuildProblemInfo().getId() == problem.getId() && problemRE.getBuildProblemInfo().getProjectId() == problem.getProject().getProjectId();
+  }
+
   public BuildTypeResponsibilityEntry getBuildTypeRE(@NotNull final SBuildType buildType) {
     final List<BuildTypeResponsibilityEntry> userBuildTypeResponsibilities = myBuildTypeResponsibilityFacade.getUserBuildTypeResponsibilities(null, null);
     for (BuildTypeResponsibilityEntry responsibility : userBuildTypeResponsibilities) {
@@ -208,5 +226,4 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     }
     throw new NotFoundException("Build type with id '" + buildType.getExternalId() + "' does not have associated investigation.");
   }
-
 }

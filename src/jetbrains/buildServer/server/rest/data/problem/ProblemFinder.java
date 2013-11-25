@@ -44,7 +44,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   }
 
   @Override
-  protected ProblemWrapper findSingleItem(final Locator locator) {
+  protected ProblemWrapper findSingleItem(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's id
       final Long parsedId = locator.getSingleValueAsLong();
@@ -73,13 +73,29 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   }
 
   @NotNull
-  public List<ProblemWrapper> getAllItems() {
-    final List<BuildProblem> currentBuildProblemsList = myBuildProblemManager.getCurrentBuildProblemsList(myProjectManager.getRootProject());
-    final ArrayList<ProblemWrapper> result = new ArrayList<ProblemWrapper>(currentBuildProblemsList.size());
-    for (BuildProblem buildProblem : currentBuildProblemsList) {
-      result.add(new ProblemWrapper(buildProblem, myServiceLocator));
+  public ProblemWrapper getSingleItem(@NotNull final String locator) {
+    final ProblemWrapper singleItem = findSingleItem(getLocatorOrNull(locator));
+    if (singleItem == null){
+      throw new NotFoundException("Cannot find problem by locator '" + locator + "'");
     }
-    return result;
+    return singleItem;
+  }
+
+  @Override
+  @NotNull
+  public List<ProblemWrapper> getAllItems() {
+    return convert(myBuildProblemManager.getCurrentBuildProblemsList(myProjectManager.getRootProject()));
+  }
+
+  @Override
+  protected List<ProblemWrapper> getPrefilteredItems(@NotNull final Locator locator) {
+    final String affectedProjectDimension = locator.getSingleDimensionValue("affectedProject");
+    if (affectedProjectDimension != null) {
+      @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
+      return convert(myBuildProblemManager.getCurrentBuildProblemsList(project));
+    }
+
+    return super.getPrefilteredItems(locator);
   }
 
   @Override
@@ -130,5 +146,14 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
       throw new NotFoundException("Cannot find problem instance by id '" + id + "'");
     }
     return new ProblemWrapper(problemById, myServiceLocator);
+  }
+
+  @NotNull
+  private ArrayList<ProblemWrapper> convert(@NotNull final List<BuildProblem> currentBuildProblemsList) {
+    final ArrayList<ProblemWrapper> result = new ArrayList<ProblemWrapper>(currentBuildProblemsList.size());
+    for (BuildProblem buildProblem : currentBuildProblemsList) {
+      result.add(new ProblemWrapper(buildProblem, myServiceLocator));
+    }
+    return result;
   }
 }
