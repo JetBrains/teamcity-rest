@@ -35,11 +35,11 @@ public class ProblemOccurrenceRequest {
   }
 
   public static String getHref(@NotNull final BuildProblem problem) {
-    return API_SUB_URL + "/" + ProblemOccurrenceFinder.getProblemLocator(problem);
+    return API_SUB_URL + "/" + ProblemOccurrenceFinder.getProblemOccurrenceLocator(problem);
   }
 
   public static String getHref(final @NotNull SBuild build) {
-    return API_SUB_URL + "?locator=" + ProblemOccurrenceFinder.BUILD + ":(" + BuildRequest.getBuildLocator(build) + ")"; //todo: use location rendering here
+    return API_SUB_URL + "?locator=" + ProblemOccurrenceFinder.getProblemOccurrenceLocator(build);
   }
 
   /**

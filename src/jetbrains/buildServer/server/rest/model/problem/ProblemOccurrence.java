@@ -22,7 +22,7 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "problemOccurrence")
 @XmlType(name = "problemOccurrence")
 public class ProblemOccurrence {
-  @XmlAttribute public String id;
+//  @XmlAttribute public String id;
   @XmlAttribute public String type;
   @XmlAttribute public String identity;
   @XmlAttribute public String href;
@@ -41,7 +41,7 @@ public class ProblemOccurrence {
   public ProblemOccurrence(final @NotNull BuildProblem problemP,
                            final @NotNull BeanContext beanContext,
                            final boolean fullDetails) {
-    id = String.valueOf(problemP.getId());
+//    id = String.valueOf(problemP.getId());
     type = problemP.getBuildProblemData().getType();
     identity = problemP.getBuildProblemData().getIdentity();
     href = beanContext.getApiUrlBuilder().transformRelativePath(ProblemOccurrenceRequest.getHref(problemP));
@@ -50,7 +50,7 @@ public class ProblemOccurrence {
       details = problemP.getBuildProblemData().getDescription();
       additionalData = problemP.getBuildProblemData().getAdditionalData();
 
-      problem = new Problem(new ProblemWrapper(problemP, beanContext.getServiceLocator()), beanContext.getServiceLocator(), beanContext.getApiUrlBuilder(), false);
+      problem = new Problem(new ProblemWrapper(problemP.getId(), beanContext.getServiceLocator()), beanContext.getServiceLocator(), beanContext.getApiUrlBuilder(), false);
 
       final MuteInfo muteInfo = problemP.getMuteInBuildInfo();
       if (muteInfo != null) {

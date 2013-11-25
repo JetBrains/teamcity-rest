@@ -68,6 +68,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     */
   }
 
+  @Override
   @NotNull
   public List<InvestigationWrapper> getAllItems() {
     final ArrayList<InvestigationWrapper> result = new ArrayList<InvestigationWrapper>();
@@ -214,7 +215,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
       return false;
     }
     @SuppressWarnings("ConstantConditions") @NotNull final BuildProblemResponsibilityEntry problemRE = item.getProblemRE();
-    return problemRE.getBuildProblemInfo().getId() == problem.getId() && problemRE.getBuildProblemInfo().getProjectId() == problem.getProject().getProjectId();
+    return problemRE.getBuildProblemInfo().getId() == problem.getId();
   }
 
   public BuildTypeResponsibilityEntry getBuildTypeRE(@NotNull final SBuildType buildType) {

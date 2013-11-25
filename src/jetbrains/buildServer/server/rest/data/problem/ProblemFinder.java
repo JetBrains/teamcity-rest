@@ -2,6 +2,8 @@ package jetbrains.buildServer.server.rest.data.problem;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.AbstractFinder;
@@ -20,6 +22,8 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 09.11.13
  */
 public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
+  public static final String CURRENT = "current";
+
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final UserFinder myUserFinder;
   @NotNull private final BuildFinder myBuildFinder;
@@ -34,7 +38,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
                        final @NotNull BuildProblemManager buildProblemManager,
                        final @NotNull ProjectManager projectManager,
                        final @NotNull ServiceLocator serviceLocator) {
-    super(new String[]{"identity", "type", "build", "affectedProject"});
+    super(new String[]{"identity", "type", "build", "affectedProject", CURRENT});
     myProjectFinder = projectFinder;
     myUserFinder = userFinder;
     myBuildFinder = buildFinder;
@@ -84,18 +88,22 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   @Override
   @NotNull
   public List<ProblemWrapper> getAllItems() {
-    return convert(myBuildProblemManager.getCurrentBuildProblemsList(myProjectManager.getRootProject()));
+    throw new BadRequestException("Listing all problems is not supported. Consider using locator: '" + CURRENT + "=true'");
   }
 
   @Override
   protected List<ProblemWrapper> getPrefilteredItems(@NotNull final Locator locator) {
-    final String affectedProjectDimension = locator.getSingleDimensionValue("affectedProject");
-    if (affectedProjectDimension != null) {
-      @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
-      return convert(myBuildProblemManager.getCurrentBuildProblemsList(project));
+    Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
+    if (currentDimension!= null && currentDimension) {
+      final String affectedProjectDimension = locator.getSingleDimensionValue("affectedProject");
+      if (affectedProjectDimension != null) {
+        @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
+        return getCurrentProblemsList(project);
+      }
+      return getCurrentProblemsList(null);
     }
 
-    return super.getPrefilteredItems(locator);
+    throw new BadRequestException("Listing all problems is not supported. Consider using locator: '" + CURRENT + "=true'");
   }
 
   @Override
@@ -129,31 +137,61 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     final String affectedProjectDimension = locator.getSingleDimensionValue("affectedProject");
     if (affectedProjectDimension != null) {
       @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
+      final Set<ProblemWrapper> currentProjectProblems = new TreeSet<ProblemWrapper>(getCurrentProblemsList(project));
       result.add(new FilterConditionChecker<ProblemWrapper>() {
         public boolean isIncluded(@NotNull final ProblemWrapper item) {
-          return project.getProjects().contains(item.getProject()); //todo: is there a dedicaed API call for this?
+          return currentProjectProblems.contains(item);  //todo: TeamCity API (VB): is there a dedicated API call for this?
         }
       });
     }
+
+    final String currentDimension = locator.getSingleDimensionValue(CURRENT);
+    if (currentDimension != null) {
+      final Set<ProblemWrapper> currentProblems = new TreeSet<ProblemWrapper>(getCurrentProblemsList(null));
+      result.add(new FilterConditionChecker<ProblemWrapper>() {
+        public boolean isIncluded(@NotNull final ProblemWrapper item) {
+          return currentProblems.contains(item);
+        }
+      });
+    }
+
     return result;
   }
 
   //todo: TeamCity API: how to do this effectively?
   @Nullable
   private ProblemWrapper findProblemWrapperById(@NotNull final Long id) {
-    final BuildProblem problemById = ProblemOccurrenceFinder.findProblemById(id, myServiceLocator);
+    final BuildProblem problemById = findProblemById(id, myServiceLocator);
     if (problemById == null){
       throw new NotFoundException("Cannot find problem instance by id '" + id + "'");
     }
-    return new ProblemWrapper(problemById, myServiceLocator);
+    return new ProblemWrapper(problemById.getId(), myServiceLocator);
+  }
+
+  //todo: TeamCity API (VB): should find even not current problems
+  //todo: TeamCity API: how to do this effectively?
+  @Nullable
+  public static BuildProblem findProblemById(@NotNull final Long id, @NotNull final ServiceLocator serviceLocator) {
+    final List<BuildProblem> currentBuildProblemsList = serviceLocator.getSingletonService(BuildProblemManager.class).getCurrentBuildProblemsList(
+      serviceLocator.getSingletonService(ProjectManager.class).getRootProject());
+    for (BuildProblem buildProblem : currentBuildProblemsList) {
+      if (id.equals(Long.valueOf(buildProblem.getId()))) return buildProblem; //todo: TeamCity API: can a single id appear several times here?
+    }
+    return null;
   }
 
   @NotNull
-  private ArrayList<ProblemWrapper> convert(@NotNull final List<BuildProblem> currentBuildProblemsList) {
-    final ArrayList<ProblemWrapper> result = new ArrayList<ProblemWrapper>(currentBuildProblemsList.size());
-    for (BuildProblem buildProblem : currentBuildProblemsList) {
-      result.add(new ProblemWrapper(buildProblem, myServiceLocator));
+  private List<ProblemWrapper> getCurrentProblemsList(@Nullable SProject project) {
+    if (project == null){
+      project = myProjectManager.getRootProject();
     }
-    return result;
+    final List<BuildProblem> currentBuildProblemsList = myBuildProblemManager.getCurrentBuildProblemsList(project);
+
+    @NotNull final Set<ProblemWrapper> resultSet = new TreeSet<ProblemWrapper>();
+    for (BuildProblem buildProblem : currentBuildProblemsList) {
+      resultSet.add(new ProblemWrapper(buildProblem.getId(), myServiceLocator));
+    }
+
+    return new ArrayList<ProblemWrapper>(resultSet);
   }
 }

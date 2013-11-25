@@ -9,7 +9,6 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.model.Href;
-import jetbrains.buildServer.server.rest.model.project.ProjectRef;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
 import jetbrains.buildServer.server.rest.request.ProblemRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -24,7 +23,7 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "problem")
 @XmlType(name = "problem", propOrder = {"id", "type", "identity", "href",
-  "project", "mutes", "investigations"})
+  "mutes", "investigations"})
 public class Problem {
   @XmlAttribute public String id;
   @XmlAttribute public String type;
@@ -34,7 +33,7 @@ public class Problem {
   /**
    * Experimental: project is an attribute of a problem in TeamCity API currently, but is subject to be removed
    */
-  @XmlElement public ProjectRef project;
+//  @XmlElement public ProjectRef project;
   @XmlElement public Mutes mutes; // todo: also make this href
   @XmlElement public Href investigations;
 
@@ -53,7 +52,7 @@ public class Problem {
     href = apiUrlBuilder.transformRelativePath(ProblemRequest.getHref(problem));
 
     if (fullDetails) {
-      project = new ProjectRef(problem.getProject(), apiUrlBuilder);
+//      project = new ProjectRef(problem.getProject(), apiUrlBuilder);
 
       final List<MuteInfo> actualMutes = problem.getMutes();
       if (actualMutes.size() > 0) {

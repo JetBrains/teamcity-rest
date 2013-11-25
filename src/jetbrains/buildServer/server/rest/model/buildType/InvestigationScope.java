@@ -73,7 +73,7 @@ public class InvestigationScope {
     } else if (investigation.isProblem()) {
       final BuildProblemResponsibilityEntry problemRE = investigation.getProblemRE();
       //noinspection ConstantConditions
-      problem = new Problem(new ProblemWrapper(problemRE.getBuildProblemInfo(), serviceLocator), serviceLocator, apiUrlBuilder, false);
+      problem = new Problem(new ProblemWrapper(problemRE.getBuildProblemInfo().getId(), serviceLocator), serviceLocator, apiUrlBuilder, false);
       project = new ProjectRef((SProject)problemRE.getProject(), apiUrlBuilder); //TeamCity open API issue: cast
     } else {
       throw new InvalidStateException("Investigation wrapper type is not supported");
