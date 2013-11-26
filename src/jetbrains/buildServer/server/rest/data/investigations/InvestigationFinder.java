@@ -17,6 +17,7 @@ import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -25,6 +26,9 @@ import org.jetbrains.annotations.NotNull;
 public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   public static final String PROBLEM_DIMENSION = "problem";
   public static final String TEST_DIMENSION = "test";
+  public static final String ASSIGNMENT_PROJECT = "assignmentProject";
+  public static final String AFFECTED_PROJECT = "affectedProject";
+  public static final String ASSIGNEE = "assignee";
   private final ProjectFinder myProjectFinder;
   private final ProblemFinder myProblemFinder;
   private final TestFinder myTestFinder;
@@ -41,7 +45,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
                              final BuildTypeResponsibilityFacade buildTypeResponsibilityFacade,
                              final TestNameResponsibilityFacade testNameResponsibilityFacade,
                              final BuildProblemResponsibilityFacade buildProblemResponsibilityFacade) {
-    super(new String[]{"assignee", "reporter", "type", "state", "assignmentProject", PROBLEM_DIMENSION});
+    super(new String[]{ASSIGNEE, "reporter", "type", "state", ASSIGNMENT_PROJECT, AFFECTED_PROJECT, PROBLEM_DIMENSION});
     myProjectFinder = projectFinder;
     myProblemFinder = problemFinder;
     myTestFinder = testFinder;
@@ -71,31 +75,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   @Override
   @NotNull
   public List<InvestigationWrapper> getAllItems() {
-    final ArrayList<InvestigationWrapper> result = new ArrayList<InvestigationWrapper>();
-
-    final List<BuildTypeResponsibilityEntry> buildTypeResponsibilities = myBuildTypeResponsibilityFacade.getUserBuildTypeResponsibilities(null, null);
-    result.addAll(CollectionsUtil.convertCollection(buildTypeResponsibilities, new Converter<InvestigationWrapper, BuildTypeResponsibilityEntry>() {
-      public InvestigationWrapper createFrom(@NotNull final BuildTypeResponsibilityEntry source) {
-        return new InvestigationWrapper(source);
-      }
-    }));
-
-    final List<TestNameResponsibilityEntry> testResponsibilities = myTestNameResponsibilityFacade.getUserTestNameResponsibilities(null, null);
-    result.addAll(CollectionsUtil.convertCollection(testResponsibilities, new Converter<InvestigationWrapper, TestNameResponsibilityEntry>() {
-      public InvestigationWrapper createFrom(@NotNull final TestNameResponsibilityEntry source) {
-        return new InvestigationWrapper(source);
-      }
-    }));
-
-    final List<BuildProblemResponsibilityEntry> problemResponsibilities = myBuildProblemResponsibilityFacade.getUserBuildProblemResponsibilities(null, null);
-    result.addAll(CollectionsUtil.convertCollection(problemResponsibilities, new Converter<InvestigationWrapper, BuildProblemResponsibilityEntry>() {
-      public InvestigationWrapper createFrom(@NotNull final BuildProblemResponsibilityEntry source) {
-        return new InvestigationWrapper(source);
-      }
-    }));
-
-    //todo: sort!
-    return result;
+    return getInvestigationWrappersForProject(null, null);
   }
 
   @Override
@@ -108,7 +88,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     final MultiCheckerFilter<InvestigationWrapper> result =
       new MultiCheckerFilter<InvestigationWrapper>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
 
-    final String investigatorDimension = locator.getSingleDimensionValue("assignee");
+    final String investigatorDimension = locator.getSingleDimensionValue(ASSIGNEE);
     if (investigatorDimension != null) {
       @NotNull final User user = myUserFinder.getUser(investigatorDimension);
       result.add(new FilterConditionChecker<InvestigationWrapper>() {
@@ -146,27 +126,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
       });
     }
 
-    final String projectDimension = locator.getSingleDimensionValue("assignmentProject");
-    if (projectDimension != null) {
-      @NotNull final SProject project = myProjectFinder.getProject(projectDimension);
-      result.add(new FilterConditionChecker<InvestigationWrapper>() {
-        public boolean isIncluded(@NotNull final InvestigationWrapper item) {
-          return isInvestigationRelatedToProject(item, project);
-        }
-      });
-    }
-
-    final String problemDimension = locator.getSingleDimensionValue(PROBLEM_DIMENSION);
-    if (problemDimension != null) {
-      @NotNull final ProblemWrapper problem = myProblemFinder.getSingleItem(problemDimension);
-      result.add(new FilterConditionChecker<InvestigationWrapper>() {
-        public boolean isIncluded(@NotNull final InvestigationWrapper item) {
-          return isInvestigationRelatedToProblem(item, problem);
-        }
-      });
-    }
-
-//todo: add affectedProject, affectedBuildType
+//todo: add affectedBuildType
     return result;
   }
 
@@ -183,10 +143,75 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
       final STest test = myTestFinder.getItem(testDimension);
       return getInvestigationWrappers(test);
     }
+
+    @Nullable User user = null;
+    final String investigatorDimension = locator.getSingleDimensionValue(ASSIGNEE);
+    if (investigatorDimension != null) {
+      user = myUserFinder.getUser(investigatorDimension);
+    }
+
+    final String assignmentProjectDimension = locator.getSingleDimensionValue(ASSIGNMENT_PROJECT);
+    if (assignmentProjectDimension != null){
+      @NotNull final SProject project = myProjectFinder.getProject(assignmentProjectDimension);
+
+      return getInvestigationWrappersForProject(project, user);
+    }
+
+    final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
+    if (affectedProjectDimension != null){
+      @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
+      return getInvestigationWrappersForProjectWithSubprojects(project, user);
+    }
+
     return super.getPrefilteredItems(locator);
   }
 
-  private List<InvestigationWrapper> getInvestigationWrappers(final STest item) {
+  @NotNull
+  private List<InvestigationWrapper> getInvestigationWrappersForProjectWithSubprojects(@NotNull final SProject project, @Nullable User user) {
+    final ArrayList<InvestigationWrapper> result = new ArrayList<InvestigationWrapper>();
+
+    result.addAll(getInvestigationWrappersForProject(project, user));
+
+    //todo: TeamCity API: is there a dedicated wahy to do this?
+    final List<SProject> subProjects = project.getProjects();
+    for (SProject subProject : subProjects) {
+      result.addAll(getInvestigationWrappersForProject(subProject, user));
+    }
+    return result;
+  }
+
+  private List<InvestigationWrapper> getInvestigationWrappersForProject(@Nullable final SProject project, @Nullable User user) {
+    final ArrayList<InvestigationWrapper> result = new ArrayList<InvestigationWrapper>();
+
+    final String projectId = project == null ? null : project.getProjectId();
+
+    final List<BuildTypeResponsibilityEntry> buildTypeResponsibilities = myBuildTypeResponsibilityFacade.getUserBuildTypeResponsibilities(user, projectId);
+    result.addAll(CollectionsUtil.convertCollection(buildTypeResponsibilities, new Converter<InvestigationWrapper, BuildTypeResponsibilityEntry>() {
+      public InvestigationWrapper createFrom(@NotNull final BuildTypeResponsibilityEntry source) {
+        return new InvestigationWrapper(source);
+      }
+    }));
+
+    final List<TestNameResponsibilityEntry> testResponsibilities = myTestNameResponsibilityFacade.getUserTestNameResponsibilities(user, projectId);
+    result.addAll(CollectionsUtil.convertCollection(testResponsibilities, new Converter<InvestigationWrapper, TestNameResponsibilityEntry>() {
+      public InvestigationWrapper createFrom(@NotNull final TestNameResponsibilityEntry source) {
+        return new InvestigationWrapper(source);
+      }
+    }));
+
+    final List<BuildProblemResponsibilityEntry> problemResponsibilities = myBuildProblemResponsibilityFacade.getUserBuildProblemResponsibilities(user, projectId);
+    result.addAll(CollectionsUtil.convertCollection(problemResponsibilities, new Converter<InvestigationWrapper, BuildProblemResponsibilityEntry>() {
+      public InvestigationWrapper createFrom(@NotNull final BuildProblemResponsibilityEntry source) {
+        return new InvestigationWrapper(source);
+      }
+    }));
+
+    //todo: sort!
+    return result;
+  }
+
+  @NotNull
+  private List<InvestigationWrapper> getInvestigationWrappers(@NotNull final STest item) {
     final List<TestNameResponsibilityEntry> responsibilities = item.getAllResponsibilities();
     final ArrayList<InvestigationWrapper> result = new ArrayList<InvestigationWrapper>(responsibilities.size());
     for (TestNameResponsibilityEntry responsibility : responsibilities) {
@@ -196,21 +221,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   }
 
 
-  @SuppressWarnings("RedundantIfStatement")
-  private boolean isInvestigationRelatedToProject(final InvestigationWrapper item, final SProject project) {
-    if (myBuildTypeResponsibilityFacade.getUserBuildTypeResponsibilities(null, project.getProjectId()).contains(item.getBuildTypeRE())){
-      return true;
-    }
-    if (myTestNameResponsibilityFacade.getUserTestNameResponsibilities(null, project.getProjectId()).contains(item.getTestRE())){
-      return true;
-    }
-    if (myBuildProblemResponsibilityFacade.getUserBuildProblemResponsibilities(null, project.getProjectId()).contains(item.getProblemRE())){
-      return true;
-    }
-    return false;
-  }
-
-  private boolean isInvestigationRelatedToProblem(final InvestigationWrapper item, final ProblemWrapper problem) {
+  private boolean isInvestigationRelatedToProblem(@NotNull final InvestigationWrapper item, @NotNull final ProblemWrapper problem) {
     if (!item.isProblem()){
       return false;
     }
