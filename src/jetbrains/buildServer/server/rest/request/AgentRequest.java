@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.request;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
 import jetbrains.buildServer.server.rest.data.AgentsSearchFields;
@@ -25,6 +26,7 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
+import jetbrains.buildServer.serverSide.BuildAgentManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import org.jetbrains.annotations.NotNull;
 
@@ -37,6 +39,7 @@ public class AgentRequest {
   @Context private DataProvider myDataProvider;
   @Context private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private AgentPoolsFinder myAgentPoolsFinder;
+  @Context @NotNull private ServiceLocator myServiceLocator;
 
   public static final String API_AGENTS_URL = Constants.API_URL + "/agents";
 
@@ -56,6 +59,14 @@ public class AgentRequest {
   @Produces({"application/xml", "application/json"})
   public Agent serveAgent(@PathParam("agentLocator") String agentLocator) {
     return new Agent(myDataProvider.getAgent(agentLocator), myAgentPoolsFinder, myApiUrlBuilder);
+  }
+
+  @DELETE
+  @Path("/{agentLocator}")
+  @Produces({"application/xml", "application/json"})
+  public void deleteAgent(@PathParam("agentLocator") String agentLocator) {
+    final SBuildAgent agent = myDataProvider.getAgent(agentLocator);
+    myServiceLocator.getSingletonService(BuildAgentManager.class).removeAgent(agent, myDataProvider.getCurrentUser());
   }
 
   @GET
