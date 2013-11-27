@@ -339,6 +339,11 @@ public class DataProvider {
     if (dateString == null) {
       return null;
     }
+    return getDate(dateString);
+  }
+
+  @NotNull
+  public static Date getDate(@NotNull final String dateString) {
     try {
       return new SimpleDateFormat(Constants.TIME_FORMAT).parse(dateString);
     } catch (ParseException e) {

@@ -1,6 +1,7 @@
 package jetbrains.buildServer.server.rest.data.investigations;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import jetbrains.buildServer.responsibility.*;
 import jetbrains.buildServer.server.rest.data.*;
@@ -29,6 +30,10 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   public static final String ASSIGNMENT_PROJECT = "assignmentProject";
   public static final String AFFECTED_PROJECT = "affectedProject";
   public static final String ASSIGNEE = "assignee";
+  public static final String SINCE_DATE = "sinceDate";
+  public static final String STATE = "state";
+  public static final String TYPE = "type";
+  public static final String REPORTER = "reporter";
   private final ProjectFinder myProjectFinder;
   private final ProblemFinder myProblemFinder;
   private final TestFinder myTestFinder;
@@ -45,7 +50,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
                              final BuildTypeResponsibilityFacade buildTypeResponsibilityFacade,
                              final TestNameResponsibilityFacade testNameResponsibilityFacade,
                              final BuildProblemResponsibilityFacade buildProblemResponsibilityFacade) {
-    super(new String[]{ASSIGNEE, "reporter", "type", "state", ASSIGNMENT_PROJECT, AFFECTED_PROJECT, TEST_DIMENSION, PROBLEM_DIMENSION});
+    super(new String[]{ASSIGNEE, REPORTER, TYPE, STATE, SINCE_DATE,ASSIGNMENT_PROJECT, AFFECTED_PROJECT, TEST_DIMENSION, PROBLEM_DIMENSION});
     myProjectFinder = projectFinder;
     myProblemFinder = problemFinder;
     myTestFinder = testFinder;
@@ -98,7 +103,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
       });
     }
 
-    final String reporterDimension = locator.getSingleDimensionValue("reporter");
+    final String reporterDimension = locator.getSingleDimensionValue(REPORTER);
     if (reporterDimension != null) {
       @NotNull final User user = myUserFinder.getUser(reporterDimension);
       result.add(new FilterConditionChecker<InvestigationWrapper>() {
@@ -108,7 +113,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
       });
     }
 
-    final String typeDimension = locator.getSingleDimensionValue("type");
+    final String typeDimension = locator.getSingleDimensionValue(TYPE);
     if (typeDimension != null) {
       result.add(new FilterConditionChecker<InvestigationWrapper>() {
         public boolean isIncluded(@NotNull final InvestigationWrapper item) {
@@ -117,11 +122,21 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
       });
     }
 
-    final String stateDimension = locator.getSingleDimensionValue("state");
+    final String stateDimension = locator.getSingleDimensionValue(STATE);
     if (stateDimension != null) {
       result.add(new FilterConditionChecker<InvestigationWrapper>() {
         public boolean isIncluded(@NotNull final InvestigationWrapper item) {
           return stateDimension.equals(item.getState().name());
+        }
+      });
+    }
+
+    final String sinceDateDimension = locator.getSingleDimensionValue(SINCE_DATE);
+    if (sinceDateDimension != null) {
+      final Date date = DataProvider.getDate(sinceDateDimension);
+      result.add(new FilterConditionChecker<InvestigationWrapper>() {
+        public boolean isIncluded(@NotNull final InvestigationWrapper item) {
+          return date.before(item.getTimestamp());
         }
       });
     }
