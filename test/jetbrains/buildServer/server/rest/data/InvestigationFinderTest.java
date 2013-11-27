@@ -42,7 +42,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     myProjectManager = myFixture.getProjectManager();
     final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
     final UserFinder userFinder = new UserFinder(myFixture);
-    myInvestigationFinder = new InvestigationFinder(projectFinder, null, null, userFinder, myFixture.getResponsibilityFacadeEx(), myFixture.getResponsibilityFacadeEx(),
+    myInvestigationFinder = new InvestigationFinder(projectFinder, null, null, null, userFinder, myFixture.getResponsibilityFacadeEx(), myFixture.getResponsibilityFacadeEx(),
                                                     myFixture.getResponsibilityFacadeEx());
   }
 

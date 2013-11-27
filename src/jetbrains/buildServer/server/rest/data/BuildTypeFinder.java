@@ -34,6 +34,16 @@ public class BuildTypeFinder {
   }
 
   @NotNull
+  public static String getLocator(@NotNull final SBuildType buildType) {
+    return Locator.createEmptyLocator().setDimension(DIMENSION_ID, buildType.getExternalId()).getStringRepresentation();
+  }
+
+  @NotNull
+  public static String getLocator(@NotNull final BuildTypeTemplate template) {
+    return Locator.createEmptyLocator().setDimension(DIMENSION_ID, template.getExternalId()).getStringRepresentation();
+  }
+
+  @NotNull
   public BuildTypeOrTemplate getBuildTypeOrTemplate(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
     if (StringUtil.isEmpty(buildTypeLocator)) {
       throw new BadRequestException("Empty build type locator is not supported.");

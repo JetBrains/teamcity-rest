@@ -21,12 +21,15 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.BuildsRef;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
+import jetbrains.buildServer.server.rest.request.InvestigationRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeTemplate;
@@ -40,7 +43,7 @@ import jetbrains.buildServer.serverSide.TeamCityProperties;
 @XmlRootElement(name = "buildType")
 @XmlType(name = "buildType", propOrder = { "id", "internalId", "name", "href", "templateFlag", "webUrl", "description", "paused",
   "project", "template", "builds", "vcsRootEntries", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
-  "artifactDependencies", "agentRequirements"})
+  "artifactDependencies", "agentRequirements", "investigations"})
 public class BuildType {
   private static final Logger LOG = Logger.getInstance(BuildType.class.getName());
 
@@ -181,5 +184,23 @@ public class BuildType {
   @XmlElement(name="settings")
   public Properties getSettings() {
     return new Properties(BuildTypeUtil.getSettingsParameters(myBuildType));
+  }
+
+  /**
+   * Link to investigations for this build type
+   *
+   * @return
+   */
+  @XmlElement(name = "investigations")
+  public Href getInvestigations() {
+    if (!myBuildType.isBuildType()) {
+      return null;
+    }
+
+    final ResponsibilityEntry.State state = myBuildType.getBuildType().getResponsibilityInfo().getState();
+    if (!state.equals(ResponsibilityEntry.State.NONE)) {
+      return new Href(InvestigationRequest.getHref(myBuildType.getBuildType()), myApiUrlBuilder);
+    }
+    return null;
   }
 }

@@ -1,6 +1,7 @@
 package jetbrains.buildServer.server.rest.data.investigations;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import jetbrains.buildServer.responsibility.*;
@@ -34,7 +35,9 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   public static final String STATE = "state";
   public static final String TYPE = "type";
   public static final String REPORTER = "reporter";
+  public static final String BUILD_TYPE = "buildType";
   private final ProjectFinder myProjectFinder;
+  private final BuildTypeFinder myBuildTypeFinder;
   private final ProblemFinder myProblemFinder;
   private final TestFinder myTestFinder;
   private final UserFinder myUserFinder;
@@ -44,20 +47,27 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   private final BuildProblemResponsibilityFacade myBuildProblemResponsibilityFacade;
 
   public InvestigationFinder(final ProjectFinder projectFinder,
+                             final BuildTypeFinder buildTypeFinder,
                              final ProblemFinder problemFinder,
                              final TestFinder testFinder,
                              final UserFinder userFinder,
                              final BuildTypeResponsibilityFacade buildTypeResponsibilityFacade,
                              final TestNameResponsibilityFacade testNameResponsibilityFacade,
                              final BuildProblemResponsibilityFacade buildProblemResponsibilityFacade) {
-    super(new String[]{ASSIGNEE, REPORTER, TYPE, STATE, SINCE_DATE,ASSIGNMENT_PROJECT, AFFECTED_PROJECT, TEST_DIMENSION, PROBLEM_DIMENSION});
+    super(new String[]{ASSIGNEE, REPORTER, TYPE, STATE, SINCE_DATE,ASSIGNMENT_PROJECT, AFFECTED_PROJECT, BUILD_TYPE, TEST_DIMENSION, PROBLEM_DIMENSION});
     myProjectFinder = projectFinder;
+    myBuildTypeFinder = buildTypeFinder;
     myProblemFinder = problemFinder;
     myTestFinder = testFinder;
     myUserFinder = userFinder;
     myBuildTypeResponsibilityFacade = buildTypeResponsibilityFacade;
     myTestNameResponsibilityFacade = testNameResponsibilityFacade;
     myBuildProblemResponsibilityFacade = buildProblemResponsibilityFacade;
+  }
+
+
+  public static String getLocator(@NotNull final SBuildType buildType) {
+    return Locator.createEmptyLocator().setDimension(BUILD_TYPE, BuildTypeFinder.getLocator(buildType)).getStringRepresentation();
   }
 
   @Override
@@ -178,7 +188,23 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
       return getInvestigationWrappersForProjectWithSubprojects(project, user);
     }
 
+    final String buildTypeDimension = locator.getSingleDimensionValue(BUILD_TYPE);
+    if (buildTypeDimension != null){
+      final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension);
+      return getInvestigationWrappersForBuildType(buildType);
+    }
+
     return super.getPrefilteredItems(locator);
+  }
+
+  public List<InvestigationWrapper> getInvestigationWrappersForBuildType(final SBuildType buildType) {
+    final ResponsibilityEntry responsibilityInfo = buildType.getResponsibilityInfo();
+    final ResponsibilityEntry.State state = responsibilityInfo.getState();
+    if (state.equals(ResponsibilityEntry.State.NONE)) {
+      return Collections.<InvestigationWrapper>emptyList();
+    } else {
+      return Collections.singletonList(new InvestigationWrapper(getBuildTypeRE(buildType)));
+    }
   }
 
   @NotNull
@@ -245,6 +271,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   }
 
   public BuildTypeResponsibilityEntry getBuildTypeRE(@NotNull final SBuildType buildType) {
+    //todo: TeamCity API (MP): would be good to use buildType.getResponsibilityInfo() here
     final List<BuildTypeResponsibilityEntry> userBuildTypeResponsibilities = myBuildTypeResponsibilityFacade.getUserBuildTypeResponsibilities(null, null);
     for (BuildTypeResponsibilityEntry responsibility : userBuildTypeResponsibilities) {
       if (responsibility.getBuildType().equals(buildType)){
