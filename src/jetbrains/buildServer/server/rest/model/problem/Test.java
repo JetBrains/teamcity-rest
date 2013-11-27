@@ -9,6 +9,7 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
+import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
 import jetbrains.buildServer.server.rest.request.TestRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.STest;
@@ -23,7 +24,7 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "test")
 @XmlType(name = "test", propOrder = {"id", "name",
-  "mutes", "investigations"})
+  "mutes", "investigations", "testOccurrences"})
 public class Test {
   @XmlAttribute public long id;
   @XmlAttribute public String name;
@@ -31,6 +32,7 @@ public class Test {
 
   @XmlElement public Mutes mutes;  // todo: also make this href
   @XmlElement public Href investigations;
+  @XmlElement public Href testOccurrences;
 
   public Test() {
   }
@@ -43,7 +45,6 @@ public class Test {
     href = apiUrlBuilder.transformRelativePath(TestRequest.getHref(test));
 
     if (fullDetails) {
-
       final ArrayList<MuteInfo> muteInfos = new ArrayList<MuteInfo>();
       final CurrentMuteInfo currentMuteInfo = test.getCurrentMuteInfo(); //todo: TeamCity API: how to get unique mutes?
       if (currentMuteInfo != null) {
@@ -56,6 +57,7 @@ public class Test {
       if (test.getAllResponsibilities().size() > 0) {
         investigations = new Href(InvestigationRequest.getHref(test), apiUrlBuilder);
       }
+      testOccurrences = new Href(TestOccurrenceRequest.getHref(test), apiUrlBuilder);
     }
   }
 }
