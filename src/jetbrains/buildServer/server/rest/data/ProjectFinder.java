@@ -42,7 +42,7 @@ public class ProjectFinder {
       if (project != null) {
         return project;
       }
-      final List<SProject> projectsByName = findProjectsByName(myProjectManager.getRootProject(), singleValue);
+      final List<SProject> projectsByName = findProjectsByName(getRootProject(), singleValue);
       if (projectsByName.size() == 1) {
         project = projectsByName.get(0);
         if (project != null) {
@@ -93,7 +93,7 @@ public class ProjectFinder {
     String name = locator.getSingleDimensionValue("name");
     if (name != null) {
       final String parentProjectLocator = locator.getSingleDimensionValue("parentProject");
-      @NotNull SProject parentProject = myProjectManager.getRootProject();
+      @NotNull SProject parentProject = getRootProject();
       if (parentProjectLocator != null){
         parentProject = getProject(parentProjectLocator);
       }
@@ -103,6 +103,11 @@ public class ProjectFinder {
     }
     locator.checkLocatorFullyProcessed();
     throw new BadRequestException("Project locator '" + projectLocator + "' is not supported.");
+  }
+
+  @NotNull
+  public SProject getRootProject() {
+    return myProjectManager.getRootProject();
   }
 
   @NotNull

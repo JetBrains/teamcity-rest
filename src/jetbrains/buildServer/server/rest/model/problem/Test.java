@@ -8,12 +8,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.Href;
-import jetbrains.buildServer.server.rest.model.project.ProjectRef;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
 import jetbrains.buildServer.server.rest.request.TestRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.ProjectManager;
-import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
@@ -26,16 +23,12 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "test")
 @XmlType(name = "test", propOrder = {"id", "name",
-  "project", "mutes", "investigations"})
+  "mutes", "investigations"})
 public class Test {
   @XmlAttribute public long id;
   @XmlAttribute public String name;
   @XmlAttribute public String href;
 
-  /**
-   * Experimental: project is an attribute of a problem in TeamCity API currently, but is subject to be removed
-   */
-  @XmlElement public ProjectRef project;
   @XmlElement public Mutes mutes;  // todo: also make this href
   @XmlElement public Href investigations;
 
@@ -50,12 +43,6 @@ public class Test {
     href = apiUrlBuilder.transformRelativePath(TestRequest.getHref(test));
 
     if (fullDetails) {
-      final SProject projectById = beanContext.getSingletonService(ProjectManager.class).findProjectById(test.getProjectId());
-      if (projectById != null) {
-        project = new ProjectRef(projectById, apiUrlBuilder);
-      } else {
-        project = new ProjectRef(null, test.getProjectId(), apiUrlBuilder);
-      }
 
       final ArrayList<MuteInfo> muteInfos = new ArrayList<MuteInfo>();
       final CurrentMuteInfo currentMuteInfo = test.getCurrentMuteInfo(); //todo: TeamCity API: how to get unique mutes?

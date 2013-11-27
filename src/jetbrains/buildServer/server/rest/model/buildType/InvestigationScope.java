@@ -62,12 +62,11 @@ public class InvestigationScope {
       @SuppressWarnings("ConstantConditions") @NotNull final TestNameResponsibilityEntry testRE = investigation.getTestRE();
       final BeanContext beanContext = new BeanContext(serviceLocator.getSingletonService(BeanFactory.class), serviceLocator, apiUrlBuilder);
 
-      final STest foundTest = serviceLocator.getSingletonService(TestFinder.class).findTest(testRE.getTestNameId(), testRE.getProjectId());
+      final STest foundTest = serviceLocator.getSingletonService(TestFinder.class).findTest(testRE.getTestNameId());
       if (foundTest == null){
-        throw new InvalidStateException("Cannot find test for investigation. Test name id: '" + testRE.getTestNameId() + "', project id: '" + testRE.getProjectId() + "'.");
+        throw new InvalidStateException("Cannot find test for investigation. Test name id: '" + testRE.getTestNameId() + "'.");
       }
       test = new Test(foundTest, beanContext, false);
-
 
       project = new ProjectRef((SProject)testRE.getProject(), apiUrlBuilder); //TeamCity open API issue: cast
     } else if (investigation.isProblem()) {

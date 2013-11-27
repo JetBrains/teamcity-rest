@@ -328,7 +328,7 @@ public class Locator {
    * @param name name of the dimension
    * @param value value of the dimension
    */
-  public void setDimension(@NotNull final String name, @NotNull final String value) {
+  public Locator setDimension(@NotNull final String name, @NotNull final String value) {
     if (isSingleValue()){
       throw new LocatorProcessException("Attempt to set dimension '" + name + "' for single value locator.");
     }
@@ -336,6 +336,7 @@ public class Locator {
     myDimensions.put(name, value);
     myUsedDimensions.remove(name);
     modified = true; // todo: use setDimension to replace the dimension in myRawValue
+    return this;
   }
 
   /**

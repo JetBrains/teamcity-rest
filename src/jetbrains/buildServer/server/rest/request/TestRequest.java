@@ -34,11 +34,7 @@ public class TestRequest {
   }
 
   public static String getHref(final @NotNull STest test) {
-    return API_SUB_URL + "/" + getTestLocator(test); //todo: use locator rendering here
-  }
-
-  public static String getTestLocator(final @NotNull STest test) {
-    return "id:" + test.getTestNameId() + ",project:(" + test.getProjectExternalId() + ")";
+    return API_SUB_URL + "/" + TestFinder.getTestLocator(test);
   }
 
   /**

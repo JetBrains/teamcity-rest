@@ -6,9 +6,9 @@ import jetbrains.buildServer.server.rest.data.investigations.AbstractFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.STestManager;
+import jetbrains.buildServer.serverSide.TestName2IndexImpl;
 import jetbrains.buildServer.tests.TestName;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -18,58 +18,65 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 09.11.13
  */
 public class TestFinder extends AbstractFinder<STest> {
+  public static final String NAME = "name";
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final STestManager myTestManager;
+  @NotNull private final TestName2IndexImpl myTestName2Index; //TeamCIty open API issue
 
-  public TestFinder(final @NotNull ProjectFinder projectFinder, final @NotNull STestManager testManager) {
-    super(new String[]{Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, DIMENSION_ID, "name", "project"}); //todo: specify dimensions
+  public TestFinder(final @NotNull ProjectFinder projectFinder,
+                    final @NotNull STestManager testManager,
+                    final @NotNull TestName2IndexImpl testName2Index) {
+    super(new String[]{Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, DIMENSION_ID, NAME}); //todo: specify dimensions
     myTestManager = testManager;
     myProjectFinder = projectFinder;
+    myTestName2Index = testName2Index;
+  }
+
+  public static String getTestLocator(final @NotNull STest test) {
+    return Locator.createEmptyLocator().setDimension("id", String.valueOf(test.getTestNameId())).getStringRepresentation();
   }
 
   @Override
   @Nullable
   protected STest findSingleItem(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
-      return null;
-      /*
       // no dimensions found, assume it's id
       final Long parsedId = locator.getSingleValueAsLong();
       if (parsedId == null) {
         throw new BadRequestException("Expecting id, found empty value.");
       }
-      STest item = myTestBridge.findTest(parsedId, null);
+      STest item = findTest(parsedId);
       if (item == null) {
-        throw new NotFoundException("No test can be found by id '" + parsedId + "'.");
+        throw new NotFoundException("No test can be found by id '" + parsedId + "' on the entire server.");
       }
       locator.checkLocatorFullyProcessed();
       return item;
-      */
     }
 
     // dimension-specific item search
 
-    String projectDimension = locator.getSingleDimensionValue("project");
-    if (projectDimension != null) {
-      SProject project = myProjectFinder.getProject(projectDimension);
-      Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
-      if (id != null) {
-        STest item = findTest(id, project.getProjectId());
-        if (item == null) {
-          throw new NotFoundException("No test" + " can be found by " + DIMENSION_ID + " '" + id + "' in project " + project.describe(false));
-        }
-        return item;
+    Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
+    if (id != null) {
+      STest item = findTest(id);
+      if (item == null) {
+        throw new NotFoundException("No test" + " can be found by " + DIMENSION_ID + " '" + id + "' on the entire server.");
       }
-
-      String nameDimension = locator.getSingleDimensionValue("name");
-      if (nameDimension != null) {
-        STest item = myTestManager.createTest(new TestName(nameDimension), project.getProjectId()); //todo: TeamCity API: what does it mean to create a test? Can I check if the test is reported?
-        return item;
-      }
+      return item;
     }
+
+    String nameDimension = locator.getSingleDimensionValue(NAME);
+    if (nameDimension != null) {
+      final Long testNameId = myTestName2Index.findTestNameId(new TestName(nameDimension));
+      if (testNameId == null) {
+        throw new NotFoundException("No test can be found by " + NAME + " '" + nameDimension + "' on the entire server.");
+      }
+      return findTest(testNameId);
+    }
+
     return null;
   }
 
+  @Override
   @NotNull
   public List<STest> getAllItems() {
     throw new IllegalStateException("Sorry, listing tests is not implemented yet");
@@ -85,7 +92,7 @@ public class TestFinder extends AbstractFinder<STest> {
     final MultiCheckerFilter<STest> result =
       new MultiCheckerFilter<STest>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
 
-    final String nameDimension = locator.getSingleDimensionValue("name");
+    final String nameDimension = locator.getSingleDimensionValue(NAME);
     if (nameDimension != null) {
       result.add(new FilterConditionChecker<STest>() {
         public boolean isIncluded(@NotNull final STest item) {
@@ -97,7 +104,7 @@ public class TestFinder extends AbstractFinder<STest> {
   }
 
   @Nullable
-  public STest findTest(final @NotNull Long testNameId, final @NotNull String projectInternalId) {
-    return myTestManager.findTest(testNameId, projectInternalId);
+  public STest findTest(final @NotNull Long testNameId) {
+    return myTestManager.findTest(testNameId, myProjectFinder.getRootProject().getProjectId()); //STest in root project should have all the data across entire server
   }
 }

@@ -45,7 +45,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
                              final BuildTypeResponsibilityFacade buildTypeResponsibilityFacade,
                              final TestNameResponsibilityFacade testNameResponsibilityFacade,
                              final BuildProblemResponsibilityFacade buildProblemResponsibilityFacade) {
-    super(new String[]{ASSIGNEE, "reporter", "type", "state", ASSIGNMENT_PROJECT, AFFECTED_PROJECT, PROBLEM_DIMENSION});
+    super(new String[]{ASSIGNEE, "reporter", "type", "state", ASSIGNMENT_PROJECT, AFFECTED_PROJECT, TEST_DIMENSION, PROBLEM_DIMENSION});
     myProjectFinder = projectFinder;
     myProblemFinder = problemFinder;
     myTestFinder = testFinder;
