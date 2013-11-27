@@ -22,6 +22,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   public static final String BUILD_TYPE = "buildType";
   public static final String PROJECT = "project";
   public static final String STATUS = "status";
+  public static final String BRANCH = "branch";
+  public static final String IGNORED = "ignored";
   @NotNull private final TestFinder myTestFinder;
   @NotNull private final BuildFinder myBuildFinder;
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
@@ -33,7 +35,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
                               final @NotNull BuildFinder buildFinder,
                               final @NotNull BuildTypeFinder buildTypeFinder,
                               final @NotNull ProjectFinder projectFinder, final @NotNull BuildHistoryEx buildHistory) {
-    super(new String[]{/*Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME,*/ DIMENSION_ID, TEST, BUILD_TYPE, BUILD, PROJECT, STATUS});
+    super(new String[]{/*Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME,*/ DIMENSION_ID, TEST, BUILD_TYPE, BUILD, PROJECT, STATUS, BRANCH, IGNORED});
     myTestFinder = testFinder;
     myBuildFinder = buildFinder;
     myBuildTypeFinder = buildTypeFinder;
@@ -121,10 +123,12 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     if (testDimension != null) {
       STest test = myTestFinder.getItem(testDimension);
 
+      String branchDimension = locator.getSingleDimensionValue(BRANCH);
+
       String buildTypeDimension = locator.getSingleDimensionValue(BUILD_TYPE);
       if (buildTypeDimension != null) {
         final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension);
-        return myBuildHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), -1, null); //no personal builds, no branches filtering
+        return myBuildHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), 0, branchDimension); //no personal builds
       }
 
       String projectDimension = locator.getSingleDimensionValue(PROJECT);
@@ -132,7 +136,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         final SProject project = myProjectFinder.getProject(projectDimension);
         return myBuildHistory.getTestHistory(test.getTestNameId(), project, -1, null); //no personal builds, no branches filtering
       }
-      return myBuildHistory.getTestHistory(test.getTestNameId(), myProjectFinder.getRootProject(), -1, null);
+      return myBuildHistory.getTestHistory(test.getTestNameId(), myProjectFinder.getRootProject(), 0, branchDimension); //no personal builds
     }
 
     throw new IllegalStateException("Sorry, listing tests is not implemented yet");
@@ -154,6 +158,15 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       result.add(new FilterConditionChecker<STestRun>() {
         public boolean isIncluded(@NotNull final STestRun item) {
           return statusDimension.equals(item.getStatus().getText());
+        }
+      });
+    }
+
+    final Boolean ignoredDimension = locator.getSingleDimensionValueAsBoolean(IGNORED);
+    if (ignoredDimension != null) {
+      result.add(new FilterConditionChecker<STestRun>() {
+        public boolean isIncluded(@NotNull final STestRun item) {
+          return FilterUtil.isIncludedByBooleanFilter(ignoredDimension, item.isIgnored());
         }
       });
     }
@@ -184,7 +197,9 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   @Nullable
   private STestRun findTest(final @NotNull Long testNameId, final @NotNull SBuild build) {
-    final List<STestRun> allTests = build.getFullStatistics().getAllTests();
+//    final List<STestRun> allTests = build.getFullStatistics().getAllTests();
+    final List<STestRun> allTests = build.getBuildStatistics(new BuildStatisticsOptions(BuildStatisticsOptions.IGNORED_TESTS | BuildStatisticsOptions.PASSED_TESTS, 0)).getAllTests();
+    //todo: TeamCity API: if stacktraces are not loaded,should I then load them somehow to get them for the returned STestRun (see TestOccurrence)
     for (STestRun test : allTests) {
       if (testNameId == test.getTest().getTestNameId()) return test; //todo: TeamCity API: does this support multiple test runs???
     }
@@ -194,7 +209,9 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @Nullable
   private STestRun findTestByTestRunId(@NotNull final Long testRunId, @NotNull final SBuild build) {
     //todo: TeamCity API (MP) how to implement this without build?
-    final List<STestRun> allTests = build.getFullStatistics().getAllTests();
+//    final List<STestRun> allTests = build.getFullStatistics().getAllTests();
+    final List<STestRun> allTests = build.getBuildStatistics(new BuildStatisticsOptions(BuildStatisticsOptions.IGNORED_TESTS | BuildStatisticsOptions.PASSED_TESTS, 0)).getAllTests();
+    //todo: TeamCity API: if stacktraces are not loaded,should I then load them somehow to get them for the returned STestRun (see TestOccurrence)
     for (STestRun test : allTests) {
       if (testRunId.equals(Long.valueOf(test.getTestRunId()))) {
         return test;
