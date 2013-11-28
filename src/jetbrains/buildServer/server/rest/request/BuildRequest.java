@@ -35,6 +35,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Comment;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.files.File;
@@ -509,20 +510,20 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/problemOccurrences")
   @Produces({"application/xml", "application/json"})
-  public ProblemOccurrences getProblems(@PathParam("buildLocator") String buildLocator) {
+  public ProblemOccurrences getProblems(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final List<BuildProblem> buildProblems = ((BuildPromotionEx)build.getBuildPromotion()).getBuildProblems();//todo: (TeamCity) is this OK to use?
-    return new ProblemOccurrences(buildProblems, null, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new ProblemOccurrences(buildProblems, null, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder), new Fields(fields));
   }
 
   @GET
   @Path("/{buildLocator}/" + TESTS)
   @Produces({"application/xml", "application/json"})
-  public TestOccurrences getTests(@PathParam("buildLocator") String buildLocator) {
+  public TestOccurrences getTests(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final List<STestRun> allTests = build.getFullStatistics().getAllTests();
 //todo: investigate test repeat counts support
-    return new TestOccurrences(allTests, null, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new TestOccurrences(allTests, null, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder),  new Fields(fields));
   }
 
   @POST

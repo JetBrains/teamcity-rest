@@ -5,6 +5,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.build.BuildRef;
 import jetbrains.buildServer.server.rest.request.ProblemOccurrenceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -40,13 +41,13 @@ public class ProblemOccurrence {
 
   public ProblemOccurrence(final @NotNull BuildProblem problemP,
                            final @NotNull BeanContext beanContext,
-                           final boolean fullDetails) {
+                           @NotNull final Fields fields) {
 //    id = String.valueOf(problemP.getId());
     type = problemP.getBuildProblemData().getType();
     identity = problemP.getBuildProblemData().getIdentity();
     href = beanContext.getApiUrlBuilder().transformRelativePath(ProblemOccurrenceRequest.getHref(problemP));
 
-    if (fullDetails) {
+    if (fields.isAllFieldsIncluded()) {
       details = problemP.getBuildProblemData().getDescription();
       additionalData = problemP.getBuildProblemData().getAdditionalData();
 

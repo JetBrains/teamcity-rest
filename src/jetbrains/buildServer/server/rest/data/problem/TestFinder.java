@@ -81,6 +81,7 @@ public class TestFinder extends AbstractFinder<STest> {
   @Override
   @NotNull
   public List<STest> getAllItems() {
+    //todo: TeamCity API: find a way to do this
     throw new BadRequestException("Listing all tests is not supported. Try locator dimensions: " + Arrays.toString(getKnownDimensions()));
   }
 

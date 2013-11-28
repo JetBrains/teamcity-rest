@@ -9,6 +9,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrence;
 import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
@@ -57,20 +58,21 @@ public class ProblemOccurrenceRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
-  public ProblemOccurrences getProblems(@QueryParam("locator") String locatorText, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+  public ProblemOccurrences getProblems(@QueryParam("locator") String locatorText, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final PagedSearchResult<BuildProblem> result = myProblemOccurrenceFinder.getItems(locatorText);
 
     return new ProblemOccurrences(result.myEntries,
                               new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
                                             result.myCount, result.myEntries.size(),
                                             locatorText,
-                                            "locator"), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+                                            "locator"), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder), new Fields(fields)
+    );
   }
 
   @GET
   @Path("/{problemLocator}")
   @Produces({"application/xml", "application/json"})
-  public ProblemOccurrence serveInstance(@PathParam("problemLocator") String locatorText) {
-    return new ProblemOccurrence(myProblemOccurrenceFinder.getItem(locatorText), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder), true);
+  public ProblemOccurrence serveInstance(@PathParam("problemLocator") String locatorText, @QueryParam("fields") String fields) {
+    return new ProblemOccurrence(myProblemOccurrenceFinder.getItem(locatorText), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder), new Fields(fields, Fields.ALL_FILEDS));
   }
 }

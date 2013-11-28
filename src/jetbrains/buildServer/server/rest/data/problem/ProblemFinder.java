@@ -107,6 +107,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
       return getCurrentProblemsList(null);
     }
 
+    //todo: TeamCity API: find a way to do this
     throw new BadRequestException("Listing all problems is not supported. Try locator dimensions: " + Arrays.toString(getKnownDimensions()));
   }
 

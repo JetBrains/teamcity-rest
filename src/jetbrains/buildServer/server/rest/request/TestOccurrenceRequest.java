@@ -8,6 +8,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
@@ -57,20 +58,21 @@ public class TestOccurrenceRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
-  public TestOccurrences getTestOccurrences(@QueryParam("locator") String locatorText, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+  public TestOccurrences getTestOccurrences(@QueryParam("locator") String locatorText, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final PagedSearchResult<STestRun> result = myTestOccurrenceFinder.getItems(locatorText);
 
     return new TestOccurrences(result.myEntries,
                                new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
                                              result.myCount, result.myEntries.size(),
                                              locatorText,
-                                             "locator"), new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder));
+                                             "locator"), new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder), new Fields(fields)
+    );
   }
 
   @GET
   @Path("/{testLocator}")
   @Produces({"application/xml", "application/json"})
-  public TestOccurrence serveInstance(@PathParam("testLocator") String locatorText) {
-    return new TestOccurrence(myTestOccurrenceFinder.getItem(locatorText), new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder), true);
+  public TestOccurrence serveInstance(@PathParam("testLocator") String locatorText, @QueryParam("fields") String fields) {
+    return new TestOccurrence(myTestOccurrenceFinder.getItem(locatorText), new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder), new Fields(fields, Fields.ALL_FILEDS));
   }
 }
