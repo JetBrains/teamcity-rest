@@ -1,13 +1,11 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.AbstractFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.ProjectManager;
@@ -45,6 +43,14 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     myBuildProblemManager = buildProblemManager;
     myProjectManager = projectManager;
     myServiceLocator = serviceLocator;
+  }
+
+  public static String getLocator(final ProblemWrapper problem) {
+    return Locator.createEmptyLocator().setDimension(DIMENSION_ID, String.valueOf(problem.getId())).getStringRepresentation();
+  }
+
+  public static String getLocator(final int problemId) {
+    return Locator.createEmptyLocator().setDimension(DIMENSION_ID, String.valueOf(problemId)).getStringRepresentation();
   }
 
   @Override
@@ -88,7 +94,8 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   @Override
   @NotNull
   public List<ProblemWrapper> getAllItems() {
-    throw new BadRequestException("Listing all problems is not supported. Consider using locator: '" + CURRENT + "=true'");
+    throw new BadRequestException(
+      "Listing all problems is not supported. Consider using locator: '" + Locator.createEmptyLocator().setDimension(CURRENT, "true").getStringRepresentation() + "'");
   }
 
   @Override
@@ -103,7 +110,8 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
       return getCurrentProblemsList(null);
     }
 
-    throw new BadRequestException("Listing all problems is not supported. Consider using locator: '" + CURRENT + "=true'");
+    throw new BadRequestException(
+      "Listing all problems is not supported. Consider using locator: '" + Locator.createEmptyLocator().setDimension(CURRENT, "true").getStringRepresentation() + "'");
   }
 
   @Override
@@ -168,16 +176,34 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     return new ProblemWrapper(problemById.getId(), myServiceLocator);
   }
 
-  //todo: TeamCity API (VB): should find even not current problems
+  //todo: TeamCity API (VB): should find even not current (and also converted) problems
   //todo: TeamCity API: how to do this effectively?
   @Nullable
   public static BuildProblem findProblemById(@NotNull final Long id, @NotNull final ServiceLocator serviceLocator) {
+    // find in current problems
     final List<BuildProblem> currentBuildProblemsList = serviceLocator.getSingletonService(BuildProblemManager.class).getCurrentBuildProblemsList(
       serviceLocator.getSingletonService(ProjectManager.class).getRootProject());
     for (BuildProblem buildProblem : currentBuildProblemsList) {
       if (id.equals(Long.valueOf(buildProblem.getId()))) return buildProblem; //todo: TeamCity API: can a single id appear several times here?
     }
-    return null;
+
+    // find in last problems
+    final Collection<BuildProblem> lastBuildProblems =
+      serviceLocator.getSingletonService(BuildProblemManager.class).getLastBuildProblems(Collections.singleton(id.intValue()), null);
+    if (lastBuildProblems.size() > 1){
+      throw new InvalidStateException("Several build problems returned for one problem id '" + id + "'");
+    }
+
+    if (lastBuildProblems.size() == 1){
+      return lastBuildProblems.iterator().next();
+    }
+
+    final List<BuildProblem> problemOccurrences = ProblemOccurrenceFinder.getProblemOccurrences(id, serviceLocator, serviceLocator.getSingletonService(BuildFinder.class));
+
+    if (problemOccurrences.size() == 0){
+      return null;
+    }
+    return problemOccurrences.iterator().next();
   }
 
   @NotNull

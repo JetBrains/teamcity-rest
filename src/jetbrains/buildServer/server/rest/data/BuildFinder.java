@@ -328,14 +328,7 @@ public class BuildFinder {
 
     Long promotionId = locator.getSingleDimensionValueAsLong("promotionId");
     if (promotionId != null) {
-      final BuildPromotion promotion = myDataProvider.getPromotionManager().findPromotionById(promotionId);
-      if (promotion == null) {
-        throw new NotFoundException("No promotion can be found by promotionId '" + promotionId + "'.");
-      }
-      SBuild build = promotion.getAssociatedBuild();
-      if (build == null) {
-        throw new NotFoundException("No associated build can be found for promotion with id '" + promotionId + "'.");
-      }
+      SBuild build = getBuildByPromotionId(promotionId);
       if (buildType != null && !buildType.getBuildTypeId().equals(build.getBuildTypeId())) {
         throw new NotFoundException("No build can be found by promotionId '" + promotionId + "' in build type '" + buildType + "'.");
       }
@@ -494,5 +487,13 @@ public class BuildFinder {
     return buildPromotion;
   }
 
-
+  @NotNull
+  public SBuild getBuildByPromotionId(@NotNull final Long promotionId) {
+    final BuildPromotion promotion = getBuildPromotion(promotionId);
+    SBuild build = promotion.getAssociatedBuild();
+    if (build == null) {
+      throw new NotFoundException("No associated build can be found for promotion with id '" + promotionId + "'.");
+    }
+    return build;
+  }
 }

@@ -33,13 +33,14 @@ public class Problems {
                   @Nullable final PagerData pagerData,
                   final ServiceLocator serviceLocator,
                   @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    Collections.sort(itemsP, new Comparator<ProblemWrapper>() {
+    final List<ProblemWrapper> sortedItems = new ArrayList<ProblemWrapper>(itemsP);
+    Collections.sort(sortedItems, new Comparator<ProblemWrapper>() {
       public int compare(final ProblemWrapper o1, final ProblemWrapper o2) {
         return o1.getId().compareTo(o2.getId());
       }
     });
-    items = new ArrayList<Problem>(itemsP.size());  //todo: consider adding ordering/sorting
-    for (ProblemWrapper item : itemsP) {
+    items = new ArrayList<Problem>(sortedItems.size());  //todo: consider adding ordering/sorting
+    for (ProblemWrapper item : sortedItems) {
       items.add(new Problem(item, serviceLocator, apiUrlBuilder, false));
     }
     if (pagerData != null) {

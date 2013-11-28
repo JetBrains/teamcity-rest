@@ -104,4 +104,8 @@ public abstract class AbstractFinder<ITEM> {
   public abstract List<ITEM> getAllItems();
 
   protected abstract AbstractFilter<ITEM> getFilter(final Locator locator);
+
+  public String[] getKnownDimensions() {
+    return myKnownDimensions;
+  }
 }

@@ -1,20 +1,21 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
+import java.io.IOException;
+import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.AbstractFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
-import jetbrains.buildServer.serverSide.BuildPromotionEx;
-import jetbrains.buildServer.serverSide.ProjectManager;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.db.DBActionNoResults;
+import jetbrains.buildServer.serverSide.db.DBException;
+import jetbrains.buildServer.serverSide.db.DBFunctions;
+import jetbrains.buildServer.serverSide.db.SQLRunnerEx;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.serverSide.problems.BuildProblemManager;
 import org.jetbrains.annotations.NotNull;
@@ -25,13 +26,15 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 18.11.13
  */
 public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
-  public static final String BUILD = "build";
-  public static final String IDENTITY = "identity";
-  public static final String ID = "problemId";
-  public static final String CURRENT = "current";
+  private static final String BUILD = "build";
+  private static final String IDENTITY = "identity";
+  private static final String CURRENT = "current";
+  private static final String PROBLEM = "problem";
+
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final UserFinder myUserFinder;
   @NotNull private final BuildFinder myBuildFinder;
+  @NotNull private final ProblemFinder myProblemFinder;
 
   @NotNull private final BuildProblemManager myBuildProblemManager;
   @NotNull private final ProjectManager myProjectManager;
@@ -40,16 +43,35 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   public ProblemOccurrenceFinder(final @NotNull ProjectFinder projectFinder,
                                  final @NotNull UserFinder userFinder,
                                  final @NotNull BuildFinder buildFinder,
+                                 final @NotNull ProblemFinder problemFinder,
                                  final @NotNull BuildProblemManager buildProblemManager,
                                  final @NotNull ProjectManager projectManager,
                                  final @NotNull ServiceLocator serviceLocator) {
-    super(new String[]{ID, "identity", "type", "build", "affectedProject", CURRENT});
+    super(new String[]{PROBLEM, IDENTITY, "type", "build", "affectedProject", CURRENT});
     myProjectFinder = projectFinder;
     myUserFinder = userFinder;
     myBuildFinder = buildFinder;
+    myProblemFinder = problemFinder;
     myBuildProblemManager = buildProblemManager;
     myProjectManager = projectManager;
     myServiceLocator = serviceLocator;
+  }
+
+  public static String getProblemOccurrenceLocator(final @NotNull BuildProblem problem) {
+    final SBuild build = problem.getBuildPromotion().getAssociatedBuild();
+    if (build == null) {
+      throw new InvalidStateException("Build problem with id '" + problem.getId() + "' does not have an associated build.");
+    }
+    return Locator.createEmptyLocator().setDimension(PROBLEM, ProblemFinder.getLocator(problem.getId())).setDimension(BUILD, BuildRequest
+      .getBuildLocator(build)).getStringRepresentation();
+  }
+
+  public static String getProblemOccurrenceLocator(final @NotNull SBuild build) {
+    return Locator.createEmptyLocator().setDimension(BUILD, BuildRequest.getBuildLocator(build)).getStringRepresentation();
+  }
+
+  public static String getProblemOccurrenceLocator(final @NotNull ProblemWrapper problem) {
+    return Locator.createEmptyLocator().setDimension(PROBLEM, ProblemFinder.getLocator(problem)).getStringRepresentation();
   }
 
   @Override
@@ -65,13 +87,14 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     if (buildDimension != null) {
       @NotNull SBuild build = myBuildFinder.getBuild(null, buildDimension);
 
-      Long idDimension = locator.getSingleDimensionValueAsLong(ID);
-      if (idDimension != null) {
-        final BuildProblem item = findProblem(build, idDimension);
+      String problemDimension = locator.getSingleDimensionValue(PROBLEM);
+      if (problemDimension != null) {
+        final ProblemWrapper problem = myProblemFinder.getItem(problemDimension);
+        final BuildProblem item = findProblem(build, problem.getId());
         if (item != null) {
           return item;
         }
-        throw new NotFoundException("No problem with id '" + idDimension + "' found in build with id " + build.getBuildId());
+        throw new NotFoundException("No problem with id '" + problem.getId() + "' found in build with id " + build.getBuildId());
       }
     }
     return null;
@@ -80,7 +103,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   @NotNull
   @Override
   public List<BuildProblem> getAllItems() {
-    throw new BadRequestException("Listing all problem occurrences is not supported.");
+    throw new BadRequestException("Listing all problem occurrences is not supported. Try locator minesitons: " + Arrays.toString(getKnownDimensions()));
   }
 
   @Override
@@ -88,7 +111,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
       SBuild build = myBuildFinder.getBuild(null, buildDimension);
-      return getBuildProblems(build);
+      return getProblemOccurrences(build);
     }
 
     Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
@@ -96,12 +119,18 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       final String affectedProjectDimension = locator.getSingleDimensionValue("affectedProject");
       if (affectedProjectDimension != null) {
         @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
-        return getCurrentProblemOccurencesList(project);
+        return getCurrentProblemOccurences(project);
       }
-      return getCurrentProblemOccurencesList(null);
+      return getCurrentProblemOccurences(null);
     }
 
-    throw new BadRequestException("Listing all problem occurrences is not supported.");
+    String problemDimension = locator.getSingleDimensionValue(PROBLEM);
+    if (problemDimension != null) {
+      final ProblemWrapper problem = myProblemFinder.getItem(problemDimension);
+      return getProblemOccurrences(problem);
+    }
+
+    throw new BadRequestException("Listing all problem occurrences is not supported. Try locator minesitons: " + Arrays.toString(getKnownDimensions()));
   }
 
   @Override
@@ -115,11 +144,12 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       new MultiCheckerFilter<BuildProblem>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
 
 
-    final Long idDimension = locator.getSingleDimensionValueAsLong(ID);
-    if (idDimension != null) {
+    String problemDimension = locator.getSingleDimensionValue(PROBLEM);
+    if (problemDimension != null) {
+      final ProblemWrapper problem = myProblemFinder.getItem(problemDimension);
       result.add(new FilterConditionChecker<BuildProblem>() {
         public boolean isIncluded(@NotNull final BuildProblem item) {
-          return idDimension.intValue() == item.getId();
+          return problem.getId() == item.getId();
         }
       });
     }
@@ -165,7 +195,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     final String currentDimension = locator.getSingleDimensionValue(CURRENT);
     if (currentDimension != null) {
       @NotNull final Set<Integer> currentBuildProblemsList = new TreeSet<Integer>();
-      for (BuildProblem buildProblem : getCurrentProblemOccurencesList(null)) {
+      for (BuildProblem buildProblem : getCurrentProblemOccurences(null)) {
         currentBuildProblemsList.add(buildProblem.getId());
       }
       result.add(new FilterConditionChecker<BuildProblem>() {
@@ -178,20 +208,8 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     return result;
   }
 
-  public static String getProblemOccurrenceLocator(final @NotNull BuildProblem problem) {
-    final SBuild build = problem.getBuildPromotion().getAssociatedBuild();
-    if (build == null) {
-      throw new InvalidStateException("Build problem with id '" + problem.getId() + "' does not have an associated build.");
-    }
-    return ID + ":" + problem.getId() + "," + getProblemOccurrenceLocator(build);//todo: use locator rendering here
-  }
-
-  public static String getProblemOccurrenceLocator(final @NotNull SBuild build) {
-    return ProblemOccurrenceFinder.BUILD + ":(" + BuildRequest.getBuildLocator(build) + ")"; //todo: use location rendering here
-  }
-
   @NotNull
-  private List<BuildProblem> getCurrentProblemOccurencesList(@Nullable SProject project) {
+  private List<BuildProblem> getCurrentProblemOccurences(@Nullable SProject project) {
     if (project == null) {
       project = myProjectManager.getRootProject();
     }
@@ -209,8 +227,8 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   }
 
   @Nullable
-  private BuildProblem findProblem(@NotNull final SBuild build, @NotNull final Long problemId) {
-    final List<BuildProblem> buildProblems = getBuildProblems(build);
+  private static BuildProblem findProblem(@NotNull final SBuild build, @NotNull final Long problemId) {
+    final List<BuildProblem> buildProblems = getProblemOccurrences(build);
     for (BuildProblem buildProblem : buildProblems) {
       if (buildProblem.getId() == problemId.intValue()) {
         //todo: TeamCity API (VB): is this right that problem with a given id can only occur once in a build?
@@ -220,8 +238,38 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     return null;
   }
 
+  private List<BuildProblem> getProblemOccurrences(final ProblemWrapper problem) {
+    return getProblemOccurrences(problem.getId(), myServiceLocator, myBuildFinder);
+  }
+
   @NotNull
-  private static List<BuildProblem> getBuildProblems(@NotNull final SBuild build) {
+  static List<BuildProblem> getProblemOccurrences(@NotNull final Long problemId, @NotNull final ServiceLocator serviceLocator, @NotNull final BuildFinder buildFinder) {
+    //todo: TeamCity API (VB): how to do this?
+    final ArrayList<BuildProblem> result = new ArrayList<BuildProblem>();
+    try {
+      //final SQLRunner sqlRunner = myServiceLocator.getSingletonService(SQLRunner.class);
+      //workaround for http://youtrack.jetbrains.com/issue/TW-25260
+      final SQLRunnerEx sqlRunner = serviceLocator.getSingletonService(BuildServerEx.class).getSQLRunner();
+      sqlRunner.withDB(new DBActionNoResults() {
+        public void run(final DBFunctions dbf) throws DBException {
+          dbf.queryForTuples(new Object() {
+            public void getBuildProblem(String build_state_id) throws IOException {
+              result.add(findProblem(buildFinder.getBuildByPromotionId(Long.valueOf(build_state_id)), problemId));
+            }
+          },
+                             "getBuildProblem",
+                             "select build_state_id from build_problem where problem_id = " + problemId);
+        }
+      });
+    } catch (Exception e) {
+      throw new OperationException("Error performing database query: " + e.toString(), e);
+    }
+
+    return result;
+  }
+
+  @NotNull
+  private static List<BuildProblem> getProblemOccurrences(@NotNull final SBuild build) {
     return ((BuildPromotionEx)build.getBuildPromotion()).getBuildProblems();
   }
 }

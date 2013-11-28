@@ -8,6 +8,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
+import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrence;
 import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
@@ -36,6 +37,10 @@ public class ProblemOccurrenceRequest {
 
   public static String getHref(@NotNull final BuildProblem problem) {
     return API_SUB_URL + "/" + ProblemOccurrenceFinder.getProblemOccurrenceLocator(problem);
+  }
+
+  public static String getHref(@NotNull final ProblemWrapper problem) {
+    return API_SUB_URL + "?locator=" + ProblemOccurrenceFinder.getProblemOccurrenceLocator(problem);
   }
 
   public static String getHref(final @NotNull SBuild build) {

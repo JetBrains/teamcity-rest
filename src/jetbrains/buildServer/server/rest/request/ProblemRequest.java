@@ -31,7 +31,7 @@ public class ProblemRequest {
   }
 
   public static String getHref(@NotNull final ProblemWrapper problem) {
-    return API_SUB_URL + "/id:" + problem.getId() + "";
+    return API_SUB_URL + "/" + ProblemFinder.getLocator(problem);
   }
 
   /**

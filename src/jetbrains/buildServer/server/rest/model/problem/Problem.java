@@ -10,6 +10,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
+import jetbrains.buildServer.server.rest.request.ProblemOccurrenceRequest;
 import jetbrains.buildServer.server.rest.request.ProblemRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
@@ -23,7 +24,7 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "problem")
 @XmlType(name = "problem", propOrder = {"id", "type", "identity", "href",
-  "mutes", "investigations"})
+  "mutes", "investigations", "problemOccurrences"})
 public class Problem {
   @XmlAttribute public String id;
   @XmlAttribute public String type;
@@ -36,6 +37,7 @@ public class Problem {
 //  @XmlElement public ProjectRef project;
   @XmlElement public Mutes mutes; // todo: also make this href
   @XmlElement public Href investigations;
+  @XmlElement public Href problemOccurrences;
 
   public Problem() {
   }
@@ -61,6 +63,7 @@ public class Problem {
       if (problem.getInvestigations().size() > 0) {
         investigations = new Href(InvestigationRequest.getHref(problem), apiUrlBuilder);
       }
+      problemOccurrences = new Href(ProblemOccurrenceRequest.getHref(problem), apiUrlBuilder);
     }
   }
 }
