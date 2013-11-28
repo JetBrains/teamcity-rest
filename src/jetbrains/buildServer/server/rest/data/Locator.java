@@ -323,7 +323,7 @@ public class Locator {
   }
 
   /**
-   * Replaces all the dimnsions values to the one specified.
+   * Replaces all the dimensions values to the one specified.
    * Should be used only for multi-dimension locators.
    * @param name name of the dimension
    * @param value value of the dimension
@@ -336,6 +336,19 @@ public class Locator {
     myDimensions.put(name, value);
     myUsedDimensions.remove(name);
     modified = true; // todo: use setDimension to replace the dimension in myRawValue
+    return this;
+  }
+
+  /**
+   * Sets the dimension specified to the passed value if the dimension is not yet set. Does noting is the dimension already has a value.
+   * Should be used only for multi-dimension locators.
+   * @param name name of the dimension
+   * @param value value of the dimension
+   */
+  public Locator setDimensionIfNotPresent(@NotNull final String name, @NotNull final String value) {
+    if (getSingleDimensionValue(name) == null) {
+      setDimension(name, value);
+    }
     return this;
   }
 

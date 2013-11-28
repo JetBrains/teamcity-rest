@@ -11,6 +11,7 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
+import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.db.DBActionNoResults;
 import jetbrains.buildServer.serverSide.db.DBException;
@@ -72,6 +73,17 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
   public static String getProblemOccurrenceLocator(final @NotNull ProblemWrapper problem) {
     return Locator.createEmptyLocator().setDimension(PROBLEM, ProblemFinder.getLocator(problem)).getStringRepresentation();
+  }
+
+  @Nullable
+  @Override
+  public Locator getLocatorOrNull(@Nullable final String locatorText) {
+    final Locator locator = super.getLocatorOrNull(locatorText);
+    if (locator != null){
+      locator.setDimensionIfNotPresent(PagerData.COUNT, String.valueOf(Constants.DEFAULT_PAGE_ITEMS_COUNT));
+      locator.addIgnoreUnusedDimensions(PagerData.COUNT);
+    }
+    return locator;
   }
 
   @Override

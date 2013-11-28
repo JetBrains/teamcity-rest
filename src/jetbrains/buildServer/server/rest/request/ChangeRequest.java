@@ -101,10 +101,10 @@ public class ChangeRequest {
       updateLocatorDimension(actualLocator, "sinceChange", sinceChangeLocator);
       updateLocatorDimension(actualLocator, "start", start != null ? String.valueOf(start) : null);
       updateLocatorDimension(actualLocator, "count", count != null ? String.valueOf(count) : null);
-      updateLocatorDimensionIfNotPresent(actualLocator, "start", String.valueOf(0));
-      updateLocatorDimensionIfNotPresent(actualLocator, "count", String.valueOf(Constants.DEFAULT_PAGE_ITEMS_COUNT));
-      actualLocator.addIgnoreUnusedDimensions("start");
-      actualLocator.addIgnoreUnusedDimensions("count");
+      actualLocator.setDimensionIfNotPresent(PagerData.START, String.valueOf(0));
+      actualLocator.setDimensionIfNotPresent(PagerData.COUNT, String.valueOf(Constants.DEFAULT_PAGE_ITEMS_COUNT));
+      actualLocator.addIgnoreUnusedDimensions(PagerData.START);
+      actualLocator.addIgnoreUnusedDimensions(PagerData.COUNT);
     }
 
     if (actualLocator.isEmpty()){
@@ -130,12 +130,6 @@ public class ChangeRequest {
         throw new BadRequestException("Both parameter '" + dimensionName +"' and same-named dimension in 'locator' parameter are specified. Use locator only.");
       }
       assert value != null;
-      locator.setDimension(dimensionName, value);
-    }
-  }
-
-  private void updateLocatorDimensionIfNotPresent(@NotNull final Locator locator, @NotNull final String dimensionName, @NotNull final String value) {
-    if (locator.getSingleDimensionValue(dimensionName) == null) {
       locator.setDimension(dimensionName, value);
     }
   }

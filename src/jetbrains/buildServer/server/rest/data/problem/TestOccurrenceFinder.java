@@ -8,6 +8,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
+import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -55,6 +56,17 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   public static String getTestRunLocator(final @NotNull SBuild build) {
     return Locator.createEmptyLocator().setDimension(BUILD, BuildRequest.getBuildLocator(build)).getStringRepresentation();
+  }
+
+  @Nullable
+  @Override
+  public Locator getLocatorOrNull(@Nullable final String locatorText) {
+    final Locator locator = super.getLocatorOrNull(locatorText);
+    if (locator != null){
+      locator.setDimensionIfNotPresent(PagerData.COUNT, String.valueOf(Constants.DEFAULT_PAGE_ITEMS_COUNT));
+      locator.addIgnoreUnusedDimensions(PagerData.COUNT);
+    }
+    return locator;
   }
 
   @Override

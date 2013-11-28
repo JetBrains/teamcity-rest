@@ -21,7 +21,7 @@ package jetbrains.buildServer.server.rest.request;
  *         Date: 04.08.2009
  */
 public class Constants {
-  static final String DEFAULT_PAGE_ITEMS_COUNT = "100";
+  public static final String DEFAULT_PAGE_ITEMS_COUNT = "100";
   public static final int DEFAULT_PAGE_ITEMS_COUNT_INT = 100;
 
   public static final String API_URL = "/app/rest";
