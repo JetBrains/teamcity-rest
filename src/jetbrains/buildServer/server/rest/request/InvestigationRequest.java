@@ -10,7 +10,6 @@ import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
-import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.Investigation;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
@@ -36,11 +35,11 @@ public class InvestigationRequest {
   }
 
   public static String getHref(@NotNull final ProblemWrapper problem) {
-    return API_SUB_URL + "?locator=" + InvestigationFinder.PROBLEM_DIMENSION + ":(id:" + problem.getId() + ")";
+    return API_SUB_URL + "?locator=" + InvestigationFinder.getLocator(problem);
   }
 
   public static String getHref(@NotNull final STest test) {
-    return API_SUB_URL + "?locator=" + InvestigationFinder.TEST_DIMENSION + ":(" +  TestFinder.getTestLocator(test)+ ")";
+    return API_SUB_URL + "?locator=" + InvestigationFinder.getLocator(test);
   }
 
   public static String getHref(@NotNull final SBuildType buildType) {

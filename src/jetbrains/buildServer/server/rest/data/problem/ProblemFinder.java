@@ -20,26 +20,20 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 09.11.13
  */
 public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
-  public static final String CURRENT = "current";
+  private static final String CURRENT = "current";
 
   @NotNull private final ProjectFinder myProjectFinder;
-  @NotNull private final UserFinder myUserFinder;
-  @NotNull private final BuildFinder myBuildFinder;
 
   @NotNull private final BuildProblemManager myBuildProblemManager;
   @NotNull private final ProjectManager myProjectManager;
-  @NotNull final ServiceLocator myServiceLocator;
+  @NotNull private final ServiceLocator myServiceLocator;
 
   public ProblemFinder(final @NotNull ProjectFinder projectFinder,
-                       final @NotNull UserFinder userFinder,
-                       final @NotNull BuildFinder buildFinder,
                        final @NotNull BuildProblemManager buildProblemManager,
                        final @NotNull ProjectManager projectManager,
                        final @NotNull ServiceLocator serviceLocator) {
-    super(new String[]{"identity", "type", "build", "affectedProject", CURRENT});
+    super(new String[]{DIMENSION_ID, "identity", "type", "build", "affectedProject", CURRENT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myProjectFinder = projectFinder;
-    myUserFinder = userFinder;
-    myBuildFinder = buildFinder;
     myBuildProblemManager = buildProblemManager;
     myProjectManager = projectManager;
     myServiceLocator = serviceLocator;
@@ -98,8 +92,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   @Override
   @NotNull
   public List<ProblemWrapper> getAllItems() {
-    throw new BadRequestException(
-      "Listing all problems is not supported. Consider using locator: '" + Locator.createEmptyLocator().setDimension(CURRENT, "true").getStringRepresentation() + "'");
+    throw new BadRequestException("Listing all problems is not supported. Try locator dimensions: " + Arrays.toString(getKnownDimensions()));
   }
 
   @Override
@@ -114,8 +107,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
       return getCurrentProblemsList(null);
     }
 
-    throw new BadRequestException(
-      "Listing all problems is not supported. Consider using locator: '" + Locator.createEmptyLocator().setDimension(CURRENT, "true").getStringRepresentation() + "'");
+    throw new BadRequestException("Listing all problems is not supported. Try locator dimensions: " + Arrays.toString(getKnownDimensions()));
   }
 
   @Override

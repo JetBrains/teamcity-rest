@@ -38,7 +38,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
   @NotNull private final BuildProblemManager myBuildProblemManager;
   @NotNull private final ProjectManager myProjectManager;
-  @NotNull final jetbrains.buildServer.ServiceLocator myServiceLocator;
+  @NotNull private final jetbrains.buildServer.ServiceLocator myServiceLocator;
 
   public ProblemOccurrenceFinder(final @NotNull ProjectFinder projectFinder,
                                  final @NotNull UserFinder userFinder,
@@ -106,7 +106,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   @NotNull
   @Override
   public List<BuildProblem> getAllItems() {
-    throw new BadRequestException("Listing all problem occurrences is not supported. Try locator minesitons: " + Arrays.toString(getKnownDimensions()));
+    throw new BadRequestException("Listing all problem occurrences is not supported. Try locator dimensions: " + Arrays.toString(getKnownDimensions()));
   }
 
   @Override
@@ -133,7 +133,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       return getProblemOccurrences(problem);
     }
 
-    throw new BadRequestException("Listing all problem occurrences is not supported. Try locator minesitons: " + Arrays.toString(getKnownDimensions()));
+    throw new BadRequestException("Listing all problem occurrences is not supported. Try locator dimensions: " + Arrays.toString(getKnownDimensions()));
   }
 
   @Override

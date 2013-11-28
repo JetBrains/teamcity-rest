@@ -23,12 +23,10 @@ public abstract class AbstractFinder<ITEM> {
   public static final String DIMENSION_ID = "id";
 
   private final String[] myKnownDimensions;
-  public static final String[] ADDITIONAL = new String[]{DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME};
 
   public AbstractFinder(final String[] knownDimensions) {
-    myKnownDimensions = new String[knownDimensions.length + 2];
+    myKnownDimensions = new String[knownDimensions.length];
     System.arraycopy(knownDimensions, 0, myKnownDimensions, 0, knownDimensions.length);
-    System.arraycopy(ADDITIONAL, 0, myKnownDimensions, knownDimensions.length, ADDITIONAL.length);
   }
 
   @NotNull

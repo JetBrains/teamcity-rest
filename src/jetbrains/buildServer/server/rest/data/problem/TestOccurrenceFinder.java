@@ -1,5 +1,6 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
+import java.util.Arrays;
 import java.util.List;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.AbstractFinder;
@@ -16,14 +17,14 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 17.11.13
  */
 public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
-  public static final String TEST_NAME_ID = "testNameId";
-  public static final String BUILD = "build";
-  public static final String TEST = "test";
-  public static final String BUILD_TYPE = "buildType";
-  public static final String PROJECT = "project";
-  public static final String STATUS = "status";
-  public static final String BRANCH = "branch";
-  public static final String IGNORED = "ignored";
+  private static final String BUILD = "build";
+  private static final String TEST = "test";
+  private static final String BUILD_TYPE = "buildType";
+  private static final String PROJECT = "project";
+  private static final String STATUS = "status";
+  private static final String BRANCH = "branch";
+  private static final String IGNORED = "ignored";
+
   @NotNull private final TestFinder myTestFinder;
   @NotNull private final BuildFinder myBuildFinder;
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
@@ -35,7 +36,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
                               final @NotNull BuildFinder buildFinder,
                               final @NotNull BuildTypeFinder buildTypeFinder,
                               final @NotNull ProjectFinder projectFinder, final @NotNull BuildHistoryEx buildHistory) {
-    super(new String[]{/*Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME,*/ DIMENSION_ID, TEST, BUILD_TYPE, BUILD, PROJECT, STATUS, BRANCH, IGNORED});
+    super(new String[]{DIMENSION_ID, TEST, BUILD_TYPE, BUILD, PROJECT, STATUS, BRANCH, IGNORED});
     myTestFinder = testFinder;
     myBuildFinder = buildFinder;
     myBuildTypeFinder = buildTypeFinder;
@@ -108,7 +109,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   @NotNull
   public List<STestRun> getAllItems() {
-    throw new IllegalStateException("Sorry, listing tests is not implemented yet");
+    throw new BadRequestException("Listing all test occurrences is not supported. Try locator dimensions: " + Arrays.toString(getKnownDimensions()));
   }
 
   @Override
@@ -139,7 +140,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       return myBuildHistory.getTestHistory(test.getTestNameId(), myProjectFinder.getRootProject(), 0, branchDimension); //no personal builds
     }
 
-    throw new IllegalStateException("Sorry, listing tests is not implemented yet");
+    throw new BadRequestException("Listing all test occurrences is not supported. Try locator dimensions: " + Arrays.toString(getKnownDimensions()));
   }
 
   @Override

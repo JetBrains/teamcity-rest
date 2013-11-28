@@ -26,16 +26,17 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 09.11.13
  */
 public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
-  public static final String PROBLEM_DIMENSION = "problem";
-  public static final String TEST_DIMENSION = "test";
-  public static final String ASSIGNMENT_PROJECT = "assignmentProject";
-  public static final String AFFECTED_PROJECT = "affectedProject";
-  public static final String ASSIGNEE = "assignee";
-  public static final String SINCE_DATE = "sinceDate";
-  public static final String STATE = "state";
-  public static final String TYPE = "type";
-  public static final String REPORTER = "reporter";
-  public static final String BUILD_TYPE = "buildType";
+  private static final String PROBLEM_DIMENSION = "problem";
+  private static final String TEST_DIMENSION = "test";
+  private static final String ASSIGNMENT_PROJECT = "assignmentProject";
+  private static final String AFFECTED_PROJECT = "affectedProject";
+  private static final String ASSIGNEE = "assignee";
+  private static final String SINCE_DATE = "sinceDate";
+  private static final String STATE = "state";
+  private static final String TYPE = "type";
+  private static final String REPORTER = "reporter";
+  private static final String BUILD_TYPE = "buildType";
+
   private final ProjectFinder myProjectFinder;
   private final BuildTypeFinder myBuildTypeFinder;
   private final ProblemFinder myProblemFinder;
@@ -54,7 +55,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
                              final BuildTypeResponsibilityFacade buildTypeResponsibilityFacade,
                              final TestNameResponsibilityFacade testNameResponsibilityFacade,
                              final BuildProblemResponsibilityFacade buildProblemResponsibilityFacade) {
-    super(new String[]{ASSIGNEE, REPORTER, TYPE, STATE, SINCE_DATE,ASSIGNMENT_PROJECT, AFFECTED_PROJECT, BUILD_TYPE, TEST_DIMENSION, PROBLEM_DIMENSION});
+    super(new String[]{ASSIGNEE, REPORTER, TYPE, STATE, SINCE_DATE, ASSIGNMENT_PROJECT, AFFECTED_PROJECT, BUILD_TYPE, TEST_DIMENSION, PROBLEM_DIMENSION});
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;
     myProblemFinder = problemFinder;
@@ -65,9 +66,19 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     myBuildProblemResponsibilityFacade = buildProblemResponsibilityFacade;
   }
 
-
+  @NotNull
   public static String getLocator(@NotNull final SBuildType buildType) {
     return Locator.createEmptyLocator().setDimension(BUILD_TYPE, BuildTypeFinder.getLocator(buildType)).getStringRepresentation();
+  }
+
+  @NotNull
+  public static String getLocator(@NotNull final ProblemWrapper problem) {
+    return Locator.createEmptyLocator().setDimension(PROBLEM_DIMENSION, ProblemFinder.getLocator(problem)).getStringRepresentation();
+  }
+
+  @NotNull
+  public static String getLocator(@NotNull final STest test) {
+    return Locator.createEmptyLocator().setDimension(TEST_DIMENSION, TestFinder.getTestLocator(test)).getStringRepresentation();
   }
 
   @Override

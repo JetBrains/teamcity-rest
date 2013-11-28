@@ -1,5 +1,6 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
+import java.util.Arrays;
 import java.util.List;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.AbstractFinder;
@@ -18,7 +19,8 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 09.11.13
  */
 public class TestFinder extends AbstractFinder<STest> {
-  public static final String NAME = "name";
+  private static final String NAME = "name";
+
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final STestManager myTestManager;
   @NotNull private final TestName2IndexImpl myTestName2Index; //TeamCIty open API issue
@@ -26,7 +28,7 @@ public class TestFinder extends AbstractFinder<STest> {
   public TestFinder(final @NotNull ProjectFinder projectFinder,
                     final @NotNull STestManager testManager,
                     final @NotNull TestName2IndexImpl testName2Index) {
-    super(new String[]{Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, DIMENSION_ID, NAME}); //todo: specify dimensions
+    super(new String[]{DIMENSION_ID, NAME, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME}); //todo: specify dimensions
     myTestManager = testManager;
     myProjectFinder = projectFinder;
     myTestName2Index = testName2Index;
@@ -79,7 +81,7 @@ public class TestFinder extends AbstractFinder<STest> {
   @Override
   @NotNull
   public List<STest> getAllItems() {
-    throw new IllegalStateException("Sorry, listing tests is not implemented yet");
+    throw new BadRequestException("Listing all tests is not supported. Try locator dimensions: " + Arrays.toString(getKnownDimensions()));
   }
 
   @Override
