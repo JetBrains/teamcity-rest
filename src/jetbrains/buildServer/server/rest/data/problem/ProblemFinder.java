@@ -55,30 +55,34 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
 
   @Override
   protected ProblemWrapper findSingleItem(@NotNull final Locator locator) {
+    Long id = getProblemIdByLocator(locator);
+    if (id != null) {
+      ProblemWrapper item =  findProblemWrapperById(id);
+      if (item == null) {
+        throw new NotFoundException("No problem" + " can be found by id '" + id + "'.");
+      }
+      return item;
+    }
+
+    return null;
+  }
+
+  @Nullable
+  public static Long getProblemIdByLocator(@NotNull final Locator locator){
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's id
       final Long parsedId = locator.getSingleValueAsLong();
       if (parsedId == null) {
         throw new BadRequestException("Expecting id, found empty value.");
       }
-      ProblemWrapper item = findProblemWrapperById(parsedId);
-      if (item == null) {
-        throw new NotFoundException("No problem can be found by id '" + parsedId + "'.");
-      }
-      locator.checkLocatorFullyProcessed();
-      return item;
+      return parsedId;
     }
 
     // dimension-specific item search
     Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (id != null) {
-      ProblemWrapper item =  findProblemWrapperById(id);
-      if (item == null) {
-        throw new NotFoundException("No problem" + " can be found by " + DIMENSION_ID + " '" + id + "'.");
-      }
-      return item;
+      return id;
     }
-
     return null;
   }
 

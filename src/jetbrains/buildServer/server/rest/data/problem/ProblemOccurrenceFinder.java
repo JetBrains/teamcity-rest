@@ -89,12 +89,15 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
       String problemDimension = locator.getSingleDimensionValue(PROBLEM);
       if (problemDimension != null) {
-        final ProblemWrapper problem = myProblemFinder.getItem(problemDimension);
-        final BuildProblem item = findProblem(build, problem.getId());
+        Long problemId = ProblemFinder.getProblemIdByLocator(new Locator(problemDimension));
+        if(problemId == null){
+          problemId = myProblemFinder.getItem(problemDimension).getId();
+        }
+        final BuildProblem item = findProblem(build, problemId);
         if (item != null) {
           return item;
         }
-        throw new NotFoundException("No problem with id '" + problem.getId() + "' found in build with id " + build.getBuildId());
+        throw new NotFoundException("No problem with id '" + problemId + "' found in build with id " + build.getBuildId());
       }
     }
     return null;
