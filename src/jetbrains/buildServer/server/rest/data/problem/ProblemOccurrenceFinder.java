@@ -200,9 +200,10 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     final String affectedProjectDimension = locator.getSingleDimensionValue("affectedProject");
     if (affectedProjectDimension != null) {
       @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
+      final Collection<SProject> allAffectedProbjects = new HashSet<SProject>(project.getProjects());
       result.add(new FilterConditionChecker<BuildProblem>() {
         public boolean isIncluded(@NotNull final BuildProblem item) {
-          return project.getProjects().contains(myProjectFinder.getProject(item.getProjectId())); //todo: inneffective! is there an API call for this?
+          return allAffectedProbjects.contains(myProjectFinder.getProject(item.getProjectId())); //todo: TeamCity API (MP): inneffective! is there an API call for this?
         }
       });
     }
@@ -246,7 +247,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     final List<BuildProblem> buildProblems = getProblemOccurrences(build);
     for (BuildProblem buildProblem : buildProblems) {
       if (buildProblem.getId() == problemId.intValue()) {
-        //todo: TeamCity API (VB): is this right that problem with a given id can only occur once in a build?
+        //todo: TeamCity API, JavaDoc (VB): add into the JavaDoc that problem with a given id can only occur once in a build
         return buildProblem;
       }
     }

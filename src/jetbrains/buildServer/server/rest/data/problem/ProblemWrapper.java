@@ -41,6 +41,7 @@ public class ProblemWrapper implements Comparable<ProblemWrapper>{
       type = null;
       identity = null;
     }
+     //todo: also add type desciption?
   }
 
   @NotNull
@@ -86,7 +87,7 @@ public class ProblemWrapper implements Comparable<ProblemWrapper>{
     Set<InvestigationWrapper> investigationsSet = new LinkedHashSet<InvestigationWrapper>();
     final SProject rootProject = myServiceLocator.getSingletonService(ProjectManager.class).getRootProject();
     final List<BuildProblem> currentBuildProblemsList = myServiceLocator.getSingletonService(BuildProblemManager.class).getCurrentBuildProblemsList(rootProject);
-
+    //todo: bug: searches only inside current problems: mutes and investigations from non-current problems are not returned
     for (BuildProblem buildProblem : currentBuildProblemsList) {
       if (id.equals(Long.valueOf(buildProblem.getId()))){
         final CurrentMuteInfo currentMuteInfo = buildProblem.getCurrentMuteInfo();

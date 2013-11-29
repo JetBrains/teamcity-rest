@@ -143,9 +143,10 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     if (affectedProjectDimension != null) {
       @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
       final Set<ProblemWrapper> currentProjectProblems = new TreeSet<ProblemWrapper>(getCurrentProblemsList(project));
+      //todo: bug: searches only inside current problems: non-current problems are not returned
       result.add(new FilterConditionChecker<ProblemWrapper>() {
         public boolean isIncluded(@NotNull final ProblemWrapper item) {
-          return currentProjectProblems.contains(item);  //todo: TeamCity API (VB): is there a dedicated API call for this?
+          return currentProjectProblems.contains(item);  //todo: TeamCity API (VB): is there a dedicated API call for this?  -- consider doing this via ProblemOccurrences
         }
       });
     }
