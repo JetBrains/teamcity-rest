@@ -4,6 +4,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.build.BuildRef;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
@@ -19,7 +20,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "testOccurrence")
-@XmlType(name = "testOccurrence", propOrder = {"id", "name", "status", "ignored", "href", "duration",
+@XmlType(name = "testOccurrence", propOrder = {"id", "name", "status", "ignored", "duration", "muted", "currentlyMuted", "currentlyInvestigated", "href",
   "ignoreDetails", "details", "test", "mute", "build"})
 public class TestOccurrence {
   @XmlAttribute public String id;
@@ -28,6 +29,19 @@ public class TestOccurrence {
   @XmlAttribute public Boolean ignored;
   @XmlAttribute public String href;
   @XmlAttribute public Integer duration;//test run duration in milliseconds
+
+  /**
+   * Experimental! "true" is the test occurrence was muted, not present otherwise
+   */
+  @XmlAttribute public Boolean muted;
+  /**
+   * Experimental! "true" is the test has investigation at the moment of request, not present otherwise
+   */
+  @XmlAttribute public Boolean currentlyInvestigated;
+  /**
+   * Experimental! "true" is the test is muted at the moment of request, not present otherwise
+   */
+  @XmlAttribute public Boolean currentlyMuted;
 
   @XmlElement public String ignoreDetails;
   @XmlElement public String details; //todo: consider using CDATA output here
@@ -54,7 +68,16 @@ public class TestOccurrence {
     //testRun.getOrderId();
 
     ignored = testRun.isIgnored();
-    ignoreDetails = testRun.getIgnoreComment();
+
+    final MuteInfo muteInfo = testRun.getMuteInfo();
+    if (muteInfo != null) muted = true;
+
+    if (beanContext.getSingletonService(TestOccurrenceFinder.class).isCurrentlyInvestigated(testRun)) {
+      currentlyInvestigated = true;
+    }
+    if (beanContext.getSingletonService(TestOccurrenceFinder.class).isCurrentlyMuted(testRun)) {
+      currentlyMuted = true;
+    }
 
     if (fields.isAllFieldsIncluded()) {
     /*
@@ -65,13 +88,14 @@ public class TestOccurrence {
     */
       details = testRun.getFullText();
 
+      ignoreDetails = testRun.getIgnoreComment();
 
       //todo: add links to the test failure (or build) it fixed in and the build if first failed in (if not the same)
       //testRun.isNewFailure();
       //testRun.isFixed();
 
       test = new Test(sTest, beanContext, false);
-      final MuteInfo muteInfo = testRun.getMuteInfo();
+
       if (muteInfo != null) {
         mute = new Mute(muteInfo, beanContext);
       }

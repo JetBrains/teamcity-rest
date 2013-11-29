@@ -3,6 +3,7 @@ package jetbrains.buildServer.server.rest.data;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.ArrayList;
 import java.util.List;
+import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -24,6 +25,12 @@ public class ProjectFinder {
 
   public ProjectFinder(@NotNull final ProjectManager projectManager){
     myProjectManager = projectManager;
+  }
+
+  public static boolean isSameOrParent(@NotNull final BuildProject parent, @NotNull final BuildProject project) {
+    if (parent.getProjectId().equals(project.getProjectId())) return true;
+    if (project.getParentProject() == null) return false;
+    return isSameOrParent(parent, project.getParentProject());
   }
 
   @NotNull

@@ -2,6 +2,8 @@ package jetbrains.buildServer.server.rest.data.problem;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.AbstractFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -10,6 +12,7 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -25,6 +28,9 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   private static final String STATUS = "status";
   private static final String BRANCH = "branch";
   private static final String IGNORED = "ignored";
+  public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
+  public static final String MUTED = "muted";
+  public static final String CURRENTLY_MUTED = "currentlyMuted";
 
   @NotNull private final TestFinder myTestFinder;
   @NotNull private final BuildFinder myBuildFinder;
@@ -37,7 +43,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
                               final @NotNull BuildFinder buildFinder,
                               final @NotNull BuildTypeFinder buildTypeFinder,
                               final @NotNull ProjectFinder projectFinder, final @NotNull BuildHistoryEx buildHistory) {
-    super(new String[]{DIMENSION_ID, TEST, BUILD_TYPE, BUILD, PROJECT, STATUS, BRANCH, IGNORED});
+    super(new String[]{DIMENSION_ID, TEST, BUILD_TYPE, BUILD, PROJECT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED});
     myTestFinder = testFinder;
     myBuildFinder = buildFinder;
     myBuildTypeFinder = buildTypeFinder;
@@ -204,7 +210,67 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       });
     }
 
+    final Boolean currentlyInvestigatedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_INVESTIGATED);
+    if (currentlyInvestigatedDimension != null) {
+      result.add(new FilterConditionChecker<STestRun>() {
+        public boolean isIncluded(@NotNull final STestRun item) {
+          return FilterUtil.isIncludedByBooleanFilter(currentlyInvestigatedDimension, isCurrentlyInvestigated(item));
+        }
+      });
+    }
+
+    final Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
+    if (currentlyMutedDimension != null) {
+      result.add(new FilterConditionChecker<STestRun>() {
+        public boolean isIncluded(@NotNull final STestRun item) { //todo: TeamCity API (MP): is there an API way to figure out there is a mute for a STestRun ?
+          return FilterUtil.isIncludedByBooleanFilter(currentlyMutedDimension, isCurrentlyMuted(item));
+        }
+      });
+    }
+
+    final Boolean muteDimension = locator.getSingleDimensionValueAsBoolean(MUTED);
+    if (muteDimension != null) {
+      result.add(new FilterConditionChecker<STestRun>() {
+        public boolean isIncluded(@NotNull final STestRun item) {
+          return FilterUtil.isIncludedByBooleanFilter(muteDimension, item.isMuted());
+        }
+      });
+    }
+
     return result;
+  }
+
+  public boolean isCurrentlyMuted(@NotNull final STestRun item) {  //todo: TeamCity API (MP): is there an API way to figure out there is an investigation for a STestRun ?
+    final CurrentMuteInfo currentMuteInfo = item.getTest().getCurrentMuteInfo();
+    if (currentMuteInfo == null){
+      return false;
+    }
+    final SBuildType buildType = item.getBuild().getBuildType();
+    if (buildType == null){
+      return false; //might need to log this
+    }
+
+    if (currentMuteInfo.getBuildTypeMuteInfo().keySet().contains(buildType)) return true;
+
+    final Set<SProject> projects = currentMuteInfo.getProjectsMuteInfo().keySet();
+    for (SProject project : projects) {
+      if (ProjectFinder.isSameOrParent(project, buildType.getProject())) return true;
+    }
+    return false;
+  }
+
+  public boolean isCurrentlyInvestigated(@NotNull final STestRun item) {  //todo: TeamCity API (MP): is there an API way to figure out there is an investigation for a STestRun ?
+    final List<TestNameResponsibilityEntry> testResponsibilities =
+      item.getTest().getAllResponsibilities();//todo: TeamCity API (MP): what is the difference with getResponsibility() ?
+    for (TestNameResponsibilityEntry testResponsibility : testResponsibilities) {
+      final SBuildType buildType = item.getBuild().getBuildType();
+      if (buildType != null) {  //might need to log this
+        if (ProjectFinder.isSameOrParent(testResponsibility.getProject(), buildType.getProject())) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
 

@@ -10,6 +10,8 @@ import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.Investigation;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
@@ -32,6 +34,10 @@ public class InvestigationRequest {
 
   public static String getHref() {
     return API_SUB_URL;
+  }
+
+  public static String getHref(@NotNull final InvestigationWrapper investigation) {
+    return API_SUB_URL + "/" + InvestigationFinder.getLocator(investigation);
   }
 
   public static String getHref(@NotNull final ProblemWrapper problem) {
@@ -61,14 +67,20 @@ public class InvestigationRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
-  public Investigations getInvestigations(@QueryParam("locator") String locatorText, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+  public Investigations getInvestigations(@QueryParam("locator") String locatorText, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final PagedSearchResult<InvestigationWrapper> result = myInvestigationFinder.getItems(locatorText);
 
-    return new Investigations(result.myEntries,
-                              new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
+    final PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
                                             result.myCount, result.myEntries.size(),
                                             locatorText,
-                                            "locator"), myServiceLocator, myApiUrlBuilder);
+                                            "locator");
+    return new Investigations(result.myEntries,
+                              new Href(pager.getCurrentUrlRelativePath(), myApiUrlBuilder),
+                              new Fields(fields, Fields.ALL_FIELDS_PATTERN),
+                              pager,
+                              myServiceLocator,
+                              myApiUrlBuilder
+    );
   }
 
   @GET

@@ -73,6 +73,6 @@ public class TestOccurrenceRequest {
   @Path("/{testLocator}")
   @Produces({"application/xml", "application/json"})
   public TestOccurrence serveInstance(@PathParam("testLocator") String locatorText, @QueryParam("fields") String fields) {
-    return new TestOccurrence(myTestOccurrenceFinder.getItem(locatorText), new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder), new Fields(fields, Fields.ALL_FILEDS));
+    return new TestOccurrence(myTestOccurrenceFinder.getItem(locatorText), new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder), new Fields(fields, Fields.ALL_FIELDS_PATTERN));
   }
 }

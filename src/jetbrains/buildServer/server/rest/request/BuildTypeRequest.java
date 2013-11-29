@@ -31,6 +31,8 @@ import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.build.Branch;
@@ -1257,9 +1259,10 @@ public class BuildTypeRequest {
   @GET
   @Path("/{btLocator}/investigations")
   @Produces({"application/xml", "application/json"})
-  public Investigations getInvestigations(@PathParam("btLocator") String buildTypeLocator) {
+  public Investigations getInvestigations(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
-    return new Investigations(myInvestigationFinder.getInvestigationWrappersForBuildType(buildType), null, myServiceLocator, myApiUrlBuilder);
+    return new Investigations(myInvestigationFinder.getInvestigationWrappersForBuildType(buildType), new Href(InvestigationRequest.getHref(buildType), myApiUrlBuilder),
+                              new Fields(fields, Fields.ALL_FIELDS_PATTERN), null, myServiceLocator, myApiUrlBuilder);
   }
 
   /**

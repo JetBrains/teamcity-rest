@@ -9,6 +9,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -20,26 +22,37 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "investigations")
 public class Investigations {
-  @XmlElement(name = "investigation") public List<Investigation> items;
-  @XmlAttribute public long count;
+  @XmlAttribute public Long count;
   @XmlAttribute(required = false) @Nullable public String nextHref;
   @XmlAttribute(required = false) @Nullable public String prevHref;
+  @XmlAttribute(name = "href") public String href;
+
+  @XmlElement(name = "investigation") public List<Investigation> items;
 
   public Investigations() {
   }
 
-  public Investigations(@NotNull final Collection<InvestigationWrapper> itemsP,
+  public Investigations(@Nullable final Collection<InvestigationWrapper> itemsP,
+                        @Nullable final Href hrefP,
+                        @NotNull final Fields fields,
                         @Nullable final PagerData pagerData,
-                        final ServiceLocator serviceLocator,
+                        @NotNull final ServiceLocator serviceLocator,
                         @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    items = new ArrayList<Investigation>(itemsP.size());
-    for (InvestigationWrapper item : itemsP) {
-      items.add(new Investigation(item, serviceLocator, apiUrlBuilder));
+    href = hrefP != null ? hrefP.getHref() : null;
+
+    if (fields.isAllFieldsIncluded()) {
+      if (itemsP != null) {
+        items = new ArrayList<Investigation>(itemsP.size());
+        for (InvestigationWrapper item : itemsP) {
+          items.add(new Investigation(item, serviceLocator, apiUrlBuilder));
+        }
+        count = (long)items.size();
+
+        if (pagerData != null) {
+          nextHref = pagerData.getNextHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;
+          prevHref = pagerData.getPrevHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getPrevHref()) : null;
+        }
+      }
     }
-    if (pagerData != null) {
-      nextHref = pagerData.getNextHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;
-      prevHref = pagerData.getPrevHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getPrevHref()) : null;
-    }
-    count = items.size();
   }
 }

@@ -9,6 +9,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.PathTransformer;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.buildType.Investigation;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
@@ -79,11 +80,11 @@ public class InvestigationFinderTest extends BaseServerTestCase {
       }
     });
 
-    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, myServer, apiUrlBuilder);
+    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.ALL_FIELDS, null, myServer, apiUrlBuilder);
 
-    assertEquals(1, investigations.count);
+    assertEquals(1, investigations.count.longValue());
     final Investigation investigation = investigations.items.get(0);
-    assertEquals(myBuildType.getId(), investigation.id);
+    assertEquals("BuildType:" + myBuildType.getExternalId(), investigation.id);
     assertEquals("TAKEN", investigation.state);
     assertEquals((Long)myUser.getId(), investigation.responsible.getId());
     assertEquals("The comment", investigation.assignment.text);
@@ -106,9 +107,9 @@ public class InvestigationFinderTest extends BaseServerTestCase {
       }
     });
 
-    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, myServer, apiUrlBuilder);
+    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.ALL_FIELDS, null, myServer, apiUrlBuilder);
 
-    assertEquals(1, investigations.count);
+    assertEquals(1, investigations.count.longValue());
     final Investigation investigation = investigations.items.get(0);
     assertEquals(null, investigation.id);
     assertEquals("TAKEN", investigation.state);
@@ -134,9 +135,9 @@ public class InvestigationFinderTest extends BaseServerTestCase {
       }
     });
 
-    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, myServer, apiUrlBuilder);
+    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.ALL_FIELDS, null, myServer, apiUrlBuilder);
 
-    assertEquals(1, investigations.count);
+    assertEquals(1, investigations.count.longValue());
     final Investigation investigation = investigations.items.get(0);
     assertEquals(null, investigation.id);
     assertEquals("TAKEN", investigation.state);

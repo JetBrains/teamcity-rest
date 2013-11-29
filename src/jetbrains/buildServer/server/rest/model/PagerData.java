@@ -39,7 +39,9 @@ public class PagerData {
   private URI myNextHref;
   @Nullable
   private URI myPrevHref;
-  private String myContextPath;
+
+  @NotNull private String myContextPath;
+  @NotNull private UriBuilder myUriBuilder;
 
   public PagerData() {
   }
@@ -58,6 +60,7 @@ public class PagerData {
                    @Nullable final Integer count,
                    long currentPageRealCount,
                    @Nullable final String locatorText, @Nullable final String locatorQueryParameterName) {
+    myUriBuilder = uriBuilder;
     myContextPath = contextPath;
     if (start == null || start == 0) {
       myPrevHref = null;
@@ -125,4 +128,10 @@ public class PagerData {
     }
     return sb.toString();
   }
+
+  @NotNull
+  public String getCurrentUrlRelativePath(){
+    return getRelativePath(myUriBuilder.build(), myContextPath);
+  }
+
 }

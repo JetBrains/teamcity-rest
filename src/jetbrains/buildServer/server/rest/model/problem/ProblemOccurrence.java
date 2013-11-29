@@ -51,7 +51,8 @@ public class ProblemOccurrence {
       details = problemP.getBuildProblemData().getDescription();
       additionalData = problemP.getBuildProblemData().getAdditionalData();
 
-      problem = new Problem(new ProblemWrapper(problemP.getId(), beanContext.getServiceLocator()), beanContext.getServiceLocator(), beanContext.getApiUrlBuilder(), false);
+      problem = new Problem(new ProblemWrapper(problemP.getId(), beanContext.getServiceLocator()), beanContext.getServiceLocator(), beanContext.getApiUrlBuilder(), fields.getNestedField(
+        "problem"));
 
       final MuteInfo muteInfo = problemP.getMuteInBuildInfo();
       if (muteInfo != null) {

@@ -40,7 +40,7 @@ public class ProblemOccurrences {
     });
     items = new ArrayList<ProblemOccurrence>(itemsP.size());  //todo: consider adding ordering/sorting
     for (BuildProblem item : itemsP) {
-      items.add(new ProblemOccurrence(item, beanContext, fields));
+      items.add(new ProblemOccurrence(item, beanContext, fields.getNestedField("items")));
     }
     if (pagerData != null) {
       nextHref = pagerData.getNextHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null;

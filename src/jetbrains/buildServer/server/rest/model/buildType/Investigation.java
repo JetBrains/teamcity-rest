@@ -10,6 +10,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
+import jetbrains.buildServer.server.rest.request.InvestigationRequest;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -24,6 +25,8 @@ public class Investigation {
   public String id;
   @XmlAttribute
   public String state;
+  @XmlAttribute
+  public String href;
 
   @XmlElement
   public UserRef responsible;
@@ -46,15 +49,15 @@ public class Investigation {
       return;
     }
 
-    //todo: suport ids for other cases here!
-    if (investigation.isBuildType()){
-      id = investigation.getBuildTypeRE().getBuildType().getBuildTypeId(); // still uses internal id, TBD if appropriate
-    }
+    id = investigation.getId();
+
     /*
     //todo: THIS MIGHT NOT WORK!!!
     final ResponsibilityEntryEx responsibilityEntryEx = (ResponsibilityEntryEx)investigation;
     id = responsibilityEntryEx.getProblemId();
     */
+
+    href = InvestigationRequest.getHref(investigation);
 
     scope = new InvestigationScope(investigation, serviceLocator, apiUrlBuilder);
     responsible = new UserRef(investigation.getResponsibleUser(), apiUrlBuilder);

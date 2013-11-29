@@ -8,6 +8,7 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
 import jetbrains.buildServer.server.rest.request.ProblemOccurrenceRequest;
@@ -45,7 +46,7 @@ public class Problem {
   public Problem(final @NotNull ProblemWrapper problem,
                  final @NotNull ServiceLocator serviceLocator,
                  final @NotNull ApiUrlBuilder apiUrlBuilder,
-                 final boolean fullDetails) {
+                 final @NotNull Fields fields) {
     id = String.valueOf(problem.getId());
     final long problemId = (long)problem.getId();
 
@@ -53,12 +54,12 @@ public class Problem {
     identity = problem.getIdentity();
     href = apiUrlBuilder.transformRelativePath(ProblemRequest.getHref(problem));
 
-    if (fullDetails) {
+    if (fields.isAllFieldsIncluded()) {
 //      project = new ProjectRef(problem.getProject(), apiUrlBuilder);
 
       final List<MuteInfo> actualMutes = problem.getMutes();
       if (actualMutes.size() > 0) {
-        mutes = new Mutes(actualMutes, null, new BeanContext(serviceLocator.getSingletonService(BeanFactory.class), serviceLocator, apiUrlBuilder));
+        mutes = new Mutes(actualMutes, null, null, new BeanContext(serviceLocator.getSingletonService(BeanFactory.class), serviceLocator, apiUrlBuilder));
       }
       if (problem.getInvestigations().size() > 0) {
         investigations = new Href(InvestigationRequest.getHref(problem), apiUrlBuilder);

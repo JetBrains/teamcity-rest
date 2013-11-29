@@ -25,6 +25,7 @@ import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.BuildsRef;
@@ -192,14 +193,15 @@ public class BuildType {
    * @return
    */
   @XmlElement(name = "investigations")
-  public Href getInvestigations() {
+  public Investigations getInvestigations() {
     if (!myBuildType.isBuildType()) {
       return null;
     }
 
     final ResponsibilityEntry.State state = myBuildType.getBuildType().getResponsibilityInfo().getState();
     if (!state.equals(ResponsibilityEntry.State.NONE)) {
-      return new Href(InvestigationRequest.getHref(myBuildType.getBuildType()), myApiUrlBuilder);
+      return new Investigations(null, new Href(InvestigationRequest.getHref(myBuildType.getBuildType()), myApiUrlBuilder), new Fields(), null, myDataProvider.getServer(), myApiUrlBuilder);
+//      return new Href(InvestigationRequest.getHref(myBuildType.getBuildType()), myApiUrlBuilder);
     }
     return null;
   }

@@ -9,6 +9,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.problem.Problem;
 import jetbrains.buildServer.server.rest.model.problem.Problems;
@@ -57,7 +58,7 @@ public class ProblemRequest {
   @GET
   @Path("/{problemLocator}")
   @Produces({"application/xml", "application/json"})
-  public Problem serveInstance(@PathParam("problemLocator") String locatorText) {
-    return new Problem(myProblemFinder.getItem(locatorText), myServiceLocator, myApiUrlBuilder, true);
+  public Problem serveInstance(@PathParam("problemLocator") String locatorText, @QueryParam("fields") String fields) {
+    return new Problem(myProblemFinder.getItem(locatorText), myServiceLocator, myApiUrlBuilder, new Fields(fields, Fields.ALL_FIELDS_PATTERN));
   }
 }

@@ -7,7 +7,10 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Href;
+import jetbrains.buildServer.server.rest.model.buildType.Investigations;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
 import jetbrains.buildServer.server.rest.request.TestRequest;
@@ -31,7 +34,7 @@ public class Test {
   @XmlAttribute public String href;
 
   @XmlElement public Mutes mutes;  // todo: also make this href
-  @XmlElement public Href investigations;
+  @XmlElement public Investigations investigations;
   @XmlElement public Href testOccurrences;
 
   public Test() {
@@ -52,10 +55,15 @@ public class Test {
         muteInfos.addAll(new LinkedHashSet<MuteInfo>(currentMuteInfo.getBuildTypeMuteInfo().values())); //add with deduplication
       }
       if (muteInfos.size() > 0) {
-        mutes = new Mutes(muteInfos, null, beanContext);
+        mutes = new Mutes(muteInfos, null, null, beanContext);
       }
       if (test.getAllResponsibilities().size() > 0) {
-        investigations = new Href(InvestigationRequest.getHref(test), apiUrlBuilder);
+        investigations = new Investigations(beanContext.getSingletonService(InvestigationFinder.class).getInvestigationWrappers(test),
+                                            new Href(InvestigationRequest.getHref(test), apiUrlBuilder),
+                                            new Fields(),
+                                            null,
+                                            beanContext.getServiceLocator(),
+                                            apiUrlBuilder);
       }
       testOccurrences = new Href(TestOccurrenceRequest.getHref(test), apiUrlBuilder);
     }

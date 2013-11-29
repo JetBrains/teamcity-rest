@@ -81,21 +81,32 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     return Locator.createEmptyLocator().setDimension(TEST_DIMENSION, TestFinder.getTestLocator(test)).getStringRepresentation();
   }
 
+  @NotNull
+  public static String getLocator(final InvestigationWrapper investigation) {
+    return Locator.createEmptyLocator().setDimension(DIMENSION_ID, investigation.getId()).getStringRepresentation();
+  }
+
   @Override
   protected InvestigationWrapper findSingleItem(@NotNull final Locator locator) {
-    return null;
 
-    /*
-    // dimension-specific item search
     String id = locator.getSingleDimensionValue(DIMENSION_ID);
     if (id != null) {
       InvestigationWrapper item = findItemById(id);
       if (item == null) {
-        throw new NotFoundException("No investigation" + " can be found by " + DIMENSION_ID + " '" + id + "'.");
+        throw new NotFoundException("No investigation can be found by " + DIMENSION_ID + " '" + id + "'.");
       }
       return item;
     }
-    */
+
+    return null;
+  }
+
+  @Nullable
+  private InvestigationWrapper findItemById(final String id) {  //todo: this is ineffective!
+    for (InvestigationWrapper investigaiton : getAllItems()) {
+      if (investigaiton.getId().equals(id)) return investigaiton;
+    }
+    return null;
   }
 
   @Override
@@ -263,7 +274,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   }
 
   @NotNull
-  private List<InvestigationWrapper> getInvestigationWrappers(@NotNull final STest item) {
+  public List<InvestigationWrapper> getInvestigationWrappers(@NotNull final STest item) {
     final List<TestNameResponsibilityEntry> responsibilities = item.getAllResponsibilities();
     final ArrayList<InvestigationWrapper> result = new ArrayList<InvestigationWrapper>(responsibilities.size());
     for (TestNameResponsibilityEntry responsibility : responsibilities) {

@@ -83,6 +83,21 @@ public class InvestigationWrapper implements ResponsibilityEntry {
   }
 
 
+  @SuppressWarnings("ConstantConditions")
+  @NotNull
+  public String getId() {
+    if (isBuildType()){
+      return getType() + ":" + getBuildTypeRE().getBuildType().getExternalId();
+    }
+    if (isProblem()){
+      return getType() + ":" + getProblemRE().getBuildProblemInfo().getId();
+    }
+    if (isTest()){
+      return getType() + ":" + getTestRE().getTestNameId();
+    }
+    return getType() + getRE().toString();
+  }
+
   @NotNull
   public State getState() {
     return myRE.getState();

@@ -10,6 +10,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -41,7 +42,7 @@ public class Problems {
     });
     items = new ArrayList<Problem>(sortedItems.size());  //todo: consider adding ordering/sorting
     for (ProblemWrapper item : sortedItems) {
-      items.add(new Problem(item, serviceLocator, apiUrlBuilder, false));
+      items.add(new Problem(item, serviceLocator, apiUrlBuilder, new Fields()));
     }
     if (pagerData != null) {
       nextHref = pagerData.getNextHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;

@@ -10,6 +10,7 @@ import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrappe
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.problem.Problem;
 import jetbrains.buildServer.server.rest.model.problem.Test;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
@@ -72,7 +73,7 @@ public class InvestigationScope {
     } else if (investigation.isProblem()) {
       final BuildProblemResponsibilityEntry problemRE = investigation.getProblemRE();
       //noinspection ConstantConditions
-      problem = new Problem(new ProblemWrapper(problemRE.getBuildProblemInfo().getId(), serviceLocator), serviceLocator, apiUrlBuilder, false);
+      problem = new Problem(new ProblemWrapper(problemRE.getBuildProblemInfo().getId(), serviceLocator), serviceLocator, apiUrlBuilder, new Fields());
       project = new ProjectRef((SProject)problemRE.getProject(), apiUrlBuilder); //TeamCity open API issue: cast
     } else {
       throw new InvalidStateException("Investigation wrapper type is not supported");
