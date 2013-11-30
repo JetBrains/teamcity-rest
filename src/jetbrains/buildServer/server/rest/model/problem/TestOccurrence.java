@@ -94,7 +94,7 @@ public class TestOccurrence {
       //testRun.isNewFailure();
       //testRun.isFixed();
 
-      test = new Test(sTest, beanContext, false);
+      test = new Test(sTest, beanContext, fields.getNestedField("test"));
 
       if (muteInfo != null) {
         mute = new Mute(muteInfo, beanContext);

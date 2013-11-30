@@ -9,6 +9,7 @@ import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.model.Comment;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
 import org.jetbrains.annotations.NotNull;
@@ -41,6 +42,7 @@ public class Investigation {
   }
 
   public Investigation(final @NotNull InvestigationWrapper investigation,
+                       final @NotNull Fields fields,
                        final @NotNull ServiceLocator serviceLocator,
                        final @NotNull ApiUrlBuilder apiUrlBuilder) {
     final ResponsibilityEntry.State stateOjbect = investigation.getState();
@@ -58,11 +60,13 @@ public class Investigation {
     */
 
     href = InvestigationRequest.getHref(investigation);
+    if (fields.isAllFieldsIncluded() || true) {
 
-    scope = new InvestigationScope(investigation, serviceLocator, apiUrlBuilder);
-    responsible = new UserRef(investigation.getResponsibleUser(), apiUrlBuilder);
+      scope = new InvestigationScope(investigation, fields.getNestedField("scope"), serviceLocator, apiUrlBuilder);
+      responsible = new UserRef(investigation.getResponsibleUser(), apiUrlBuilder);
 
-    //todo: add all investigation fields: state, removeType, etc.
-    assignment = new Comment(investigation.getReporterUser(), investigation.getTimestamp(), investigation.getComment(), apiUrlBuilder);
+      //todo: add all investigation fields: state, removeType, etc.
+      assignment = new Comment(investigation.getReporterUser(), investigation.getTimestamp(), investigation.getComment(), apiUrlBuilder);
+    }
   }
 }

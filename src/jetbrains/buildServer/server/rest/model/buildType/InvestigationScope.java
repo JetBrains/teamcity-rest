@@ -52,9 +52,10 @@ public class InvestigationScope {
    public InvestigationScope() {
   }
 
-  public InvestigationScope(final @NotNull InvestigationWrapper investigation,
+  public InvestigationScope(@NotNull final InvestigationWrapper investigation,
+                            @NotNull final Fields fields,
                             @NotNull final ServiceLocator serviceLocator,
-                            final ApiUrlBuilder apiUrlBuilder) {
+                            @NotNull final ApiUrlBuilder apiUrlBuilder) {
     type = investigation.getType();
     if (investigation.isBuildType()) {
       //noinspection ConstantConditions
@@ -67,13 +68,13 @@ public class InvestigationScope {
       if (foundTest == null){
         throw new InvalidStateException("Cannot find test for investigation. Test name id: '" + testRE.getTestNameId() + "'.");
       }
-      test = new Test(foundTest, beanContext, false);
+      test = new Test(foundTest, beanContext, fields.getNestedField("test"));
 
       project = new ProjectRef((SProject)testRE.getProject(), apiUrlBuilder); //TeamCity open API issue: cast
     } else if (investigation.isProblem()) {
       final BuildProblemResponsibilityEntry problemRE = investigation.getProblemRE();
       //noinspection ConstantConditions
-      problem = new Problem(new ProblemWrapper(problemRE.getBuildProblemInfo().getId(), serviceLocator), serviceLocator, apiUrlBuilder, new Fields());
+      problem = new Problem(new ProblemWrapper(problemRE.getBuildProblemInfo().getId(), serviceLocator), serviceLocator, apiUrlBuilder, fields.getNestedField("problem"));
       project = new ProjectRef((SProject)problemRE.getProject(), apiUrlBuilder); //TeamCity open API issue: cast
     } else {
       throw new InvalidStateException("Investigation wrapper type is not supported");

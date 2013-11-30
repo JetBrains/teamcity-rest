@@ -1,6 +1,8 @@
 package jetbrains.buildServer.server.rest.model;
 
-import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.util.containers.HashSet;
+import java.util.Collection;
+import java.util.Set;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -10,23 +12,37 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 28.11.13
  */
 public class Fields {
-  public static final String ALL_FIELDS_PATTERN = "*";
-  public static final String ALL_NESTED_FIELDS_PATTERN = "**";
-  @Nullable private final String myFieldsSpec;
+  private static final String NONE_FIELDS_PATTERN = "";
+  private static final String ALL_FIELDS_PATTERN = "*";
+  private static final String ALL_NESTED_FIELDS_PATTERN = "**";
 
-  public static Fields ALL_FIELDS = new Fields(null, ALL_FIELDS_PATTERN);
-  public static Fields ALL_NESTED_FIELDS = new Fields(null, ALL_NESTED_FIELDS_PATTERN);
+  public static final Fields DEFAULT_FIELDS = new Fields(null);
+  public static final Fields NONE_FIELDS = new Fields(NONE_FIELDS_PATTERN);
+  public static final Fields ALL_FIELDS = new Fields(ALL_FIELDS_PATTERN);
+  public static final Fields ALL_NESTED_FIELDS = new Fields(ALL_NESTED_FIELDS_PATTERN);
+
+  @Nullable private final String myFieldsSpec;
+  @NotNull private final Set<String> myExcludedFields;
+
+  private Fields(@Nullable String actualFieldsSpec, @Nullable Collection<String> excludedFields, boolean isInternal) {
+    myFieldsSpec = actualFieldsSpec;
+    myExcludedFields = excludedFields != null ? new HashSet<String>(excludedFields) : new HashSet<String>();
+  }
 
   public Fields() {
-    myFieldsSpec = null;
+    this(null, null, true);
   }
 
   public Fields (@Nullable String fieldsSpec){
-    myFieldsSpec = fieldsSpec;
+    this(fieldsSpec, null, true);
   }
 
   public Fields (@Nullable String fieldsSpec, @NotNull String defaultFieldsSpec){
-    myFieldsSpec = StringUtil.isEmpty(fieldsSpec) ? defaultFieldsSpec : fieldsSpec;
+    this(fieldsSpec != null ? fieldsSpec : defaultFieldsSpec, null, true);
+  }
+
+  public Fields(@Nullable String fieldsSpec, @NotNull Fields defaultFields) {
+    this(fieldsSpec != null ? fieldsSpec : defaultFields.myFieldsSpec, null, true);
   }
 
   public boolean isAllFieldsIncluded(){
@@ -37,7 +53,18 @@ public class Fields {
     return myFieldsSpec == null;
   }
 
+  public boolean isNone() {
+    return NONE_FIELDS_PATTERN.equals(myFieldsSpec);
+  }
+
   public boolean isIncluded(final String fieldName){
+    if (isNone()){
+      return false;
+    }
+    if (myExcludedFields.contains(fieldName)) {
+      return false;
+    }
+
     if (isAllFieldsIncluded()){
       return true;
     }
@@ -49,9 +76,21 @@ public class Fields {
 
   @NotNull
   public Fields getNestedField(final String nestedFieldName) {
-    if (ALL_NESTED_FIELDS_PATTERN.equals(myFieldsSpec)){
-      return ALL_NESTED_FIELDS;
+    if (NONE_FIELDS_PATTERN.equals(myFieldsSpec)) {
+      return NONE_FIELDS;
+//      throw new OperationException("Should never get nested field for NONE fileds filter. Querying for nested field '" + nestedFieldName + "'. Excluded fields: " + myExcludedFields);
     }
-    return new Fields(null);
+
+    if (myExcludedFields.contains(nestedFieldName)) {
+      return NONE_FIELDS;
+    }
+
+    final HashSet<String> excludedFields = new HashSet<String>(myExcludedFields);
+    excludedFields.add(nestedFieldName);
+
+    if (ALL_NESTED_FIELDS_PATTERN.equals(myFieldsSpec)) {
+      return new Fields(ALL_NESTED_FIELDS_PATTERN, excludedFields, true);
+    }
+    return new Fields(null, excludedFields, true);
   }
 }

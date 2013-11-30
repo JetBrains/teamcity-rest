@@ -44,7 +44,7 @@ public class Investigations {
       if (itemsP != null) {
         items = new ArrayList<Investigation>(itemsP.size());
         for (InvestigationWrapper item : itemsP) {
-          items.add(new Investigation(item, serviceLocator, apiUrlBuilder));
+          items.add(new Investigation(item, fields.getNestedField("investigation"), serviceLocator, apiUrlBuilder));
         }
         count = (long)items.size();
 

@@ -32,8 +32,9 @@ public class Problems {
 
   public Problems(@NotNull final List<ProblemWrapper> itemsP,
                   @Nullable final PagerData pagerData,
-                  final ServiceLocator serviceLocator,
-                  @NotNull final ApiUrlBuilder apiUrlBuilder) {
+                  @NotNull final ServiceLocator serviceLocator,
+                  @NotNull final ApiUrlBuilder apiUrlBuilder,
+                  @NotNull final Fields fields) {
     final List<ProblemWrapper> sortedItems = new ArrayList<ProblemWrapper>(itemsP);
     Collections.sort(sortedItems, new Comparator<ProblemWrapper>() {
       public int compare(final ProblemWrapper o1, final ProblemWrapper o2) {
@@ -42,7 +43,7 @@ public class Problems {
     });
     items = new ArrayList<Problem>(sortedItems.size());  //todo: consider adding ordering/sorting
     for (ProblemWrapper item : sortedItems) {
-      items.add(new Problem(item, serviceLocator, apiUrlBuilder, new Fields()));
+      items.add(new Problem(item, serviceLocator, apiUrlBuilder, fields.getNestedField("problem")));
     }
     if (pagerData != null) {
       nextHref = pagerData.getNextHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;

@@ -76,7 +76,7 @@ public class InvestigationRequest {
                                             "locator");
     return new Investigations(result.myEntries,
                               new Href(pager.getCurrentUrlRelativePath(), myApiUrlBuilder),
-                              new Fields(fields, Fields.ALL_FIELDS_PATTERN),
+                              new Fields(fields, Fields.ALL_FIELDS),
                               pager,
                               myServiceLocator,
                               myApiUrlBuilder
@@ -86,8 +86,8 @@ public class InvestigationRequest {
   @GET
   @Path("/{investigationLocator}")
   @Produces({"application/xml", "application/json"})
-  public Investigation serveInstance(@PathParam("investigationLocator") String locatorText) {
-    return new Investigation(myInvestigationFinder.getItem(locatorText), myServiceLocator, myApiUrlBuilder);
+  public Investigation serveInstance(@PathParam("investigationLocator") String locatorText, @QueryParam("fields") String fields) {
+    return new Investigation(myInvestigationFinder.getItem(locatorText), new Fields(fields), myServiceLocator, myApiUrlBuilder);
   }
 
   /*

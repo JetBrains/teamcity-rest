@@ -45,20 +45,24 @@ public class ProblemRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
-  public Problems getProblems(@QueryParam("locator") String locatorText, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+  public Problems getProblems(@QueryParam("locator") String locatorText, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final PagedSearchResult<ProblemWrapper> result = myProblemFinder.getItems(locatorText);
 
     return new Problems(result.myEntries,
-                              new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
-                                            result.myCount, result.myEntries.size(),
-                                            locatorText,
-                                            "locator"), myServiceLocator, myApiUrlBuilder);
+                        new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
+                                      result.myCount, result.myEntries.size(),
+                                      locatorText,
+                                      "locator"),
+                        myServiceLocator,
+                        myApiUrlBuilder,
+                        new Fields(fields)
+    );
   }
 
   @GET
   @Path("/{problemLocator}")
   @Produces({"application/xml", "application/json"})
   public Problem serveInstance(@PathParam("problemLocator") String locatorText, @QueryParam("fields") String fields) {
-    return new Problem(myProblemFinder.getItem(locatorText), myServiceLocator, myApiUrlBuilder, new Fields(fields, Fields.ALL_FIELDS_PATTERN));
+    return new Problem(myProblemFinder.getItem(locatorText), myServiceLocator, myApiUrlBuilder, new Fields(fields, Fields.ALL_FIELDS));
   }
 }

@@ -73,6 +73,6 @@ public class ProblemOccurrenceRequest {
   @Path("/{problemLocator}")
   @Produces({"application/xml", "application/json"})
   public ProblemOccurrence serveInstance(@PathParam("problemLocator") String locatorText, @QueryParam("fields") String fields) {
-    return new ProblemOccurrence(myProblemOccurrenceFinder.getItem(locatorText), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder), new Fields(fields, Fields.ALL_FIELDS_PATTERN));
+    return new ProblemOccurrence(myProblemOccurrenceFinder.getItem(locatorText), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder), new Fields(fields, Fields.ALL_FIELDS));
   }
 }

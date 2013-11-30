@@ -40,14 +40,14 @@ public class Test {
   public Test() {
   }
 
-  public Test(final @NotNull STest test, final @NotNull BeanContext beanContext, final boolean fullDetails) {
+  public Test(final @NotNull STest test, final @NotNull BeanContext beanContext, @NotNull final Fields fields) {
     id = test.getTestNameId();
     name = test.getName().getAsString();
 
     final ApiUrlBuilder apiUrlBuilder = beanContext.getApiUrlBuilder();
     href = apiUrlBuilder.transformRelativePath(TestRequest.getHref(test));
 
-    if (fullDetails) {
+    if (fields.isAllFieldsIncluded()) {
       final ArrayList<MuteInfo> muteInfos = new ArrayList<MuteInfo>();
       final CurrentMuteInfo currentMuteInfo = test.getCurrentMuteInfo(); //todo: TeamCity API: how to get unique mutes?
       if (currentMuteInfo != null) {
@@ -60,7 +60,7 @@ public class Test {
       if (test.getAllResponsibilities().size() > 0) {
         investigations = new Investigations(beanContext.getSingletonService(InvestigationFinder.class).getInvestigationWrappers(test),
                                             new Href(InvestigationRequest.getHref(test), apiUrlBuilder),
-                                            new Fields(),
+                                            fields.getNestedField("investigations"),
                                             null,
                                             beanContext.getServiceLocator(),
                                             apiUrlBuilder);
