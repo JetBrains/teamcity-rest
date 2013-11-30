@@ -1,7 +1,8 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
@@ -13,6 +14,7 @@ import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
+import jetbrains.buildServer.tests.TestName;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,7 +26,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   private static final String BUILD = "build";
   private static final String TEST = "test";
   private static final String BUILD_TYPE = "buildType";
-  private static final String PROJECT = "project";
+  public static final String AFFECTED_PROJECT = "affectedProject";
+  private static final String CURRENT = "current";
   private static final String STATUS = "status";
   private static final String BRANCH = "branch";
   private static final String IGNORED = "ignored";
@@ -38,17 +41,21 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @NotNull private final ProjectFinder myProjectFinder;
 
   @NotNull private final BuildHistoryEx myBuildHistory;
+  @NotNull private final CurrentProblemsManager myCurrentProblemsManager;
 
   public TestOccurrenceFinder(final @NotNull TestFinder testFinder,
                               final @NotNull BuildFinder buildFinder,
                               final @NotNull BuildTypeFinder buildTypeFinder,
-                              final @NotNull ProjectFinder projectFinder, final @NotNull BuildHistoryEx buildHistory) {
-    super(new String[]{DIMENSION_ID, TEST, BUILD_TYPE, BUILD, PROJECT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED});
+                              final @NotNull ProjectFinder projectFinder,
+                              final @NotNull BuildHistoryEx buildHistory,
+                              final @NotNull CurrentProblemsManager currentProblemsManager) {
+    super(new String[]{DIMENSION_ID, TEST, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED});
     myTestFinder = testFinder;
     myBuildFinder = buildFinder;
     myBuildTypeFinder = buildTypeFinder;
     myProjectFinder = projectFinder;
     myBuildHistory = buildHistory;
+    myCurrentProblemsManager = currentProblemsManager;
   }
 
   public static String getTestRunLocator(final @NotNull STestRun testRun) {
@@ -68,7 +75,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @Override
   public Locator getLocatorOrNull(@Nullable final String locatorText) {
     final Locator locator = super.getLocatorOrNull(locatorText);
-    if (locator != null){
+    if (locator != null && !locator.isSingleValue()){
       locator.setDimensionIfNotPresent(PagerData.COUNT, String.valueOf(Constants.DEFAULT_PAGE_ITEMS_COUNT));
       locator.addIgnoreUnusedDimensions(PagerData.COUNT);
     }
@@ -128,7 +135,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @Override
   @NotNull
   public List<STestRun> getAllItems() {
-    throw new BadRequestException("Listing all test occurrences is not supported. Try locator dimensions: " + Arrays.toString(getKnownDimensions()));
+    throw new BadRequestException("Listing all test occurrences is not supported. Try locator dimensions: " + BUILD + ", " + TEST + ", " + CURRENT + ":true");
   }
 
   @Override
@@ -137,6 +144,14 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     if (buildDimension != null) {
       SBuild build = myBuildFinder.getBuild(null, buildDimension);
       return build.getFullStatistics().getAllTests();
+    }
+
+    final SProject affectedProject;
+    String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
+    if (affectedProjectDimension != null) {
+      affectedProject = myProjectFinder.getProject(affectedProjectDimension);
+    }else{
+      affectedProject = myProjectFinder.getRootProject();
     }
 
     String testDimension = locator.getSingleDimensionValue(TEST);
@@ -151,15 +166,31 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         return myBuildHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), 0, branchDimension); //no personal builds
       }
 
-      String projectDimension = locator.getSingleDimensionValue(PROJECT);
-      if (projectDimension != null) {
-        final SProject project = myProjectFinder.getProject(projectDimension);
-        return myBuildHistory.getTestHistory(test.getTestNameId(), project, -1, null); //no personal builds, no branches filtering
-      }
-      return myBuildHistory.getTestHistory(test.getTestNameId(), myProjectFinder.getRootProject(), 0, branchDimension); //no personal builds
+      return myBuildHistory.getTestHistory(test.getTestNameId(), affectedProject, 0, branchDimension); //no personal builds
     }
 
-    throw new BadRequestException("Listing all test occurrences is not supported. Try locator dimensions: " + Arrays.toString(getKnownDimensions()));
+    Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
+    if (currentDimension != null && currentDimension) {
+      return getCurrentOccurences(affectedProject, myCurrentProblemsManager);
+    }
+
+    throw new BadRequestException("Listing all test occurrences is not supported. Try locator dimensions: " + BUILD + ", " + TEST + ", " + CURRENT + ":true");
+  }
+
+  @NotNull
+  public static List<STestRun> getCurrentOccurences(@NotNull final SProject affectedProject, @NotNull final CurrentProblemsManager currentProblemsManager) {
+    final CurrentProblems currentProblems = currentProblemsManager.getProblemsForProject(affectedProject);
+    final Map<TestName, List<STestRun>> failingTests = currentProblems.getFailingTests();
+    final Map<TestName, List<STestRun>> mutedTestFailures = currentProblems.getMutedTestFailures();
+    final Set<STestRun> result = new java.util.HashSet<STestRun>(failingTests.size() + mutedTestFailures.size());
+    //todo: check whether STestRun is OK to put into the set
+    for (List<STestRun> testRuns : failingTests.values()) {
+      result.addAll(testRuns);
+    }
+    for (List<STestRun> testRuns : mutedTestFailures.values()) {
+      result.addAll(testRuns);
+    }
+    return new ArrayList<STestRun>(result);
   }
 
   @Override
@@ -234,6 +265,15 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       result.add(new FilterConditionChecker<STestRun>() {
         public boolean isIncluded(@NotNull final STestRun item) {
           return FilterUtil.isIncludedByBooleanFilter(muteDimension, item.isMuted());
+        }
+      });
+    }
+
+    final String currentDimension = locator.getSingleDimensionValue(CURRENT);
+    if (currentDimension != null) {
+      result.add(new FilterConditionChecker<STestRun>() {
+        public boolean isIncluded(@NotNull final STestRun item) {
+          return !item.isFixed(); //todo: is this the same as the test occurring in current problems???
         }
       });
     }

@@ -1,15 +1,14 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.AbstractFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.serverSide.STest;
-import jetbrains.buildServer.serverSide.STestManager;
-import jetbrains.buildServer.serverSide.TestName2IndexImpl;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.tests.TestName;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -20,22 +19,27 @@ import org.jetbrains.annotations.Nullable;
  */
 public class TestFinder extends AbstractFinder<STest> {
   private static final String NAME = "name";
+  public static final String AFFECTED_PROJECT = "affectedProject";
+  private static final String CURRENT = "current";
 
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final STestManager myTestManager;
   @NotNull private final TestName2IndexImpl myTestName2Index; //TeamCIty open API issue
+  @NotNull private final CurrentProblemsManager myCurrentProblemsManager;
 
   public TestFinder(final @NotNull ProjectFinder projectFinder,
                     final @NotNull STestManager testManager,
-                    final @NotNull TestName2IndexImpl testName2Index) {
-    super(new String[]{DIMENSION_ID, NAME, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME}); //todo: specify dimensions
+                    final @NotNull TestName2IndexImpl testName2Index,
+                    final @NotNull CurrentProblemsManager currentProblemsManager) {
+    super(new String[]{DIMENSION_ID, NAME, AFFECTED_PROJECT, CURRENT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME}); //todo: specify dimensions
     myTestManager = testManager;
     myProjectFinder = projectFinder;
     myTestName2Index = testName2Index;
+    myCurrentProblemsManager = currentProblemsManager;
   }
 
   public static String getTestLocator(final @NotNull STest test) {
-    return Locator.createEmptyLocator().setDimension("id", String.valueOf(test.getTestNameId())).getStringRepresentation();
+    return Locator.createEmptyLocator().setDimension(DIMENSION_ID, String.valueOf(test.getTestNameId())).getStringRepresentation();
   }
 
   @Override
@@ -82,7 +86,34 @@ public class TestFinder extends AbstractFinder<STest> {
   @NotNull
   public List<STest> getAllItems() {
     //todo: TeamCity API: find a way to do this
-    throw new BadRequestException("Listing all tests is not supported. Try locator dimensions: " + Arrays.toString(getKnownDimensions()));
+    throw new BadRequestException("Listing all tests is not supported. Try locator dimensions: " + CURRENT + ":true");
+  }
+
+  @Override
+  protected List<STest> getPrefilteredItems(@NotNull final Locator locator) {
+    final SProject affectedProject;
+    String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
+    if (affectedProjectDimension != null) {
+      affectedProject = myProjectFinder.getProject(affectedProjectDimension);
+    }else{
+      affectedProject = myProjectFinder.getRootProject();
+    }
+
+    Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
+    if (currentDimension != null && currentDimension) {
+      return getCurrentlyFailingTest(affectedProject);
+    }
+
+    throw new BadRequestException("Listing all tests is not supported. Try locator dimensions: " + CURRENT + ":true");
+  }
+
+  private List<STest> getCurrentlyFailingTest(@NotNull final SProject affectedProject) {
+    final List<STestRun> failingTestOccurrences = TestOccurrenceFinder.getCurrentOccurences(affectedProject, myCurrentProblemsManager);
+    final HashSet<STest> result = new HashSet<STest>(failingTestOccurrences.size());
+    for (STestRun testOccurrence : failingTestOccurrences) {
+      result.add(testOccurrence.getTest());
+    }
+    return new ArrayList<STest>(result);
   }
 
   @Override
