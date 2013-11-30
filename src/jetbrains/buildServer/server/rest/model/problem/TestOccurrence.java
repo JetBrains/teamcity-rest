@@ -1,5 +1,6 @@
 package jetbrains.buildServer.server.rest.model.problem;
 
+import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -9,10 +10,13 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.build.BuildRef;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.serverSide.BuildStatisticsOptions;
+import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -21,7 +25,7 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "testOccurrence")
 @XmlType(name = "testOccurrence", propOrder = {"id", "name", "status", "ignored", "duration", "muted", "currentlyMuted", "currentlyInvestigated", "href",
-  "ignoreDetails", "details", "test", "mute", "build"})
+  "ignoreDetails", "details", "test", "mute", "build", "firstFailed", "nextFixed"})
 public class TestOccurrence {
   @XmlAttribute public String id;
   @XmlAttribute public String name;
@@ -50,6 +54,8 @@ public class TestOccurrence {
   @XmlElement public Mute mute;
 
   @XmlElement public BuildRef build;
+  @XmlElement public TestOccurrence firstFailed;
+  @XmlElement public TestOccurrence nextFixed;
 
   public TestOccurrence() {
   }
@@ -101,6 +107,26 @@ public class TestOccurrence {
       }
 
       build = new BuildRef(testRun.getBuild(), beanContext.getServiceLocator(), beanContext.getApiUrlBuilder());
+
+      final SBuild firstFailedInBuild = testRun.getFirstFailed();
+      if (firstFailedInBuild != null) {
+        //noinspection ConstantConditions
+        firstFailed = new TestOccurrence(getTestRun(firstFailedInBuild, testRun), beanContext, fields.getNestedField("firstFailed"));
+      }
+      final SBuild fixedInBuild = testRun.getFixedIn();
+      if (fixedInBuild != null) {
+        //noinspection ConstantConditions
+        nextFixed = new TestOccurrence(getTestRun(fixedInBuild, testRun), beanContext, fields.getNestedField("firstFailed"));
+      }
     }
+  }
+
+  @Nullable
+  private STestRun getTestRun(@NotNull final SBuild build, @NotNull final STestRun sampleTestRun) {
+    //todo: TeamCity API (MP): is there a dedicated API for this?
+    //todo: handle several returned test runs
+    final List<STestRun> testRuns = build.getBuildStatistics(new BuildStatisticsOptions(BuildStatisticsOptions.PASSED_TESTS | BuildStatisticsOptions.IGNORED_TESTS, 0))
+      .findTestsBy(sampleTestRun.getTest().getName());
+    return testRuns.iterator().next();
   }
 }
