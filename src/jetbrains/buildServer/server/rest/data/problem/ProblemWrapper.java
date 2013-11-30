@@ -44,6 +44,17 @@ public class ProblemWrapper implements Comparable<ProblemWrapper>{
      //todo: also add type desciption?
   }
 
+  /**
+   * Creates a problem corresponding to the problem of the BuilProblem passed
+   */
+  //todo: ONLY FOR PERFORMANCE OPTIMIZATION. Constructor above should be used once there is a suitable API
+  public ProblemWrapper(@NotNull final BuildProblem problem, final @NotNull ServiceLocator serviceLocator) {
+    id = (long)problem.getId();
+    myServiceLocator = serviceLocator;
+    type = problem.getBuildProblemData().getType();
+    identity = problem.getBuildProblemData().getIdentity();
+  }
+
   @NotNull
   public Long getId() {
     return id;

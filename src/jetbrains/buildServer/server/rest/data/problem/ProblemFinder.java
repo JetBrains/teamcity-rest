@@ -171,7 +171,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     if (problemById == null){
       throw new NotFoundException("Cannot find problem instance by id '" + id + "'");
     }
-    return new ProblemWrapper(problemById.getId(), myServiceLocator);
+    return new ProblemWrapper(problemById, myServiceLocator);
   }
 
   //todo: TeamCity API (VB): should find even not current (and also converted) problems
@@ -213,7 +213,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
 
     @NotNull final Set<ProblemWrapper> resultSet = new TreeSet<ProblemWrapper>();
     for (BuildProblem buildProblem : currentBuildProblemsList) {
-      resultSet.add(new ProblemWrapper(buildProblem.getId(), myServiceLocator));
+      resultSet.add(new ProblemWrapper(buildProblem, myServiceLocator));
     }
 
     return new ArrayList<ProblemWrapper>(resultSet);
