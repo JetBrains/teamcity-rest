@@ -28,6 +28,20 @@ public class ProblemOccurrence {
   @XmlAttribute public String identity;
   @XmlAttribute public String href;
 
+  /**
+   * Experimental! "true" is the test occurrence was muted, not present otherwise
+   */
+  @XmlAttribute public Boolean muted;
+  /**
+   * Experimental! "true" is the test has investigation at the moment of request, not present otherwise
+   */
+  @XmlAttribute public Boolean currentlyInvestigated;
+  /**
+   * Experimental! "true" is the test is muted at the moment of request, not present otherwise
+   */
+  @XmlAttribute public Boolean currentlyMuted;
+
+
   @XmlElement public String details;
   @XmlElement public String additionalData;
 
@@ -47,6 +61,16 @@ public class ProblemOccurrence {
     identity = problemP.getBuildProblemData().getIdentity();
     href = beanContext.getApiUrlBuilder().transformRelativePath(ProblemOccurrenceRequest.getHref(problemP));
 
+    final MuteInfo muteInfo = problemP.getMuteInBuildInfo();
+    if (muteInfo != null) muted = true;
+
+    if (!problemP.getAllResponsibilities().isEmpty()) {
+      currentlyInvestigated = true;
+    }
+    if (problemP.getCurrentMuteInfo() != null) {
+      currentlyMuted = true;
+    }
+
     if (fields.isAllFieldsIncluded()) {
       details = problemP.getBuildProblemData().getDescription();
       additionalData = problemP.getBuildProblemData().getAdditionalData();
@@ -54,7 +78,6 @@ public class ProblemOccurrence {
       problem = new Problem(new ProblemWrapper(problemP, beanContext.getServiceLocator()), beanContext.getServiceLocator(), beanContext.getApiUrlBuilder(),
                             fields.getNestedField("problem"));
 
-      final MuteInfo muteInfo = problemP.getMuteInBuildInfo();
       if (muteInfo != null) {
         mute = new Mute(muteInfo, beanContext);
       }

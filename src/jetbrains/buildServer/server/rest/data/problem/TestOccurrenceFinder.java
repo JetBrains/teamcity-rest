@@ -125,6 +125,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     return null;
   }
 
+  @Override
   @NotNull
   public List<STestRun> getAllItems() {
     throw new BadRequestException("Listing all test occurrences is not supported. Try locator dimensions: " + Arrays.toString(getKnownDimensions()));

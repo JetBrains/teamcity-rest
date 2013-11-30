@@ -31,6 +31,9 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   private static final String IDENTITY = "identity";
   private static final String CURRENT = "current";
   private static final String PROBLEM = "problem";
+  public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
+  public static final String MUTED = "muted";
+  public static final String CURRENTLY_MUTED = "currentlyMuted";
 
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final UserFinder myUserFinder;
@@ -48,7 +51,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
                                  final @NotNull BuildProblemManager buildProblemManager,
                                  final @NotNull ProjectManager projectManager,
                                  final @NotNull ServiceLocator serviceLocator) {
-    super(new String[]{PROBLEM, IDENTITY, "type", "build", "affectedProject", CURRENT});
+    super(new String[]{PROBLEM, IDENTITY, "type", "build", "affectedProject", CURRENT, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED});
     myProjectFinder = projectFinder;
     myUserFinder = userFinder;
     myBuildFinder = buildFinder;
@@ -118,7 +121,8 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   @NotNull
   @Override
   public List<BuildProblem> getAllItems() {
-    throw new BadRequestException("Listing all problem occurrences is not supported. Try locator dimensions: " + Arrays.toString(getKnownDimensions()));
+    throw new BadRequestException(
+      "Listing all problem occurrences is not supported. Should include at least one of locator dimensions: " + BUILD + ", " + PROBLEM + ", " + CURRENT + ":true");
   }
 
   @Override
@@ -145,7 +149,8 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       return getProblemOccurrences(problem);
     }
 
-    throw new BadRequestException("Listing all problem occurrences is not supported. Try locator dimensions: " + Arrays.toString(getKnownDimensions()));
+    throw new BadRequestException(
+      "Listing all problem occurrences is not supported. Should include at least one of locator dimensions: " + BUILD + ", " + PROBLEM + ", " + CURRENT + ":true");
   }
 
   @Override
@@ -207,6 +212,35 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
         }
       });
     }
+
+    final Boolean currentlyInvestigatedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_INVESTIGATED);
+    if (currentlyInvestigatedDimension != null) {
+      result.add(new FilterConditionChecker<BuildProblem>() {
+        public boolean isIncluded(@NotNull final BuildProblem item) {
+          return FilterUtil.isIncludedByBooleanFilter(currentlyInvestigatedDimension,
+                                                      !item.getAllResponsibilities().isEmpty());  //todo: TeamCity API (VM): what is the difference with   getResponsibility() ???
+        }
+      });
+    }
+
+    final Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
+    if (currentlyMutedDimension != null) {
+      result.add(new FilterConditionChecker<BuildProblem>() {
+        public boolean isIncluded(@NotNull final BuildProblem item) {
+          return FilterUtil.isIncludedByBooleanFilter(currentlyMutedDimension, item.getCurrentMuteInfo() != null);
+        }
+      });
+    }
+
+    final Boolean muteDimension = locator.getSingleDimensionValueAsBoolean(MUTED);
+    if (muteDimension != null) {
+      result.add(new FilterConditionChecker<BuildProblem>() {
+        public boolean isIncluded(@NotNull final BuildProblem item) {
+          return FilterUtil.isIncludedByBooleanFilter(muteDimension, item.getMuteInBuildInfo() != null);
+        }
+      });
+    }
+
 
     final String currentDimension = locator.getSingleDimensionValue(CURRENT);
     if (currentDimension != null) {
