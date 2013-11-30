@@ -21,6 +21,9 @@ import org.jetbrains.annotations.Nullable;
  */
 public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   private static final String CURRENT = "current";
+  public static final String IDENTITY = "identity";
+  public static final String TYPE = "type";
+  public static final String AFFECTED_PROJECT = "affectedProject";
 
   @NotNull private final ProjectFinder myProjectFinder;
 
@@ -32,7 +35,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
                        final @NotNull BuildProblemManager buildProblemManager,
                        final @NotNull ProjectManager projectManager,
                        final @NotNull ServiceLocator serviceLocator) {
-    super(new String[]{DIMENSION_ID, "identity", "type", "build", "affectedProject", CURRENT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+    super(new String[]{DIMENSION_ID, IDENTITY, TYPE, AFFECTED_PROJECT, CURRENT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myProjectFinder = projectFinder;
     myBuildProblemManager = buildProblemManager;
     myProjectManager = projectManager;
@@ -99,7 +102,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   protected List<ProblemWrapper> getPrefilteredItems(@NotNull final Locator locator) {
     Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
     if (currentDimension!= null && currentDimension) {
-      final String affectedProjectDimension = locator.getSingleDimensionValue("affectedProject");
+      final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
       if (affectedProjectDimension != null) {
         @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
         return getCurrentProblemsList(project);
@@ -121,7 +124,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     final MultiCheckerFilter<ProblemWrapper> result =
       new MultiCheckerFilter<ProblemWrapper>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
 
-    final String identityDimension = locator.getSingleDimensionValue("identity");
+    final String identityDimension = locator.getSingleDimensionValue(IDENTITY);
     if (identityDimension != null) {
       result.add(new FilterConditionChecker<ProblemWrapper>() {
         public boolean isIncluded(@NotNull final ProblemWrapper item) {
@@ -130,7 +133,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
       });
     }
 
-    final String typeDimension = locator.getSingleDimensionValue("type");
+    final String typeDimension = locator.getSingleDimensionValue(TYPE);
     if (typeDimension != null) {
       result.add(new FilterConditionChecker<ProblemWrapper>() {
         public boolean isIncluded(@NotNull final ProblemWrapper item) {
@@ -139,7 +142,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
       });
     }
 
-    final String affectedProjectDimension = locator.getSingleDimensionValue("affectedProject");
+    final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null) {
       @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
       final Set<ProblemWrapper> currentProjectProblems = new TreeSet<ProblemWrapper>(getCurrentProblemsList(project));
