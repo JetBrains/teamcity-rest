@@ -1,8 +1,6 @@
 package jetbrains.buildServer.server.rest.model.problem;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -29,8 +27,14 @@ public class Tests {
   }
 
   public Tests(@NotNull final Collection<STest> itemsP, @Nullable final PagerData pagerData, @NotNull final BeanContext beanContext, @NotNull final Fields fields) {
-    items = new ArrayList<Test>(itemsP.size());  //todo: consider adding ordering/sorting
-    for (STest item : itemsP) {
+    final List<STest> sortedItems = new ArrayList<STest>(itemsP);
+    Collections.sort(sortedItems, new Comparator<STest>() {
+      public int compare(final STest o1, final STest o2) {
+        return o1.getName().compareTo(o2.getName());
+      }
+    });
+    items = new ArrayList<Test>(sortedItems.size());
+    for (STest item : sortedItems) {
       items.add(new Test(item, beanContext, fields.getNestedField("test")));
     }
     if (pagerData != null) {

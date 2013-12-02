@@ -33,13 +33,14 @@ public class ProblemOccurrences {
                             @Nullable final PagerData pagerData,
                             @NotNull final BeanContext beanContext,
                             @NotNull final Fields fields) {
-    Collections.sort(itemsP, new Comparator<BuildProblem>() {
+    final List<BuildProblem> sortedItems = new ArrayList<BuildProblem>(itemsP);
+    Collections.sort(sortedItems, new Comparator<BuildProblem>() {
       public int compare(final BuildProblem o1, final BuildProblem o2) {
         return o1.getId()-o2.getId();
       }
     });
-    items = new ArrayList<ProblemOccurrence>(itemsP.size());  //todo: consider adding ordering/sorting
-    for (BuildProblem item : itemsP) {
+    items = new ArrayList<ProblemOccurrence>(sortedItems.size());
+    for (BuildProblem item : sortedItems) {
       items.add(new ProblemOccurrence(item, beanContext, fields.getNestedField("problemOccurrence")));
     }
     if (pagerData != null) {

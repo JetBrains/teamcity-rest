@@ -246,6 +246,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     if (currentlyInvestigatedDimension != null) {
       result.add(new FilterConditionChecker<STestRun>() {
         public boolean isIncluded(@NotNull final STestRun item) {
+          //todo: check investigation in affected Project/buildType only, if set
           return FilterUtil.isIncludedByBooleanFilter(currentlyInvestigatedDimension, isCurrentlyInvestigated(item));
         }
       });
@@ -255,6 +256,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     if (currentlyMutedDimension != null) {
       result.add(new FilterConditionChecker<STestRun>() {
         public boolean isIncluded(@NotNull final STestRun item) { //todo: TeamCity API (MP): is there an API way to figure out there is a mute for a STestRun ?
+          //todo: check mute in affected Project/buildType only, if set
           return FilterUtil.isIncludedByBooleanFilter(currentlyMutedDimension, isCurrentlyMuted(item));
         }
       });

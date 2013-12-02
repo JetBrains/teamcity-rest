@@ -21,6 +21,8 @@ public class TestFinder extends AbstractFinder<STest> {
   private static final String NAME = "name";
   public static final String AFFECTED_PROJECT = "affectedProject";
   private static final String CURRENT = "current";
+  public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
+  public static final String CURRENTLY_MUTED = "currentlyMuted";
 
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final STestManager myTestManager;
@@ -31,7 +33,7 @@ public class TestFinder extends AbstractFinder<STest> {
                     final @NotNull STestManager testManager,
                     final @NotNull TestName2IndexImpl testName2Index,
                     final @NotNull CurrentProblemsManager currentProblemsManager) {
-    super(new String[]{DIMENSION_ID, NAME, AFFECTED_PROJECT, CURRENT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME}); //todo: specify dimensions
+    super(new String[]{DIMENSION_ID, NAME, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME}); //todo: specify dimensions
     myTestManager = testManager;
     myProjectFinder = projectFinder;
     myTestName2Index = testName2Index;
@@ -134,6 +136,27 @@ public class TestFinder extends AbstractFinder<STest> {
         }
       });
     }
+
+    final Boolean currentlyInvestigatedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_INVESTIGATED);
+    if (currentlyInvestigatedDimension != null) {
+      result.add(new FilterConditionChecker<STest>() {
+        public boolean isIncluded(@NotNull final STest item) {
+          //todo: check investigation in affected Project/buildType only, if set
+          return FilterUtil.isIncludedByBooleanFilter(currentlyInvestigatedDimension, !item.getAllResponsibilities().isEmpty());
+        }
+      });
+    }
+
+    final Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
+    if (currentlyMutedDimension != null) {
+      result.add(new FilterConditionChecker<STest>() {
+        public boolean isIncluded(@NotNull final STest item) {
+          //todo: check mute in affected Project/buildType only, if set
+          return FilterUtil.isIncludedByBooleanFilter(currentlyMutedDimension, item.getCurrentMuteInfo() != null);
+        }
+      });
+    }
+
     return result;
   }
 

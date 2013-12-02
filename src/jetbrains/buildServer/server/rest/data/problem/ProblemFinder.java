@@ -24,6 +24,8 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   public static final String IDENTITY = "identity";
   public static final String TYPE = "type";
   public static final String AFFECTED_PROJECT = "affectedProject";
+  public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
+  public static final String CURRENTLY_MUTED = "currentlyMuted";
 
   @NotNull private final ProjectFinder myProjectFinder;
 
@@ -35,7 +37,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
                        final @NotNull BuildProblemManager buildProblemManager,
                        final @NotNull ProjectManager projectManager,
                        final @NotNull ServiceLocator serviceLocator) {
-    super(new String[]{DIMENSION_ID, IDENTITY, TYPE, AFFECTED_PROJECT, CURRENT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+    super(new String[]{DIMENSION_ID, IDENTITY, TYPE, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myProjectFinder = projectFinder;
     myBuildProblemManager = buildProblemManager;
     myProjectManager = projectManager;
@@ -150,6 +152,26 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
       result.add(new FilterConditionChecker<ProblemWrapper>() {
         public boolean isIncluded(@NotNull final ProblemWrapper item) {
           return currentProjectProblems.contains(item);  //todo: TeamCity API (VB): is there a dedicated API call for this?  -- consider doing this via ProblemOccurrences
+        }
+      });
+    }
+
+    final Boolean currentlyInvestigatedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_INVESTIGATED);
+    if (currentlyInvestigatedDimension != null) {
+      result.add(new FilterConditionChecker<ProblemWrapper>() {
+        public boolean isIncluded(@NotNull final ProblemWrapper item) {
+          //todo: check investigation in affected Project/buildType only, if set
+          return FilterUtil.isIncludedByBooleanFilter(currentlyInvestigatedDimension, !item.getInvestigations().isEmpty());
+        }
+      });
+    }
+
+    final Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
+    if (currentlyMutedDimension != null) {
+      result.add(new FilterConditionChecker<ProblemWrapper>() {
+        public boolean isIncluded(@NotNull final ProblemWrapper item) {
+          //todo: check in affected Project/buildType only, if set
+          return FilterUtil.isIncludedByBooleanFilter(currentlyMutedDimension, item.getMutes().isEmpty());
         }
       });
     }

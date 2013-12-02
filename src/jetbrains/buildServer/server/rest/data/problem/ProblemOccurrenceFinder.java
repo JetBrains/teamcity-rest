@@ -217,6 +217,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     if (currentlyInvestigatedDimension != null) {
       result.add(new FilterConditionChecker<BuildProblem>() {
         public boolean isIncluded(@NotNull final BuildProblem item) {
+          //todo: check investigation in affected Project/buildType only, if set
           return FilterUtil.isIncludedByBooleanFilter(currentlyInvestigatedDimension,
                                                       !item.getAllResponsibilities().isEmpty());  //todo: TeamCity API (VM): what is the difference with   getResponsibility() ???
         }
@@ -227,6 +228,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     if (currentlyMutedDimension != null) {
       result.add(new FilterConditionChecker<BuildProblem>() {
         public boolean isIncluded(@NotNull final BuildProblem item) {
+          //todo: check in affected Project/buildType only, if set
           return FilterUtil.isIncludedByBooleanFilter(currentlyMutedDimension, item.getCurrentMuteInfo() != null);
         }
       });
