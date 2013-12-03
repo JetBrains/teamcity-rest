@@ -62,8 +62,8 @@ public class TestOccurrence {
 
   public TestOccurrence(final @NotNull STestRun testRun, final @NotNull BeanContext beanContext, @NotNull final Fields fields) {
     final STest sTest = testRun.getTest();
-    id = String.valueOf(testRun.getTestRunId());
-//    id = getId(testRun);
+    id = TestOccurrenceFinder.getTestRunLocator(testRun); //STestRun.getTestRunId() can be the same between different builds
+
     name = sTest.getName().getAsString();
 
     status = testRun.getStatus().getText();
