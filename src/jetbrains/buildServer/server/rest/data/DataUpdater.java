@@ -16,10 +16,12 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.groups.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.PartialUpdateError;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.group.Group;
@@ -68,19 +70,36 @@ public class DataUpdater {
     updateUserCoreFields(user, userData.getSubmittedUsername(), userData.getSubmittedName(), userData.getSubmittedEmail(),
                          userData.getSubmittedPassword());
 
-    if (userData.getSubmittedRoles() != null) {
-      removeAllRoles(user);
-      addRoles(user, userData.getSubmittedRoles(), context);
+    final ArrayList<Throwable> errors = new ArrayList<Throwable>();
+    try {
+      if (userData.getSubmittedRoles() != null) {
+        removeAllRoles(user);
+        addRoles(user, userData.getSubmittedRoles(), context);
+      }
+    } catch (PartialUpdateError partialUpdateError) {
+      errors.add(partialUpdateError);
     }
 
-    if (userData.getSubmittedProperties() != null) {
-      removeAllProperties(user);
-      addProperties(user, userData.getSubmittedProperties());
+    try {
+      if (userData.getSubmittedProperties() != null) {
+        removeAllProperties(user);
+        addProperties(user, userData.getSubmittedProperties());
+      }
+    } catch (PartialUpdateError partialUpdateError) {
+      errors.add(partialUpdateError);
     }
 
-    if (userData.getSubmittedGroups() != null) {
-      removeAllGroups(user);
-      addGroups(user, userData.getSubmittedGroups());
+    try {
+      if (userData.getSubmittedGroups() != null) {
+        removeAllGroups(user);
+        addGroups(user, userData.getSubmittedGroups());
+      }
+    } catch (PartialUpdateError partialUpdateError) {
+      errors.add(partialUpdateError);
+    }
+
+    if (errors.size() != 0) {
+      throw new PartialUpdateError("Parial error updating user " + user.describe(false), errors);
     }
   }
 
@@ -135,13 +154,17 @@ public class DataUpdater {
   }
 
   private void addGroups(final SUser user, final Groups groups) {
+    final ArrayList<Throwable> errors = new ArrayList<Throwable>();
     for (GroupRef group : groups.groups) {
       final SUserGroup foundGroup = myGroupManager.findUserGroupByKey(group.key);
       if (foundGroup != null) {
         foundGroup.addUser(user);
       } else {
-        throw new BadRequestException("Can't find group by key'" + group.key + "'");
+        errors.add(new BadRequestException("Can't find group by key '" + group.key + "'"));
       }
+    }
+    if (errors.size() != 0) {
+      throw new PartialUpdateError("Partial error adding user " + user.describe(false) + " to groups " + groups, errors);
     }
   }
 
@@ -172,9 +195,17 @@ public class DataUpdater {
     }
   }
 
-  private void addRoles(final SUser user, final RoleAssignments roles, @NotNull BeanContext context) {
+  private void addRoles(final SUser user, final RoleAssignments roles, @NotNull BeanContext context) throws PartialUpdateError {
+    final ArrayList<Throwable> errors = new ArrayList<Throwable>();
     for (RoleAssignment roleAssignment : roles.roleAssignments) {
-      user.addRole(RoleAssignment.getScope(roleAssignment.scope, context), myDataProvider.getRoleById(roleAssignment.roleId));
+      try {
+        user.addRole(RoleAssignment.getScope(roleAssignment.scope, context), myDataProvider.getRoleById(roleAssignment.roleId));
+      } catch (Exception e) {
+        errors.add(e);
+      }
+    }
+    if (errors.size() != 0) {
+      throw new PartialUpdateError("Partial error updating roles for user " + user.describe(false), errors);
     }
   }
 }

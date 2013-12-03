@@ -35,6 +35,7 @@ import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.SimplePropertyKey;
+import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -128,6 +129,14 @@ public class UserRequest {
   @Produces({"application/xml", "application/json"})
   public User serveUser(@PathParam("userLocator") String userLocator) {
     return new User(myUserFinder.getUser(userLocator), new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
+  }
+
+  @DELETE
+  @Path("/{userLocator}")
+  @Produces({"application/xml", "application/json"})
+  public void deleteUser(@PathParam("userLocator") String userLocator) {
+    final SUser user = myUserFinder.getUser(userLocator);
+    myDataProvider.getServer().getSingletonService(UserModel.class).removeUserAccount(user.getId());
   }
 
   @PUT
