@@ -23,10 +23,12 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.util.List;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.log4j.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -38,24 +40,26 @@ import org.jetbrains.annotations.Nullable;
 public class ExceptionMapperUtil {
   protected static final Logger LOG = Logger.getInstance(ExceptionMapperUtil.class.getName());
   public static final String REST_INCLUDE_EXCEPTION_STACKTRACE_PROPERTY = "rest.response.debug.includeExceptionStacktrace";
+  public static final String REST_INCLUDE_REQUEST_DETAILS_INTO_ERRORS = "rest.log.includeRequestDetails";
 
-  @Context
-  UriInfo myUriInfo;
+  @Context private UriInfo myUriInfo;
+  @Context private HttpServletRequest myRequest;
 
   protected Response reportError(@NotNull final Response.Status responseStatus, @NotNull final Exception e, @Nullable final String message) {
     return reportError(responseStatus.getStatusCode(), e, message, false);
   }
 
   protected Response reportError(final int statusCode, @NotNull final Exception e, @Nullable final String message, final boolean isInternalError) {
-    return processRestErrorResponse(statusCode, e, message, myUriInfo.getRequestUri().toString(), isInternalError);
+    return processRestErrorResponse(statusCode, e, message, myUriInfo.getRequestUri().toString(), isInternalError, myRequest);
   }
 
   public static Response processRestErrorResponse(final int statusCode,
                                                   @Nullable final Throwable e,
                                                   @Nullable final String message,
                                                   @NotNull String requestUri,
-                                                  final boolean isInternalError) {
-    final String responseText = getResponseTextAndLogRestErrorErrorMessage(statusCode, e, message, requestUri, isInternalError, Level.WARN);
+                                                  final boolean isInternalError,
+                                                  @NotNull final HttpServletRequest request) {
+    final String responseText = getResponseTextAndLogRestErrorErrorMessage(statusCode, e, message, requestUri, isInternalError, Level.WARN, request);
     Response.ResponseBuilder builder = Response.status(statusCode);
     builder.type("text/plain");
     builder.entity(responseText);
@@ -67,7 +71,8 @@ public class ExceptionMapperUtil {
                                                                   @Nullable final String message,
                                                                   @NotNull String requestUri,
                                                                   final boolean isInternalError,
-                                                                  final Level level) {
+                                                                  final Level level,
+                                                                  @NotNull final HttpServletRequest request) {
     Response.Status status = Response.Status.fromStatusCode(statusCode);
     final String statusDescription = (status != null) ? status.toString() : Integer.toString(statusCode);
     StringBuffer responseText = new StringBuffer();
@@ -85,7 +90,13 @@ public class ExceptionMapperUtil {
     String result = responseText.toString();
     final String singleLineMessageStep1 = StringUtil.replace(result, ".\n", ". ");
     final String singleLineMessage = singleLineMessageStep1 == null ? "" : StringUtil.replace(singleLineMessageStep1, "\n", ". ");
-    final String logMessage = singleLineMessage + " URL: " + requestUri + ".";
+    String logMessage;
+    if (TeamCityProperties.getBooleanOrTrue(REST_INCLUDE_REQUEST_DETAILS_INTO_ERRORS)){
+      logMessage = singleLineMessage + " Request: " + WebUtil.getRequestDump(request) + ".";
+    }else{
+      logMessage = singleLineMessage + " URL: " + requestUri + ".";
+    }
+
     if (isInternalError) {
       logMessage(LOG, level, logMessage, e);
     } else {
@@ -93,7 +104,8 @@ public class ExceptionMapperUtil {
       LOG.debug(logMessage, e);
     }
 
-    if (e != null && TeamCityProperties.getBoolean(REST_INCLUDE_EXCEPTION_STACKTRACE_PROPERTY)){
+    final String includeStacktrace = TeamCityProperties.getProperty(REST_INCLUDE_EXCEPTION_STACKTRACE_PROPERTY);
+    if (e != null && ("true".equals(includeStacktrace) || "any".equals(includeStacktrace) || String.valueOf(statusCode).startsWith(includeStacktrace))){
       StringWriter sw = new StringWriter();
       sw.write("\n\n");
       e.printStackTrace(new PrintWriter(sw));

@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.errors;
 
-import com.intellij.openapi.diagnostic.Logger;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
@@ -28,7 +27,6 @@ import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
  */
 @Provider
 public class NotFoundExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<NotFoundException> {
-  protected static final Logger LOG = Logger.getInstance(NotFoundExceptionMapper.class.getName());
 
   public Response toResponse(NotFoundException exception) {
     return reportError(Response.Status.NOT_FOUND, exception, "Could not find the entity requested. Check the reference is correct and the user has permissions to access the entity.");
