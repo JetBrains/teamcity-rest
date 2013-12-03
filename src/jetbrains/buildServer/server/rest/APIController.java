@@ -153,7 +153,7 @@ public class APIController extends BaseController implements ServletContextAware
         LOG.debug("Binding REST API to path '" + controllerBindPath + "'");
         webControllerManager.registerController(controllerBindPath + "/**", this);
         myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + BuildRequest.BUILDS_ROOT_REQUEST_PATH + "/*/" + BuildRequest.STATUS_ICON_REQUEST_NAME);
-        myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + "/" + ServerRequest.SERVER_VERSION_RQUEST_PATH);
+        myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + ServerRequest.API_SERVER_URL + "/" + ServerRequest.SERVER_VERSION_RQUEST_PATH);
         myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + Constants.EXTERNAL_APPLICATION_WADL_NAME);
       }
     } catch (Exception e) {
