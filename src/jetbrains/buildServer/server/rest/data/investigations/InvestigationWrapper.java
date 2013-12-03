@@ -1,6 +1,8 @@
 package jetbrains.buildServer.server.rest.data.investigations;
 
 import java.util.Date;
+import jetbrains.buildServer.BuildProject;
+import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.responsibility.BuildProblemResponsibilityEntry;
 import jetbrains.buildServer.responsibility.BuildTypeResponsibilityEntry;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
@@ -86,16 +88,7 @@ public class InvestigationWrapper implements ResponsibilityEntry {
   @SuppressWarnings("ConstantConditions")
   @NotNull
   public String getId() {
-    if (isBuildType()){
-      return getType() + ":" + getBuildTypeRE().getBuildType().getExternalId();
-    }
-    if (isProblem()){
-      return getType() + ":" + getProblemRE().getBuildProblemInfo().getId();
-    }
-    if (isTest()){
-      return getType() + ":" + getTestRE().getTestNameId();
-    }
-    return getType() + getRE().toString();
+    return InvestigationFinder.getLocator(this);
   }
 
   @NotNull
@@ -126,6 +119,27 @@ public class InvestigationWrapper implements ResponsibilityEntry {
   @NotNull
   public RemoveMethod getRemoveMethod() {
     return myRE.getRemoveMethod();
+  }
+
+  @SuppressWarnings("ConstantConditions")
+  @Nullable
+  public BuildProject getAssignmentProject() {
+    if (isProblem()){
+      return getProblemRE().getProject();
+    }
+    if (isTest()){
+      return getTestRE().getProject();
+    }
+    return null;
+  }
+
+  @SuppressWarnings("ConstantConditions")
+  @Nullable
+  public BuildType getAssignmentBuildType() {
+    if (isBuildType()){
+      return getBuildTypeRE().getBuildType();
+    }
+    return null;
   }
 
   //todo: review all methods below

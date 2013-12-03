@@ -33,6 +33,10 @@ public class ProjectFinder {
     return isSameOrParent(parent, project.getParentProject());
   }
 
+  public static String getLocator(final BuildProject project) {
+    return Locator.createEmptyLocator().setDimension("id", project.getExternalId()).getStringRepresentation();
+  }
+
   @NotNull
   public SProject getProject(@Nullable String projectLocator) {
     if (StringUtil.isEmpty(projectLocator)) {
@@ -163,5 +167,10 @@ public class ProjectFinder {
   @Nullable
   public SProject getProjectIfNotNull(@Nullable final String projectLocator) {
     return projectLocator == null ? null : getProject(projectLocator);
+  }
+
+  @Nullable
+  public BuildProject findProjectByInternalId(final String projectInternalId) {
+    return myProjectManager.findProjectById(projectInternalId);
   }
 }

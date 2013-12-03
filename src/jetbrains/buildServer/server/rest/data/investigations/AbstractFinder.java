@@ -80,7 +80,10 @@ public abstract class AbstractFinder<ITEM> {
     }
     final Locator locator = createLocator(locatorText);
 
-    locator.setDimension(PagerData.COUNT, "1"); //get only the first one that matches
+    if (!locator.isSingleValue()){
+      locator.setDimension(PagerData.COUNT, "1"); //get only the first one that matches
+      locator.addHiddenDimensions(PagerData.COUNT);
+    }
     final PagedSearchResult<ITEM> items = getItems(locator);
     if (items.myEntries.size() == 0) {
       throw new NotFoundException("Nothing is found by locator '" + locatorText + "'.");

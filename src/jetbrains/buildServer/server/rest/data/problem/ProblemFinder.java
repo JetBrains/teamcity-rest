@@ -37,7 +37,8 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
                        final @NotNull BuildProblemManager buildProblemManager,
                        final @NotNull ProjectManager projectManager,
                        final @NotNull ServiceLocator serviceLocator) {
-    super(new String[]{DIMENSION_ID, IDENTITY, TYPE, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+    super(new String[]{DIMENSION_ID, IDENTITY, TYPE, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED, PagerData.START, PagerData.COUNT,
+      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myProjectFinder = projectFinder;
     myBuildProblemManager = buildProblemManager;
     myProjectManager = projectManager;

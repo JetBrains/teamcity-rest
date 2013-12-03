@@ -49,7 +49,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
                               final @NotNull ProjectFinder projectFinder,
                               final @NotNull BuildHistoryEx buildHistory,
                               final @NotNull CurrentProblemsManager currentProblemsManager) {
-    super(new String[]{DIMENSION_ID, TEST, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED});
+    super(new String[]{DIMENSION_ID, TEST, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED, PagerData.START,
+      PagerData.COUNT});
     myTestFinder = testFinder;
     myBuildFinder = buildFinder;
     myBuildTypeFinder = buildTypeFinder;

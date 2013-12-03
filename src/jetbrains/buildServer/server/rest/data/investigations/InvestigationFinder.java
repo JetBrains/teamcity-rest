@@ -4,12 +4,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import jetbrains.buildServer.BuildProject;
+import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.responsibility.*;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -55,7 +58,8 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
                              final BuildTypeResponsibilityFacade buildTypeResponsibilityFacade,
                              final TestNameResponsibilityFacade testNameResponsibilityFacade,
                              final BuildProblemResponsibilityFacade buildProblemResponsibilityFacade) {
-    super(new String[]{ASSIGNEE, REPORTER, TYPE, STATE, SINCE_DATE, ASSIGNMENT_PROJECT, AFFECTED_PROJECT, BUILD_TYPE, TEST_DIMENSION, PROBLEM_DIMENSION});
+    super(new String[]{ASSIGNEE, REPORTER, TYPE, STATE, SINCE_DATE, ASSIGNMENT_PROJECT, AFFECTED_PROJECT, BUILD_TYPE, TEST_DIMENSION, PROBLEM_DIMENSION, PagerData.START,
+      PagerData.COUNT});
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;
     myProblemFinder = problemFinder;
@@ -83,29 +87,28 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
   @NotNull
   public static String getLocator(final InvestigationWrapper investigation) {
-    return Locator.createEmptyLocator().setDimension(DIMENSION_ID, investigation.getId()).getStringRepresentation();
+    final Locator result = Locator.createEmptyLocator();
+    //.setDimension(TYPE, investigation.getType());
+    if (investigation.isBuildType()) {
+      //noinspection ConstantConditions
+      result.setDimension(BUILD_TYPE, BuildTypeFinder.getLocator((SBuildType)investigation.getBuildTypeRE().getBuildType())); //todo: TeamCity API issue: cast
+    } else if (investigation.isProblem()) {
+      //noinspection ConstantConditions
+      result.setDimension(PROBLEM_DIMENSION, ProblemFinder.getLocator(investigation.getProblemRE().getBuildProblemInfo().getId()));
+      result.setDimension(ASSIGNMENT_PROJECT, ProjectFinder.getLocator(investigation.getProblemRE().getProject()));
+    } else if (investigation.isTest()) {
+      //noinspection ConstantConditions
+      result.setDimension(TEST_DIMENSION, TestFinder.getTestLocator(investigation.getTestRE().getTestNameId()));
+      result.setDimension(ASSIGNMENT_PROJECT, ProjectFinder.getLocator(investigation.getTestRE().getProject()));
+    } else {
+      throw new InvalidStateException("Unknown investigation type");
+    }
+
+    return result.getStringRepresentation();
   }
 
   @Override
   protected InvestigationWrapper findSingleItem(@NotNull final Locator locator) {
-
-    String id = locator.getSingleDimensionValue(DIMENSION_ID);
-    if (id != null) {
-      InvestigationWrapper item = findItemById(id);
-      if (item == null) {
-        throw new NotFoundException("No investigation can be found by " + DIMENSION_ID + " '" + id + "'.");
-      }
-      return item;
-    }
-
-    return null;
-  }
-
-  @Nullable
-  private InvestigationWrapper findItemById(final String id) {  //todo: this is ineffective!
-    for (InvestigationWrapper investigaiton : getAllItems()) {
-      if (investigaiton.getId().equals(id)) return investigaiton;
-    }
     return null;
   }
 
@@ -163,6 +166,31 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
       });
     }
 
+    final String assignmentProjectDimension = locator.getSingleDimensionValue(ASSIGNMENT_PROJECT);
+    if (assignmentProjectDimension != null){
+      @NotNull final SProject project = myProjectFinder.getProject(assignmentProjectDimension);
+      result.add(new FilterConditionChecker<InvestigationWrapper>() {
+        public boolean isIncluded(@NotNull final InvestigationWrapper item) {
+          final BuildProject assignmentProject = item.getAssignmentProject();
+          return assignmentProject != null && project.getProjectId().equals(assignmentProject.getProjectId());
+        }
+      });
+    }
+
+    final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
+    if (affectedProjectDimension != null){
+      @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
+      result.add(new FilterConditionChecker<InvestigationWrapper>() {
+        public boolean isIncluded(@NotNull final InvestigationWrapper item) {
+          final BuildProject assignmentProject = item.getAssignmentProject();
+          final BuildType assignmentBuildType = item.getAssignmentBuildType();
+          final BuildProject buildTypeProject = assignmentBuildType != null ? myProjectFinder.findProjectByInternalId(assignmentBuildType.getProjectId()) : null;
+          return (assignmentProject != null && ProjectFinder.isSameOrParent(project, assignmentProject)) ||
+                 (buildTypeProject != null && ProjectFinder.isSameOrParent(project, buildTypeProject));
+        }
+      });
+    }
+
     final String sinceDateDimension = locator.getSingleDimensionValue(SINCE_DATE);
     if (sinceDateDimension != null) {
       final Date date = DataProvider.getDate(sinceDateDimension);
@@ -173,7 +201,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
       });
     }
 
-//todo: add affectedBuildType
+//todo: add assignmentBuildType
     return result;
   }
 
@@ -191,6 +219,12 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
       return getInvestigationWrappers(test);
     }
 
+    final String buildTypeDimension = locator.getSingleDimensionValue(BUILD_TYPE);
+    if (buildTypeDimension != null){
+      final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension);
+      return getInvestigationWrappersForBuildType(buildType);
+    }
+
     @Nullable User user = null;
     final String investigatorDimension = locator.getSingleDimensionValue(ASSIGNEE);
     if (investigatorDimension != null) {
@@ -200,7 +234,6 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     final String assignmentProjectDimension = locator.getSingleDimensionValue(ASSIGNMENT_PROJECT);
     if (assignmentProjectDimension != null){
       @NotNull final SProject project = myProjectFinder.getProject(assignmentProjectDimension);
-
       return getInvestigationWrappersForProject(project, user);
     }
 
@@ -208,12 +241,6 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     if (affectedProjectDimension != null){
       @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
       return getInvestigationWrappersForProjectWithSubprojects(project, user);
-    }
-
-    final String buildTypeDimension = locator.getSingleDimensionValue(BUILD_TYPE);
-    if (buildTypeDimension != null){
-      final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension);
-      return getInvestigationWrappersForBuildType(buildType);
     }
 
     return super.getPrefilteredItems(locator);

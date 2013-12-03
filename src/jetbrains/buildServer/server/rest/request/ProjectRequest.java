@@ -75,7 +75,7 @@ public class ProjectRequest {
   public static final String API_PROJECTS_URL = Constants.API_URL + "/projects";
 
   public static String getProjectHref(SProject project) {
-    return API_PROJECTS_URL + "/id:" + project.getExternalId();
+    return API_PROJECTS_URL + "/" + ProjectFinder.getLocator(project);
   }
 
   @GET

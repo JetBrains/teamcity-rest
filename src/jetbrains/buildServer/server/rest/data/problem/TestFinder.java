@@ -33,7 +33,8 @@ public class TestFinder extends AbstractFinder<STest> {
                     final @NotNull STestManager testManager,
                     final @NotNull TestName2IndexImpl testName2Index,
                     final @NotNull CurrentProblemsManager currentProblemsManager) {
-    super(new String[]{DIMENSION_ID, NAME, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME}); //todo: specify dimensions
+    super(new String[]{DIMENSION_ID, NAME, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED, PagerData.START, PagerData.COUNT,
+      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myTestManager = testManager;
     myProjectFinder = projectFinder;
     myTestName2Index = testName2Index;
@@ -41,7 +42,11 @@ public class TestFinder extends AbstractFinder<STest> {
   }
 
   public static String getTestLocator(final @NotNull STest test) {
-    return Locator.createEmptyLocator().setDimension(DIMENSION_ID, String.valueOf(test.getTestNameId())).getStringRepresentation();
+    return getTestLocator(test.getTestNameId());
+  }
+
+  public static String getTestLocator(final long testNameId) {
+    return Locator.createEmptyLocator().setDimension(DIMENSION_ID, String.valueOf(testNameId)).getStringRepresentation();
   }
 
   @Override

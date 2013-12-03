@@ -55,7 +55,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
                                  final @NotNull BuildProblemManager buildProblemManager,
                                  final @NotNull ProjectManager projectManager,
                                  final @NotNull ServiceLocator serviceLocator) {
-    super(new String[]{PROBLEM, IDENTITY, "type", "build", AFFECTED_PROJECT, CURRENT, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED});
+    super(new String[]{PROBLEM, IDENTITY, "type", "build", AFFECTED_PROJECT, CURRENT, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED, PagerData.START, PagerData.COUNT});
     myProjectFinder = projectFinder;
     myUserFinder = userFinder;
     myBuildFinder = buildFinder;
