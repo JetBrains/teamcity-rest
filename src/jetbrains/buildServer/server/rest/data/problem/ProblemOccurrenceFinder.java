@@ -1,7 +1,10 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.AbstractFinder;
@@ -34,6 +37,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
   public static final String MUTED = "muted";
   public static final String CURRENTLY_MUTED = "currentlyMuted";
+  public static final String AFFECTED_PROJECT = "affectedProject";
 
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final UserFinder myUserFinder;
@@ -51,7 +55,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
                                  final @NotNull BuildProblemManager buildProblemManager,
                                  final @NotNull ProjectManager projectManager,
                                  final @NotNull ServiceLocator serviceLocator) {
-    super(new String[]{PROBLEM, IDENTITY, "type", "build", "affectedProject", CURRENT, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED});
+    super(new String[]{PROBLEM, IDENTITY, "type", "build", AFFECTED_PROJECT, CURRENT, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED});
     myProjectFinder = projectFinder;
     myUserFinder = userFinder;
     myBuildFinder = buildFinder;
@@ -135,7 +139,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
     Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
     if (currentDimension != null && currentDimension) {
-      final String affectedProjectDimension = locator.getSingleDimensionValue("affectedProject");
+      final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
       if (affectedProjectDimension != null) {
         @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
         return getCurrentProblemOccurences(project);
@@ -202,13 +206,12 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       });
     }
 
-    final String affectedProjectDimension = locator.getSingleDimensionValue("affectedProject");
+    final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null) {
       @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
-      final Collection<SProject> allAffectedProbjects = new HashSet<SProject>(project.getProjects());
       result.add(new FilterConditionChecker<BuildProblem>() {
         public boolean isIncluded(@NotNull final BuildProblem item) {
-          return allAffectedProbjects.contains(myProjectFinder.getProject(item.getProjectId())); //todo: TeamCity API (MP): inneffective! is there an API call for this?
+          return ProjectFinder.isSameOrParent(project, myProjectFinder.getProject(item.getProjectId()));
         }
       });
     }
