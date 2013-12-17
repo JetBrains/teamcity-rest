@@ -105,7 +105,9 @@ public class ExceptionMapperUtil {
     }
 
     final String includeStacktrace = TeamCityProperties.getProperty(REST_INCLUDE_EXCEPTION_STACKTRACE_PROPERTY);
-    if (e != null && ("true".equals(includeStacktrace) || "any".equals(includeStacktrace) || String.valueOf(statusCode).startsWith(includeStacktrace))){
+    if (e != null &&
+        !jetbrains.buildServer.util.StringUtil.isEmpty(includeStacktrace) &&
+        ("true".equals(includeStacktrace) || "any".equals(includeStacktrace) || String.valueOf(statusCode).startsWith(includeStacktrace))){
       StringWriter sw = new StringWriter();
       sw.write("\n\n");
       e.printStackTrace(new PrintWriter(sw));
