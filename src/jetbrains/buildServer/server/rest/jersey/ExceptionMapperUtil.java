@@ -50,16 +50,15 @@ public class ExceptionMapperUtil {
   }
 
   protected Response reportError(final int statusCode, @NotNull final Exception e, @Nullable final String message, final boolean isInternalError) {
-    return processRestErrorResponse(statusCode, e, message, myUriInfo.getRequestUri().toString(), isInternalError, myRequest);
+    return processRestErrorResponse(statusCode, e, message, isInternalError, myRequest);
   }
 
   public static Response processRestErrorResponse(final int statusCode,
                                                   @Nullable final Throwable e,
                                                   @Nullable final String message,
-                                                  @NotNull String requestUri,
                                                   final boolean isInternalError,
                                                   @NotNull final HttpServletRequest request) {
-    final String responseText = getResponseTextAndLogRestErrorErrorMessage(statusCode, e, message, requestUri, isInternalError, Level.WARN, request);
+    final String responseText = getResponseTextAndLogRestErrorErrorMessage(statusCode, e, message, isInternalError, Level.WARN, request);
     Response.ResponseBuilder builder = Response.status(statusCode);
     builder.type("text/plain");
     builder.entity(responseText);
@@ -69,7 +68,6 @@ public class ExceptionMapperUtil {
   public static String getResponseTextAndLogRestErrorErrorMessage(final int statusCode,
                                                                   @Nullable final Throwable e,
                                                                   @Nullable final String message,
-                                                                  @NotNull String requestUri,
                                                                   final boolean isInternalError,
                                                                   final Level level,
                                                                   @NotNull final HttpServletRequest request) {
@@ -94,7 +92,7 @@ public class ExceptionMapperUtil {
     if (TeamCityProperties.getBooleanOrTrue(REST_INCLUDE_REQUEST_DETAILS_INTO_ERRORS)){
       logMessage = singleLineMessage + " Request: " + WebUtil.getRequestDump(request) + ".";
     }else{
-      logMessage = singleLineMessage + " URL: " + requestUri + ".";
+      logMessage = singleLineMessage + " URL: " + WebUtil.getRequestUrl(request) + ".";
     }
 
     if (isInternalError) {
