@@ -80,6 +80,9 @@ public class APIController extends BaseController implements ServletContextAware
   private String myAuthToken;
   private final RequestPathTransformInfo myRequestPathTransformInfo;
 
+  private final CachingValuesFromInternalProperty myAllowedOrigins = new CachingValuesFromInternalProperty();
+  private final CachingValuesFromInternalProperty myDisabledRequests = new CachingValuesFromInternalProperty();
+
   public APIController(final SBuildServer server,
                        WebControllerManager webControllerManager,
                        final ConfigurableApplicationContext configurableApplicationContext,
@@ -233,7 +236,15 @@ public class APIController extends BaseController implements ServletContextAware
   protected ModelAndView doHandle(@NotNull final HttpServletRequest request, @NotNull final HttpServletResponse response) throws Exception {
     if (TeamCityProperties.getBoolean("rest.disable")) {
       reportRestErrorResponse(response, HttpServletResponse.SC_NOT_IMPLEMENTED, null,
-                              "REST API is disabled on TeamCity server with 'rest.disable' internal property.", request.getRequestURI(),
+                              "REST API is disabled on this TeamCity server with 'rest.disable' internal property.", request.getRequestURI(),
+                              Level.INFO, request);
+      return null;
+    }
+
+    if (matches(WebUtil.getRequestUrl(request), myDisabledRequests.getParsedValues(TeamCityProperties.getProperty("rest.disable.requests")))) {
+      reportRestErrorResponse(response, HttpServletResponse.SC_NOT_IMPLEMENTED, null,
+                              "Requests for URL \"" + WebUtil.getRequestUrl(request) + "\" are disabled in REST API on this server with 'rest.disable.requests' internal property.",
+                              request.getRequestURI(),
                               Level.INFO, request);
       return null;
     }
@@ -307,6 +318,15 @@ public class APIController extends BaseController implements ServletContextAware
     return null;
   }
 
+  private boolean matches(final String requestURI, final  String[] disabledRequests) {
+    for (String requestPattern : disabledRequests) {
+      if (requestURI.matches(requestPattern)){
+        return true;
+      }
+    }
+    return false;
+  }
+
   private String getStatus(final HttpServletResponse response) {
     String result = "<unknown>";
     try {
@@ -320,7 +340,7 @@ public class APIController extends BaseController implements ServletContextAware
   private void processCorsRequest(final HttpServletRequest request, final HttpServletResponse response) {
     final String origin = request.getHeader("Origin");
     if (StringUtil.isNotEmpty(origin)) {
-      final String[] originsArray = getAllowedOrigins();
+      final String[] originsArray = myAllowedOrigins.getParsedValues(TeamCityProperties.getProperty(REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME));
       if (ArrayUtil.contains(origin, originsArray)) {
         addOriginHeaderToResponse(response, origin);
         addOtherHeadersToResponse(request, response);
@@ -351,20 +371,21 @@ public class APIController extends BaseController implements ServletContextAware
     response.addHeader("Access-Control-Allow-Headers", request.getHeader("Access-Control-Request-Headers"));
   }
 
-  private String myAllowedOrigins;
-  private String[] myOriginsArray;
+  class CachingValuesFromInternalProperty{
+    private String myCachedValue;
+    private String[] myParsedValues;
 
-  @NotNull
-  private synchronized String[] getAllowedOrigins() {
-    final String allowedOrigins = TeamCityProperties.getProperty(REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME);
-    if (myAllowedOrigins == null || !myAllowedOrigins.equals(allowedOrigins)) {
-      myAllowedOrigins = allowedOrigins;
-      myOriginsArray = allowedOrigins.split(",");
-      for (int i = 0; i < myOriginsArray.length; i++) {
-        myOriginsArray[i] = myOriginsArray[i].trim();
+    @NotNull
+    private synchronized String[] getParsedValues(@NotNull final String currentValue) {
+      if (myCachedValue == null || !myCachedValue.equals(currentValue)) {
+        myCachedValue = currentValue;
+        myParsedValues = currentValue.split(",");
+        for (int i = 0; i < myParsedValues.length; i++) {
+          myParsedValues[i] = myParsedValues[i].trim();
+        }
       }
+      return myParsedValues;
     }
-    return myOriginsArray;
   }
 
   public static void reportRestErrorResponse(@NotNull final HttpServletResponse response,
