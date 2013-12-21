@@ -26,10 +26,10 @@ import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.BuildFinder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.QueuedBuildFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -51,7 +51,7 @@ public class BuildQueueRequest {
   public static final String API_BUILD_QUEUE_URL = Constants.API_URL + "/buildQueue";
   public static final String COMPATIBLE_AGENTS = "/compatibleAgents";
   @Context @NotNull private DataProvider myDataProvider;
-  @Context @NotNull private BuildFinder myBuildFinder;
+  @Context @NotNull private QueuedBuildFinder myQueuedBuildFinder;
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
 
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
@@ -82,14 +82,16 @@ public class BuildQueueRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public BuildQueue serveQueue(@QueryParam("locator") String locator, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
-    final PagedSearchResult<SQueuedBuild> items = myBuildFinder.getQueuedBuilds(locator != null ? BuildFinder.createQueuedBuildsLocator(locator) : null);
+    final PagedSearchResult<SQueuedBuild> result = myQueuedBuildFinder.getItems(locator);
 
-    return new BuildQueue(items.myEntries,
-                          new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), items.myStart,
-                                        items.myCount, items.myEntries.size(),
+    return new BuildQueue(result.myEntries,
+                          new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
+                                        result.myCount, result.myEntries.size(),
                                         locator,
                                         "locator"),
-                          myApiUrlBuilder, myFactory);
+                          myApiUrlBuilder,
+                          myFactory
+    );
   }
 
   @GET
@@ -97,7 +99,7 @@ public class BuildQueueRequest {
   @Produces({"application/xml", "application/json"})
   public Response serveQueuedBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator, @Context UriInfo uriInfo, @Context HttpServletResponse response) {
     //redirect if the build was already started
-    final BuildPromotion buildPromotion = myBuildFinder.getBuildPromotionByBuildQueueLocator(queuedBuildLocator);
+    final BuildPromotion buildPromotion = myQueuedBuildFinder.getBuildPromotionByBuildQueueLocator(queuedBuildLocator);
     if (buildPromotion != null){
       final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
       if (associatedBuild != null) {
@@ -109,17 +111,18 @@ public class BuildQueueRequest {
 
     //todo: handle build merges in the queue
 
-    final QueuedBuild result =  new QueuedBuild(myBuildFinder.getQueuedBuild(queuedBuildLocator), myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
+    final QueuedBuild result =  new QueuedBuild(myQueuedBuildFinder.getItem(queuedBuildLocator), myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
     return Response.ok(result).build();
   }
 
   @DELETE
   @Path("/{queuedBuildLocator}")
   public void deleteBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator, @Context HttpServletRequest request) {
-    SQueuedBuild build = myBuildFinder.getQueuedBuild(queuedBuildLocator);
+    SQueuedBuild build = myQueuedBuildFinder.getItem(queuedBuildLocator);
     myServiceLocator.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class).removeItems(Collections.singleton(build.getItemId()),
                                                                                                         SessionUser.getUser(request),
                                                                                                         null);
+    //todo: seems that these lines are not necessary and can produce an error
     final SBuild associatedBuild = build.getBuildPromotion().getAssociatedBuild();
     myDataProvider.deleteBuild(associatedBuild);
   }
@@ -136,7 +139,7 @@ public class BuildQueueRequest {
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Build cancelBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator, BuildCancelRequest cancelRequest, @Context HttpServletRequest request) {
-    SQueuedBuild build = myBuildFinder.getQueuedBuild(queuedBuildLocator);
+    SQueuedBuild build = myQueuedBuildFinder.getItem(queuedBuildLocator);
     myServiceLocator.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class).removeItems(Collections.singleton(build.getItemId()),
                                                                                                         SessionUser.getUser(request),
                                                                                                         cancelRequest.comment);
@@ -154,7 +157,7 @@ public class BuildQueueRequest {
   @Path("/{queuedBuildLocator}" + COMPATIBLE_AGENTS)
   @Produces({"application/xml", "application/json"})
   public Agents serveCompatibleAgents(@PathParam("queuedBuildLocator") String queuedBuildLocator) {
-    return new Agents(myBuildFinder.getQueuedBuild(queuedBuildLocator).getCompatibleAgents(), myApiUrlBuilder);
+    return new Agents(myQueuedBuildFinder.getItem(queuedBuildLocator).getCompatibleAgents(), myApiUrlBuilder);
   }
 
   @GET
@@ -162,7 +165,7 @@ public class BuildQueueRequest {
   @Produces("text/plain")
   public String serveBuildFieldByBuildOnly(@PathParam("buildLocator") String buildLocator,
                                            @PathParam("field") String field) {
-    SQueuedBuild build = myBuildFinder.getQueuedBuild(buildLocator);
+    SQueuedBuild build = myQueuedBuildFinder.getItem(buildLocator);
     return QueuedBuild.getFieldValue(build, field);
   }
 

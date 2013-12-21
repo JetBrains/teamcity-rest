@@ -102,164 +102,6 @@ public class BuildFinder {
                                     locatorParameterName), apiUrlBuilder);
   }
 
-  public PagedSearchResult<SQueuedBuild> getQueuedBuilds(@Nullable final Locator locator) {
-    if (locator == null) {
-       return new PagedSearchResult<SQueuedBuild>(getAllQueuedBuilds(myDataProvider), null, null);
-     }
-
-     if (locator.isSingleValue()){
-       locator.checkLocatorFullyProcessed();
-       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported.");
-     }
-
-     Long id = locator.getSingleDimensionValueAsLong("id");
-     if (id != null) {
-       final BuildPromotion buildPromotion = getBuildPromotion(id);
-       final SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-       if (queuedBuild == null){
-         throw new NotFoundException("No queued build can be found by id '" + buildPromotion.getId() + "' (while promotion exists).");
-       }
-       locator.checkLocatorFullyProcessed();
-       return new PagedSearchResult<SQueuedBuild>(Collections.singletonList(queuedBuild), null, null);
-     }
-
-    AbstractFilter<SQueuedBuild> filter = getQueuedBuildsFilter(locator, myProjectFinder, myBuildTypeFinder, myDataProvider);
-    locator.checkLocatorFullyProcessed();
-
-    return new PagedSearchResult<SQueuedBuild>(getQueuedBuilds(filter), filter.getStart(), filter.getCount());
-  }
-
-  @NotNull
-  private static List<SQueuedBuild> getAllQueuedBuilds(@NotNull final DataProvider dataProvider) {
-    return dataProvider.getServer().getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class).getItems();
-  }
-
-  @NotNull
-  public static Locator createQueuedBuildsLocator(@Nullable final String locatorText) {
-    final Locator result = new Locator(locatorText, "id", "project", "buildType", "agent", "personal", PagerData.COUNT, PagerData.START, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-    result.addIgnoreUnusedDimensions(PagerData.COUNT);
-    return result;
-  }
-
-  private List<SQueuedBuild> getQueuedBuilds(final AbstractFilter<SQueuedBuild> filter) {
-    final FilterItemProcessor<SQueuedBuild> filterItemProcessor = new FilterItemProcessor<SQueuedBuild>(filter);
-    AbstractFilter.processList(getAllQueuedBuilds(myDataProvider), filterItemProcessor);
-    return filterItemProcessor.getResult();
-  }
-
-  public static MultiCheckerFilter<SQueuedBuild> getQueuedBuildsFilter(@NotNull final Locator locator,
-                                                                       @NotNull final ProjectFinder projectFinder,
-                                                                       @NotNull final BuildTypeFinder buildTypeFinder,
-                                                                       @NotNull final DataProvider dataProvider) {
-    final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    final MultiCheckerFilter<SQueuedBuild> result =
-      new MultiCheckerFilter<SQueuedBuild>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
-
-    final String projectLocator = locator.getSingleDimensionValue("project");
-    SProject project = null;
-    if (projectLocator != null) {
-      project = projectFinder.getProject(projectLocator);
-      final SProject internalProject = project;
-      result.add(new FilterConditionChecker<SQueuedBuild>() {
-        public boolean isIncluded(@NotNull final SQueuedBuild item) {
-          return internalProject.equals(item.getBuildType().getProject());
-        }
-      });
-    }
-
-    final String buildTypeLocator = locator.getSingleDimensionValue("buildType");
-    if (buildTypeLocator != null) {
-      final SBuildType buildType = buildTypeFinder.getBuildType(project, buildTypeLocator);
-      result.add(new FilterConditionChecker<SQueuedBuild>() {
-        public boolean isIncluded(@NotNull final SQueuedBuild item) {
-          return buildType.equals(item.getBuildType());
-        }
-      });
-    }
-
-    final String agentLocator = locator.getSingleDimensionValue("agent");
-    if (agentLocator != null) {
-      final SBuildAgent agent = dataProvider.getAgent(agentLocator);
-      result.add(new FilterConditionChecker<SQueuedBuild>() {
-        public boolean isIncluded(@NotNull final SQueuedBuild item) {
-          return agent.equals(item.getBuildAgent());
-        }
-      });
-    }
-
-    final String compatibleAagentLocator = locator.getSingleDimensionValue("compatibleAgent"); //experimental
-    if (compatibleAagentLocator != null) {
-      final SBuildAgent agent = dataProvider.getAgent(compatibleAagentLocator);
-      result.add(new FilterConditionChecker<SQueuedBuild>() {
-        public boolean isIncluded(@NotNull final SQueuedBuild item) {
-          return item.getCompatibleAgents().contains(agent);
-        }
-      });
-    }
-
-    final Long  compatibleAgentsCount = locator.getSingleDimensionValueAsLong("compatibleAgentsCount"); //experimental
-    if (compatibleAgentsCount != null) {
-      result.add(new FilterConditionChecker<SQueuedBuild>() {
-        public boolean isIncluded(@NotNull final SQueuedBuild item) {
-          return compatibleAgentsCount.equals(Integer.valueOf(item.getCompatibleAgents().size()).longValue());
-        }
-      });
-    }
-
-    final Boolean personal = locator.getSingleDimensionValueAsBoolean("personal");
-    if (personal != null) {
-      result.add(new FilterConditionChecker<SQueuedBuild>() {
-        public boolean isIncluded(@NotNull final SQueuedBuild item) {
-          return FilterUtil.isIncludedByBooleanFilter(personal, item.isPersonal());
-        }
-      });
-    }
-
-    return result;
-  }
-
-  @NotNull
-  public SQueuedBuild getQueuedBuild(@Nullable final String locatorText) {
-    if (StringUtil.isEmpty(locatorText)) {
-      throw new BadRequestException("Empty build locator is not supported.");
-    }
-
-    if (StringUtil.isEmpty(locatorText)) {
-      throw new BadRequestException("Empty queued build locator is not supported.");
-    }
-    final Locator locator = createQueuedBuildsLocator(locatorText);
-
-    if (locator.isSingleValue()) {
-     // assume it's promotion id
-      @SuppressWarnings("ConstantConditions") @NotNull final Long singleValueAsLong = locator.getSingleValueAsLong();
-      locator.checkLocatorFullyProcessed();
-      return getQueuedBuildByPromotionId(singleValueAsLong);
-    }
-
-    Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
-    if (id != null) {
-      locator.checkLocatorFullyProcessed();
-      return getQueuedBuildByPromotionId(id);
-    }
-
-    locator.setDimension(PagerData.COUNT, "1"); //get only the first one that matches
-    final PagedSearchResult<SQueuedBuild> items = getQueuedBuilds(locator);
-    if (items.myEntries.size() == 0) {
-      throw new NotFoundException("No queued builds are found by locator '" + locatorText + "'.");
-    }
-    assert items.myEntries.size()== 1;
-    return items.myEntries.get(0);
-  }
-
-  private SQueuedBuild getQueuedBuildByPromotionId(final Long singleValueAsLong) {
-    final BuildPromotion buildPromotion = getBuildPromotion(singleValueAsLong);
-    final SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    if (queuedBuild == null){
-      throw new NotFoundException("No queued build can be found by id '" + buildPromotion.getId() + "' (while promotion exists).");
-    }
-    return queuedBuild;
-  }
-
   /**
    * Supported build locators:
    *  213 - build with id=213
@@ -454,33 +296,9 @@ public class BuildFinder {
     return result;
   }
 
-  /**
-   * Returns build promotion if found. Othervise returns null. Throws no locator exceptions
-   */
-  @Nullable
-  public BuildPromotion getBuildPromotionByBuildQueueLocator(@Nullable final String buildQueueLocator) {
-    if (StringUtil.isEmpty(buildQueueLocator)) {
-      return null;
-    }
-
-    final Locator locator = new Locator(buildQueueLocator);
-
-    if (locator.isSingleValue()) { // assume it's promotion id
-      @SuppressWarnings("ConstantConditions") @NotNull final Long singleValueAsLong = locator.getSingleValueAsLong();
-      return myDataProvider.getPromotionManager().findPromotionById(singleValueAsLong);
-    }
-
-    Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
-    if (id != null) {
-      return myDataProvider.getPromotionManager().findPromotionById(id);
-    }
-
-    return null;
-  }
-
   @NotNull
-  private BuildPromotion getBuildPromotion(final long promotionId) {
-    final BuildPromotion buildPromotion = myDataProvider.getPromotionManager().findPromotionById(promotionId);
+  public static BuildPromotion getBuildPromotion(final long promotionId, @NotNull final BuildPromotionManager promotionManager) {
+    final BuildPromotion buildPromotion = promotionManager.findPromotionById(promotionId);
     if (buildPromotion == null) {
       throw new NotFoundException("No build promotion can be found by id '" + promotionId + "'.");
     }
@@ -489,7 +307,7 @@ public class BuildFinder {
 
   @NotNull
   public SBuild getBuildByPromotionId(@NotNull final Long promotionId) {
-    final BuildPromotion promotion = getBuildPromotion(promotionId);
+    final BuildPromotion promotion = getBuildPromotion(promotionId, myDataProvider.getPromotionManager());
     SBuild build = promotion.getAssociatedBuild();
     if (build == null) {
       throw new NotFoundException("No associated build can be found for promotion with id '" + promotionId + "'.");
