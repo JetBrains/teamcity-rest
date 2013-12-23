@@ -409,6 +409,18 @@ public class DataProvider {
     }
   }
 
+  public void checkGlobalPermissionAnyOf(final Permission[] permissions) throws AuthorizationFailedException{
+    final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
+    for (Permission permission : permissions) {
+      if (authorityHolder.isPermissionGrantedForAnyProject(permission)) {
+        return;
+      }
+    }
+
+    throw new AuthorizationFailedException(
+      "User " + authorityHolder.getAssociatedUser() + " does not have any of the permissions granted globally: " + Arrays.toString(permissions));
+  }
+
   public void checkProjectPermission(@NotNull final Permission permission, @Nullable final String projectId) throws AuthorizationFailedException{
     final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
     if (projectId == null){

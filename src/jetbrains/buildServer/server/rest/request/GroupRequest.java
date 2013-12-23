@@ -23,12 +23,14 @@ import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
+import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.data.UserGroupFinder;
 import jetbrains.buildServer.server.rest.model.group.Group;
 import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -42,6 +44,7 @@ import org.jetbrains.annotations.Nullable;
 public class GroupRequest {
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private UserGroupFinder myUserGroupFinder;
+  @Context @NotNull private UserFinder myUserFinder;
   @Context @NotNull private DataUpdater myDataUpdater;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
 
@@ -59,6 +62,9 @@ public class GroupRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public Groups serveGroups() {
+    if (TeamCityProperties.getBooleanOrTrue(UserRequest.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
+      myUserFinder.checkViewAllUsersPermission();
+    }
     return new Groups(myUserGroupFinder.getAllGroups(), myApiUrlBuilder);
   }
 
@@ -74,6 +80,9 @@ public class GroupRequest {
   @Path("/{groupLocator}")
   @Produces({"application/xml", "application/json"})
   public Group serveGroup(@PathParam("groupLocator") String groupLocator) {
+    if (TeamCityProperties.getBooleanOrTrue(UserRequest.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
+      myUserFinder.checkViewAllUsersPermission();
+    }
     return new Group(myUserGroupFinder.getGroup(groupLocator), new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
   }
 
@@ -87,6 +96,9 @@ public class GroupRequest {
   @Path("/{groupLocator}/roles")
   @Produces({"application/xml", "application/json"})
   public RoleAssignments listRoles(@PathParam("groupLocator") String groupLocator) {
+    if (TeamCityProperties.getBooleanOrTrue(UserRequest.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
+      myUserFinder.checkViewAllUsersPermission();
+    }
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
     return new RoleAssignments(group.getRoles(), group, new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
   }
@@ -126,6 +138,9 @@ public class GroupRequest {
   @Produces({"application/xml", "application/json"})
   public RoleAssignment listRole(@PathParam("groupLocator") String groupLocator, @PathParam("roleId") String roleId,
                                  @PathParam("scope") String scopeValue) {
+    if (TeamCityProperties.getBooleanOrTrue(UserRequest.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
+      myUserFinder.checkViewAllUsersPermission();
+    }
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
     final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
     return new RoleAssignment(DataProvider.getGroupRoleEntry(group, roleId, scopeValue, context), group, context);

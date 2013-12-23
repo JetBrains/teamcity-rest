@@ -22,7 +22,6 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
 import jetbrains.buildServer.server.rest.data.UserFinder;
-import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
@@ -31,7 +30,7 @@ import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.model.user.Users;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.SimplePropertyKey;
@@ -40,13 +39,9 @@ import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/* todo: investigate logging issues:
-    - disable initialization lines into stdout
-    - too long number passed as finish for builds produces 404 error
-*/
-
 @Path(UserRequest.API_USERS_URL)
 public class UserRequest {
+  public static final String REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS = "rest.request.checkAdditionalPermissionsForUsersAndGroups";
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private UserFinder myUserFinder;
   @Context @NotNull private DataUpdater myDataUpdater;
@@ -67,52 +62,10 @@ public class UserRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public Users serveUsers() {
+    if (TeamCityProperties.getBooleanOrTrue(REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
+      myUserFinder.checkViewAllUsersPermission();
+    }
     return new Users(myDataProvider.getAllUsers(), myApiUrlBuilder);
-  }
-
-  private void checkViewAllUsersPermission() {
-    try {
-      myDataProvider.checkGlobalPermission(Permission.VIEW_USER_PROFILE);
-    } catch (AuthorizationFailedException e) {
-      checkModifyAllUsersPermission();
-    }
-  }
-
-  private void checkViewUserPermission(String userLocator) {
-    SUser user;
-    try {
-      user = myUserFinder.getUser(userLocator);
-    } catch (RuntimeException e) { // ensuring user without permissions could not get details on existing users by error messages
-      checkViewAllUsersPermission();
-      return;
-    }
-
-    final jetbrains.buildServer.users.User currentUser = myDataProvider.getCurrentUser();
-    if (user != null && currentUser != null && currentUser.getId() == user.getId()) {
-      return;
-    }
-    checkViewAllUsersPermission();
-  }
-
-  private void checkModifyAllUsersPermission() {
-    myDataProvider.checkGlobalPermission(jetbrains.buildServer.serverSide.auth.Permission.CHANGE_USER);
-  }
-
-  private void checkModifyUserPermission(String userLocator) {
-    SUser user;
-    try {
-      user = myUserFinder.getUser(userLocator);
-    } catch (RuntimeException e) { // ensuring user without permissions could not get details on existing users by error messages
-      checkModifyAllUsersPermission();
-      return;
-    }
-
-    final jetbrains.buildServer.users.User currentUser = myDataProvider.getCurrentUser();
-    if (user != null && currentUser != null && currentUser.getId() == user.getId()) {
-      myDataProvider.checkGlobalPermission(jetbrains.buildServer.serverSide.auth.Permission.CHANGE_OWN_PROFILE);
-      return;
-    }
-    checkModifyAllUsersPermission();
   }
 
   @POST
@@ -154,6 +107,9 @@ public class UserRequest {
   @Path("/{userLocator}/{field}")
   @Produces("text/plain")
   public String serveUserField(@PathParam("userLocator") String userLocator, @PathParam("field") String fieldName) {
+    if (TeamCityProperties.getBooleanOrTrue(REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
+      myUserFinder.checkViewUserPermission(userLocator);
+    }
     return User.getFieldValue(myUserFinder.getUser(userLocator), fieldName);
   }
 
@@ -215,7 +171,7 @@ public class UserRequest {
   @Path("/{userLocator}/roles")
   @Produces({"application/xml", "application/json"})
   public RoleAssignments listRoles(@PathParam("userLocator") String userLocator) {
-    checkViewUserPermission(userLocator); //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
+    myUserFinder.checkViewUserPermission(userLocator); //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
     SUser user = myUserFinder.getUser(userLocator);
     return new RoleAssignments(user.getRoles(), user, new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
   }
@@ -256,7 +212,7 @@ public class UserRequest {
   @Produces({"application/xml", "application/json"})
   public RoleAssignment listRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
                                  @PathParam("scope") String scopeValue) {
-    checkViewUserPermission(userLocator);  //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
+    myUserFinder.checkViewUserPermission(userLocator);  //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
     SUser user = myUserFinder.getUser(userLocator);
     final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
     return new RoleAssignment(DataProvider.getUserRoleEntry(user, roleId, scopeValue, context), user, context);
