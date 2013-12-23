@@ -139,13 +139,13 @@ public class BuildQueueRequest {
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Build cancelBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator, BuildCancelRequest cancelRequest, @Context HttpServletRequest request) {
+    if (cancelRequest.readdIntoQueue) {
+      throw new BadRequestException("Restore in queue is not supported for queued builds.");
+    }
     SQueuedBuild build = myQueuedBuildFinder.getItem(queuedBuildLocator);
     myServiceLocator.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class).removeItems(Collections.singleton(build.getItemId()),
                                                                                                         SessionUser.getUser(request),
                                                                                                         cancelRequest.comment);
-    if (cancelRequest.readdIntoQueue) {
-      throw new BadRequestException("Restore in queue is not supported for queued builds.");
-    }
     final SBuild associatedBuild = build.getBuildPromotion().getAssociatedBuild();
     if (associatedBuild == null){
       return null;

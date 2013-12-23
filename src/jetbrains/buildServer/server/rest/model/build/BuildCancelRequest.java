@@ -22,6 +22,9 @@ public class BuildCancelRequest {
   @XmlAttribute(name = "comment")
   public String comment;
 
+  /**
+   * When canceling queued builds, should be set to 'false'
+   */
   @XmlAttribute(name = "readdIntoQueue")
   public boolean readdIntoQueue;
 
