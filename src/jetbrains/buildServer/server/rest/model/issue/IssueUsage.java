@@ -17,12 +17,15 @@
 package jetbrains.buildServer.server.rest.model.issue;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
+import jetbrains.buildServer.issueTracker.IssueEx;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.change.Changes;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.vcs.SVcsModification;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -56,13 +59,26 @@ public class IssueUsage {
 
   @XmlElement(defaultValue = "")
   public Changes getChanges() {
-    final List<SVcsModification> relatedModifications = new ArrayList<SVcsModification>();
-    final List<SVcsModification> vcsModifications = myBuild.getContainingChanges();
-    for (SVcsModification vcsModification : vcsModifications) {
-      if (vcsModification.getRelatedIssues().contains(myIssue)) {
-        relatedModifications.add(vcsModification);
+    if (TeamCityProperties.getBooleanOrTrue("rest.beans.issueUsage.useStoredVcsModification")) {
+      final IssueEx issueEx; //todo: TeamCity API
+      issueEx = (IssueEx)myIssue;
+      if (issueEx != null) {
+        final SVcsModification relatedModification = (SVcsModification)issueEx.getRelatedModification();
+        if (relatedModification != null) {
+          return new Changes(Collections.singletonList(relatedModification), myApiUrlBuilder, myFactory);
+        }
       }
+      return null;
+    } else {
+      // this is highly inefficient especially when serving /relatedIssues for a build with large number of changes
+      final List<SVcsModification> relatedModifications = new ArrayList<SVcsModification>();
+      final List<SVcsModification> vcsModifications = myBuild.getContainingChanges();
+      for (SVcsModification vcsModification : vcsModifications) {
+        if (vcsModification.getRelatedIssues().contains(myIssue)) {
+          relatedModifications.add(vcsModification);
+        }
+      }
+      return relatedModifications.isEmpty() ? null : new Changes(relatedModifications, myApiUrlBuilder, myFactory);
     }
-    return relatedModifications.isEmpty() ? null : new Changes(relatedModifications, myApiUrlBuilder, myFactory);
   }
 }
