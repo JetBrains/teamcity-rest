@@ -36,6 +36,7 @@ import org.jetbrains.annotations.NotNull;
 public class AgentRef {
   @XmlAttribute(required = false) public Integer id;
   @XmlAttribute(required = true) public String name;
+  @XmlAttribute(required = false) public Integer typeId;
   @XmlAttribute(required = false) public String href;
 
   /**
@@ -48,13 +49,12 @@ public class AgentRef {
   }
 
   public AgentRef(@NotNull final SBuildAgent agent, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    id = agent.getId();
+    if (agent.getId() != -1) { //todo: TeamCity API: how to check the agent is not deleted
+      id = agent.getId();
+      href = apiUrlBuilder.getHref(agent);
+    }
+    typeId = agent.getAgentTypeId();
     name = agent.getName();
-    href = apiUrlBuilder.getHref(agent);
-  }
-
-  public AgentRef(final String agentName) {
-    name = agentName;
   }
 
   @NotNull

@@ -41,6 +41,7 @@ public class Agent {
   @XmlAttribute public String href;
   @XmlAttribute public Integer id;
   @XmlAttribute public String name;
+  @XmlAttribute public Integer typeId;
   @XmlAttribute public boolean connected;
   @XmlAttribute public boolean enabled;
   @XmlAttribute public boolean authorized;
@@ -60,6 +61,7 @@ public class Agent {
   public Agent(@NotNull final SBuildAgent agent, @NotNull final AgentPoolsFinder agentPoolsFinder, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     id = agent.getId();
     name = agent.getName();
+    typeId = agent.getAgentTypeId();
     connected = agent.isRegistered();
     enabled = agent.isEnabled();
     authorized = agent.isAuthorized();
@@ -77,6 +79,8 @@ public class Agent {
     }
     if ("id".equals(name)) {
       return String.valueOf(agent.getId());
+    } else if ("typeId".equals(name)) {
+      return String.valueOf(agent.getAgentTypeId());
     } else if ("name".equals(name)) {
       return agent.getName();
     } else if ("connected".equals(name)) {

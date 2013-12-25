@@ -159,11 +159,7 @@ public class Build {
 
   @XmlElement(name = "agent")
   public AgentRef getAgent() {
-    final SBuildAgent agent = myDataProvider.findAgentByName(myBuild.getAgentName());
-    if (agent == null) {
-      return new AgentRef(myBuild.getAgentName());
-    }
-    return new AgentRef(agent, myApiUrlBuilder);
+    return new AgentRef(myBuild.getAgent(), myApiUrlBuilder);
   }
 
   @XmlElement(name = "buildType")
