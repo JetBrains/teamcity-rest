@@ -22,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class ChangeFinder {
   private static final Logger LOG = Logger.getInstance(BuildTypeFinder.class.getName());
+  public static final String ID = "id";
 
   @NotNull private final DataProvider myDataProvider;
   @NotNull private final ProjectFinder myProjectFinder;
@@ -56,7 +57,7 @@ public class ChangeFinder {
       throw new BadRequestException("Empty change locator is not supported.");
     }
     final String[] supported =
-      {"id", "project", "buildType", "build", "vcsRoot", "vcsRootInstance", "username", "user", "version", "internalVersion", "comment", "file",
+      {ID, "project", "buildType", "build", "vcsRoot", "vcsRootInstance", "username", "user", "version", "internalVersion", "comment", "file",
         "sinceChange", "start", "count", "lookupLimit", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME};
     final Locator result;
     if (returnNotEmpty) {

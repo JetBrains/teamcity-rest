@@ -20,9 +20,13 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.ChangeFinder;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.vcs.SVcsModification;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -37,10 +41,16 @@ public class ChangeRef {
   protected BeanFactory myFactory;
   @Autowired protected WebLinks myWebLinks;
 
+  /**
+   * This is used only when posting a link to the change
+   */
+  private String submittedLocator;
+  private Long submittedId;
+
   public ChangeRef() {
   }
 
-  public ChangeRef(SVcsModification modification, final ApiUrlBuilder apiUrlBuilder, final BeanFactory factory) {
+  public ChangeRef(@NotNull SVcsModification modification, @NotNull final ApiUrlBuilder apiUrlBuilder, @NotNull final BeanFactory factory) {
     myModification = modification;
     myApiUrlBuilder = apiUrlBuilder;
     myFactory = factory;
@@ -53,8 +63,12 @@ public class ChangeRef {
   }
 
   @XmlAttribute
-  public long getId() {
+  public Long getId() {
     return myModification.getId();
+  }
+
+  public void setId(Long id) {
+    submittedId = id;
   }
 
   @XmlAttribute
@@ -67,4 +81,30 @@ public class ChangeRef {
     return myWebLinks.getChangeUrl(myModification.getId(), myModification.isPersonal());
   }
 
+  @XmlAttribute
+  public String getLocator() {
+    return null;
+  }
+
+  public void setLocator(final String locator) {
+    submittedLocator = locator;
+  }
+
+  @NotNull
+  public SVcsModification getChangeFromPosted(final ChangeFinder changeFinder) {
+    String locatorText;
+    if (submittedId != null) {
+      if (submittedLocator != null){
+        throw new BadRequestException("Both 'locator' and 'id' attributes are specified. Only one should be present.");
+      }
+      locatorText = Locator.createEmptyLocator().setDimension(ChangeFinder.ID, String.valueOf(submittedId)).getStringRepresentation();
+    } else{
+      if (submittedLocator == null){
+        throw new BadRequestException("No change specified. Either 'id' or 'locator' attribute should be present.");
+      }
+      locatorText = submittedLocator;
+    }
+
+    return changeFinder.getChange(locatorText);
+  }
 }

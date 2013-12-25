@@ -555,7 +555,7 @@ public class BuildRequest {
   @Produces({"application/xml", "application/json"})
   public BuildTask getExampleBuildTask(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return BuildTask.getExampleBuildTask(build, myServiceLocator, myApiUrlBuilder);
+    return BuildTask.getExampleBuildTask(build, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   private void restoreInQueue(final SRunningBuild runningBuild, final User user) {

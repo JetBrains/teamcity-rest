@@ -21,16 +21,21 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
+import jetbrains.buildServer.server.rest.data.ChangeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.agent.AgentRef;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeRef;
+import jetbrains.buildServer.server.rest.model.change.ChangeRef;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.vcs.SVcsModification;
+import jetbrains.buildServer.vcs.VcsManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -42,8 +47,8 @@ import org.jetbrains.annotations.Nullable;
 //todo: reuse fields code from DataProvider
 @XmlRootElement(name = "buildTask")
 @XmlType(name = "buildTask", propOrder = {"branchName", "personal",
-  "buildType", "agent", "commentText", "properties"})
-  //"buildDependencies", "buildArtifactDependencies"
+  "buildType", "agent", "commentText", "properties", "change"})
+//"buildDependencies", "buildArtifactDependencies"
 @SuppressWarnings("PublicField")
 public class BuildTask {
   @XmlAttribute public String branchName;
@@ -57,7 +62,7 @@ public class BuildTask {
   @XmlElement public BuildTypeRef buildType;
   @XmlElement public String commentText;
   @XmlElement public Properties properties;
-  //@XmlElement private ChangeRef change;
+  @XmlElement private ChangeRef change;
   //@XmlElement(name = "snapshot-dependencies")  public Builds buildDependencies;
   //@XmlElement(name = "artifact-dependencies")  public Builds buildArtifactDependencies;
 
@@ -65,7 +70,7 @@ public class BuildTask {
   }
 
   //todo: support the same for queued build
-  public static BuildTask getExampleBuildTask(@NotNull final SBuild build, @NotNull final ServiceLocator serviceLocator, @NotNull final ApiUrlBuilder apiUrlBuilder){
+  public static BuildTask getExampleBuildTask(@NotNull final SBuild build, @NotNull final BeanContext context) {
     final BuildTask buildTask = new BuildTask();
     if (build.getBranch() != null) buildTask.branchName = build.getBranch().getName();
     buildTask.personal = build.isPersonal();
@@ -75,11 +80,29 @@ public class BuildTask {
 
 //    buildTask.rebuildAllDependencies =
     //noinspection ConstantConditions
-    buildTask.buildType = new BuildTypeRef(build.getBuildType(), serviceLocator.findSingletonService(DataProvider.class), apiUrlBuilder);
-    buildTask.agent = new AgentRef(build.getAgent(), apiUrlBuilder);
+    buildTask.buildType = new BuildTypeRef(build.getBuildType(), context.getSingletonService(DataProvider.class), context.getApiUrlBuilder());
+    buildTask.agent = new AgentRef(build.getAgent(), context.getApiUrlBuilder());
     if (build.getBuildComment() != null) buildTask.commentText = build.getBuildComment().getComment();
     buildTask.properties = new Properties(build.getBuildPromotion().getCustomParameters());
+    final Long lastModificationId = build.getBuildPromotion().getLastModificationId();
+    if (lastModificationId != null && lastModificationId > 0) {
+      SVcsModification modification = context.getSingletonService(VcsManager.class).findModificationById(lastModificationId, false);
+      if (modification != null) {
+        buildTask.change = new ChangeRef(modification, context.getApiUrlBuilder(), context.getSingletonService(BeanFactory.class));
+      }
+    }
+    if (getPersonalChange(build) != null){
+      throw new BadRequestException("Creating build tasks for builds with personal changes is not supported.");
+    }
     return buildTask;
+  }
+
+  @Nullable
+  private static SVcsModification getPersonalChange(@NotNull final SBuild build) {
+    for (SVcsModification modification : build.getContainingChanges()) {
+      if (modification.isPersonal()) return modification;
+    }
+    return null;
   }
 
   @Nullable
@@ -110,6 +133,9 @@ public class BuildTask {
     if (personal != null) customizer.setPersonal(personal);
     if (cleanSources != null) customizer.setCleanSources(cleanSources);
     if (rebuildAllDependencies != null) customizer.setRebuildDependencies(rebuildAllDependencies);
+    if (change != null) {
+      customizer.setChangesUpTo(change.getChangeFromPosted(serviceLocator.getSingletonService(ChangeFinder.class)));
+    }
 
     return customizer.createPromotion();
   }
