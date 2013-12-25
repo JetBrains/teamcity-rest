@@ -100,7 +100,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
       final SBuildType buildType = myBuildTypeFinder.getBuildType(project, buildTypeLocator);
       result.add(new FilterConditionChecker<SQueuedBuild>() {
         public boolean isIncluded(@NotNull final SQueuedBuild item) {
-          return buildType.equals(item.getBuildType()) || (item.isPersonal() && buildType.getExternalId().equals(item.getBuildType().getExternalId()));
+          return buildType.equals(item.getBuildPromotion().getParentBuildType());
         }
       });
     }
