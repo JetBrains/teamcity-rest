@@ -34,7 +34,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  *         Date: 21.07.2009
  */
 @XmlRootElement(name = "change-ref")
-@XmlType(name = "change-ref", propOrder = {"id", "version", "href", "webLink"})
+@XmlType(name = "change-ref", propOrder = {"id", "version", "personal", "href", "webLink"})
 public class ChangeRef {
   protected SVcsModification myModification;
   protected ApiUrlBuilder myApiUrlBuilder;
@@ -46,6 +46,7 @@ public class ChangeRef {
    */
   private String submittedLocator;
   private Long submittedId;
+  private Boolean submittedPersonal;
 
   public ChangeRef() {
   }
@@ -69,6 +70,15 @@ public class ChangeRef {
 
   public void setId(Long id) {
     submittedId = id;
+  }
+
+  @XmlAttribute
+  public Boolean getPersonal() {
+    return myModification.isPersonal() ? true : null;
+  }
+
+  public void setPersonal(Boolean value) {
+    submittedPersonal = value;
   }
 
   @XmlAttribute
@@ -97,7 +107,11 @@ public class ChangeRef {
       if (submittedLocator != null){
         throw new BadRequestException("Both 'locator' and 'id' attributes are specified. Only one should be present.");
       }
-      locatorText = Locator.createEmptyLocator().setDimension(ChangeFinder.ID, String.valueOf(submittedId)).getStringRepresentation();
+      final Locator locator = Locator.createEmptyLocator().setDimension(ChangeFinder.ID, String.valueOf(submittedId));
+      if (submittedPersonal != null && submittedPersonal){
+        locator.setDimension(ChangeFinder.PERSONAL, "true");
+      }
+      locatorText = locator.getStringRepresentation();
     } else{
       if (submittedLocator == null){
         throw new BadRequestException("No change specified. Either 'id' or 'locator' attribute should be present.");

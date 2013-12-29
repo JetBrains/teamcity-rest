@@ -48,7 +48,7 @@ import org.jetbrains.annotations.Nullable;
 //todo: reuse fields code from DataProvider
 @XmlRootElement(name = "buildTask")
 @XmlType(name = "buildTask", propOrder = {"branchName", "personal",
-  "buildType", "agent", "commentText", "properties", "change"})
+  "buildType", "agent", "commentText", "properties", "change", "personalChange"})
 //"buildDependencies", "buildArtifactDependencies"
 @SuppressWarnings("PublicField")
 public class BuildTask {
@@ -64,6 +64,10 @@ public class BuildTask {
   @XmlElement public String commentText;
   @XmlElement public Properties properties;
   @XmlElement private ChangeRef change;
+  /**
+   * Experimental only!
+   */
+  @XmlElement private ChangeRef personalChange;
   //@XmlElement(name = "snapshot-dependencies")  public Builds buildDependencies;
   //@XmlElement(name = "artifact-dependencies")  public Builds buildArtifactDependencies;
 
@@ -92,8 +96,11 @@ public class BuildTask {
         buildTask.change = new ChangeRef(modification, context.getApiUrlBuilder(), context.getSingletonService(BeanFactory.class));
       }
     }
-    if (getPersonalChange(build) != null){
-      throw new BadRequestException("Creating build tasks for builds with personal changes is not supported.");
+    if (build.isPersonal()) {
+      final SVcsModification vcsModification = getPersonalChange(build);
+      if (vcsModification != null){
+        buildTask.personalChange = new ChangeRef(vcsModification, context.getApiUrlBuilder(), context.getSingletonService(BeanFactory.class));
+      }
     }
     return buildTask;
   }
@@ -114,7 +121,7 @@ public class BuildTask {
     return agent.getAgentFromPosted(agentFinder);
   }
 
-  private SBuildType getBuildType(@NotNull final BuildTypeFinder buildTypeFinder) {
+  private SBuildType getBuildType(@NotNull final BuildTypeFinder buildTypeFinder,  @NotNull ServiceLocator serviceLocator) {
     if (buildType == null) {
       throw new BadRequestException("No 'buildType' element in the posted entiry.");
     }
@@ -122,11 +129,20 @@ public class BuildTask {
     if (!buildTypeFromPosted.isBuildType()) {
       throw new BadRequestException("Found template instead on build type. Only build types can run builds.");
     }
-    return buildTypeFromPosted.getBuildType();
+    final SBuildType regularBuildType = buildTypeFromPosted.getBuildType();
+    if (personalChange == null){
+      return regularBuildType;
+    }
+    final SVcsModification personalChangeFromPosted = personalChange.getChangeFromPosted(serviceLocator.getSingletonService(ChangeFinder.class));
+    final SUser currentUser = DataProvider.getCurrentUser(serviceLocator);
+    if (currentUser == null){
+      throw new BadRequestException("Cannot trigger a personal build while no current user is present. Please specify credentials of a valid and non-special user.");
+    }
+    return ((BuildTypeEx)regularBuildType).createPersonalBuildType(currentUser, personalChangeFromPosted.getId());
   }
 
   public BuildPromotion getBuildToTrigger(@Nullable final SUser user, @NotNull final BuildTypeFinder buildTypeFinder,  @NotNull ServiceLocator serviceLocator) {
-    BuildCustomizer customizer = serviceLocator.getSingletonService(BuildCustomizerFactory.class).createBuildCustomizer(getBuildType(buildTypeFinder), user);
+    BuildCustomizer customizer = serviceLocator.getSingletonService(BuildCustomizerFactory.class).createBuildCustomizer(getBuildType(buildTypeFinder, serviceLocator), user);
     if (commentText != null) customizer.setBuildComment(commentText);
     if (properties != null) customizer.setParameters(properties.getMap());
 

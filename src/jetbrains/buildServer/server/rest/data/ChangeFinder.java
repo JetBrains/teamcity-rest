@@ -23,6 +23,7 @@ import org.jetbrains.annotations.Nullable;
 public class ChangeFinder {
   private static final Logger LOG = Logger.getInstance(BuildTypeFinder.class.getName());
   public static final String ID = "id";
+  public static final String PERSONAL = "personal";
 
   @NotNull private final DataProvider myDataProvider;
   @NotNull private final ProjectFinder myProjectFinder;
@@ -65,7 +66,7 @@ public class ChangeFinder {
     } else {
       result = Locator.createEmptyLocator(supported);
     }
-    result.addHiddenDimensions("branch", "personal"); //hide these for now
+    result.addHiddenDimensions("branch", PERSONAL); //hide these for now
     return result;
   }
 
@@ -110,7 +111,7 @@ public class ChangeFinder {
                                       sinceChangeId,
                                       locator.getSingleDimensionValue("username"),
                                       userLocator == null ? null : myUserFinder.getUser(userLocator),
-                                      locator.getSingleDimensionValueAsBoolean("personal"),
+                                      locator.getSingleDimensionValueAsBoolean(PERSONAL),
                                       locator.getSingleDimensionValue("version"),
                                       locator.getSingleDimensionValue("internalVersion"),
                                       locator.getSingleDimensionValue("comment"),
@@ -150,10 +151,10 @@ public class ChangeFinder {
 
     Long id = locator.getSingleDimensionValueAsLong("id");
     if (id != null) {
-      Boolean isPersonal = locator.getSingleDimensionValueAsBoolean("personal", false);
+      Boolean isPersonal = locator.getSingleDimensionValueAsBoolean(PERSONAL, false);
       if (isPersonal == null) {
-        throw new BadRequestException("When 'id' dimension is present, only true/false values are supported for 'personal' dimension. Was: '" +
-                                      locator.getSingleDimensionValue("personal") + "'");
+        throw new BadRequestException("When 'id' dimension is present, only true/false values are supported for '" + PERSONAL + "' dimension. Was: '" +
+                                      locator.getSingleDimensionValue(PERSONAL) + "'");
       }
 
       SVcsModification modification = myVcsManager.findModificationById(id, isPersonal);
