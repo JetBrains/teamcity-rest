@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model.build;
 
 import java.util.Collection;
+import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -28,11 +29,13 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.agent.AgentRef;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeRef;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
+import jetbrains.buildServer.server.rest.model.buildType.PropEntitiesArtifactDep;
 import jetbrains.buildServer.server.rest.model.change.ChangeRef;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -50,7 +53,7 @@ import org.jetbrains.annotations.Nullable;
 //todo: reuse fields code from DataProvider
 @XmlRootElement(name = "buildTask")
 @XmlType(name = "buildTask", propOrder = {"branchName", "personal",
-  "buildType", "agent", "commentText", "properties", "change", "personalChange", "buildDependencies", "rebuildDependencies"})
+  "buildType", "agent", "commentText", "properties", "change", "personalChange", "buildDependencies", "buildArtifactDependencies", "rebuildDependencies"})
 //"buildArtifactDependencies"
 @SuppressWarnings("PublicField")
 public class BuildTask {
@@ -66,9 +69,16 @@ public class BuildTask {
   @XmlElement public String commentText;
   @XmlElement public Properties properties;
   @XmlElement private ChangeRef change;
-  @XmlElement(name = "snapshot-dependencies")  public Builds buildDependencies;
-  //@XmlElement(name = "artifact-dependencies")  public Builds buildArtifactDependencies;
-  @XmlElement(name = "rebuild-dependencies")  public BuildTypes rebuildDependencies;
+  @XmlElement(name = "snapshot-dependencies") public Builds buildDependencies;
+  /**
+   * Specifies which of the snapshot dependnecies to rebuild. Build types of direct or indirect dependencies can be specified.
+   * Makes sence only if "rebuildAllDependencies" is not set to "true"
+   */
+  @XmlElement(name = "rebuild-dependencies") public BuildTypes rebuildDependencies;
+  /**
+   * Specifies artifact dependencies to use in the build _instead_ of those specified in the build type.
+   */
+  @XmlElement(name = "artifact-dependencies") public PropEntitiesArtifactDep buildArtifactDependencies;
 
   /**
    * Experimental only!
@@ -102,14 +112,19 @@ public class BuildTask {
     }
     if (build.isPersonal()) {
       final SVcsModification vcsModification = getPersonalChange(build);
-      if (vcsModification != null){
+      if (vcsModification != null) {
         buildTask.personalChange = new ChangeRef(vcsModification, context.getApiUrlBuilder(), context.getSingletonService(BeanFactory.class));
       }
     }
 
     final Collection<? extends BuildDependency> dependencies = build.getBuildPromotion().getDependencies();
-    if (dependencies.size() > 0){
+    if (dependencies.size() > 0) {
       buildTask.buildDependencies = new Builds(Build.getBuilds(dependencies), context.getServiceLocator(), null, context.getApiUrlBuilder());
+    }
+
+    final List<SArtifactDependency> artifactDependencies = build.getArtifactDependencies();
+    if (artifactDependencies.size() > 0) {
+      buildTask.buildArtifactDependencies = new PropEntitiesArtifactDep(artifactDependencies, context);
     }
 
     return buildTask;
@@ -131,7 +146,7 @@ public class BuildTask {
     return agent.getAgentFromPosted(agentFinder);
   }
 
-  private SBuildType getBuildType(@NotNull final BuildTypeFinder buildTypeFinder,  @NotNull ServiceLocator serviceLocator) {
+  private SBuildType getBuildType(@NotNull final BuildTypeFinder buildTypeFinder, @NotNull ServiceLocator serviceLocator) {
     if (buildType == null) {
       throw new BadRequestException("No 'buildType' element in the posted entiry.");
     }
@@ -140,18 +155,18 @@ public class BuildTask {
       throw new BadRequestException("Found template instead on build type. Only build types can run builds.");
     }
     final SBuildType regularBuildType = buildTypeFromPosted.getBuildType();
-    if (personalChange == null){
+    if (personalChange == null) {
       return regularBuildType;
     }
     final SVcsModification personalChangeFromPosted = personalChange.getChangeFromPosted(serviceLocator.getSingletonService(ChangeFinder.class));
     final SUser currentUser = DataProvider.getCurrentUser(serviceLocator);
-    if (currentUser == null){
+    if (currentUser == null) {
       throw new BadRequestException("Cannot trigger a personal build while no current user is present. Please specify credentials of a valid and non-special user.");
     }
     return ((BuildTypeEx)regularBuildType).createPersonalBuildType(currentUser, personalChangeFromPosted.getId());
   }
 
-  public BuildPromotion getBuildToTrigger(@Nullable final SUser user, @NotNull final BuildTypeFinder buildTypeFinder,  @NotNull final ServiceLocator serviceLocator) {
+  public BuildPromotion getBuildToTrigger(@Nullable final SUser user, @NotNull final BuildTypeFinder buildTypeFinder, @NotNull final ServiceLocator serviceLocator) {
     BuildCustomizer customizer = serviceLocator.getSingletonService(BuildCustomizerFactory.class).createBuildCustomizer(getBuildType(buildTypeFinder, serviceLocator), user);
     if (commentText != null) customizer.setBuildComment(commentText);
     if (properties != null) customizer.setParameters(properties.getMap());
@@ -163,7 +178,7 @@ public class BuildTask {
     if (change != null) {
       customizer.setChangesUpTo(change.getChangeFromPosted(serviceLocator.getSingletonService(ChangeFinder.class)));
     }
-    if (buildDependencies != null){
+    if (buildDependencies != null) {
       try {
         customizer.setSnapshotDependencyNodes(CollectionsUtil.convertCollection(buildDependencies.builds, new Converter<BuildPromotion, BuildRef>() {
           public BuildPromotion createFrom(@NotNull final BuildRef source) {
@@ -174,16 +189,20 @@ public class BuildTask {
         throw new BadRequestException("Erorr trying to use specified snapshot dependencies: " + e.getMessage());
       }
     }
-    if (rebuildDependencies != null){
-    customizer.setRebuildDependencies(CollectionsUtil.convertCollection(rebuildDependencies.getFromPosted(buildTypeFinder), new Converter<String, BuildTypeOrTemplate>() {
-      public String createFrom(@NotNull final BuildTypeOrTemplate source) {
-        if (!source.isBuildType()){
-          throw new BadRequestException("Template is specified instead of a build type. Template id: '" + source.getTemplate().getExternalId() + "'");
+    if (rebuildDependencies != null) {
+      customizer.setRebuildDependencies(CollectionsUtil.convertCollection(rebuildDependencies.getFromPosted(buildTypeFinder), new Converter<String, BuildTypeOrTemplate>() {
+        public String createFrom(@NotNull final BuildTypeOrTemplate source) {
+          if (!source.isBuildType()) {
+            throw new BadRequestException("Template is specified instead of a build type. Template id: '" + source.getTemplate().getExternalId() + "'");
+          }
+          return source.getBuildType().getInternalId();
         }
-        return source.getBuildType().getInternalId();
-      }
-    }));
-  }
+      }));
+    }
+    if (buildArtifactDependencies != null){
+      customizer.setArtifactDependencies(buildArtifactDependencies.getFromPosted(serviceLocator));
+    }
+
     return customizer.createPromotion();
   }
 }

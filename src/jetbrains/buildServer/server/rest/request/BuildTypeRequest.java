@@ -818,7 +818,7 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntitiesArtifactDep getArtifactDeps(@PathParam("btLocator") String buildTypeLocator) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    return new PropEntitiesArtifactDep(buildType.get(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new PropEntitiesArtifactDep(buildType.get().getArtifactDependencies(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   /**
@@ -837,7 +837,7 @@ public class BuildTypeRequest {
         final List<SArtifactDependency> dependencyObjects =
           CollectionsUtil.convertCollection(deps.propEntities, new Converter<SArtifactDependency, PropEntityArtifactDep>() {
             public SArtifactDependency createFrom(@NotNull final PropEntityArtifactDep source) {
-              return source.createDependency(new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+              return source.createDependency(myServiceLocator);
             }
           });
         buildType.get().setArtifactDependencies(dependencyObjects);
@@ -851,7 +851,7 @@ public class BuildTypeRequest {
       buildType.get().persist();
       throw new BadRequestException("Error setting artifact dependencies", e);
     }
-    return new PropEntitiesArtifactDep(buildType.get(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new PropEntitiesArtifactDep(buildType.get().getArtifactDependencies(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @POST
@@ -861,7 +861,7 @@ public class BuildTypeRequest {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
 
     final List<SArtifactDependency> dependencies = buildType.get().getArtifactDependencies();
-    dependencies.add(description.createDependency(new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder)));
+    dependencies.add(description.createDependency(myServiceLocator));
     int orderNum = dependencies.size() - 1;
     buildType.get().setArtifactDependencies(dependencies);
     buildType.get().persist();
@@ -903,7 +903,7 @@ public class BuildTypeRequest {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
 
     final int orderNum = DataProvider.getArtifactDepOrderNum(buildType.get(), artifactDepLocator);
-    final SArtifactDependency newDependency = description.createDependency(new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    final SArtifactDependency newDependency = description.createDependency(myServiceLocator);
 
     final List<SArtifactDependency> dependencies = buildType.get().getArtifactDependencies();
     dependencies.set(orderNum, newDependency);

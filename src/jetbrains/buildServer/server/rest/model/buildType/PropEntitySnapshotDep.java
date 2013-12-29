@@ -5,6 +5,7 @@ import java.util.Map;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -87,7 +88,7 @@ public class PropEntitySnapshotDep extends PropEntity {
 
     final Map<String, String> propertiesMap = properties.getMap();
     final String buildTypeIdFromProperty = propertiesMap.get(NAME_SOURCE_BUILD_TYPE_ID); //compatibility mode with pre-8.0
-    String buildTypeIdDependOn = getBuildTypeExternalIdForDependency(sourceBuildType, buildTypeIdFromProperty, context);
+    String buildTypeIdDependOn = getBuildTypeExternalIdForDependency(sourceBuildType, buildTypeIdFromProperty, context.getServiceLocator());
 
     //todo: (TeamCity) for some reason API does not report adding dependency with same id. Seems like it just ignores the call
     if (getSnapshotDepOrNull(buildType, buildTypeIdDependOn) != null) {
@@ -111,12 +112,12 @@ public class PropEntitySnapshotDep extends PropEntity {
   @NotNull
   public static String getBuildTypeExternalIdForDependency(@Nullable final BuildTypeRef buildTypeRef,
                                                            @Nullable final String buildTypeIdFromProperty,
-                                                           @NotNull final BeanContext context) {
+                                                           @NotNull final ServiceLocator serviceLocator) {
     if (buildTypeIdFromProperty != null) {
       if (buildTypeRef == null) {
         return buildTypeIdFromProperty;
       } else {
-        final String externalIdFromPosted = buildTypeRef.getExternalIdFromPosted(context);
+        final String externalIdFromPosted = buildTypeRef.getExternalIdFromPosted(serviceLocator);
         if (externalIdFromPosted == null || buildTypeIdFromProperty.equals(externalIdFromPosted)) {
           return buildTypeIdFromProperty;
         }
@@ -132,7 +133,7 @@ public class PropEntitySnapshotDep extends PropEntity {
                                      : "."));
     }
 
-    final String externalIdFromPosted = buildTypeRef.getExternalIdFromPosted(context);
+    final String externalIdFromPosted = buildTypeRef.getExternalIdFromPosted(serviceLocator);
     if (externalIdFromPosted != null) {
       return externalIdFromPosted;
     }

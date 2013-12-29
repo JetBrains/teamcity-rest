@@ -25,7 +25,6 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeTemplate;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -137,22 +136,22 @@ public class BuildTypeRef {
   }
 
   @Nullable
-  public String getExternalIdFromPosted(@NotNull final BeanContext context) {
+  public String getExternalIdFromPosted(@NotNull final ServiceLocator serviceLocator) {
     if (id != null) {
       if (internalId == null) {
         return id;
       }
-      String externalByInternal = context.getSingletonService(BuildTypeIdentifiersManager.class).internalToExternal(internalId);
+      String externalByInternal = serviceLocator.getSingletonService(BuildTypeIdentifiersManager.class).internalToExternal(internalId);
       if (externalByInternal == null || id.equals(externalByInternal)) {
         return id;
       }
       throw new BadRequestException("Both external id '" + id + "' and internal id '" + internalId + "' attributes are present and they reference different build types.");
     }
     if (internalId != null) {
-      return context.getSingletonService(BuildTypeIdentifiersManager.class).internalToExternal(internalId);
+      return serviceLocator.getSingletonService(BuildTypeIdentifiersManager.class).internalToExternal(internalId);
     }
     if (locator != null){
-      return context.getSingletonService(BuildTypeFinder.class).getBuildType(null, locator).getExternalId();
+      return serviceLocator.getSingletonService(BuildTypeFinder.class).getBuildType(null, locator).getExternalId();
     }
     throw new BadRequestException("Could not find build type by the data. Either 'id' or 'internalId' or 'locator' attributes should be specified.");
   }

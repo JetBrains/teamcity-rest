@@ -173,8 +173,7 @@ public class BuildType {
 
   @XmlElement(name = "artifact-dependencies")
   public PropEntitiesArtifactDep getArtifactDependencies() {
-    return new PropEntitiesArtifactDep(myBuildType.get(),
-                                       new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
+    return new PropEntitiesArtifactDep(myBuildType.get().getArtifactDependencies(), new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
   }
 
   @XmlElement(name = "agent-requirements")

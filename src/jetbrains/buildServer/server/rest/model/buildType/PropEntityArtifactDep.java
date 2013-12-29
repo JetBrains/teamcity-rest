@@ -7,6 +7,7 @@ import java.util.Map;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -99,21 +100,21 @@ public class PropEntityArtifactDep extends PropEntity {
     throw new IllegalArgumentException("Specified build type does not have specified artifact dependency.");
   }
 
-  public SArtifactDependency createDependency(final BeanContext context) {
+  public SArtifactDependency createDependency(@NotNull final ServiceLocator serviceLocator) {
     if (!ARTIFACT_DEPENDENCY_TYPE_NAME.equals(type)){
       throw new BadRequestException("Artifact dependency should have type '" + ARTIFACT_DEPENDENCY_TYPE_NAME + "'.");
     }
 
     final Map<String,String> propertiesMap = properties.getMap();
     final String buildTypeIdFromProperty = propertiesMap.get(NAME_SOURCE_BUILD_TYPE_ID); //compatibility mode with pre-8.0
-    String buildTypeIdDependOn = PropEntitySnapshotDep.getBuildTypeExternalIdForDependency(sourceBuildType, buildTypeIdFromProperty, context);
+    String buildTypeIdDependOn = PropEntitySnapshotDep.getBuildTypeExternalIdForDependency(sourceBuildType, buildTypeIdFromProperty, serviceLocator);
 
     final String revisionName = propertiesMap.get(NAME_REVISION_NAME);
     if (StringUtil.isEmpty(revisionName)){
       throw new BadRequestException("Missing or empty artifact dependency property '" + NAME_REVISION_NAME + "'. Should contain one of supported values.");
     }
 
-    final SArtifactDependency artifactDependency = context.getSingletonService(ArtifactDependencyFactory.class).
+    final SArtifactDependency artifactDependency = serviceLocator.getSingletonService(ArtifactDependencyFactory.class).
       createArtifactDependency(buildTypeIdDependOn,
                                propertiesMap.get(NAME_PATH_RULES),
                                RevisionRules.newBranchRevisionRule(revisionName, propertiesMap.get(NAME_REVISION_VALUE), propertiesMap.get(NAME_REVISION_BRANCH)));
