@@ -24,6 +24,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
@@ -54,6 +55,7 @@ public class AgentPoolRequest {
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private AgentPoolsFinder myAgentPoolsFinder;
   @Context @NotNull private ProjectFinder myProjectFinder;
+  @Context @NotNull private AgentFinder myAgentFinder;
 
   public static final String API_AGENT_POOLS_URL = Constants.API_URL + "/agentPools";
 
@@ -198,7 +200,7 @@ public class AgentPoolRequest {
   @Produces({"application/xml", "application/json"})
   public Agents getPoolAgents(@PathParam("agentPoolLocator") String agentPoolLocator) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolsFinder.getAgentPool(agentPoolLocator);
-    return new Agents(myAgentPoolsFinder.getPoolAgents(agentPool), myApiUrlBuilder);
+    return new Agents(myAgentPoolsFinder.getPoolAgents(agentPool), null, null, myApiUrlBuilder);
   }
 
   /**
@@ -213,7 +215,7 @@ public class AgentPoolRequest {
   @Produces({"application/xml", "application/json"})
   public Agent addAgent(@PathParam("agentPoolLocator") String agentPoolLocator, Agent agent) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolsFinder.getAgentPool(agentPoolLocator);
-    SBuildAgent postedAgent = agent.getAgentFromPosted(myDataProvider);
+    SBuildAgent postedAgent = agent.getAgentFromPosted(myAgentFinder);
     myDataProvider.addAgentToPool(agentPool, postedAgent);
     return new Agent(postedAgent, myAgentPoolsFinder, myApiUrlBuilder);
   }

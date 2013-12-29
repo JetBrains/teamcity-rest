@@ -23,9 +23,11 @@ import org.jetbrains.annotations.NotNull;
  */
 public class AgentPoolsFinder {
   @NotNull private final ServiceLocator myServiceLocator;
+  @NotNull private final AgentFinder myAgentFinder;
 
-  public AgentPoolsFinder(@NotNull final ServiceLocator serviceLocator) {
+  public AgentPoolsFinder(@NotNull final ServiceLocator serviceLocator, final @NotNull AgentFinder agentFinder) {
     myServiceLocator = serviceLocator;
+    myAgentFinder = agentFinder;
   }
 
   //todo: TeamCity API: what is the due way to do this? http://youtrack.jetbrains.com/issue/TW-33307
@@ -39,7 +41,7 @@ public class AgentPoolsFinder {
     final ArrayList<SBuildAgent> result = new ArrayList<SBuildAgent>(agentTypeIds.size());
 
     //todo: support cloud agents here
-    final Collection<SBuildAgent> allAgents = myServiceLocator.getSingletonService(DataProvider.class).getAllAgents();
+    final Collection<SBuildAgent> allAgents = myAgentFinder.getAllItems();
     for (SBuildAgent agent : allAgents) {
       if (agentTypeIds.contains(agent.getAgentTypeId())) {
         result.add(agent);

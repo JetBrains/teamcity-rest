@@ -24,18 +24,21 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
   private final ProjectFinder myProjectFinder;
   private final BuildTypeFinder myBuildTypeFinder;
   private final UserFinder myUserFinder;
+  private final AgentFinder myAgentFinder;
   private final DataProvider myDataProvider;
 
   public QueuedBuildFinder(final BuildQueue buildQueue,
                            final ProjectFinder projectFinder,
                            final BuildTypeFinder buildTypeFinder,
                            final UserFinder userFinder,
+                           final AgentFinder agentFinder,
                            final DataProvider dataProvider) {
     super(new String[]{DIMENSION_ID, PROJECT, BUILD_TYPE, AGENT, PERSONAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
     myBuildQueue = buildQueue;
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;
     myUserFinder = userFinder;
+    myAgentFinder = agentFinder;
     myDataProvider = dataProvider;
   }
 
@@ -107,7 +110,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
 
     final String agentLocator = locator.getSingleDimensionValue(AGENT);
     if (agentLocator != null) {
-      final SBuildAgent agent = myDataProvider.getAgent(agentLocator);
+      final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
       result.add(new FilterConditionChecker<SQueuedBuild>() {
         public boolean isIncluded(@NotNull final SQueuedBuild item) {
           return agent.equals(item.getBuildAgent());
@@ -117,7 +120,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
 
     final String compatibleAagentLocator = locator.getSingleDimensionValue("compatibleAgent"); //experimental
     if (compatibleAagentLocator != null) {
-      final SBuildAgent agent = myDataProvider.getAgent(compatibleAagentLocator);
+      final SBuildAgent agent = myAgentFinder.getItem(compatibleAagentLocator);
       result.add(new FilterConditionChecker<SQueuedBuild>() {
         public boolean isIncluded(@NotNull final SQueuedBuild item) {
           return item.getCompatibleAgents().contains(agent);

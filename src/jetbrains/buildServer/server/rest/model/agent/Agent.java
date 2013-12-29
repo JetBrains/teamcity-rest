@@ -20,6 +20,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -112,12 +113,12 @@ public class Agent {
   }
 
   @NotNull
-  public SBuildAgent getAgentFromPosted(@NotNull final DataProvider dataProvider) {
+  public SBuildAgent getAgentFromPosted(@NotNull final AgentFinder agentFinder) {
     final AgentRef agentRef = new AgentRef();
     agentRef.id = id;
     agentRef.locator = locator;
     agentRef.name = name;
     agentRef.href = href;
-    return agentRef.getAgentFromPosted(dataProvider);
+    return agentRef.getAgentFromPosted(agentFinder);
   }
 }

@@ -38,7 +38,7 @@ public class AgentPool {
     name = agentPool.getName();
     projects = new Projects(agentPoolsFinder.getPoolProjects(agentPool), apiUrlBuilder);
     //todo: support agent types
-    agents = new Agents(agentPoolsFinder.getPoolAgents(agentPool), apiUrlBuilder);
+    agents = new Agents(agentPoolsFinder.getPoolAgents(agentPool), null, null, apiUrlBuilder);
   }
 
   @NotNull

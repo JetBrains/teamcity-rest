@@ -16,13 +16,17 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import com.intellij.openapi.util.text.StringUtil;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
-import jetbrains.buildServer.server.rest.data.AgentsSearchFields;
-import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.Href;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
@@ -39,6 +43,7 @@ public class AgentRequest {
   @Context private DataProvider myDataProvider;
   @Context private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private AgentPoolsFinder myAgentPoolsFinder;
+  @Context @NotNull private AgentFinder myAgentFinder;
   @Context @NotNull private ServiceLocator myServiceLocator;
 
   public static final String API_AGENTS_URL = Constants.API_URL + "/agents";
@@ -47,25 +52,62 @@ public class AgentRequest {
     return API_AGENTS_URL + "/id:" + agent.getId();
   }
 
+  /**
+   * Returns list of agents
+   * @param includeDisconnected Deprecated, use "locator" parameter instead
+   * @param includeUnauthorized Deprecated, use "locator" parameter instead
+   * @param locator
+   * @return
+   */
   @GET
   @Produces({"application/xml", "application/json"})
-  public Agents serveAgents(@QueryParam("includeDisconnected") @DefaultValue("true") boolean includeDisconnected,
-                            @QueryParam("includeUnauthorized") @DefaultValue("true") boolean includeUnauthorized) {
-    return new Agents(myDataProvider.getAllAgents(new AgentsSearchFields(includeDisconnected, includeUnauthorized)), myApiUrlBuilder);
+  public Agents serveAgents(@QueryParam("includeDisconnected") Boolean includeDisconnected,
+                            @QueryParam("includeUnauthorized") Boolean includeUnauthorized,
+                            @QueryParam("locator") String locator,
+                            @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+    //pre-8.1 compatibility:
+    String locatorToUse = locator;
+    if (includeDisconnected != null && !includeDisconnected){
+      final Locator parsedLocator = StringUtil.isEmpty(locatorToUse) ? Locator.createEmptyLocator() : new Locator(locatorToUse);
+      final String dimension = parsedLocator.getSingleDimensionValue(AgentFinder.CONNECTED);
+      if (dimension != null && !"true".equals(dimension)){
+        throw new BadRequestException("Both 'includeDisconnected' URL parameter and '" + AgentFinder.CONNECTED + "' locator dimension are specified. Please use locator only.");
+      }
+      locatorToUse = parsedLocator.setDimensionIfNotPresent(AgentFinder.CONNECTED, "true").getStringRepresentation();
+    }
+    if (includeUnauthorized != null && !includeUnauthorized){
+      final Locator parsedLocator = StringUtil.isEmpty(locatorToUse) ? Locator.createEmptyLocator() : new Locator(locatorToUse);
+      final String dimension = parsedLocator.getSingleDimensionValue(AgentFinder.AUTHORIZED);
+      if (dimension != null && !"true".equals(dimension)){
+        throw new BadRequestException("Both 'includeUnauthorized' URL parameter and '" + AgentFinder.AUTHORIZED + "' locator dimension are specified. Please use locator only.");
+      }
+      locatorToUse = parsedLocator.setDimensionIfNotPresent(AgentFinder.AUTHORIZED, "true").getStringRepresentation();
+    }
+
+    final PagedSearchResult<SBuildAgent> result = myAgentFinder.getItems(locatorToUse);
+
+    final PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
+                                          result.myCount, result.myEntries.size(),
+                                          locatorToUse,
+                                          "locator");
+    return new Agents(result.myEntries,
+                      new Href(pager.getCurrentUrlRelativePath(), myApiUrlBuilder),
+                      pager,
+                      myApiUrlBuilder);
   }
 
   @GET
   @Path("/{agentLocator}")
   @Produces({"application/xml", "application/json"})
   public Agent serveAgent(@PathParam("agentLocator") String agentLocator) {
-    return new Agent(myDataProvider.getAgent(agentLocator), myAgentPoolsFinder, myApiUrlBuilder);
+    return new Agent(myAgentFinder.getItem(agentLocator), myAgentPoolsFinder, myApiUrlBuilder);
   }
 
   @DELETE
   @Path("/{agentLocator}")
   @Produces({"application/xml", "application/json"})
   public void deleteAgent(@PathParam("agentLocator") String agentLocator) {
-    final SBuildAgent agent = myDataProvider.getAgent(agentLocator);
+    final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     myServiceLocator.getSingletonService(BuildAgentManager.class).removeAgent(agent, myDataProvider.getCurrentUser());
   }
 
@@ -73,7 +115,7 @@ public class AgentRequest {
   @Path("/{agentLocator}/pool")
   @Produces({"application/xml", "application/json"})
   public AgentPool getAgentPool(@PathParam("agentLocator") String agentLocator) {
-    final SBuildAgent agent = myDataProvider.getAgent(agentLocator);
+    final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     return new AgentPool(myAgentPoolsFinder.getAgentPool(agent), myApiUrlBuilder, myAgentPoolsFinder);
   }
 
@@ -82,7 +124,7 @@ public class AgentRequest {
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public AgentPool setAgentPool(@PathParam("agentLocator") String agentLocator, AgentPool agentPool) {
-    final SBuildAgent agent = myDataProvider.getAgent(agentLocator);
+    final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     myDataProvider.addAgentToPool(agentPool.getAgentPoolFromPosted(myAgentPoolsFinder), agent);
     return new AgentPool(myAgentPoolsFinder.getAgentPool(agent), myApiUrlBuilder, myAgentPoolsFinder);
   }
@@ -91,7 +133,7 @@ public class AgentRequest {
   @Path("/{agentLocator}/{field}")
   @Produces("text/plain")
   public String serveAgentField(@PathParam("agentLocator") String agentLocator, @PathParam("field") String fieldName) {
-    return Agent.getFieldValue(myDataProvider.getAgent(agentLocator), fieldName);
+    return Agent.getFieldValue(myAgentFinder.getItem(agentLocator), fieldName);
   }
 
   @PUT
@@ -99,7 +141,7 @@ public class AgentRequest {
   @Consumes("text/plain")
   @Produces("text/plain")
   public String setAgentField(@PathParam("agentLocator") String agentLocator, @PathParam("field") String fieldName, String value) {
-    final SBuildAgent agent = myDataProvider.getAgent(agentLocator);
+    final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     Agent.setFieldValue(agent, fieldName, value, myDataProvider);
     return Agent.getFieldValue(agent, fieldName);
   }

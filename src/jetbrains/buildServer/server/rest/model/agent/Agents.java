@@ -24,10 +24,11 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.Href;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -43,24 +44,26 @@ public class Agents {
   @XmlElement(name = "agent")
   public List<AgentRef> agents;
 
+  @XmlAttribute(required = false) @Nullable public String nextHref;
+  @XmlAttribute(required = false) @Nullable public String prevHref;
+  @XmlAttribute(name = "href") public String href;
+
   public Agents() {
   }
 
-  public Agents(Collection<SBuildAgent> agentObjects, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    agents = new ArrayList<AgentRef>(agentObjects.size());
-    for (SBuildAgent agent : agentObjects) {
-      agents.add(new AgentRef(agent, apiUrlBuilder));
-    }
-    count = agents.size();
-  }
+  public Agents(@Nullable Collection<SBuildAgent> agentObjects, @Nullable final Href hrefP, @Nullable final PagerData pagerData, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    href = hrefP != null ? hrefP.getHref() : null;
+    if (agentObjects != null) {
+      agents = new ArrayList<AgentRef>(agentObjects.size());
+      for (SBuildAgent agent : agentObjects) {
+        agents.add(new AgentRef(agent, apiUrlBuilder));
+      }
+      count = agents.size();
 
-  public List<SBuildAgent> getAgentFromPosted(final DataProvider dataProvider) {
-    if (agents == null) {
-      throw new BadRequestException("List of agents should be supplied");
+      if (pagerData != null) {
+        nextHref = pagerData.getNextHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;
+        prevHref = pagerData.getPrevHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getPrevHref()) : null;
+      }
     }
-    final ArrayList<SBuildAgent> result = new ArrayList<SBuildAgent>(agents.size());
-    for (AgentRef agent : agents) {
-      result.add(agent.getAgentFromPosted(dataProvider));
-    }
-    return result;
-  }}
+  }
+}

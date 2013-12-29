@@ -21,6 +21,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.ChangeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -106,11 +107,11 @@ public class BuildTask {
   }
 
   @Nullable
-  public SBuildAgent getAgent(@NotNull final DataProvider dataProvider) {
+  public SBuildAgent getAgent(@NotNull final AgentFinder agentFinder) {
     if (agent == null) {
       return null;
     }
-    return agent.getAgentFromPosted(dataProvider);
+    return agent.getAgentFromPosted(agentFinder);
   }
 
   private SBuildType getBuildType(@NotNull final BuildTypeFinder buildTypeFinder) {

@@ -20,7 +20,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.util.StringUtil;
@@ -58,7 +58,7 @@ public class AgentRef {
   }
 
   @NotNull
-  public SBuildAgent getAgentFromPosted(final DataProvider dataProvider) {
+  public SBuildAgent getAgentFromPosted(@NotNull final AgentFinder agentFinder) {
     String locatorText = "";
     if (id != null) locatorText += (!locatorText.isEmpty() ? "," : "") + "id:" + id;
     if (locatorText.isEmpty()) {
@@ -71,6 +71,6 @@ public class AgentRef {
     if (StringUtil.isEmpty(locatorText)){
       throw new BadRequestException("No agent specified. Either 'id' or 'locator' attribute should be present.");
     }
-    return dataProvider.getAgent(locatorText);
+    return agentFinder.getItem(locatorText);
   }
 }

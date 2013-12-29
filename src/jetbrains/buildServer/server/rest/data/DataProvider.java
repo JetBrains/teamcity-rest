@@ -23,7 +23,6 @@ import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.groups.SUserGroup;
-import jetbrains.buildServer.groups.UserGroupManager;
 import jetbrains.buildServer.plugins.PluginManager;
 import jetbrains.buildServer.plugins.bean.PluginInfo;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
@@ -67,14 +66,11 @@ public class DataProvider {
   @NotNull private final BuildHistory myBuildHistory;
   @NotNull private final UserModel myUserModel;
   @NotNull private final RolesManager myRolesManager;
-  @NotNull private final UserGroupManager myGroupManager;
   @NotNull private final VcsManager myVcsManager;
-  @NotNull private final BuildAgentManager myAgentManager;
   @NotNull private final WebLinks myWebLinks;
   @NotNull private final ServerPluginInfo myPluginInfo;
   @NotNull private final ServerListener myServerListener;
   @NotNull private final SecurityContext mySecurityContext;
-  @NotNull private final SourceVersionProvider mySourceVersionProvider;
   @NotNull private final PluginManager myPluginManager;
   @NotNull private final RunningBuildsManager myRunningBuildsManager;
   @NotNull private final ValueProviderRegistry myValueProviderRegistry;
@@ -90,14 +86,11 @@ public class DataProvider {
                       @NotNull final BuildHistory myBuildHistory,
                       @NotNull final UserModel userModel,
                       @NotNull final RolesManager rolesManager,
-                      @NotNull final UserGroupManager groupManager,
                       @NotNull final VcsManager vcsManager,
-                      @NotNull final BuildAgentManager agentManager,
                       @NotNull final WebLinks webLinks,
                       @NotNull final ServerPluginInfo pluginInfo,
                       @NotNull final ServerListener serverListener,
                       @NotNull final SecurityContext securityContext,
-                      @NotNull final SourceVersionProvider sourceVersionProvider,
                       @NotNull final PluginManager pluginManager,
                       @NotNull final RunningBuildsManager runningBuildsManager,
                       @NotNull final ValueProviderRegistry valueProviderRegistry,
@@ -113,14 +106,11 @@ public class DataProvider {
     this.myBuildHistory = myBuildHistory;
     this.myUserModel = userModel;
     myRolesManager = rolesManager;
-    myGroupManager = groupManager;
     myVcsManager = vcsManager;
-    myAgentManager = agentManager;
     myWebLinks = webLinks;
     myPluginInfo = pluginInfo;
     myServerListener = serverListener;
     mySecurityContext = securityContext;
-    mySourceVersionProvider = sourceVersionProvider;
     myPluginManager = pluginManager;
     myRunningBuildsManager = runningBuildsManager;
     myValueProviderRegistry = valueProviderRegistry;
@@ -166,44 +156,6 @@ public class DataProvider {
       result.add(group);
     }
     return result;
-  }
-
-  @NotNull
-  public SBuildAgent getAgent(@Nullable final String locatorString) {
-    if (StringUtil.isEmpty(locatorString)) {
-      throw new BadRequestException("Empty agent locator is not supported.");
-    }
-
-    final Locator locator = new Locator(locatorString);
-    if (locator.isSingleValue()) {
-      // no dimensions found, assume it's name
-      final SBuildAgent agent = findAgentByName(locator.getSingleValue());
-      if (agent == null) {
-        throw new NotFoundException("No agent can be found by name '" + locator.getSingleValue() + "'.");
-      }
-      return agent;
-    }
-
-    Long id = locator.getSingleDimensionValueAsLong("id");
-
-    if (id != null) {
-      final SBuildAgent agent = myAgentManager.findAgentById(id.intValue(), true);
-      if (agent == null) {
-        throw new NotFoundException("No agent can be found by id '" + locator.getSingleDimensionValue("id") + "'.");
-      }
-      return agent;
-    }
-
-    String name = locator.getSingleDimensionValue("name");
-    if (name != null) {
-      final SBuildAgent agent = findAgentByName(name);
-      if (agent != null) {
-        return agent;
-      }
-      throw new NotFoundException("No agent can be found by name '" + name + "'.");
-
-    }
-    throw new NotFoundException("Agent locator '" + locatorString + "' is not supported.");
   }
 
   @NotNull
@@ -301,11 +253,6 @@ public class DataProvider {
   }
 
 
-  @Nullable
-  public SBuildAgent findAgentByName(final String agentName) {
-    return myAgentManager.findAgentByName(agentName, true);
-  }
-
   @NotNull
   public String getBuildUrl(SBuild build) {
     return myWebLinks.getViewResultsUrl(build);
@@ -319,19 +266,6 @@ public class DataProvider {
   @NotNull
   public String getProjectUrl(final SProject project) {
     return myWebLinks.getProjectPageUrl(project.getExternalId());
-  }
-
-  @NotNull
-  public Collection<SBuildAgent> getAllAgents() {
-    return getAllAgents(new AgentsSearchFields(true, true));
-  }
-
-  public Collection<SBuildAgent> getAllAgents(final AgentsSearchFields agentsSearchFields) {
-    final List<SBuildAgent> result = myAgentManager.getRegisteredAgents(agentsSearchFields.isIncludeUnauthorized());
-    if (agentsSearchFields.isIncludeDisconnected()) {
-      result.addAll(myAgentManager.getUnregisteredAgents());
-    }
-    return result;
   }
 
   @Nullable
@@ -448,11 +382,6 @@ public class DataProvider {
   @NotNull
   public VcsManager getVcsManager() {
     return myVcsManager;
-  }
-
-  @NotNull
-  public SourceVersionProvider getSourceVersionProvider() {
-    return mySourceVersionProvider;
   }
 
   public Collection<ServerPluginInfo> getPlugins() {

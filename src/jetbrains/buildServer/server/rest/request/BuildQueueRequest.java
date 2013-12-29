@@ -26,10 +26,7 @@ import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.data.PagedSearchResult;
-import jetbrains.buildServer.server.rest.data.QueuedBuildFinder;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -53,6 +50,7 @@ public class BuildQueueRequest {
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private QueuedBuildFinder myQueuedBuildFinder;
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
+  @Context @NotNull private AgentFinder myAgentFinder;
 
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private ServiceLocator myServiceLocator;
@@ -157,7 +155,7 @@ public class BuildQueueRequest {
   @Path("/{queuedBuildLocator}" + COMPATIBLE_AGENTS)
   @Produces({"application/xml", "application/json"})
   public Agents serveCompatibleAgents(@PathParam("queuedBuildLocator") String queuedBuildLocator) {
-    return new Agents(myQueuedBuildFinder.getItem(queuedBuildLocator).getCompatibleAgents(), myApiUrlBuilder);
+    return new Agents(myQueuedBuildFinder.getItem(queuedBuildLocator).getCompatibleAgents(), null, null, myApiUrlBuilder);
   }
 
   @GET
@@ -178,7 +176,7 @@ public class BuildQueueRequest {
     if (user != null){
       triggeredByBulder = new TriggeredByBuilder(user);
     }
-    final SBuildAgent agent = buildTask.getAgent(myDataProvider);
+    final SBuildAgent agent = buildTask.getAgent(myAgentFinder);
     SQueuedBuild queuedBuild;
     if (agent != null){
       queuedBuild = buildToTrigger.addToQueue(agent, triggeredByBulder.toString());
