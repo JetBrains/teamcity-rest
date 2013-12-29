@@ -2,6 +2,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.ArrayList;
 import java.util.List;
+import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.data.investigations.AbstractFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -18,10 +19,11 @@ import org.jetbrains.annotations.Nullable;
 public class AgentFinder extends AbstractFinder<SBuildAgent> {
   public static final String CONNECTED = "connected";
   public static final String AUTHORIZED = "authorized";
+  public static final String PARAMETER = "parameter";
   @NotNull private final BuildAgentManager myAgentManager;
 
   public AgentFinder(final @NotNull BuildAgentManager agentManager) {
-    super(new String[]{DIMENSION_ID, CONNECTED, AUTHORIZED, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
+    super(new String[]{DIMENSION_ID, CONNECTED, AUTHORIZED, PARAMETER, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
     myAgentManager = agentManager;
   }
 
@@ -95,6 +97,16 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       result.add(new FilterConditionChecker<SBuildAgent>() {
         public boolean isIncluded(@NotNull final SBuildAgent item) {
           return FilterUtil.isIncludedByBooleanFilter(connectedDimension, item.isRegistered());
+        }
+      });
+    }
+
+    final String parameterDimension = locator.getSingleDimensionValue(PARAMETER);
+    if (parameterDimension != null) {
+      final ParameterCondition parameterCondition = ParameterCondition.create(parameterDimension);
+      result.add(new FilterConditionChecker<SBuildAgent>() {
+        public boolean isIncluded(@NotNull final SBuildAgent item) {
+          return parameterCondition.matches(new MapParametersProviderImpl(item.getAvailableParameters()));
         }
       });
     }

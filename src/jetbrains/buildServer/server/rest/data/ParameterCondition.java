@@ -1,7 +1,13 @@
 package jetbrains.buildServer.server.rest.data;
 
+import java.util.Collections;
+import java.util.List;
+import jetbrains.buildServer.parameters.ParametersProvider;
+import jetbrains.buildServer.requirements.Requirement;
+import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -12,35 +18,57 @@ import org.jetbrains.annotations.Nullable;
  */
 public class ParameterCondition {
 
+  public static final String NAME = "name";
+  public static final String VALUE = "value";
+  public static final String TYPE = "matchType";
   @NotNull private final String myParameterName;
-  private final String myParameterValue;
+  @Nullable private final String myParameterValue;
+  @NotNull private final RequirementType myRequirementType;
 
-  public ParameterCondition(@NotNull final String name, final String value) {
+  public ParameterCondition(@NotNull final String name, @Nullable final String value, final @NotNull RequirementType requirementType) {
     myParameterName = name;
     myParameterValue = value;
+    myRequirementType = requirementType;
   }
 
   public static ParameterCondition create(@Nullable final String propertyConditionLocator) {
     if (propertyConditionLocator == null){
       return null;
     }
-    final Locator locator = new Locator(propertyConditionLocator);
-    final String name = locator.getSingleDimensionValue("name");
+    final Locator locator = new Locator(propertyConditionLocator, NAME, VALUE, TYPE);
+
+    final String name = locator.getSingleDimensionValue(NAME);
     if (StringUtil.isEmpty(name)){
       throw new BadRequestException("Property name should not be empty in dimension 'name' of the locator : '" + propertyConditionLocator + "'");
     }
-    //noinspection ConstantConditions
-    return new ParameterCondition(name, locator.getSingleDimensionValue("value"));
+
+    final String value = locator.getSingleDimensionValue(VALUE);
+
+    RequirementType requirement = value != null ? RequirementType.CONTAINS : RequirementType.EXISTS;
+
+    final String type = locator.getSingleDimensionValue(TYPE);
+    if (type != null){
+      requirement = RequirementType.findByName(type);
+      if (requirement == null){
+        throw new BadRequestException("Unsupported parameter match type. Supported are: " + getAllRequirementTypes());
+      }
+    }
+    final ParameterCondition result = new ParameterCondition(name, value, requirement);
+    locator.checkLocatorFullyProcessed();
+    return result;
   }
 
-  public boolean matches(@NotNull final SBuild build) {
-    final String value = build.getParametersProvider().get(myParameterName);
-    if (StringUtil.isEmpty(myParameterValue)) {
-      return true;
-    } else {
-      //noinspection ConstantConditions
-      return !StringUtil.isEmpty(value) && value.contains(myParameterValue);
-    }
+  public static List<String> getAllRequirementTypes() {
+    return CollectionsUtil.convertCollection(RequirementType.ALL_REQUIREMENT_TYPES, new Converter<String, RequirementType>() {
+      public String createFrom(@NotNull final RequirementType source) {
+        return source.getName();
+      }
+    });
+  }
+
+  public boolean matches(final ParametersProvider parametersProvider) {
+    final String value = parametersProvider.get(myParameterName);
+    return myRequirementType.match(new Requirement(myParameterName, myParameterValue, myRequirementType), Collections.singletonMap(myParameterName, value), false);
   }
 
   @Override

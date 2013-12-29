@@ -255,7 +255,7 @@ public class GenericBuildsFilter implements BuildsFilter {
     }
     
     if (myParameterCondition != null){
-      if (!myParameterCondition.matches(build)){
+      if (!myParameterCondition.matches(build.getParametersProvider())){
         return false;
       }
     }
