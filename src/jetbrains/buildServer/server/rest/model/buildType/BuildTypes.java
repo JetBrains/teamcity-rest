@@ -17,12 +17,15 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeTemplate;
 import jetbrains.buildServer.serverSide.SBuildType;
 import org.jetbrains.annotations.NotNull;
@@ -58,6 +61,18 @@ public class BuildTypes {
     result.buildTypes = new ArrayList<BuildTypeRef>(buildTypeTemplates.size());
     for (BuildTypeTemplate buildType : buildTypeTemplates) {
       result.buildTypes.add(new BuildTypeRef(buildType, dataProvider, apiUrlBuilder));
+    }
+    return result;
+  }
+
+  @NotNull
+  public List<BuildTypeOrTemplate> getFromPosted(@NotNull final BuildTypeFinder buildTypeFinder) {
+    if (buildTypes == null){
+      return Collections.emptyList();
+    }
+    final ArrayList<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>(buildTypes.size());
+    for (BuildTypeRef buildType : buildTypes) {
+      result.add(buildType.getBuildTypeFromPosted(buildTypeFinder));
     }
     return result;
   }

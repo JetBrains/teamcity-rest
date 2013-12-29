@@ -27,6 +27,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.agent.AgentRef;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeRef;
+import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.change.ChangeRef;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
@@ -49,7 +50,7 @@ import org.jetbrains.annotations.Nullable;
 //todo: reuse fields code from DataProvider
 @XmlRootElement(name = "buildTask")
 @XmlType(name = "buildTask", propOrder = {"branchName", "personal",
-  "buildType", "agent", "commentText", "properties", "change", "personalChange", "buildDependencies"})
+  "buildType", "agent", "commentText", "properties", "change", "personalChange", "buildDependencies", "rebuildDependencies"})
 //"buildArtifactDependencies"
 @SuppressWarnings("PublicField")
 public class BuildTask {
@@ -67,6 +68,7 @@ public class BuildTask {
   @XmlElement private ChangeRef change;
   @XmlElement(name = "snapshot-dependencies")  public Builds buildDependencies;
   //@XmlElement(name = "artifact-dependencies")  public Builds buildArtifactDependencies;
+  @XmlElement(name = "rebuild-dependencies")  public BuildTypes rebuildDependencies;
 
   /**
    * Experimental only!
@@ -172,7 +174,16 @@ public class BuildTask {
         throw new BadRequestException("Erorr trying to use specified snapshot dependencies: " + e.getMessage());
       }
     }
-
+    if (rebuildDependencies != null){
+    customizer.setRebuildDependencies(CollectionsUtil.convertCollection(rebuildDependencies.getFromPosted(buildTypeFinder), new Converter<String, BuildTypeOrTemplate>() {
+      public String createFrom(@NotNull final BuildTypeOrTemplate source) {
+        if (!source.isBuildType()){
+          throw new BadRequestException("Template is specified instead of a build type. Template id: '" + source.getTemplate().getExternalId() + "'");
+        }
+        return source.getBuildType().getInternalId();
+      }
+    }));
+  }
     return customizer.createPromotion();
   }
 }
