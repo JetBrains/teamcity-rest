@@ -16,15 +16,13 @@
 
 package jetbrains.buildServer.server.rest.model.build;
 
+import java.util.Collection;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.data.AgentFinder;
-import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
-import jetbrains.buildServer.server.rest.data.ChangeFinder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.agent.AgentRef;
@@ -34,7 +32,10 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsManager;
 import org.jetbrains.annotations.NotNull;
@@ -48,8 +49,8 @@ import org.jetbrains.annotations.Nullable;
 //todo: reuse fields code from DataProvider
 @XmlRootElement(name = "buildTask")
 @XmlType(name = "buildTask", propOrder = {"branchName", "personal",
-  "buildType", "agent", "commentText", "properties", "change", "personalChange"})
-//"buildDependencies", "buildArtifactDependencies"
+  "buildType", "agent", "commentText", "properties", "change", "personalChange", "buildDependencies"})
+//"buildArtifactDependencies"
 @SuppressWarnings("PublicField")
 public class BuildTask {
   @XmlAttribute public String branchName;
@@ -64,12 +65,13 @@ public class BuildTask {
   @XmlElement public String commentText;
   @XmlElement public Properties properties;
   @XmlElement private ChangeRef change;
+  @XmlElement(name = "snapshot-dependencies")  public Builds buildDependencies;
+  //@XmlElement(name = "artifact-dependencies")  public Builds buildArtifactDependencies;
+
   /**
    * Experimental only!
    */
   @XmlElement private ChangeRef personalChange;
-  //@XmlElement(name = "snapshot-dependencies")  public Builds buildDependencies;
-  //@XmlElement(name = "artifact-dependencies")  public Builds buildArtifactDependencies;
 
   public BuildTask() {
   }
@@ -102,6 +104,12 @@ public class BuildTask {
         buildTask.personalChange = new ChangeRef(vcsModification, context.getApiUrlBuilder(), context.getSingletonService(BeanFactory.class));
       }
     }
+
+    final Collection<? extends BuildDependency> dependencies = build.getBuildPromotion().getDependencies();
+    if (dependencies.size() > 0){
+      buildTask.buildDependencies = new Builds(Build.getBuilds(dependencies), context.getServiceLocator(), null, context.getApiUrlBuilder());
+    }
+
     return buildTask;
   }
 
@@ -141,7 +149,7 @@ public class BuildTask {
     return ((BuildTypeEx)regularBuildType).createPersonalBuildType(currentUser, personalChangeFromPosted.getId());
   }
 
-  public BuildPromotion getBuildToTrigger(@Nullable final SUser user, @NotNull final BuildTypeFinder buildTypeFinder,  @NotNull ServiceLocator serviceLocator) {
+  public BuildPromotion getBuildToTrigger(@Nullable final SUser user, @NotNull final BuildTypeFinder buildTypeFinder,  @NotNull final ServiceLocator serviceLocator) {
     BuildCustomizer customizer = serviceLocator.getSingletonService(BuildCustomizerFactory.class).createBuildCustomizer(getBuildType(buildTypeFinder, serviceLocator), user);
     if (commentText != null) customizer.setBuildComment(commentText);
     if (properties != null) customizer.setParameters(properties.getMap());
@@ -152,6 +160,17 @@ public class BuildTask {
     if (rebuildAllDependencies != null) customizer.setRebuildDependencies(rebuildAllDependencies);
     if (change != null) {
       customizer.setChangesUpTo(change.getChangeFromPosted(serviceLocator.getSingletonService(ChangeFinder.class)));
+    }
+    if (buildDependencies != null){
+      try {
+        customizer.setSnapshotDependencyNodes(CollectionsUtil.convertCollection(buildDependencies.builds, new Converter<BuildPromotion, BuildRef>() {
+          public BuildPromotion createFrom(@NotNull final BuildRef source) {
+            return source.getBuildFromPosted(serviceLocator.getSingletonService(BuildFinder.class)).getBuildPromotion();
+          }
+        }));
+      } catch (IllegalArgumentException e) {
+        throw new BadRequestException("Erorr trying to use specified snapshot dependencies: " + e.getMessage());
+      }
     }
 
     return customizer.createPromotion();

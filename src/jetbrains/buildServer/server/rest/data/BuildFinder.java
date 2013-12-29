@@ -144,17 +144,17 @@ public class BuildFinder {
     String buildTypeLocator = locator.getSingleDimensionValue("buildType");
     buildType = myBuildTypeFinder.deriveBuildTypeFromLocator(buildType, buildTypeLocator);
 
-    Long id = locator.getSingleDimensionValueAsLong("id");
+    Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (id != null) {
       SBuild build = myDataProvider.getServer().findBuildInstanceById(id);
       if (build == null) {
         throw new NotFoundException("No build can be found by id '" + id + "'.");
       }
       if (buildType != null && !buildType.getBuildTypeId().equals(build.getBuildTypeId())) {
-        throw new NotFoundException("No build can be found by id '" + locator.getSingleDimensionValue("id") + "' in build type '" + buildType + "'.");
+        throw new NotFoundException("No build can be found by id '" + locator.getSingleDimensionValue(DIMENSION_ID) + "' in build type '" + buildType + "'.");
       }
       if (locator.getDimensionsCount() > 1) {
-        LOG.info("Build locator '" + buildLocator + "' has 'id' dimension and others. Others are ignored.");
+        LOG.info("Build locator '" + buildLocator + "' has '" + DIMENSION_ID + "' dimension and others. Others are ignored.");
       }
       return build;
     }

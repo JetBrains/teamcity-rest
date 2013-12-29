@@ -21,6 +21,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.BuildFinder;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -40,6 +43,12 @@ public class BuildRef {
   private ServiceLocator myServiceLocator;
   private ApiUrlBuilder myApiUrlBuilder;
 
+  /**
+   * This is used only when posting a link to the build
+   */
+  private Long submittedId;
+  private String submittedLocator;
+
   public BuildRef() {
   }
 
@@ -50,8 +59,12 @@ public class BuildRef {
   }
 
   @XmlAttribute
-  public long getId() {
+  public Long getId() {
     return myBuild.getBuildId();
+  }
+
+  public void setId(Long id) {
+    submittedId = id;
   }
 
   @XmlAttribute
@@ -128,5 +141,35 @@ public class BuildRef {
     }
     SRunningBuild runningBuild = (SRunningBuild)myBuild;
     return runningBuild.getCompletedPercent();
+  }
+
+  /**
+   * This is used only when posting a link to the build
+   */
+  @XmlAttribute
+  public String getLocator() {
+    return null;
+  }
+
+  public void setLocator(final String locator) {
+    submittedLocator = locator;
+  }
+
+  @NotNull
+  public SBuild getBuildFromPosted(@NotNull final BuildFinder buildFinder) {
+    String locatorText;
+    if (submittedId != null) {
+      if (submittedLocator != null){
+        throw new BadRequestException("Both 'locator' and 'id' attributes are specified. Only one should be present.");
+      }
+      locatorText = Locator.createEmptyLocator().setDimension(BuildFinder.DIMENSION_ID, String.valueOf(submittedId)).getStringRepresentation();
+    } else{
+      if (submittedLocator == null){
+        throw new BadRequestException("No build specified. Either 'id' or 'locator' attribute should be present.");
+      }
+      locatorText = submittedLocator;
+    }
+
+    return buildFinder.getBuild(null, locatorText);
   }
 }
