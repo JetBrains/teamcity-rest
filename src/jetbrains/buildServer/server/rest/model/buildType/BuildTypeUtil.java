@@ -47,7 +47,7 @@ public class BuildTypeUtil {
     HashMap<String, String> properties = new HashMap<String, String>();
     addAllOptionsAsProperties(properties, buildType.get());
     //todo: is the right way to do?
-    properties.put("artifactRules", buildType.get().getArtifactPaths());
+    properties.put("artifactRules", buildType.get().getOption(BuildTypeOptions.BT_ARTIFACT_PATTERNS));
     properties.put("checkoutDirectory", buildType.get().getCheckoutDirectory());
     properties.put("checkoutMode", buildType.get().getCheckoutType().name());
     if (buildType.isBuildType()){
