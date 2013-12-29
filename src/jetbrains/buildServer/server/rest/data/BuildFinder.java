@@ -33,17 +33,20 @@ public class BuildFinder {
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final UserFinder myUserFinder;
+  @NotNull private final AgentFinder myAgentFinder;
 
-  public BuildFinder(@NotNull DataProvider dataProvider,
+  public BuildFinder(final @NotNull DataProvider dataProvider,
                      final @NotNull ServiceLocator serviceLocator,
-                     @NotNull BuildTypeFinder buildTypeFinder,
-                     @NotNull ProjectFinder projectFinder,
-                     @NotNull UserFinder userFinder) {
+                     final @NotNull BuildTypeFinder buildTypeFinder,
+                     final @NotNull ProjectFinder projectFinder,
+                     final @NotNull UserFinder userFinder,
+                     final @NotNull AgentFinder agentFinder) {
     myDataProvider = dataProvider;
     myServiceLocator = serviceLocator;
     myBuildTypeFinder = buildTypeFinder;
     myProjectFinder = projectFinder;
     myUserFinder = userFinder;
+    myAgentFinder = agentFinder;
   }
 
   public Builds getBuildsForRequest(final SBuildType buildType,
@@ -83,7 +86,7 @@ public class BuildFinder {
                                              myUserFinder.getUserIfNotNull(userLocator),
                                              includePersonal ? null : false, includeCanceled ? null : false,
                                              false, onlyPinned ? true : null, tags, new BranchMatcher(null), agentName,
-                                             null, getRangeLimit(buildType, sinceBuildLocator, DataProvider.parseDate(sinceDate)),
+                                             null, null, getRangeLimit(buildType, sinceBuildLocator, DataProvider.parseDate(sinceDate)),
                                              null,
                                              start, count, null);
     }
@@ -233,6 +236,12 @@ public class BuildFinder {
     } catch (LocatorProcessException e) {
       throw new LocatorProcessException("Invalid sub-locator 'branch': " + e.getMessage());
     }
+
+    Collection<SBuildAgent> agents = null;
+    final String agentLocator = buildLocator.getSingleDimensionValue("agent");
+    if (agentLocator != null){
+      agents = myAgentFinder.getItems(agentLocator).myEntries;
+    }
     return new GenericBuildsFilter(actualBuildType,
                                    project,
                                    buildLocator.getSingleDimensionValue("status"),
@@ -244,8 +253,8 @@ public class BuildFinder {
                                    buildLocator.getSingleDimensionValueAsBoolean("pinned"),
                                    tagsList,
                                    branchMatcher,
-                                   //todo: support agent locator here
-                                   buildLocator.getSingleDimensionValue("agentName"),
+                                   buildLocator.getSingleDimensionValue("agentName"), //deprecated, use "agent" instead
+                                   agents,
                                    ParameterCondition.create(buildLocator.getSingleDimensionValue("property")),
                                    getRangeLimit(actualBuildType, buildLocator.getSingleDimensionValue("sinceBuild"),
                                                  DataProvider.parseDate(buildLocator.getSingleDimensionValue("sinceDate"))),

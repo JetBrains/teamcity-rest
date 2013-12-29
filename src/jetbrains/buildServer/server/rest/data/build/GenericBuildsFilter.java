@@ -18,14 +18,14 @@ package jetbrains.buildServer.server.rest.data.build;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.users.SUser;
@@ -51,6 +51,7 @@ public class GenericBuildsFilter implements BuildsFilter {
   @Nullable private final List<String> myTags;
   @NotNull private final BranchMatcher myBranchMatcher;
   @Nullable private final String myAgentName;
+  @Nullable private final Set<SBuildAgent> myAgents;
   @Nullable private final RangeLimit mySince;
   @Nullable private final RangeLimit myUntil;
   @Nullable private final Long myLookupLimit;
@@ -71,6 +72,7 @@ public class GenericBuildsFilter implements BuildsFilter {
    * @param pinned          if set, limits the builds by pinned status (return only pinned if "true", only non-pinned if "false")
    * @param branchMatcher   if not set, only builds from default branch match. The locator supports dimensions: "name"/String, "default"/boolean and "unspecified"/boolean.
    * @param agentName       limit builds to those ran on specified agent, can be null to return all builds
+   * @param agents
    * @param parameterCondition  limit builds to those with a finish parameter matching the condition specified, can be null to return all builds
    * @param since           the RangeLimit to return only the builds since the limit. If contains build, it is not included, if contains the date, the builds that were started at and later then the date are included
    * @param until           the RangeLimit to return only the builds until the limit. If contains build, it is included, if contains the date, the builds that were started at and before the date are included
@@ -90,6 +92,7 @@ public class GenericBuildsFilter implements BuildsFilter {
                              @Nullable final List<String> tags,
                              @NotNull final BranchMatcher branchMatcher,
                              @Nullable final String agentName,
+                             @Nullable final Collection<SBuildAgent> agents,
                              @Nullable final ParameterCondition parameterCondition,
                              @Nullable final RangeLimit since,
                              @Nullable final RangeLimit until,
@@ -111,8 +114,29 @@ public class GenericBuildsFilter implements BuildsFilter {
     myPinned = pinned;
     myTags = tags;
     myBranchMatcher = branchMatcher;
-    //todo: support agent locator
     myAgentName = agentName;
+
+    if (agents == null) {
+      myAgents = null;
+    } else {
+      myAgents = new TreeSet<SBuildAgent>(new Comparator<SBuildAgent>() {
+        public int compare(final SBuildAgent o1, final SBuildAgent o2) {
+          if (o1.getId() == -1) {
+            if (o2.getId() == -1) {
+              return o1.getAgentTypeId() - o2.getAgentTypeId();
+            } else {
+              return -1;
+            }
+          }
+          if (o2.getId() == -1) {
+            return 1;
+          }
+          return o1.getId() - o2.getId();
+        }
+      });
+      myAgents.addAll(agents);
+    }
+
     mySince = since;
     myUntil = until;
     myLookupLimit = lookupLimit;
@@ -253,7 +277,11 @@ public class GenericBuildsFilter implements BuildsFilter {
         return false;
       }
     }
-    
+
+    if (myAgents != null && !myAgents.contains(build.getAgent())) {
+      return false;
+    }
+
     if (myParameterCondition != null){
       if (!myParameterCondition.matches(build.getParametersProvider())){
         return false;
