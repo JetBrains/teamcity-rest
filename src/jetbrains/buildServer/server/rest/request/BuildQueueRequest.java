@@ -27,8 +27,10 @@ import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.server.rest.model.build.*;
@@ -36,8 +38,8 @@ import jetbrains.buildServer.server.rest.model.build.BuildQueue;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
-import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -115,20 +117,22 @@ public class BuildQueueRequest {
 
   @DELETE
   @Path("/{queuedBuildLocator}")
-  public void deleteBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator, @Context HttpServletRequest request) {
+  public void deleteBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator) {
     SQueuedBuild build = myQueuedBuildFinder.getItem(queuedBuildLocator);
-    myServiceLocator.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class).removeItems(Collections.singleton(build.getItemId()),
-                                                                                                        SessionUser.getUser(request),
-                                                                                                        null);
-    //todo: seems that these lines are not necessary and can produce an error
+    cancelQueuedBuild(build, null);
+
+    //now delete the canceled build
     final SBuild associatedBuild = build.getBuildPromotion().getAssociatedBuild();
+    if (associatedBuild == null){
+      throw new OperationException("After canceling a build, no canceled build found to delete.");
+    }
     myDataProvider.deleteBuild(associatedBuild);
   }
 
   @GET
   @Path("/{buildLocator}/example/buildCancelRequest")
   @Produces({"application/xml", "application/json"})
-  public BuildCancelRequest cancelBuild(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
+  public BuildCancelRequest cancelBuild(@PathParam("buildLocator") String buildLocator) {
     return new BuildCancelRequest("example build cancel comment", false);
   }
 
@@ -136,19 +140,29 @@ public class BuildQueueRequest {
   @Path("/{queuedBuildLocator}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Build cancelBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator, BuildCancelRequest cancelRequest, @Context HttpServletRequest request) {
+  public Build cancelBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator, BuildCancelRequest cancelRequest) {
     if (cancelRequest.readdIntoQueue) {
       throw new BadRequestException("Restore in queue is not supported for queued builds.");
     }
     SQueuedBuild build = myQueuedBuildFinder.getItem(queuedBuildLocator);
-    myServiceLocator.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class).removeItems(Collections.singleton(build.getItemId()),
-                                                                                                        SessionUser.getUser(request),
-                                                                                                        cancelRequest.comment);
+    cancelQueuedBuild(build, cancelRequest.comment);
+
     final SBuild associatedBuild = build.getBuildPromotion().getAssociatedBuild();
     if (associatedBuild == null){
       return null;
     }
     return new Build(associatedBuild, myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
+  }
+
+  private void cancelQueuedBuild(@NotNull final SQueuedBuild build, @Nullable final String comment) {
+    final jetbrains.buildServer.serverSide.BuildQueue buildQueue = myServiceLocator.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class);
+    final String itemId = build.getItemId();
+    buildQueue.removeItems(Collections.singleton(itemId), myDataProvider.getCurrentUser(), comment);
+
+    //todo: TeamCity API issue: TW-34143
+    if (buildQueue.findQueued(itemId) != null) {
+      throw new AuthorizationFailedException("Build was not canceled. Probably not sufficient permisisons.");
+    }
   }
 
   @GET
@@ -170,7 +184,7 @@ public class BuildQueueRequest {
   @POST
   @Produces({"application/xml", "application/json"})
   public QueuedBuild queueNewBuild(BuildTask buildTask, @Context HttpServletRequest request){
-    final SUser user = SessionUser.getUser(request);
+    final SUser user = myDataProvider.getCurrentUser();
     BuildPromotion buildToTrigger = buildTask.getBuildToTrigger(user, myBuildTypeFinder, myServiceLocator);
     TriggeredByBuilder triggeredByBulder = new TriggeredByBuilder();
     if (user != null){
