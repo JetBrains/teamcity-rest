@@ -285,7 +285,7 @@ public class DataProvider {
     }
   }
 
-  public void deleteBuild(final SBuild build) {
+  public void deleteBuild(@NotNull final SBuild build) {
     if (build.isFinished()){
       myBuildHistory.removeEntry((SFinishedBuild)build); //todo:  (TeamCity) open API: should also add entry into audit and check permisisons (see also deleteBuild callers)
     }else{
@@ -405,20 +405,22 @@ public class DataProvider {
 
   @Nullable
   public SUser getCurrentUser() {
-    final User associatedUser = mySecurityContext.getAuthorityHolder().getAssociatedUser();
-    if (associatedUser == null){
-      return null;
-    }
-    return myUserModel.findUserAccount(null, associatedUser.getUsername());
+    return getCurrentUser(mySecurityContext, myUserModel);
   }
 
   @Nullable
   public static SUser getCurrentUser(@NotNull final ServiceLocator serviceLocator) {
-    final User associatedUser = serviceLocator.getSingletonService(SecurityContext.class).getAuthorityHolder().getAssociatedUser();
+    return getCurrentUser(serviceLocator.getSingletonService(SecurityContext.class), serviceLocator.getSingletonService(UserModel.class));
+  }
+
+  @Nullable
+  private static SUser getCurrentUser(@NotNull final SecurityContext securityContext, @NotNull final UserModel userModel) {
+    //also related API: SessionUser.getUser(request)
+    final User associatedUser = securityContext.getAuthorityHolder().getAssociatedUser();
     if (associatedUser == null){
       return null;
     }
-    return serviceLocator.getSingletonService(UserModel.class).findUserAccount(null, associatedUser.getUsername());
+    return userModel.findUserAccount(null, associatedUser.getUsername());
   }
 
   @NotNull
