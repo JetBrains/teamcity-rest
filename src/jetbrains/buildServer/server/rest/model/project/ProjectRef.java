@@ -69,15 +69,16 @@ public class ProjectRef {
     id = project.getExternalId();
     internalId = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? project.getProjectId() : null;
     name = project.getName();
+    href = apiUrlBuilder.getHref(project);
+
+    final SProject actulParentProject = project.getParentProject();
+    parentProjectId = actulParentProject == null ? null : actulParentProject.getExternalId();
 
     if (TeamCityProperties.getBoolean("rest.beans.project.addParentProjectAttributes")) {
-      final SProject actulParentProject = project.getParentProject();
       parentProjectName = actulParentProject == null ? null : actulParentProject.getName();
-      parentProjectId = actulParentProject == null ? null : actulParentProject.getExternalId();
       parentProjectInternalId =
         actulParentProject != null && TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? actulParentProject.getProjectId() : null;
     }
-    href = apiUrlBuilder.getHref(project);
   }
 
   public ProjectRef(@Nullable final String externalId, @Nullable final String internalId, @NotNull final ApiUrlBuilder apiUrlBuilder) {
