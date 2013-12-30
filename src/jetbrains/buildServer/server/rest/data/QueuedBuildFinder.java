@@ -6,6 +6,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -19,6 +20,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
   public static final String PROJECT = "project";
   public static final String AGENT = "agent";
   public static final String PERSONAL = "personal";
+  public static final String USER = "user";
 
   private final BuildQueue myBuildQueue;
   private final ProjectFinder myProjectFinder;
@@ -33,7 +35,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
                            final UserFinder userFinder,
                            final AgentFinder agentFinder,
                            final DataProvider dataProvider) {
-    super(new String[]{DIMENSION_ID, PROJECT, BUILD_TYPE, AGENT, PERSONAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
+    super(new String[]{DIMENSION_ID, PROJECT, BUILD_TYPE, AGENT, USER, PERSONAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
     myBuildQueue = buildQueue;
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;
@@ -142,6 +144,17 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
       result.add(new FilterConditionChecker<SQueuedBuild>() {
         public boolean isIncluded(@NotNull final SQueuedBuild item) {
           return FilterUtil.isIncludedByBooleanFilter(personal, item.isPersonal());
+        }
+      });
+    }
+
+    final String userDimension = locator.getSingleDimensionValue(USER);
+    if (userDimension != null) {
+      final SUser user = myUserFinder.getUser(userDimension);
+      result.add(new FilterConditionChecker<SQueuedBuild>() {
+        public boolean isIncluded(@NotNull final SQueuedBuild item) {
+          final SUser actualUser = item.getTriggeredBy().getUser();
+          return actualUser != null && user.getId() == actualUser.getId();
         }
       });
     }
