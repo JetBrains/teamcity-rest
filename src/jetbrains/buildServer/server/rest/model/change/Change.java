@@ -35,7 +35,7 @@ import jetbrains.buildServer.vcs.SVcsModification;
  * Date: 12.04.2009
  */
 @XmlRootElement(name = "change")
-@XmlType(name= "change", propOrder = {"username", "date", "personal",
+@XmlType(name= "change", propOrder = {"username", "date",
   "comment", "user", "fileChanges", "vcsRootInstance"})
 public class Change extends ChangeRef {
 
@@ -58,11 +58,6 @@ public class Change extends ChangeRef {
   public String getDate() {
     final Date vcsDate = myModification.getVcsDate();
     return Util.formatTime(vcsDate);
-  }
-
-  @XmlAttribute
-  public Boolean getPersonal() {
-    return myModification.isPersonal() ? true : null;
   }
 
   @XmlElement
