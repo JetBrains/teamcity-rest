@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public abstract class AbstractFinder<ITEM> {
   public static final String DIMENSION_ID = "id";
+  public static final String DIMENSION_LOOKUP_LIMIT = "lookupLimit";
 
   private final String[] myKnownDimensions;
 

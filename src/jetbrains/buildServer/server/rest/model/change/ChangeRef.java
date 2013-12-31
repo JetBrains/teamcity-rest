@@ -107,7 +107,7 @@ public class ChangeRef {
       if (submittedLocator != null){
         throw new BadRequestException("Both 'locator' and 'id' attributes are specified. Only one should be present.");
       }
-      final Locator locator = Locator.createEmptyLocator().setDimension(ChangeFinder.ID, String.valueOf(submittedId));
+      final Locator locator = Locator.createEmptyLocator().setDimension(ChangeFinder.DIMENSION_ID, String.valueOf(submittedId));
       if (submittedPersonal != null && submittedPersonal){
         locator.setDimension(ChangeFinder.PERSONAL, "true");
       }
@@ -119,6 +119,6 @@ public class ChangeRef {
       locatorText = submittedLocator;
     }
 
-    return changeFinder.getChange(locatorText);
+    return changeFinder.getItem(locatorText);
   }
 }

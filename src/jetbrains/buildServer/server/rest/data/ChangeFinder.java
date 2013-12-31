@@ -1,18 +1,19 @@
 package jetbrains.buildServer.server.rest.data;
 
-import com.intellij.openapi.diagnostic.Logger;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.auth.Permission;
-import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.vcs.SVcsModification;
-import jetbrains.buildServer.vcs.VcsManager;
+import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.impl.RemoteBuildType;
+import jetbrains.buildServer.serverSide.userChanges.UserChangesFacade;
+import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.vcs.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,10 +21,23 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 12.05.13
  */
-public class ChangeFinder {
-  private static final Logger LOG = Logger.getInstance(BuildTypeFinder.class.getName());
-  public static final String ID = "id";
+public class ChangeFinder extends AbstractFinder<SVcsModification> {
+  public static final String IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION = "rest.ignoreChangesFromDependenciesOption";
+
   public static final String PERSONAL = "personal";
+  public static final String PROJECT = "project";
+  public static final String BUILD_TYPE = "buildType";
+  public static final String BUILD = "build";
+  public static final String VCS_ROOT = "vcsRoot";
+  public static final String VCS_ROOT_INSTANCE = "vcsRootInstance";
+  public static final String USERNAME = "username";
+  public static final String USER = "user";
+  public static final String VERSION = "version";
+  public static final String INTERNAL_VERSION = "internalVersion";
+  public static final String COMMENT = "comment";
+  public static final String FILE = "file";
+  public static final String SINCE_CHANGE = "sinceChange";
+  public static final String BRANCH = "branch";
 
   @NotNull private final DataProvider myDataProvider;
   @NotNull private final ProjectFinder myProjectFinder;
@@ -32,6 +46,7 @@ public class ChangeFinder {
   @NotNull private final VcsRootFinder myVcsRootFinder;
   @NotNull private final UserFinder myUserFinder;
   @NotNull private final VcsManager myVcsManager;
+  @NotNull private final VcsModificationHistory myVcsModificationHistory;
   @NotNull private final ServiceLocator myServiceLocator;
 
   public ChangeFinder(@NotNull final DataProvider dataProvider,
@@ -41,7 +56,10 @@ public class ChangeFinder {
                       @NotNull final VcsRootFinder vcsRootFinder,
                       @NotNull final UserFinder userFinder,
                       @NotNull final VcsManager vcsManager,
+                      @NotNull final VcsModificationHistory vcsModificationHistory,
                       @NotNull final ServiceLocator serviceLocator) {
+    super(new String[]{DIMENSION_ID, PROJECT, BUILD_TYPE, BUILD, VCS_ROOT, VCS_ROOT_INSTANCE, USERNAME, USER, VERSION, INTERNAL_VERSION, COMMENT, FILE,
+      SINCE_CHANGE, DIMENSION_LOOKUP_LIMIT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
     myDataProvider = dataProvider;
     myProjectFinder = projectFinder;
     myBuildFinder = buildFinder;
@@ -49,78 +67,322 @@ public class ChangeFinder {
     myVcsRootFinder = vcsRootFinder;
     myUserFinder = userFinder;
     myVcsManager = vcsManager;
+    myVcsModificationHistory = vcsModificationHistory;
     myServiceLocator = serviceLocator;
   }
 
   @NotNull
-  public static Locator getChangesLocator(@Nullable String locatorText, boolean returnNotEmpty) {
-    if (returnNotEmpty && StringUtil.isEmpty(locatorText)) {
-      throw new BadRequestException("Empty change locator is not supported.");
-    }
-    final String[] supported =
-      {ID, "project", "buildType", "build", "vcsRoot", "vcsRootInstance", "username", "user", "version", "internalVersion", "comment", "file",
-        "sinceChange", "start", "count", "lookupLimit", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME};
-    final Locator result;
-    if (returnNotEmpty) {
-      result = new Locator(locatorText, supported);
-    } else {
-      result = Locator.createEmptyLocator(supported);
-    }
-    result.addHiddenDimensions("branch", PERSONAL); //hide these for now
+  @Override
+  public Locator createLocator(@Nullable final String locatorText) {
+    final Locator result = super.createLocator(locatorText);
+    result.addHiddenDimensions(BRANCH, PERSONAL); //hide these for now
     return result;
   }
 
   @NotNull
-  public PagedSearchResult<SVcsModification> getModifications(@NotNull Locator locator) {
-    final SVcsModification singleChange = getSingleChange(locator);
-    if (singleChange != null) {
-      if (!myDataProvider.checkCanView(singleChange)) {
-        throw new AuthorizationFailedException("Current user does not have permission " + Permission.VIEW_PROJECT +
-                                               " in any of the projects associated with the change with id: '" + singleChange.getId() + "'");
-      }
-      final List<SVcsModification> result = Collections.singletonList(singleChange);
-      return new PagedSearchResult<SVcsModification>(result, null, null);
-    }
-
-    ChangesFilter changesFilter;
-    final SBuildType buildType = myBuildTypeFinder.getBuildTypeIfNotNull(locator.getSingleDimensionValue("buildType"));
-    final String userLocator = locator.getSingleDimensionValue("user");
-    final Long count = locator.getSingleDimensionValueAsLong("count");
-    final String vcsRootInstance = locator.getSingleDimensionValue("vcsRootInstance");
-    final String vcsRoot = locator.getSingleDimensionValue("vcsRoot");
-
-    final String sinceChangeDimension = locator.getSingleDimensionValue("sinceChange");
-    Long sinceChangeId = null;
-    if (sinceChangeDimension != null) {
-      //if change id - do not find change to support cases when it does not exist
-      try {
-        sinceChangeId = Long.parseLong(sinceChangeDimension);
-      } catch (NumberFormatException e) {
-        //not id - proceed as usual
-        SVcsModification modification = getChange(sinceChangeDimension);
-        sinceChangeId = modification.getId();
-      }
-    }
-
-    changesFilter = new ChangesFilter(myProjectFinder.getProjectIfNotNull(locator.getSingleDimensionValue("project")),
-                                      buildType,
-                                      getBranchName(locator.getSingleDimensionValue("branch")),
-                                      myBuildFinder.getBuildIfNotNull(buildType, locator.getSingleDimensionValue("build")),
-                                      vcsRootInstance == null ? null : myVcsRootFinder.getVcsRootInstance(vcsRootInstance),
-                                      vcsRoot == null ? null : myVcsRootFinder.getVcsRoot(vcsRoot),
-                                      sinceChangeId,
-                                      locator.getSingleDimensionValue("username"),
-                                      userLocator == null ? null : myUserFinder.getUser(userLocator),
-                                      locator.getSingleDimensionValueAsBoolean(PERSONAL),
-                                      locator.getSingleDimensionValue("version"),
-                                      locator.getSingleDimensionValue("internalVersion"),
-                                      locator.getSingleDimensionValue("comment"),
-                                      locator.getSingleDimensionValue("file"),
-                                      locator.getSingleDimensionValueAsLong("start"),
-                                      count == null ? null : count.intValue(),
-                                      locator.getSingleDimensionValueAsLong("lookupLimit"), myDataProvider);
-    return new PagedSearchResult<SVcsModification>(changesFilter.getMatchingChanges(myServiceLocator), changesFilter.getStart(), changesFilter.getCount());
+  @Override
+  public List<SVcsModification> getAllItems() {
+    //todo: highly inefficient!
+    return myVcsModificationHistory.getAllModifications();
   }
+
+  @Override
+  @Nullable
+  protected SVcsModification findSingleItem(@NotNull final Locator locator) {
+    if (locator.isSingleValue()) {
+      // no dimensions found, assume it's id
+      @SuppressWarnings("ConstantConditions") SVcsModification modification = myVcsManager.findModificationById(locator.getSingleValueAsLong(), false);
+      if (modification == null) {
+        throw new NotFoundException("No change can be found by id '" + locator.getSingleValueAsLong() + "'.");
+      }
+      locator.checkLocatorFullyProcessed();
+      return modification;
+    }
+
+    Long id = locator.getSingleDimensionValueAsLong("id");
+    if (id != null) {
+      Boolean isPersonal = locator.getSingleDimensionValueAsBoolean(PERSONAL, false);
+      if (isPersonal == null) {
+        throw new BadRequestException("When 'id' dimension is present, only true/false values are supported for '" + PERSONAL + "' dimension. Was: '" +
+                                      locator.getSingleDimensionValue(PERSONAL) + "'");
+      }
+
+      SVcsModification modification = myVcsManager.findModificationById(id, isPersonal);
+      if (modification == null) {
+        throw new NotFoundException("No change can be found by id '" + locator.getSingleDimensionValue("id") + "' (searching " +
+                                    (isPersonal ? "personal" : "non-personal") + " changes).");
+      }
+      locator.checkLocatorFullyProcessed();
+      return modification;
+    }
+
+    return null;
+  }
+
+  @Override
+  protected AbstractFilter<SVcsModification> getFilter(final Locator locator) {
+    if (locator.isSingleValue()) {
+      throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
+    }
+
+    final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
+    final MultiCheckerFilter<SVcsModification> result = new MultiCheckerFilter<SVcsModification>(locator.getSingleDimensionValueAsLong(PagerData.START),
+                                                                                                 countFromFilter != null ? countFromFilter.intValue() : null,
+                                                                                                 locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT));
+
+    //myBuildType, myProject and myBranchName are handled on getting initial collection to filter
+
+    final String vcsRootInstanceLocator = locator.getSingleDimensionValue(VCS_ROOT_INSTANCE);
+    if (vcsRootInstanceLocator != null) {
+      final VcsRootInstance vcsRootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
+      result.add(new FilterConditionChecker<SVcsModification>() {
+        public boolean isIncluded(@NotNull final SVcsModification item) {
+          return !item.isPersonal() && vcsRootInstance.getId() == item.getVcsRoot().getId(); //todo: check personal change applicability to the root
+        }
+      });
+    }
+
+    final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT);
+    if (vcsRootLocator != null) {
+      final VcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
+      result.add(new FilterConditionChecker<SVcsModification>() {
+        public boolean isIncluded(@NotNull final SVcsModification item) {
+          return !item.isPersonal() && vcsRoot.getId() == item.getVcsRoot().getId(); //todo: check personal change applicability to the root
+        }
+      });
+    }
+
+    final String sinceChangeLocator = locator.getSingleDimensionValue(SINCE_CHANGE); //todo: deprecate this
+    if (sinceChangeLocator != null) {
+      final long sinceChangeId = getChangeIdBySinceChangeLocator(sinceChangeLocator);
+      result.add(new FilterConditionChecker<SVcsModification>() {
+        public boolean isIncluded(@NotNull final SVcsModification item) {
+          return sinceChangeId < item.getId();
+        }
+      });
+    }
+
+    final String username = locator.getSingleDimensionValue(USERNAME);
+    if (username != null) {
+      result.add(new FilterConditionChecker<SVcsModification>() {
+        public boolean isIncluded(@NotNull final SVcsModification item) {
+          return username.equalsIgnoreCase(item.getUserName()); //todo: is ignoreCase is right here?
+        }
+      });
+    }
+
+    final String userLocator = locator.getSingleDimensionValue(USER);
+    if (userLocator != null) {
+      final SUser user = myUserFinder.getUser(userLocator);
+      result.add(new FilterConditionChecker<SVcsModification>() {
+        public boolean isIncluded(@NotNull final SVcsModification item) {
+          return item.getCommitters().contains(user);
+        }
+      });
+    }
+
+    //TeamCity API: exclude "fake" personal changes created by TeamCity for personal builds without personal changes
+    result.add(new FilterConditionChecker<SVcsModification>() {
+      public boolean isIncluded(@NotNull final SVcsModification item) {
+        if (!item.isPersonal()) return true;
+        return item.getChanges().size() > 0;
+      }
+    });
+
+    final Boolean personal = locator.getSingleDimensionValueAsBoolean(PERSONAL);
+    if (personal != null) {
+      result.add(new FilterConditionChecker<SVcsModification>() {
+        public boolean isIncluded(@NotNull final SVcsModification item) {
+          return FilterUtil.isIncludedByBooleanFilter(personal, item.isPersonal());
+        }
+      });
+    }
+
+    if (personal != null && personal) {
+      //initial collection can contain changes from any buildType/project
+      final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
+      if (buildTypeLocator != null) {
+        final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
+        result.add(new FilterConditionChecker<SVcsModification>() {
+          public boolean isIncluded(@NotNull final SVcsModification item) {
+            return isPersonalChangeMatchesBuildType(item, buildType);
+          }
+        });
+      }
+    }
+
+    final String projectLocator = locator.getSingleDimensionValue(PROJECT);
+    if (projectLocator != null) {
+      final SProject project = myProjectFinder.getProject(projectLocator);
+      result.add(new FilterConditionChecker<SVcsModification>() {
+        public boolean isIncluded(@NotNull final SVcsModification item) {
+          return item.getRelatedProjects().contains(project);
+        }
+      });
+    }
+
+    final String internalVersion = locator.getSingleDimensionValue(INTERNAL_VERSION);
+    if (internalVersion != null) {
+      result.add(new FilterConditionChecker<SVcsModification>() {
+        public boolean isIncluded(@NotNull final SVcsModification item) {
+          return internalVersion.equals(item.getVersion());
+        }
+      });
+    }
+
+    final String displayVersion = locator.getSingleDimensionValue(VERSION);
+    if (displayVersion != null) {
+      result.add(new FilterConditionChecker<SVcsModification>() {
+        public boolean isIncluded(@NotNull final SVcsModification item) {
+          return displayVersion.equals(item.getDisplayVersion());
+        }
+      });
+    }
+
+    final String commentLocator = locator.getSingleDimensionValue(COMMENT);
+    if (commentLocator != null) {
+      final String containsText = new Locator(commentLocator).getSingleDimensionValue("contains"); //todo: use conditions here
+      //todo: check unknown locator dimensions
+      if (containsText != null) {
+        result.add(new FilterConditionChecker<SVcsModification>() {
+          public boolean isIncluded(@NotNull final SVcsModification item) {
+            return item.getDescription().contains(containsText);
+          }
+        });
+      }
+    }
+
+    final String fileLocator = locator.getSingleDimensionValue(FILE);
+    if (fileLocator != null) {
+      final String pathLocatorText = new Locator(fileLocator).getSingleDimensionValue("path"); //todo: use conditions here
+      //todo: check unknown locator dimensions
+      if (pathLocatorText != null) {
+        final String containsText = new Locator(pathLocatorText).getSingleDimensionValue("contains"); //todo: use conditions here
+        //todo: check unknown locator dimensions
+        if (containsText != null) {
+          result.add(new FilterConditionChecker<SVcsModification>() {
+            public boolean isIncluded(@NotNull final SVcsModification item) {
+              for (VcsFileModification vcsFileModification : item.getChanges()) {
+                if (vcsFileModification.getFileName().contains(containsText)) {
+                  return true;
+                }
+              }
+              return false;
+            }
+          });
+        }
+      }
+    }
+
+    // include by build should be already handled by this time on the upper level
+
+    if (TeamCityProperties.getBoolean("rest.request.changes.check.enforceChangeViewPermissson")) {
+      result.add(new FilterConditionChecker<SVcsModification>() {
+        public boolean isIncluded(@NotNull final SVcsModification item) {
+          return myDataProvider.checkCanView(item);
+        }
+      });
+    }
+
+    return result;
+  }
+
+  private static boolean isPersonalChangeMatchesBuildType(@NotNull final SVcsModification change, @NotNull final SBuildType buildType) {
+    final Collection<SBuildType> relatedPersonalConfigurations = change.getRelatedConfigurations();
+    boolean matches = false;
+    for (SBuildType personalConfiguration : relatedPersonalConfigurations) {
+      if (personalConfiguration.isPersonal()) {
+        if (buildType.getInternalId().equals(((RemoteBuildType)personalConfiguration).getSourceBuildType().getInternalId())) {
+          matches = true;
+          break;
+        }
+      } else {
+        if (buildType.getInternalId().equals((personalConfiguration.getInternalId()))) {
+          matches = true;
+          break;
+        }
+      }
+    }
+    return matches;
+  }
+
+  private long getChangeIdBySinceChangeLocator(@NotNull final String sinceChangeDimension) {
+    try {
+      //if change id - do not find change to support cases when it does not exist
+      return Long.parseLong(sinceChangeDimension);
+    } catch (NumberFormatException e) {
+      //not id - proceed as usual
+      return getItem(sinceChangeDimension).getId();
+    }
+  }
+
+  @Override
+  protected List<SVcsModification> getPrefilteredItems(@NotNull final Locator locator) {
+
+    String branchName = getBranchName(locator.getSingleDimensionValue(BRANCH));
+
+    SBuildType buildType = null;
+    final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
+    if (buildTypeLocator != null) {
+      buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
+    }
+
+    if (branchName != null) {
+      if (buildType == null) {
+        throw new BadRequestException("Filtering changes by branch is only supported when buildType is specified.");
+      }
+      return getBranchChanges(buildType, branchName);
+    }
+
+    final String userLocator = locator.getSingleDimensionValue(USER);
+    if (userLocator != null) {
+      final SUser user = myUserFinder.getUser(userLocator);
+      return myServiceLocator.getSingletonService(UserChangesFacade.class).getAllVcsModifications(user);
+    }
+
+    final Boolean personal = locator.getSingleDimensionValueAsBoolean(PERSONAL);
+
+    if (personal != null && personal) {
+      throw new BadRequestException("Serving personal changes is only supported when user is specified.");
+    }
+
+    final String buildLocator = locator.getSingleDimensionValue(BUILD);
+    if (buildLocator != null) {
+      return getBuildChanges(myBuildFinder.getBuild(buildType, buildLocator));
+    }
+
+    if (buildType != null) {
+      return getBuildTypeChanges(buildType);
+    }
+
+    Long sinceChangeId = null;
+    final String sinceChangeLocator = locator.getSingleDimensionValue(SINCE_CHANGE); //todo: deprecate this
+    if (sinceChangeLocator != null) {
+      sinceChangeId = getChangeIdBySinceChangeLocator(sinceChangeLocator);
+    }
+
+    final String vcsRootInstanceLocator = locator.getSingleDimensionValue(VCS_ROOT_INSTANCE);
+    if (vcsRootInstanceLocator != null) {
+      final VcsRootInstance vcsRootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
+      if (sinceChangeId != null) {
+        return myVcsModificationHistory.getModificationsInRange(vcsRootInstance, sinceChangeId, null);
+      } else {
+        //todo: highly inefficient!
+        return myVcsModificationHistory.getAllModifications(vcsRootInstance);
+      }
+    }
+
+    final String projectLocator = locator.getSingleDimensionValue(PROJECT);
+    if (projectLocator != null) {
+      return getProjectChanges(myVcsModificationHistory, myProjectFinder.getProject(projectLocator), sinceChangeId);
+    }
+
+    //todo: highly inefficient!
+    return myVcsModificationHistory.getAllModifications();
+  }
+
+
+//-----------------------------------
 
   @Nullable
   private String getBranchName(@Nullable final String branch) {
@@ -138,54 +400,61 @@ public class ChangeFinder {
     }
   }
 
-  @Nullable
-  private SVcsModification getSingleChange(@NotNull Locator locator) {
-    if (locator.isSingleValue()) {
-      // no dimensions found, assume it's id
-      @SuppressWarnings("ConstantConditions") SVcsModification modification = myVcsManager.findModificationById(locator.getSingleValueAsLong(), false);
-      if (modification == null) {
-        throw new NotFoundException("No change can be found by id '" + locator.getSingleValueAsLong() + "'.");
-      }
-      return modification;
-    }
-
-    Long id = locator.getSingleDimensionValueAsLong("id");
-    if (id != null) {
-      Boolean isPersonal = locator.getSingleDimensionValueAsBoolean(PERSONAL, false);
-      if (isPersonal == null) {
-        throw new BadRequestException("When 'id' dimension is present, only true/false values are supported for '" + PERSONAL + "' dimension. Was: '" +
-                                      locator.getSingleDimensionValue(PERSONAL) + "'");
-      }
-
-      SVcsModification modification = myVcsManager.findModificationById(id, isPersonal);
-      if (modification == null) {
-        throw new NotFoundException("No change can be found by id '" + locator.getSingleDimensionValue("id") + "' (searching " +
-                                    (isPersonal ? "personal" : "non-personal") + " changes).");
-      }
-      return modification;
-    }
-
-    return null;
+  private List<SVcsModification> getBranchChanges(@NotNull final SBuildType buildType, @NotNull final String branchName) {
+    final boolean includeDependencyChanges = TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) || !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES);
+    final List<ChangeDescriptor> changes =
+      ((BuildTypeEx)buildType).getBranchByDisplayName(branchName).getDetectedChanges(SelectPrevBuildPolicy.SINCE_FIRST_BUILD, includeDependencyChanges);
+    return convertChanges(changes);
   }
 
-  @NotNull
-  public SVcsModification getChange(@Nullable final String changeLocator) {
-    final Locator locator = getChangesLocator(changeLocator, true);
+  private static List<SVcsModification> getBuildChanges(final SBuild build) {
+    if (TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION)) {
+      return build.getContainingChanges();
+    }
 
-    if (!locator.isSingleValue()) {
-      locator.setDimension("count", String.valueOf(1));
+    List<SVcsModification> res = new ArrayList<SVcsModification>();
+    for (ChangeDescriptor ch : ((BuildPromotionEx)build.getBuildPromotion()).getDetectedChanges(SelectPrevBuildPolicy.SINCE_LAST_BUILD)) {
+      final SVcsModification mod = ch.getRelatedVcsChange();
+      if (mod != null) {
+        res.add(mod);
+      }
     }
-    locator.addIgnoreUnusedDimensions("count");
-    final PagedSearchResult<SVcsModification> changes = getModifications(locator);
-    locator.checkLocatorFullyProcessed();
-    if (changes.myEntries.size() > 0) {
-      return changes.myEntries.iterator().next();
-    }
-    throw new NotFoundException("No changes found by locator '" + changeLocator + "'.");
+
+    return res;
   }
 
-  @Nullable
-  public SVcsModification getChangeIfNotNull(@Nullable final String ChangeLocator) {
-    return ChangeLocator == null ? null : getChange(ChangeLocator);
+  static private List<SVcsModification> getProjectChanges(@NotNull final VcsModificationHistory vcsHistory,
+                                                          @NotNull final SProject project,
+                                                          @Nullable final Long sinceChangeId) {
+    final List<VcsRootInstance> vcsRoots = project.getVcsRootInstances();
+    final List<SVcsModification> result = new ArrayList<SVcsModification>();
+    for (VcsRootInstance root : vcsRoots) {
+      if (sinceChangeId != null) {
+        result.addAll(vcsHistory.getModificationsInRange(root, sinceChangeId, null));
+      } else {
+        //todo: highly inefficient!
+        result.addAll(vcsHistory.getAllModifications(root));
+      }
+    }
+    Collections.sort(result);
+    return result;
+  }
+
+  private List<SVcsModification> getBuildTypeChanges(@NotNull final SBuildType buildType) {
+    if (TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) || !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES)) {
+      return myVcsModificationHistory.getAllModifications(buildType);
+    }
+    final List<ChangeDescriptor> changes = ((BuildTypeEx)buildType).getDetectedChanges(SelectPrevBuildPolicy.SINCE_FIRST_BUILD);
+
+    return convertChanges(changes);
+  }
+
+  private static ArrayList<SVcsModification> convertChanges(final List<ChangeDescriptor> changes) {
+    final ArrayList<SVcsModification> result = new ArrayList<SVcsModification>();
+    for (ChangeDescriptor change : changes) {
+      SVcsModification mod = change.getRelatedVcsChange();
+      if (mod != null) result.add(mod);
+    }
+    return result;
   }
 }

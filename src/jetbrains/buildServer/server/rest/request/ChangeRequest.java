@@ -92,7 +92,7 @@ public class ChangeRequest {
                               @QueryParam("count") Integer count,
                               @QueryParam("locator") String locator,
                               @Context UriInfo uriInfo, @Context HttpServletRequest request) {
-    Locator actualLocator = ChangeFinder.getChangesLocator(locator, locator != null);
+    Locator actualLocator = locator == null ? Locator.createEmptyLocator(myChangeFinder.getKnownDimensions()) : myChangeFinder.createLocator(locator);
     if (!actualLocator.isSingleValue()) {
       updateLocatorDimension(actualLocator, "project", projectLocator);
       updateLocatorDimension(actualLocator, "buildType", buildTypeLocator);
@@ -111,7 +111,7 @@ public class ChangeRequest {
       throw new BadRequestException("No 'locator' or other parameters are specified.");
     }
 
-    PagedSearchResult <SVcsModification> buildModifications = myChangeFinder.getModifications(actualLocator);
+    PagedSearchResult <SVcsModification> buildModifications = myChangeFinder.getItems(actualLocator);
     actualLocator.checkLocatorFullyProcessed();
 
     final UriBuilder requestUriBuilder = uriInfo.getRequestUriBuilder();
@@ -138,14 +138,14 @@ public class ChangeRequest {
   @Path("/{changeLocator}")
   @Produces({"application/xml", "application/json"})
   public Change serveChange(@PathParam("changeLocator") String changeLocator) {
-    return new Change(myChangeFinder.getChange(changeLocator), myApiUrlBuilder, myFactory);
+    return new Change(myChangeFinder.getItem(changeLocator), myApiUrlBuilder, myFactory);
   }
 
   @GET
   @Path("/{changeLocator}/{field}")
   @Produces("text/plain")
   public String getChangeField(@PathParam("changeLocator") String changeLocator, @PathParam("field") String field) {
-    final SVcsModification change = myChangeFinder.getChange(changeLocator);
+    final SVcsModification change = myChangeFinder.getItem(changeLocator);
     return Change.getFieldValue(change, field);
   }
 
@@ -156,7 +156,7 @@ public class ChangeRequest {
   @Path("/{changeLocator}/parentChanges")
   @Produces({"application/xml", "application/json"})
   public Changes getParentChanges(@PathParam("changeLocator") String changeLocator) {
-    final SVcsModification change = myChangeFinder.getChange(changeLocator);
+    final SVcsModification change = myChangeFinder.getItem(changeLocator);
     return new Changes(new ArrayList<SVcsModification>(change.getParentModifications()), myApiUrlBuilder, myFactory);
   }
 
@@ -167,7 +167,7 @@ public class ChangeRequest {
   @Path("/{changeLocator}/parentRevisions")
   @Produces({"application/xml", "application/json"})
   public Items getChangeParentRevisions(@PathParam("changeLocator") String changeLocator) {
-    final SVcsModification change = myChangeFinder.getChange(changeLocator);
+    final SVcsModification change = myChangeFinder.getItem(changeLocator);
     return new Items(change.getParentRevisions());
   }
 
@@ -178,7 +178,7 @@ public class ChangeRequest {
   @Path("/{changeLocator}/vcsRoot")
   @Produces({"application/xml", "application/json"})
   public VcsRootInstanceRef getChangeVCSRoot(@PathParam("changeLocator") String changeLocator) {
-    final SVcsModification change = myChangeFinder.getChange(changeLocator);
+    final SVcsModification change = myChangeFinder.getItem(changeLocator);
     return new VcsRootInstanceRef(change.getVcsRoot(), myApiUrlBuilder);
   }
 
@@ -189,7 +189,7 @@ public class ChangeRequest {
   @Path("/{changeLocator}/attributes")
   @Produces({"application/xml", "application/json"})
   public Properties getChangeAttributes(@PathParam("changeLocator") String changeLocator) {
-    final SVcsModification change = myChangeFinder.getChange(changeLocator);
+    final SVcsModification change = myChangeFinder.getItem(changeLocator);
     return new Properties(change.getAttributes());
   }
   
@@ -200,7 +200,7 @@ public class ChangeRequest {
   @Path("/{changeLocator}/duplicates")
   @Produces({"application/xml", "application/json"})
   public Changes getChangeDuplicates(@PathParam("changeLocator") String changeLocator) {
-    final SVcsModification change = myChangeFinder.getChange(changeLocator);
+    final SVcsModification change = myChangeFinder.getItem(changeLocator);
     return new Changes(new ArrayList<SVcsModification>(change.getDuplicates()), myApiUrlBuilder, myFactory);
   }
 
@@ -211,7 +211,7 @@ public class ChangeRequest {
   @Path("/{changeLocator}/issues")
   @Produces({"application/xml", "application/json"})
   public Issues getChangeIssue(@PathParam("changeLocator") String changeLocator) {
-    final SVcsModification change = myChangeFinder.getChange(changeLocator);
+    final SVcsModification change = myChangeFinder.getItem(changeLocator);
     return new Issues(change.getRelatedIssues());
   }
 
@@ -222,7 +222,7 @@ public class ChangeRequest {
   @Path("/{changeLocator}/buildTypes")
   @Produces({"application/xml", "application/json"})
   public BuildTypes getRelatedBuildTypes(@PathParam("changeLocator") String changeLocator) {
-    final SVcsModification change = myChangeFinder.getChange(changeLocator);
+    final SVcsModification change = myChangeFinder.getItem(changeLocator);
     return BuildTypes.createFromBuildTypes(new ArrayList<SBuildType>(change.getRelatedConfigurations()), myDataProvider, myApiUrlBuilder);
   }
 
@@ -233,7 +233,7 @@ public class ChangeRequest {
   @Path("/{changeLocator}/firstBuilds")
   @Produces({"application/xml", "application/json"})
   public Builds getChangeFirstBuilds(@PathParam("changeLocator") String changeLocator) {
-    final SVcsModification change = myChangeFinder.getChange(changeLocator);
+    final SVcsModification change = myChangeFinder.getItem(changeLocator);
     return new Builds(new ArrayList<SBuild>(change.getFirstBuilds().values()), myServiceLocator, null, myApiUrlBuilder);
   }
 }
