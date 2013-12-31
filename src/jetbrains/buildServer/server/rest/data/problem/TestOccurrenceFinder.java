@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Set;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
-import jetbrains.buildServer.server.rest.data.investigations.AbstractFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;

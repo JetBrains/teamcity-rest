@@ -1,12 +1,8 @@
-package jetbrains.buildServer.server.rest.data.investigations;
+package jetbrains.buildServer.server.rest.data;
 
 
 import java.util.Collections;
 import java.util.List;
-import jetbrains.buildServer.server.rest.data.AbstractFilter;
-import jetbrains.buildServer.server.rest.data.FilterItemProcessor;
-import jetbrains.buildServer.server.rest.data.Locator;
-import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -16,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
+ * Convenience class for searching entities via locators
  * @author Yegor.Yarko
  *         Date: 09.11.13
  */

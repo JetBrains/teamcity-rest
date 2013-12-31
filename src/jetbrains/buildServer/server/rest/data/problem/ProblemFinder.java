@@ -3,7 +3,6 @@ package jetbrains.buildServer.server.rest.data.problem;
 import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
-import jetbrains.buildServer.server.rest.data.investigations.AbstractFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;

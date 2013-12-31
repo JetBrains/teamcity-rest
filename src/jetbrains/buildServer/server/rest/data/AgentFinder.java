@@ -3,7 +3,6 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.ArrayList;
 import java.util.List;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
-import jetbrains.buildServer.server.rest.data.investigations.AbstractFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
