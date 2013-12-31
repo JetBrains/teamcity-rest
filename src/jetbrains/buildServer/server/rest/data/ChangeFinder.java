@@ -13,6 +13,9 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.RemoteBuildType;
 import jetbrains.buildServer.serverSide.userChanges.UserChangesFacade;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.graph.BFSVisitorAdapter;
+import jetbrains.buildServer.util.graph.DAG;
+import jetbrains.buildServer.util.graph.DAGIterator;
 import jetbrains.buildServer.vcs.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -38,6 +41,8 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   public static final String FILE = "file";
   public static final String SINCE_CHANGE = "sinceChange";
   public static final String BRANCH = "branch";
+  public static final String CHILD_CHANGE = "childChange";
+  public static final String PARENT_CHANGE = "parentChange";
 
   @NotNull private final DataProvider myDataProvider;
   @NotNull private final ProjectFinder myProjectFinder;
@@ -75,7 +80,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   @Override
   public Locator createLocator(@Nullable final String locatorText) {
     final Locator result = super.createLocator(locatorText);
-    result.addHiddenDimensions(BRANCH, PERSONAL); //hide these for now
+    result.addHiddenDimensions(BRANCH, PERSONAL, DIMENSION_LOOKUP_LIMIT, CHILD_CHANGE, PARENT_CHANGE); //hide these for now
     return result;
   }
 
@@ -377,12 +382,58 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       return getProjectChanges(myVcsModificationHistory, myProjectFinder.getProject(projectLocator), sinceChangeId);
     }
 
+    final String parentChangeLocator = locator.getSingleDimensionValue(CHILD_CHANGE);
+    if (parentChangeLocator != null) {
+      final SVcsModification parentChange = getItem(parentChangeLocator);
+      return getChangesWhichHasChild(parentChange, locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT)); //todo: return iterator instead of processing lookup limit here
+    }
+
+    final String childChangeLocator = locator.getSingleDimensionValue(PARENT_CHANGE);
+    if (childChangeLocator != null) {
+      final SVcsModification parentChange = getItem(childChangeLocator);
+      return getChangesWhichHasParent(parentChange, locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT));
+    }
+
     //todo: highly inefficient!
     return myVcsModificationHistory.getAllModifications();
   }
 
+  @NotNull
+  private List<SVcsModification> getChangesWhichHasChild(@NotNull final SVcsModification change, final Long limit) {
+    final ArrayList<SVcsModification> result = new ArrayList<SVcsModification>();
 
-//-----------------------------------
+    final DAG<Long> dag = ((VcsRootInstanceEx)change.getVcsRoot()).getDag();
+
+    int i = 0;
+    final DAGIterator<Long> iterator = dag.iterator(change.getId());
+    while (iterator.hasNext() && (limit == null || i < limit)) {
+      final SVcsModification modificationById = myVcsManager.findModificationById(iterator.next(), false);
+      if (modificationById != null) result.add(modificationById);
+    }
+
+    return result;
+  }
+
+  @NotNull
+  private List<SVcsModification> getChangesWhichHasParent(@NotNull final SVcsModification change, final Long limit) {
+    final ArrayList<SVcsModification> result = new ArrayList<SVcsModification>();
+
+    final DAG<Long> dag = ((VcsRootInstanceEx)change.getVcsRoot()).getDag();
+
+    final int i = 0;
+    dag.reverseBreadthFirstSearch(change.getId(), new BFSVisitorAdapter<Long>(){
+      @Override
+      public boolean discover(@NotNull final Long node) {
+        final SVcsModification modificationById = myVcsManager.findModificationById(node, false);
+        if (modificationById != null) result.add(modificationById);
+        return limit == null || i < limit;
+      }
+    });
+
+    return result;
+  }
+
+
 
   @Nullable
   private String getBranchName(@Nullable final String branch) {
