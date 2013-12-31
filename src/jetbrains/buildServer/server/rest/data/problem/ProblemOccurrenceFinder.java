@@ -54,7 +54,8 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
                                  final @NotNull BuildProblemManager buildProblemManager,
                                  final @NotNull ProjectManager projectManager,
                                  final @NotNull ServiceLocator serviceLocator) {
-    super(new String[]{PROBLEM, IDENTITY, "type", "build", AFFECTED_PROJECT, CURRENT, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED, PagerData.START, PagerData.COUNT});
+    super(new String[]{PROBLEM, IDENTITY, "type", "build", AFFECTED_PROJECT, CURRENT, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED, DIMENSION_LOOKUP_LIMIT, PagerData.START,
+      PagerData.COUNT});
     myProjectFinder = projectFinder;
     myUserFinder = userFinder;
     myBuildFinder = buildFinder;
@@ -163,9 +164,9 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     }
 
     final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    final MultiCheckerFilter<BuildProblem> result =
-      new MultiCheckerFilter<BuildProblem>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
-
+    final MultiCheckerFilter<BuildProblem> result = new MultiCheckerFilter<BuildProblem>(locator.getSingleDimensionValueAsLong(PagerData.START),
+                                                                                         countFromFilter != null ? countFromFilter.intValue() : null,
+                                                                                         locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT));
 
     String problemDimension = locator.getSingleDimensionValue(PROBLEM);
     if (problemDimension != null) {

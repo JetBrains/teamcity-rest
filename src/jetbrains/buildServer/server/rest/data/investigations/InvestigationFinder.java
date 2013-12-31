@@ -58,8 +58,8 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
                              final BuildTypeResponsibilityFacade buildTypeResponsibilityFacade,
                              final TestNameResponsibilityFacade testNameResponsibilityFacade,
                              final BuildProblemResponsibilityFacade buildProblemResponsibilityFacade) {
-    super(new String[]{ASSIGNEE, REPORTER, TYPE, STATE, SINCE_DATE, ASSIGNMENT_PROJECT, AFFECTED_PROJECT, BUILD_TYPE, TEST_DIMENSION, PROBLEM_DIMENSION, PagerData.START,
-      PagerData.COUNT});
+    super(new String[]{ASSIGNEE, REPORTER, TYPE, STATE, SINCE_DATE, ASSIGNMENT_PROJECT, AFFECTED_PROJECT, BUILD_TYPE, TEST_DIMENSION, PROBLEM_DIMENSION, DIMENSION_LOOKUP_LIMIT,
+      PagerData.START, PagerData.COUNT});
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;
     myProblemFinder = problemFinder;
@@ -125,8 +125,9 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     }
 
     final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    final MultiCheckerFilter<InvestigationWrapper> result =
-      new MultiCheckerFilter<InvestigationWrapper>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
+    final MultiCheckerFilter<InvestigationWrapper> result = new MultiCheckerFilter<InvestigationWrapper>(locator.getSingleDimensionValueAsLong(PagerData.START),
+                                                                                                         countFromFilter != null ? countFromFilter.intValue() : null,
+                                                                                                         locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT));
 
     final String investigatorDimension = locator.getSingleDimensionValue(ASSIGNEE);
     if (investigatorDimension != null) {

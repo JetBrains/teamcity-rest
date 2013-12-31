@@ -33,7 +33,7 @@ public class TestFinder extends AbstractFinder<STest> {
                     final @NotNull TestName2IndexImpl testName2Index,
                     final @NotNull CurrentProblemsManager currentProblemsManager) {
     super(new String[]{DIMENSION_ID, NAME, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED, PagerData.START, PagerData.COUNT,
-      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+      DIMENSION_LOOKUP_LIMIT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myTestManager = testManager;
     myProjectFinder = projectFinder;
     myTestName2Index = testName2Index;
@@ -129,8 +129,9 @@ public class TestFinder extends AbstractFinder<STest> {
     }
 
     final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    final MultiCheckerFilter<STest> result =
-      new MultiCheckerFilter<STest>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
+    final MultiCheckerFilter<STest> result = new MultiCheckerFilter<STest>(locator.getSingleDimensionValueAsLong(PagerData.START),
+                                                                           countFromFilter != null ? countFromFilter.intValue() : null,
+                                                                           locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT));
 
     final String nameDimension = locator.getSingleDimensionValue(NAME);
     if (nameDimension != null) {

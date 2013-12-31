@@ -37,7 +37,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
                        final @NotNull ProjectManager projectManager,
                        final @NotNull ServiceLocator serviceLocator) {
     super(new String[]{DIMENSION_ID, IDENTITY, TYPE, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED, PagerData.START, PagerData.COUNT,
-      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, DIMENSION_LOOKUP_LIMIT});
     myProjectFinder = projectFinder;
     myBuildProblemManager = buildProblemManager;
     myProjectManager = projectManager;
@@ -123,8 +123,9 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     }
 
     final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    final MultiCheckerFilter<ProblemWrapper> result =
-      new MultiCheckerFilter<ProblemWrapper>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
+    final MultiCheckerFilter<ProblemWrapper> result = new MultiCheckerFilter<ProblemWrapper>(locator.getSingleDimensionValueAsLong(PagerData.START),
+                                                                                             countFromFilter != null ? countFromFilter.intValue() : null,
+                                                                                             locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT));
 
     final String identityDimension = locator.getSingleDimensionValue(IDENTITY);
     if (identityDimension != null) {

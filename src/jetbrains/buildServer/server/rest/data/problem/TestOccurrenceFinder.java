@@ -49,7 +49,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
                               final @NotNull BuildHistoryEx buildHistory,
                               final @NotNull CurrentProblemsManager currentProblemsManager) {
     super(new String[]{DIMENSION_ID, TEST, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED, PagerData.START,
-      PagerData.COUNT});
+      PagerData.COUNT, DIMENSION_LOOKUP_LIMIT});
     myTestFinder = testFinder;
     myBuildFinder = buildFinder;
     myBuildTypeFinder = buildTypeFinder;
@@ -200,8 +200,9 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     }
 
     final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    final MultiCheckerFilter<STestRun> result =
-      new MultiCheckerFilter<STestRun>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
+    final MultiCheckerFilter<STestRun> result = new MultiCheckerFilter<STestRun>(locator.getSingleDimensionValueAsLong(PagerData.START),
+                                                                                 countFromFilter != null ? countFromFilter.intValue() : null,
+                                                                                 locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT));
 
 
     final String statusDimension = locator.getSingleDimensionValue(STATUS);
