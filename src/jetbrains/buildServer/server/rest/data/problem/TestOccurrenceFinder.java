@@ -1,9 +1,6 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -135,7 +132,13 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @Override
   @NotNull
   public List<STestRun> getAllItems() {
-    throw new BadRequestException("Listing all test occurrences is not supported. Try locator dimensions: " + BUILD + ", " + TEST + ", " + CURRENT + ":true");
+    ArrayList<String> exampleLocators = new ArrayList<String>();
+    exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(BUILD, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(TEST, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
+    throw new BadRequestException("Listing all test occurrences is not supported. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
   }
 
   @Override
@@ -154,19 +157,28 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       affectedProject = myProjectFinder.getRootProject();
     }
 
+    String branchDimension = locator.getSingleDimensionValue(BRANCH);
+
     String testDimension = locator.getSingleDimensionValue(TEST);
     if (testDimension != null) {
-      STest test = myTestFinder.getItem(testDimension);
+      final PagedSearchResult<STest> tests = myTestFinder.getItems(testDimension);
 
-      String branchDimension = locator.getSingleDimensionValue(BRANCH);
 
       String buildTypeDimension = locator.getSingleDimensionValue(BUILD_TYPE);
       if (buildTypeDimension != null) {
         final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension);
-        return myBuildHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), 0, branchDimension); //no personal builds
+        final ArrayList<STestRun> result = new ArrayList<STestRun>();
+        for (STest test : tests.myEntries) {
+          result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), 0, branchDimension)); //no personal builds
+        }
+        return result;
       }
 
-      return myBuildHistory.getTestHistory(test.getTestNameId(), affectedProject, 0, branchDimension); //no personal builds
+      final ArrayList<STestRun> result = new ArrayList<STestRun>();
+      for (STest test : tests.myEntries) {
+        result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), affectedProject, 0, branchDimension)); //no personal builds
+      }
+      return result;
     }
 
     Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
@@ -174,7 +186,17 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       return getCurrentOccurences(affectedProject, myCurrentProblemsManager);
     }
 
-    throw new BadRequestException("Listing all test occurrences is not supported. Try locator dimensions: " + BUILD + ", " + TEST + ", " + CURRENT + ":true");
+    Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
+    if (currentlyMutedDimension != null && currentlyMutedDimension) {
+      final List<STest> currentlyMutedTests = myTestFinder.getCurrentlyMutedTests(affectedProject);
+      final ArrayList<STestRun> result = new ArrayList<STestRun>();
+      for (STest test : currentlyMutedTests) {
+        result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), affectedProject, 0, branchDimension));  //no personal builds
+      }
+      return result;
+    }
+
+    return super.getPrefilteredItems(locator);
   }
 
   @NotNull
@@ -225,10 +247,14 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
     String testDimension = locator.getSingleDimensionValue(TEST);
     if (testDimension != null) {
-      final long testNameId = myTestFinder.getItem(testDimension).getTestNameId();
+      final PagedSearchResult<STest> tests = myTestFinder.getItems(testDimension);
+      final HashSet<Long> testNameIds = new HashSet<Long>();
+      for (STest test : tests.myEntries) {
+        testNameIds.add(test.getTestNameId());
+      }
       result.add(new FilterConditionChecker<STestRun>() {
         public boolean isIncluded(@NotNull final STestRun item) {
-          return testNameId == item.getTest().getTestNameId();
+          return testNameIds.contains(item.getTest().getTestNameId());
         }
       });
     }
