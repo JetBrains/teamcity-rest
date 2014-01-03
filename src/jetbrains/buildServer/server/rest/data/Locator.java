@@ -404,6 +404,17 @@ public class Locator {
     return result;
   }
 
+  public static String getStringLocator(final String ... strings){
+    final Locator result = createEmptyLocator();
+    if (strings.length % 2 != 0){
+      throw new IllegalArgumentException("The number of parameters should be even");
+    }
+    for (int i = 0; i < strings.length; i = i + 2) {
+      result.setDimension(strings[i], strings[i+1]);
+    }
+    return result.getStringRepresentation();
+  }
+
   public String getStringRepresentation(){
     if (mySingleValue != null){
       return mySingleValue;

@@ -103,10 +103,11 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   @NotNull
   public List<ProblemWrapper> getAllItems() {
     //todo: TeamCity API: find a way to do this
-    final String example1 = Locator.createEmptyLocator().setDimension(CURRENT, "true").setDimension(AFFECTED_PROJECT, "XXX").getStringRepresentation();
-    final String example2 = Locator.createEmptyLocator().setDimension(CURRENTLY_MUTED, "true").setDimension(AFFECTED_PROJECT, "XXX").getStringRepresentation();
-    final String example3 = Locator.createEmptyLocator().setDimension(DIMENSION_ID, "XXX").getStringRepresentation();
-    throw new BadRequestException("Listing all problems is not supported. Try locator dimensions: " + example1 + " or " + example2 + " or " + example3);
+    ArrayList<String> exampleLocators = new ArrayList<String>();
+    exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
+    throw new BadRequestException("Listing all problems is not supported. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
   }
 
   @Override

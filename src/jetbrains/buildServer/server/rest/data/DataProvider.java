@@ -123,6 +123,16 @@ public class DataProvider {
     myServiceLocator = serviceLocator;
   }
 
+  public static String dumpQuoted(final Collection<String> strings) {
+    final StringBuilder result = new StringBuilder();
+    final Iterator<String> it = strings.iterator();
+    while (it.hasNext()){
+      result.append("\"").append(it.next()).append("\"");
+      if (it.hasNext()) result.append(", ");
+    }
+    return result.toString();
+  }
+
   @NotNull
   public SBuildServer getServer() {
     return myServer;

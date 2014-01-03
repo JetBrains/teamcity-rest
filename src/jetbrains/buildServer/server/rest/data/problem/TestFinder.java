@@ -98,11 +98,12 @@ public class TestFinder extends AbstractFinder<STest> {
   @NotNull
   public List<STest> getAllItems() {
     //todo: TeamCity API: find a way to do this
-    final String example1 = Locator.createEmptyLocator().setDimension(CURRENT, "true").setDimension(AFFECTED_PROJECT, "XXX").getStringRepresentation();
-    final String example2 = Locator.createEmptyLocator().setDimension(CURRENTLY_MUTED, "true").setDimension(AFFECTED_PROJECT, "XXX").getStringRepresentation();
-    final String example3 = Locator.createEmptyLocator().setDimension(DIMENSION_ID, "XXX").getStringRepresentation();
-    final String exampleLocator4 = Locator.createEmptyLocator().setDimension(NAME, "XXX").getStringRepresentation();
-    throw new BadRequestException("Listing all tests is not supported. Try locator dimensions: " + example1 + " or " + example2 + " or " + example3+ " or " + exampleLocator4);
+    ArrayList<String> exampleLocators = new ArrayList<String>();
+    exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(NAME, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
+    throw new BadRequestException("Listing all tests is not supported. Try locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
   }
 
   @Override
@@ -128,7 +129,7 @@ public class TestFinder extends AbstractFinder<STest> {
     return super.getPrefilteredItems(locator);
   }
 
-  private List<STest> getCurrentlyMutedTests(final SProject affectedProject) {
+  List<STest> getCurrentlyMutedTests(final SProject affectedProject) {
     final Map<Long,CurrentMuteInfo> currentMutes = myProblemMutingService.getCurrentMuteInfoForProject(affectedProject);
     final HashSet<STest> result = new HashSet<STest>(currentMutes.size());
     for (Map.Entry<Long, CurrentMuteInfo> mutedTestData : currentMutes.entrySet()) {
