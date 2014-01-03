@@ -125,8 +125,13 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   @NotNull
   @Override
   public List<BuildProblem> getAllItems() {
-    throw new BadRequestException(
-      "Listing all problem occurrences is not supported. Should include at least one of locator dimensions: " + BUILD + ", " + PROBLEM + ", " + CURRENT + ":true");
+    ArrayList<String> exampleLocators = new ArrayList<String>();
+    exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(BUILD, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(PROBLEM, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
+    throw new BadRequestException("Listing all problem occurrences is not supported. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
   }
 
   @Override
@@ -139,12 +144,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
     Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
     if (currentDimension != null && currentDimension) {
-      final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
-      if (affectedProjectDimension != null) {
-        @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
-        return getCurrentProblemOccurences(project);
-      }
-      return getCurrentProblemOccurences(null);
+      return getCurrentProblemOccurences(getAffectedProject(locator));
     }
 
     String problemDimension = locator.getSingleDimensionValue(PROBLEM);
@@ -153,8 +153,18 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       return getProblemOccurrences(problem);
     }
 
-    throw new BadRequestException(
-      "Listing all problem occurrences is not supported. Should include at least one of locator dimensions: " + BUILD + ", " + PROBLEM + ", " + CURRENT + ":true");
+    Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
+    if (currentlyMutedDimension != null && currentlyMutedDimension) {
+      final SProject affectedProject = getAffectedProject(locator);
+      final List<ProblemWrapper> currentlyMutedProblems = myProblemFinder.getCurrentlyMutedProblems(affectedProject);
+      final ArrayList<BuildProblem> result = new ArrayList<BuildProblem>();
+      for (ProblemWrapper problem : currentlyMutedProblems) {
+        result.addAll(getProblemOccurrences(Long.valueOf(problem.getId()), myServiceLocator, myBuildFinder));
+      }
+      return result;
+    }
+
+    return super.getPrefilteredItems(locator);
   }
 
   @Override
@@ -326,5 +336,15 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   @NotNull
   private static List<BuildProblem> getProblemOccurrences(@NotNull final SBuild build) {
     return ((BuildPromotionEx)build.getBuildPromotion()).getBuildProblems();
+  }
+
+  @NotNull
+  private SProject getAffectedProject(@NotNull final Locator locator) {
+    String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
+    if (affectedProjectDimension != null) {
+      return myProjectFinder.getProject(affectedProjectDimension);
+    }else{
+      return myProjectFinder.getRootProject();
+    }
   }
 }
