@@ -3,11 +3,14 @@ package jetbrains.buildServer.server.rest.data.problem;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
+import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
 import jetbrains.buildServer.tests.TestName;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -27,17 +30,20 @@ public class TestFinder extends AbstractFinder<STest> {
   @NotNull private final STestManager myTestManager;
   @NotNull private final TestName2IndexImpl myTestName2Index; //TeamCIty open API issue
   @NotNull private final CurrentProblemsManager myCurrentProblemsManager;
+  @NotNull private final ProblemMutingService myProblemMutingService;
 
   public TestFinder(final @NotNull ProjectFinder projectFinder,
                     final @NotNull STestManager testManager,
                     final @NotNull TestName2IndexImpl testName2Index,
-                    final @NotNull CurrentProblemsManager currentProblemsManager) {
+                    final @NotNull CurrentProblemsManager currentProblemsManager,
+                    final @NotNull ProblemMutingService problemMutingService) {
     super(new String[]{DIMENSION_ID, NAME, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED, PagerData.START, PagerData.COUNT,
       DIMENSION_LOOKUP_LIMIT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myTestManager = testManager;
     myProjectFinder = projectFinder;
     myTestName2Index = testName2Index;
     myCurrentProblemsManager = currentProblemsManager;
+    myProblemMutingService = problemMutingService;
   }
 
   public static String getTestLocator(final @NotNull STest test) {
@@ -92,7 +98,11 @@ public class TestFinder extends AbstractFinder<STest> {
   @NotNull
   public List<STest> getAllItems() {
     //todo: TeamCity API: find a way to do this
-    throw new BadRequestException("Listing all tests is not supported. Try locator dimensions: " + CURRENT + ":true");
+    final String example1 = Locator.createEmptyLocator().setDimension(CURRENT, "true").setDimension(AFFECTED_PROJECT, "XXX").getStringRepresentation();
+    final String example2 = Locator.createEmptyLocator().setDimension(CURRENTLY_MUTED, "true").setDimension(AFFECTED_PROJECT, "XXX").getStringRepresentation();
+    final String example3 = Locator.createEmptyLocator().setDimension(DIMENSION_ID, "XXX").getStringRepresentation();
+    final String exampleLocator4 = Locator.createEmptyLocator().setDimension(NAME, "XXX").getStringRepresentation();
+    throw new BadRequestException("Listing all tests is not supported. Try locator dimensions: " + example1 + " or " + example2 + " or " + example3+ " or " + exampleLocator4);
   }
 
   @Override
@@ -107,13 +117,27 @@ public class TestFinder extends AbstractFinder<STest> {
 
     Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
     if (currentDimension != null && currentDimension) {
-      return getCurrentlyFailingTest(affectedProject);
+      return getCurrentlyFailingTests(affectedProject);
     }
 
-    throw new BadRequestException("Listing all tests is not supported. Try locator dimensions: " + CURRENT + ":true");
+    Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
+    if (currentlyMutedDimension != null && currentlyMutedDimension) {
+      return getCurrentlyMutedTests(affectedProject);
+    }
+
+    return super.getPrefilteredItems(locator);
   }
 
-  private List<STest> getCurrentlyFailingTest(@NotNull final SProject affectedProject) {
+  private List<STest> getCurrentlyMutedTests(final SProject affectedProject) {
+    final Map<Long,CurrentMuteInfo> currentMutes = myProblemMutingService.getCurrentMuteInfoForProject(affectedProject);
+    final HashSet<STest> result = new HashSet<STest>(currentMutes.size());
+    for (Map.Entry<Long, CurrentMuteInfo> mutedTestData : currentMutes.entrySet()) {
+      result.add(findTest(mutedTestData.getKey()));
+    }
+    return new ArrayList<STest>(result);
+  }
+
+  private List<STest> getCurrentlyFailingTests(@NotNull final SProject affectedProject) {
     final List<STestRun> failingTestOccurrences = TestOccurrenceFinder.getCurrentOccurences(affectedProject, myCurrentProblemsManager);
     final HashSet<STest> result = new HashSet<STest>(failingTestOccurrences.size());
     for (STestRun testOccurrence : failingTestOccurrences) {

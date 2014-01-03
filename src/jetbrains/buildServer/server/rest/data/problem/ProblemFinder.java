@@ -9,6 +9,8 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
+import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.serverSide.problems.BuildProblemManager;
 import org.jetbrains.annotations.NotNull;
@@ -31,17 +33,20 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   @NotNull private final BuildProblemManager myBuildProblemManager;
   @NotNull private final ProjectManager myProjectManager;
   @NotNull private final ServiceLocator myServiceLocator;
+  @NotNull private final ProblemMutingService myProblemMutingService;
 
   public ProblemFinder(final @NotNull ProjectFinder projectFinder,
                        final @NotNull BuildProblemManager buildProblemManager,
                        final @NotNull ProjectManager projectManager,
-                       final @NotNull ServiceLocator serviceLocator) {
+                       final @NotNull ServiceLocator serviceLocator,
+                       final @NotNull ProblemMutingService problemMutingService) {
     super(new String[]{DIMENSION_ID, IDENTITY, TYPE, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED, PagerData.START, PagerData.COUNT,
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, DIMENSION_LOOKUP_LIMIT});
     myProjectFinder = projectFinder;
     myBuildProblemManager = buildProblemManager;
     myProjectManager = projectManager;
     myServiceLocator = serviceLocator;
+    myProblemMutingService = problemMutingService;
   }
 
   public static String getLocator(final ProblemWrapper problem) {
@@ -97,23 +102,34 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   @Override
   @NotNull
   public List<ProblemWrapper> getAllItems() {
-    throw new BadRequestException("Listing all problems is not supported. Try locator dimensions: " + Arrays.toString(getKnownDimensions()));
+    //todo: TeamCity API: find a way to do this
+    final String example1 = Locator.createEmptyLocator().setDimension(CURRENT, "true").setDimension(AFFECTED_PROJECT, "XXX").getStringRepresentation();
+    final String example2 = Locator.createEmptyLocator().setDimension(CURRENTLY_MUTED, "true").setDimension(AFFECTED_PROJECT, "XXX").getStringRepresentation();
+    final String example3 = Locator.createEmptyLocator().setDimension(DIMENSION_ID, "XXX").getStringRepresentation();
+    throw new BadRequestException("Listing all problems is not supported. Try locator dimensions: " + example1 + " or " + example2 + " or " + example3);
   }
 
   @Override
   protected List<ProblemWrapper> getPrefilteredItems(@NotNull final Locator locator) {
-    Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
-    if (currentDimension!= null && currentDimension) {
-      final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
-      if (affectedProjectDimension != null) {
-        @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
-        return getCurrentProblemsList(project);
-      }
-      return getCurrentProblemsList(null);
+    final SProject affectedProject;
+    String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
+    if (affectedProjectDimension != null) {
+      affectedProject = myProjectFinder.getProject(affectedProjectDimension);
+    }else{
+      affectedProject = myProjectFinder.getRootProject();
     }
 
-    //todo: TeamCity API: find a way to do this
-    throw new BadRequestException("Listing all problems is not supported. Try locator dimensions: " + Arrays.toString(getKnownDimensions()));
+    Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
+    if (currentDimension!= null && currentDimension) {
+        return getCurrentProblemsList(affectedProject);
+    }
+
+    Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
+    if (currentlyMutedDimension != null && currentlyMutedDimension) {
+      return getCurrentlyMutedProblems(affectedProject);
+    }
+
+    return super.getPrefilteredItems(locator);
   }
 
   @Override
@@ -172,7 +188,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
       result.add(new FilterConditionChecker<ProblemWrapper>() {
         public boolean isIncluded(@NotNull final ProblemWrapper item) {
           //todo: check in affected Project/buildType only, if set
-          return FilterUtil.isIncludedByBooleanFilter(currentlyMutedDimension, item.getMutes().isEmpty());
+          return FilterUtil.isIncludedByBooleanFilter(currentlyMutedDimension, !item.getMutes().isEmpty());
         }
       });
     }
@@ -243,5 +259,14 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     }
 
     return new ArrayList<ProblemWrapper>(resultSet);
+  }
+
+  private List<ProblemWrapper> getCurrentlyMutedProblems(final SProject affectedProject) {
+    final Map<Integer,CurrentMuteInfo> currentMutes = myProblemMutingService.getBuildProblemCurrentMuteInfos(affectedProject);
+    final HashSet<ProblemWrapper> result = new HashSet<ProblemWrapper>(currentMutes.size());
+    for (Map.Entry<Integer, CurrentMuteInfo> mutedData : currentMutes.entrySet()) {
+      result.add(findProblemWrapperById(mutedData.getKey().longValue()));
+    }
+    return new ArrayList<ProblemWrapper>(result);
   }
 }
