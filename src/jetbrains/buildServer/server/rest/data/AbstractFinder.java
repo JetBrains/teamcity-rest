@@ -57,8 +57,8 @@ public abstract class AbstractFinder<ITEM> {
       return new PagedSearchResult<ITEM>(Collections.singletonList(singleItem), null, null);
     }
 
-    AbstractFilter<ITEM> filter = getFilter(locator);
     final List<ITEM> unfilteredItems = getPrefilteredItems(locator);
+    AbstractFilter<ITEM> filter = getFilter(locator);
     locator.checkLocatorFullyProcessed();
     return new PagedSearchResult<ITEM>(getItems(filter, unfilteredItems), filter.getStart(), filter.getCount());
   }

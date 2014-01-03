@@ -149,54 +149,60 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       return build.getFullStatistics().getAllTests();
     }
 
-    final SProject affectedProject;
-    String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
-    if (affectedProjectDimension != null) {
-      affectedProject = myProjectFinder.getProject(affectedProjectDimension);
-    }else{
-      affectedProject = myProjectFinder.getRootProject();
-    }
-
-    String branchDimension = locator.getSingleDimensionValue(BRANCH);
-
     String testDimension = locator.getSingleDimensionValue(TEST);
     if (testDimension != null) {
       final PagedSearchResult<STest> tests = myTestFinder.getItems(testDimension);
-
 
       String buildTypeDimension = locator.getSingleDimensionValue(BUILD_TYPE);
       if (buildTypeDimension != null) {
         final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension);
         final ArrayList<STestRun> result = new ArrayList<STestRun>();
         for (STest test : tests.myEntries) {
-          result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), 0, branchDimension)); //no personal builds
+          result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), 0, getBranch(locator))); //no personal builds
         }
         return result;
       }
 
       final ArrayList<STestRun> result = new ArrayList<STestRun>();
+      final SProject affectedProject = getAffectedProject(locator);
       for (STest test : tests.myEntries) {
-        result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), affectedProject, 0, branchDimension)); //no personal builds
+        result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), affectedProject, 0, getBranch(locator))); //no personal builds
       }
       return result;
     }
 
     Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
     if (currentDimension != null && currentDimension) {
-      return getCurrentOccurences(affectedProject, myCurrentProblemsManager);
+      return getCurrentOccurences(getAffectedProject(locator), myCurrentProblemsManager);
     }
 
     Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
     if (currentlyMutedDimension != null && currentlyMutedDimension) {
+      final SProject affectedProject = getAffectedProject(locator);
       final List<STest> currentlyMutedTests = myTestFinder.getCurrentlyMutedTests(affectedProject);
       final ArrayList<STestRun> result = new ArrayList<STestRun>();
       for (STest test : currentlyMutedTests) {
-        result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), affectedProject, 0, branchDimension));  //no personal builds
+        result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), affectedProject, 0, getBranch(locator)));  //no personal builds
       }
       return result;
     }
 
     return super.getPrefilteredItems(locator);
+  }
+
+  @Nullable
+  private String getBranch(@NotNull final Locator locator) {
+    return locator.getSingleDimensionValue(BRANCH);
+  }
+
+  @NotNull
+  private SProject getAffectedProject(@NotNull final Locator locator) {
+    String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
+    if (affectedProjectDimension != null) {
+      return myProjectFinder.getProject(affectedProjectDimension);
+    }else{
+      return myProjectFinder.getRootProject();
+    }
   }
 
   @NotNull
@@ -246,7 +252,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     }
 
     String testDimension = locator.getSingleDimensionValue(TEST);
-    if (testDimension != null) {
+    if (testDimension != null && locator.getUnusedDimensions().contains(TEST)) {
       final PagedSearchResult<STest> tests = myTestFinder.getItems(testDimension);
       final HashSet<Long> testNameIds = new HashSet<Long>();
       for (STest test : tests.myEntries) {
@@ -260,7 +266,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     }
 
     final String buildDimension = locator.getSingleDimensionValue(BUILD);
-    if (buildDimension != null) {
+    if (buildDimension != null && locator.getUnusedDimensions().contains(BUILD)) {
       final SBuild build = myBuildFinder.getBuild(null, buildDimension);
       result.add(new FilterConditionChecker<STestRun>() {
         public boolean isIncluded(@NotNull final STestRun item) {
@@ -280,7 +286,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     }
 
     final Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
-    if (currentlyMutedDimension != null) {
+    if (currentlyMutedDimension != null) { //it is important to filter even if prefiltered items processed the tests as that does not consider mute scope
       result.add(new FilterConditionChecker<STestRun>() {
         public boolean isIncluded(@NotNull final STestRun item) { //todo: TeamCity API (MP): is there an API way to figure out there is a mute for a STestRun ?
           //todo: check mute in affected Project/buildType only, if set
@@ -299,7 +305,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     }
 
     final String currentDimension = locator.getSingleDimensionValue(CURRENT);
-    if (currentDimension != null) {
+    if (currentDimension != null && locator.getUnusedDimensions().contains(CURRENT)) {
       result.add(new FilterConditionChecker<STestRun>() {
         public boolean isIncluded(@NotNull final STestRun item) {
           return !item.isFixed(); //todo: is this the same as the test occurring in current problems???
