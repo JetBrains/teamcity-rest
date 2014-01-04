@@ -111,6 +111,8 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
           return item;
         }
         throw new NotFoundException("No problem with id '" + problemId + "' found in build with id " + build.getBuildId());
+      } else{
+        locator.markUnused(BUILD, PROBLEM);
       }
     }
     return null;

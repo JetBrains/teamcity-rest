@@ -124,6 +124,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
           throw new NotFoundException("No run for test " + test.getName() + ", id: " + test.getTestNameId() + " can be found in build with id " + build.getBuildId());
         }
         return item;
+      } else{
+        locator.markUnused(TEST, BUILD);
       }
     }
     return null;

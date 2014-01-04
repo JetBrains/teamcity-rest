@@ -49,6 +49,25 @@ public class Locator {
   }
 
   /**
+   * Creates a new locator as a copy of the passed one preserving the entire state.
+   * @param locator
+   */
+  public Locator(@NotNull final Locator locator){
+    myRawValue = locator.myRawValue;
+    modified = locator.modified;
+    myDimensions = new MultiValuesMap<String, String>();
+    for (Map.Entry<String, Collection<String>> entry : locator.myDimensions.entrySet()) {
+      myDimensions.putAll(entry.getKey(), entry.getValue());
+    }
+
+    mySingleValue = locator.mySingleValue;
+    myUsedDimensions.addAll(locator.myUsedDimensions);
+    mySupportedDimensions = mySupportedDimensions != null ? mySupportedDimensions.clone() : null;
+    myIgnoreUnusedDimensions.addAll(locator.myIgnoreUnusedDimensions);
+    myHddenSupportedDimensions.addAll(locator.myHddenSupportedDimensions);
+  }
+
+  /**
    *
    * @param locator
    * @param supportedDimensions dimensions supported in this locator, used in {@link #checkLocatorFullyProcessed()}
@@ -381,6 +400,15 @@ public class Locator {
     }
     result.removeAll(myUsedDimensions);
     return result;
+  }
+
+  /**
+   * Marks the passed dimensions as not used.
+   * This also has a side effect of not reporting the dimensions as known but not reported, see "reportKnownButNotReportedDimensions" method.
+   * @param dimensionNames
+   */
+  public void markUnused(@NotNull String ... dimensionNames){
+    myUsedDimensions.removeAll(Arrays.asList(dimensionNames));
   }
 
   /**
