@@ -1,10 +1,7 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -39,7 +36,6 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   public static final String AFFECTED_PROJECT = "affectedProject";
 
   @NotNull private final ProjectFinder myProjectFinder;
-  @NotNull private final UserFinder myUserFinder;
   @NotNull private final BuildFinder myBuildFinder;
   @NotNull private final ProblemFinder myProblemFinder;
 
@@ -48,7 +44,6 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   @NotNull private final jetbrains.buildServer.ServiceLocator myServiceLocator;
 
   public ProblemOccurrenceFinder(final @NotNull ProjectFinder projectFinder,
-                                 final @NotNull UserFinder userFinder,
                                  final @NotNull BuildFinder buildFinder,
                                  final @NotNull ProblemFinder problemFinder,
                                  final @NotNull BuildProblemManager buildProblemManager,
@@ -57,7 +52,6 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     super(new String[]{PROBLEM, IDENTITY, "type", "build", AFFECTED_PROJECT, CURRENT, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED, DIMENSION_LOOKUP_LIMIT, PagerData.START,
       PagerData.COUNT});
     myProjectFinder = projectFinder;
-    myUserFinder = userFinder;
     myBuildFinder = buildFinder;
     myProblemFinder = problemFinder;
     myBuildProblemManager = buildProblemManager;
@@ -149,8 +143,12 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
     String problemDimension = locator.getSingleDimensionValue(PROBLEM);
     if (problemDimension != null) {
-      final ProblemWrapper problem = myProblemFinder.getItem(problemDimension);
-      return getProblemOccurrences(problem);
+      final PagedSearchResult<ProblemWrapper> problems = myProblemFinder.getItems(problemDimension);
+      final ArrayList<BuildProblem> result = new ArrayList<BuildProblem>();
+      for (ProblemWrapper problem : problems.myEntries) {
+        result.addAll(getProblemOccurrences(problem));
+      }
+      return result;
     }
 
     Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
@@ -180,10 +178,14 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
     String problemDimension = locator.getSingleDimensionValue(PROBLEM);
     if (problemDimension != null) {
-      final ProblemWrapper problem = myProblemFinder.getItem(problemDimension);
+      final PagedSearchResult<ProblemWrapper> problems = myProblemFinder.getItems(problemDimension);
+      final HashSet<Integer> problemIds = new HashSet<Integer>();
+      for (ProblemWrapper problem : problems.myEntries) {
+        problemIds.add(problem.getId().intValue());
+      }
       result.add(new FilterConditionChecker<BuildProblem>() {
         public boolean isIncluded(@NotNull final BuildProblem item) {
-          return problem.getId() == item.getId();
+          return problemIds.contains(item.getId());
         }
       });
     }
