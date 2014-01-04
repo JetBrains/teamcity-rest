@@ -195,7 +195,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     }
 
     final String currentDimension = locator.getSingleDimensionValue(CURRENT);
-    if (currentDimension != null) {
+    if (currentDimension != null && locator.getUnusedDimensions().contains(CURRENT)) {
       final Set<ProblemWrapper> currentProblems = new TreeSet<ProblemWrapper>(getCurrentProblemsList(null));
       result.add(new FilterConditionChecker<ProblemWrapper>() {
         public boolean isIncluded(@NotNull final ProblemWrapper item) {
@@ -262,7 +262,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     return new ArrayList<ProblemWrapper>(resultSet);
   }
 
-  private List<ProblemWrapper> getCurrentlyMutedProblems(final SProject affectedProject) {
+  public List<ProblemWrapper> getCurrentlyMutedProblems(final SProject affectedProject) {
     final Map<Integer,CurrentMuteInfo> currentMutes = myProblemMutingService.getBuildProblemCurrentMuteInfos(affectedProject);
     final HashSet<ProblemWrapper> result = new HashSet<ProblemWrapper>(currentMutes.size());
     for (Map.Entry<Integer, CurrentMuteInfo> mutedData : currentMutes.entrySet()) {
