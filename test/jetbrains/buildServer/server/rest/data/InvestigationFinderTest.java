@@ -2,6 +2,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.Date;
 import jetbrains.BuildServerCreator;
+import jetbrains.buildServer.responsibility.BuildProblemResponsibilityEntry;
 import jetbrains.buildServer.responsibility.BuildTypeResponsibilityEntry;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.responsibility.ResponsibilityEntryEx;
@@ -12,6 +13,8 @@ import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrappe
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.buildType.Investigation;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
@@ -68,19 +71,20 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     assertEquals(ResponsibilityEntry.State.TAKEN, investigation1.getState());
   }
 
-  @Test(enabled = false)
+  @Test
   public void testBuildTypeInvestigationModel() throws Exception {
     createFailingBuild();
     myFixture.getResponsibilityFacadeEx().setBuildTypeResponsibility(myBuildType, createRespEntry(ResponsibilityEntry.State.TAKEN, myUser));
 
     final PagedSearchResult<InvestigationWrapper> ivestigationWrappers = myInvestigationFinder.getItems((String)null);
-    ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
+    final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
       public String transform(final String path) {
         return path;
       }
     });
+    final BeanFactory beanFactory = new BeanFactory(null);
 
-    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.ALL_FIELDS, null, myServer, apiUrlBuilder);
+    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.ALL_FIELDS, null, new BeanContext(beanFactory, myServer, apiUrlBuilder));
 
     assertEquals(1, investigations.count.longValue());
     final Investigation investigation = investigations.items.get(0);
@@ -106,8 +110,9 @@ public class InvestigationFinderTest extends BaseServerTestCase {
         return path;
       }
     });
+    final BeanFactory beanFactory = new BeanFactory(null);
 
-    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.ALL_FIELDS, null, myServer, apiUrlBuilder);
+    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.ALL_FIELDS, null, new BeanContext(beanFactory, myServer, apiUrlBuilder));
 
     assertEquals(1, investigations.count.longValue());
     final Investigation investigation = investigations.items.get(0);
@@ -121,12 +126,15 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     assertEquals(myProject.getExternalId(), investigation.scope.project.id);
   }
 
-  @Test(enabled = false)
+  @Test
   public void testProblemInvestigationModel() throws Exception {
     createFailingBuild();
 
-    myFixture.getResponsibilityFacadeEx().setBuildProblemResponsibility(new BuildProblemInfoImpl(myProject.getProjectId(), getProblemId(PROBLEM_IDENTITY), null), myProject.getProjectId(),
-                                                                        createRespEntry(ResponsibilityEntry.State.TAKEN, myUser));
+    final BuildProblemInfoImpl buildProblem = new BuildProblemInfoImpl(myProject.getProjectId(), getProblemId(PROBLEM_IDENTITY), null);
+    myFixture.getResponsibilityFacadeEx().setBuildProblemResponsibility(buildProblem, myProject.getProjectId(), createRespEntry(ResponsibilityEntry.State.TAKEN, myUser));
+
+    final BuildProblemResponsibilityEntry buildProblemResponsibility = myFixture.getResponsibilityFacadeEx().findBuildProblemResponsibility(buildProblem, myProject.getProjectId());
+    assert buildProblemResponsibility != null;
 
     final PagedSearchResult<InvestigationWrapper> ivestigationWrappers = myInvestigationFinder.getItems((String)null);
     ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
@@ -134,12 +142,13 @@ public class InvestigationFinderTest extends BaseServerTestCase {
         return path;
       }
     });
+    final BeanFactory beanFactory = new BeanFactory(null);
 
-    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.ALL_FIELDS, null, myServer, apiUrlBuilder);
+    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.ALL_FIELDS, null, new BeanContext(beanFactory, myServer, apiUrlBuilder));
 
     assertEquals(1, investigations.count.longValue());
     final Investigation investigation = investigations.items.get(0);
-    assertEquals(null, investigation.id);
+    assertEquals("assignmentProject:(id:" + myProject.getExternalId() + "),problem:(id:" + buildProblemResponsibility.getBuildProblemInfo().getId() + ")", investigation.id);
     assertEquals("TAKEN", investigation.state);
     assertEquals((Long)myUser.getId(), investigation.responsible.getId());
     assertEquals("The comment", investigation.assignment.text);

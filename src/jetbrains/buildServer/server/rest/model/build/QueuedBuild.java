@@ -33,6 +33,7 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildTypeRef;
 import jetbrains.buildServer.server.rest.model.change.Revisions;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
 import jetbrains.buildServer.server.rest.request.BuildQueueRequest;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.*;
@@ -140,7 +141,7 @@ public class QueuedBuild {
 
   @XmlElement(name = "buildType")
   public BuildTypeRef getBuildType() {
-    return new BuildTypeRef(myBuild.getBuildType(), myDataProvider, myApiUrlBuilder);
+    return new BuildTypeRef(myBuild.getBuildType(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @XmlElement

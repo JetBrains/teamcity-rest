@@ -99,7 +99,7 @@ public class BuildTask {
 
 //    buildTask.rebuildAllDependencies =
     //noinspection ConstantConditions
-    buildTask.buildType = new BuildTypeRef(build.getBuildType(), context.getSingletonService(DataProvider.class), context.getApiUrlBuilder());
+    buildTask.buildType = new BuildTypeRef(build.getBuildType(), context);
     buildTask.agent = new AgentRef(build.getAgent(), context.getApiUrlBuilder());
     if (build.getBuildComment() != null) buildTask.commentText = build.getBuildComment().getComment();
     buildTask.properties = new Properties(build.getBuildPromotion().getCustomParameters());

@@ -4,14 +4,13 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -43,8 +42,7 @@ public class Investigation {
 
   public Investigation(final @NotNull InvestigationWrapper investigation,
                        final @NotNull Fields fields,
-                       final @NotNull ServiceLocator serviceLocator,
-                       final @NotNull ApiUrlBuilder apiUrlBuilder) {
+                       final @NotNull BeanContext beanContext) {
     final ResponsibilityEntry.State stateOjbect = investigation.getState();
     state = stateOjbect.name();
     if (stateOjbect.equals(ResponsibilityEntry.State.NONE)){
@@ -62,11 +60,11 @@ public class Investigation {
     href = InvestigationRequest.getHref(investigation);
     if (fields.isAllFieldsIncluded() || true) {
 
-      scope = new InvestigationScope(investigation, fields.getNestedField("scope"), serviceLocator, apiUrlBuilder);
-      responsible = new UserRef(investigation.getResponsibleUser(), apiUrlBuilder);
+      scope = new InvestigationScope(investigation, fields.getNestedField("scope"), beanContext);
+      responsible = new UserRef(investigation.getResponsibleUser(), beanContext.getApiUrlBuilder());
 
       //todo: add all investigation fields: state, removeType, etc.
-      assignment = new Comment(investigation.getReporterUser(), investigation.getTimestamp(), investigation.getComment(), apiUrlBuilder);
+      assignment = new Comment(investigation.getReporterUser(), investigation.getTimestamp(), investigation.getComment(), beanContext.getApiUrlBuilder());
     }
   }
 }

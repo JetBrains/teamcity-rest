@@ -22,9 +22,8 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeTemplate;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -43,24 +42,20 @@ public class BuildTypes {
   public BuildTypes() {
   }
 
-  public static BuildTypes createFromBuildTypes(List<SBuildType> buildTypesObjects,
-                                                @NotNull final DataProvider dataProvider,
-                                                final ApiUrlBuilder apiUrlBuilder){
+  public static BuildTypes createFromBuildTypes(List<SBuildType> buildTypesObjects, final BeanContext beanContext){
     final BuildTypes result = new BuildTypes();
     result.buildTypes = new ArrayList<BuildTypeRef>(buildTypesObjects.size());
     for (SBuildType buildType : buildTypesObjects) {
-      result.buildTypes.add(new BuildTypeRef(buildType, dataProvider, apiUrlBuilder));
+      result.buildTypes.add(new BuildTypeRef(buildType, beanContext));
     }
     return result;
   }
 
-  public static BuildTypes createFromTemplates(final List<BuildTypeTemplate> buildTypeTemplates,
-                                  final DataProvider dataProvider,
-                                  final ApiUrlBuilder apiUrlBuilder) {
+  public static BuildTypes createFromTemplates(final List<BuildTypeTemplate> buildTypeTemplates, final BeanContext beanContext) {
     final BuildTypes result = new BuildTypes();
     result.buildTypes = new ArrayList<BuildTypeRef>(buildTypeTemplates.size());
     for (BuildTypeTemplate buildType : buildTypeTemplates) {
-      result.buildTypes.add(new BuildTypeRef(buildType, dataProvider, apiUrlBuilder));
+      result.buildTypes.add(new BuildTypeRef(buildType, beanContext));
     }
     return result;
   }

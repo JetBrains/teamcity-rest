@@ -21,10 +21,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.APIController;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeTemplate;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -43,8 +42,7 @@ import org.jetbrains.annotations.Nullable;
 @XmlType(name = "buildType-ref", propOrder = {"id", "internalId", "name", "href", "projectName", "projectId", "projectInternalId", "webUrl"})
 public class BuildTypeRef {
   @Nullable protected BuildTypeOrTemplate myBuildType;
-  private ServiceLocator myServiceLocator;
-  private ApiUrlBuilder myApiUrlBuilder;
+  @NotNull private BeanContext myBeanContext;
 
   /**
    * @return External id of the build configuration
@@ -59,18 +57,15 @@ public class BuildTypeRef {
   public BuildTypeRef() {
   }
 
-  public BuildTypeRef(@NotNull final SBuildType buildType, @NotNull final DataProvider dataProvider, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public BuildTypeRef(@NotNull final SBuildType buildType, @NotNull final BeanContext beanContext) {
     myBuildType = new BuildTypeOrTemplate(buildType);
-    myServiceLocator = dataProvider.getServer();
-    myApiUrlBuilder = apiUrlBuilder;
-
+    myBeanContext = beanContext;
     init(myBuildType);
   }
 
-  public BuildTypeRef(@NotNull final SBuildType buildType, @NotNull final ServiceLocator serviceLocator, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public BuildTypeRef(@NotNull final BuildTypeTemplate buildType, @NotNull final BeanContext beanContext) {
     myBuildType = new BuildTypeOrTemplate(buildType);
-    myServiceLocator = serviceLocator;
-    myApiUrlBuilder = apiUrlBuilder;
+    myBeanContext = beanContext;
 
     init(myBuildType);
   }
@@ -80,25 +75,16 @@ public class BuildTypeRef {
     internalId = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? buildType.getInternalId() : null;
   }
 
-  public BuildTypeRef(@NotNull final BuildTypeTemplate buildType, @NotNull final DataProvider dataProvider, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    myBuildType = new BuildTypeOrTemplate(buildType);
-    myServiceLocator = dataProvider.getServer();
-    myApiUrlBuilder = apiUrlBuilder;
-
-    init(myBuildType);
-  }
-
   /**
    * Creates a reference on a missing build type which has only external id known.
    * @param externalId
    */
-  public BuildTypeRef(@Nullable final String externalId, @Nullable final String internalId, @NotNull final DataProvider dataProvider, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public BuildTypeRef(@Nullable final String externalId, @Nullable final String internalId,@NotNull final BeanContext beanContext) {
     myBuildType = null;
     id = externalId;
     this.internalId = (TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) || externalId == null) ? internalId : null;
 
-    myServiceLocator = dataProvider.getServer();
-    myApiUrlBuilder = apiUrlBuilder;
+    myBeanContext = beanContext;
   }
 
   @XmlAttribute
@@ -108,7 +94,7 @@ public class BuildTypeRef {
 
   @XmlAttribute
   public String getHref() {
-    return myBuildType == null ? null : myApiUrlBuilder.getHref(myBuildType);
+    return myBuildType == null ? null : myBeanContext.getApiUrlBuilder().getHref(myBuildType);
   }
 
   @XmlAttribute
@@ -132,7 +118,7 @@ public class BuildTypeRef {
   public String getWebUrl() {
     return myBuildType == null
            ? null
-           : (myBuildType.isBuildType() ? myServiceLocator.getSingletonService(WebLinks.class).getConfigurationHomePageUrl(myBuildType.getBuildType()) : null);
+           : (myBuildType.isBuildType() ? myBeanContext.getSingletonService(WebLinks.class).getConfigurationHomePageUrl(myBuildType.getBuildType()) : null);
   }
 
   @Nullable

@@ -15,6 +15,8 @@ import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.Investigation;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.STest;
 import org.jetbrains.annotations.NotNull;
@@ -29,6 +31,7 @@ public class InvestigationRequest {
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private InvestigationFinder myInvestigationFinder;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
+  @Context @NotNull private BeanFactory myBeanFactory;
 
   public static final String API_SUB_URL = Constants.API_URL + "/investigations";
 
@@ -78,8 +81,7 @@ public class InvestigationRequest {
                               new Href(pager.getCurrentUrlRelativePath(), myApiUrlBuilder),
                               new Fields(fields, Fields.ALL_FIELDS),
                               pager,
-                              myServiceLocator,
-                              myApiUrlBuilder
+                              new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder)
     );
   }
 
@@ -87,7 +89,7 @@ public class InvestigationRequest {
   @Path("/{investigationLocator}")
   @Produces({"application/xml", "application/json"})
   public Investigation serveInstance(@PathParam("investigationLocator") String locatorText, @QueryParam("fields") String fields) {
-    return new Investigation(myInvestigationFinder.getItem(locatorText), new Fields(fields), myServiceLocator, myApiUrlBuilder);
+    return new Investigation(myInvestigationFinder.getItem(locatorText), new Fields(fields), new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   /*

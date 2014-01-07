@@ -12,6 +12,8 @@ import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrappe
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,19 +40,27 @@ public class Investigations {
                         @Nullable final PagerData pagerData,
                         @NotNull final ServiceLocator serviceLocator,
                         @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    this(itemsP, hrefP, fields, pagerData, new BeanContext(serviceLocator.getSingletonService(BeanFactory.class), serviceLocator, apiUrlBuilder));
+  }
+
+  public Investigations(@Nullable final Collection<InvestigationWrapper> itemsP,
+                        @Nullable final Href hrefP,
+                        @NotNull final Fields fields,
+                        @Nullable final PagerData pagerData,
+                        @NotNull final BeanContext beanContext) {
     href = hrefP != null ? hrefP.getHref() : null;
 
     if (fields.isAllFieldsIncluded()) {
       if (itemsP != null) {
         items = new ArrayList<Investigation>(itemsP.size());
         for (InvestigationWrapper item : itemsP) {
-          items.add(new Investigation(item, fields.getNestedField("investigation"), serviceLocator, apiUrlBuilder));
+          items.add(new Investigation(item, fields.getNestedField("investigation"), beanContext));
         }
         count = (long)items.size();
 
         if (pagerData != null) {
-          nextHref = pagerData.getNextHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;
-          prevHref = pagerData.getPrevHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getPrevHref()) : null;
+          nextHref = pagerData.getNextHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null;
+          prevHref = pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null;
         }
       }
     }

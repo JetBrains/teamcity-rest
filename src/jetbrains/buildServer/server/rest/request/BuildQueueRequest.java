@@ -35,6 +35,7 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.build.BuildQueue;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
@@ -151,7 +152,7 @@ public class BuildQueueRequest {
     if (associatedBuild == null){
       return null;
     }
-    return new Build(associatedBuild, myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
+    return new Build(associatedBuild, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   private void cancelQueuedBuild(@NotNull final SQueuedBuild build, @Nullable final String comment) {

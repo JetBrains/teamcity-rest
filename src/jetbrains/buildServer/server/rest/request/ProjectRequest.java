@@ -194,7 +194,7 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   public BuildTypes serveBuildTypesInProject(@PathParam("projectLocator") String projectLocator) {
     SProject project = myProjectFinder.getProject(projectLocator);
-    return BuildTypes.createFromBuildTypes(project.getOwnBuildTypes(), myDataProvider, myApiUrlBuilder);
+    return BuildTypes.createFromBuildTypes(project.getOwnBuildTypes(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @POST
@@ -256,7 +256,7 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   public BuildTypes serveTemplatesInProject(@PathParam("projectLocator") String projectLocator) {
     SProject project = myProjectFinder.getProject(projectLocator);
-    return BuildTypes.createFromTemplates(project.getOwnBuildTypeTemplates(), myDataProvider, myApiUrlBuilder);
+    return BuildTypes.createFromTemplates(project.getOwnBuildTypeTemplates(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @POST
@@ -435,7 +435,7 @@ public class ProjectRequest {
     SBuildType buildType = myBuildTypeFinder.getBuildType(myProjectFinder.getProject(projectLocator), buildTypeLocator);
     SBuild build = myBuildFinder.getBuild(buildType, buildLocator);
 
-    return new Build(build, myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
+    return new Build(build, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @GET

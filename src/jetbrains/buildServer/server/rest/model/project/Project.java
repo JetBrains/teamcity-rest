@@ -35,6 +35,7 @@ import jetbrains.buildServer.server.rest.request.VcsRootRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.WebLinks;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -120,11 +121,8 @@ public class Project {
     internalId = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? project.getProjectId() : null;
     name = project.getName();
 
-    ApiUrlBuilder apiUrlBuilder = beanContext.getApiUrlBuilder();
-    DataProvider dataProvider = beanContext.getSingletonService(DataProvider.class);
-
-    href = apiUrlBuilder.getHref(project);
-    webUrl = dataProvider.getProjectUrl(project);
+    href = beanContext.getApiUrlBuilder().getHref(project);
+    webUrl = beanContext.getSingletonService(WebLinks.class).getProjectPageUrl(project.getExternalId());
 
     final SProject actulParentProject = project.getParentProject();
     if (fields.isAllFieldsIncluded()) {
@@ -132,10 +130,10 @@ public class Project {
       archived = project.isArchived();
 
       parentProject = actulParentProject == null ? null : new Project(actulParentProject, fields.getNestedField("parentProject"), beanContext);
-      buildTypes = BuildTypes.createFromBuildTypes(project.getOwnBuildTypes(), dataProvider, apiUrlBuilder);
-      templates = BuildTypes.createFromTemplates(project.getOwnBuildTypeTemplates(), dataProvider, apiUrlBuilder);
+      buildTypes = BuildTypes.createFromBuildTypes(project.getOwnBuildTypes(), beanContext);
+      templates = BuildTypes.createFromTemplates(project.getOwnBuildTypeTemplates(), beanContext);
       parameters = new Properties(project.getParameters());
-      vcsRoots = new Href(VcsRootRequest.API_VCS_ROOTS_URL + "?locator=project:(id:" + project.getExternalId() + ")", apiUrlBuilder);
+      vcsRoots = new Href(VcsRootRequest.API_VCS_ROOTS_URL + "?locator=project:(id:" + project.getExternalId() + ")", beanContext.getApiUrlBuilder());
 
       projects = new Projects(project.getOwnProjects(), fields.getNestedField("projects"), beanContext);
     }else{

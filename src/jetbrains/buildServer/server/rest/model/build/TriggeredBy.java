@@ -10,6 +10,7 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeRef;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.TriggeredByBuilder;
@@ -88,7 +89,7 @@ public class TriggeredBy {
       type = "buildType";
       try {
         final SBuildType foundBuildType = dataProvider.getServer().getProjectManager().findBuildTypeById(buildTypeId);
-        buildType = foundBuildType != null ? new BuildTypeRef(foundBuildType, dataProvider, apiUrlBuilder) : null;
+        buildType = foundBuildType != null ? new BuildTypeRef(foundBuildType, new BeanContext(dataProvider.getBeanFactory(), dataProvider.getServer(), apiUrlBuilder)) : null;
       } catch (AccessDeniedException e) {
         buildType = null; //ignoring inability to view the triggering build type
       }

@@ -39,6 +39,7 @@ import jetbrains.buildServer.server.rest.model.change.Change;
 import jetbrains.buildServer.server.rest.model.change.Changes;
 import jetbrains.buildServer.server.rest.model.change.VcsRootInstanceRef;
 import jetbrains.buildServer.server.rest.model.issue.Issues;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -223,7 +224,7 @@ public class ChangeRequest {
   @Produces({"application/xml", "application/json"})
   public BuildTypes getRelatedBuildTypes(@PathParam("changeLocator") String changeLocator) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
-    return BuildTypes.createFromBuildTypes(new ArrayList<SBuildType>(change.getRelatedConfigurations()), myDataProvider, myApiUrlBuilder);
+    return BuildTypes.createFromBuildTypes(new ArrayList<SBuildType>(change.getRelatedConfigurations()), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
  /**

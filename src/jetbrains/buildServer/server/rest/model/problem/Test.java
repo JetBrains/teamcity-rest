@@ -62,8 +62,7 @@ public class Test {
                                             new Href(InvestigationRequest.getHref(test), apiUrlBuilder),
                                             fields.getNestedField("investigations"),
                                             null,
-                                            beanContext.getServiceLocator(),
-                                            apiUrlBuilder);
+                                            beanContext);
       }
       testOccurrences = new Href(TestOccurrenceRequest.getHref(test), apiUrlBuilder);
     }

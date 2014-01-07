@@ -7,7 +7,6 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -61,8 +60,7 @@ public class Mute {
         //todo: should be expose on the build level
         break;
       case IN_CONFIGURATION:
-        buildTypes = BuildTypes.createFromBuildTypes(getBuildTypesByInternalIds(scope.getBuildTypeIds(), beanContext), beanContext.getSingletonService(DataProvider.class),
-                                                     beanContext.getApiUrlBuilder());
+        buildTypes = BuildTypes.createFromBuildTypes(getBuildTypesByInternalIds(scope.getBuildTypeIds(), beanContext), beanContext);
         break;
       case IN_PROJECT:
         projects = new Projects(Collections.singletonList(getProjectByInternalId(scope.getProjectId(), beanContext)), fields.getNestedField("projects"), beanContext);

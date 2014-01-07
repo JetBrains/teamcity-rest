@@ -273,11 +273,6 @@ public class DataProvider {
     return myWebLinks.getConfigurationHomePageUrl(buildType);
   }
 
-  @NotNull
-  public String getProjectUrl(final SProject project) {
-    return myWebLinks.getProjectPageUrl(project.getExternalId());
-  }
-
   @Nullable
   public static Date parseDate(@Nullable final String dateString) {
     if (dateString == null) {

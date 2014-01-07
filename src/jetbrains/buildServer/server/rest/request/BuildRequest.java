@@ -24,9 +24,7 @@ import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
-import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.ProcessingResult;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.data.BuildFinder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
@@ -80,7 +78,6 @@ public class BuildRequest {
   public static final String RELATED_ISSUES = "/relatedIssues";
   public static final String TESTS = "testOccurrences";
 
-  @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private BuildFinder myBuildFinder;
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
   @Context @NotNull private BuildArtifactsFinder myBuildArtifactsFinder;
@@ -96,12 +93,8 @@ public class BuildRequest {
   public static final String CHILDREN = "/children";
   public static final String ARTIFACTS_CHILDREN = ARTIFACTS + CHILDREN;
 
-  @Context
-  private ApiUrlBuilder myApiUrlBuilder;
-  @Context
-  private ServiceLocator myServiceLocator;
-  @Context
-  private BeanFactory myFactory;
+  @Context @NotNull private BeanContext myBeanContext;
+  @Context @NotNull private DataProvider myDataProvider;
 
   public static String getBuildHref(SBuild build) {
     return API_BUILDS_URL + "/" + getBuildLocator(build);
@@ -151,7 +144,7 @@ public class BuildRequest {
                                @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     return myBuildFinder.getBuildsForRequest(myBuildTypeFinder.getBuildTypeIfNotNull(buildTypeLocator), status, userLocator, includePersonal,
                                            includeCanceled, onlyPinned, tags, agentName, sinceBuildLocator, sinceDate, start, count,
-                                           locator, "locator", uriInfo, request, myApiUrlBuilder
+                                           locator, "locator", uriInfo, request, myBeanContext.getApiUrlBuilder()
     );
   }
 
@@ -166,7 +159,7 @@ public class BuildRequest {
   @Path("/{buildLocator}")
   @Produces({"application/xml", "application/json"})
   public Build serveBuild(@PathParam("buildLocator") String buildLocator) {
-    return new Build(myBuildFinder.getBuild(null, buildLocator), myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
+    return new Build(myBuildFinder.getBuild(null, buildLocator), myBeanContext);
   }
 
   @GET
@@ -215,7 +208,7 @@ public class BuildRequest {
                                   @QueryParam("resolveParameters") final Boolean resolveParameters,
                                   @QueryParam("locator") final String locator) {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return myBuildArtifactsFinder.getFile(build, getResolvedIfNecessary(build, path, resolveParameters), locator, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return myBuildArtifactsFinder.getFile(build, getResolvedIfNecessary(build, path, resolveParameters), locator, myBeanContext);
   }
 
   @GET
@@ -227,7 +220,7 @@ public class BuildRequest {
                                    @QueryParam("locator") final String locator) {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final String resolvedPath = getResolvedIfNecessary(build, path, resolveParameters);
-    return myBuildArtifactsFinder.getFiles(build, resolvedPath, locator, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return myBuildArtifactsFinder.getFiles(build, resolvedPath, locator, myBeanContext);
   }
 
   @GET
@@ -242,7 +235,7 @@ public class BuildRequest {
     final BuildArtifact artifact = BuildArtifactsFinder.getBuildArtifact(build, resolvedPath, BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
     if (artifact.isDirectory()) {
       throw new NotFoundException("Cannot provide content for directory '" + resolvedPath + "'. To get children use '" +
-                                  BuildArtifactsFinder.fileApiUrlBuilderForBuild(myApiUrlBuilder, build, null).getChildrenHref(new ArtifactElement(artifact)) + "'.");
+                                  BuildArtifactsFinder.fileApiUrlBuilderForBuild(myBeanContext.getApiUrlBuilder(), build, null).getChildrenHref(new ArtifactElement(artifact)) + "'.");
     }
 
     final StreamingOutput output = BuildArtifactsFinder.getStreamingOutput(artifact);
@@ -294,7 +287,7 @@ public class BuildRequest {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     byte[] fileContent;
     try {
-      fileContent = myServiceLocator.getSingletonService(VcsManager.class).getFileContent(build, fileName);
+      fileContent = myBeanContext.getSingletonService(VcsManager.class).getFileContent(build, fileName);
     } catch (VcsException e) {
       throw new OperationException("Error while retrieving file content from VCS", e);
     }
@@ -317,7 +310,7 @@ public class BuildRequest {
   @Produces({"application/xml", "application/json"})
   public IssueUsages serveBuildRelatedIssues(@PathParam("buildLocator") String buildLocator) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return new IssueUsages(build, true, myApiUrlBuilder, myFactory);
+    return new IssueUsages(build, true, myBeanContext.getApiUrlBuilder(), myBeanContext.getSingletonService(BeanFactory.class));
   }
 
 
@@ -497,7 +490,7 @@ public class BuildRequest {
   @Produces({"application/xml", "application/json"})
   public Comment getCanceledInfo(@PathParam("buildLocator") String buildLocator) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return Build.getCanceledComment(build, myApiUrlBuilder, myServiceLocator);
+    return Build.getCanceledComment(build, myBeanContext.getApiUrlBuilder(), myBeanContext.getServiceLocator());
   }
 
   @GET
@@ -513,7 +506,7 @@ public class BuildRequest {
   public ProblemOccurrences getProblems(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final List<BuildProblem> buildProblems = ((BuildPromotionEx)build.getBuildPromotion()).getBuildProblems();//todo: (TeamCity) is this OK to use?
-    return new ProblemOccurrences(buildProblems, null, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder), new Fields(fields));
+    return new ProblemOccurrences(buildProblems, null, myBeanContext, new Fields(fields));
   }
 
   @GET
@@ -523,7 +516,7 @@ public class BuildRequest {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final List<STestRun> allTests = build.getFullStatistics().getAllTests();
 //todo: investigate test repeat counts support
-    return new TestOccurrences(allTests, null, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder),  new Fields(fields));
+    return new TestOccurrences(allTests, null, myBeanContext,  new Fields(fields));
   }
 
   @POST
@@ -531,7 +524,7 @@ public class BuildRequest {
   @Consumes({"application/xml", "application/json"})
   public Build cancelBuild(@PathParam("buildLocator") String buildLocator, BuildCancelRequest cancelRequest, @Context HttpServletRequest request) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    final SRunningBuild runningBuild = Build.getRunningBuild(build, myServiceLocator);
+    final SRunningBuild runningBuild = Build.getRunningBuild(build, myBeanContext.getServiceLocator());
     if (runningBuild == null){
       throw new BadRequestException("Cannot cancel not running build.");
     }
@@ -547,7 +540,7 @@ public class BuildRequest {
     if (associatedBuild == null){
       return null;
     }
-    return new Build(associatedBuild, myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
+    return new Build(associatedBuild, myBeanContext);
   }
 
   @GET
@@ -555,7 +548,7 @@ public class BuildRequest {
   @Produces({"application/xml", "application/json"})
   public BuildTask getExampleBuildTask(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return BuildTask.getExampleBuildTask(build, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return BuildTask.getExampleBuildTask(build, myBeanContext);
   }
 
   private void restoreInQueue(final SRunningBuild runningBuild, final User user) {
@@ -568,7 +561,7 @@ public class BuildRequest {
     tbb.addParameters(origTriggeredBy.getParameters());
     tbb.addParameter(TriggeredByBuilder.RE_ADDED_AFTER_STOP_NAME, String.valueOf(user.getId()));
 
-    myServiceLocator.getSingletonService(BuildQueueEx.class).restoreInQueue(promotionEx, agentRestrictor, tbb.toString());
+    myBeanContext.getSingletonService(BuildQueueEx.class).restoreInQueue(promotionEx, agentRestrictor, tbb.toString());
   }
 
   @DELETE
@@ -580,7 +573,7 @@ public class BuildRequest {
   public void deleteBuild(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     if (!build.isFinished()) {
-      final SRunningBuild runningBuild = Build.getRunningBuild(build, myServiceLocator);
+      final SRunningBuild runningBuild = Build.getRunningBuild(build, myBeanContext.getServiceLocator());
       if (runningBuild != null) {
         final SUser currentUser = SessionUser.getUser(request);
         runningBuild.stop(currentUser, null);
@@ -643,7 +636,7 @@ public class BuildRequest {
     final boolean holderCanceled[] = new boolean[1];
 
     try {
-      final SecurityContextEx securityContext = myServiceLocator.getSingletonService(SecurityContextEx.class);
+      final SecurityContextEx securityContext = myBeanContext.getSingletonService(SecurityContextEx.class);
       final AuthorityHolder currentUserAuthorityHolder = securityContext.getAuthorityHolder();
       try {
         securityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
@@ -712,7 +705,7 @@ public class BuildRequest {
       return true;
     }
 
-    final SUser guestUser = myServiceLocator.getSingletonService(UserModel.class).getGuestUser();
+    final SUser guestUser = myBeanContext.getSingletonService(UserModel.class).getGuestUser();
     return myDataProvider.getServer().getLoginConfiguration().isGuestLoginAllowed() &&
            guestUser.isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_PROJECT);
   }
@@ -724,13 +717,13 @@ public class BuildRequest {
         authorityHolder.isPermissionGrantedGlobally(Permission.VIEW_PROJECT)) {
       return true;
     }
-    final SUser guestUser = myServiceLocator.getSingletonService(UserModel.class).getGuestUser();
+    final SUser guestUser = myBeanContext.getSingletonService(UserModel.class).getGuestUser();
     return myDataProvider.getServer().getLoginConfiguration().isGuestLoginAllowed() &&
            guestUser.isPermissionGrantedGlobally(Permission.VIEW_PROJECT);
   }
 
   private String getRealFileName(final String relativePath) {
-    return myServiceLocator.getSingletonService(ServletContext.class).getRealPath(relativePath);
+    return myBeanContext.getSingletonService(ServletContext.class).getRealPath(relativePath);
   }
 
   public Map<String, String> getBuildStatisticsValues(final SBuild build) {

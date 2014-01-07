@@ -38,6 +38,7 @@ import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
 import jetbrains.buildServer.server.rest.request.ProblemOccurrenceRequest;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.Branch;
@@ -62,27 +63,21 @@ import org.springframework.beans.factory.annotation.Autowired;
   "buildDependencies", "buildArtifactDependencies", "revisions", "triggered", "changes", "issues", "artifacts", "canceledInfo", "testOccurrences", "problemOccurrences"})
 public class Build {
   public static final String CANCELED_INFO = "canceledInfo";
-  @NotNull
-  protected SBuild myBuild;
-  @NotNull
-  private DataProvider myDataProvider;
-  private ApiUrlBuilder myApiUrlBuilder;
-  @Autowired private BeanFactory myFactory;
-
-  private ServiceLocator myServiceLocator;
+  @NotNull protected SBuild myBuild;
+  @NotNull private BeanContext myBeanContext;
+  @NotNull private ApiUrlBuilder myApiUrlBuilder;
+  @Autowired @NotNull private DataProvider myDataProvider;
+  @Autowired @NotNull private ServiceLocator myServiceLocator;
+  @Autowired @NotNull private BeanFactory myFactory;
 
   public Build() {
   }
 
-  public Build(@NotNull final SBuild build,
-               @NotNull final DataProvider dataProvider,
-               final ApiUrlBuilder apiUrlBuilder,
-               @NotNull final ServiceLocator serviceLocator, final BeanFactory factory) {
+  public Build(@NotNull final SBuild build, @NotNull final BeanContext beanContext) {
     myBuild = build;
-    myDataProvider = dataProvider;
-    myApiUrlBuilder = apiUrlBuilder;
-    myServiceLocator = serviceLocator;
-    factory.autowire(this);
+    myBeanContext = beanContext;
+    myApiUrlBuilder = beanContext.getApiUrlBuilder();
+    beanContext.autowire(this);
   }
 
   @XmlAttribute
@@ -97,7 +92,7 @@ public class Build {
 
   @XmlAttribute
   public String getHref() {
-    return myApiUrlBuilder.getHref(myBuild);
+    return myBeanContext.getApiUrlBuilder().getHref(myBuild);
   }
 
   @XmlAttribute
@@ -164,7 +159,7 @@ public class Build {
 
   @XmlElement(name = "buildType")
   public BuildTypeRef getBuildType() {
-    return new BuildTypeRef(myBuild.getBuildType(), myDataProvider, myApiUrlBuilder);
+    return new BuildTypeRef(myBuild.getBuildType(), myBeanContext);
   }
 
   //todo: investigate common date formats approach

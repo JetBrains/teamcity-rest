@@ -129,7 +129,7 @@ public class BuildType {
       return null;
     }
     final BuildTypeTemplate template = myBuildType.getBuildType().getTemplate();
-    return template == null ? null : new BuildTypeRef(template, myDataProvider, myApiUrlBuilder);
+    return template == null ? null : new BuildTypeRef(template, new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
   }
 
   @XmlElement(name = "vcs-root-entries")
@@ -201,7 +201,8 @@ public class BuildType {
 
     final ResponsibilityEntry.State state = myBuildType.getBuildType().getResponsibilityInfo().getState();
     if (!state.equals(ResponsibilityEntry.State.NONE)) {
-      return new Investigations(null, new Href(InvestigationRequest.getHref(myBuildType.getBuildType()), myApiUrlBuilder), new Fields(), null, myDataProvider.getServer(), myApiUrlBuilder);
+      return new Investigations(null, new Href(InvestigationRequest.getHref(myBuildType.getBuildType()), myApiUrlBuilder), new Fields(), null, new BeanContext(
+        myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
 //      return new Href(InvestigationRequest.getHref(myBuildType.getBuildType()), myApiUrlBuilder);
     }
     return null;

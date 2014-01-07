@@ -6,9 +6,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -72,11 +70,9 @@ public class PropEntitySnapshotDep extends PropEntity {
       //ignrore, wil use ids later
     }
     if (dependOn != null) {
-      sourceBuildType = new BuildTypeRef(dependOn, context.getSingletonService(DataProvider.class),
-                                         context.getContextService(ApiUrlBuilder.class));
+      sourceBuildType = new BuildTypeRef(dependOn, context);
     } else {
-      sourceBuildType = new BuildTypeRef(dependency.getDependOnExternalId(), dependency.getDependOnId(), context.getSingletonService(DataProvider.class),
-                                         context.getContextService(ApiUrlBuilder.class));
+      sourceBuildType = new BuildTypeRef(dependency.getDependOnExternalId(), dependency.getDependOnId(), context);
     }
   }
 
