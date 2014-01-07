@@ -47,7 +47,6 @@ public class BuildTypeUtil {
     HashMap<String, String> properties = new HashMap<String, String>();
     addAllOptionsAsProperties(properties, buildType.get());
     properties.put("checkoutDirectory", buildType.get().getCheckoutDirectory());
-    properties.put("checkoutMode", buildType.get().getCheckoutType().name());
     if (buildType.isBuildType()){
       properties.put("buildNumberCounter", (new Long(buildType.getBuildType().getBuildNumbers().getBuildCounter())).toString());
     }
