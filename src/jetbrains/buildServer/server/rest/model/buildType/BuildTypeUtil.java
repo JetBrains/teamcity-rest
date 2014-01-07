@@ -46,8 +46,6 @@ public class BuildTypeUtil {
   public static HashMap<String, String> getSettingsParameters(final BuildTypeOrTemplate buildType) {
     HashMap<String, String> properties = new HashMap<String, String>();
     addAllOptionsAsProperties(properties, buildType.get());
-    //todo: is the right way to do?
-    properties.put("artifactRules", buildType.get().getOption(BuildTypeOptions.BT_ARTIFACT_PATTERNS));
     properties.put("checkoutDirectory", buildType.get().getCheckoutDirectory());
     properties.put("checkoutMode", buildType.get().getCheckoutType().name());
     if (buildType.isBuildType()){
@@ -61,9 +59,7 @@ public class BuildTypeUtil {
    * @see #getSettingsParameters(jetbrains.buildServer.serverSide.SBuildType)
    */
   public static void setSettingsParameter(final BuildTypeOrTemplate buildType, final String name, final String value) {
-    if ("artifactRules".equals(name)) {
-      buildType.get().setArtifactPaths(value);
-    } else if ("checkoutDirectory".equals(name)) {
+    if ("checkoutDirectory".equals(name)) {
       buildType.get().setCheckoutDirectory(value);
     } else if ("checkoutMode".equals(name)) {
       buildType.get().setCheckoutType(BuildTypeDescriptor.CheckoutType.valueOf(value));
