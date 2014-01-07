@@ -13,7 +13,7 @@ import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.problem.Problem;
 import jetbrains.buildServer.server.rest.model.problem.Test;
-import jetbrains.buildServer.server.rest.model.project.ProjectRef;
+import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -47,7 +47,7 @@ public class InvestigationScope {
   public Problem problem;
 
   @XmlElement
-  public ProjectRef project;
+  public Project project;
 
    public InvestigationScope() {
   }
@@ -57,12 +57,12 @@ public class InvestigationScope {
                             @NotNull final ServiceLocator serviceLocator,
                             @NotNull final ApiUrlBuilder apiUrlBuilder) {
     type = investigation.getType();
+    final BeanContext beanContext = new BeanContext(serviceLocator.getSingletonService(BeanFactory.class), serviceLocator, apiUrlBuilder);
     if (investigation.isBuildType()) {
       //noinspection ConstantConditions
       buildType = new BuildTypeRef((SBuildType)investigation.getBuildTypeRE().getBuildType(), serviceLocator, apiUrlBuilder);  //TeamCity open API issue: cast
     } else if (investigation.isTest()) {
       @SuppressWarnings("ConstantConditions") @NotNull final TestNameResponsibilityEntry testRE = investigation.getTestRE();
-      final BeanContext beanContext = new BeanContext(serviceLocator.getSingletonService(BeanFactory.class), serviceLocator, apiUrlBuilder);
 
       final STest foundTest = serviceLocator.getSingletonService(TestFinder.class).findTest(testRE.getTestNameId());
       if (foundTest == null){
@@ -70,12 +70,12 @@ public class InvestigationScope {
       }
       test = new Test(foundTest, beanContext, fields.getNestedField("test"));
 
-      project = new ProjectRef((SProject)testRE.getProject(), apiUrlBuilder); //TeamCity open API issue: cast
+      project = new Project((SProject)testRE.getProject(), fields.getNestedField("project"), beanContext); //TeamCity open API issue: cast
     } else if (investigation.isProblem()) {
       final BuildProblemResponsibilityEntry problemRE = investigation.getProblemRE();
       //noinspection ConstantConditions
       problem = new Problem(new ProblemWrapper(problemRE.getBuildProblemInfo().getId(), serviceLocator), serviceLocator, apiUrlBuilder, fields.getNestedField("problem"));
-      project = new ProjectRef((SProject)problemRE.getProject(), apiUrlBuilder); //TeamCity open API issue: cast
+      project = new Project((SProject)problemRE.getProject(), fields.getNestedField("project"), beanContext); //TeamCity open API issue: cast
     } else {
       throw new InvalidStateException("Investigation wrapper type is not supported");
     }

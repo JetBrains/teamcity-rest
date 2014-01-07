@@ -28,11 +28,13 @@ import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
-import jetbrains.buildServer.server.rest.model.project.ProjectRef;
+import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.request.VcsRootInstanceRequest;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsException;
@@ -89,7 +91,7 @@ public class VcsRoot {
   public String projectLocator;
 
   @XmlElement(name = "project")
-  public ProjectRef project;
+  public Project project;
 
   @XmlElement
   public Href vcsRootInstances;
@@ -103,6 +105,8 @@ public class VcsRoot {
   }
 
   public VcsRoot(final SVcsRoot root, final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
+    final Fields fields = Fields.DEFAULT_FIELDS;
+
     id = root.getExternalId();
     internalId =  TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? root.getId() : null;
     name = root.getName();
@@ -111,9 +115,9 @@ public class VcsRoot {
     final String ownerProjectId = root.getScope().getOwnerProjectId();
     final SProject projectById = dataProvider.getServer().getProjectManager().findProjectById(ownerProjectId);
     if (projectById != null) {
-      project = new ProjectRef(projectById, apiUrlBuilder);
+      project = new Project(projectById, fields.getNestedField("project"), new BeanContext(dataProvider.getBeanFactory(), dataProvider.getServer(), apiUrlBuilder));
     } else {
-      project = new ProjectRef(null, ownerProjectId, apiUrlBuilder);
+      project = new Project(null, ownerProjectId, apiUrlBuilder);
     }
 
     properties = new Properties(root.getProperties());

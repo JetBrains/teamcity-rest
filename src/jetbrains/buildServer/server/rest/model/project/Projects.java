@@ -21,9 +21,10 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
 
@@ -35,15 +36,15 @@ import org.jetbrains.annotations.NotNull;
 @XmlType(name = "projects")
 public class Projects {
   @XmlElement(name = "project")
-  public List<ProjectRef> projects;
+  public List<Project> projects;
 
   public Projects() {
   }
 
-  public Projects(List<SProject> projectObjects, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    projects = new ArrayList<ProjectRef>(projectObjects.size());
+  public Projects(List<SProject> projectObjects, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+    projects = new ArrayList<Project>(projectObjects.size());
     for (SProject project : projectObjects) {
-      projects.add(new ProjectRef(project, apiUrlBuilder));
+      projects.add(new Project(project, fields.getNestedField("project"), beanContext));
     }
   }
 
@@ -53,7 +54,7 @@ public class Projects {
       throw new BadRequestException("List of projects should be supplied");
     }
     final ArrayList<SProject> result = new ArrayList<SProject>(projects.size());
-    for (ProjectRef project : projects) {
+    for (Project project : projects) {
       result.add(project.getProjectFromPosted(projectFinder));
     }
     return result;

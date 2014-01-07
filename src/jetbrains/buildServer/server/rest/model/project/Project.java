@@ -27,10 +27,12 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.request.VcsRootRequest;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
@@ -41,7 +43,7 @@ import org.jetbrains.annotations.Nullable;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "project")
-@XmlType(name = "project", propOrder = {"id", "internalId", "name", "href", "description", "archived", "webUrl",
+@XmlType(name = "project", propOrder = {"id", "internalId", "name", "href", "description", "archived", "webUrl", "parentProjectName", "parentProjectId", "parentProjectInternalId",
   "parentProject", "buildTypes", "templates", "parameters", "vcsRoots", "projects"})
 @SuppressWarnings("PublicField")
 public class Project {
@@ -57,6 +59,27 @@ public class Project {
   @XmlAttribute
   public String href;
 
+  /**
+   * Used only for short project entity
+   */
+  @XmlAttribute
+  public String parentProjectId;
+
+  /**
+   * Used only for short project entity
+   * @deprecated
+   */
+  @XmlAttribute
+  public String parentProjectName;
+
+  /**
+   * Used only for short project entity
+   * @deprecated
+   */
+  @XmlAttribute
+  public String parentProjectInternalId;
+
+
   @XmlAttribute
   public String description;
 
@@ -67,7 +90,7 @@ public class Project {
   public String webUrl;
 
   @XmlElement(name = "parentProject")
-  public ProjectRef parentProject;
+  public Project parentProject;
 
   @XmlElement
   public BuildTypes buildTypes;
@@ -92,23 +115,43 @@ public class Project {
   public Project() {
   }
 
-  public Project(final SProject project, final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
+  public Project(@NotNull final SProject project, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     id = project.getExternalId();
     internalId = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? project.getProjectId() : null;
     name = project.getName();
+
+    ApiUrlBuilder apiUrlBuilder = beanContext.getApiUrlBuilder();
+    DataProvider dataProvider = beanContext.getSingletonService(DataProvider.class);
+
     href = apiUrlBuilder.getHref(project);
-    description = project.getDescription();
-    archived = project.isArchived();
     webUrl = dataProvider.getProjectUrl(project);
 
     final SProject actulParentProject = project.getParentProject();
-    parentProject = actulParentProject == null ? null : new ProjectRef(actulParentProject, apiUrlBuilder);
-    buildTypes = BuildTypes.createFromBuildTypes(project.getOwnBuildTypes(), dataProvider, apiUrlBuilder);
-    templates = BuildTypes.createFromTemplates(project.getOwnBuildTypeTemplates(), dataProvider, apiUrlBuilder);
-    parameters = new Properties(project.getParameters());
-    vcsRoots = new Href(VcsRootRequest.API_VCS_ROOTS_URL + "?locator=project:(id:" + project.getExternalId() + ")", apiUrlBuilder);
+    if (fields.isAllFieldsIncluded()) {
+      description = project.getDescription();
+      archived = project.isArchived();
 
-    projects = new Projects(project.getOwnProjects(), apiUrlBuilder);
+      parentProject = actulParentProject == null ? null : new Project(actulParentProject, fields.getNestedField("parentProject"), beanContext);
+      buildTypes = BuildTypes.createFromBuildTypes(project.getOwnBuildTypes(), dataProvider, apiUrlBuilder);
+      templates = BuildTypes.createFromTemplates(project.getOwnBuildTypeTemplates(), dataProvider, apiUrlBuilder);
+      parameters = new Properties(project.getParameters());
+      vcsRoots = new Href(VcsRootRequest.API_VCS_ROOTS_URL + "?locator=project:(id:" + project.getExternalId() + ")", apiUrlBuilder);
+
+      projects = new Projects(project.getOwnProjects(), fields.getNestedField("projects"), beanContext);
+    }else{
+      parentProjectId = actulParentProject == null ? null : actulParentProject.getExternalId();
+
+      if (TeamCityProperties.getBoolean("rest.beans.project.addParentProjectAttributes")) {
+        parentProjectName = actulParentProject == null ? null : actulParentProject.getName();
+        parentProjectInternalId =
+          actulParentProject != null && TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? actulParentProject.getProjectId() : null;
+      }
+    }
+  }
+
+  public Project(@Nullable final String externalId, @Nullable final String internalId, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+    id = externalId;
+    this.internalId = internalId; //todo: check usages: externalId should actually be NotNull and internal id should never be necessary
   }
 
   @Nullable
@@ -162,12 +205,25 @@ public class Project {
   }
 
   @NotNull
-  public SProject getProjectFromPosted(@NotNull final ProjectFinder projectFinder) {
-    final ProjectRef projectRef = new ProjectRef();
-    projectRef.id = id;
-    projectRef.internalId = internalId;
-    projectRef.locator = locator;
-    projectRef.href = href;
-    return projectRef.getProjectFromPosted(projectFinder);
+  public SProject getProjectFromPosted(@NotNull ProjectFinder projectFinder) {
+    //todo: support posted parentProject fields here
+    String locatorText = "";
+    if (internalId != null) locatorText = "internalId:" + internalId;
+    if (id != null) locatorText += (!locatorText.isEmpty() ? "," : "") + "id:" + id;
+    if (locatorText.isEmpty()) {
+      locatorText = locator;
+    } else {
+      if (locator != null) {
+        throw new BadRequestException("Both 'locator' and 'id' or 'internalId' attributes are specified. Only one should be present.");
+      }
+    }
+    if (jetbrains.buildServer.util.StringUtil.isEmpty(locatorText)){
+      //find by href for compatibility with 7.0
+      if (!jetbrains.buildServer.util.StringUtil.isEmpty(href)){
+        return projectFinder.getProject(jetbrains.buildServer.util.StringUtil.lastPartOf(href, '/'));
+      }
+      throw new BadRequestException("No project specified. Either 'id', 'internalId' or 'locator' attribute should be present.");
+    }
+    return projectFinder.getProject(locatorText);
   }
 }

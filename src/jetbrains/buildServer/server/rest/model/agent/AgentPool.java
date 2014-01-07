@@ -4,9 +4,10 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.project.Projects;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -30,15 +31,15 @@ public class AgentPool {
   public AgentPool() {
   }
 
-  public AgentPool(@NotNull final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool,
-                   @NotNull final ApiUrlBuilder apiUrlBuilder,
-                   final @NotNull AgentPoolsFinder agentPoolsFinder) {
-    href = apiUrlBuilder.getHref(agentPool);
+  public AgentPool(@NotNull final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+
+    href = beanContext.getApiUrlBuilder().getHref(agentPool);
     id = agentPool.getAgentPoolId();
     name = agentPool.getName();
-    projects = new Projects(agentPoolsFinder.getPoolProjects(agentPool), apiUrlBuilder);
+    AgentPoolsFinder agentPoolsFinder = beanContext.getSingletonService(AgentPoolsFinder.class);
+    projects = new Projects(agentPoolsFinder.getPoolProjects(agentPool), fields.getNestedField("projects"), beanContext);
     //todo: support agent types
-    agents = new Agents(agentPoolsFinder.getPoolAgents(agentPool), null, null, apiUrlBuilder);
+    agents = new Agents(agentPoolsFinder.getPoolAgents(agentPool), null, null, beanContext.getApiUrlBuilder());
   }
 
   @NotNull

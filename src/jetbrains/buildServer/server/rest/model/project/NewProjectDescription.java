@@ -43,8 +43,8 @@ public class NewProjectDescription extends CopyOptionsDescription{
 
   public NewProjectDescription(final String name,
                                final String id,
-                               final ProjectRef sourceProject,
-                               final ProjectRef parentProject,
+                               final Project sourceProject,
+                               final Project parentProject,
                                @Nullable final Boolean copyAllAssociatedSettings,
                                @Nullable final Map<String, String> projectsIdsMap,
                                @Nullable final Map<String, String> buildTypesIdsMap,
@@ -68,10 +68,10 @@ public class NewProjectDescription extends CopyOptionsDescription{
   @XmlAttribute public String sourceProjectLocator;
 
   @XmlElement(name = "sourceProject")
-  public ProjectRef sourceProject;
+  public Project sourceProject;
 
   @XmlElement(name = "parentProject")
-  public ProjectRef parentProject;
+  public Project parentProject;
 
   @Nullable
   public SProject getSourceProject(@NotNull final ServiceLocator serviceLocator) {

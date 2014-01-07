@@ -29,13 +29,14 @@ import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.agent.AgentPools;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.server.rest.model.project.Project;
-import jetbrains.buildServer.server.rest.model.project.ProjectRef;
 import jetbrains.buildServer.server.rest.model.project.Projects;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolCannotBeDeletedException;
@@ -76,8 +77,9 @@ public class AgentPoolRequest {
   @GET
   @Path("/{agentPoolLocator}")
   @Produces({"application/xml", "application/json"})
-  public AgentPool getPool(@PathParam("agentPoolLocator") String agentPoolLocator) {
-    return new AgentPool(myAgentPoolsFinder.getAgentPool(agentPoolLocator), myApiUrlBuilder, myAgentPoolsFinder);
+  public AgentPool getPool(@PathParam("agentPoolLocator") String agentPoolLocator, @QueryParam("fields") String fields) {
+    return new AgentPool(myAgentPoolsFinder.getAgentPool(agentPoolLocator), new Fields(fields, Fields.DEFAULT_FIELDS),
+                         new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder));
   }
 
   @DELETE
@@ -96,7 +98,7 @@ public class AgentPoolRequest {
   @POST
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public AgentPool getPools(AgentPool agentPool) {
+  public AgentPool setPools(AgentPool agentPool) {
     if (agentPool.agents != null){
       throw new BadRequestException("Creating an agent pool with agents is not suppotrted. Please add agents after the pool creation");
     }
@@ -109,15 +111,17 @@ public class AgentPoolRequest {
     if (agentPool.projects != null){
       replaceProjects("id:" + newAgentPoolId, agentPool.projects);
     }
-    return new AgentPool(myAgentPoolsFinder.getAgentPoolById(newAgentPoolId), myApiUrlBuilder, myAgentPoolsFinder);
+    return new AgentPool(myAgentPoolsFinder.getAgentPoolById(newAgentPoolId), Fields.DEFAULT_FIELDS,
+                         new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder));
   }
 
   @GET
   @Path("/{agentPoolLocator}/projects")
   @Produces({"application/xml", "application/json"})
-  public Projects getPoolProjects(@PathParam("agentPoolLocator") String agentPoolLocator) {
+  public Projects getPoolProjects(@PathParam("agentPoolLocator") String agentPoolLocator, @QueryParam("fields") String fields) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolsFinder.getAgentPool(agentPoolLocator);
-    return new Projects(myAgentPoolsFinder.getPoolProjects(agentPool), myApiUrlBuilder);
+    return new Projects(myAgentPoolsFinder.getPoolProjects(agentPool), new Fields(fields, Fields.DEFAULT_FIELDS),
+                        new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder));
   }
 
   /**
@@ -145,7 +149,7 @@ public class AgentPoolRequest {
     } catch (NoSuchAgentPoolException e) {
       throw new IllegalStateException("Agent pool with id \'" + agentPoolId + "' is not found.");
     }
-    return new Projects(myAgentPoolsFinder.getPoolProjects(agentPool), myApiUrlBuilder);
+    return new Projects(myAgentPoolsFinder.getPoolProjects(agentPool), Fields.DEFAULT_FIELDS, new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder));
   }
 
   /**
@@ -158,7 +162,7 @@ public class AgentPoolRequest {
   @Path("/{agentPoolLocator}/projects")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public ProjectRef addProject(@PathParam("agentPoolLocator") String agentPoolLocator, Project project) {
+  public Project addProject(@PathParam("agentPoolLocator") String agentPoolLocator, Project project) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolsFinder.getAgentPool(agentPoolLocator);
     final AgentPoolManager agentPoolManager = myServiceLocator.getSingletonService(AgentPoolManager.class);
     final int agentPoolId = agentPool.getAgentPoolId();
@@ -168,16 +172,16 @@ public class AgentPoolRequest {
     } catch (NoSuchAgentPoolException e) {
       throw new IllegalStateException("Agent pool with id \'" + agentPoolId + "' is not found.");
     }
-    return new ProjectRef(postedProject, myApiUrlBuilder);
+    return new Project(postedProject, Fields.DEFAULT_FIELDS, new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder));
   }
 
   @GET
   @Path("/{agentPoolLocator}/projects/{projectLocator}")
   @Produces({"application/xml", "application/json"})
-  public Project getPoolProject(@PathParam("agentPoolLocator") String agentPoolLocator, @PathParam("projectLocator") String projectLocator) {
+  public Project getPoolProject(@PathParam("agentPoolLocator") String agentPoolLocator, @PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolsFinder.getAgentPool(agentPoolLocator);
     final SProject project = myProjectFinder.getProject(projectLocator);
-    return new Project(project, myDataProvider, myApiUrlBuilder);
+    return new Project(project, new Fields(fields, Fields.DEFAULT_FIELDS), new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder));
   }
 
   @DELETE

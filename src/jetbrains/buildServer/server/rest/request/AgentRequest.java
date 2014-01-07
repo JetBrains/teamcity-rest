@@ -25,11 +25,13 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.BuildAgentManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import org.jetbrains.annotations.NotNull;
@@ -114,9 +116,10 @@ public class AgentRequest {
   @GET
   @Path("/{agentLocator}/pool")
   @Produces({"application/xml", "application/json"})
-  public AgentPool getAgentPool(@PathParam("agentLocator") String agentLocator) {
+  public AgentPool getAgentPool(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    return new AgentPool(myAgentPoolsFinder.getAgentPool(agent), myApiUrlBuilder, myAgentPoolsFinder);
+    return new AgentPool(myAgentPoolsFinder.getAgentPool(agent), new Fields(fields, Fields.DEFAULT_FIELDS),
+                         new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder));
   }
 
   @PUT
@@ -126,7 +129,7 @@ public class AgentRequest {
   public AgentPool setAgentPool(@PathParam("agentLocator") String agentLocator, AgentPool agentPool) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     myDataProvider.addAgentToPool(agentPool.getAgentPoolFromPosted(myAgentPoolsFinder), agent);
-    return new AgentPool(myAgentPoolsFinder.getAgentPool(agent), myApiUrlBuilder, myAgentPoolsFinder);
+    return new AgentPool(myAgentPoolsFinder.getAgentPool(agent), Fields.DEFAULT_FIELDS, new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder));
   }
 
   @GET

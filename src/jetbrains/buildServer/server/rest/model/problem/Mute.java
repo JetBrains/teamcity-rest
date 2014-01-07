@@ -7,12 +7,12 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Comment;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
-import jetbrains.buildServer.server.rest.model.project.ProjectRef;
+import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.ProjectManager;
@@ -32,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
 public class Mute {
   @XmlAttribute public long id;
 
-  @XmlElement public ProjectRef boundingProject; //todo:review whether this is necessary, might also be the same in Problem
+  @XmlElement public Project boundingProject; //todo:review whether this is necessary, might also be the same in Problem
   @XmlElement public Comment comment;
 
   @XmlElement public Projects projects;
@@ -42,13 +42,15 @@ public class Mute {
   }
 
   public Mute(final @NotNull MuteInfo item, final @NotNull BeanContext beanContext) {
+    final Fields fields = Fields.DEFAULT_FIELDS;
+
     id = item.getId();
 
     final SProject projectById = beanContext.getSingletonService(ProjectManager.class).findProjectById(item.getProjectId());
     if (projectById != null) {
-      boundingProject = new ProjectRef(projectById, beanContext.getContextService(ApiUrlBuilder.class));
+      boundingProject = new Project(projectById, fields.getNestedField("project"), beanContext);
     } else {
-      boundingProject = new ProjectRef(null, item.getProjectId(), beanContext.getContextService(ApiUrlBuilder.class));
+      boundingProject = new Project(null, item.getProjectId(), beanContext.getApiUrlBuilder());
     }
     comment = new Comment(item.getMutingUser(), item.getMutingTime(), item.getMutingComment(), beanContext.getApiUrlBuilder());
 
@@ -63,7 +65,7 @@ public class Mute {
                                                      beanContext.getApiUrlBuilder());
         break;
       case IN_PROJECT:
-        projects = new Projects(Collections.singletonList(getProjectByInternalId(scope.getProjectId(), beanContext)), beanContext.getApiUrlBuilder());
+        projects = new Projects(Collections.singletonList(getProjectByInternalId(scope.getProjectId(), beanContext)), fields.getNestedField("projects"), beanContext);
         break;
       default:
         //unsupported scope

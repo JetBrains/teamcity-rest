@@ -29,7 +29,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.BuildsRef;
-import jetbrains.buildServer.server.rest.model.project.ProjectRef;
+import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
@@ -51,6 +51,8 @@ public class BuildType {
   protected BuildTypeOrTemplate myBuildType;
   private DataProvider myDataProvider;
   private ApiUrlBuilder myApiUrlBuilder;
+
+  private Fields myFields = Fields.DEFAULT_FIELDS;
 
   public BuildType() {
   }
@@ -117,8 +119,8 @@ public class BuildType {
   }
 
   @XmlElement(name = "project")
-  public ProjectRef getProject() {
-    return new ProjectRef(myBuildType.getProject(), myApiUrlBuilder);
+  public Project getProject() {
+    return new Project(myBuildType.getProject(), myFields.getNestedField("project"), new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
   }
 
   @XmlElement(name = "template")
