@@ -22,6 +22,7 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.groups.UserGroup;
+import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.users.SUser;
@@ -42,14 +43,22 @@ public class RoleAssignments {
   public RoleAssignments(Collection<RoleEntry> roleEntries, SUser user, @NotNull final BeanContext context) {
     roleAssignments = new ArrayList<RoleAssignment>(roleEntries.size());
     for (RoleEntry roleEntry : roleEntries) {
-      roleAssignments.add(new RoleAssignment(roleEntry, user, context));
+      try {
+        roleAssignments.add(new RoleAssignment(roleEntry, user, context));
+      } catch (InvalidStateException e) {
+        //ignore until http://youtrack.jetbrains.com/issue/TW-34203 is fixed
+      }
     }
   }
 
   public RoleAssignments(Collection<RoleEntry> roleEntries, UserGroup group, @NotNull final BeanContext context) {
     roleAssignments = new ArrayList<RoleAssignment>(roleEntries.size());
     for (RoleEntry roleEntry : roleEntries) {
-      roleAssignments.add(new RoleAssignment(roleEntry, group, context));
+      try {
+        roleAssignments.add(new RoleAssignment(roleEntry, group, context));
+      } catch (InvalidStateException e) {
+        //ignore until http://youtrack.jetbrains.com/issue/TW-34203 is fixed
+      }
     }
   }
 }
