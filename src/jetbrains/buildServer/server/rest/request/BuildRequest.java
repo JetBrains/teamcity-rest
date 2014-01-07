@@ -24,6 +24,7 @@ import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
+import jetbrains.buildServer.controllers.artifacts.RepositoryUtil;
 import jetbrains.buildServer.parameters.ProcessingResult;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.data.BuildFinder;
@@ -229,6 +230,7 @@ public class BuildRequest {
   public Response getArtifactContent(@PathParam("buildLocator") final String buildLocator,
                                      @PathParam("path") final String path,
                                      @QueryParam("resolveParameters") final Boolean resolveParameters,
+                                     @QueryParam("logBuildUsage") @DefaultValue("true") final Boolean logBuildUsage,
                                      @Context HttpServletRequest request) {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final String resolvedPath = getResolvedIfNecessary(build, path, resolveParameters);
@@ -252,7 +254,9 @@ public class BuildRequest {
     } else {
       builder = builder.header("Content-Disposition", WebUtil.getContentDispositionValue(request, null, artifact.getName()));
     }
-    //todo: log build downloading artifacts (also consider an option), see RepositoryDownloadController
+    if (logBuildUsage){
+      RepositoryUtil.logArtifactDownload(request, myBeanContext.getSingletonService(DownloadedArtifactsLogger.class), build, resolvedPath);
+    }
     return builder.entity(output).build();
   }
 
@@ -264,7 +268,7 @@ public class BuildRequest {
   @Path("/{buildLocator}" + ARTIFACTS + "/files{path:(/.*)?}")
   @Produces({MediaType.WILDCARD})
   public Response getArtifactFilesContent(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String fileName, @Context HttpServletRequest request) {
-    return getArtifactContent(buildLocator, fileName, false, request);
+    return getArtifactContent(buildLocator, fileName, false, false, request);
   }
 
 
