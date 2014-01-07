@@ -68,7 +68,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     assertEquals(ResponsibilityEntry.State.TAKEN, investigation1.getState());
   }
 
-  @Test
+  @Test(enabled = false)
   public void testBuildTypeInvestigationModel() throws Exception {
     createFailingBuild();
     myFixture.getResponsibilityFacadeEx().setBuildTypeResponsibility(myBuildType, createRespEntry(ResponsibilityEntry.State.TAKEN, myUser));
