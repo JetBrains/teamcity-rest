@@ -24,11 +24,16 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.VcsRootFinder;
+import jetbrains.buildServer.server.rest.model.Entries;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
+import jetbrains.buildServer.vcs.RepositoryState;
+import jetbrains.buildServer.vcs.RepositoryStateFactory;
 import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.vcs.impl.RepositoryStateManager;
 import org.jetbrains.annotations.NotNull;
 
 /* todo: investigate logging issues:
@@ -102,5 +107,35 @@ public class VcsRootInstanceRequest {
     VcsRootInstance.setFieldValue(rootInstance, fieldName, newValue, myDataProvider);
     rootInstance.getParent().persist();
     return VcsRootInstance.getFieldValue(rootInstance, fieldName, myDataProvider);
+  }
+
+  @GET
+  @Path("/{vcsRootInstanceLocator}/repositoryState")
+  @Produces({"application/xml", "application/json"})
+  public Entries getRepositoryState(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator) {
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
+    final RepositoryState repositoryState = myDataProvider.getBean(RepositoryStateManager.class).getRepositoryState(rootInstance);
+    return new Entries(repositoryState.getBranchRevisions());
+  }
+
+  @GET
+  @Path("/{vcsRootInstanceLocator}/repositoryState/creationDate")
+  @Consumes("text/plain")
+  public String getRepositoryStateCreationDate(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator) {
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
+    final RepositoryState repositoryState = myDataProvider.getBean(RepositoryStateManager.class).getRepositoryState(rootInstance);
+    return Util.formatTime(repositoryState.getCreateTimestamp());
+  }
+
+  @PUT
+  @Path("/{vcsRootInstanceLocator}/repositoryState")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public Entries setRepositoryState(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator, Entries branchesState) {
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
+    final RepositoryStateManager repositoryStateManager = myDataProvider.getBean(RepositoryStateManager.class);
+    repositoryStateManager.setRepositoryState(rootInstance, RepositoryStateFactory.createRepositoryState(branchesState.getMap()));
+    final RepositoryState repositoryState = repositoryStateManager.getRepositoryState(rootInstance);
+    return new Entries(repositoryState.getBranchRevisions());
   }
 }
