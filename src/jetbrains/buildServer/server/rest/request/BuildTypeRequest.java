@@ -1340,19 +1340,47 @@ public class BuildTypeRequest {
     return Build.getFieldValue(build, field);
   }
 
+  /**
+   * Lists branches of the build type.
+   * @param buildTypeLocator
+   * @param branchesLocator experimental use only!
+   * @return
+   */
   @GET
   @Path("/{btLocator}/branches")
   @Produces({"application/xml", "application/json"})
-  public Branches serveBranches(@PathParam("btLocator") String buildTypeLocator) {
+  public Branches serveBranches(@PathParam("btLocator") String buildTypeLocator, @QueryParam("locator") String branchesLocator) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
-    //todo: support branches filters
-    return new Branches(CollectionsUtil
-                          .convertCollection(((BuildTypeImpl)buildType).getBranches(BranchesPolicy.ACTIVE_HISTORY_AND_ACTIVE_VCS_BRANCHES, false),
-                                             new Converter<jetbrains.buildServer.server.rest.model.build.Branch, BranchEx>() {
-                                               public Branch createFrom(@NotNull final BranchEx source) {
-                                                 return new Branch(source);
-                                               }
-                                             }));
+    BranchesPolicy branchesPolicy = BranchesPolicy.ACTIVE_HISTORY_AND_ACTIVE_VCS_BRANCHES;
+    boolean includeBranchesFromDependencies = false;
+
+    if (!StringUtil.isEmpty(branchesLocator)){
+      final String changesFromDependencies = "changesFromDependencies";
+      final String policy = "policy";
+      final Locator locator = new Locator(branchesLocator, changesFromDependencies, policy);
+      final String policyDimension = locator.getSingleDimensionValue(policy);
+      if (policyDimension != null){
+        try {
+          branchesPolicy = BranchesPolicy.valueOf(policyDimension);
+        } catch (IllegalArgumentException e) {
+          throw new BadRequestException("Invalid value '" + policyDimension + "' for '" + policy + "' dimension. Supported values are: " + Arrays.toString(BranchesPolicy.values()));
+        }
+      }
+      final Boolean changesFromDependenciesDimension = locator.getSingleDimensionValueAsBoolean(changesFromDependencies, false);
+      if (changesFromDependenciesDimension == null){
+        throw new BadRequestException("Dimension '" + changesFromDependencies + "' supports only true/false values");
+      }else{
+        includeBranchesFromDependencies = changesFromDependenciesDimension;
+      }
+      locator.checkLocatorFullyProcessed();
+    }
+
+    return new Branches(CollectionsUtil.convertCollection(((BuildTypeImpl)buildType).getBranches(branchesPolicy, includeBranchesFromDependencies),
+                                                          new Converter<jetbrains.buildServer.server.rest.model.build.Branch, BranchEx>() {
+                                                            public Branch createFrom(@NotNull final BranchEx source) {
+                                                              return new Branch(source);
+                                                            }
+                                                          }));
   }
 
   /**
