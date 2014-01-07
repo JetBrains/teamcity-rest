@@ -49,4 +49,11 @@ public class RangeLimit {
     }
     return myDate;
   }
+
+  public boolean before(@NotNull SBuild build){
+    if (myBuild != null) {
+      return myBuild.getBuildId() < build.getBuildId();
+    }
+    return myDate.before(build.getStartDate());
+  }
 }

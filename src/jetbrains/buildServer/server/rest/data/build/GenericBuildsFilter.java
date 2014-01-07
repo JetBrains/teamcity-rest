@@ -273,7 +273,7 @@ public class GenericBuildsFilter implements BuildsFilter {
       return false;
 
     if (myUntil != null) {
-      if (myUntil.getDate().before(build.getStartDate())) {
+      if (myUntil.before(build)) {
         return false;
       }
     }
@@ -351,13 +351,8 @@ public class GenericBuildsFilter implements BuildsFilter {
 
   public boolean isExcludedBySince(final SBuild build) {
     if (mySince != null) {
-      if (mySince.getDate().after(build.getStartDate())) {
+      if (!mySince.before(build)) {
         return true;
-      } else {
-         final SBuild sinceBuild = mySince.getBuild();
-        if (sinceBuild != null && sinceBuild.getBuildId() >= build.getBuildId()) {
-          return true;
-        }
       }
     }
     return false;
