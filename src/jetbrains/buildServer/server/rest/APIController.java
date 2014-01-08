@@ -158,6 +158,7 @@ public class APIController extends BaseController implements ServletContextAware
         myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + BuildRequest.BUILDS_ROOT_REQUEST_PATH + "/*/" + BuildRequest.STATUS_ICON_REQUEST_NAME);
         myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + ServerRequest.API_SERVER_URL + "/" + ServerRequest.SERVER_VERSION_RQUEST_PATH);
         myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + Constants.EXTERNAL_APPLICATION_WADL_NAME);
+        myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + Constants.EXTERNAL_APPLICATION_WADL_NAME + "/xsd*.xsd");
       }
     } catch (Exception e) {
       LOG.error("Error registering controller", e);
