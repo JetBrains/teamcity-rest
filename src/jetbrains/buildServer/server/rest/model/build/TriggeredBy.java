@@ -116,6 +116,12 @@ public class TriggeredBy {
       return;
     }
 
+    String user = triggeredByParams.get(TriggeredByBuilder.USER_PARAM_NAME);
+    if (user != null) {
+      type = "user";
+      return;
+    }
+
     type = "unknown";
     details = rawTriggeredBy;
   }
