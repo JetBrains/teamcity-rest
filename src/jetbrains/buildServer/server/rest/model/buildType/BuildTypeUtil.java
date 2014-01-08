@@ -48,7 +48,7 @@ public class BuildTypeUtil {
     addAllOptionsAsProperties(properties, buildType.get());
     properties.put("checkoutDirectory", buildType.get().getCheckoutDirectory());
     if (buildType.isBuildType()){
-      properties.put("buildNumberCounter", (new Long(buildType.getBuildType().getBuildNumbers().getBuildCounter())).toString());
+      properties.put("buildNumberCounter", String.valueOf(buildType.getBuildType().getBuildNumbers().getBuildCounter()));
     }
     return properties;
   }
