@@ -58,14 +58,18 @@ public class ProblemOccurrenceRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
-  public ProblemOccurrences getProblems(@QueryParam("locator") String locatorText, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+  public ProblemOccurrences getProblems(@QueryParam("locator") String locatorText,
+                                        @QueryParam("fields") String fields,
+                                        @Context UriInfo uriInfo,
+                                        @Context HttpServletRequest request) {
     final PagedSearchResult<BuildProblem> result = myProblemOccurrenceFinder.getItems(locatorText);
 
     return new ProblemOccurrences(result.myEntries,
-                              new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
-                                            result.myCount, result.myEntries.size(),
-                                            locatorText,
-                                            "locator"), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder), new Fields(fields)
+                                  uriInfo.getRequestUri().toString(),
+                                  new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
+                                                result.myCount, result.myEntries.size(),
+                                                locatorText,
+                                                "locator"), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder)
     );
   }
 

@@ -338,7 +338,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   }
 
   @NotNull
-  private static List<BuildProblem> getProblemOccurrences(@NotNull final SBuild build) {
+  public static List<BuildProblem> getProblemOccurrences(@NotNull final SBuild build) {
     return ((BuildPromotionEx)build.getBuildPromotion()).getBuildProblems();
   }
 

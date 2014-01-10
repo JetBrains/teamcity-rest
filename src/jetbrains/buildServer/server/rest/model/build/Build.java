@@ -25,24 +25,28 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.Comment;
-import jetbrains.buildServer.server.rest.model.Href;
+import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.agent.AgentRef;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeRef;
 import jetbrains.buildServer.server.rest.model.change.ChangesRef;
 import jetbrains.buildServer.server.rest.model.change.Revisions;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
+import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
+import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
 import jetbrains.buildServer.server.rest.request.ProblemOccurrenceRequest;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
+import jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl;
+import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
@@ -64,6 +68,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class Build {
   public static final String CANCELED_INFO = "canceledInfo";
   @NotNull protected SBuild myBuild;
+  @NotNull protected Fields myFields;
   @NotNull private BeanContext myBeanContext;
   @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Autowired @NotNull private DataProvider myDataProvider;
@@ -74,10 +79,15 @@ public class Build {
   }
 
   public Build(@NotNull final SBuild build, @NotNull final BeanContext beanContext) {
+    this(build, Fields.DEFAULT_FIELDS, beanContext);
+  }
+
+  public Build(@NotNull final SBuild build, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     myBuild = build;
     myBeanContext = beanContext;
     myApiUrlBuilder = beanContext.getApiUrlBuilder();
     beanContext.autowire(this);
+    myFields = fields;
   }
 
   @XmlAttribute
@@ -282,13 +292,67 @@ public class Build {
   }
 
   @XmlElement(name = "testOccurrences")
-  public Href getTestOccurrences() {
-    return new Href(TestOccurrenceRequest.getHref(myBuild), myApiUrlBuilder);
+  public TestOccurrences getTestOccurrences() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("testOccurrences"),
+                                          new ValueWithDefault.Value<TestOccurrences>() {
+                                            @Nullable
+                                            public TestOccurrences get() {
+                                              final ShortStatistics statistics = myBuild.getShortStatistics();
+                                              if (statistics.getAllTestCount() == 0) {
+                                                return null;
+                                              }
+
+                                              final int mutedTestsCount =
+                                                statistics.getFailedTestsIncludingMuted().size() - statistics.getFailedTestCount(); //TeamCity API: not effective
+                                              final List<STestRun> tests =
+                                                myFields.getNestedField("testOccurrences").isIncluded("testOccurrence", false) ? myBuild.getFullStatistics().getAllTests() : null;
+                                              return new TestOccurrences(tests,
+                                                                         statistics.getAllTestCount(),
+                                                                         statistics.getPassedTestCount(),
+                                                                         statistics.getFailedTestCount(),
+                                                                         statistics.getNewFailedCount(),
+                                                                         statistics.getIgnoredTestCount(),
+                                                                         mutedTestsCount,
+                                                                         TestOccurrenceRequest.getHref(myBuild),
+                                                                         null,
+                                                                         myFields.getNestedField("testOccurrences"), myBeanContext
+                                              );
+                                            }
+                                          });
   }
 
   @XmlElement(name = "problemOccurrences")
-  public Href getProblemOccurrences() {
-    return new Href(ProblemOccurrenceRequest.getHref(myBuild), myApiUrlBuilder);
+  public ProblemOccurrences getProblemOccurrences() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("problemOccurrences"),
+                                          new ValueWithDefault.Value<ProblemOccurrences>() {
+                                            @Nullable
+                                            public ProblemOccurrences get() {
+                                              final List<BuildProblem> problemOccurrences = ProblemOccurrenceFinder.getProblemOccurrences(myBuild);
+                                              if (problemOccurrences.size() == 0) return null;
+
+                                              int newProblemsCount = 0;
+                                              int mutedProblemsCount = 0;
+                                              for (BuildProblem problem : problemOccurrences) {
+                                                if (problem.isMutedInBuild()) mutedProblemsCount++;
+                                                final Boolean isNew = ((BuildProblemImpl)problem).isNew();
+                                                if (isNew != null && isNew) newProblemsCount++;
+                                              }
+                                              final List<BuildProblem> problems =
+                                                myFields.getNestedField("problemOccurrences").isIncluded("problemOccurrence", false) ? ProblemOccurrenceFinder
+                                                  .getProblemOccurrences(myBuild) : null;
+                                              return new ProblemOccurrences(problems,
+                                                                            problemOccurrences.size(),
+                                                                            null,
+                                                                            null,
+                                                                            newProblemsCount,
+                                                                            null,
+                                                                            mutedProblemsCount,
+                                                                            ProblemOccurrenceRequest.getHref(myBuild),
+                                                                            null,
+                                                                            myFields.getNestedField("testOccurrences"), myBeanContext
+                                              );
+                                            }
+                                          });
   }
 
   static List<SBuild> getBuilds(@NotNull Collection<? extends BuildDependency> dependencies) {

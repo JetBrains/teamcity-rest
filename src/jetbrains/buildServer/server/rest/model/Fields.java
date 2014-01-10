@@ -3,7 +3,6 @@ package jetbrains.buildServer.server.rest.model;
 import com.intellij.util.containers.HashSet;
 import java.util.Collection;
 import java.util.Set;
-import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -57,7 +56,13 @@ public class Fields {
     return NONE_FIELDS_PATTERN.equals(myFieldsSpec);
   }
 
-  public boolean isIncluded(final String fieldName){
+  /**
+   *
+   * @param fieldName
+   * @return null if the defaults should be used
+   */
+  @Nullable
+  public Boolean isIncluded(@NotNull final String fieldName){
     if (isNone()){
       return false;
     }
@@ -69,8 +74,27 @@ public class Fields {
       return true;
     }
     if (myFieldsSpec == null){
-      throw new InvalidStateException("Should not call isIncluded for a field, which has default value");
+      return null;
     }
+
+    return myFieldsSpec.contains(fieldName); //todo: implement! This is a hack!
+  }
+
+  public boolean isIncluded(@NotNull final String fieldName, final boolean defaultValue){
+    if (isNone()){
+      return false;
+    }
+    if (myExcludedFields.contains(fieldName)) {
+      return false;
+    }
+
+    if (isAllFieldsIncluded()){
+      return true;
+    }
+    if (myFieldsSpec == null){
+      return defaultValue;
+    }
+
     return myFieldsSpec.contains(fieldName); //todo: implement! This is a hack!
   }
 
