@@ -1,6 +1,7 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
@@ -16,6 +17,9 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "features")
 @SuppressWarnings("PublicField")
 public class PropEntitiesFeature {
+  @XmlAttribute
+  public long count;
+
   @XmlElement(name = "feature")
   public List<PropEntityFeature> propEntities;
 
@@ -29,5 +33,6 @@ public class PropEntitiesFeature {
           return new PropEntityFeature(source, buildType);
         }
       });
+    count = propEntities.size();
   }
 }

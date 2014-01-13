@@ -1,6 +1,7 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
@@ -16,6 +17,8 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name="triggers")
 @SuppressWarnings("PublicField")
 public class PropEntitiesTrigger {
+  @XmlAttribute
+  public long count;
   @XmlElement(name = "trigger")
   public List<PropEntityTrigger> propEntities;
 
@@ -28,5 +31,6 @@ public class PropEntitiesTrigger {
             return new PropEntityTrigger(source, buildType);
           }
         });
+    count = propEntities.size();
   }
 }

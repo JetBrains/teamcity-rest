@@ -1,6 +1,7 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
@@ -16,6 +17,9 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "steps")
 @SuppressWarnings("PublicField")
 public class PropEntitiesStep {
+  @XmlAttribute
+  public long count;
+
   @XmlElement(name = "step")
   public List<PropEntityStep> propEntities;
 
@@ -29,6 +33,7 @@ public class PropEntitiesStep {
                                                          return new PropEntityStep(source, buildType);
                                                        }
                                                      });
+    count = propEntities.size();
   }
 
 }

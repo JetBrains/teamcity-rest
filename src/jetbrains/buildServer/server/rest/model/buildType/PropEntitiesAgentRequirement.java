@@ -1,6 +1,7 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.requirements.Requirement;
@@ -16,6 +17,9 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name="agent-requirements")
 @SuppressWarnings("PublicField")
 public class PropEntitiesAgentRequirement {
+  @XmlAttribute
+  public long count;
+
   @XmlElement(name = "agent-requirement")
   public List<PropEntityAgentRequirement> propEntities;
 
@@ -28,5 +32,6 @@ public class PropEntitiesAgentRequirement {
             return new PropEntityAgentRequirement(source);
           }
         });
+    count = propEntities.size();
   }
 }

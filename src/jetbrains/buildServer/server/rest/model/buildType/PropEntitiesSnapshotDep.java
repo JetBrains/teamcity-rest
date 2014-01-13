@@ -1,6 +1,7 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -17,6 +18,9 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "snapshot-dependencies")
 @SuppressWarnings("PublicField")
 public class PropEntitiesSnapshotDep {
+  @XmlAttribute
+  public long count;
+
   @XmlElement(name = "snapshot-dependency")
   public List<PropEntitySnapshotDep> propEntities;
 
@@ -29,5 +33,6 @@ public class PropEntitiesSnapshotDep {
         return new PropEntitySnapshotDep(source, context);
       }
     });
+    count = propEntities.size();
   }
 }
