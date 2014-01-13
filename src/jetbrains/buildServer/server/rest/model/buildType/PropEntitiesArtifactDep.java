@@ -8,6 +8,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import org.jetbrains.annotations.NotNull;
 
@@ -19,7 +20,7 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 public class PropEntitiesArtifactDep {
   @XmlAttribute
-  public long count;
+  public Integer count;
 
   @XmlElement(name = "artifact-dependency")
   public List<PropEntityArtifactDep> propEntities;
@@ -34,7 +35,7 @@ public class PropEntitiesArtifactDep {
       propEntities.add(new PropEntityArtifactDep(dependency, orderNumber, context));
       orderNumber++;
     }
-    count = propEntities.size();
+    count = ValueWithDefault.decideDefault(null, propEntities.size());
   }
 
   @NotNull

@@ -5,6 +5,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -19,7 +20,7 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 public class PropEntitiesSnapshotDep {
   @XmlAttribute
-  public long count;
+  public Integer count;
 
   @XmlElement(name = "snapshot-dependency")
   public List<PropEntitySnapshotDep> propEntities;
@@ -33,6 +34,6 @@ public class PropEntitiesSnapshotDep {
         return new PropEntitySnapshotDep(source, context);
       }
     });
-    count = propEntities.size();
+    count = ValueWithDefault.decideDefault(null, propEntities.size());
   }
 }

@@ -4,6 +4,7 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -18,7 +19,7 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 public class PropEntitiesFeature {
   @XmlAttribute
-  public long count;
+  public Integer count;
 
   @XmlElement(name = "feature")
   public List<PropEntityFeature> propEntities;
@@ -33,6 +34,6 @@ public class PropEntitiesFeature {
           return new PropEntityFeature(source, buildType);
         }
       });
-    count = propEntities.size();
+    count = ValueWithDefault.decideDefault(null, propEntities.size());
   }
 }

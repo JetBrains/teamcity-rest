@@ -5,6 +5,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -18,7 +19,7 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 public class PropEntitiesTrigger {
   @XmlAttribute
-  public long count;
+  public Integer count;
   @XmlElement(name = "trigger")
   public List<PropEntityTrigger> propEntities;
 
@@ -31,6 +32,6 @@ public class PropEntitiesTrigger {
             return new PropEntityTrigger(source, buildType);
           }
         });
-    count = propEntities.size();
+    count = ValueWithDefault.decideDefault(null, propEntities.size());
   }
 }
