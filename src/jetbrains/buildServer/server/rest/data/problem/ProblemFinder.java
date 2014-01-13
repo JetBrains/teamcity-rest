@@ -194,14 +194,16 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
       });
     }
 
-    final String currentDimension = locator.getSingleDimensionValue(CURRENT);
-    if (currentDimension != null && locator.getUnusedDimensions().contains(CURRENT)) {
-      final Set<ProblemWrapper> currentProblems = new TreeSet<ProblemWrapper>(getCurrentProblemsList(null));
-      result.add(new FilterConditionChecker<ProblemWrapper>() {
-        public boolean isIncluded(@NotNull final ProblemWrapper item) {
-          return currentProblems.contains(item);
-        }
-      });
+    if (locator.getUnusedDimensions().contains(CURRENT)) {
+      final String currentDimension = locator.getSingleDimensionValue(CURRENT);
+      if (currentDimension != null) {
+        final Set<ProblemWrapper> currentProblems = new TreeSet<ProblemWrapper>(getCurrentProblemsList(null));
+        result.add(new FilterConditionChecker<ProblemWrapper>() {
+          public boolean isIncluded(@NotNull final ProblemWrapper item) {
+            return currentProblems.contains(item);
+          }
+        });
+      }
     }
 
     return result;

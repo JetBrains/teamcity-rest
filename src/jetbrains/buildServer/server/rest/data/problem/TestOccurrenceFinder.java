@@ -253,28 +253,32 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       });
     }
 
-    String testDimension = locator.getSingleDimensionValue(TEST);
-    if (testDimension != null && locator.getUnusedDimensions().contains(TEST)) {
-      final PagedSearchResult<STest> tests = myTestFinder.getItems(testDimension);
-      final HashSet<Long> testNameIds = new HashSet<Long>();
-      for (STest test : tests.myEntries) {
-        testNameIds.add(test.getTestNameId());
-      }
-      result.add(new FilterConditionChecker<STestRun>() {
-        public boolean isIncluded(@NotNull final STestRun item) {
-          return testNameIds.contains(item.getTest().getTestNameId());
+    if (locator.getUnusedDimensions().contains(TEST)) {
+      String testDimension = locator.getSingleDimensionValue(TEST);
+      if (testDimension != null) {
+        final PagedSearchResult<STest> tests = myTestFinder.getItems(testDimension);
+        final HashSet<Long> testNameIds = new HashSet<Long>();
+        for (STest test : tests.myEntries) {
+          testNameIds.add(test.getTestNameId());
         }
-      });
+        result.add(new FilterConditionChecker<STestRun>() {
+          public boolean isIncluded(@NotNull final STestRun item) {
+            return testNameIds.contains(item.getTest().getTestNameId());
+          }
+        });
+      }
     }
 
-    final String buildDimension = locator.getSingleDimensionValue(BUILD);
-    if (buildDimension != null && locator.getUnusedDimensions().contains(BUILD)) {
-      final SBuild build = myBuildFinder.getBuild(null, buildDimension);
-      result.add(new FilterConditionChecker<STestRun>() {
-        public boolean isIncluded(@NotNull final STestRun item) {
-          return build.getBuildId() == item.getBuild().getBuildId();
-        }
-      });
+    if (locator.getUnusedDimensions().contains(BUILD)) {
+      final String buildDimension = locator.getSingleDimensionValue(BUILD);
+      if (buildDimension != null) {
+        final SBuild build = myBuildFinder.getBuild(null, buildDimension);
+        result.add(new FilterConditionChecker<STestRun>() {
+          public boolean isIncluded(@NotNull final STestRun item) {
+            return build.getBuildId() == item.getBuild().getBuildId();
+          }
+        });
+      }
     }
 
     final Boolean currentlyInvestigatedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_INVESTIGATED);
@@ -306,13 +310,15 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       });
     }
 
-    final String currentDimension = locator.getSingleDimensionValue(CURRENT);
-    if (currentDimension != null && locator.getUnusedDimensions().contains(CURRENT)) {
-      result.add(new FilterConditionChecker<STestRun>() {
-        public boolean isIncluded(@NotNull final STestRun item) {
-          return !item.isFixed(); //todo: is this the same as the test occurring in current problems???
-        }
-      });
+    if (locator.getUnusedDimensions().contains(CURRENT)) {
+      final String currentDimension = locator.getSingleDimensionValue(CURRENT);
+      if (currentDimension != null) {
+        result.add(new FilterConditionChecker<STestRun>() {
+          public boolean isIncluded(@NotNull final STestRun item) {
+            return !item.isFixed(); //todo: is this the same as the test occurring in current problems???
+          }
+        });
+      }
     }
 
     return result;
