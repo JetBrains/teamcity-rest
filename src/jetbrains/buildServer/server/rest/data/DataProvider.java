@@ -366,7 +366,7 @@ public class DataProvider {
       if (authorityHolder.isPermissionGrantedGlobally(permission)){
         return;
       }
-      throw new AuthorizationFailedException("Not existing project with internal id: '" + projectId + "'. Treating as no permission.");
+      throw new AuthorizationFailedException("No permission '" + permission + " is granted globally.");
     }
     if (!authorityHolder.isPermissionGrantedForProject(projectId, permission)) {
       throw new AuthorizationFailedException("User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission +
