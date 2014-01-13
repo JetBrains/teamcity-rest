@@ -31,6 +31,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   public static final String PROJECT = "project";
   public static final String BUILD_TYPE = "buildType";
   public static final String BUILD = "build";
+  public static final String PROMOTION = BuildFinder.PROMOTION_ID;
   public static final String VCS_ROOT = "vcsRoot";
   public static final String VCS_ROOT_INSTANCE = "vcsRootInstance";
   public static final String USERNAME = "username";
@@ -80,8 +81,18 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   @Override
   public Locator createLocator(@Nullable final String locatorText) {
     final Locator result = super.createLocator(locatorText);
-    result.addHiddenDimensions(BRANCH, PERSONAL, DIMENSION_LOOKUP_LIMIT, CHILD_CHANGE, PARENT_CHANGE); //hide these for now
+    result.addHiddenDimensions(BRANCH, PERSONAL, DIMENSION_LOOKUP_LIMIT, CHILD_CHANGE, PARENT_CHANGE, PROMOTION); //hide these for now
     return result;
+  }
+
+  @NotNull
+  public static String getLocator(@NotNull final SBuild build) {
+    return Locator.getStringLocator(BUILD, BuildFinder.getLocator(build));
+  }
+
+  @NotNull
+  public static String getLocator(@NotNull final BuildPromotion item) {
+    return Locator.getStringLocator(PROMOTION, String.valueOf(item.getId()));
   }
 
   @NotNull
@@ -211,6 +222,31 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
         result.add(new FilterConditionChecker<SVcsModification>() {
           public boolean isIncluded(@NotNull final SVcsModification item) {
             return isPersonalChangeMatchesBuildType(item, buildType);
+          }
+        });
+      }
+    }
+
+    if (locator.getUnusedDimensions().contains(BUILD)) {
+      final String buildLocator = locator.getSingleDimensionValue(BUILD);
+      if (buildLocator != null) {
+        final List<SVcsModification> buildChanges = getBuildChanges(myBuildFinder.getBuild(null, buildLocator).getBuildPromotion());
+        result.add(new FilterConditionChecker<SVcsModification>() {
+          public boolean isIncluded(@NotNull final SVcsModification item) {
+            return buildChanges.contains(item);
+          }
+        });
+      }
+    }
+
+    if (locator.getUnusedDimensions().contains(PROMOTION)) {
+      final Long promotionLocator = locator.getSingleDimensionValueAsLong(PROMOTION);
+      if (promotionLocator != null) {
+        @SuppressWarnings("ConstantConditions") final List<SVcsModification> buildChanges =
+          getBuildChanges(BuildFinder.getBuildPromotion(promotionLocator, myServiceLocator.findSingletonService(BuildPromotionManager.class)));
+        result.add(new FilterConditionChecker<SVcsModification>() {
+          public boolean isIncluded(@NotNull final SVcsModification item) {
+            return buildChanges.contains(item);
           }
         });
       }
@@ -353,7 +389,13 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
     final String buildLocator = locator.getSingleDimensionValue(BUILD);
     if (buildLocator != null) {
-      return getBuildChanges(myBuildFinder.getBuild(buildType, buildLocator));
+      return getBuildChanges(myBuildFinder.getBuild(null, buildLocator).getBuildPromotion());
+    }
+
+    final Long promotionLocator = locator.getSingleDimensionValueAsLong(PROMOTION);
+    if (promotionLocator != null) {
+      //noinspection ConstantConditions
+      return getBuildChanges(BuildFinder.getBuildPromotion(promotionLocator, myServiceLocator.findSingletonService(BuildPromotionManager.class)));
     }
 
     if (buildType != null) {
@@ -458,13 +500,13 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     return convertChanges(changes);
   }
 
-  private static List<SVcsModification> getBuildChanges(final SBuild build) {
+  public static List<SVcsModification> getBuildChanges(final BuildPromotion buildPromotion) {
     if (TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION)) {
-      return build.getContainingChanges();
+      return buildPromotion.getContainingChanges();
     }
 
     List<SVcsModification> res = new ArrayList<SVcsModification>();
-    for (ChangeDescriptor ch : ((BuildPromotionEx)build.getBuildPromotion()).getDetectedChanges(SelectPrevBuildPolicy.SINCE_LAST_BUILD)) {
+    for (ChangeDescriptor ch : ((BuildPromotionEx)buildPromotion).getDetectedChanges(SelectPrevBuildPolicy.SINCE_LAST_BUILD)) {
       final SVcsModification mod = ch.getRelatedVcsChange();
       if (mod != null) {
         res.add(mod);

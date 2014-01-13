@@ -41,6 +41,7 @@ import jetbrains.buildServer.server.rest.model.change.VcsRootInstanceRef;
 import jetbrains.buildServer.server.rest.model.issue.Issues;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.vcs.SVcsModification;
@@ -61,8 +62,12 @@ public class ChangeRequest {
     return API_CHANGES_URL + "/id:" + modification.getId() + (modification.isPersonal() ? ",personal:true" : "");
   }
 
-  public static String getBuildChangesHref(SBuild build) {
-    return API_CHANGES_URL + "?locator=build:(id:" + build.getBuildId() + ")"; //todo: need to URL-escape the value returned or not?
+  public static String getBuildChangesHref(@NotNull final SBuild build) {
+    return API_CHANGES_URL + "?locator=" + ChangeFinder.getLocator(build); //todo: need to URL-escape the value returned or not?
+  }
+
+  public static String getChangesHref(@NotNull final BuildPromotion item) {
+    return API_CHANGES_URL + "?locator=" + ChangeFinder.getLocator(item);
   }
 
   //todo: use locator here, like for builds with limitLookup, changes from dependencies flag, etc.

@@ -28,6 +28,7 @@ import org.jetbrains.annotations.Nullable;
 public class BuildFinder {
   private static final Logger LOG = Logger.getInstance(BuildFinder.class.getName());
   public static final String DIMENSION_ID = "id";
+  public static final String PROMOTION_ID = "promotionId";
   @NotNull private final DataProvider myDataProvider;
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
@@ -47,6 +48,11 @@ public class BuildFinder {
     myProjectFinder = projectFinder;
     myUserFinder = userFinder;
     myAgentFinder = agentFinder;
+  }
+
+  @NotNull
+  public static String getLocator(@NotNull final SBuild build) {
+    return Locator.getStringLocator(DIMENSION_ID, String.valueOf(build.getBuildId()));
   }
 
   public Builds getBuildsForRequest(final SBuildType buildType,
@@ -171,14 +177,14 @@ public class BuildFinder {
       return build;
     }
 
-    Long promotionId = locator.getSingleDimensionValueAsLong("promotionId");
+    Long promotionId = locator.getSingleDimensionValueAsLong(PROMOTION_ID);
     if (promotionId != null) {
       SBuild build = getBuildByPromotionId(promotionId);
       if (buildType != null && !buildType.getBuildTypeId().equals(build.getBuildTypeId())) {
-        throw new NotFoundException("No build can be found by promotionId '" + promotionId + "' in build type '" + buildType + "'.");
+        throw new NotFoundException("No build can be found by promotion id '" + promotionId + "' in build type '" + buildType + "'.");
       }
       if (locator.getDimensionsCount() > 1) {
-        LOG.info("Build locator '" + buildLocator + "' has 'promotionId' dimension and others. Others are ignored.");
+        LOG.info("Build locator '" + buildLocator + "' has '" + PROMOTION_ID + "' dimension and others. Others are ignored.");
       }
       return build;
     }

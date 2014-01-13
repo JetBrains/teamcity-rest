@@ -16,6 +16,10 @@
 
 package jetbrains.buildServer.server.rest.model.build;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -30,6 +34,8 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.agent.AgentRef;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeRef;
+import jetbrains.buildServer.server.rest.model.buildType.PropEntitiesArtifactDep;
+import jetbrains.buildServer.server.rest.model.change.ChangesRef;
 import jetbrains.buildServer.server.rest.model.change.Revisions;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
 import jetbrains.buildServer.server.rest.request.BuildQueueRequest;
@@ -37,6 +43,7 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.buildDistribution.WaitReason;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
@@ -48,7 +55,8 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 @XmlRootElement(name = "queuedBuild")
 @XmlType(name = "queuedBuild", propOrder = {"id", "href", "webUrl", "branchName", "defaultBranch", "unspecifiedBranch", "personal", "history", "buildType",
-  "queuedDate", "agent", "compatibleAgents", "comment", "personalBuildUser", "properties", "startEstimate", "waitReason",
+  "queuedDate", "agent", "compatibleAgents", "comment", "personalBuildUser", "properties", "buildDependencies", "buildArtifactDependencies", "changes", "startEstimate",
+  "waitReason",
   "revisions", "triggered"})
 public class QueuedBuild {
   @NotNull
@@ -183,38 +191,28 @@ public class QueuedBuild {
     return new Properties(myBuild.getBuildPromotion().getCustomParameters());
   }
 
-  /* todo: add these. requires refactoring of Builds list
   @XmlElement(name = "snapshot-dependencies")
   public Builds getBuildDependencies() {
-    return new Builds(Build.getBuilds(myBuild.getBuildPromotion().getDependencies()), myDataProvider, null, myApiUrlBuilder);
+    //todo: this returns only finished builds, need to also return queued builds
+    final List<SBuild> builds = Build.getBuilds(myBuild.getBuildPromotion().getDependencies());
+    return builds.size() > 0 ? new Builds(builds, myServiceLocator, null, myApiUrlBuilder) : null;
   }
-  */
 
-/* TODO: ignore?
   @XmlElement(name = "artifact-dependencies")
-  public Builds getBuildArtifactDependencies() {
-    final Map<jetbrains.buildServer.Build,List<ArtifactInfo>> artifacts = myBuild.getBuildPromotion().getArtifactDependencies();
-    List<SBuild> builds = new ArrayList<SBuild>(artifacts.size());
-    for (jetbrains.buildServer.Build sourceBuild : artifacts.keySet()) {
-      //todo: TeamCity API: cast to SBuild?
-      builds.add((SBuild)sourceBuild);
-    }
-    Collections.sort(builds, new BuildDependenciesComparator());
-    return new Builds(builds, myDataProvider, null, myApiUrlBuilder);
+  public PropEntitiesArtifactDep getBuildArtifactDependencies() {
+    final List<SArtifactDependency> artifactDependencies = myBuild.getBuildPromotion().getArtifactDependencies();
+    return artifactDependencies.size() > 0 ? new PropEntitiesArtifactDep(artifactDependencies, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder)) : null;
   }
-*/
 
   @XmlElement(name = "revisions")
   public Revisions getRevisions() {
     return new Revisions(myBuild.getBuildPromotion().getRevisions(), myApiUrlBuilder);
   }
 
-/* TODO: need to support promotionId in changes request
   @XmlElement(name = "changes")
   public ChangesRef getChanges() {
-    return new ChangesRef(myBuild, myApiUrlBuilder);
+    return new ChangesRef(myBuild.getBuildPromotion(), myApiUrlBuilder);
   }
-*/
 
   @XmlElement(name = "triggered")
   public TriggeredBy getTriggered() {
