@@ -469,6 +469,7 @@ public class ProjectRequest {
   public Project setParentProject(@PathParam("projectLocator") String projectLocator, Project parentProject) {
     SProject project = myProjectFinder.getProject(projectLocator);
     project.moveToProject(parentProject.getProjectFromPosted(myProjectFinder));
+    project.persist();
     return new Project(project, Fields.DEFAULT_FIELDS, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
