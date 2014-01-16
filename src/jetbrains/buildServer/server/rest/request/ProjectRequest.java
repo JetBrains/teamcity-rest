@@ -475,6 +475,7 @@ public class ProjectRequest {
   public ProjectRef setParentProject(@PathParam("projectLocator") String projectLocator, ProjectRef parentProject) {
     SProject project = myProjectFinder.getProject(projectLocator);
     project.moveToProject(parentProject.getProjectFromPosted(myProjectFinder));
+    project.persist();
     return new ProjectRef(project, myApiUrlBuilder);
   }
 
