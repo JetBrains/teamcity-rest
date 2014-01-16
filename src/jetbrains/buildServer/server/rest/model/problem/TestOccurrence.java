@@ -101,7 +101,7 @@ public class TestOccurrence {
       currentlyMuted = true;
     }
 
-    if (fields.isAllFieldsIncluded()) {
+    if (fields.isLong()) {
     /*
     final TestFailureInfo failureInfo = testRun.getFailureInfo();
     if (failureInfo != null){

@@ -52,7 +52,7 @@ public class BuildType {
   private DataProvider myDataProvider;
   private ApiUrlBuilder myApiUrlBuilder;
 
-  private Fields myFields = Fields.DEFAULT_FIELDS;
+  private Fields myFields = Fields.LONG;
 
   public BuildType() {
   }

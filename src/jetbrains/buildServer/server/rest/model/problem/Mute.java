@@ -57,7 +57,7 @@ public class Mute {
   }
 
   public Mute(final @NotNull MuteInfo item, final @NotNull BeanContext beanContext) {
-    final Fields fields = Fields.DEFAULT_FIELDS;
+    final Fields fields = Fields.LONG;
 
     id = item.getId();
 

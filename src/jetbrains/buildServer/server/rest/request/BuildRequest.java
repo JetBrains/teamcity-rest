@@ -160,7 +160,7 @@ public class BuildRequest {
   @Path("/{buildLocator}")
   @Produces({"application/xml", "application/json"})
   public Build serveBuild(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
-    return new Build(myBuildFinder.getBuild(null, buildLocator), new Fields(fields, Fields.DEFAULT_FIELDS), myBeanContext);
+    return new Build(myBuildFinder.getBuild(null, buildLocator), new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @GET
@@ -510,7 +510,7 @@ public class BuildRequest {
   public ProblemOccurrences getProblems(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final List<BuildProblem> buildProblems = ((BuildPromotionEx)build.getBuildPromotion()).getBuildProblems();//todo: (TeamCity) is this OK to use?
-    return new ProblemOccurrences(buildProblems, ProblemOccurrenceRequest.getHref(build), null, new Fields(fields), myBeanContext);
+    return new ProblemOccurrences(buildProblems, ProblemOccurrenceRequest.getHref(build), null, new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @GET
@@ -520,7 +520,7 @@ public class BuildRequest {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final List<STestRun> allTests = build.getFullStatistics().getAllTests();
 //todo: investigate test repeat counts support
-    return new TestOccurrences(allTests, TestOccurrenceRequest.getHref(build), null, new Fields(fields), myBeanContext);
+    return new TestOccurrences(allTests, TestOccurrenceRequest.getHref(build), null, new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @POST

@@ -70,7 +70,7 @@ public class Problem {
     identity = problem.getIdentity();
     href = apiUrlBuilder.transformRelativePath(ProblemRequest.getHref(problem));
 
-    if (fields.isAllFieldsIncluded()) {
+    if (fields.isLong()) {
 //      project = new ProjectRef(problem.getProject(), apiUrlBuilder);
 
       final List<MuteInfo> actualMutes = problem.getMutes();

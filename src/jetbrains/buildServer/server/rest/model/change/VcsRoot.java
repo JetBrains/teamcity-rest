@@ -105,7 +105,7 @@ public class VcsRoot {
   }
 
   public VcsRoot(final SVcsRoot root, final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
-    final Fields fields = Fields.DEFAULT_FIELDS;
+    final Fields fields = Fields.LONG;
 
     id = root.getExternalId();
     internalId =  TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? root.getId() : null;

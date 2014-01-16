@@ -74,9 +74,9 @@ public class Investigation {
     */
 
     href = InvestigationRequest.getHref(investigation);
-    if (fields.isAllFieldsIncluded() || true) {
+    if (fields.isLong() || true) {
 
-      scope = new InvestigationScope(investigation, fields.getNestedField("scope"), beanContext);
+      scope = new InvestigationScope(investigation, fields.getNestedField("scope", Fields.NONE, Fields.LONG), beanContext);
       responsible = new UserRef(investigation.getResponsibleUser(), beanContext.getApiUrlBuilder());
 
       //todo: add all investigation fields: state, removeType, etc.

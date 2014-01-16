@@ -79,7 +79,7 @@ public class Build {
   }
 
   public Build(@NotNull final SBuild build, @NotNull final BeanContext beanContext) {
-    this(build, Fields.DEFAULT_FIELDS, beanContext);
+    this(build, Fields.LONG, beanContext);
   }
 
   public Build(@NotNull final SBuild build, @NotNull Fields fields, @NotNull final BeanContext beanContext) {

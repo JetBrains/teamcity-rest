@@ -1261,7 +1261,7 @@ public class BuildTypeRequest {
   public Investigations getInvestigations(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
     return new Investigations(myInvestigationFinder.getInvestigationWrappersForBuildType(buildType), new Href(InvestigationRequest.getHref(buildType), myApiUrlBuilder),
-                              new Fields(fields, Fields.ALL_FIELDS), null, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+                              new Fields(fields, Fields.LONG), null, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   /**

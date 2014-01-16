@@ -125,7 +125,7 @@ public class Project {
     webUrl = beanContext.getSingletonService(WebLinks.class).getProjectPageUrl(project.getExternalId());
 
     final SProject actulParentProject = project.getParentProject();
-    if (fields.isAllFieldsIncluded()) {
+    if (fields.isLong()) {
       description = project.getDescription();
       archived = project.isArchived();
 

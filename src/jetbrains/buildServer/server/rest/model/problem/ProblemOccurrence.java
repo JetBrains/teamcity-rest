@@ -88,7 +88,7 @@ public class ProblemOccurrence {
       currentlyMuted = true;
     }
 
-    if (fields.isAllFieldsIncluded()) {
+    if (fields.isLong()) {
       details = problemP.getBuildProblemData().getDescription();
       additionalData = problemP.getBuildProblemData().getAdditionalData();
 

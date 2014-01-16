@@ -82,7 +82,7 @@ public class ProjectRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public Projects serveProjects(@QueryParam("fields") String fields) {
-    return new Projects(myDataProvider.getServer().getProjectManager().getProjects(), new Fields(fields, Fields.DEFAULT_FIELDS),
+    return new Projects(myDataProvider.getServer().getProjectManager().getProjects(), new Fields(fields, Fields.LONG),
                         new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
@@ -95,7 +95,7 @@ public class ProjectRequest {
     }
     final SProject project = myDataProvider.getServer().getProjectManager().createProject(name);
     project.persist();
-    return new Project(project, Fields.DEFAULT_FIELDS, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new Project(project, Fields.LONG, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @POST
@@ -144,7 +144,7 @@ public class ProjectRequest {
     } catch (PersistFailedException e) {
       processCreatiedProjectFinalizationError(resultingProject, projectManager, e);
     }
-    return new Project(resultingProject, Fields.DEFAULT_FIELDS, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new Project(resultingProject, Fields.LONG, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   private void processCreatiedProjectFinalizationError(final SProject resultingProject, final ProjectManager projectManager, final Exception e) {
@@ -161,7 +161,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}")
   @Produces({"application/xml", "application/json"})
   public Project serveProject(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
-    return new Project(myProjectFinder.getProject(projectLocator), new Fields(fields, Fields.DEFAULT_FIELDS), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new Project(myProjectFinder.getProject(projectLocator), new Fields(fields, Fields.LONG), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @DELETE
@@ -459,7 +459,7 @@ public class ProjectRequest {
     final SProject actulParentProject = project.getParentProject();
     return actulParentProject == null
            ? null
-           : new Project(actulParentProject, new Fields(fields, Fields.DEFAULT_FIELDS), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+           : new Project(actulParentProject, new Fields(fields, Fields.LONG), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @PUT
@@ -470,7 +470,7 @@ public class ProjectRequest {
     SProject project = myProjectFinder.getProject(projectLocator);
     project.moveToProject(parentProject.getProjectFromPosted(myProjectFinder));
     project.persist();
-    return new Project(project, Fields.DEFAULT_FIELDS, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new Project(project, Fields.LONG, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @GET
@@ -520,7 +520,7 @@ public class ProjectRequest {
     } catch (NoSuchAgentPoolException e) {
       throw new IllegalStateException("Agent pool with id \'" + agentPoolId + "' is not found.");
     }
-    return new AgentPool(agentPoolFromPosted, Fields.DEFAULT_FIELDS, new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder));
+    return new AgentPool(agentPoolFromPosted, Fields.LONG, new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder));
   }
 
   /**
@@ -547,13 +547,13 @@ public class ProjectRequest {
     final SProject project = myProjectFinder.getProject(projectLocator);
     final SProject parentProject = project.getParentProject();
     final Project parentProjectRef =
-      parentProject != null ? new Project(parentProject, Fields.DEFAULT_FIELDS, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder)) : null;
+      parentProject != null ? new Project(parentProject, Fields.SHORT, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder)) : null;
     @NotNull final String newNotEmptyId = StringUtil.isEmpty(newId) ? project.getExternalId() : newId;
     final ProjectManagerEx.IdsMaps idsMaps =
       ((ProjectManagerEx)myDataProvider.getServer().getProjectManager()).generateDefaultExternalIds(project, newNotEmptyId, ID_GENERATION_FLAG, true);
     final Map<String, String> projectIdsMap = idsMaps.getProjectIdsMap();
     projectIdsMap.remove(project.getExternalId()); // remove ptoject's own id to make the object more clean
-    return new NewProjectDescription(project.getName(), newNotEmptyId, new Project(project, Fields.DEFAULT_FIELDS, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder)),
+    return new NewProjectDescription(project.getName(), newNotEmptyId, new Project(project, Fields.SHORT, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder)),
                                      parentProjectRef, true,
                                      getNullOrCollection(projectIdsMap),
                                      getNullOrCollection(idsMaps.getBuildTypeIdsMap()),

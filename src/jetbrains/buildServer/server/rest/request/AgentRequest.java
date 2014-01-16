@@ -118,7 +118,7 @@ public class AgentRequest {
   @Produces({"application/xml", "application/json"})
   public AgentPool getAgentPool(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    return new AgentPool(myAgentPoolsFinder.getAgentPool(agent), new Fields(fields, Fields.DEFAULT_FIELDS),
+    return new AgentPool(myAgentPoolsFinder.getAgentPool(agent), new Fields(fields, Fields.LONG),
                          new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder));
   }
 
@@ -129,7 +129,7 @@ public class AgentRequest {
   public AgentPool setAgentPool(@PathParam("agentLocator") String agentLocator, AgentPool agentPool) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     myDataProvider.addAgentToPool(agentPool.getAgentPoolFromPosted(myAgentPoolsFinder), agent);
-    return new AgentPool(myAgentPoolsFinder.getAgentPool(agent), Fields.DEFAULT_FIELDS, new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder));
+    return new AgentPool(myAgentPoolsFinder.getAgentPool(agent), Fields.LONG, new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder));
   }
 
   @GET
