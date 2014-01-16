@@ -59,14 +59,14 @@ public class ValueWithDefault {
   public static <T> boolean isDefault(@Nullable final T value) {
     if (value == null) return true;
 
-    if (value.getClass().isAssignableFrom(Integer.class)) return (Integer)value == 0;
-    if (value.getClass().isAssignableFrom(Long.class)) return (Long)value == 0;
-    if (value.getClass().isAssignableFrom(Boolean.class)) {//noinspection PointlessBooleanExpression
+    if (Integer.class.isAssignableFrom(value.getClass())) return (Integer)value == 0;
+    if (Long.class.isAssignableFrom(value.getClass())) return (Long)value == 0;
+    if (Boolean.class.isAssignableFrom(value.getClass())) {//noinspection PointlessBooleanExpression
       return (Boolean)value == false;
     }
-    if (value.getClass().isAssignableFrom(Collection.class)) return ((Collection)value).size() == 0;
-    if (value.getClass().isAssignableFrom(DefaultValueAware.class)) {
-      return !((DefaultValueAware)value).isDefault();
+    if (Collection.class.isAssignableFrom(value.getClass())) return ((Collection)value).size() == 0;
+    if (DefaultValueAware.class.isAssignableFrom(value.getClass())) {
+      return ((DefaultValueAware)value).isDefault();
     }
 
     return false;
