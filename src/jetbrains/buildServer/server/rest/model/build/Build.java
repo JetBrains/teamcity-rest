@@ -620,22 +620,22 @@ public class Build {
     String locatorText;
     if (submittedLocator != null) {
       if (submittedPromotionId != null) {
-        throw new BadRequestException("Both 'locator' and '" + PROMOTION_ID + "' attributes are specified. Only one should be present.");
+        throw new BadRequestException("Both 'locator' and '" + QueuedBuildFinder.PROMOTION_ID + "' attributes are specified. Only one should be present.");
       }
       if (submittedId != null) {
-        throw new BadRequestException("Both 'locator' and 'id' attributes are specified. Only one should be present.");
+        throw new BadRequestException("Both 'locator' and '" + BuildFinder.DIMENSION_ID + "' attributes are specified. Only one should be present.");
       }
       locatorText = submittedLocator;
     } else {
       final Locator locator = Locator.createEmptyLocator();
       if (submittedPromotionId != null) {
-        locator.setDimension(BuildFinder.PROMOTION_ID, String.valueOf(submittedPromotionId));
+        locator.setDimension(QueuedBuildFinder.PROMOTION_ID, String.valueOf(submittedPromotionId));
       }
       if (submittedId != null) {
         locator.setDimension(BuildFinder.DIMENSION_ID, String.valueOf(submittedId));
       }
       if (locator.isEmpty()) {
-        throw new BadRequestException("No build specified. Either '" + PROMOTION_ID + "', 'id' or 'locator' attributes should be present.");
+        throw new BadRequestException("No build specified. Either '" + PROMOTION_ID + "', '" + BuildFinder.DIMENSION_ID + "' or 'locator' attributes should be present.");
       }
 
       locatorText = locator.getStringRepresentation();
