@@ -61,6 +61,11 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
   }
 
   @NotNull
+  public static String getLocator(@NotNull final SQueuedBuild build) {
+    return Locator.getStringLocator(PROMOTION_ID, String.valueOf(build.getBuildPromotion().getId()));
+  }
+
+  @NotNull
   @Override
   public List<SQueuedBuild> getAllItems() {
     return myBuildQueue.getItems();

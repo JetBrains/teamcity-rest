@@ -66,7 +66,7 @@ public class BuildQueueRequest {
 
   @NotNull
   public static String getQueuedBuildHref(SQueuedBuild build) {
-    return API_BUILD_QUEUE_URL + "/id:" + build.getBuildPromotion().getId();
+    return API_BUILD_QUEUE_URL + "/" + QueuedBuildFinder.getLocator(build);
   }
 
   @NotNull
@@ -175,8 +175,9 @@ public class BuildQueueRequest {
   }
 
   @POST
+  @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Build queueNewBuild(BuildTask buildTask, @Context HttpServletRequest request){
+  public Build queueNewBuildAsTask(BuildTask buildTask, @Context HttpServletRequest request){
     final SUser user = myDataProvider.getCurrentUser();
     BuildPromotion buildToTrigger = buildTask.getBuildToTrigger(user, myBuildTypeFinder, myServiceLocator);
     TriggeredByBuilder triggeredByBulder = new TriggeredByBuilder();
