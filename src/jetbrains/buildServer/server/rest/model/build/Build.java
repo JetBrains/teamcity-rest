@@ -32,13 +32,14 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.agent.AgentRef;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeRef;
 import jetbrains.buildServer.server.rest.model.buildType.PropEntitiesArtifactDep;
-import jetbrains.buildServer.server.rest.model.change.ChangesRef;
+import jetbrains.buildServer.server.rest.model.change.Changes;
 import jetbrains.buildServer.server.rest.model.change.Revisions;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
 import jetbrains.buildServer.server.rest.request.BuildQueueRequest;
+import jetbrains.buildServer.server.rest.request.ChangeRequest;
 import jetbrains.buildServer.server.rest.request.ProblemOccurrenceRequest;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -55,6 +56,7 @@ import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
+import jetbrains.buildServer.vcs.SVcsModification;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -377,14 +379,16 @@ public class Build {
   }
 
   @XmlElement(name = "changes")
-  public ChangesRef getChanges() {
-    ChangesRef result;
+  public Changes getChanges() {
+    final List<SVcsModification> changesInternal = ChangeFinder.getBuildChanges(myBuildPromotion);
+    final String href;
     if (myBuild != null) {
-      result = new ChangesRef(myBuild, myApiUrlBuilder);
+      href = ChangeRequest.getBuildChangesHref(myBuild);
     } else {
-      result = new ChangesRef(myBuildPromotion, myApiUrlBuilder);
+      href = ChangeRequest.getChangesHref(myBuildPromotion);
     }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("changes", false), result);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("changes", false),
+                                          new Changes(changesInternal, new PagerData(href), myFields.getNestedField("changes"), myBeanContext));
   }
 
   @XmlElement(name = "triggered")

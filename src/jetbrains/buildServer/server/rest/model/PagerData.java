@@ -36,14 +36,21 @@ public class PagerData {
   public static final String START = "start";
   public static final String COUNT = "count";
   @NotNull
-  private URI myHref;
+  private final String myHref;
   @Nullable
-  private URI myNextHref;
+  private final String myNextHref;
   @Nullable
-  private URI myPrevHref;
+  private final String myPrevHref;
 
-  @NotNull private String myContextPath;
-  @NotNull private UriBuilder myUriBuilder;
+  /**
+   * Constructs an object without prev/next links
+   * @param href relative not transformed URL
+   */
+  public PagerData(@NotNull String href){
+    myHref = href;
+    myNextHref = null;
+    myPrevHref = null;
+  }
 
   /**
    * @param uriBuilder           UriBuilder for the current Url
@@ -59,35 +66,37 @@ public class PagerData {
                    @Nullable final Integer count,
                    long currentPageRealCount,
                    @Nullable final String locatorText, @Nullable final String locatorQueryParameterName) {
-    myUriBuilder = uriBuilder;
-    myContextPath = contextPath;
-    myHref = uriBuilder.build(); //todo: investigate a way to preserve order of the parameters
+    myHref = getRelativePath(uriBuilder.build(), contextPath); //todo: investigate a way to preserve order of the parameters
+    URI nextHref;
+    URI prevHref;
     if (start == null || start == 0) {
-      myPrevHref = null;
+      prevHref = null;
       if (count == null || currentPageRealCount < count) {
-        myNextHref = null;
+        nextHref = null;
       } else {
-        myNextHref = getModifiedHref(uriBuilder, 0 + count, count, locatorText, locatorQueryParameterName);
+        nextHref = getModifiedHref(uriBuilder, 0 + count, count, locatorText, locatorQueryParameterName);
       }
     } else {
       if (count == null) {
-        myNextHref = null;
+        nextHref = null;
 
-        myPrevHref = getModifiedHref(uriBuilder, 0, start, locatorText, locatorQueryParameterName);
+        prevHref = getModifiedHref(uriBuilder, 0, start, locatorText, locatorQueryParameterName);
       } else {
         if (currentPageRealCount < count) {
-          myNextHref = null;
+          nextHref = null;
         } else {
-          myNextHref = getModifiedHref(uriBuilder, start + count, count, locatorText, locatorQueryParameterName);
+          nextHref = getModifiedHref(uriBuilder, start + count, count, locatorText, locatorQueryParameterName);
         }
         final long itemsFromStart = start - count;
         if (itemsFromStart < 0) {
-          myPrevHref = getModifiedHref(uriBuilder, 0, start, locatorText, locatorQueryParameterName);
+          prevHref = getModifiedHref(uriBuilder, 0, start, locatorText, locatorQueryParameterName);
         } else {
-          myPrevHref = getModifiedHref(uriBuilder, itemsFromStart, count, locatorText, locatorQueryParameterName);
+          prevHref = getModifiedHref(uriBuilder, itemsFromStart, count, locatorText, locatorQueryParameterName);
         }
       }
     }
+    myNextHref = nextHref == null ? null : getRelativePath(nextHref, contextPath);
+    myPrevHref = prevHref== null ? null : getRelativePath(prevHref, contextPath);
   }
 
   private URI getModifiedHref(@NotNull final UriBuilder uriBuilder, final long start, final long count,
@@ -95,25 +104,23 @@ public class PagerData {
     if (StringUtil.isEmpty(locatorText) || StringUtil.isEmpty(locatorQueryParameterName)) {
       return uriBuilder.replaceQueryParam(START, start).replaceQueryParam(COUNT, count).build();
     }
-    assert locatorText != null;
-
     String newLocator = Locator.setDimension(Locator.setDimension(locatorText, START, start), COUNT, count);
     return uriBuilder.replaceQueryParam(locatorQueryParameterName, newLocator).build();
   }
 
   @NotNull
   public String getHref() {
-    return getRelativePath(myHref, myContextPath);
+    return myHref;
   }
 
   @Nullable
   public String getNextHref() {
-    return myNextHref == null ? null : getRelativePath(myNextHref, myContextPath);
+    return myNextHref;
   }
 
   @Nullable
   public String getPrevHref() {
-    return myPrevHref == null ? null : getRelativePath(myPrevHref, myContextPath);
+    return myPrevHref;
   }
 
   @NotNull
@@ -134,10 +141,4 @@ public class PagerData {
     }
     return sb.toString();
   }
-
-  @NotNull
-  public String getCurrentUrlRelativePath(){
-    return getRelativePath(myUriBuilder.build(), myContextPath);
-  }
-
 }

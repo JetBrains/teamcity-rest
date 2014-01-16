@@ -93,7 +93,7 @@ public class AgentRequest {
                                           locatorToUse,
                                           "locator");
     return new Agents(result.myEntries,
-                      new Href(pager.getCurrentUrlRelativePath(), myApiUrlBuilder),
+                      new Href(pager.getHref(), myApiUrlBuilder),
                       pager,
                       myApiUrlBuilder);
   }

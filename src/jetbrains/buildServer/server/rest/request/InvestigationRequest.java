@@ -94,7 +94,7 @@ public class InvestigationRequest {
                                             locatorText,
                                             "locator");
     return new Investigations(result.myEntries,
-                              new Href(pager.getCurrentUrlRelativePath(), myApiUrlBuilder),
+                              new Href(pager.getHref(), myApiUrlBuilder),
                               new Fields(fields, Fields.LONG),
                               pager,
                               new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder)
