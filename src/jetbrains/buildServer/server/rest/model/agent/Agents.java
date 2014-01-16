@@ -23,9 +23,10 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.model.Href;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -39,7 +40,7 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("PublicField")
 public class Agents {
   @XmlAttribute
-  public long count;
+  public Integer count;
 
   @XmlElement(name = "agent")
   public List<AgentRef> agents;
@@ -51,19 +52,26 @@ public class Agents {
   public Agents() {
   }
 
-  public Agents(@Nullable Collection<SBuildAgent> agentObjects, @Nullable final Href hrefP, @Nullable final PagerData pagerData, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    href = hrefP != null ? hrefP.getHref() : null;
-    if (agentObjects != null) {
-      agents = new ArrayList<AgentRef>(agentObjects.size());
+  public Agents(@NotNull Collection<SBuildAgent> agentObjects, @Nullable final PagerData pagerData, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+    href = pagerData == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href", true), beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getHref()));
+    if (fields.isIncluded("agent", false, true)) {
+      final ArrayList<AgentRef> agentList = new ArrayList<AgentRef>(agentObjects.size());
       for (SBuildAgent agent : agentObjects) {
-        agents.add(new AgentRef(agent, apiUrlBuilder));
+        agentList.add(new AgentRef(agent, beanContext.getApiUrlBuilder()));
       }
-      count = agents.size();
+      agents = ValueWithDefault.decideDefault(fields.isIncluded("agent"), agentList);
+    } else {
+      agents = null;
+    }
 
-      if (pagerData != null) {
-        nextHref = pagerData.getNextHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;
-        prevHref = pagerData.getPrevHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getPrevHref()) : null;
-      }
+    count = ValueWithDefault.decideDefault(fields.isIncluded("count"), agentObjects.size());
+
+    if (pagerData != null) {
+      nextHref = ValueWithDefault
+        .decideDefault(fields.isIncluded("nextHref"), pagerData.getNextHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null);
+      prevHref = ValueWithDefault
+        .decideDefault(fields.isIncluded("prevHref"), pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null);
+
     }
   }
 }

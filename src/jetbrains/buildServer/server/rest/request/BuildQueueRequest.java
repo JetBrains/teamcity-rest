@@ -161,8 +161,8 @@ public class BuildQueueRequest {
   @GET
   @Path("/{queuedBuildLocator}" + COMPATIBLE_AGENTS)
   @Produces({"application/xml", "application/json"})
-  public Agents serveCompatibleAgents(@PathParam("queuedBuildLocator") String queuedBuildLocator) {
-    return new Agents(myQueuedBuildFinder.getItem(queuedBuildLocator).getCompatibleAgents(), null, null, myApiUrlBuilder);
+  public Agents serveCompatibleAgents(@PathParam("queuedBuildLocator") String queuedBuildLocator, @QueryParam("fields") String fields) {
+    return new Agents(myQueuedBuildFinder.getItem(queuedBuildLocator).getCompatibleAgents(), null, new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @GET

@@ -26,7 +26,6 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.AgentPool;
@@ -47,6 +46,7 @@ public class AgentRequest {
   @Context @NotNull private AgentPoolsFinder myAgentPoolsFinder;
   @Context @NotNull private AgentFinder myAgentFinder;
   @Context @NotNull private ServiceLocator myServiceLocator;
+  @Context @NotNull private BeanContext myBeanContext;
 
   public static final String API_AGENTS_URL = Constants.API_URL + "/agents";
 
@@ -66,6 +66,7 @@ public class AgentRequest {
   public Agents serveAgents(@QueryParam("includeDisconnected") Boolean includeDisconnected,
                             @QueryParam("includeUnauthorized") Boolean includeUnauthorized,
                             @QueryParam("locator") String locator,
+                            @QueryParam("fields") String fields,
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     //pre-8.1 compatibility:
     String locatorToUse = locator;
@@ -92,10 +93,7 @@ public class AgentRequest {
                                           result.myCount, result.myEntries.size(),
                                           locatorToUse,
                                           "locator");
-    return new Agents(result.myEntries,
-                      new Href(pager.getHref(), myApiUrlBuilder),
-                      pager,
-                      myApiUrlBuilder);
+    return new Agents(result.myEntries, pager, new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @GET
@@ -118,8 +116,7 @@ public class AgentRequest {
   @Produces({"application/xml", "application/json"})
   public AgentPool getAgentPool(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    return new AgentPool(myAgentPoolsFinder.getAgentPool(agent), new Fields(fields, Fields.LONG),
-                         new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder));
+    return new AgentPool(myAgentPoolsFinder.getAgentPool(agent), new Fields(fields, Fields.LONG),myBeanContext);
   }
 
   @PUT
@@ -129,7 +126,7 @@ public class AgentRequest {
   public AgentPool setAgentPool(@PathParam("agentLocator") String agentLocator, AgentPool agentPool) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     myDataProvider.addAgentToPool(agentPool.getAgentPoolFromPosted(myAgentPoolsFinder), agent);
-    return new AgentPool(myAgentPoolsFinder.getAgentPool(agent), Fields.LONG, new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder));
+    return new AgentPool(myAgentPoolsFinder.getAgentPool(agent), Fields.LONG, myBeanContext);
   }
 
   @GET
