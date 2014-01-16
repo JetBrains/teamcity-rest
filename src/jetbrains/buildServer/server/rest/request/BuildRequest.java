@@ -43,7 +43,6 @@ import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.TriggeredBy;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifact;
@@ -305,16 +304,16 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/related-issues")
   @Produces({"application/xml", "application/json"})
-  public IssueUsages serveBuildRelatedIssuesOld(@PathParam("buildLocator") String buildLocator) {
-    return serveBuildRelatedIssues(buildLocator);
+  public IssueUsages serveBuildRelatedIssuesOld(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
+    return serveBuildRelatedIssues(buildLocator, fields);
   }
 
   @GET
   @Path("/{buildLocator}" + RELATED_ISSUES)
   @Produces({"application/xml", "application/json"})
-  public IssueUsages serveBuildRelatedIssues(@PathParam("buildLocator") String buildLocator) {
+  public IssueUsages serveBuildRelatedIssues(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return new IssueUsages(build, true, myBeanContext.getApiUrlBuilder(), myBeanContext.getSingletonService(BeanFactory.class));
+    return new IssueUsages(build, new Fields(fields, Fields.LONG), myBeanContext);
   }
 
 

@@ -21,13 +21,15 @@ import java.util.Collections;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import jetbrains.buildServer.issueTracker.IssueEx;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.change.Changes;
-import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.vcs.SVcsModification;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -36,36 +38,42 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class IssueUsage {
   private jetbrains.buildServer.issueTracker.Issue myIssue;
   private SBuild myBuild;
-  private ApiUrlBuilder myApiUrlBuilder;
-  @Autowired private BeanFactory myFactory;
+  @NotNull private Fields myFields;
+  @NotNull private BeanContext myBeanContext;
 
   public IssueUsage() {
   }
 
-  public IssueUsage(jetbrains.buildServer.issueTracker.Issue issue,
-                    SBuild build,
-                    final ApiUrlBuilder apiUrlBuilder,
-                    final BeanFactory myFactory) {
+  public IssueUsage(jetbrains.buildServer.issueTracker.Issue issue, SBuild build, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     myIssue = issue;
     myBuild = build;
-    myApiUrlBuilder = apiUrlBuilder;
-    myFactory.autowire(this);
+    myFields = fields;
+    myBeanContext = beanContext;
   }
 
   @XmlElement
   public Issue getIssue() {
-    return new Issue(myIssue);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("issue"), new Issue(myIssue));
   }
 
   @XmlElement(defaultValue = "")
   public Changes getChanges() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("changes", false), new ValueWithDefault.Value<Changes>() {
+      @Nullable
+      public Changes get() {
+        return getChangesInternal();
+      }
+    });
+  }
+
+  public Changes getChangesInternal() {
     if (TeamCityProperties.getBooleanOrTrue("rest.beans.issueUsage.useStoredVcsModification")) {
       final IssueEx issueEx; //todo: TeamCity API
       issueEx = (IssueEx)myIssue;
       if (issueEx != null) {
         final SVcsModification relatedModification = (SVcsModification)issueEx.getRelatedModification();
         if (relatedModification != null) {
-          return new Changes(Collections.singletonList(relatedModification), myApiUrlBuilder, myFactory);
+          return new Changes(Collections.singletonList(relatedModification), null, myFields.getNestedField("changes", Fields.NONE, Fields.LONG), myBeanContext);
         }
       }
       return null;
@@ -78,7 +86,7 @@ public class IssueUsage {
           relatedModifications.add(vcsModification);
         }
       }
-      return relatedModifications.isEmpty() ? null : new Changes(relatedModifications, myApiUrlBuilder, myFactory);
+      return relatedModifications.isEmpty() ? null : new Changes(relatedModifications, null, myFields.getNestedField("changes", Fields.NONE, Fields.LONG), myBeanContext);
     }
   }
 }

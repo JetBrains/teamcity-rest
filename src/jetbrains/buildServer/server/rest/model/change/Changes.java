@@ -21,13 +21,14 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.vcs.SVcsModification;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author Yegor.Yarko
@@ -35,54 +36,61 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 @XmlRootElement(name = "changes")
 public class Changes {
-  @Autowired private BeanFactory myFactory;
-
-  private List<SVcsModification> myModifications;
-  private PagerData myPagerData;
-  private ApiUrlBuilder myApiUrlBuilder;
+  @Nullable private List<SVcsModification> myModifications;
+  @Nullable private PagerData myPagerData;
+  @NotNull private Fields myFields;
+  @NotNull private BeanContext myBeanContext;
 
   public Changes() {
   }
 
-  public Changes(final List<SVcsModification> modifications, final ApiUrlBuilder apiUrlBuilder, final BeanFactory myFactory) {
-    myModifications = modifications;
-    myApiUrlBuilder = apiUrlBuilder;
-    myPagerData = new PagerData();
-    myFactory.autowire(this);
-  }
-
-  public Changes(@NotNull final List<SVcsModification> modifications,
-                 @NotNull final PagerData pagerData,
-                 final ApiUrlBuilder apiUrlBuilder, final BeanFactory myFactory) {
+  public Changes(@Nullable final List<SVcsModification> modifications,
+                 @Nullable final PagerData pagerData,
+                 @NotNull Fields fields,
+                 @NotNull final BeanContext beanContext) {
     myModifications = modifications;
     myPagerData = pagerData;
-    myApiUrlBuilder = apiUrlBuilder;
-    myFactory.autowire(this);
+    myFields = fields;
+    myBeanContext = beanContext;
   }
 
   @XmlElement(name = "change")
   public List<ChangeRef> getChanges() {
-    List<ChangeRef>changes = new ArrayList<ChangeRef>(myModifications.size());
-    for (SVcsModification root : myModifications) {
-      changes.add(new ChangeRef(root, myApiUrlBuilder, myFactory));
-    }
-    return changes;
+    return myModifications == null
+           ? null
+           : ValueWithDefault.decideDefault(myFields.isIncluded("change", false), new ValueWithDefault.Value<List<ChangeRef>>() {
+             @Nullable
+             public List<ChangeRef> get() {
+               List<ChangeRef> changes = new ArrayList<ChangeRef>(myModifications.size());
+               for (SVcsModification root : myModifications) {
+                 changes.add(new ChangeRef(root, myBeanContext.getApiUrlBuilder(), myBeanContext.getSingletonService(BeanFactory.class)));
+               }
+               return changes;
+             }
+           });
   }
 
   @XmlAttribute
-  public long getCount() {
-    return myModifications.size();
+  public Integer getCount() {
+    return myModifications == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("count"), myModifications.size());
+  }
+
+  @XmlAttribute(required = false)
+  public String getHref() {
+    return myPagerData == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("href"), myPagerData.getHref());
   }
 
   @XmlAttribute(required = false)
   @Nullable
   public String getNextHref() {
-    return myPagerData.getNextHref() != null ? myApiUrlBuilder.transformRelativePath(myPagerData.getNextHref()) : null;
+    return myPagerData == null || myPagerData.getNextHref() == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("nextHref"), myBeanContext.getApiUrlBuilder()
+      .transformRelativePath(myPagerData.getNextHref()));
   }
 
   @XmlAttribute(required = false)
   @Nullable
   public String getPrevHref() {
-    return myPagerData.getPrevHref() != null ? myApiUrlBuilder.transformRelativePath(myPagerData.getPrevHref()) : null;
+    return myPagerData == null || myPagerData.getPrevHref() == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("prevHref"), myBeanContext.getApiUrlBuilder()
+      .transformRelativePath(myPagerData.getPrevHref()));
   }
 }

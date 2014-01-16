@@ -403,7 +403,9 @@ public class Build {
     final boolean includeAllInline = TeamCityProperties.getBoolean("rest.beans.build.inlineRelatedIssues");
     return myBuild == null
            ? null
-           : ValueWithDefault.decideDefault(myFields.isIncluded("relatedIssues", false), new IssueUsages(myBuild, includeAllInline, myApiUrlBuilder, myFactory));
+           : ValueWithDefault.decideDefault(myFields.isIncluded("relatedIssues", false),
+                                            new IssueUsages(myBuild, myFields.getNestedField("relatedIssues", Fields.NONE, includeAllInline ? Fields.LONG : Fields.SHORT),
+                                                            myBeanContext));
   }
 
   @XmlElement(name = "user")

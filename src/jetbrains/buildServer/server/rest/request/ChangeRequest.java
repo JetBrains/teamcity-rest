@@ -30,6 +30,7 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Items;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -56,6 +57,7 @@ public class ChangeRequest {
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private BeanFactory myFactory;
+  @Context @NotNull private BeanContext myBeanContext;
   @Context @NotNull private ChangeFinder myChangeFinder;
 
   public static String getChangeHref(VcsModification modification) {
@@ -97,6 +99,7 @@ public class ChangeRequest {
                               @QueryParam("start") Long start,
                               @QueryParam("count") Integer count,
                               @QueryParam("locator") String locator,
+                              @QueryParam("fields") String fields,
                               @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     Locator actualLocator = locator == null ? Locator.createEmptyLocator(myChangeFinder.getKnownDimensions()) : myChangeFinder.createLocator(locator);
     if (!actualLocator.isSingleValue()) {
@@ -126,7 +129,7 @@ public class ChangeRequest {
     return new Changes(buildModifications.myEntries,
                        new PagerData(requestUriBuilder, request.getContextPath(), buildModifications.myStart,
                                      buildModifications.myCount, buildModifications.myEntries.size(), actualLocator.getStringRepresentation(), "locator"),
-                       myApiUrlBuilder, myFactory);
+                       new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   private void updateLocatorDimension(@NotNull final Locator locator, @NotNull final String dimensionName, @Nullable final String value) {
@@ -161,9 +164,9 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/parentChanges")
   @Produces({"application/xml", "application/json"})
-  public Changes getParentChanges(@PathParam("changeLocator") String changeLocator) {
+  public Changes getParentChanges(@PathParam("changeLocator") String changeLocator, @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
-    return new Changes(new ArrayList<SVcsModification>(change.getParentModifications()), myApiUrlBuilder, myFactory);
+    return new Changes(new ArrayList<SVcsModification>(change.getParentModifications()), null, new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   /**
@@ -205,9 +208,9 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/duplicates")
   @Produces({"application/xml", "application/json"})
-  public Changes getChangeDuplicates(@PathParam("changeLocator") String changeLocator) {
+  public Changes getChangeDuplicates(@PathParam("changeLocator") String changeLocator, @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
-    return new Changes(new ArrayList<SVcsModification>(change.getDuplicates()), myApiUrlBuilder, myFactory);
+    return new Changes(new ArrayList<SVcsModification>(change.getDuplicates()), null, new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   /**

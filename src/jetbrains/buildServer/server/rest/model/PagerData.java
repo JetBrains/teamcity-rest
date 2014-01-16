@@ -35,6 +35,8 @@ public class PagerData {
 
   public static final String START = "start";
   public static final String COUNT = "count";
+  @NotNull
+  private URI myHref;
   @Nullable
   private URI myNextHref;
   @Nullable
@@ -42,9 +44,6 @@ public class PagerData {
 
   @NotNull private String myContextPath;
   @NotNull private UriBuilder myUriBuilder;
-
-  public PagerData() {
-  }
 
   /**
    * @param uriBuilder           UriBuilder for the current Url
@@ -62,6 +61,7 @@ public class PagerData {
                    @Nullable final String locatorText, @Nullable final String locatorQueryParameterName) {
     myUriBuilder = uriBuilder;
     myContextPath = contextPath;
+    myHref = uriBuilder.build(); //todo: investigate a way to preserve order of the parameters
     if (start == null || start == 0) {
       myPrevHref = null;
       if (count == null || currentPageRealCount < count) {
@@ -101,6 +101,11 @@ public class PagerData {
     return uriBuilder.replaceQueryParam(locatorQueryParameterName, newLocator).build();
   }
 
+  @NotNull
+  public String getHref() {
+    return getRelativePath(myHref, myContextPath);
+  }
+
   @Nullable
   public String getNextHref() {
     return myNextHref == null ? null : getRelativePath(myNextHref, myContextPath);
@@ -111,6 +116,7 @@ public class PagerData {
     return myPrevHref == null ? null : getRelativePath(myPrevHref, myContextPath);
   }
 
+  @NotNull
   private static String getRelativePath(@NotNull final URI uri, @Nullable final String pathPrefixToExclude) {
     String path = uri.getRawPath();
     assert path != null;

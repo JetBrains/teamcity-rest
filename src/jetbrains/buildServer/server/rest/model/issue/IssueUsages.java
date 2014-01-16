@@ -23,50 +23,68 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.issueTracker.Issue;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SBuild;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author Yegor.Yarko
  *         Date: 28.07.2009
  */
 @XmlRootElement(name = "issuesUsages")
-public class IssueUsages extends IssueUsagesRef{
+public class IssueUsages{
   @Nullable private Collection<Issue> myIssues;
   @NotNull private SBuild myBuild;
-  @NotNull private ApiUrlBuilder myApiUrlBuilder;
-  @Autowired @NotNull private BeanFactory myFactory;
+  @NotNull private Fields myFields;
+  @NotNull private BeanContext myBeanContext;
 
   public IssueUsages() {
   }
 
-  public IssueUsages(@NotNull final SBuild build, final boolean includeAllInline, @NotNull final ApiUrlBuilder apiUrlBuilder, @NotNull final BeanFactory myFactory) {
-    super(build, apiUrlBuilder);
+  public IssueUsages(@NotNull final SBuild build, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     myBuild = build;
-    if (includeAllInline) {
-      myIssues = myBuild.getRelatedIssues();
-    }
-    myApiUrlBuilder = apiUrlBuilder;
-    myFactory.autowire(this);
+    myFields = fields;
+    myBeanContext = beanContext;
   }
 
   @XmlAttribute
-  public Long getCount() {
-    return myIssues != null ? (long)myIssues.size() : null;
+  public String getHref() {
+    return myBeanContext.getApiUrlBuilder().getBuildIssuesHref(myBuild);
+  }
+
+  @XmlAttribute
+  public Integer getCount() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("count", false), new ValueWithDefault.Value<Integer>() {
+      @Nullable
+      public Integer get() {
+        return getRelatedIssues().size();
+      }
+    });
   }
 
   @XmlElement(name = "issueUsage")
   public List<IssueUsage> getIssueUsages() {
-    if (myIssues == null) return null;
+    return ValueWithDefault.decideDefault(myFields.isIncluded("issueUsage", false), new ValueWithDefault.Value<List<IssueUsage>>() {
+             @Nullable
+             public List<IssueUsage> get() {
+               Collection<Issue> issues = getRelatedIssues();
+               List<IssueUsage> result = new ArrayList<IssueUsage>(issues.size());
+               for (Issue issue : issues) {
+                 result.add(new IssueUsage(issue, myBuild, myFields.getNestedField("issueUsage", Fields.NONE, Fields.LONG), myBeanContext));
+               }
+               return result;
+             }
+           });
+  }
 
-    List<IssueUsage> result = new ArrayList<IssueUsage>(myIssues.size());
-    for (Issue issue : myIssues) {
-      result.add(new IssueUsage(issue, myBuild, myApiUrlBuilder, myFactory));
+  @NotNull
+  public Collection<Issue> getRelatedIssues() {
+    if (myIssues == null){
+      myIssues = myBuild.getRelatedIssues();
     }
-    return result;
+    return myIssues;
   }
 }
