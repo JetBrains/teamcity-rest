@@ -180,9 +180,9 @@ public class BuildTask {
     }
     if (buildDependencies != null) {
       try {
-        customizer.setSnapshotDependencyNodes(CollectionsUtil.convertCollection(buildDependencies.builds, new Converter<BuildPromotion, BuildRef>() {
-          public BuildPromotion createFrom(@NotNull final BuildRef source) {
-            return source.getBuildFromPosted(serviceLocator.getSingletonService(BuildFinder.class)).getBuildPromotion();
+        customizer.setSnapshotDependencyNodes(CollectionsUtil.convertCollection(buildDependencies.builds, new Converter<BuildPromotion, Build>() {
+          public BuildPromotion createFrom(@NotNull final Build source) {
+            return source.getFromPosted(serviceLocator.getSingletonService(BuildFinder.class), serviceLocator.getSingletonService(QueuedBuildFinder.class));
           }
         }));
       } catch (IllegalArgumentException e) {

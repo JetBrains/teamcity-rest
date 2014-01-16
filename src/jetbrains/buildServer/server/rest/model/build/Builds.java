@@ -24,8 +24,16 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.server.rest.util.DefaultValueAware;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,12 +43,12 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "builds")
 @XmlType(name = "builds")
-public class Builds {
+public class Builds implements DefaultValueAware {
   @XmlElement(name = "build")
-  public List<BuildRef> builds;
+  public List<Build> builds;
 
   @XmlAttribute
-  public long count;
+  public Integer count;
 
   @XmlAttribute(required = false)
   @Nullable
@@ -57,14 +65,38 @@ public class Builds {
                 final ServiceLocator serviceLocator,
                 @Nullable final PagerData pagerData,
                 final ApiUrlBuilder apiUrlBuilder) {
-    builds = new ArrayList<BuildRef>(buildObjects.size());
-    for (SBuild build : buildObjects) {
-      builds.add(new BuildRef(build, serviceLocator, apiUrlBuilder));
+    this(
+      CollectionsUtil.convertCollection(buildObjects, new Converter<BuildPromotion, SBuild>() {
+        public BuildPromotion createFrom(@NotNull final SBuild source) {
+          return source.getBuildPromotion();
+        }
+      }),
+      pagerData, Fields.LONG, new BeanContext(serviceLocator.getSingletonService(BeanFactory.class), serviceLocator, apiUrlBuilder));
+  }
+
+  public Builds(@NotNull final List<BuildPromotion> buildObjects,
+                @Nullable final PagerData pagerData,
+                @NotNull Fields fields,
+                @NotNull final BeanContext beanContext) {
+    if (fields.isIncluded("build", false, true)) {
+      final ArrayList<Build> buildsList = new ArrayList<Build>(buildObjects.size());
+      for (BuildPromotion build : buildObjects) {
+        buildsList.add(new Build(build, fields.getNestedField("build"), beanContext));
+      }
+      builds = ValueWithDefault.decideDefault(fields.isIncluded("build"), buildsList);
+    } else {
+      builds = null;
     }
     if (pagerData != null) {
-      nextHref = pagerData.getNextHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;
-      prevHref = pagerData.getPrevHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getPrevHref()) : null;
+      nextHref = ValueWithDefault
+        .decideDefault(fields.isIncluded("nextHref"), pagerData.getNextHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null);
+      prevHref = ValueWithDefault
+        .decideDefault(fields.isIncluded("prevHref"), pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null);
     }
-    count = builds.size();
+    count = ValueWithDefault.decideDefault(fields.isIncluded("count"), buildObjects.size());
+  }
+
+  public boolean isDefault() {
+    return builds != null ? builds.size() == 0 : (count == null || count == 0);
   }
 }

@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.plugin.PluginInfo;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
@@ -86,6 +87,6 @@ public class RootApiRequest {
     SBuildType buildType = myBuildTypeFinder.getBuildType(project, buildTypeLocator);
     SBuild build = myBuildFinder.getBuild(buildType, buildLocator);
 
-    return Build.getFieldValue(build, field);
+    return Build.getFieldValue(build.getBuildPromotion(), field, new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
   }
 }

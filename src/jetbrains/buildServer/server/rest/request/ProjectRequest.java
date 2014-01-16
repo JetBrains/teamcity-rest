@@ -448,7 +448,7 @@ public class ProjectRequest {
     SBuildType buildType = myBuildTypeFinder.getBuildType(myProjectFinder.getProject(projectLocator), buildTypeLocator);
     SBuild build = myBuildFinder.getBuild(buildType, buildLocator);
 
-    return Build.getFieldValue(build, field);
+    return Build.getFieldValue(build.getBuildPromotion(), field, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @GET

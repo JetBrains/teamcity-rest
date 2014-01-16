@@ -17,28 +17,28 @@
 package jetbrains.buildServer.server.rest.request;
 
 import java.util.Collections;
+import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
-import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.errors.InvalidStateException;
-import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.errors.*;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
-import jetbrains.buildServer.server.rest.model.build.*;
-import jetbrains.buildServer.server.rest.model.build.BuildQueue;
+import jetbrains.buildServer.server.rest.model.build.Build;
+import jetbrains.buildServer.server.rest.model.build.BuildCancelRequest;
+import jetbrains.buildServer.server.rest.model.build.BuildTask;
+import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -57,7 +57,7 @@ public class BuildQueueRequest {
 
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private ServiceLocator myServiceLocator;
-  @Context @NotNull private BeanFactory myFactory;
+  @Context @NotNull private BeanContext myBeanContext;
 
   @NotNull
   public static String getHref() {
@@ -82,38 +82,34 @@ public class BuildQueueRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
-  public BuildQueue serveQueue(@QueryParam("locator") String locator, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+  public Builds getBuilds(@QueryParam("locator") String locator, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final PagedSearchResult<SQueuedBuild> result = myQueuedBuildFinder.getItems(locator);
 
-    return new BuildQueue(result.myEntries,
-                          new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
-                                        result.myCount, result.myEntries.size(),
-                                        locator,
-                                        "locator"),
-                          myApiUrlBuilder,
-                          myFactory
-    );
+    final List<BuildPromotion> builds = CollectionsUtil.convertCollection(result.myEntries, new Converter<BuildPromotion, SQueuedBuild>() {
+      public BuildPromotion createFrom(@NotNull final SQueuedBuild source) {
+        return source.getBuildPromotion();
+      }
+    });
+    return new Builds(builds,
+                      new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
+                                    result.myCount, builds.size(),
+                                    locator,
+                                    "locator"),
+                      new Fields(fields,Fields.LONG),
+                      myBeanContext);
   }
 
   @GET
   @Path("/{queuedBuildLocator}")
   @Produces({"application/xml", "application/json"})
-  public Response serveQueuedBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator, @Context UriInfo uriInfo, @Context HttpServletResponse response) {
+  public Build getBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletResponse response) {
     //redirect if the build was already started
-    final BuildPromotion buildPromotion = myQueuedBuildFinder.getBuildPromotionByBuildQueueLocator(queuedBuildLocator);
-    if (buildPromotion != null){
-      final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
-      if (associatedBuild != null) {
-        // todo: use RedirectionException here instead of Response response when migrated to Jersey 2.0
-        final UriBuilder uriBuilder = UriBuilder.fromPath(BuildRequest.getBuildHref(associatedBuild));
-        return Response.status(Response.Status.MOVED_PERMANENTLY).location(uriBuilder.build()).build();
-      }
+    final BuildPromotion buildPromotion = myQueuedBuildFinder.getBuildPromotionByBuildQueueLocator(queuedBuildLocator);  //todo: support full locators here (locators for build promotion)
+    if (buildPromotion == null){
+      throw new NotFoundException("No builds are fouind by the locator specified");
     }
-
     //todo: handle build merges in the queue
-
-    final QueuedBuild result =  new QueuedBuild(myQueuedBuildFinder.getItem(queuedBuildLocator), myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
-    return Response.ok(result).build();
+    return new Build(buildPromotion, new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @DELETE
@@ -148,11 +144,7 @@ public class BuildQueueRequest {
     SQueuedBuild build = myQueuedBuildFinder.getItem(queuedBuildLocator);
     cancelQueuedBuild(build, cancelRequest.comment);
 
-    final SBuild associatedBuild = build.getBuildPromotion().getAssociatedBuild();
-    if (associatedBuild == null){
-      return null;
-    }
-    return new Build(associatedBuild, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new Build(build.getBuildPromotion(), Fields.LONG, myBeanContext);
   }
 
   private void cancelQueuedBuild(@NotNull final SQueuedBuild build, @Nullable final String comment) {
@@ -179,12 +171,12 @@ public class BuildQueueRequest {
   public String serveBuildFieldByBuildOnly(@PathParam("buildLocator") String buildLocator,
                                            @PathParam("field") String field) {
     SQueuedBuild build = myQueuedBuildFinder.getItem(buildLocator);
-    return QueuedBuild.getFieldValue(build, field);
+    return Build.getFieldValue(build.getBuildPromotion(), field, myBeanContext);
   }
 
   @POST
   @Produces({"application/xml", "application/json"})
-  public QueuedBuild queueNewBuild(BuildTask buildTask, @Context HttpServletRequest request){
+  public Build queueNewBuild(BuildTask buildTask, @Context HttpServletRequest request){
     final SUser user = myDataProvider.getCurrentUser();
     BuildPromotion buildToTrigger = buildTask.getBuildToTrigger(user, myBuildTypeFinder, myServiceLocator);
     TriggeredByBuilder triggeredByBulder = new TriggeredByBuilder();
@@ -204,6 +196,6 @@ public class BuildQueueRequest {
     if (buildTask.queueAtTop != null && buildTask.queueAtTop ){
       myServiceLocator.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class).moveTop(queuedBuild.getItemId());
     }
-    return new QueuedBuild(queuedBuild, myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
+    return new Build(queuedBuild.getBuildPromotion(), Fields.LONG, myBeanContext);
   }
 }

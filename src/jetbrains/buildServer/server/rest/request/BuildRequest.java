@@ -325,7 +325,7 @@ public class BuildRequest {
                                            @PathParam("field") String field) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
 
-    return Build.getFieldValue(build, field);
+    return Build.getFieldValue(build.getBuildPromotion(), field, myBeanContext);
   }
 
   @GET

@@ -1337,7 +1337,7 @@ public class BuildTypeRequest {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
     SBuild build = myBuildFinder.getBuild(buildType, buildLocator);
 
-    return Build.getFieldValue(build, field);
+    return Build.getFieldValue(build.getBuildPromotion(), field, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   /**

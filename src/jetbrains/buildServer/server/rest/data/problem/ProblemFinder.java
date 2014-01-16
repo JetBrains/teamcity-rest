@@ -20,7 +20,6 @@ import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.ProjectManager;
@@ -249,11 +248,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     // find in last problems
     final Collection<BuildProblem> lastBuildProblems =
       serviceLocator.getSingletonService(BuildProblemManager.class).getLastBuildProblems(Collections.singleton(id.intValue()), null);
-    if (lastBuildProblems.size() > 1){
-      throw new InvalidStateException("Several build problems returned for one problem id '" + id + "'");
-    }
-
-    if (lastBuildProblems.size() == 1){
+    if (lastBuildProblems.size() != 0){
       return lastBuildProblems.iterator().next();
     }
 
