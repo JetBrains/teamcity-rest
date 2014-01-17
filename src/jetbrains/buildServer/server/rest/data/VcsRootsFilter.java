@@ -18,9 +18,11 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.Collection;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.vcs.*;
 import jetbrains.vcs.api.services.tc.VcsMappingElement;
@@ -39,12 +41,14 @@ public class VcsRootsFilter extends AbstractFilter<SVcsRoot> {
   @Nullable private final String myRepositoryIdString;
   @Nullable private final SProject myProject;
   private final VcsManager myVcsManager;
+  @NotNull private final VcsRootFinder myVcsRootFinder;
 
-  public VcsRootsFilter(@NotNull final Locator locator, @NotNull ProjectFinder projectFinder, @NotNull VcsManager vcsManager) {
+  public VcsRootsFilter(@NotNull final Locator locator, @NotNull ProjectFinder projectFinder, @NotNull VcsManager vcsManager, final @NotNull VcsRootFinder vcsRootFinder) {
     super(locator.getSingleDimensionValueAsLong(PagerData.START),
           locator.getSingleDimensionValueAsLong(PagerData.COUNT) != null ? locator.getSingleDimensionValueAsLong(PagerData.COUNT).intValue() : null,
           null);
     myVcsManager = vcsManager;
+    myVcsRootFinder = vcsRootFinder;
     myVcsType = locator.getSingleDimensionValue("type");
     final String projectLocator = locator.getSingleDimensionValue("project");
     if (projectLocator != null) {
@@ -57,6 +61,11 @@ public class VcsRootsFilter extends AbstractFilter<SVcsRoot> {
 
   @Override
   protected boolean isIncluded(@NotNull SVcsRoot root) {
+    try {
+      myVcsRootFinder.checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, root);
+    } catch (AuthorizationFailedException e) {
+      return false;
+    }
     return (myVcsType == null || myVcsType.equals(root.getVcsName())) &&
            (myProject == null || myProject.equals(root.getProject())) &&
            (myRepositoryIdString == null || repositoryIdStringMatches(root, myRepositoryIdString, myVcsManager));

@@ -13,7 +13,7 @@ import org.testng.annotations.Test;
  * @author Yegor.Yarko
  *         Date: 29.07.13
  */
-@Test
+@Test(dependsOnGroups = "disabled")
 public class VcsRootFinderTest extends BaseServerTestCase {
 
   private VcsRootFinder myVcsRootFinder;
@@ -27,7 +27,7 @@ public class VcsRootFinderTest extends BaseServerTestCase {
     myProjectManager = myFixture.getProjectManager();
     final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
     final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder);
-    myVcsRootFinder = new VcsRootFinder(vcsManager, projectFinder, buildTypeFinder, myProjectManager);
+    myVcsRootFinder = new VcsRootFinder(vcsManager, projectFinder, buildTypeFinder, myProjectManager, myFixture.getSecurityContext());
   }
 
   private SVcsRoot createRoots() {
