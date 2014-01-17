@@ -131,7 +131,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   @Override
   @NotNull
   public List<InvestigationWrapper> getAllItems() {
-    return getInvestigationWrappersForProject(null, null);
+    return getInvestigationWrappersForProjectWithSubprojects(myProjectFinder.getRootProject(), null);
   }
 
   @Override
@@ -260,6 +260,10 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
       return getInvestigationWrappersForProjectWithSubprojects(project, user);
     }
 
+    if (user != null){
+      return getInvestigationWrappersForProjectWithSubprojects(myProjectFinder.getRootProject(), user);
+    }
+    locator.markUnused(ASSIGNEE);
     return super.getPrefilteredItems(locator);
   }
 
@@ -275,8 +279,12 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
   @NotNull
   private List<InvestigationWrapper> getInvestigationWrappersForProjectWithSubprojects(@NotNull final SProject project, @Nullable User user) {
-    final ArrayList<InvestigationWrapper> result = new ArrayList<InvestigationWrapper>();
+    if (myProjectFinder.getRootProject().getExternalId().equals(project.getExternalId())){
+      // this is a root project, use single call
+      return getInvestigationWrappersInternal(null, user);
+    }
 
+    final ArrayList<InvestigationWrapper> result = new ArrayList<InvestigationWrapper>();
     result.addAll(getInvestigationWrappersForProject(project, user));
 
     //todo: TeamCity API: is there a dedicated wahy to do this?
@@ -287,7 +295,15 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     return result;
   }
 
-  private List<InvestigationWrapper> getInvestigationWrappersForProject(@Nullable final SProject project, @Nullable User user) {
+  private List<InvestigationWrapper> getInvestigationWrappersForProject(@NotNull final SProject project, @Nullable User user) {
+    return getInvestigationWrappersInternal(project, user);
+  }
+
+  /**
+   *
+   * @param project if null, all projects are processed, if not - only the project passed
+   */
+  private List<InvestigationWrapper> getInvestigationWrappersInternal(@Nullable final SProject project, @Nullable User user) {
     final ArrayList<InvestigationWrapper> result = new ArrayList<InvestigationWrapper>();
 
     final String projectId = project == null ? null : project.getProjectId();
