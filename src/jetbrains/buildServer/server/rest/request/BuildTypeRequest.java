@@ -20,10 +20,13 @@ import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptorFactory;
+import jetbrains.buildServer.parameters.ProcessingResult;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
@@ -38,11 +41,14 @@ import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.build.Branch;
 import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.buildType.*;
+import jetbrains.buildServer.server.rest.model.files.File;
+import jetbrains.buildServer.server.rest.model.files.Files;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -51,6 +57,7 @@ import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.CheckoutRules;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /*
  * User: Yegor Yarko
@@ -75,6 +82,7 @@ public class BuildTypeRequest {
   @Context @NotNull private BeanFactory myFactory;
 
   public static final String API_BUILD_TYPES_URL = Constants.API_URL + "/buildTypes";
+  public static final String VCS_FILES_LATEST = "/vcs/files/latest";
 
   public static String getBuildTypeHref(@NotNull final BuildTypeOrTemplate buildType) {
     return buildType.isBuildType() ? getBuildTypeHref(buildType.getBuildType()) : getBuildTypeHref(buildType.getTemplate());
@@ -1393,6 +1401,76 @@ public class BuildTypeRequest {
   public VCSLabelingOptions getVCSLabelingOptions(@PathParam("btLocator") String buildTypeLocator) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     return new VCSLabelingOptions(buildType, myApiUrlBuilder);
+  }
+
+  public static final String WHERE_NOTE = "current sources of the build configuration";
+  /**
+   * Gets content of a file form VCS
+   * Experimental support only
+   */
+  @GET
+  @Path("/{btLocator}" + VCS_FILES_LATEST + BuildRequest.CONTENT + "{path:(/.*)?}")
+  @Produces({MediaType.WILDCARD})
+  public Response getVcsFileContent(@PathParam("btLocator") String buildTypeLocator,
+                                     @PathParam("path") final String path,
+                                     @QueryParam("resolveParameters") final Boolean resolveParameters,
+                                     @Context HttpServletRequest request) {
+    final BuildTypeEx buildType = (BuildTypeEx)myBuildTypeFinder.getBuildType(null, buildTypeLocator);
+    myDataProvider.checkProjectPermission(Permission.VIEW_FILE_CONTENT, buildType.getProjectId());
+    final String resolvedPath = getResolvedIfNecessary(buildType, path, resolveParameters);
+    return BuildArtifactsFinder.getContent(buildType.getVcsFilesBrowser(),
+                                           resolvedPath,
+                                           WHERE_NOTE,
+                                           BuildArtifactsFinder.getStandardFileApiUrlBuilder(myApiUrlBuilder.getHref(new BuildTypeOrTemplate(buildType)) + VCS_FILES_LATEST),
+                                           request).build();
+  }
+
+  /**
+   * Lists files in VCS
+   * Experimental support only
+   */
+  @GET
+  @Path("/{btLocator}" + VCS_FILES_LATEST + BuildRequest.CHILDREN + "{path:(/.*)?}")
+  @Produces({"application/xml", "application/json"})
+  public Files getVcsFileListing(@PathParam("btLocator") String buildTypeLocator,
+                                     @PathParam("path") final String path,
+                                     @QueryParam("resolveParameters") final Boolean resolveParameters,
+                                     @Context HttpServletRequest request) {
+    final BuildTypeEx buildType = (BuildTypeEx)myBuildTypeFinder.getBuildType(null, buildTypeLocator);
+    myDataProvider.checkProjectPermission(Permission.VIEW_FILE_CONTENT, buildType.getProjectId());
+    final String resolvedPath = getResolvedIfNecessary(buildType, path, resolveParameters);
+
+    return BuildArtifactsFinder.getChildren(buildType.getVcsFilesBrowser(), resolvedPath, WHERE_NOTE,
+                                            BuildArtifactsFinder.getStandardFileApiUrlBuilder(myApiUrlBuilder.getHref(new BuildTypeOrTemplate(buildType)) + VCS_FILES_LATEST));
+  }
+
+  /**
+   * Gets VCS file details
+   * Experimental support only
+   */
+  @GET
+  @Path("/{btLocator}" + VCS_FILES_LATEST + BuildRequest.METADATA + "{path:(/.*)?}")
+  @Produces({"application/xml", "application/json"})
+  public File getVcsFile(@PathParam("btLocator") String buildTypeLocator,
+                                     @PathParam("path") final String path,
+                                     @QueryParam("resolveParameters") final Boolean resolveParameters,
+                                     @Context HttpServletRequest request) {
+    final BuildTypeEx buildType = (BuildTypeEx)myBuildTypeFinder.getBuildType(null, buildTypeLocator);
+    myDataProvider.checkProjectPermission(Permission.VIEW_FILE_CONTENT, buildType.getProjectId());
+    final String resolvedPath = getResolvedIfNecessary(buildType, path, resolveParameters);
+
+    return BuildArtifactsFinder.getMetadata(buildType.getVcsFilesBrowser(), resolvedPath, WHERE_NOTE,
+                                            BuildArtifactsFinder.getStandardFileApiUrlBuilder(myApiUrlBuilder.getHref(new BuildTypeOrTemplate(buildType)) + VCS_FILES_LATEST));
+  }
+
+  @NotNull
+  private String getResolvedIfNecessary(@NotNull final BuildTypeEx buildType, @Nullable final String value, @Nullable final Boolean resolveSupported) {
+    if (resolveSupported == null || !resolveSupported || StringUtil.isEmpty(value)) {
+      return value == null ? "" : value;
+    }
+    myDataProvider.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, buildType.getProjectId());
+    final ProcessingResult resolveResult = buildType.getValueResolver().resolve(value);
+    return resolveResult.getResult();
   }
 
   /**

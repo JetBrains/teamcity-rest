@@ -21,7 +21,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
@@ -34,6 +37,7 @@ import jetbrains.buildServer.server.rest.model.files.Files;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifact;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactHolder;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifacts;
@@ -44,10 +48,12 @@ import jetbrains.buildServer.util.ArchiveUtil;
 import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.TCStreamUtil;
+import jetbrains.buildServer.util.browser.Browser;
 import jetbrains.buildServer.util.browser.BrowserException;
 import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactElement;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
+import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -65,21 +71,116 @@ public class BuildArtifactsFinder {
     myDataProvider = dataProvider;
   }
 
-  public static StreamingOutput getStreamingOutput(@NotNull final BuildArtifact artifact) {
+  public static Files getChildren(@NotNull final Browser browser, @NotNull final String path, @NotNull final String where, @NotNull final FileApiUrlBuilder fileApiUrlBuilder) {
+    Element element = getElement(browser, path, where);
+    try {
+      final Iterable<Element> children = element.getChildren();
+      if (element.isLeaf() || children == null) {
+        throw new BadRequestException("Cannot provide children list for file '" + path + "'. To get content use '" + fileApiUrlBuilder.getContentHref(element) + "'.");
+      }
+
+      final List<File> result = new ArrayList<File>();
+      for (Element child : children) {
+        result.add(new File(child, null, null /*do not include parent as all children have it the same*/, fileApiUrlBuilder));
+      }
+      return new Files(result);
+    } catch (BrowserException e) {
+      throw new OperationException("Error listing children for path '" + path + "'.", e);
+    }
+  }
+
+  public static File getMetadata(@NotNull final Browser browser, @NotNull final String path, @NotNull final String where, @NotNull final FileApiUrlBuilder fileApiUrlBuilder) {
+    Element element = getElement(browser, path, where);
+    Element parent = null;
+    try {
+      parent = getElement(browser, ArchiveUtil.getParentPath(element.getFullName()), "");
+    } catch (NotFoundException e) {
+      //ignore
+    }
+    return new File(element, null, parent, fileApiUrlBuilder);
+  }
+
+  @NotNull
+  public static Element getElement(@NotNull final Browser browser, @NotNull final String path, @NotNull final String where) {
+    final Element element;
+    if (path.replace("\\","").replace("/","").replace(" ", "").length() == 0){ //TeamCity API issue: cannot list root of the Browser by empty string or "/"
+      element = browser.getRoot();
+    }else{
+      element = browser.getElement(path);
+    }
+    if (element == null) {
+      throw new NotFoundException("Path '" + path + "' is not found in " + where + " or an erorr occurred");
+       //TeamCity API: or erorr occurred (related http://youtrack.jetbrains.com/issue/TW-34377)
+    }
+    return element;
+  }
+
+  public static Response.ResponseBuilder getContent(@NotNull final Browser browser,
+                                             @NotNull final String path,
+                                             @NotNull final String where,
+                                             @NotNull final FileApiUrlBuilder fileApiUrlBuilder,
+                                             HttpServletRequest request) {
+    Element element = getElement(browser, path, where);
+    return getContent(element, path, fileApiUrlBuilder, request);
+  }
+
+  public static Response.ResponseBuilder getContent(@NotNull final Element element,
+                                             @NotNull final String path,
+                                             @NotNull final FileApiUrlBuilder fileApiUrlBuilder,
+                                             @NotNull final HttpServletRequest request) {
+    if (!element.isContentAvailable()) {
+      throw new NotFoundException("Cannot provide content for '" + path + "'. To get children use '" + fileApiUrlBuilder.getChildrenHref(element) + "'.");
+    }
+
+    final StreamingOutput output = BuildArtifactsFinder.getStreamingOutput(element);
+
+    Response.ResponseBuilder builder = Response.ok();
+    if (TeamCityProperties.getBooleanOrTrue("rest.build.artifacts.setMimeType")) {
+      builder = builder.type(WebUtil.getMimeType(request, path));
+    } else {
+      builder = builder.type(MediaType.APPLICATION_OCTET_STREAM_TYPE);
+    }
+    if (TeamCityProperties.getBooleanOrTrue("rest.build.artifacts.forceContentDisposition.Attachment")) {
+      // make sure the file is not displayed in the browser (TW-27206)
+      builder = builder.header("Content-Disposition", WebUtil.getContentDispositionValue(request, "attachment", element.getName()));
+    } else {
+      builder = builder.header("Content-Disposition", WebUtil.getContentDispositionValue(request, null, element.getName()));
+    }
+    return builder.entity(output);
+  }
+
+  public static StreamingOutput getStreamingOutput(@NotNull final Element element) {
     return new StreamingOutput() {
         public void write(final OutputStream output) throws WebApplicationException {
           InputStream inputStream = null;
           try {
-            inputStream = artifact.getInputStream();
+            inputStream = element.getInputStream();
             TCStreamUtil.writeBinary(inputStream, output);
           } catch (IOException e) {
             //todo add better processing
-            throw new OperationException("Error while processing file '" + artifact.getRelativePath() + "' content: " + e.getMessage(), e);
+            throw new OperationException("Error while processing file '" + element.getFullName() + "' content: " + e.getMessage(), e);
           } finally {
             FileUtil.close(inputStream);
           }
         }
       };
+  }
+
+  @NotNull
+  public static FileApiUrlBuilder getStandardFileApiUrlBuilder(@NotNull final String myBaseHref) {
+    return new FileApiUrlBuilder() {
+      public String getMetadataHref(@Nullable Element e) {
+        return myBaseHref + BuildRequest.METADATA + (e == null ? "" : "/" + e.getFullName());
+      }
+
+      public String getChildrenHref(@Nullable Element e) {
+        return myBaseHref + BuildRequest.CHILDREN + (e == null ? "" : "/" + e.getFullName());
+      }
+
+      public String getContentHref(@Nullable Element e) {
+        return myBaseHref + BuildRequest.CONTENT + (e == null ? "" : "/" + e.getFullName());
+      }
+    };
   }
 
   public Files getFiles(@NotNull final SBuild build, @NotNull final String path, @Nullable final String filesLocator, @NotNull final BeanContext context) {

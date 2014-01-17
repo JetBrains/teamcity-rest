@@ -38,18 +38,32 @@ public class File extends FileRef {
 
   protected final FileApiUrlBuilder fileApiUrlBuilder;
   protected final Element parent;
-  protected final ArtifactTreeElement element;
+  protected final Element element;
+  protected final Long lastModified;
 
   @SuppressWarnings("UnusedDeclaration")
   public File() {
     fileApiUrlBuilder = null;
     parent = null;
     element = null;
+    lastModified = null;
   }
 
   public File(@NotNull final ArtifactTreeElement element, @Nullable final Element parent, @NotNull final FileApiUrlBuilder builder) {
     super(element, builder);
     this.element = element;
+    final Long actualLastModified = element.getLastModified();
+    this.lastModified = (actualLastModified != null && actualLastModified > 0) ? actualLastModified : null;
+
+    this.fileApiUrlBuilder = builder;
+    this.parent = parent;
+  }
+
+
+  public File(@NotNull final Element element, @Nullable final Long lastModified, @Nullable final Element parent, @NotNull final FileApiUrlBuilder builder) {
+    super(element, builder);
+    this.element = element;
+    this.lastModified = lastModified;
     this.fileApiUrlBuilder = builder;
     this.parent = parent;
   }
@@ -57,18 +71,18 @@ public class File extends FileRef {
   @Nullable
   @XmlAttribute(name = "size")
   public Long getSize() {
-    return element.isContentAvailable() ? element.getSize() : null;
+    if (!element.isContentAvailable()) {
+      return null;
+    } else {
+      final long size = element.getSize();
+      return size > 0 ? size : null;
+    }
   }
 
   @Nullable
   @XmlAttribute(name = "modificationTime")
   public String getModificationTime() {
-    final Long lastModified = element.getLastModified();
-    if (lastModified == null || lastModified <= 0) {
-      return null;
-    }
-    //noinspection ConstantConditions
-    return Util.formatTime(new Date(lastModified));
+    return lastModified == null ? null : Util.formatTime(new Date(lastModified));
   }
 
   @Nullable

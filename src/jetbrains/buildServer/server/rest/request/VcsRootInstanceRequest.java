@@ -16,11 +16,15 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import java.util.Collections;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.VcsRootFinder;
@@ -30,10 +34,13 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
+import jetbrains.buildServer.server.rest.model.files.File;
+import jetbrains.buildServer.server.rest.model.files.Files;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.serverSide.VcsAccessFactory;
+import jetbrains.buildServer.serverSide.VcsWorkspaceAccess;
 import jetbrains.buildServer.serverSide.auth.Permission;
-import jetbrains.buildServer.vcs.RepositoryState;
-import jetbrains.buildServer.vcs.RepositoryStateFactory;
-import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.RepositoryStateManager;
 import org.jetbrains.annotations.NotNull;
 
@@ -45,10 +52,12 @@ import org.jetbrains.annotations.NotNull;
 @Path(VcsRootInstanceRequest.API_VCS_ROOT_INSTANCES_URL)
 public class VcsRootInstanceRequest {
   @Context @NotNull private DataProvider myDataProvider;
+  @Context @NotNull private BeanContext myBeanContext;
   @Context @NotNull private VcsRootFinder myVcsRootFinder;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
 
   public static final String API_VCS_ROOT_INSTANCES_URL = Constants.API_URL + "/vcs-root-instances";
+  public static final String FILES_LATEST = "/files/latest";
 
   public static String getVcsRootInstanceHref(final jetbrains.buildServer.vcs.VcsRootInstance vcsRootInstance) {
     return API_VCS_ROOT_INSTANCES_URL + "/id:" + vcsRootInstance.getId();
@@ -147,5 +156,63 @@ public class VcsRootInstanceRequest {
     repositoryStateManager.setRepositoryState(rootInstance, RepositoryStateFactory.createRepositoryState(branchesState.getMap()));
     final RepositoryState repositoryState = repositoryStateManager.getRepositoryState(rootInstance);
     return new Entries(repositoryState.getBranchRevisions());
+  }
+
+  public static final String WHERE_NOTE = "current sources of the VCS root";
+  /**
+   * Gets content of a file form VCS
+   * Experimental support only
+   */
+  @GET
+  @Path("/{vcsRootInstanceLocator}" + FILES_LATEST + BuildRequest.CONTENT + "{path:(/.*)?}")
+  @Produces({MediaType.WILDCARD})
+  public Response getVcsFileContent(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
+                                     @PathParam("path") final String path,
+                                     @Context HttpServletRequest request) {
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
+    myVcsRootFinder.checkPermission(Permission.VIEW_FILE_CONTENT, rootInstance);
+    return BuildArtifactsFinder.getContent(getVcsWorkspaceAccess(rootInstance).getVcsFilesBrowser(),
+                                           path,
+                                           WHERE_NOTE,
+                                           BuildArtifactsFinder.getStandardFileApiUrlBuilder(myApiUrlBuilder.getHref(rootInstance) + FILES_LATEST),
+                                           request).build();
+  }
+
+  @NotNull
+  public VcsWorkspaceAccess getVcsWorkspaceAccess(@NotNull final jetbrains.buildServer.vcs.VcsRootInstance rootInstance) {
+    final VcsRootInstanceEntry entry = new VcsRootInstanceEntry(rootInstance, CheckoutRules.DEFAULT);
+    return myBeanContext.getSingletonService(VcsAccessFactory.class).createWorkspaceAccess(Collections.singletonList(entry));
+  }
+
+  /**
+   * Lists files in VCS
+   * Experimental support only
+   */
+  @GET
+  @Path("/{vcsRootInstanceLocator}" + FILES_LATEST + BuildRequest.CHILDREN + "{path:(/.*)?}")
+  @Produces({"application/xml", "application/json"})
+  public Files getVcsFileListing(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
+                                     @PathParam("path") final String path,
+                                     @Context HttpServletRequest request) {
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
+    myVcsRootFinder.checkPermission(Permission.VIEW_FILE_CONTENT, rootInstance);
+    return BuildArtifactsFinder.getChildren(getVcsWorkspaceAccess(rootInstance).getVcsFilesBrowser(), path, WHERE_NOTE,
+                                            BuildArtifactsFinder.getStandardFileApiUrlBuilder(myApiUrlBuilder.getHref(rootInstance) + FILES_LATEST));
+  }
+
+  /**
+   * Gets VCS file details
+   * Experimental support only
+   */
+  @GET
+  @Path("/{vcsRootInstanceLocator}" + FILES_LATEST + BuildRequest.METADATA + "{path:(/.*)?}")
+  @Produces({"application/xml", "application/json"})
+  public File getVcsFile(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
+                                     @PathParam("path") final String path,
+                                     @Context HttpServletRequest request) {
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
+    myVcsRootFinder.checkPermission(Permission.VIEW_FILE_CONTENT, rootInstance);
+    return BuildArtifactsFinder.getMetadata(getVcsWorkspaceAccess(rootInstance).getVcsFilesBrowser(), path, WHERE_NOTE,
+                                            BuildArtifactsFinder.getStandardFileApiUrlBuilder(myApiUrlBuilder.getHref(rootInstance) + FILES_LATEST));
   }
 }

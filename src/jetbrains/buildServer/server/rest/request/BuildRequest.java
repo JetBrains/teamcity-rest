@@ -45,7 +45,6 @@ import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.TriggeredBy;
-import jetbrains.buildServer.serverSide.artifacts.BuildArtifact;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactsViewMode;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
@@ -60,7 +59,6 @@ import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.TCStreamUtil;
 import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsManager;
-import jetbrains.buildServer.web.artifacts.browser.ArtifactElement;
 import jetbrains.buildServer.web.util.SessionUser;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
@@ -233,30 +231,15 @@ public class BuildRequest {
                                      @Context HttpServletRequest request) {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final String resolvedPath = getResolvedIfNecessary(build, path, resolveParameters);
-    final BuildArtifact artifact = BuildArtifactsFinder.getBuildArtifact(build, resolvedPath, BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
-    if (artifact.isDirectory()) {
-      throw new NotFoundException("Cannot provide content for directory '" + resolvedPath + "'. To get children use '" +
-                                  BuildArtifactsFinder.fileApiUrlBuilderForBuild(myBeanContext.getApiUrlBuilder(), build, null).getChildrenHref(new ArtifactElement(artifact)) + "'.");
-    }
-
-    final StreamingOutput output = BuildArtifactsFinder.getStreamingOutput(artifact);
-
-    Response.ResponseBuilder builder = Response.ok();
-    if (TeamCityProperties.getBooleanOrTrue("rest.build.artifacts.setMimeType")) {
-      builder = builder.type(WebUtil.getMimeType(request, resolvedPath));
-    } else{
-      builder = builder.type(MediaType.APPLICATION_OCTET_STREAM_TYPE);
-    }
-    if (TeamCityProperties.getBooleanOrTrue("rest.build.artifacts.forceContentDisposition.Attachment")) {
-      // make sure the file is not displayed in the browser (TW-27206)
-      builder = builder.header("Content-Disposition", WebUtil.getContentDispositionValue(request, "attachment", artifact.getName()));
-    } else {
-      builder = builder.header("Content-Disposition", WebUtil.getContentDispositionValue(request, null, artifact.getName()));
-    }
+    final Response.ResponseBuilder builder =
+      BuildArtifactsFinder.getContent(BuildArtifactsFinder.getArtifactElement(build, resolvedPath, BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT),
+                                      resolvedPath,
+                                      BuildArtifactsFinder.fileApiUrlBuilderForBuild(myBeanContext.getApiUrlBuilder(), build, null),
+                                      request);
     if (logBuildUsage){
       RepositoryUtil.logArtifactDownload(request, myBeanContext.getSingletonService(DownloadedArtifactsLogger.class), build, resolvedPath);
     }
-    return builder.entity(output).build();
+    return builder.build();
   }
 
   /**
@@ -276,7 +259,6 @@ public class BuildRequest {
     if (resolveSupported == null || !resolveSupported || StringUtil.isEmpty(value)) {
       return value == null ? "" : value;
     }
-    assert value != null;
     myDataProvider.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
     final ProcessingResult resolveResult = build.getValueResolver().resolve(value);
     return resolveResult.getResult();
