@@ -3,12 +3,16 @@ package jetbrains.buildServer.server.rest.data;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import jetbrains.buildServer.server.rest.APIController;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsManager;
@@ -26,15 +30,18 @@ public class VcsRootFinder{
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
   @NotNull private final ProjectManager myProjectManager;
+  @NotNull private final SecurityContext mySecurityContext;
 
   public VcsRootFinder(@NotNull VcsManager vcsManager,
                        @NotNull ProjectFinder projectFinder,
                        @NotNull BuildTypeFinder buildTypeFinder,
-                       @NotNull ProjectManager projectManager) {
+                       @NotNull ProjectManager projectManager,
+                       final @NotNull SecurityContext securityContext) {
     myVcsManager = vcsManager;
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;
     myProjectManager = projectManager;
+    mySecurityContext = securityContext;
   }
 
   @NotNull
@@ -54,7 +61,9 @@ public class VcsRootFinder{
       throw new NotFoundException("No VCS roots are found by locator '" + locatorText + "'.");
     }
     assert vcsRoots.myEntries.size()== 1;
-    return vcsRoots.myEntries.get(0);
+    final SVcsRoot vcsRoot = vcsRoots.myEntries.get(0);
+    checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, vcsRoot);
+    return vcsRoot;
   }
 
   @NotNull
@@ -62,11 +71,13 @@ public class VcsRootFinder{
     assert id != null;
     SVcsRoot vcsRoot = myProjectManager.findVcsRootByExternalId(id);
     if (vcsRoot != null){
+      checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, vcsRoot);
       return vcsRoot;
     }
     try {
       vcsRoot = myProjectManager.findVcsRootById(Long.parseLong(id));
       if (vcsRoot != null){
+        checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, vcsRoot);
         return vcsRoot;
       }
     } catch (NumberFormatException e) {
@@ -93,7 +104,17 @@ public class VcsRootFinder{
 
   public PagedSearchResult<SVcsRoot> getVcsRoots(@Nullable final Locator locator) {
     if (locator == null) {
-      return new PagedSearchResult<SVcsRoot>(myVcsManager.getAllRegisteredVcsRoots(), null, null);
+      final List<SVcsRoot> allRegisteredVcsRoots = myVcsManager.getAllRegisteredVcsRoots();
+      final List<SVcsRoot> result = new ArrayList<SVcsRoot>(allRegisteredVcsRoots.size());
+      for (SVcsRoot root : allRegisteredVcsRoots) {
+        try {
+          checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, root);
+          result.add(root);
+        } catch (AuthorizationFailedException e) {
+          //ignore
+        }
+      }
+      return new PagedSearchResult<SVcsRoot>(result, null, null);
     }
 
     if (locator.isSingleValue()){
@@ -110,6 +131,7 @@ public class VcsRootFinder{
         if (root == null) {
           throw new NotFoundException("No VCS root can be found by id '" + externalId + "'.");
         }
+        checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, root);
         final Long count = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
         if (count != null && count != 1) {
           throw new BadRequestException("Dimension 'id' is specified and 'count' is not 1.");
@@ -130,6 +152,7 @@ public class VcsRootFinder{
         throw new BadRequestException("Dimension 'internalId' is specified and 'count' is not 1.");
       }
       locator.checkLocatorFullyProcessed();
+      checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, root);
       return new PagedSearchResult<SVcsRoot>(Collections.singletonList(root), null, null);
     }
 
@@ -144,10 +167,11 @@ public class VcsRootFinder{
         throw new BadRequestException("Dimension 'name' is specified and 'count' is not 1.");
       }
       locator.checkLocatorFullyProcessed();
+      checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, root);
       return new PagedSearchResult<SVcsRoot>(Collections.singletonList(root), null, null);
     }
 
-    VcsRootsFilter filter = new VcsRootsFilter(locator, myProjectFinder, myVcsManager);
+    VcsRootsFilter filter = new VcsRootsFilter(locator, myProjectFinder, myVcsManager, this);
     locator.checkLocatorFullyProcessed();
 
     return new PagedSearchResult<SVcsRoot>(getVcsRoots(filter), filter.getStart(), filter.getCount());
@@ -177,6 +201,7 @@ public class VcsRootFinder{
         throw new NotFoundException("No VCS root instance can be found by id '" + parsedId + "'.");
       }
       locator.checkLocatorFullyProcessed();
+      checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, root);
       return root;
     }
 
@@ -186,7 +211,9 @@ public class VcsRootFinder{
       throw new NotFoundException("No VCS root instances are found by locator '" + locatorText + "'.");
     }
     assert vcsRoots.myEntries.size()== 1;
-    return vcsRoots.myEntries.get(0);
+    final VcsRootInstance vcsRootInstance = vcsRoots.myEntries.get(0);
+    checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, vcsRootInstance);
+    return vcsRootInstance;
   }
 
   public PagedSearchResult<VcsRootInstance> getVcsRootInstances(@Nullable final Locator locator) {
@@ -205,6 +232,7 @@ public class VcsRootFinder{
          throw new NotFoundException("No VCS root instance can be found by id '" + rootId + "'.");
        }
        locator.checkLocatorFullyProcessed();
+       checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, root);
        return new PagedSearchResult<VcsRootInstance>(Collections.singletonList(root), null, null);
      }
 
@@ -226,6 +254,7 @@ public class VcsRootFinder{
     //todo: (TeamCity) open API is there a better way to do this?
     final Set<VcsRootInstance> rootInstancesSet = new LinkedHashSet<VcsRootInstance>();
     for (SBuildType buildType : projectManager.getAllBuildTypes()) {
+      if (mySecurityContext.getAuthorityHolder().isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_BUILD_CONFIGURATION_SETTINGS))
         rootInstancesSet.addAll(buildType.getVcsRootInstances());
     }
     final List<VcsRootInstance> result = new ArrayList<VcsRootInstance>(rootInstancesSet.size());
@@ -236,5 +265,37 @@ public class VcsRootFinder{
       }
     });
     return result;
+  }
+
+  public void checkPermission(@NotNull final Permission permission, @NotNull final VcsRootInstance rootInstance) {
+    final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
+    Set<String> checkedProjects = new HashSet<String>();
+    for (SBuildType buildType : rootInstance.getUsages().keySet()) {
+      final String projectId = buildType.getProjectId();
+      if (!checkedProjects.contains(projectId)) {
+        if (authorityHolder.isPermissionGrantedForProject(projectId, permission)) {
+          return;
+        }
+        checkedProjects.add(projectId);
+      }
+    }
+    throw new AuthorizationFailedException("User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission +
+                                           " in any of the projects VCS root instance with id '" + rootInstance.getId() + "' is used in");
+  }
+
+  public void checkPermission(@NotNull final Permission permission, @NotNull final SVcsRoot root) {
+    final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
+    Set<String> checkedProjects = new HashSet<String>();
+    for (SBuildType buildType : root.getUsages().keySet()) {
+      final String projectId = buildType.getProjectId();
+      if (!checkedProjects.contains(projectId)) {
+        if (authorityHolder.isPermissionGrantedForProject(projectId, permission)) {
+          return;
+        }
+        checkedProjects.add(projectId);
+      }
+    }
+    throw new AuthorizationFailedException("User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission +
+                                           " in any of the projects VCS root with id '" + root.getId() + "' is used in");
   }
 }

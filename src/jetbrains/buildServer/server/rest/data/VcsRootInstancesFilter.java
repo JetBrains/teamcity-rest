@@ -1,9 +1,11 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsManager;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -25,6 +27,7 @@ public class VcsRootInstancesFilter extends AbstractFilter<VcsRootInstance> {
   @Nullable private final SVcsRoot myVcsRoot;
   @Nullable private final SBuildType myBuildType;
 
+  @NotNull private final VcsRootFinder myVcsRootFinder;
   @NotNull private VcsManager myVcsManager;
 
   public VcsRootInstancesFilter(@NotNull final Locator locator,
@@ -35,6 +38,7 @@ public class VcsRootInstancesFilter extends AbstractFilter<VcsRootInstance> {
     super(locator.getSingleDimensionValueAsLong(PagerData.START),
           locator.getSingleDimensionValueAsLong(PagerData.COUNT) != null ? locator.getSingleDimensionValueAsLong(PagerData.COUNT).intValue() : null,
           null);
+    myVcsRootFinder = vcsRootFinder;
     myVcsManager = vcsManager;
     myVcsType = locator.getSingleDimensionValue("type");
     final String projectLocator = locator.getSingleDimensionValue("project"); //todo: what this project should mean?
@@ -61,6 +65,12 @@ public class VcsRootInstancesFilter extends AbstractFilter<VcsRootInstance> {
 
   @Override
   protected boolean isIncluded(@NotNull VcsRootInstance root) {
+    try {
+      myVcsRootFinder.checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, root);
+    } catch (AuthorizationFailedException e) {
+      return false;
+    }
+
     if (myVcsType != null && !myVcsType.equals(root.getVcsName())) {
       return false;
     }
