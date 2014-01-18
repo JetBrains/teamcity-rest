@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model.build;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -24,6 +25,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.BuildFinder;
+import jetbrains.buildServer.server.rest.data.QueuedBuildFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -98,5 +101,19 @@ public class Builds implements DefaultValueAware {
 
   public boolean isDefault() {
     return builds != null ? builds.size() == 0 : (count == null || count == 0);
+  }
+
+  @NotNull
+  public List<BuildPromotion> getFromPosted(@NotNull final ServiceLocator serviceLocator) {
+    if (builds == null){
+      return Collections.emptyList();
+    }
+    final BuildFinder buildFinder = serviceLocator.getSingletonService(BuildFinder.class);
+    final QueuedBuildFinder queuedBuildFinder = serviceLocator.getSingletonService(QueuedBuildFinder.class);
+    return CollectionsUtil.convertCollection(builds, new Converter<BuildPromotion, Build>() {
+      public BuildPromotion createFrom(@NotNull final Build source) {
+        return source.getFromPosted(buildFinder, queuedBuildFinder);
+      }
+    });
   }
 }

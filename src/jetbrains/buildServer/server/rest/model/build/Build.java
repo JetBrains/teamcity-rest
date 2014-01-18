@@ -85,11 +85,12 @@ import org.springframework.beans.factory.annotation.Autowired;
            "testOccurrences"/*rf*/, "problemOccurrences"/*rf*/,
            "artifacts"/*rf*/, "issues"/*rf*/,
            "properties", "customProperties", "attributes",
-           "buildDependencies", "buildArtifactDependencies", "definedBuildArtifactDependencies"/*q*/,
+           "buildDependencies", "buildArtifactDependencies", "customBuildArtifactDependencies"/*q*/,
            "triggeringOptions"/*only when triggering*/})
 public class Build {
   public static final String CANCELED_INFO = "canceledInfo";
   public static final String PROMOTION_ID = "taskId";  //todo: rename this ???
+  public static final String REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES = "rest.beans.build.includeAllAttributes";
 
   @NotNull final protected BuildPromotion myBuildPromotion;
   @Nullable final protected SBuild myBuild;
@@ -324,7 +325,7 @@ public class Build {
   public Properties getAttributes() {
     final Map<String, Object> buildAttributes = ((BuildPromotionEx)myBuildPromotion).getAttributes();
     final LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
-    if (TeamCityProperties.getBoolean("rest.beans.build.includeAllAttributes")) {
+    if (TeamCityProperties.getBoolean(REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES)) {
       for (Map.Entry<String, Object> attribute : buildAttributes.entrySet()) {
         result.put(attribute.getKey(), attribute.getValue().toString());
       }
@@ -388,14 +389,14 @@ public class Build {
   /**
    * Specifies artifact dependencies to be used in the build _instead_ of those specified in the build type.
    */
-  @XmlElement(name = "overriden-artifact-dependencies")
-  public PropEntitiesArtifactDep getDefinedBuildArtifactDependencies() {
+  @XmlElement(name = "custom-artifact-dependencies")
+  public PropEntitiesArtifactDep getCustomBuildArtifactDependencies() {
     if (myBuild != null) {
       //todo: support serving for the running/finished builds, via a link
       return null;
     }
-    final List<SArtifactDependency> artifactDependencies = myBuildPromotion.getArtifactDependencies();
-    return ValueWithDefault.decideDefault(myFields.isIncluded("overriden-artifact-dependencies", false),
+    final List<SArtifactDependency> artifactDependencies = ((BuildPromotionEx)myBuildPromotion).getCustomArtifactDependencies(); //TeamCity API: cast
+    return ValueWithDefault.decideDefault(myFields.isIncluded("custom-artifact-dependencies", false),
                                           new PropEntitiesArtifactDep(artifactDependencies, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder)));
   }
 
@@ -704,6 +705,7 @@ public class Build {
   }
 
   private BuildTriggeringOptions submittedTriggeringOptions;
+  private String submittedBuildTypeId;
   private BuildTypeRef submittedBuildType;
   private Comment submittedComment;
   private Properties submittedCustomProperties;
@@ -712,7 +714,7 @@ public class Build {
   private Changes submittedLastChanges;
   private Builds submittedBuildDependencies;
   private AgentRef submittedAgent;
-  private PropEntitiesArtifactDep submittedDefinedBuildArtifactDependencies;
+  private PropEntitiesArtifactDep submittedCustomBuildArtifactDependencies;
   private Properties submittedAttributes;
 
   /**
@@ -727,6 +729,10 @@ public class Build {
 
   public void setTriggeringOptions(final BuildTriggeringOptions submittedTriggeringOptions) {
     this.submittedTriggeringOptions = submittedTriggeringOptions;
+  }
+
+  public void setBuildTypeId(final String submittedBuildTypeId) {
+    this.submittedBuildTypeId = submittedBuildTypeId;
   }
 
   public void setBuildType(final BuildTypeRef submittedBuildType) {
@@ -761,8 +767,8 @@ public class Build {
     this.submittedAgent = submittedAgent;
   }
 
-  public void setDefinedBuildArtifactDependencies(final PropEntitiesArtifactDep submittedDefinedBuildArtifactDependencies) {
-    this.submittedDefinedBuildArtifactDependencies = submittedDefinedBuildArtifactDependencies;
+  public void setCustomBuildArtifactDependencies(final PropEntitiesArtifactDep submittedCustomBuildArtifactDependencies) {
+    this.submittedCustomBuildArtifactDependencies = submittedCustomBuildArtifactDependencies;
   }
 
   public void setAttributes(final Properties submittedAttributes) {
@@ -819,11 +825,7 @@ public class Build {
     }
     if (submittedBuildDependencies != null) {
       try {
-        customizer.setSnapshotDependencyNodes(CollectionsUtil.convertCollection(submittedBuildDependencies.builds, new Converter<BuildPromotion, Build>() {
-          public BuildPromotion createFrom(@NotNull final Build source) {
-            return source.getFromPosted(serviceLocator.getSingletonService(BuildFinder.class), serviceLocator.getSingletonService(QueuedBuildFinder.class));
-          }
-        }));
+        customizer.setSnapshotDependencyNodes(submittedBuildDependencies.getFromPosted(serviceLocator));
       } catch (IllegalArgumentException e) {
         throw new BadRequestException("Error trying to use specified snapshot dependencies: " + e.getMessage());
       }
@@ -839,19 +841,37 @@ public class Build {
         }
       }));
     }
-    if (submittedDefinedBuildArtifactDependencies != null) {
-      customizer.setArtifactDependencies(submittedDefinedBuildArtifactDependencies.getFromPosted(serviceLocator));
+    if (submittedCustomBuildArtifactDependencies != null) {
+      final List<SArtifactDependency> artifactDependencies = submittedCustomBuildArtifactDependencies.getFromPosted(serviceLocator);
+      if (!artifactDependencies.isEmpty()) { //TeamCity API does not allow to set empty depenedencies list
+        customizer.setArtifactDependencies(artifactDependencies); //todo: merge with build type dependencies
+      }
     }
     if (submittedAttributes != null){
-      customizer.setAttributes(submittedAttributes.getMap());
+      if (TeamCityProperties.getBoolean(REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES)) {
+        customizer.setAttributes(submittedAttributes.getMap());
+      } else {
+        final String cleanSources = submittedAttributes.getMap().get(BuildAttributes.CLEAN_SOURCES);
+        if (cleanSources != null) {
+          customizer.setCleanSources(Boolean.valueOf(cleanSources));
+        }
+      }
     }
     return customizer.createPromotion();
   }
 
   private SBuildType getSubmittedBuildType(@NotNull ServiceLocator serviceLocator, @Nullable final SVcsModification personalChange, @Nullable final SUser currentUser) {
-    if (submittedBuildType == null) { //todo: also support reading from buildTypeId here
-      throw new BadRequestException("No 'buildType' element in the posted entiry.");
+    if (submittedBuildType == null) {
+      if (submittedBuildTypeId == null) {
+        throw new BadRequestException("No 'buildType' element in the posted entry.");
+      }
+      SBuildType buildType = serviceLocator.getSingletonService(ProjectManager.class).findBuildTypeByExternalId(submittedBuildTypeId);
+      if (buildType == null) {
+        throw new NotFoundException("No build type found by submitted id '" + submittedBuildTypeId + "'");
+      }
+      return buildType;
     }
+
     final BuildTypeOrTemplate buildTypeFromPosted = submittedBuildType.getBuildTypeFromPosted(serviceLocator.findSingletonService(BuildTypeFinder.class));
     if (!buildTypeFromPosted.isBuildType()) {
       throw new BadRequestException("Found template instead on build type. Only build types can run builds.");
@@ -890,7 +910,7 @@ public class Build {
       queuedBuild = buildToTrigger.addToQueue(triggeredByBulder.toString());
     }
     if (queuedBuild == null) {
-      throw new InvalidStateException("Failed to add build into the queue for unknown reason.");
+      throw new InvalidStateException("Failed to add build for build type with id '" + buildToTrigger.getBuildTypeExternalId() + "' into the queue for unknown reason.");
     }
     if (submittedTriggeringOptions != null && submittedTriggeringOptions.queueAtTop != null && submittedTriggeringOptions.queueAtTop) {
       serviceLocator.getSingletonService(BuildQueue.class).moveTop(queuedBuild.getItemId());

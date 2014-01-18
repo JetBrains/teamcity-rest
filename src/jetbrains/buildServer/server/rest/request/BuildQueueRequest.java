@@ -103,6 +103,53 @@ public class BuildQueueRequest {
                       myBeanContext);
   }
 
+  @PUT
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public Builds replaceBuilds(Builds builds, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request){
+    if (builds == null){
+      throw new BadRequestException("List of builds should be posted.");
+    }
+    if (builds.builds == null){
+      throw new BadRequestException("Posted element should contain 'builds' sub-element.");
+    }
+
+    final jetbrains.buildServer.serverSide.BuildQueue buildQueue = myServiceLocator.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class);
+    final List<BuildPromotion> queuedBuildPromotions = CollectionsUtil.convertCollection(buildQueue.getItems(), new Converter<BuildPromotion, SQueuedBuild>() {
+      public BuildPromotion createFrom(@NotNull final SQueuedBuild source) {
+        return source.getBuildPromotion();
+      }
+    });
+    final List<String> queuedBuildIds = CollectionsUtil.convertCollection(buildQueue.getItems(), new Converter<String, SQueuedBuild>() {
+      public String createFrom(@NotNull final SQueuedBuild source) {
+        return source.getItemId();
+      }
+    });
+    buildQueue.removeItems(queuedBuildIds, myDataProvider.getCurrentUser(), null); //todo: consider providing comment here
+
+    //todo: TeamCity API issue: TW-34143
+    if (!buildQueue.isQueueEmpty()) {
+      throw new AuthorizationFailedException("Some builds were not canceled. Probably not sufficient permisisons.");
+    }
+
+    //now delete the canceled builds
+    for (BuildPromotion queuedBuildPromotion : queuedBuildPromotions) {
+      final SBuild associatedBuild = queuedBuildPromotion.getAssociatedBuild();
+      if (associatedBuild == null){
+        throw new OperationException("After canceling a build with promotion id '" + queuedBuildPromotion.getId() + "' , no canceled build found to delete.");
+      }
+      myDataProvider.deleteBuild(associatedBuild);
+    }
+
+    // now queue
+
+    final SUser user = myDataProvider.getCurrentUser();
+    for (Build build : builds.builds) {
+      build.triggerBuild(user, myServiceLocator);
+    }
+    return getBuilds(null, fields, uriInfo, request);
+  }
+
   @GET
   @Path("/{queuedBuildLocator}")
   @Produces({"application/xml", "application/json"})
@@ -125,7 +172,7 @@ public class BuildQueueRequest {
     //now delete the canceled build
     final SBuild associatedBuild = build.getBuildPromotion().getAssociatedBuild();
     if (associatedBuild == null){
-      throw new OperationException("After canceling a build, no canceled build found to delete.");
+      throw new OperationException("After canceling a build with promotion id '" + build.getBuildPromotion().getId() + "' , no canceled build found to delete.");
     }
     myDataProvider.deleteBuild(associatedBuild);
   }
