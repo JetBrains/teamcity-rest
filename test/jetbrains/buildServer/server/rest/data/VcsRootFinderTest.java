@@ -6,6 +6,7 @@ import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectManagerImpl;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.impl.VcsManagerImpl;
+import org.junit.Ignore;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -13,7 +14,8 @@ import org.testng.annotations.Test;
  * @author Yegor.Yarko
  *         Date: 29.07.13
  */
-@Test(dependsOnGroups = "disabled")
+@Test
+@Ignore("Need to disable permission checking or run tests with due authorized user")
 public class VcsRootFinderTest extends BaseServerTestCase {
 
   private VcsRootFinder myVcsRootFinder;
