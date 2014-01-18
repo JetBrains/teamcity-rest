@@ -15,7 +15,6 @@ import org.testng.annotations.Test;
  *         Date: 29.07.13
  */
 @Test
-@Ignore("Need to disable permission checking or run tests with due authorized user")
 public class VcsRootFinderTest extends BaseServerTestCase {
 
   private VcsRootFinder myVcsRootFinder;
@@ -51,7 +50,7 @@ public class VcsRootFinderTest extends BaseServerTestCase {
   }
 
 
-  @Test
+  @Test(enabled = false, description = "Need to disable permission checking or run tests with due authorized user")
   public void testNoLocator() throws Exception {
     createRoots();
 
@@ -59,7 +58,8 @@ public class VcsRootFinderTest extends BaseServerTestCase {
     assertEquals(4, foundVcsRoots.myEntries.size());
   }
 
-  @Test
+  @Test(enabled = false)
+  @Ignore("Need to disable permission checking or run tests with due authorized user")
   public void testNoDimensionLocator() throws Exception {
     final SVcsRoot actualVcsRoot = createRoots();
 
@@ -67,7 +67,7 @@ public class VcsRootFinderTest extends BaseServerTestCase {
     checkNoRootIsFoundBy("id_2");
   }
 
-  @Test
+  @Test(enabled = false)
   public void testIdsLocator() throws Exception {
     final SVcsRoot actualVcsRoot = createRoots();
 
@@ -75,7 +75,7 @@ public class VcsRootFinderTest extends BaseServerTestCase {
     checkNoRootIsFoundBy("id:id 2");
   }
 
-  @Test
+  @Test(enabled = false)
   public void testInternalIdsLocator() throws Exception {
     final SVcsRoot actualVcsRoot = createRoots();
 
@@ -83,7 +83,7 @@ public class VcsRootFinderTest extends BaseServerTestCase {
     checkNoRootIsFoundBy("internalId:" + actualVcsRoot.getId() + 10);
   }
 
-  @Test
+  @Test(enabled = false)
   public void testNameLocator() throws Exception {
     final SVcsRoot actualVcsRoot = createRoots();
 
@@ -91,7 +91,7 @@ public class VcsRootFinderTest extends BaseServerTestCase {
     checkNoRootIsFoundBy("name:VCS root 2 name1");
   }
 
-  @Test
+  @Test(enabled = false)
   public void testTypeLocator() throws Exception {
     final SVcsRoot actualVcsRoot = createRoots("customType");
 
@@ -99,7 +99,7 @@ public class VcsRootFinderTest extends BaseServerTestCase {
     checkNoRootIsFoundBy("type:custom Type");
   }
 
-  @Test
+  @Test(enabled = false)
   public void testProjectLocator() throws Exception {
     final SVcsRoot actualVcsRoot = createRoots();
 
