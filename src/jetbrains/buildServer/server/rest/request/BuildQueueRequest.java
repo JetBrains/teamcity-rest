@@ -26,16 +26,20 @@ import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
-import jetbrains.buildServer.server.rest.errors.*;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.BuildCancelRequest;
-import jetbrains.buildServer.server.rest.model.build.BuildTask;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.BuildPromotion;
+import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SQueuedBuild;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -177,26 +181,10 @@ public class BuildQueueRequest {
   @POST
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Build queueNewBuildAsTask(BuildTask buildTask, @Context HttpServletRequest request){
+  public Build queueNewBuild(Build build, @Context HttpServletRequest request){
     final SUser user = myDataProvider.getCurrentUser();
-    BuildPromotion buildToTrigger = buildTask.getBuildToTrigger(user, myBuildTypeFinder, myServiceLocator);
-    TriggeredByBuilder triggeredByBulder = new TriggeredByBuilder();
-    if (user != null){
-      triggeredByBulder = new TriggeredByBuilder(user);
-    }
-    final SBuildAgent agent = buildTask.getAgent(myAgentFinder);
-    SQueuedBuild queuedBuild;
-    if (agent != null){
-      queuedBuild = buildToTrigger.addToQueue(agent, triggeredByBulder.toString());
-    }else{
-      queuedBuild = buildToTrigger.addToQueue(triggeredByBulder.toString());
-    }
-    if (queuedBuild == null){
-      throw new InvalidStateException("Failed to add build into the queue for unknown reason.");
-    }
-    if (buildTask.queueAtTop != null && buildTask.queueAtTop ){
-      myServiceLocator.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class).moveTop(queuedBuild.getItemId());
-    }
+    SQueuedBuild queuedBuild = build.triggerBuild(user, myServiceLocator);
     return new Build(queuedBuild.getBuildPromotion(), Fields.LONG, myBeanContext);
   }
+
 }

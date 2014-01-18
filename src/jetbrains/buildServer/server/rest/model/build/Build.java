@@ -26,6 +26,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -44,6 +45,7 @@ import jetbrains.buildServer.server.rest.request.ProblemOccurrenceRequest;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.Branch;
@@ -56,7 +58,10 @@ import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.vcs.SVcsModification;
+import jetbrains.buildServer.vcs.VcsModificationHistory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,12 +80,13 @@ import org.springframework.beans.factory.annotation.Autowired;
            "startEstimate"/*q*/, "waitReason"/*q*/,
            "runningBuildInfo"/*r*/, "canceledInfo"/*rf*/,
            "queuedDate", "startDate"/*rf*/, "finishDate"/*f*/,
-           "triggered", "changes", "revisions",
+           "triggered", "lastChanges", "changes", "revisions",
            "agent", "compatibleAgents"/*q*/,
            "testOccurrences"/*rf*/, "problemOccurrences"/*rf*/,
            "artifacts"/*rf*/, "issues"/*rf*/,
-           "properties", "customProperties",
-           "buildDependencies", "buildArtifactDependencies", "definedBuildArtifactDependencies"/*q*/})
+           "properties", "customProperties", "attributes",
+           "buildDependencies", "buildArtifactDependencies", "definedBuildArtifactDependencies"/*q*/,
+           "triggeringOptions"/*only when triggering*/})
 public class Build {
   public static final String CANCELED_INFO = "canceledInfo";
   public static final String PROMOTION_ID = "taskId";  //todo: rename this ???
@@ -314,6 +320,23 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded("customProperties", false), new Properties(myBuildPromotion.getCustomParameters()));
   }
 
+  @XmlElement
+  public Properties getAttributes() {
+    final Map<String, Object> buildAttributes = ((BuildPromotionEx)myBuildPromotion).getAttributes();
+    final LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
+    if (TeamCityProperties.getBoolean("rest.beans.build.includeAllAttributes")) {
+      for (Map.Entry<String, Object> attribute : buildAttributes.entrySet()) {
+        result.put(attribute.getKey(), attribute.getValue().toString());
+      }
+    } else {
+      final Object value = buildAttributes.get(BuildAttributes.CLEAN_SOURCES);
+      if (value != null) {
+        result.put(BuildAttributes.CLEAN_SOURCES, value.toString());
+      }
+    }
+    return ValueWithDefault.decideDefault(myFields.isIncluded("attributes", false), new Properties(result));
+  }
+
   @XmlAttribute
   public Integer getPercentageComplete() {
     if (myBuild == null || myBuild.isFinished()) {
@@ -362,6 +385,9 @@ public class Build {
                                           new Builds(builds, null, myFields.getNestedField("artifact-dependencies", Fields.NONE, Fields.LONG), myBeanContext));
   }
 
+  /**
+   * Specifies artifact dependencies to be used in the build _instead_ of those specified in the build type.
+   */
   @XmlElement(name = "overriden-artifact-dependencies")
   public PropEntitiesArtifactDep getDefinedBuildArtifactDependencies() {
     if (myBuild != null) {
@@ -378,8 +404,29 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded("revisions", false), new Revisions(myBuildPromotion.getRevisions(), myApiUrlBuilder));
   }
 
+  @XmlElement(name = "lastChanges")
+  public Changes getLastChanges() {
+    if (!myFields.isIncluded("lastChanges", false, true)) {
+      return null;
+    }
+    final List<SVcsModification> result = new ArrayList<SVcsModification>();
+    final Long lastModificationId = myBuildPromotion.getLastModificationId();
+    if (lastModificationId != null && lastModificationId != -1) {
+      SVcsModification modification = myBeanContext.getSingletonService(VcsModificationHistory.class).findChangeById(lastModificationId);
+      if (modification != null) {
+        result.add(modification);
+      }
+    }
+    result.addAll(myBuildPromotion.getPersonalChanges());
+    return ValueWithDefault
+      .decideDefault(myFields.isIncluded("lastChanges", false), new Changes(result, null, myFields.getNestedField("lastChanges", Fields.NONE, Fields.LONG), myBeanContext));
+  }
+
   @XmlElement(name = "changes")
   public Changes getChanges() {
+    if (!myFields.isIncluded("changes", false, true)) {
+      return null;
+    }
     final List<SVcsModification> changesInternal = ChangeFinder.getBuildChanges(myBuildPromotion);
     final String href;
     if (myBuild != null) {
@@ -654,6 +701,201 @@ public class Build {
       result = buildFinder.getBuild(null, locatorText).getBuildPromotion();
     }
     return result;
+  }
+
+  private BuildTriggeringOptions submittedTriggeringOptions;
+  private BuildTypeRef submittedBuildType;
+  private Comment submittedComment;
+  private Properties submittedCustomProperties;
+  private String submittedBranchName;
+  private Boolean submittedPersonal;
+  private Changes submittedLastChanges;
+  private Builds submittedBuildDependencies;
+  private AgentRef submittedAgent;
+  private PropEntitiesArtifactDep submittedDefinedBuildArtifactDependencies;
+  private Properties submittedAttributes;
+
+  /**
+   * Used only when posting for triggering a build
+   *
+   * @return
+   */
+  @XmlElement
+  public BuildTriggeringOptions getTriggeringOptions() {
+    return null;
+  }
+
+  public void setTriggeringOptions(final BuildTriggeringOptions submittedTriggeringOptions) {
+    this.submittedTriggeringOptions = submittedTriggeringOptions;
+  }
+
+  public void setBuildType(final BuildTypeRef submittedBuildType) {
+    this.submittedBuildType = submittedBuildType;
+  }
+
+  public void setComment(final Comment submittedComment) {
+    this.submittedComment = submittedComment;
+  }
+
+  public void setCustomProperties(final Properties submittedCustomProperties) {
+    this.submittedCustomProperties = submittedCustomProperties;
+  }
+
+  public void setBranchName(final String submittedBranchName) {
+    this.submittedBranchName = submittedBranchName;
+  }
+
+  public void setPersonal(final Boolean submittedPersonal) {
+    this.submittedPersonal = submittedPersonal;
+  }
+
+  public void setLastChanges(final Changes submittedLstChanges) {
+    this.submittedLastChanges = submittedLstChanges;
+  }
+
+  public void setBuildDependencies(final Builds submittedBuildDependencies) {
+    this.submittedBuildDependencies = submittedBuildDependencies;
+  }
+
+  public void setAgent(final AgentRef submittedAgent) {
+    this.submittedAgent = submittedAgent;
+  }
+
+  public void setDefinedBuildArtifactDependencies(final PropEntitiesArtifactDep submittedDefinedBuildArtifactDependencies) {
+    this.submittedDefinedBuildArtifactDependencies = submittedDefinedBuildArtifactDependencies;
+  }
+
+  public void setAttributes(final Properties submittedAttributes) {
+    this.submittedAttributes = submittedAttributes;
+  }
+
+  private BuildPromotion getBuildToTrigger(@Nullable final SUser user, @NotNull final ServiceLocator serviceLocator) {
+    SVcsModification changeToUse = null;
+    SVcsModification personalChangeToUse = null;
+    if (submittedLastChanges != null) {
+      List<SVcsModification> lastChanges = submittedLastChanges.getChangesFromPosted(serviceLocator.getSingletonService(ChangeFinder.class));
+      if (lastChanges.size() > 0) {
+        boolean changeProcessed = false;
+        boolean personalChangeProcessed = false;
+        for (SVcsModification change : lastChanges) {
+          if (!change.isPersonal()) {
+            if (!changeProcessed) {
+              changeToUse = change;
+              changeProcessed = true;
+            } else {
+              throw new BadRequestException("Several non-personal changes are submitted, only one can be present");
+            }
+          } else {
+            if (!personalChangeProcessed) {
+              personalChangeToUse = change;
+              personalChangeProcessed = true;
+            } else {
+              throw new BadRequestException("Several personal changes are submitted, only one can be present");
+            }
+          }
+        }
+      }
+    }
+
+    BuildCustomizer customizer =
+      serviceLocator.getSingletonService(BuildCustomizerFactory.class).createBuildCustomizer(getSubmittedBuildType(serviceLocator, personalChangeToUse, user), user);
+    if (changeToUse != null) {
+      customizer.setChangesUpTo(changeToUse);
+    }
+    if (submittedComment != null) {
+      if (submittedComment.text != null) {
+        customizer.setBuildComment(submittedComment.text);
+      } else {
+        throw new BadRequestException("Submitted comment does not have 'text' set.");
+      }
+    }
+    if (submittedCustomProperties != null) customizer.setParameters(submittedCustomProperties.getMap());
+
+    if (submittedBranchName != null) customizer.setDesiredBranchName(submittedBranchName);
+    if (submittedPersonal != null) customizer.setPersonal(submittedPersonal);
+    if (submittedTriggeringOptions != null && submittedTriggeringOptions.cleanSources != null) customizer.setCleanSources(submittedTriggeringOptions.cleanSources);
+    if (submittedTriggeringOptions != null && submittedTriggeringOptions.rebuildAllDependencies != null) {
+      customizer.setRebuildDependencies(submittedTriggeringOptions.rebuildAllDependencies);
+    }
+    if (submittedBuildDependencies != null) {
+      try {
+        customizer.setSnapshotDependencyNodes(CollectionsUtil.convertCollection(submittedBuildDependencies.builds, new Converter<BuildPromotion, Build>() {
+          public BuildPromotion createFrom(@NotNull final Build source) {
+            return source.getFromPosted(serviceLocator.getSingletonService(BuildFinder.class), serviceLocator.getSingletonService(QueuedBuildFinder.class));
+          }
+        }));
+      } catch (IllegalArgumentException e) {
+        throw new BadRequestException("Error trying to use specified snapshot dependencies: " + e.getMessage());
+      }
+    }
+    if (submittedTriggeringOptions != null && submittedTriggeringOptions.rebuildDependencies != null) {
+      customizer.setRebuildDependencies(CollectionsUtil.convertCollection(
+        submittedTriggeringOptions.rebuildDependencies.getFromPosted(serviceLocator.getSingletonService(BuildTypeFinder.class)), new Converter<String, BuildTypeOrTemplate>() {
+        public String createFrom(@NotNull final BuildTypeOrTemplate source) {
+          if (!source.isBuildType()) {
+            throw new BadRequestException("Template is specified instead of a build type. Template id: '" + source.getTemplate().getExternalId() + "'");
+          }
+          return source.getBuildType().getInternalId();
+        }
+      }));
+    }
+    if (submittedDefinedBuildArtifactDependencies != null) {
+      customizer.setArtifactDependencies(submittedDefinedBuildArtifactDependencies.getFromPosted(serviceLocator));
+    }
+    if (submittedAttributes != null){
+      customizer.setAttributes(submittedAttributes.getMap());
+    }
+    return customizer.createPromotion();
+  }
+
+  private SBuildType getSubmittedBuildType(@NotNull ServiceLocator serviceLocator, @Nullable final SVcsModification personalChange, @Nullable final SUser currentUser) {
+    if (submittedBuildType == null) { //todo: also support reading from buildTypeId here
+      throw new BadRequestException("No 'buildType' element in the posted entiry.");
+    }
+    final BuildTypeOrTemplate buildTypeFromPosted = submittedBuildType.getBuildTypeFromPosted(serviceLocator.findSingletonService(BuildTypeFinder.class));
+    if (!buildTypeFromPosted.isBuildType()) {
+      throw new BadRequestException("Found template instead on build type. Only build types can run builds.");
+    }
+
+    final SBuildType regularBuildType = buildTypeFromPosted.getBuildType();
+    if (personalChange == null) {
+      return regularBuildType;
+    }
+    if (currentUser == null) {
+      throw new BadRequestException("Cannot trigger a personal build while no current user is present. Please specify credentials of a valid and non-special user.");
+    }
+    return ((BuildTypeEx)regularBuildType).createPersonalBuildType(currentUser, personalChange.getId());
+  }
+
+  @Nullable
+  private SBuildAgent getSubmittedAgent(@NotNull final AgentFinder agentFinder) {
+    if (submittedAgent == null) {
+      return null;
+    }
+    return submittedAgent.getAgentFromPosted(agentFinder);
+  }
+
+  @NotNull
+  public SQueuedBuild triggerBuild(@Nullable final SUser user, @NotNull final ServiceLocator serviceLocator) {
+    BuildPromotion buildToTrigger = getBuildToTrigger(user, serviceLocator);
+    TriggeredByBuilder triggeredByBulder = new TriggeredByBuilder();
+    if (user != null) {
+      triggeredByBulder = new TriggeredByBuilder(user);
+    }
+    final SBuildAgent agent = getSubmittedAgent(serviceLocator.getSingletonService(AgentFinder.class));
+    SQueuedBuild queuedBuild;
+    if (agent != null) {
+      queuedBuild = buildToTrigger.addToQueue(agent, triggeredByBulder.toString());
+    } else {
+      queuedBuild = buildToTrigger.addToQueue(triggeredByBulder.toString());
+    }
+    if (queuedBuild == null) {
+      throw new InvalidStateException("Failed to add build into the queue for unknown reason.");
+    }
+    if (submittedTriggeringOptions != null && submittedTriggeringOptions.queueAtTop != null && submittedTriggeringOptions.queueAtTop) {
+      serviceLocator.getSingletonService(BuildQueue.class).moveTop(queuedBuild.getItemId());
+    }
+    return queuedBuild;
   }
 
   @Nullable

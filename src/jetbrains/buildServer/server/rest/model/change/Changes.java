@@ -21,6 +21,7 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.data.ChangeFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -92,5 +93,21 @@ public class Changes {
   public String getPrevHref() {
     return myPagerData == null || myPagerData.getPrevHref() == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("prevHref"), myBeanContext.getApiUrlBuilder()
       .transformRelativePath(myPagerData.getPrevHref()));
+  }
+
+  private List<ChangeRef> sumbittedChanges;
+  public void setChanges(List<ChangeRef> sumbittedChanges) {
+    this.sumbittedChanges = sumbittedChanges;
+  }
+
+  @NotNull
+  public List<SVcsModification> getChangesFromPosted(@NotNull final ChangeFinder singletonService) {
+    final ArrayList<SVcsModification> result = new ArrayList<SVcsModification>();
+    if (sumbittedChanges != null){
+      for (ChangeRef changeRef : sumbittedChanges) {
+        result.add(changeRef.getChangeFromPosted(singletonService));
+      }
+    }
+    return result;
   }
 }
