@@ -74,7 +74,7 @@ public class Investigation {
     */
 
     href = InvestigationRequest.getHref(investigation);
-    if (fields.isLong() || true) {
+    if (fields.isMoreThenShort() || true) {
 
       scope = new InvestigationScope(investigation, fields.getNestedField("scope", Fields.NONE, Fields.LONG), beanContext);
       responsible = new UserRef(investigation.getResponsibleUser(), beanContext.getApiUrlBuilder());

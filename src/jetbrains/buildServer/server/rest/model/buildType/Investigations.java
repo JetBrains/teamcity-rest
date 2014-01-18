@@ -66,7 +66,7 @@ public class Investigations {
                         @NotNull final BeanContext beanContext) {
     href = hrefP != null ? hrefP.getHref() : null;
 
-    if (fields.isLong()) {
+    if (fields.isMoreThenShort()) {
       if (itemsP != null) {
         items = new ArrayList<Investigation>(itemsP.size());
         for (InvestigationWrapper item : itemsP) {

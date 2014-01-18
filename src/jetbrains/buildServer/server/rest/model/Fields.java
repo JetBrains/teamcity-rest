@@ -16,9 +16,8 @@
 
 package jetbrains.buildServer.server.rest.model;
 
-import com.intellij.util.containers.HashSet;
-import java.util.Collection;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -35,18 +34,18 @@ public class Fields {
   private static final String ALL_FIELDS_PATTERN = "*";
   private static final String ALL_NESTED_FIELDS_PATTERN = "**";
 
-  public static final Fields NONE = new Fields(NONE_FIELDS_PATTERN);
-  public static final Fields SHORT = new Fields(DEFAULT_FIELDS_SHORT_PATTERN);
-  public static final Fields LONG = new Fields(DEFAULT_FIELDS_LONG_PATTERN);
-  public static final Fields ALL = new Fields(ALL_FIELDS_PATTERN);
-  public static final Fields ALL_NESTED = new Fields(ALL_NESTED_FIELDS_PATTERN);
+  public static final Fields NONE = new Fields(NONE_FIELDS_PATTERN); // no fields at all
+  public static final Fields SHORT = new Fields(DEFAULT_FIELDS_SHORT_PATTERN); // short form, only some fields, no nested fields
+  public static final Fields ALL = new Fields(ALL_FIELDS_PATTERN); // all fields on this level, nested fields in short forl only
+  public static final Fields LONG = new Fields(DEFAULT_FIELDS_LONG_PATTERN); // long form, with nested fields, generally default fields might be not included
+  public static final Fields ALL_NESTED = new Fields(ALL_NESTED_FIELDS_PATTERN); // maximum, all fields and all nested
 
   @NotNull private final String myFieldsSpec;
-  @NotNull private final Set<String> myExcludedFields;
+  @NotNull private final Map<String, Fields> myRestrictedFields;
 
-  private Fields(@NotNull String actualFieldsSpec, @Nullable Collection<String> excludedFields, boolean isInternal) {
+  private Fields(@NotNull String actualFieldsSpec, @Nullable Map<String, Fields> restrictedFields, boolean isInternal) {
     myFieldsSpec = actualFieldsSpec;
-    myExcludedFields = excludedFields != null ? new HashSet<String>(excludedFields) : new HashSet<String>();
+    myRestrictedFields = restrictedFields != null ? new HashMap<String, Fields>(restrictedFields) : new HashMap<String, Fields>();
   }
 
   public Fields() {
@@ -65,16 +64,24 @@ public class Fields {
     this(fieldsSpec != null ? fieldsSpec : defaultFields.myFieldsSpec, null, true);
   }
 
-  public boolean isAllFieldsIncluded(){
-    return ALL_FIELDS_PATTERN.equals(myFieldsSpec) || ALL_NESTED_FIELDS_PATTERN.equals(myFieldsSpec);
+  public boolean isMoreThenShort() {
+    return isLong() || isAll() || isAllNested();
   }
 
   public boolean isShort() {
     return DEFAULT_FIELDS_SHORT_PATTERN.equals(myFieldsSpec);
   }
 
+  public boolean isAll() {
+    return ALL_FIELDS_PATTERN.equals(myFieldsSpec);
+  }
+
   public boolean isLong() {
     return DEFAULT_FIELDS_LONG_PATTERN.equals(myFieldsSpec);
+  }
+
+  public boolean isAllNested() {
+    return ALL_NESTED_FIELDS_PATTERN.equals(myFieldsSpec);
   }
 
   public boolean isNone() {
@@ -102,11 +109,14 @@ public class Fields {
     if (isNone()){
       return false;
     }
-    if (myExcludedFields.contains(fieldName)) {
-      return false;
+    final Fields restrictedFields = myRestrictedFields.get(fieldName);
+    if (restrictedFields != null) {
+      if (!restrictedFields.isIncluded(fieldName, true, true)) {
+        return false;
+      }
     }
 
-    if (isAllFieldsIncluded()){
+    if (isAllNested() || isAll()) {
       return true;
     }
     if (isShort()) {
@@ -116,7 +126,7 @@ public class Fields {
       return defaultForLong;
     }
 
-    return myFieldsSpec.contains(fieldName); //todo: implement! This is a hack!
+    return myFieldsSpec.contains(fieldName);  //todo: implement! This is a hack!
   }
 
   @NotNull
@@ -134,34 +144,80 @@ public class Fields {
    */
   @NotNull
   public Fields getNestedField(@NotNull final String nestedFieldName, @NotNull final Fields defaultForShort, @NotNull final Fields defaultForLong) {
-    if (isNone()) {
-      return NONE;
-//      throw new OperationException("Should never get nested field for NONE fileds filter. Querying for nested field '" + nestedFieldName + "'. Excluded fields: " + myExcludedFields);
-    }
-
-    if (myExcludedFields.contains(nestedFieldName)) {
+    final Boolean included = isIncluded(nestedFieldName);
+    if (included != null && !included) {
       return NONE;
     }
 
-    final HashSet<String> excludedFields = new HashSet<String>(myExcludedFields);
-    excludedFields.add(nestedFieldName);
-
-    if (ALL_FIELDS_PATTERN.equals(myFieldsSpec)) {
-      return new Fields(DEFAULT_FIELDS_SHORT_PATTERN, excludedFields, true);
+    Fields restrictedField = myRestrictedFields.get(nestedFieldName);
+    if (restrictedField == null) {
+      restrictedField = ALL_NESTED;
     }
 
-    if (ALL_NESTED_FIELDS_PATTERN.equals(myFieldsSpec)) {
-      return new Fields(ALL_NESTED_FIELDS_PATTERN, excludedFields, true);
+    final Map<String, Fields> newRestrictedFields = new HashMap<String, Fields>(myRestrictedFields);
+
+    if (isAllNested()) {
+      newRestrictedFields.put(nestedFieldName, SHORT);
+      return new Fields(minPattern(restrictedField.myFieldsSpec, ALL_NESTED_FIELDS_PATTERN), newRestrictedFields, true);
+    }
+
+    if (isLong()) {
+      newRestrictedFields.put(nestedFieldName, SHORT);
+      return new Fields(minPattern(restrictedField.myFieldsSpec, defaultForLong.myFieldsSpec), newRestrictedFields, true);
+    }
+
+    if (isAll()) {
+      newRestrictedFields.put(nestedFieldName, SHORT);
+      return new Fields(minPattern(restrictedField.myFieldsSpec, DEFAULT_FIELDS_SHORT_PATTERN), newRestrictedFields, true);
     }
 
     if (isShort()) {
-      return new Fields(defaultForShort.myFieldsSpec, excludedFields, true);
-    }
-    if (isLong()) {
-      return new Fields(defaultForLong.myFieldsSpec, excludedFields, true);
+      newRestrictedFields.put(nestedFieldName, NONE);
+      return new Fields(minPattern(restrictedField.myFieldsSpec, defaultForShort.myFieldsSpec), newRestrictedFields, true);
     }
 
     throw new BadRequestException("Sorry, getting nested fields for non-default fields is not implemented yet");
-//    return new Fields(DEFAULT_FIELDS_SHORT_PATTERN, excludedFields, true); //todo: implement this.
+//    newRestrictedFields.put(nestedFieldName, ...);
+//    return new Fields(DEFAULT_FIELDS_SHORT_PATTERN, newRestrictedFields, true); //todo: implement this.
+  }
+
+  private static String minPattern(final String a, final String b) {
+    if (ALL_NESTED_FIELDS_PATTERN.equals(a)) {
+      return b;
+    }
+    if (DEFAULT_FIELDS_LONG_PATTERN.equals(a)) {
+      if (ALL_NESTED_FIELDS_PATTERN.equals(b)) return a;
+      return b;
+    }
+    if (ALL_FIELDS_PATTERN.equals(a)) {
+      if (ALL_NESTED_FIELDS_PATTERN.equals(b)) return a;
+      if (DEFAULT_FIELDS_LONG_PATTERN.equals(b)) return a;
+      return b;
+    }
+    if (DEFAULT_FIELDS_SHORT_PATTERN.equals(a)) {
+      if (ALL_NESTED_FIELDS_PATTERN.equals(b)) return a;
+      if (DEFAULT_FIELDS_LONG_PATTERN.equals(b)) return a;
+      if (ALL_FIELDS_PATTERN.equals(b)) return a;
+      return b;
+    }
+    if (NONE_FIELDS_PATTERN.equals(a)) return NONE_FIELDS_PATTERN;
+
+    throw new BadRequestException("Comparing non standard Fields is not supported: a='" +a + "', b='" + b + "'");
+  }
+
+  @NotNull
+  public Fields increaseRestrictedField(@NotNull final String fieldName, @NotNull Fields newRestriction) {
+    final Fields currentRestriction = myRestrictedFields.get(fieldName);
+    if (minPattern(currentRestriction.myFieldsSpec, newRestriction.myFieldsSpec).equals(currentRestriction.myFieldsSpec)) {
+      return resetRestrictedField(fieldName, newRestriction);
+    }
+    return currentRestriction;
+  }
+
+  @NotNull
+  public Fields resetRestrictedField(@NotNull final String fieldName, @NotNull Fields newRestriction) {
+    final Map<String, Fields> newRestrictedFields = new HashMap<String, Fields>(myRestrictedFields);
+    newRestrictedFields.put(fieldName, newRestriction);
+    return new Fields(myFieldsSpec, newRestrictedFields, true);
   }
 }

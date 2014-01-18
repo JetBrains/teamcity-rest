@@ -63,7 +63,7 @@ public class Test {
     final ApiUrlBuilder apiUrlBuilder = beanContext.getApiUrlBuilder();
     href = apiUrlBuilder.transformRelativePath(TestRequest.getHref(test));
 
-    if (fields.isLong()) {
+    if (fields.isMoreThenShort()) {
       final ArrayList<MuteInfo> muteInfos = new ArrayList<MuteInfo>();
       final CurrentMuteInfo currentMuteInfo = test.getCurrentMuteInfo(); //todo: TeamCity API: how to get unique mutes?
       if (currentMuteInfo != null) {

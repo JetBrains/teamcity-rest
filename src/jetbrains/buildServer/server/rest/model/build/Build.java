@@ -365,8 +365,14 @@ public class Build {
 
   @XmlElement(name = "snapshot-dependencies")
   public Builds getBuildDependencies() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("snapshot-dependencies", false), new Builds(getBuildPromotions(myBuildPromotion.getDependencies()), null, myFields
-      .getNestedField("snapshot-dependencies", Fields.NONE, Fields.LONG), myBeanContext));
+    if (!myFields.isIncluded("snapshot-dependencies", false, true)) {
+      return null;
+    }
+    return ValueWithDefault.decideDefault(myFields.isIncluded("snapshot-dependencies", false),
+                                          new Builds(getBuildPromotions(myBuildPromotion.getDependencies()),
+                                                     null,
+                                                     myFields.getNestedField("snapshot-dependencies", Fields.NONE, Fields.LONG),
+                                                     myBeanContext));
   }
 
   @XmlElement(name = "artifact-dependencies")
@@ -383,7 +389,9 @@ public class Build {
     }
     Collections.sort(builds, new BuildPromotionDependenciesComparator());
     return ValueWithDefault.decideDefault(myFields.isIncluded("artifact-dependencies", false),
-                                          new Builds(builds, null, myFields.getNestedField("artifact-dependencies", Fields.NONE, Fields.LONG), myBeanContext));
+                                          new Builds(builds, null,
+                                                     myFields.getNestedField("artifact-dependencies", Fields.NONE, Fields.LONG),
+                                                     myBeanContext));
   }
 
   /**
