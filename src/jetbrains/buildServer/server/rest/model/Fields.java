@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model;
 
 import java.util.HashMap;
 import java.util.Map;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -41,6 +42,7 @@ public class Fields {
   public static final Fields ALL_NESTED = new Fields(ALL_NESTED_FIELDS_PATTERN); // maximum, all fields and all nested
 
   @NotNull private final String myFieldsSpec;
+  @NotNull private Locator myFieldsSpecLocator;
   @NotNull private final Map<String, Fields> myRestrictedFields;
 
   private Fields(@NotNull String actualFieldsSpec, @Nullable Map<String, Fields> restrictedFields, boolean isInternal) {
@@ -126,7 +128,8 @@ public class Fields {
       return defaultForLong;
     }
 
-    return myFieldsSpec.contains(fieldName);  //todo: implement! This is a hack!
+    final String fieldSpec = getParsedCustomFields().getSingleDimensionValue(fieldName);
+    return fieldSpec != null && !NONE_FIELDS_PATTERN.equals(fieldSpec);
   }
 
   @NotNull
@@ -176,9 +179,12 @@ public class Fields {
       return new Fields(minPattern(restrictedField.myFieldsSpec, defaultForShort.myFieldsSpec), newRestrictedFields, true);
     }
 
-    throw new BadRequestException("Sorry, getting nested fields for non-default fields is not implemented yet");
-//    newRestrictedFields.put(nestedFieldName, ...);
-//    return new Fields(DEFAULT_FIELDS_SHORT_PATTERN, newRestrictedFields, true); //todo: implement this.
+    newRestrictedFields.put(nestedFieldName, SHORT);
+    final String fieldSpec = getParsedCustomFields().getSingleDimensionValue(nestedFieldName);
+    if (fieldSpec == null){
+      return NONE;
+    }
+    return new Fields(fieldSpec, newRestrictedFields, true);
   }
 
   private static String minPattern(final String a, final String b) {
@@ -219,5 +225,12 @@ public class Fields {
     final Map<String, Fields> newRestrictedFields = new HashMap<String, Fields>(myRestrictedFields);
     newRestrictedFields.put(fieldName, newRestriction);
     return new Fields(myFieldsSpec, newRestrictedFields, true);
+  }
+
+  @NotNull Locator getParsedCustomFields(){
+    if (myFieldsSpecLocator == null){
+      myFieldsSpecLocator = new Locator(myFieldsSpec);
+    }
+    return myFieldsSpecLocator;
   }
 }
