@@ -23,65 +23,157 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.ChangeFinder;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
-import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsModification;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * User: Yegor Yarko
  * Date: 12.04.2009
  */
 @XmlRootElement(name = "change")
-@XmlType(name= "change", propOrder = {"username", "date",
+@XmlType(name= "change", propOrder = {"id", "version", "username", "date", "personal", "href", "webLink",
   "comment", "user", "fileChanges", "vcsRootInstance"})
-public class Change extends ChangeRef {
-
-//  @Autowired VcsManager myVcsManager;
-//  @Autowired BeanFactory myFactory;
+public class Change {
+  protected SVcsModification myModification;
+  @NotNull private Fields myFields;
+  @NotNull private BeanContext myBeanContext;
+  protected ApiUrlBuilder myApiUrlBuilder;
+  @Autowired protected WebLinks myWebLinks;
 
   public Change() {
   }
 
-  public Change(SVcsModification modification, final ApiUrlBuilder apiUrlBuilder, final BeanFactory myFactory) {
-    super(modification, apiUrlBuilder, myFactory);
+  public Change(SVcsModification modification, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+    this.myModification = modification;
+    myFields = fields;
+    myBeanContext = beanContext;
+    myApiUrlBuilder = myBeanContext.getApiUrlBuilder();
+    myBeanContext.autowire(this);
+  }
+
+  @XmlAttribute
+  public Long getId() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("id"), myModification.getId());
+  }
+  @XmlAttribute
+  public String getVersion() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("version"), myModification.getDisplayVersion());
+  }
+
+  @XmlAttribute
+  public Boolean getPersonal() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("personal"), myModification.isPersonal());
+  }
+
+  @XmlAttribute
+  public String getHref() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("href"), myApiUrlBuilder.getHref(myModification));
+  }
+
+  @XmlAttribute
+  public String getWebLink() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("webLink"), myWebLinks.getChangeUrl(myModification.getId(), myModification.isPersonal()));
   }
 
   @XmlAttribute
   public String getUsername() {
-    return myModification.getUserName();
+    return ValueWithDefault.decideDefault(myFields.isIncluded("username"), myModification.getUserName());
   }
 
   @XmlAttribute
   public String getDate() {
     final Date vcsDate = myModification.getVcsDate();
-    return Util.formatTime(vcsDate);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("date"), Util.formatTime(vcsDate));
   }
 
   @XmlElement
   public String getComment() {
-    return myModification.getDescription();
+    return ValueWithDefault.decideDefault(myFields.isIncluded("comment", false), myModification.getDescription());
   }
 
   @XmlElement(name = "user")
   public UserRef getUser() {
-    final Collection<SUser> users = myModification.getCommitters();
-    if (users.size() != 1){
-      return null;
-    }
-    return new UserRef(users.iterator().next(), myApiUrlBuilder);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("user", false), new ValueWithDefault.Value<UserRef>() {
+      @Nullable
+      public UserRef get() {
+        final Collection<SUser> users = myModification.getCommitters();
+        if (users.size() != 1){
+          return null;
+        }
+        return new UserRef(users.iterator().next(), myApiUrlBuilder);
+      }
+    });
   }
 
   @XmlElement(name = "files")
   public FileChanges getFileChanges() {
-    return new FileChanges(myModification.getChanges());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("files", false), new FileChanges(myModification.getChanges()));
   }
 
   @XmlElement(name = "vcsRootInstance")
   public VcsRootInstanceRef getVcsRootInstance() {
-    return myModification.isPersonal() ? null : new VcsRootInstanceRef(myModification.getVcsRoot(), myApiUrlBuilder);
+    return myModification.isPersonal()
+           ? null
+           : ValueWithDefault.decideDefault(myFields.isIncluded("vcsRootInstance", false), new VcsRootInstanceRef(myModification.getVcsRoot(), myApiUrlBuilder));
+  }
+
+  /**
+   * These are used only when posting a link to the change
+   */
+  private String submittedLocator;
+  private Long submittedId;
+  private Boolean submittedPersonal;
+
+  public void setId(Long id) {
+    submittedId = id;
+  }
+
+  public void setPersonal(Boolean value) {
+    submittedPersonal = value;
+  }
+
+  @XmlAttribute
+  public String getLocator() {
+    return null;
+  }
+
+  public void setLocator(final String locator) {
+    submittedLocator = locator;
+  }
+
+  @NotNull
+  public SVcsModification getChangeFromPosted(final ChangeFinder changeFinder) {
+    String locatorText;
+    if (submittedId != null) {
+      if (submittedLocator != null){
+        throw new BadRequestException("Both 'locator' and 'id' attributes are specified. Only one should be present.");
+      }
+      final Locator locator = Locator.createEmptyLocator().setDimension(ChangeFinder.DIMENSION_ID, String.valueOf(submittedId));
+      if (submittedPersonal != null && submittedPersonal){
+        locator.setDimension(ChangeFinder.PERSONAL, "true");
+      }
+      locatorText = locator.getStringRepresentation();
+    } else{
+      if (submittedLocator == null){
+        throw new BadRequestException("No change specified. Either 'id' or 'locator' attribute should be present.");
+      }
+      locatorText = submittedLocator;
+    }
+
+    return changeFinder.getItem(locatorText);
   }
 
   public static String getFieldValue(final SVcsModification vcsModification, final String field) {

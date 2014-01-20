@@ -146,8 +146,8 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}")
   @Produces({"application/xml", "application/json"})
-  public Change serveChange(@PathParam("changeLocator") String changeLocator) {
-    return new Change(myChangeFinder.getItem(changeLocator), myApiUrlBuilder, myFactory);
+  public Change serveChange(@PathParam("changeLocator") String changeLocator, @QueryParam("fields") String fields) {
+    return new Change(myChangeFinder.getItem(changeLocator), new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @GET

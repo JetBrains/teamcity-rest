@@ -25,7 +25,6 @@ import jetbrains.buildServer.server.rest.data.ChangeFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.vcs.SVcsModification;
 import org.jetbrains.annotations.NotNull;
@@ -56,15 +55,15 @@ public class Changes {
   }
 
   @XmlElement(name = "change")
-  public List<ChangeRef> getChanges() {
+  public List<Change> getChanges() {
     return myModifications == null
            ? null
-           : ValueWithDefault.decideDefault(myFields.isIncluded("change", false), new ValueWithDefault.Value<List<ChangeRef>>() {
+           : ValueWithDefault.decideDefault(myFields.isIncluded("change", false), new ValueWithDefault.Value<List<Change>>() {
              @Nullable
-             public List<ChangeRef> get() {
-               List<ChangeRef> changes = new ArrayList<ChangeRef>(myModifications.size());
+             public List<Change> get() {
+               List<Change> changes = new ArrayList<Change>(myModifications.size());
                for (SVcsModification root : myModifications) {
-                 changes.add(new ChangeRef(root, myBeanContext.getApiUrlBuilder(), myBeanContext.getSingletonService(BeanFactory.class)));
+                 changes.add(new Change(root, myFields.getNestedField("change"), myBeanContext));
                }
                return changes;
              }
@@ -95,8 +94,8 @@ public class Changes {
       .transformRelativePath(myPagerData.getPrevHref()));
   }
 
-  private List<ChangeRef> sumbittedChanges;
-  public void setChanges(List<ChangeRef> sumbittedChanges) {
+  private List<Change> sumbittedChanges;
+  public void setChanges(List<Change> sumbittedChanges) {
     this.sumbittedChanges = sumbittedChanges;
   }
 
@@ -104,8 +103,8 @@ public class Changes {
   public List<SVcsModification> getChangesFromPosted(@NotNull final ChangeFinder singletonService) {
     final ArrayList<SVcsModification> result = new ArrayList<SVcsModification>();
     if (sumbittedChanges != null){
-      for (ChangeRef changeRef : sumbittedChanges) {
-        result.add(changeRef.getChangeFromPosted(singletonService));
+      for (Change change : sumbittedChanges) {
+        result.add(change.getChangeFromPosted(singletonService));
       }
     }
     return result;
