@@ -80,6 +80,7 @@ public class BuildTypeRequest {
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private BeanFactory myFactory;
+  @Context @NotNull private BeanContext myBeanContext;
 
   public static final String API_BUILD_TYPES_URL = Constants.API_URL + "/buildTypes";
   public static final String VCS_FILES_LATEST = "/vcs/files/latest";
@@ -1317,11 +1318,12 @@ public class BuildTypeRequest {
                             @QueryParam("start") Long start,
                             @QueryParam("count") Integer count,
                             @QueryParam("locator") String locator,
+                            @QueryParam("fields") String fields,
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
 
     return myBuildFinder.getBuildsForRequest(buildType, status, userLocator, includePersonal, includeCanceled, onlyPinned, tags, agentName,
-                                           sinceBuildLocator, sinceDate, start, count, locator, "locator", uriInfo, request, myApiUrlBuilder
+                                           sinceBuildLocator, sinceDate, start, count, locator, "locator", uriInfo, request, new Fields(fields, Fields.LONG), myBeanContext
     );
   }
 

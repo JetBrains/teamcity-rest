@@ -25,8 +25,8 @@ import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.BuildFinder;
 import jetbrains.buildServer.server.rest.data.ChangeFinder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -53,7 +53,6 @@ import org.jetbrains.annotations.Nullable;
 @Path(ChangeRequest.API_CHANGES_URL)
 public class ChangeRequest {
   public static final String API_CHANGES_URL = Constants.API_URL + "/changes";
-  @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private BeanFactory myFactory;
@@ -241,8 +240,8 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/firstBuilds")
   @Produces({"application/xml", "application/json"})
-  public Builds getChangeFirstBuilds(@PathParam("changeLocator") String changeLocator) {
+  public Builds getChangeFirstBuilds(@PathParam("changeLocator") String changeLocator, @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
-    return new Builds(new ArrayList<SBuild>(change.getFirstBuilds().values()), myServiceLocator, null, myApiUrlBuilder);
+    return new Builds(BuildFinder.getBuildPromotions(change.getFirstBuilds().values()), null, new Fields(fields, Fields.LONG), myBeanContext);
   }
 }

@@ -141,10 +141,11 @@ public class BuildRequest {
                                @QueryParam("start") Long start,
                                @QueryParam("count") Integer count,
                                @QueryParam("locator") String locator,
+                               @QueryParam("fields") String fields,
                                @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     return myBuildFinder.getBuildsForRequest(myBuildTypeFinder.getBuildTypeIfNotNull(buildTypeLocator), status, userLocator, includePersonal,
                                            includeCanceled, onlyPinned, tags, agentName, sinceBuildLocator, sinceDate, start, count,
-                                           locator, "locator", uriInfo, request, myBeanContext.getApiUrlBuilder()
+                                           locator, "locator", uriInfo, request,  new Fields(fields, Fields.LONG), myBeanContext
     );
   }
 

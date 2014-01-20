@@ -72,6 +72,7 @@ public class ProjectRequest {
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private BeanFactory myFactory;
+  @Context @NotNull private BeanContext myBeanContext;
 
   public static final String API_PROJECTS_URL = Constants.API_URL + "/projects";
 
@@ -420,10 +421,11 @@ public class ProjectRequest {
                             @QueryParam("start") Long start,
                             @QueryParam("count") Integer count,
                             @QueryParam("locator") String locator,
+                            @QueryParam("fields") String fields,
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(myProjectFinder.getProject(projectLocator), buildTypeLocator);
     return myBuildFinder.getBuildsForRequest(buildType, status, userLocator, includePersonal, includeCanceled, onlyPinned, tags, agentName,
-                                             sinceBuildLocator, sinceDate, start, count, locator, "locator", uriInfo, request, myApiUrlBuilder);
+                                             sinceBuildLocator, sinceDate, start, count, locator, "locator", uriInfo, request, new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @GET

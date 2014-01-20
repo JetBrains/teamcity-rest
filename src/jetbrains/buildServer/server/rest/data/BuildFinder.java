@@ -21,7 +21,6 @@ import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.build.BuildsFilter;
 import jetbrains.buildServer.server.rest.data.build.BuildsFilterProcessor;
 import jetbrains.buildServer.server.rest.data.build.BuildsFilterWithBuildExcludes;
@@ -29,9 +28,13 @@ import jetbrains.buildServer.server.rest.data.build.GenericBuildsFilter;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.Builds;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -46,7 +49,6 @@ public class BuildFinder {
   public static final String DIMENSION_ID = "id";
   public static final String PROMOTION_ID = "promotionId";
   @NotNull private final DataProvider myDataProvider;
-  @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final UserFinder myUserFinder;
@@ -59,7 +61,6 @@ public class BuildFinder {
                      final @NotNull UserFinder userFinder,
                      final @NotNull AgentFinder agentFinder) {
     myDataProvider = dataProvider;
-    myServiceLocator = serviceLocator;
     myBuildTypeFinder = buildTypeFinder;
     myProjectFinder = projectFinder;
     myUserFinder = userFinder;
@@ -87,7 +88,8 @@ public class BuildFinder {
                                     final String locatorParameterName,
                                     final UriInfo uriInfo,
                                     final HttpServletRequest request,
-                                    final ApiUrlBuilder apiUrlBuilder) {
+                                    @NotNull final Fields fields,
+                                    @NotNull final BeanContext beanContext) {
     BuildsFilter buildsFilter;
     if (locatorText != null) {
       Locator locator = new Locator(locatorText);
@@ -121,10 +123,19 @@ public class BuildFinder {
     }
 
     final List<SBuild> buildsList = getBuilds(buildsFilter);
-    return new Builds(buildsList, myServiceLocator,
+    return new Builds(getBuildPromotions(buildsList),
                       new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), buildsFilter.getStart(),
                                     buildsFilter.getCount(), buildsList.size(), (locatorText != null ? locatorText : null),
-                                    locatorParameterName), apiUrlBuilder);
+                                    locatorParameterName),
+                      fields, beanContext);
+  }
+
+  public static List<BuildPromotion> getBuildPromotions(final Collection<SBuild> buildsList) {
+    return CollectionsUtil.convertCollection(buildsList, new Converter<BuildPromotion, SBuild>() {
+      public BuildPromotion createFrom(@NotNull final SBuild source) {
+        return source.getBuildPromotion();
+      }
+    });
   }
 
   /**

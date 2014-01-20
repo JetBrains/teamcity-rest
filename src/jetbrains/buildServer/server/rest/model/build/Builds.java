@@ -25,17 +25,14 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildFinder;
 import jetbrains.buildServer.server.rest.data.QueuedBuildFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
@@ -65,22 +62,9 @@ public class Builds implements DefaultValueAware {
   public Builds() {
   }
 
-  public Builds(@NotNull final List<SBuild> buildObjects,
-                final ServiceLocator serviceLocator,
-                @Nullable final PagerData pagerData,
-                final ApiUrlBuilder apiUrlBuilder) {
-    this(
-      CollectionsUtil.convertCollection(buildObjects, new Converter<BuildPromotion, SBuild>() {
-        public BuildPromotion createFrom(@NotNull final SBuild source) {
-          return source.getBuildPromotion();
-        }
-      }),
-      pagerData, Fields.LONG, new BeanContext(serviceLocator.getSingletonService(BeanFactory.class), serviceLocator, apiUrlBuilder));
-  }
-
   public Builds(@NotNull final List<BuildPromotion> buildObjects,
                 @Nullable final PagerData pagerData,
-                @NotNull Fields fields,
+                @NotNull final Fields fields,
                 @NotNull final BeanContext beanContext) {
     if (fields.isIncluded("build", false, true)) {
       final ArrayList<Build> buildsList = new ArrayList<Build>(buildObjects.size());
