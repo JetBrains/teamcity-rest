@@ -107,16 +107,19 @@ public class Project {
         if (runningBuilds.size() > 0) {
             return "Building";
         }
+      if (TeamCityProperties.getBoolean("rest.cctray.extendedActivity")) {
+
 //        if (myBuildType.isInQueue()) {
 //            return "Waiting in queue"; // non standard, makes cctray hanging
 //        }
         if (myBuildType.isPaused()) {
-            return "Paused"; // non standard
+          return "Paused"; // non standard
         }
         if (myBuildType.getPendingChanges().size() > 0) {
-            return "Has pending changes"; // non standard
+          return "Has pending changes"; // non standard
         }
-        return "Sleeping";
+      }
+      return "Sleeping";
     }
 
     /**
