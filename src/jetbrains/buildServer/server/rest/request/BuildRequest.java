@@ -18,8 +18,10 @@ package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.io.*;
-import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
@@ -51,7 +53,6 @@ import jetbrains.buildServer.serverSide.artifacts.BuildArtifactsViewMode;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
-import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
@@ -77,6 +78,7 @@ public class BuildRequest {
   public static final String STATUS_ICON_REQUEST_NAME = "statusIcon";
   public static final String RELATED_ISSUES = "/relatedIssues";
   public static final String TESTS = "testOccurrences";
+  public static final String STATISTICS = "/statistics";
 
   @Context @NotNull private BuildFinder myBuildFinder;
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
@@ -313,21 +315,21 @@ public class BuildRequest {
   }
 
   @GET
-  @Path("/{buildLocator}/statistics/")
+  @Path("/{buildLocator}" + STATISTICS + "/")
   @Produces({"application/xml", "application/json"})
   public Properties serveBuildStatisticValues(@PathParam("buildLocator") String buildLocator) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return new Properties(getBuildStatisticsValues(build));
+    return new Properties(Build.getBuildStatisticsValues(build));
   }
 
   @GET
-  @Path("/{buildLocator}/statistics/{name}")
+  @Path("/{buildLocator}" + STATISTICS + "/{name}")
   @Produces("text/plain")
   public String serveBuildStatisticValue(@PathParam("buildLocator") String buildLocator,
                                          @PathParam("name") String statisticValueName) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
 
-    return getBuildStatisticValue(build, statisticValueName);
+    return Build.getBuildStatisticValue(build, statisticValueName);
   }
 
   /*
@@ -349,15 +351,6 @@ public class BuildRequest {
   public Tags serveTags(@PathParam("buildLocator") String buildLocator) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     return new Tags(build.getTags());
-  }
-
-  public String getBuildStatisticValue(final SBuild build, final String statisticValueName) {
-    Map<String, String> stats = getBuildStatisticsValues(build);
-    String val = stats.get(statisticValueName);
-    if (val == null) {
-      throw new NotFoundException("No statistics data for key: " + statisticValueName + "' in build " + LogUtil.describe(build));
-    }
-    return val;
   }
 
   /**
@@ -704,19 +697,5 @@ public class BuildRequest {
 
   private String getRealFileName(final String relativePath) {
     return myBeanContext.getSingletonService(ServletContext.class).getRealPath(relativePath);
-  }
-
-  public Map<String, String> getBuildStatisticsValues(final SBuild build) {
-    final Map<String,BigDecimal> values = build.getStatisticValues();
-
-    final Map<String, String> result = new HashMap<String, String>(values.size());
-    for (Map.Entry<String,BigDecimal> entry : values.entrySet()) {
-      if (entry.getValue() == null) {
-        continue;
-      }
-      result.put(entry.getKey(), entry.getValue().toPlainString());
-    }
-
-    return result;
   }
 }

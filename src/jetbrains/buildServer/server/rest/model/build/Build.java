@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.build;
 
+import java.math.BigDecimal;
 import java.util.*;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -39,10 +40,7 @@ import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
-import jetbrains.buildServer.server.rest.request.BuildQueueRequest;
-import jetbrains.buildServer.server.rest.request.ChangeRequest;
-import jetbrains.buildServer.server.rest.request.ProblemOccurrenceRequest;
-import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
+import jetbrains.buildServer.server.rest.request.*;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
@@ -52,6 +50,7 @@ import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.buildDistribution.WaitReason;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
@@ -84,7 +83,7 @@ import org.springframework.beans.factory.annotation.Autowired;
            "agent", "compatibleAgents"/*q*/,
            "testOccurrences"/*rf*/, "problemOccurrences"/*rf*/,
            "artifacts"/*rf*/, "issues"/*rf*/,
-           "properties", "customProperties", "attributes",
+           "properties", "customProperties", "attributes", "statistics"/*rf*/,
            "buildDependencies", "buildArtifactDependencies", "customBuildArtifactDependencies"/*q*/,
            "triggeringOptions"/*only when triggering*/})
 public class Build {
@@ -336,6 +335,47 @@ public class Build {
       }
     }
     return ValueWithDefault.decideDefault(myFields.isIncluded("attributes", false), new Properties(result));
+  }
+
+  @XmlElement
+  public Properties getStatistics() {
+    if (myBuild == null) {
+      return null;
+    } else {
+      final String statisticsHref = myBeanContext.getApiUrlBuilder().getHref(myBuild) + BuildRequest.STATISTICS;
+        return ValueWithDefault.decideDefault(myFields.isIncluded("statistics", false), new ValueWithDefault.Value<Properties>() {
+          public Properties get() {
+            final Fields nestedField = myFields.getNestedField("statistics", Fields.NONE, Fields.SHORT);
+            return new Properties(nestedField.isMoreThenShort() ? getBuildStatisticsValues(myBuild) : null, //for performance reasons
+                                  statisticsHref, nestedField);
+          }
+        });
+    }
+  }
+
+  @NotNull
+  public static Map<String, String> getBuildStatisticsValues(@NotNull final SBuild build) {
+    final Map<String, BigDecimal> values = build.getStatisticValues();
+
+    final Map<String, String> result = new HashMap<String, String>(values.size());
+    for (Map.Entry<String, BigDecimal> entry : values.entrySet()) {
+      if (entry.getValue() == null) {
+        continue;
+      }
+      result.put(entry.getKey(), entry.getValue().toPlainString());
+    }
+
+    return result;
+  }
+
+  @NotNull
+  public static String getBuildStatisticValue(@NotNull final SBuild build, @NotNull final String statisticValueName) {
+    Map<String, String> stats = getBuildStatisticsValues(build);
+    String val = stats.get(statisticValueName);
+    if (val == null) {
+      throw new NotFoundException("No statistics data for key: " + statisticValueName + "' in build " + LogUtil.describe(build));
+    }
+    return val;
   }
 
   @XmlAttribute
