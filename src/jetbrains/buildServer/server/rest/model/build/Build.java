@@ -664,6 +664,9 @@ public class Build {
   public void setPromotionId(Long id) {
     submittedPromotionId = id;
   }
+  public Long getSubmittedPromotionId() {
+    return submittedPromotionId;
+  }
 
   /**
    * This is used only when posting a link to the build
@@ -678,7 +681,9 @@ public class Build {
   }
 
   @NotNull
-  public BuildPromotion getFromPosted(@NotNull final BuildFinder buildFinder, @NotNull final QueuedBuildFinder queuedBuildFinder) {
+  public BuildPromotion getFromPosted(@NotNull final BuildFinder buildFinder,
+                                      @NotNull final QueuedBuildFinder queuedBuildFinder,
+                                      @NotNull final Map<Long, Long> buildPromotionIdReplacements) {
     String locatorText;
     if (submittedLocator != null) {
       if (submittedPromotionId != null) {
@@ -691,7 +696,12 @@ public class Build {
     } else {
       final Locator locator = Locator.createEmptyLocator();
       if (submittedPromotionId != null) {
-        locator.setDimension(QueuedBuildFinder.PROMOTION_ID, String.valueOf(submittedPromotionId));
+        final Long replacementPromotionId = buildPromotionIdReplacements.get(submittedPromotionId);
+        if (replacementPromotionId != null){
+          locator.setDimension(QueuedBuildFinder.PROMOTION_ID, String.valueOf(replacementPromotionId));
+        } else{
+          locator.setDimension(QueuedBuildFinder.PROMOTION_ID, String.valueOf(submittedPromotionId));
+        }
       }
       if (submittedId != null) {
         locator.setDimension(BuildFinder.DIMENSION_ID, String.valueOf(submittedId));
@@ -783,7 +793,7 @@ public class Build {
     this.submittedAttributes = submittedAttributes;
   }
 
-  private BuildPromotion getBuildToTrigger(@Nullable final SUser user, @NotNull final ServiceLocator serviceLocator) {
+  private BuildPromotion getBuildToTrigger(@Nullable final SUser user, @NotNull final ServiceLocator serviceLocator, @NotNull final Map<Long, Long> buildPromotionIdReplacements) {
     SVcsModification changeToUse = null;
     SVcsModification personalChangeToUse = null;
     if (submittedLastChanges != null) {
@@ -833,7 +843,7 @@ public class Build {
     }
     if (submittedBuildDependencies != null) {
       try {
-        customizer.setSnapshotDependencyNodes(submittedBuildDependencies.getFromPosted(serviceLocator));
+        customizer.setSnapshotDependencyNodes(submittedBuildDependencies.getFromPosted(serviceLocator, buildPromotionIdReplacements));
       } catch (IllegalArgumentException e) {
         throw new BadRequestException("Error trying to use specified snapshot dependencies: " + e.getMessage());
       }
@@ -904,8 +914,8 @@ public class Build {
   }
 
   @NotNull
-  public SQueuedBuild triggerBuild(@Nullable final SUser user, @NotNull final ServiceLocator serviceLocator) {
-    BuildPromotion buildToTrigger = getBuildToTrigger(user, serviceLocator);
+  public SQueuedBuild triggerBuild(@Nullable final SUser user, @NotNull final ServiceLocator serviceLocator, @NotNull final Map<Long, Long> buildPromotionIdReplacements) {
+    BuildPromotion buildToTrigger = getBuildToTrigger(user, serviceLocator, buildPromotionIdReplacements);
     TriggeredByBuilder triggeredByBulder = new TriggeredByBuilder();
     if (user != null) {
       triggeredByBulder = new TriggeredByBuilder(user);

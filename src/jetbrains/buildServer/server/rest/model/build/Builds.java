@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.model.build;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -104,7 +105,7 @@ public class Builds implements DefaultValueAware {
   }
 
   @NotNull
-  public List<BuildPromotion> getFromPosted(@NotNull final ServiceLocator serviceLocator) {
+  public List<BuildPromotion> getFromPosted(@NotNull final ServiceLocator serviceLocator, @NotNull final Map<Long, Long> buildPromotionIdReplacements) {
     if (builds == null){
       return Collections.emptyList();
     }
@@ -112,7 +113,7 @@ public class Builds implements DefaultValueAware {
     final QueuedBuildFinder queuedBuildFinder = serviceLocator.getSingletonService(QueuedBuildFinder.class);
     return CollectionsUtil.convertCollection(builds, new Converter<BuildPromotion, Build>() {
       public BuildPromotion createFrom(@NotNull final Build source) {
-        return source.getFromPosted(buildFinder, queuedBuildFinder);
+        return source.getFromPosted(buildFinder, queuedBuildFinder, buildPromotionIdReplacements);
       }
     });
   }

@@ -17,7 +17,9 @@
 package jetbrains.buildServer.server.rest.request;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
@@ -144,8 +146,12 @@ public class BuildQueueRequest {
     // now queue
 
     final SUser user = myDataProvider.getCurrentUser();
+    final Map<Long, Long> buildPromotionIdReplacements = new HashMap<Long, Long>();
     for (Build build : builds.builds) {
-      build.triggerBuild(user, myServiceLocator);
+      final SQueuedBuild queuedBuild = build.triggerBuild(user, myServiceLocator, buildPromotionIdReplacements);
+      if (build.getSubmittedPromotionId() != null){
+        buildPromotionIdReplacements.put(build.getSubmittedPromotionId(), queuedBuild.getBuildPromotion().getId());
+      }
     }
     return getBuilds(null, fields, uriInfo, request);
   }
@@ -230,7 +236,7 @@ public class BuildQueueRequest {
   @Produces({"application/xml", "application/json"})
   public Build queueNewBuild(Build build, @Context HttpServletRequest request){
     final SUser user = myDataProvider.getCurrentUser();
-    SQueuedBuild queuedBuild = build.triggerBuild(user, myServiceLocator);
+    SQueuedBuild queuedBuild = build.triggerBuild(user, myServiceLocator, new HashMap<Long, Long>());
     return new Build(queuedBuild.getBuildPromotion(), Fields.LONG, myBeanContext);
   }
 
