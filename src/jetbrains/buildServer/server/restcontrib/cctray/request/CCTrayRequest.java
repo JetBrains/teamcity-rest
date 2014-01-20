@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.restcontrib.cctray.request;
 
 import com.sun.jersey.spi.resource.Singleton;
+import java.util.ArrayList;
 import java.util.List;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -28,6 +29,7 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.server.restcontrib.cctray.model.Projects;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 
 /**
  * @author Yegor.Yarko
@@ -49,6 +51,15 @@ public class CCTrayRequest {
     }
 
     private List<SBuildType> getBuildTypes() {
-      return myDataProvider.getServer().getProjectManager().getAllBuildTypes();
+      final List<SBuildType> allBuildTypes = myDataProvider.getServer().getProjectManager().getAllBuildTypes();
+      if (TeamCityProperties.getBoolean("rest.cctray.includePausedBuildTypes")) {
+        return allBuildTypes;
+      } else {
+        final ArrayList<SBuildType> result = new ArrayList<SBuildType>();
+        for (SBuildType buildType : allBuildTypes) {
+          if (!buildType.isPaused()) result.add(buildType);
+        }
+        return result;
+      }
     }
 }
