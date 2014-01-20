@@ -268,34 +268,14 @@ public class VcsRootFinder{
   }
 
   public void checkPermission(@NotNull final Permission permission, @NotNull final VcsRootInstance rootInstance) {
-    final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
-    Set<String> checkedProjects = new HashSet<String>();
-    for (SBuildType buildType : rootInstance.getUsages().keySet()) {
-      final String projectId = buildType.getProjectId();
-      if (!checkedProjects.contains(projectId)) {
-        if (authorityHolder.isPermissionGrantedForProject(projectId, permission)) {
-          return;
-        }
-        checkedProjects.add(projectId);
-      }
-    }
-    throw new AuthorizationFailedException("User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission +
-                                           " in any of the projects VCS root instance with id '" + rootInstance.getId() + "' is used in");
+    checkPermission(permission, rootInstance.getParent());
   }
 
   public void checkPermission(@NotNull final Permission permission, @NotNull final SVcsRoot root) {
     final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
-    Set<String> checkedProjects = new HashSet<String>();
-    for (SBuildType buildType : root.getUsages().keySet()) {
-      final String projectId = buildType.getProjectId();
-      if (!checkedProjects.contains(projectId)) {
-        if (authorityHolder.isPermissionGrantedForProject(projectId, permission)) {
-          return;
-        }
-        checkedProjects.add(projectId);
-      }
+    if (!authorityHolder.isPermissionGrantedForProject(root.getProject().getProjectId(), permission)){
+      throw new AuthorizationFailedException("User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission +
+                                             " in any of the projects VCS root with id '" + root.getId() + "' is used in");
     }
-    throw new AuthorizationFailedException("User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission +
-                                           " in any of the projects VCS root with id '" + root.getId() + "' is used in");
   }
 }
