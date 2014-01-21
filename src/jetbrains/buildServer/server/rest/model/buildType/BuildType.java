@@ -104,7 +104,7 @@ public class BuildType {
    */
   @XmlAttribute
   public String getProjectName() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("projectName"), myBuildType.getProject().getName());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("projectName"), myBuildType.getProject().getFullName());
   }
 
   @XmlAttribute
