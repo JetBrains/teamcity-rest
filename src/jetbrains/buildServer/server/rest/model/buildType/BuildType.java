@@ -17,29 +17,33 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import com.intellij.openapi.diagnostic.Logger;
+import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptorFactory;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
+import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.ProjectFinder;
+import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.Href;
-import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.project.Project;
+import jetbrains.buildServer.server.rest.request.BuildTypeRequest;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.BuildTypeTemplate;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
-import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -365,5 +369,197 @@ public class BuildType {
       throw new BadRequestException("No build type specified. Either 'id', 'internalId' or 'locator' attribute should be present.");
     }
     return buildTypeFinder.getBuildTypeOrTemplate(null, locatorText);
+  }
+
+  @Nullable private  String submittedProjectId;
+  @Nullable private  Project submittedProject;
+  @Nullable private  String submittedName;
+  @Nullable private  String submittedDescription;
+  @Nullable private  Boolean submittedTemplateFlag;
+  @Nullable private  Boolean submittedPaused;
+  @Nullable private  BuildType submittedTemplate;
+  @Nullable private  VcsRootEntries submittedVcsRootEntries;
+  @Nullable private  Properties submittedParameters;
+  @Nullable private  PropEntitiesStep submittedSteps;
+  @Nullable private  PropEntitiesFeature submittedFeatures;
+  @Nullable private  PropEntitiesTrigger submittedTriggers;
+  @Nullable private  PropEntitiesSnapshotDep submittedSnapshotDependencies;
+  @Nullable private  PropEntitiesArtifactDep submittedArtifactDependencies;
+  @Nullable private  PropEntitiesAgentRequirement submittedAgentRequirements;
+  @Nullable private  Properties submittedSettings;
+
+  public void setProjectId(@Nullable final String submittedProjectId) {
+    this.submittedProjectId = submittedProjectId;
+  }
+
+  public void setProject(@Nullable final Project submittedProject) {
+    this.submittedProject = submittedProject;
+  }
+
+  public void setName(@Nullable final String submittedName) {
+    this.submittedName = submittedName;
+  }
+
+  public void setDescription(@Nullable final String submittedDescription) {
+    this.submittedDescription = submittedDescription;
+  }
+
+  public void setTemplateFlag(@Nullable final Boolean submittedTemplateFlag) {
+    this.submittedTemplateFlag = submittedTemplateFlag;
+  }
+
+  public void setPaused(@Nullable final Boolean submittedPaused) {
+    this.submittedPaused = submittedPaused;
+  }
+
+  public void setTemplate(@Nullable final BuildType submittedTemplate) {
+    this.submittedTemplate = submittedTemplate;
+  }
+
+  public void setVcsRootEntries(@Nullable final VcsRootEntries submittedVcsRootEntries) {
+    this.submittedVcsRootEntries = submittedVcsRootEntries;
+  }
+
+  public void setParameters(@Nullable final Properties submittedParameters) {
+    this.submittedParameters = submittedParameters;
+  }
+
+  public void setSteps(@Nullable final PropEntitiesStep submittedSteps) {
+    this.submittedSteps = submittedSteps;
+  }
+
+  public void setFeatures(@Nullable final PropEntitiesFeature submittedFeatures) {
+    this.submittedFeatures = submittedFeatures;
+  }
+
+  public void setTriggers(@Nullable final PropEntitiesTrigger submittedTriggers) {
+    this.submittedTriggers = submittedTriggers;
+  }
+
+  public void setSnapshotDependencies(@Nullable final PropEntitiesSnapshotDep submittedSnapshotDependencies) {
+    this.submittedSnapshotDependencies = submittedSnapshotDependencies;
+  }
+
+  public void setArtifactDependencies(@Nullable final PropEntitiesArtifactDep submittedArtifactDependencies) {
+    this.submittedArtifactDependencies = submittedArtifactDependencies;
+  }
+
+  public void setAgentRequirements(@Nullable final PropEntitiesAgentRequirement submittedAgentRequirements) {
+    this.submittedAgentRequirements = submittedAgentRequirements;
+  }
+
+  public void setSettings(@Nullable final Properties submittedSettings) {
+    this.submittedSettings = submittedSettings;
+  }
+
+  @NotNull
+  public BuildTypeOrTemplate createNewBuildTypeFromPosted(@NotNull final ServiceLocator serviceLocator) {
+    SProject project;
+    if (submittedProject == null) {
+      if (submittedProjectId == null) {
+        throw new BadRequestException("Build type creation request should contain project node.");
+      }
+      //noinspection ConstantConditions
+      project = serviceLocator.findSingletonService(ProjectManager.class).findProjectByExternalId(submittedProjectId);
+      if (project == null) {
+        throw new BadRequestException("Cannot find project with id '" + submittedProjectId + "'.");
+      }
+    } else {
+      //noinspection ConstantConditions
+      project = submittedProject.getProjectFromPosted(serviceLocator.findSingletonService(ProjectFinder.class));
+    }
+
+    if (StringUtil.isEmpty(submittedName)) {
+      throw new BadRequestException("When creating a build type, non empty name should be provided.");
+    }
+
+    BuildTypeOrTemplate resultingBuildType;
+    if (submittedTemplateFlag == null || !submittedTemplateFlag) {
+      resultingBuildType = new BuildTypeOrTemplate(project.createBuildType(getIdForBuildType(serviceLocator, project, submittedName), submittedName));
+    } else {
+      resultingBuildType = new BuildTypeOrTemplate(project.createBuildTypeTemplate(getIdForBuildType(serviceLocator, project, submittedName), submittedName));
+    }
+
+
+    if (submittedDescription != null) {
+      resultingBuildType.setDescription(submittedDescription);
+    }
+    if (submittedPaused != null) {
+      if (resultingBuildType.getBuildType() == null) {
+        throw new BadRequestException("Cannot set paused state for a template");
+      }
+      resultingBuildType.getBuildType().setPaused(Boolean.valueOf(submittedPaused), serviceLocator.getSingletonService(DataProvider.class).getCurrentUser(),
+                                                  TeamCityProperties.getProperty("rest.defaultActionComment"));
+    }
+    if (submittedTemplate != null) {
+      if (resultingBuildType.getBuildType() == null) {
+        throw new BadRequestException("Cannot set template for a template");
+      }
+      //noinspection ConstantConditions
+      final BuildTypeOrTemplate templateFromPosted = submittedTemplate.getBuildTypeFromPosted(serviceLocator.findSingletonService(BuildTypeFinder.class));
+      if (templateFromPosted.getTemplate() == null) {
+        throw new BadRequestException("emplate should reference a template, not build type");
+      }
+      resultingBuildType.getBuildType().attachToTemplate(templateFromPosted.getTemplate());
+    }
+    if (submittedVcsRootEntries != null && submittedVcsRootEntries.vcsRootAssignments != null) {
+      for (VcsRootEntry entity : submittedVcsRootEntries.vcsRootAssignments) {
+        BuildTypeRequest.addVcsRoot(resultingBuildType, entity, serviceLocator.getSingletonService(VcsRootFinder.class));
+      }
+    }
+    if (submittedParameters != null && submittedParameters.properties != null) {
+      for (Property p : submittedParameters.properties) {
+        BuildTypeUtil.changeParameter(p.name, p.value, resultingBuildType.get(), serviceLocator);
+      }
+    }
+    if (submittedSteps != null && submittedSteps.propEntities != null) {
+      for (PropEntityStep entity : submittedSteps.propEntities) {
+        entity.addStep(resultingBuildType.get());
+      }
+    }
+    if (submittedFeatures != null && submittedFeatures.propEntities != null) {
+      for (PropEntityFeature entity : submittedFeatures.propEntities) {
+        entity.addFeature(resultingBuildType.get(), serviceLocator.getSingletonService(BuildFeatureDescriptorFactory.class));
+      }
+    }
+    if (submittedTriggers != null && submittedTriggers.propEntities != null) {
+      for (PropEntityTrigger entity : submittedTriggers.propEntities) {
+        entity.addTrigger(resultingBuildType.get(), serviceLocator.getSingletonService(BuildTriggerDescriptorFactory.class));
+      }
+    }
+    if (submittedSnapshotDependencies != null && submittedSnapshotDependencies.propEntities != null) {
+      for (PropEntitySnapshotDep entity : submittedSnapshotDependencies.propEntities) {
+        entity.addSnapshotDependency(resultingBuildType.get(), serviceLocator);
+      }
+    }
+    if (submittedArtifactDependencies != null && submittedArtifactDependencies.propEntities != null) {
+      final List<SArtifactDependency> dependencyObjects =
+        CollectionsUtil.convertCollection(submittedArtifactDependencies.propEntities, new Converter<SArtifactDependency, PropEntityArtifactDep>() {
+          public SArtifactDependency createFrom(@NotNull final PropEntityArtifactDep source) {
+            return source.createDependency(serviceLocator);
+          }
+        });
+      resultingBuildType.get().setArtifactDependencies(dependencyObjects);
+    }
+    if (submittedAgentRequirements != null&& submittedAgentRequirements.propEntities != null) {
+          for (PropEntityAgentRequirement entity : submittedAgentRequirements.propEntities) {
+            entity.addRequirement(resultingBuildType);
+          }
+        }
+    if (submittedSettings != null && submittedSettings.properties != null) {
+        for (Property property : submittedSettings.properties) {
+          BuildTypeRequest.setSetting(resultingBuildType, property.name, property.value);
+        }
+    }
+
+    return resultingBuildType;
+  }
+
+  @NotNull
+  public String getIdForBuildType(@NotNull final ServiceLocator serviceLocator, @NotNull SProject project, @NotNull final String name) {
+    if (submittedId != null) {
+      return submittedId;
+    }
+    return serviceLocator.getSingletonService(BuildTypeIdentifiersManager.class).generateNewExternalId(project.getExternalId(), name, null);
   }
 }

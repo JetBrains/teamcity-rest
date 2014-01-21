@@ -94,22 +94,21 @@ public class PropEntitySnapshotDep extends PropEntity {
     }
   }
 
-  public Dependency addSnapshotDependency(final BuildTypeSettings buildType,
-                                          final BeanContext context) {
+  public Dependency addSnapshotDependency(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
     if (!SNAPSHOT_DEPENDENCY_TYPE_NAME.equals(type)) {
       throw new BadRequestException("Snapshot dependency should have type '" + SNAPSHOT_DEPENDENCY_TYPE_NAME + "'.");
     }
 
     final Map<String, String> propertiesMap = properties.getMap();
     final String buildTypeIdFromProperty = propertiesMap.get(NAME_SOURCE_BUILD_TYPE_ID); //compatibility mode with pre-8.0
-    String buildTypeIdDependOn = getBuildTypeExternalIdForDependency(sourceBuildType, buildTypeIdFromProperty, context.getServiceLocator());
+    String buildTypeIdDependOn = getBuildTypeExternalIdForDependency(sourceBuildType, buildTypeIdFromProperty, serviceLocator);
 
     //todo: (TeamCity) for some reason API does not report adding dependency with same id. Seems like it just ignores the call
     if (getSnapshotDepOrNull(buildType, buildTypeIdDependOn) != null) {
       throw new BadRequestException("Snapshot dependency on build type with id '" + buildTypeIdDependOn + "' already exists.");
     }
 
-    final Dependency result = context.getSingletonService(DependencyFactory.class).createDependency(buildTypeIdDependOn);
+    final Dependency result = serviceLocator.getSingletonService(DependencyFactory.class).createDependency(buildTypeIdDependOn);
     for (Map.Entry<String, String> property : propertiesMap.entrySet()) {
       if (!NAME_SOURCE_BUILD_TYPE_ID.equals(property.getKey())) {
         setDependencyOption(property.getKey(), property.getValue(), result);
@@ -120,7 +119,7 @@ public class PropEntitySnapshotDep extends PropEntity {
     } catch (CyclicDependencyFoundException e) {
       throw new BadRequestException("Error adding dependnecy", e);
     }
-    return getSnapshotDep(buildType, result.getDependOnExternalId(), context.getSingletonService(BuildTypeFinder.class));
+    return getSnapshotDep(buildType, result.getDependOnExternalId(), serviceLocator.getSingletonService(BuildTypeFinder.class));
   }
 
   @NotNull

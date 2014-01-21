@@ -109,6 +109,15 @@ public class BuildTypeRequest {
     return new BuildTypes(BuildTypes.fromBuildTypes(myDataProvider.getServer().getProjectManager().getAllBuildTypes()), new Fields(fields, Fields.LONG), myBeanContext);
   }
 
+  @POST
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public BuildType addBuildType(BuildType buildType, @QueryParam("fields") String fields) {
+    final BuildTypeOrTemplate newBuildType = buildType.createNewBuildTypeFromPosted(myServiceLocator);
+    newBuildType.get().persist();
+    return new BuildType(newBuildType, new Fields(fields, Fields.LONG), myBeanContext);
+  }
+
   /**
    * Serves build configuration or templates according to the locator.
    */
@@ -288,7 +297,7 @@ public class BuildTypeRequest {
     return getSetting(buildType, parameterName);
   }
 
-  private void setSetting(final BuildTypeOrTemplate buildType, final String parameterName, final String newValue) {
+  public static void setSetting(final BuildTypeOrTemplate buildType, final String parameterName, final String newValue) {
     if (StringUtil.isEmpty(parameterName)) {
       throw new BadRequestException("Settings parameter name cannot be empty.");
     }
@@ -359,7 +368,7 @@ public class BuildTypeRequest {
     }
     if (suppliedEntities.vcsRootAssignments != null) {
       for (VcsRootEntry entity : suppliedEntities.vcsRootAssignments) {
-        addVcsRoot(buildType, entity);
+        addVcsRoot(buildType, entity, myVcsRootFinder);
       }
     }
     buildType.get().persist();
@@ -373,17 +382,17 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public VcsRootEntry addVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, VcsRootEntry description) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    final SVcsRoot vcsRoot = addVcsRoot(buildType, description);
+    final SVcsRoot vcsRoot = addVcsRoot(buildType, description, myVcsRootFinder);
     buildType.get().persist();
 
     return new VcsRootEntry(vcsRoot, buildType, myApiUrlBuilder);
   }
 
-  private SVcsRoot addVcsRoot(final BuildTypeOrTemplate buildType, final VcsRootEntry description) {
+  public static SVcsRoot addVcsRoot(@NotNull final BuildTypeOrTemplate buildType, @NotNull final VcsRootEntry description, @NotNull final VcsRootFinder vcsRootFinder) {
     if (description.vcsRootRef == null){
       throw new BadRequestException("Element vcs-root should be specified.");
     }
-    final SVcsRoot vcsRoot = description.vcsRootRef.getVcsRoot(myVcsRootFinder);
+    final SVcsRoot vcsRoot = description.vcsRootRef.getVcsRoot(vcsRootFinder);
 
     try {
       buildType.get().addVcsRoot(vcsRoot);
@@ -426,7 +435,7 @@ public class BuildTypeRequest {
       throw new BadRequestException("No VCS root is specified in the entry description.");
     }
     buildType.get().removeVcsRoot(vcsRoot);
-    final SVcsRoot resultVcsRoot = addVcsRoot(buildType, entry);
+    final SVcsRoot resultVcsRoot = addVcsRoot(buildType, entry, myVcsRootFinder);
     buildType.get().persist();
     //not handling setting errors...
     return new VcsRootEntry(resultVcsRoot, buildType, myApiUrlBuilder);
@@ -947,7 +956,7 @@ public class BuildTypeRequest {
     try {
       if (suppliedEntities.propEntities != null) {
         for (PropEntitySnapshotDep entity : suppliedEntities.propEntities) {
-          entity.addSnapshotDependency(buildType.get(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+          entity.addSnapshotDependency(buildType.get(), myServiceLocator);
         }
       }
       buildType.get().persist();
@@ -981,7 +990,7 @@ public class BuildTypeRequest {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
 
     Dependency createdDependency =
-      description.addSnapshotDependency(buildType.get(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+      description.addSnapshotDependency(buildType.get(), myServiceLocator);
     buildType.get().persist();
     return new PropEntitySnapshotDep(createdDependency, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
@@ -1020,7 +1029,7 @@ public class BuildTypeRequest {
 
     Dependency createdDependency = null;
     try {
-      createdDependency = description.addSnapshotDependency(buildType.get(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+      createdDependency = description.addSnapshotDependency(buildType.get(), myServiceLocator);
       buildType.get().persist();
     } catch (Exception e) {
       //restore
