@@ -17,19 +17,19 @@
 package jetbrains.buildServer.server.rest.jersey;
 
 import com.intellij.openapi.diagnostic.Logger;
-import jetbrains.buildServer.server.rest.APIController;
-import jetbrains.buildServer.server.rest.model.Constants;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
-import org.codehaus.jackson.xc.JaxbAnnotationIntrospector;
-
+import java.text.SimpleDateFormat;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
-import java.text.SimpleDateFormat;
+import jetbrains.buildServer.server.rest.APIController;
+import jetbrains.buildServer.server.rest.model.Constants;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
+import org.codehaus.jackson.map.DeserializationConfig;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.SerializationConfig;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
+import org.codehaus.jackson.xc.JaxbAnnotationIntrospector;
 
 /**
  * @author Vladislav.Rassokhin
@@ -48,6 +48,7 @@ public class JacksonObjectMapperResolver implements ContextResolver<ObjectMapper
     myMapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
     myMapper.setDateFormat(new SimpleDateFormat(Constants.TIME_FORMAT));
     myMapper.configure(SerializationConfig.Feature.WRITE_EMPTY_JSON_ARRAYS, true);
+    myMapper.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, TeamCityProperties.getBoolean("rest.response.json.deserialize.ignoreUnknownProperties"));
     if (TeamCityProperties.getBoolean(APIController.REST_RESPONSE_PRETTYFORMAT)) {
       myMapper.configure(SerializationConfig.Feature.INDENT_OUTPUT, true);
     }
