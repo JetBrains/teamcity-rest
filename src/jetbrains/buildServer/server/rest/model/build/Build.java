@@ -299,11 +299,11 @@ public class Build {
   }
 
   @XmlElement(name = "pinInfo")
-  public Comment getPinInfo() {  //TeamCity API: is only available for finished build, while isPinned is available for running
-    if (myBuild == null || !myBuild.isFinished()) {
+  public Comment getPinInfo() {
+    if (myBuild == null || !myBuild.isPinned() || !myBuild.isFinished()) {
       return null;
     }
-    SFinishedBuild finishedBuild = (SFinishedBuild)myBuild; //TeamCity API issue
+    SFinishedBuild finishedBuild = (SFinishedBuild)myBuild;  //TeamCity API: getPinComment() is only available for finished build, while isPinned is available for running
     final jetbrains.buildServer.serverSide.comments.Comment pinComment = finishedBuild.getPinComment();
     if (pinComment == null) {
       return null;
