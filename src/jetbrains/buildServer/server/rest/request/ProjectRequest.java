@@ -193,23 +193,23 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/buildTypes")
   @Produces({"application/xml", "application/json"})
-  public BuildTypes serveBuildTypesInProject(@PathParam("projectLocator") String projectLocator) {
+  public BuildTypes serveBuildTypesInProject(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getProject(projectLocator);
-    return BuildTypes.createFromBuildTypes(project.getOwnBuildTypes(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new BuildTypes(BuildTypes.fromBuildTypes(project.getOwnBuildTypes()), new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @POST
   @Path("/{projectLocator}/buildTypes")
   @Produces({"application/xml", "application/json"})
   @Consumes({"text/plain"})
-  public BuildType createEmptyBuildType(@PathParam("projectLocator") String projectLocator, String name) {
+  public BuildType createEmptyBuildType(@PathParam("projectLocator") String projectLocator, String name, @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getProject(projectLocator);
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Build type name cannot be empty.");
     }
     final SBuildType buildType = project.createBuildType(name);
     buildType.persist();
-    return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
+    return new BuildType(new BuildTypeOrTemplate(buildType), new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   /**
@@ -224,7 +224,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/buildTypes")
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
-  public BuildType createBuildType(@PathParam("projectLocator") String projectLocator, NewBuildTypeDescription descriptor) {
+  public BuildType createBuildType(@PathParam("projectLocator") String projectLocator, NewBuildTypeDescription descriptor, @QueryParam("fields") String fields) {
     @NotNull SProject project = myProjectFinder.getProject(projectLocator);
     SBuildType resultingBuildType;
     @Nullable final BuildTypeOrTemplate sourceBuildType = descriptor.getSourceBuildTypeOrTemplate(myServiceLocator);
@@ -239,39 +239,39 @@ public class ProjectRequest {
       }
     }
     resultingBuildType.persist();
-    return new BuildType(resultingBuildType, myDataProvider, myApiUrlBuilder);
+    return new BuildType(new BuildTypeOrTemplate(resultingBuildType), new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @GET
   @Path("/{projectLocator}/buildTypes/{btLocator}")
   @Produces({"application/xml", "application/json"})
-  public BuildType serveBuildType(@PathParam("projectLocator") String projectLocator,
-                                  @PathParam("btLocator") String buildTypeLocator) {
+  public BuildType serveBuildType(@PathParam("projectLocator") String projectLocator, @PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(myProjectFinder.getProject(projectLocator), buildTypeLocator);
-    return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
+    return new BuildType(new BuildTypeOrTemplate(buildType), new Fields(fields, Fields.LONG), myBeanContext);
   }
 
 
   @GET
   @Path("/{projectLocator}/templates")
   @Produces({"application/xml", "application/json"})
-  public BuildTypes serveTemplatesInProject(@PathParam("projectLocator") String projectLocator) {
+  public BuildTypes serveTemplatesInProject(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getProject(projectLocator);
-    return BuildTypes.createFromTemplates(project.getOwnBuildTypeTemplates(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new BuildTypes(BuildTypes.fromTemplates(project.getOwnBuildTypeTemplates()), new Fields(fields, Fields.LONG),
+                          new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @POST
   @Path("/{projectLocator}/templates")
   @Produces({"application/xml", "application/json"})
   @Consumes({"text/plain"})
-  public BuildType createEmptyBuildTypeTemplate(@PathParam("projectLocator") String projectLocator, String name) {
+  public BuildType createEmptyBuildTypeTemplate(@PathParam("projectLocator") String projectLocator, String name, @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getProject(projectLocator);
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Build type template name cannot be empty.");
     }
     final BuildTypeTemplate buildType = project.createBuildTypeTemplate(name);
     buildType.persist();
-    return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
+    return new BuildType(new BuildTypeOrTemplate(buildType), new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   /**
@@ -286,7 +286,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/templates")
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
-  public BuildType createBuildTypeTemplate(@PathParam("projectLocator") String projectLocator, NewBuildTypeDescription descriptor) {
+  public BuildType createBuildTypeTemplate(@PathParam("projectLocator") String projectLocator, NewBuildTypeDescription descriptor, @QueryParam("fields") String fields) {
     @NotNull SProject project = myProjectFinder.getProject(projectLocator);
     BuildTypeTemplate resultingBuildType;
     @Nullable final BuildTypeOrTemplate sourceBuildType = descriptor.getSourceBuildTypeOrTemplate(myServiceLocator);
@@ -302,16 +302,16 @@ public class ProjectRequest {
       }
     }
     resultingBuildType.persist();
-    return new BuildType(resultingBuildType, myDataProvider, myApiUrlBuilder);
+    return new BuildType(new BuildTypeOrTemplate(resultingBuildType), new Fields(fields, Fields.LONG), myBeanContext);
   }
 
 
   @GET
   @Path("/{projectLocator}/templates/{btLocator}")
   @Produces({"application/xml", "application/json"})
-  public BuildType serveBuildTypeTemplates(@PathParam("projectLocator") String projectLocator, @PathParam("btLocator") String buildTypeLocator) {
+  public BuildType serveBuildTypeTemplates(@PathParam("projectLocator") String projectLocator, @PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
     BuildTypeTemplate buildType = myBuildTypeFinder.getBuildTemplate(myProjectFinder.getProject(projectLocator), buildTypeLocator);
-    return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
+    return new BuildType(new BuildTypeOrTemplate(buildType), new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @GET

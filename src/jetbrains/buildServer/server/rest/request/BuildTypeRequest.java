@@ -105,8 +105,8 @@ public class BuildTypeRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
-  public BuildTypes serveBuildTypesXML() {
-    return BuildTypes.createFromBuildTypes(myDataProvider.getServer().getProjectManager().getAllBuildTypes(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+  public BuildTypes serveBuildTypesXML(@QueryParam("fields") String fields) {
+    return new BuildTypes(BuildTypes.fromBuildTypes(myDataProvider.getServer().getProjectManager().getAllBuildTypes()), new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   /**
@@ -115,9 +115,9 @@ public class BuildTypeRequest {
   @GET
   @Path("/{btLocator}")
   @Produces({"application/xml", "application/json"})
-  public BuildType serveBuildTypeXML(@PathParam("btLocator") String buildTypeLocator) {
+  public BuildType serveBuildTypeXML(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
+    return new BuildType(buildType, new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @DELETE

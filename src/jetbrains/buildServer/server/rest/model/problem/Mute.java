@@ -76,10 +76,13 @@ public class Mute {
         //todo: should be expose on the build level
         break;
       case IN_CONFIGURATION:
-        buildTypes = BuildTypes.createFromBuildTypes(getBuildTypesByInternalIds(scope.getBuildTypeIds(), beanContext), beanContext);
+        buildTypes =
+          new BuildTypes(BuildTypes.fromBuildTypes(getBuildTypesByInternalIds(scope.getBuildTypeIds(), beanContext)), fields.getNestedField("buildTypes", Fields.NONE, Fields.LONG),
+                         beanContext);
         break;
       case IN_PROJECT:
-        projects = new Projects(Collections.singletonList(getProjectByInternalId(scope.getProjectId(), beanContext)), fields.getNestedField("projects"), beanContext);
+        projects = new Projects(Collections.singletonList(getProjectByInternalId(scope.getProjectId(), beanContext)), fields.getNestedField("projects", Fields.NONE, Fields.LONG),
+                                beanContext);
         break;
       default:
         //unsupported scope

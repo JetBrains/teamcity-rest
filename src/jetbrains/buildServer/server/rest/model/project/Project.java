@@ -130,8 +130,8 @@ public class Project {
       archived = project.isArchived();
 
       parentProject = actulParentProject == null ? null : new Project(actulParentProject, fields.getNestedField("parentProject"), beanContext);
-      buildTypes = BuildTypes.createFromBuildTypes(project.getOwnBuildTypes(), beanContext);
-      templates = BuildTypes.createFromTemplates(project.getOwnBuildTypeTemplates(), beanContext);
+      buildTypes = new BuildTypes(BuildTypes.fromBuildTypes(project.getOwnBuildTypes()), fields.getNestedField("buildTypes", Fields.NONE, Fields.LONG), beanContext);
+      templates = new BuildTypes(BuildTypes.fromTemplates(project.getOwnBuildTypeTemplates()), fields.getNestedField("templates", Fields.NONE, Fields.LONG), beanContext);
       parameters = new Properties(project.getParameters());
       vcsRoots = new Href(VcsRootRequest.API_VCS_ROOTS_URL + "?locator=project:(id:" + project.getExternalId() + ")", beanContext.getApiUrlBuilder());
 

@@ -44,7 +44,6 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModification;
 import org.jetbrains.annotations.NotNull;
@@ -229,9 +228,9 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/buildTypes")
   @Produces({"application/xml", "application/json"})
-  public BuildTypes getRelatedBuildTypes(@PathParam("changeLocator") String changeLocator) {
+  public BuildTypes getRelatedBuildTypes(@PathParam("changeLocator") String changeLocator, @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
-    return BuildTypes.createFromBuildTypes(new ArrayList<SBuildType>(change.getRelatedConfigurations()), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new BuildTypes(BuildTypes.fromBuildTypes(change.getRelatedConfigurations()), new Fields(fields, Fields.LONG), myBeanContext);
   }
 
  /**

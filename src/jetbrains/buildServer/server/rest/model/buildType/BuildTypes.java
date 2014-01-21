@@ -17,16 +17,22 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeTemplate;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -36,28 +42,23 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "buildTypes")
 @XmlType(name = "buildTypes")
 public class BuildTypes {
+  @XmlAttribute
+  public Integer count;
+
   @XmlElement(name = "buildType")
-  public List<BuildTypeRef> buildTypes;
+  public List<BuildType> buildTypes;
 
   public BuildTypes() {
   }
 
-  public static BuildTypes createFromBuildTypes(List<SBuildType> buildTypesObjects, final BeanContext beanContext){
-    final BuildTypes result = new BuildTypes();
-    result.buildTypes = new ArrayList<BuildTypeRef>(buildTypesObjects.size());
-    for (SBuildType buildType : buildTypesObjects) {
-      result.buildTypes.add(new BuildTypeRef(buildType, beanContext));
+  public BuildTypes(@NotNull final List<BuildTypeOrTemplate> items, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    this.count = ValueWithDefault.decideDefault(fields.isIncluded("count"), items.size());
+    if (fields.isIncluded("buildType", false, true)){
+      this.buildTypes = new ArrayList<BuildType>(items.size());
+      for (BuildTypeOrTemplate buildType : items) {
+        this.buildTypes.add(new BuildType(buildType, fields.getNestedField("buildType"), beanContext));
+      }
     }
-    return result;
-  }
-
-  public static BuildTypes createFromTemplates(final List<BuildTypeTemplate> buildTypeTemplates, final BeanContext beanContext) {
-    final BuildTypes result = new BuildTypes();
-    result.buildTypes = new ArrayList<BuildTypeRef>(buildTypeTemplates.size());
-    for (BuildTypeTemplate buildType : buildTypeTemplates) {
-      result.buildTypes.add(new BuildTypeRef(buildType, beanContext));
-    }
-    return result;
   }
 
   @NotNull
@@ -66,9 +67,27 @@ public class BuildTypes {
       return Collections.emptyList();
     }
     final ArrayList<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>(buildTypes.size());
-    for (BuildTypeRef buildType : buildTypes) {
+    for (BuildType buildType : buildTypes) {
       result.add(buildType.getBuildTypeFromPosted(buildTypeFinder));
     }
     return result;
+  }
+
+  @NotNull
+  public static List<BuildTypeOrTemplate> fromBuildTypes(Collection<SBuildType> source){
+    return CollectionsUtil.convertCollection(source, new Converter<BuildTypeOrTemplate, SBuildType>() {
+      public BuildTypeOrTemplate createFrom(@NotNull final SBuildType source) {
+        return new BuildTypeOrTemplate(source);
+      }
+    });
+  }
+
+  @NotNull
+  public static List<BuildTypeOrTemplate> fromTemplates(Collection<BuildTypeTemplate> source){
+    return CollectionsUtil.convertCollection(source, new Converter<BuildTypeOrTemplate, BuildTypeTemplate>() {
+      public BuildTypeOrTemplate createFrom(@NotNull final BuildTypeTemplate source) {
+        return new BuildTypeOrTemplate(source);
+      }
+    });
   }
 }
