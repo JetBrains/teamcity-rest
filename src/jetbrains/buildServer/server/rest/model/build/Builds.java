@@ -53,6 +53,10 @@ public class Builds implements DefaultValueAware {
 
   @XmlAttribute(required = false)
   @Nullable
+  public String href;
+
+  @XmlAttribute(required = false)
+  @Nullable
   public String nextHref;
 
   @XmlAttribute(required = false)
@@ -62,11 +66,11 @@ public class Builds implements DefaultValueAware {
   public Builds() {
   }
 
-  public Builds(@NotNull final List<BuildPromotion> buildObjects,
+  public Builds(@Nullable final List<BuildPromotion> buildObjects,
                 @Nullable final PagerData pagerData,
                 @NotNull final Fields fields,
                 @NotNull final BeanContext beanContext) {
-    if (fields.isIncluded("build", false, true)) {
+    if (buildObjects != null && fields.isIncluded("build", false, true)) {
       final ArrayList<Build> buildsList = new ArrayList<Build>(buildObjects.size());
       for (BuildPromotion build : buildObjects) {
         buildsList.add(new Build(build, fields.getNestedField("build"), beanContext));
@@ -76,16 +80,17 @@ public class Builds implements DefaultValueAware {
       builds = null;
     }
     if (pagerData != null) {
+      href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getHref()));
       nextHref = ValueWithDefault
         .decideDefault(fields.isIncluded("nextHref"), pagerData.getNextHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null);
       prevHref = ValueWithDefault
         .decideDefault(fields.isIncluded("prevHref"), pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null);
     }
-    count = ValueWithDefault.decideDefault(fields.isIncluded("count"), buildObjects.size());
+    count = buildObjects == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("count"), buildObjects.size());
   }
 
   public boolean isDefault() {
-    return builds != null ? builds.size() == 0 : (count == null || count == 0);
+    return ValueWithDefault.isAllDefault(builds, count, href);
   }
 
   @NotNull

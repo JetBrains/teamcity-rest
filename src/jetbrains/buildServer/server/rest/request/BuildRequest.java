@@ -523,7 +523,10 @@ public class BuildRequest {
   @POST
   @Path("/{buildLocator}")
   @Consumes({"application/xml", "application/json"})
-  public Build cancelBuild(@PathParam("buildLocator") String buildLocator, BuildCancelRequest cancelRequest, @Context HttpServletRequest request) {
+  public Build cancelBuild(@PathParam("buildLocator") String buildLocator,
+                           BuildCancelRequest cancelRequest,
+                           @QueryParam("fields") String fields,
+                           @Context HttpServletRequest request) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final SRunningBuild runningBuild = Build.getRunningBuild(build, myBeanContext.getServiceLocator());
     if (runningBuild == null){
@@ -541,7 +544,7 @@ public class BuildRequest {
     if (associatedBuild == null){
       return null;
     }
-    return new Build(associatedBuild, myBeanContext);
+    return new Build(associatedBuild, new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   private void restoreInQueue(final SRunningBuild runningBuild, final User user) {

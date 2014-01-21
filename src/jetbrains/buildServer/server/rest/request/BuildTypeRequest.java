@@ -1331,10 +1331,11 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/builds/{buildLocator}")
   @Produces({"application/xml", "application/json"})
   public Build serveBuildWithProject(@PathParam("btLocator") String buildTypeLocator,
-                                     @PathParam("buildLocator") String buildLocator) {
+                                     @PathParam("buildLocator") String buildLocator,
+                                     @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
     SBuild build = myBuildFinder.getBuild(buildType, buildLocator);
-    return new Build(build, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new Build(build, new Fields(fields, Fields.LONG), myBeanContext);
   }
 
 

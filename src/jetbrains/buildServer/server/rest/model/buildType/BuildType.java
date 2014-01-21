@@ -28,8 +28,9 @@ import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Href;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.server.rest.model.build.BuildsRef;
+import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -194,14 +195,14 @@ public class BuildType {
    * @return
    */
   @XmlElement(name = "builds")
-  public BuildsRef getBuilds() {
-    return myBuildType == null || !myBuildType.isBuildType()
-           ? null
-           : ValueWithDefault.decideDefault(myFields.isIncluded("builds", false), new ValueWithDefault.Value<BuildsRef>() {
-             public BuildsRef get() {
-               return new BuildsRef(myBuildType.getBuildType(), myBeanContext.getApiUrlBuilder());
-             }
-           });
+  public Builds getBuilds() {
+    if (myBuildType == null || !myBuildType.isBuildType()) return null;
+    if (!myFields.isIncluded("builds", false, true)){
+      return null;
+    }
+
+    final String buildsHref = myBeanContext.getApiUrlBuilder().getBuildsHref(myBuildType.getBuildType());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("builds", false), new Builds(null, new PagerData(buildsHref), myFields.getNestedField("builds"), myBeanContext));
   }
 
   @XmlElement

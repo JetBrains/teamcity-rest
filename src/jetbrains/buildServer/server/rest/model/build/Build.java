@@ -116,10 +116,6 @@ public class Build {
     myFactory = null;
   }
 
-  public Build(@NotNull final SBuild build, @NotNull final BeanContext beanContext) {
-    this(build, Fields.LONG, beanContext);
-  }
-
   public Build(@NotNull final SBuild build, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     myBuild = build;
     myBuildPromotion = myBuild.getBuildPromotion();
