@@ -26,8 +26,10 @@ import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
@@ -57,7 +59,7 @@ public class PropEntitySnapshotDep extends PropEntity {
 
 
   @XmlElement(name = SOURCE_BUILD_TYPE)
-  public BuildTypeRef sourceBuildType;
+  public BuildType sourceBuildType;
 
   public PropEntitySnapshotDep() {
   }
@@ -86,9 +88,9 @@ public class PropEntitySnapshotDep extends PropEntity {
       //ignrore, wil use ids later
     }
     if (dependOn != null) {
-      sourceBuildType = new BuildTypeRef(dependOn, context);
+      sourceBuildType = new BuildType(new BuildTypeOrTemplate(dependOn), Fields.SHORT, context);
     } else {
-      sourceBuildType = new BuildTypeRef(dependency.getDependOnExternalId(), dependency.getDependOnId(), context);
+      sourceBuildType = new BuildType(dependency.getDependOnExternalId(), dependency.getDependOnId(), Fields.SHORT, context);
     }
   }
 
@@ -122,7 +124,7 @@ public class PropEntitySnapshotDep extends PropEntity {
   }
 
   @NotNull
-  public static String getBuildTypeExternalIdForDependency(@Nullable final BuildTypeRef buildTypeRef,
+  public static String getBuildTypeExternalIdForDependency(@Nullable final BuildType buildTypeRef,
                                                            @Nullable final String buildTypeIdFromProperty,
                                                            @NotNull final ServiceLocator serviceLocator) {
     if (buildTypeIdFromProperty != null) {

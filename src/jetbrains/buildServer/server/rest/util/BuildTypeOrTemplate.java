@@ -30,28 +30,26 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 14.01.12
  */
 public class BuildTypeOrTemplate implements Loggable {
-  final private SBuildType myBuildType;
-  final private BuildTypeTemplate myTemplate;
-  final private BuildTypeIdentity myBuildTypeIdentity;
-  final private  boolean hasBuildType;
+  @Nullable final private SBuildType myBuildType;
+  @Nullable final private BuildTypeTemplate myTemplate;
+  @NotNull final private BuildTypeIdentity myBuildTypeIdentity;
 
-  public BuildTypeOrTemplate(@NotNull SBuildType buildType) {
+  public BuildTypeOrTemplate(@SuppressWarnings("NullableProblems") @NotNull SBuildType buildType) {
     myBuildType = buildType;
     myTemplate = null;
     myBuildTypeIdentity = buildType;
-    hasBuildType = true;
   }
 
-  public BuildTypeOrTemplate(@NotNull BuildTypeTemplate template) {
+  public BuildTypeOrTemplate(@SuppressWarnings("NullableProblems") @NotNull BuildTypeTemplate template) {
     myTemplate = template;
     myBuildType = null;
     myBuildTypeIdentity = template;
-    hasBuildType = false;
   }
 
   @NotNull
   public BuildTypeSettings get(){
-    return hasBuildType ? myBuildType : myTemplate;
+    //noinspection ConstantConditions
+    return isBuildType() ? myBuildType : myTemplate;
   }
 
   @NotNull
@@ -74,46 +72,49 @@ public class BuildTypeOrTemplate implements Loggable {
   }
 
   public boolean isBuildType() {
-    return hasBuildType;
+    return myBuildType != null;
   }
 
   public boolean isTemplate() {
-    return !hasBuildType;
+    return myTemplate != null;
   }
 
+  @Nullable
   public SBuildType getBuildType() {
     return myBuildType;
   }
 
+  @Nullable
   public BuildTypeTemplate getTemplate() {
     return myTemplate;
   }
 
   @Nullable
   public String getDescription() {
-    return hasBuildType ? myBuildType.getDescription() : null;
+    return myBuildType!=null ? myBuildType.getDescription() : null;
   }
 
   @Nullable
   public Boolean isPaused() {
-    return hasBuildType ? myBuildType.isPaused() : null;
+    return myBuildType!=null ? myBuildType.isPaused() : null;
   }
 
   @NotNull
   public String getText() {
-    return hasBuildType ? "Build type": "Template";
+    return isBuildType() ? "Build type": "Template";
   }
 
   public void setName(@NotNull final String value) {
-    if (hasBuildType){
+    if (myBuildType!=null){
       myBuildType.setName(value);
     }else{
+      //noinspection ConstantConditions
       myTemplate.setName(value);
     }
   }
 
   public void setDescription(@Nullable final String value) {
-    if (hasBuildType){
+    if (myBuildType != null) {
       myBuildType.setDescription(value);
     }else{
       throw new BadRequestException("Template does not have description field");
@@ -143,7 +144,7 @@ public class BuildTypeOrTemplate implements Loggable {
       setDescription(value);
       return;
     }
-    if (isBuildType()){
+    if (myBuildType!=null){
       if ("paused".equals(field)){
         myBuildType.setPaused(Boolean.valueOf(value), dataProvider.getCurrentUser(), TeamCityProperties.getProperty("rest.defaultActionComment"));
         //todo (TeamCity) why not use current user by default?
@@ -165,7 +166,7 @@ public class BuildTypeOrTemplate implements Loggable {
     } else if ("name".equals(field)) {
       return getName();
     }
-    if (isBuildType()){
+    if (myBuildType!=null){
       if ("paused".equals(field)){
         return String.valueOf(myBuildType.isPaused());
       } else if ("status".equals(field)){ //Experimental support
@@ -176,12 +177,13 @@ public class BuildTypeOrTemplate implements Loggable {
   }
 
   public boolean isEnabled(final String id) {
-    return hasBuildType ? myBuildType.isEnabled(id) : myTemplate.isEnabled(id);
+    //noinspection ConstantConditions
+    return myBuildType != null ? myBuildType.isEnabled(id) : myTemplate.isEnabled(id);
   }
 
   @NotNull
   public String describe(final boolean verbose) {
-      return hasBuildType ? LogUtil.describe(myBuildType) : LogUtil.describe(myTemplate);
+      return isBuildType() ? LogUtil.describe(myBuildType) : LogUtil.describe(myTemplate);
   }
 }
 

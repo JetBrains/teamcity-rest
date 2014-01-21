@@ -43,11 +43,11 @@ import org.jetbrains.annotations.Nullable;
 public class BuildTypeUtil {
   private static final Logger LOG = Logger.getInstance(BuildTypeUtil.class.getName());
 
-  public static HashMap<String, String> getSettingsParameters(final BuildTypeOrTemplate buildType) {
+  public static HashMap<String, String> getSettingsParameters(@NotNull final BuildTypeOrTemplate buildType) {
     HashMap<String, String> properties = new HashMap<String, String>();
     addAllOptionsAsProperties(properties, buildType.get());
     properties.put("checkoutDirectory", buildType.get().getCheckoutDirectory());
-    if (buildType.isBuildType()){
+    if (buildType.getBuildType() != null){
       properties.put("buildNumberCounter", String.valueOf(buildType.getBuildType().getBuildNumbers().getBuildCounter()));
     }
     return properties;
@@ -63,7 +63,7 @@ public class BuildTypeUtil {
     } else if ("checkoutMode".equals(name)) {
       buildType.get().setCheckoutType(BuildTypeDescriptor.CheckoutType.valueOf(value));
     } else if ("buildNumberCounter".equals(name)) {
-      if (buildType.isBuildType()) {
+      if (buildType.getBuildType() != null) {
         buildType.getBuildType().getBuildNumbers().setBuildNumberCounter(new Long(value));
       }else{
         throw new BadRequestException("Templates do not have build counter.");
@@ -127,7 +127,6 @@ public class BuildTypeUtil {
     if (StringUtil.isEmpty(parameterName)) {
       throw new BadRequestException(nameItProperty ? "Property" : "Parameter" + " name cannot be empty.");
     }
-    assert parameterName != null;
     if (parameters.containsKey(parameterName)) {
       if (!checkSecure || !Properties.isPropertyToExclude(parameterName)) {
         //TODO: need to process spec type to filter secure fields, may be include display value

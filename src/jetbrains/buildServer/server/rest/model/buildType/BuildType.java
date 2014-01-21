@@ -54,7 +54,10 @@ import org.jetbrains.annotations.Nullable;
 public class BuildType {
   private static final Logger LOG = Logger.getInstance(BuildType.class.getName());
 
+  @Nullable
   protected BuildTypeOrTemplate myBuildType;
+  @NotNull private String myExternalId;
+  @Nullable private String myInternalId;
 
   private Fields myFields = Fields.LONG;
   @NotNull private BeanContext myBeanContext;
@@ -64,6 +67,16 @@ public class BuildType {
 
   public BuildType(@NotNull final BuildTypeOrTemplate buildType, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     myBuildType = buildType;
+    myExternalId = buildType.getId();
+    myInternalId = buildType.getInternalId();
+    myFields = fields;
+    myBeanContext = beanContext;
+  }
+
+  public BuildType(@NotNull final String externalId, @Nullable final String internalId, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    myBuildType = null;
+    myExternalId = externalId;
+    myInternalId = internalId;
     myFields = fields;
     myBeanContext = beanContext;
   }
@@ -73,29 +86,31 @@ public class BuildType {
    */
   @XmlAttribute
   public String getId() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("id", true), myBuildType.getId());
+    return myBuildType == null ? myExternalId : ValueWithDefault.decideDefault(myFields.isIncluded("id", true), myBuildType.getId());
   }
 
   @XmlAttribute
   public String getInternalId() {
     final boolean includeProperty = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME);
-    return ValueWithDefault.decideDefault(myFields.isIncluded("internalId", includeProperty, includeProperty), myBuildType.getInternalId());
+    return myBuildType == null ? myInternalId : ValueWithDefault.decideDefault(myFields.isIncluded("internalId", includeProperty, includeProperty), myBuildType.getInternalId());
   }
 
   @XmlAttribute
   public String getName() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("name"), myBuildType.getName());
+    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("name"), myBuildType.getName());
   }
 
   @XmlAttribute
   public String getProjectId() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("projectId"), myBuildType.getProject().getExternalId());
+    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("projectId"), myBuildType.getProject().getExternalId());
   }
 
   @XmlAttribute
   public String getProjectInternalId() {
     final boolean includeProperty = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME);
-    return ValueWithDefault.decideDefault(myFields.isIncluded("projectInternalId", includeProperty ,includeProperty), myBuildType.getProject().getProjectId());
+    return myBuildType == null
+           ? null
+           : ValueWithDefault.decideDefault(myFields.isIncluded("projectInternalId", includeProperty, includeProperty), myBuildType.getProject().getProjectId());
   }
 
   /**
@@ -104,51 +119,54 @@ public class BuildType {
    */
   @XmlAttribute
   public String getProjectName() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("projectName"), myBuildType.getProject().getFullName());
+    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("projectName"), myBuildType.getProject().getFullName());
   }
 
   @XmlAttribute
   public String getHref() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("href"), myBeanContext.getApiUrlBuilder().getHref(myBuildType));
+    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("href"), myBeanContext.getApiUrlBuilder().getHref(myBuildType));
   }
 
   @XmlAttribute
   public String getDescription() {
+    if (myBuildType == null){
+      return null;
+    }
     final String description = myBuildType.getDescription();
-    return ValueWithDefault.decideDefault(myFields.isIncluded("description"), StringUtil.isEmpty(myBuildType.getDescription()) ? null : description);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("description"), StringUtil.isEmpty(description) ? null : description);
   }
 
   @XmlAttribute (name = "templateFlag")
   public Boolean getTemplateFlag() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("templateFlag"), !myBuildType.isBuildType());
+    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("templateFlag"), !myBuildType.isBuildType());
   }
 
   @XmlAttribute
   public Boolean isPaused() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("paused"), myBuildType.isPaused());
+    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("paused"), myBuildType.isPaused());
   }
 
   @XmlAttribute
   public String getWebUrl() {
     //template has no user link
-    return !myBuildType.isBuildType()
+    return  myBuildType == null || myBuildType.getBuildType() == null
            ? null
-           : ValueWithDefault.decideDefault(myFields.isIncluded("webUrl"),
-                                            myBeanContext.getSingletonService(WebLinks.class).getConfigurationHomePageUrl(myBuildType.getBuildType()));
+           : ValueWithDefault
+             .decideDefault(myFields.isIncluded("webUrl"), myBeanContext.getSingletonService(WebLinks.class).getConfigurationHomePageUrl(myBuildType.getBuildType()));
   }
 
   @XmlElement(name = "project")
   public Project getProject() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("project", false), new ValueWithDefault.Value<Project>() {
       public Project get() {
-        return new Project(myBuildType.getProject(), myFields.getNestedField("project"), myBeanContext);
+        return myBuildType == null ? null : new Project(myBuildType.getProject(), myFields.getNestedField("project"), myBeanContext);
       }
     });
   }
 
   @XmlElement(name = "template")
   public BuildType getTemplate() {
-    if (myBuildType.isTemplate()){
+    if (myBuildType == null || myBuildType.getBuildType() == null){
       return null;
     }
     final BuildTypeTemplate template = myBuildType.getBuildType().getTemplate();
@@ -166,7 +184,7 @@ public class BuildType {
   public VcsRootEntries getVcsRootEntries() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("vcs-root-entries", false), new ValueWithDefault.Value<VcsRootEntries>() {
       public VcsRootEntries get() {
-        return new VcsRootEntries(myBuildType, myBeanContext.getApiUrlBuilder());
+        return myBuildType == null ? null : new VcsRootEntries(myBuildType, myBeanContext.getApiUrlBuilder());
       }
     });
   }
@@ -177,7 +195,7 @@ public class BuildType {
    */
   @XmlElement(name = "builds")
   public BuildsRef getBuilds() {
-    return !myBuildType.isBuildType()
+    return myBuildType == null || !myBuildType.isBuildType()
            ? null
            : ValueWithDefault.decideDefault(myFields.isIncluded("builds", false), new ValueWithDefault.Value<BuildsRef>() {
              public BuildsRef get() {
@@ -188,7 +206,7 @@ public class BuildType {
 
   @XmlElement
   public Properties getParameters() {
-    return ValueWithDefault
+    return myBuildType == null ? null : ValueWithDefault
       .decideDefault(myFields.isIncluded("parameters", false), new ValueWithDefault.Value<Properties>() {
         public Properties get() {
           return new Properties(myBuildType.get().getParameters(), null, myFields.getNestedField("parameters", Fields.NONE, Fields.LONG));
@@ -198,7 +216,7 @@ public class BuildType {
 
   @XmlElement(name = "steps")
   public PropEntitiesStep getSteps() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("steps", false), new ValueWithDefault.Value<PropEntitiesStep>() {
+    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("steps", false), new ValueWithDefault.Value<PropEntitiesStep>() {
       public PropEntitiesStep get() {
         return new PropEntitiesStep(myBuildType.get());
       }
@@ -207,7 +225,7 @@ public class BuildType {
 
   @XmlElement(name = "features")
   public PropEntitiesFeature getFeatures() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("features", false), new ValueWithDefault.Value<PropEntitiesFeature>() {
+    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("features", false), new ValueWithDefault.Value<PropEntitiesFeature>() {
       public PropEntitiesFeature get() {
         return new PropEntitiesFeature(myBuildType.get());
       }
@@ -216,7 +234,7 @@ public class BuildType {
 
   @XmlElement(name = "triggers")
   public PropEntitiesTrigger getTriggers() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("triggers", false), new ValueWithDefault.Value<PropEntitiesTrigger>() {
+    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("triggers", false), new ValueWithDefault.Value<PropEntitiesTrigger>() {
       public PropEntitiesTrigger get() {
         return new PropEntitiesTrigger(myBuildType.get());
       }
@@ -226,7 +244,7 @@ public class BuildType {
 
   @XmlElement(name = "snapshot-dependencies")
   public PropEntitiesSnapshotDep getSnapshotDependencies() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("snapshot-dependencies", false), new ValueWithDefault.Value<PropEntitiesSnapshotDep>() {
+    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("snapshot-dependencies", false), new ValueWithDefault.Value<PropEntitiesSnapshotDep>() {
       public PropEntitiesSnapshotDep get() {
         return new PropEntitiesSnapshotDep(myBuildType.get(), myBeanContext);
       }
@@ -235,7 +253,7 @@ public class BuildType {
 
   @XmlElement(name = "artifact-dependencies")
   public PropEntitiesArtifactDep getArtifactDependencies() {
-    return ValueWithDefault
+    return myBuildType == null ? null : ValueWithDefault
       .decideDefault(myFields.isIncluded("artifact-dependencies", false), new ValueWithDefault.Value<PropEntitiesArtifactDep>() {
         public PropEntitiesArtifactDep get() {
           return new PropEntitiesArtifactDep(myBuildType.get().getArtifactDependencies(), myBeanContext);
@@ -245,7 +263,7 @@ public class BuildType {
 
   @XmlElement(name = "agent-requirements")
   public PropEntitiesAgentRequirement getAgentRequirements() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("agent-requirements", false), new ValueWithDefault.Value<PropEntitiesAgentRequirement>() {
+    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("agent-requirements", false), new ValueWithDefault.Value<PropEntitiesAgentRequirement>() {
       public PropEntitiesAgentRequirement get() {
         return new PropEntitiesAgentRequirement(myBuildType.get());
       }
@@ -254,7 +272,7 @@ public class BuildType {
 
   @XmlElement(name="settings")
   public Properties getSettings() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("settings", false), new ValueWithDefault.Value<Properties>() {
+    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("settings", false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
         return new Properties(BuildTypeUtil.getSettingsParameters(myBuildType), null, myFields.getNestedField("settings", Fields.NONE, Fields.LONG));
       }
@@ -268,7 +286,7 @@ public class BuildType {
    */
   @XmlElement(name = "investigations")
   public Investigations getInvestigations() {
-    if (!myBuildType.isBuildType()) {
+    if (myBuildType == null || myBuildType.getBuildType() == null) {
       return null;
     }
     if (myFields.isIncluded("investigations", false, true)) {
@@ -330,8 +348,11 @@ public class BuildType {
   @NotNull
   public BuildTypeOrTemplate getBuildTypeFromPosted(@NotNull final BuildTypeFinder buildTypeFinder) {
     String locatorText = "";
-    if (submittedInternalId != null) locatorText = "internalId:" + submittedInternalId;
-    if (submittedId != null) locatorText += (!locatorText.isEmpty() ? "," : "") + "id:" + submittedId;
+    if (submittedInternalId != null) {
+      locatorText = "internalId:" + submittedInternalId;
+    } else {
+      if (submittedId != null) locatorText += (!locatorText.isEmpty() ? "," : "") + "id:" + submittedId;
+    }
     if (locatorText.isEmpty()) {
       locatorText = submittedLocator;
     } else {

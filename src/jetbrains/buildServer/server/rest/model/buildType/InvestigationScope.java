@@ -29,6 +29,7 @@ import jetbrains.buildServer.server.rest.model.problem.Problem;
 import jetbrains.buildServer.server.rest.model.problem.Test;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.STest;
@@ -45,7 +46,7 @@ public class InvestigationScope {
   public String type; //todo: make this typed
 
   @XmlElement
-  public BuildTypeRef buildType;
+  public BuildType buildType;
 
   /**
    * Experimental! will change in future versions.
@@ -71,7 +72,7 @@ public class InvestigationScope {
     type = investigation.getType();
     if (investigation.isBuildType()) {
       //noinspection ConstantConditions
-      buildType = new BuildTypeRef((SBuildType)investigation.getBuildTypeRE().getBuildType(), beanContext);  //TeamCity open API issue: cast
+      buildType = new BuildType(new BuildTypeOrTemplate((SBuildType)investigation.getBuildTypeRE().getBuildType()), fields.getNestedField("buildType"), beanContext);  //TeamCity open API issue: cast
     } else if (investigation.isTest()) {
       @SuppressWarnings("ConstantConditions") @NotNull final TestNameResponsibilityEntry testRE = investigation.getTestRE();
 

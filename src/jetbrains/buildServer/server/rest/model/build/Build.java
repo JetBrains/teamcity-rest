@@ -32,7 +32,7 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.agent.AgentRef;
-import jetbrains.buildServer.server.rest.model.buildType.BuildTypeRef;
+import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.PropEntitiesArtifactDep;
 import jetbrains.buildServer.server.rest.model.change.Changes;
 import jetbrains.buildServer.server.rest.model.change.Revisions;
@@ -271,9 +271,10 @@ public class Build {
   }
 
   @XmlElement(name = "buildType")
-  public BuildTypeRef getBuildType() {
+  public BuildType getBuildType() {
     final SBuildType buildType = myBuildPromotion.getBuildType();
-    return buildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("buildType", false), new BuildTypeRef(buildType, myBeanContext));
+    return buildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("buildType", false),
+                                                                     new BuildType(new BuildTypeOrTemplate(buildType), myFields.getNestedField("buildType"), myBeanContext));
   }
 
   @XmlElement
@@ -764,7 +765,7 @@ public class Build {
 
   private BuildTriggeringOptions submittedTriggeringOptions;
   private String submittedBuildTypeId;
-  private BuildTypeRef submittedBuildType;
+  private BuildType submittedBuildType;
   private Comment submittedComment;
   private Properties submittedCustomProperties;
   private String submittedBranchName;
@@ -793,7 +794,7 @@ public class Build {
     this.submittedBuildTypeId = submittedBuildTypeId;
   }
 
-  public void setBuildType(final BuildTypeRef submittedBuildType) {
+  public void setBuildType(final BuildType submittedBuildType) {
     this.submittedBuildType = submittedBuildType;
   }
 

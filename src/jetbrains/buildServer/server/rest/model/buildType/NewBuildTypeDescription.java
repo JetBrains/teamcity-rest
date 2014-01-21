@@ -41,7 +41,7 @@ public class NewBuildTypeDescription extends CopyOptionsDescription{
   public NewBuildTypeDescription() {
   }
 
-  public NewBuildTypeDescription(final String name, final String id, final BuildTypeRef sourceBuildType, final Boolean copyAllAssociatedSettings) {
+  public NewBuildTypeDescription(final String name, final String id, final BuildType sourceBuildType, final Boolean copyAllAssociatedSettings) {
     super(copyAllAssociatedSettings, null, null, null);
     this.name = name;
     this.id = id;
@@ -62,7 +62,7 @@ public class NewBuildTypeDescription extends CopyOptionsDescription{
   @XmlAttribute public String sourceBuildTypeLocator;
 
   @XmlElement(name = "sourceBuildType")
-  public BuildTypeRef sourceBuildType;
+  public BuildType sourceBuildType;
 
   @Nullable
   public BuildTypeOrTemplate getSourceBuildTypeOrTemplate(@NotNull final ServiceLocator serviceLocator) {

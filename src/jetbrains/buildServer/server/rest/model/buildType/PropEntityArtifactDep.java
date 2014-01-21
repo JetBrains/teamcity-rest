@@ -26,8 +26,10 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.ArtifactDependencyFactory;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -54,7 +56,7 @@ public class PropEntityArtifactDep extends PropEntity {
   public static final String NAME_CLEAN_DESTINATION_DIRECTORY = "cleanDestinationDirectory";
 
   @XmlElement(name = PropEntitySnapshotDep.SOURCE_BUILD_TYPE)
-  public BuildTypeRef sourceBuildType;
+  public BuildType sourceBuildType;
 
   public PropEntityArtifactDep() {
   }
@@ -90,9 +92,9 @@ public class PropEntityArtifactDep extends PropEntity {
       //ignore, will use ids later
     }
     if (dependOn != null) {
-      sourceBuildType = new BuildTypeRef(dependOn, context);
+      sourceBuildType = new BuildType(new BuildTypeOrTemplate(dependOn), Fields.SHORT, context);
     } else {
-      sourceBuildType = new BuildTypeRef(dependency.getSourceExternalId(), dependency.getSourceBuildTypeId(), context);
+      sourceBuildType = new BuildType(dependency.getSourceExternalId(), dependency.getSourceBuildTypeId(), Fields.SHORT, context);
     }
   }
 

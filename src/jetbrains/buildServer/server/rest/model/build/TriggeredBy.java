@@ -22,11 +22,13 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
-import jetbrains.buildServer.server.rest.model.buildType.BuildTypeRef;
+import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.TriggeredByBuilder;
@@ -56,7 +58,7 @@ public class TriggeredBy {
   public UserRef user;
 
   @XmlElement(name = "buildType")
-  public BuildTypeRef buildType;
+  public BuildType buildType;
 
   /**
    * Internal use only
@@ -105,7 +107,9 @@ public class TriggeredBy {
       type = "buildType";
       try {
         final SBuildType foundBuildType = dataProvider.getServer().getProjectManager().findBuildTypeById(buildTypeId);
-        buildType = foundBuildType != null ? new BuildTypeRef(foundBuildType, new BeanContext(dataProvider.getBeanFactory(), dataProvider.getServer(), apiUrlBuilder)) : null;
+        buildType = foundBuildType == null
+                    ? null
+                    : new BuildType(new BuildTypeOrTemplate(foundBuildType), Fields.SHORT, new BeanContext(dataProvider.getBeanFactory(), dataProvider.getServer(), apiUrlBuilder));
       } catch (AccessDeniedException e) {
         buildType = null; //ignoring inability to view the triggering build type
       }

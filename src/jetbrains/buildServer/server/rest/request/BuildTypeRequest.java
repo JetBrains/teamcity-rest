@@ -309,25 +309,25 @@ public class BuildTypeRequest {
   @GET
   @Path("/{btLocator}/template")
   @Produces({"application/xml", "application/json"})
-  public BuildTypeRef serveBuildTypeTemplate(@PathParam("btLocator") String buildTypeLocator) {
+  public BuildType serveBuildTypeTemplate(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
     final BuildTypeTemplate template = buildType.getTemplate();
     if (template == null) {
       throw new NotFoundException("No template associated."); //todo: how to report it duly?
     }
-    return new BuildTypeRef(template, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new BuildType(new BuildTypeOrTemplate(template), new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @PUT
   @Path("/{btLocator}/template")
   @Consumes("text/plain")
   @Produces({"application/xml", "application/json"})
-  public BuildTypeRef getTemplateAssociation(@PathParam("btLocator") String buildTypeLocator, String templateLocator) {
+  public BuildType getTemplateAssociation(@PathParam("btLocator") String buildTypeLocator, String templateLocator, @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
     BuildTypeTemplate template = myBuildTypeFinder.getBuildTemplate(null, templateLocator);
     buildType.attachToTemplate(template);
     buildType.persist();
-    return new BuildTypeRef(template, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new BuildType(new BuildTypeOrTemplate(template), new Fields(fields, Fields.LONG), myBeanContext);
   }
 //todo: allow also to post back the XML from GET request (http://devnet.jetbrains.net/message/5466528#5466528)
 
@@ -1511,9 +1511,7 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public NewBuildTypeDescription getExampleNewProjectDescription(@PathParam("btLocator") String buildTypeLocator){
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    final BuildTypeRef buildTypeRef = buildType.isBuildType()
-                                         ? new BuildTypeRef(buildType.getBuildType(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder))
-                                         : new BuildTypeRef(buildType.getTemplate(), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    final BuildType buildTypeRef = new BuildType(buildType, Fields.SHORT, myBeanContext);
     return new NewBuildTypeDescription(buildType.getName(), buildType.getId(), buildTypeRef, true);
   }
 }
