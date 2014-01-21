@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model.project;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
@@ -25,6 +26,7 @@ import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
 
@@ -35,17 +37,31 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "projects")
 @XmlType(name = "projects")
 public class Projects {
+  @XmlAttribute
+  public Integer count;
+
   @XmlElement(name = "project")
   public List<Project> projects;
 
   public Projects() {
   }
 
-  public Projects(List<SProject> projectObjects, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
-    projects = new ArrayList<Project>(projectObjects.size());
-    for (SProject project : projectObjects) {
-      projects.add(new Project(project, fields.getNestedField("project"), beanContext));
+  public Projects(@NotNull final List<SProject> projectObjects, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+    if (fields.isIncluded("project", false, true)){
+      projects = ValueWithDefault.decideDefault(fields.isIncluded("project"), new ValueWithDefault.Value<List<Project>>() {
+        public List<Project> get() {
+          final ArrayList<Project> result = new ArrayList<Project>(projectObjects.size());
+          final Fields nestedField = fields.getNestedField("project");
+          for (SProject project : projectObjects) {
+            result.add(new Project(project, nestedField, beanContext));
+          }
+          return result;
+        }
+      });
+    }else{
+      projects = null;
     }
+    count = ValueWithDefault.decideDefault(fields.isIncluded("count"), projectObjects.size());
   }
 
   @NotNull

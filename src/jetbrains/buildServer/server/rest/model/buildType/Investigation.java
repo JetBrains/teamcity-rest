@@ -27,6 +27,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -60,27 +61,21 @@ public class Investigation {
                        final @NotNull Fields fields,
                        final @NotNull BeanContext beanContext) {
     final ResponsibilityEntry.State stateOjbect = investigation.getState();
-    state = stateOjbect.name();
+    state = ValueWithDefault.decideDefault(fields.isIncluded("state"), stateOjbect.name());
     if (stateOjbect.equals(ResponsibilityEntry.State.NONE)){
       return;
     }
 
-    id = investigation.getId();
+    id = ValueWithDefault.decideDefault(fields.isIncluded("id"), investigation.getId());
+    href = ValueWithDefault.decideDefault(fields.isIncluded("href"), InvestigationRequest.getHref(investigation));
 
-    /*
-    //todo: THIS MIGHT NOT WORK!!!
-    final ResponsibilityEntryEx responsibilityEntryEx = (ResponsibilityEntryEx)investigation;
-    id = responsibilityEntryEx.getProblemId();
-    */
+    scope =
+      ValueWithDefault.decideDefault(fields.isIncluded("scope"), new InvestigationScope(investigation, fields.getNestedField("scope", Fields.NONE, Fields.LONG), beanContext));
+    responsible = ValueWithDefault.decideDefault(fields.isIncluded("responsible"), new UserRef(investigation.getResponsibleUser(), beanContext.getApiUrlBuilder()));
 
-    href = InvestigationRequest.getHref(investigation);
-    if (fields.isMoreThenShort() || true) {
-
-      scope = new InvestigationScope(investigation, fields.getNestedField("scope", Fields.NONE, Fields.LONG), beanContext);
-      responsible = new UserRef(investigation.getResponsibleUser(), beanContext.getApiUrlBuilder());
-
-      //todo: add all investigation fields: state, removeType, etc.
-      assignment = new Comment(investigation.getReporterUser(), investigation.getTimestamp(), investigation.getComment(), beanContext.getApiUrlBuilder());
-    }
+    //todo: add all investigation fields: state, removeType, etc.
+    assignment = ValueWithDefault.decideDefault(fields.isIncluded("assignment"),
+                                                new Comment(investigation.getReporterUser(), investigation.getTimestamp(), investigation.getComment(),
+                                                            beanContext.getApiUrlBuilder()));
   }
 }

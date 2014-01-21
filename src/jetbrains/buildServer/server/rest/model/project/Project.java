@@ -33,6 +33,7 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.request.VcsRootRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.WebLinks;
@@ -44,7 +45,7 @@ import org.jetbrains.annotations.Nullable;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "project")
-@XmlType(name = "project", propOrder = {"id", "internalId", "name", "href", "description", "archived", "webUrl", "parentProjectName", "parentProjectId", "parentProjectInternalId",
+@XmlType(name = "project", propOrder = {"id", "internalId", "name", "parentProjectId", "parentProjectInternalId", "parentProjectName", "archived", "description", "href", "webUrl",
   "parentProject", "buildTypes", "templates", "parameters", "vcsRoots", "projects"})
 @SuppressWarnings("PublicField")
 public class Project {
@@ -67,14 +68,12 @@ public class Project {
   public String parentProjectId;
 
   /**
-   * Used only for short project entity
    * @deprecated
    */
   @XmlAttribute
   public String parentProjectName;
 
   /**
-   * Used only for short project entity
    * @deprecated
    */
   @XmlAttribute
@@ -85,7 +84,7 @@ public class Project {
   public String description;
 
   @XmlAttribute
-  public boolean archived;
+  public Boolean archived;
 
   @XmlAttribute
   public String webUrl;
@@ -117,33 +116,57 @@ public class Project {
   }
 
   public Project(@NotNull final SProject project, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
-    id = project.getExternalId();
-    internalId = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? project.getProjectId() : null;
-    name = project.getName();
+    id = ValueWithDefault.decideDefault(fields.isIncluded("id"), project.getExternalId());
+    final boolean includeInternal = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME);
+    internalId = ValueWithDefault.decideDefault(fields.isIncluded("internalId", includeInternal, includeInternal), project.getProjectId());
+    name = ValueWithDefault.decideDefault(fields.isIncluded("name"), project.getName());
 
-    href = beanContext.getApiUrlBuilder().getHref(project);
-    webUrl = beanContext.getSingletonService(WebLinks.class).getProjectPageUrl(project.getExternalId());
+    href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(project));
+    webUrl = ValueWithDefault.decideDefault(fields.isIncluded("webUrl"), beanContext.getSingletonService(WebLinks.class).getProjectPageUrl(project.getExternalId()));
 
     final SProject actulParentProject = project.getParentProject();
-    if (fields.isMoreThenShort()) {
-      description = project.getDescription();
-      archived = project.isArchived();
+    final String descriptionText = project.getDescription();
+    description = ValueWithDefault.decideDefault(fields.isIncluded("description"), StringUtil.isEmpty(descriptionText) ? null : descriptionText);
+    archived = ValueWithDefault.decideDefault(fields.isIncluded("archived"), project.isArchived());
 
-      parentProject = actulParentProject == null ? null : new Project(actulParentProject, fields.getNestedField("parentProject"), beanContext);
-      buildTypes = new BuildTypes(BuildTypes.fromBuildTypes(project.getOwnBuildTypes()), fields.getNestedField("buildTypes", Fields.NONE, Fields.LONG), beanContext);
-      templates = new BuildTypes(BuildTypes.fromTemplates(project.getOwnBuildTypeTemplates()), fields.getNestedField("templates", Fields.NONE, Fields.LONG), beanContext);
-      parameters = new Properties(project.getParameters());
-      vcsRoots = new Href(VcsRootRequest.API_VCS_ROOTS_URL + "?locator=project:(id:" + project.getExternalId() + ")", beanContext.getApiUrlBuilder());
-
-      projects = new Projects(project.getOwnProjects(), fields.getNestedField("projects"), beanContext);
-    }else{
-      parentProjectId = actulParentProject == null ? null : actulParentProject.getExternalId();
-
-      if (TeamCityProperties.getBoolean("rest.beans.project.addParentProjectAttributes")) {
-        parentProjectName = actulParentProject == null ? null : actulParentProject.getName();
-        parentProjectInternalId =
-          actulParentProject != null && TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? actulParentProject.getProjectId() : null;
+    parentProject = actulParentProject == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("parentProject", false), new ValueWithDefault.Value<Project>() {
+      public Project get() {
+        return new Project(actulParentProject, fields.getNestedField("parentProject"), beanContext);
       }
+    });
+    buildTypes = ValueWithDefault.decideDefault(fields.isIncluded("buildTypes", false), new ValueWithDefault.Value<BuildTypes>() {
+      public BuildTypes get() {
+        return new BuildTypes(BuildTypes.fromBuildTypes(project.getOwnBuildTypes()), fields.getNestedField("buildTypes", Fields.NONE, Fields.LONG), beanContext);
+      }
+    });
+    templates = ValueWithDefault.decideDefault(fields.isIncluded("templates", false), new ValueWithDefault.Value<BuildTypes>() {
+      public BuildTypes get() {
+        return new BuildTypes(BuildTypes.fromTemplates(project.getOwnBuildTypeTemplates()), fields.getNestedField("templates", Fields.NONE, Fields.LONG), beanContext);
+      }
+    });
+    parameters = ValueWithDefault.decideDefault(fields.isIncluded("parameters", false), new ValueWithDefault.Value<Properties>() {
+      public Properties get() {
+        return new Properties(project.getParameters());
+      }
+    });
+    vcsRoots = ValueWithDefault.decideDefault(fields.isIncluded("vcsRoots", false), new ValueWithDefault.Value<Href>() {
+      public Href get() {
+        return new Href(VcsRootRequest.API_VCS_ROOTS_URL + "?locator=project:(id:" + project.getExternalId() + ")", beanContext.getApiUrlBuilder());
+      }
+    });
+
+    projects = ValueWithDefault.decideDefault(fields.isIncluded("projects", false), new ValueWithDefault.Value<Projects>() {
+      public Projects get() {
+        return new Projects(project.getOwnProjects(), fields.getNestedField("projects"), beanContext);
+      }
+    });
+
+    parentProjectId = ValueWithDefault.decideDefault(fields.isIncluded("parentProjectId"), actulParentProject == null ? null : actulParentProject.getExternalId());
+
+    if (TeamCityProperties.getBoolean("rest.beans.project.addParentProjectAttributes")) {
+      parentProjectName = actulParentProject == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("parentProjectName"), actulParentProject.getFullName());
+      parentProjectInternalId = actulParentProject == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("parentProjectInternalId", includeInternal, includeInternal),
+                                                                                                   actulParentProject.getProjectId());
     }
   }
 
