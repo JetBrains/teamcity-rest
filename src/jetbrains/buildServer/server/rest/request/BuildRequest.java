@@ -364,7 +364,19 @@ public class BuildRequest {
   @Produces({"application/xml", "application/json"})
   public Tags replaceTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    build.setTags(SessionUser.getUser(request), tags.tags != null ? tags.tags : Collections.<String>emptyList());
+    List<String> tagsToSet;
+    if (tags.tags == null || tags.tags.isEmpty()) {
+      tagsToSet = Collections.<String>emptyList();
+    }else{
+      for (String tag : tags.tags) { //check for empty tags: http://youtrack.jetbrains.com/issue/TW-34426
+        if (StringUtil.isEmpty(tag)){
+          throw new BadRequestException("One of the submitted tags is empty. Cannot apply empty tag.");
+        }
+      }
+      tagsToSet = tags.tags;
+    }
+
+    build.setTags(SessionUser.getUser(request), tagsToSet);
     return new Tags(build.getTags());
   }
 
@@ -382,6 +394,11 @@ public class BuildRequest {
       // Nothing to add
       return;
     }
+    for (String tag : tags.tags) { //check for empty tags: http://youtrack.jetbrains.com/issue/TW-34426
+      if (StringUtil.isEmpty(tag)){
+        throw new BadRequestException("One of the submitted tags is empty. Cannot apply empty tag.");
+      }
+    }
     final List<String> resultingTags = new ArrayList<String>(build.getTags());
     resultingTags.addAll(tags.tags);
     build.setTags(SessionUser.getUser(request), resultingTags);
@@ -398,6 +415,9 @@ public class BuildRequest {
   @Consumes({"text/plain"})
   @Produces({"text/plain"})
   public String addTag(@PathParam("buildLocator") String buildLocator, String tagName, @Context HttpServletRequest request) {
+    if (StringUtil.isEmpty(tagName)){ //check for empty tags: http://youtrack.jetbrains.com/issue/TW-34426
+      throw new BadRequestException("Cannot apply empty tag, should have non empty request body");
+    }
     this.addTags(buildLocator, new Tags(Arrays.asList(tagName)), request);
     return tagName;
   }
