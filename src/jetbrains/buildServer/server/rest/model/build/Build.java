@@ -252,25 +252,36 @@ public class Build {
 
   @XmlElement
   public String getStatusText() {
-    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("statusText", false, true), myBuild.getStatusDescriptor().getText());
+    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("statusText", false, true), new ValueWithDefault.Value<String>() {
+      public String get() {
+        return myBuild.getStatusDescriptor().getText();
+      }
+    });
   }
 
   @XmlElement(name = "agent")
   public AgentRef getAgent() {
-    SBuildAgent agent = null;
-    if (myBuild != null) {
-      agent = myBuild.getAgent();
-    } else if (myQueuedBuild != null) {
-      agent = myQueuedBuild.getBuildAgent();
-    }
-    return agent == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("agent", false), new AgentRef(agent, myApiUrlBuilder));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("agent", false), new ValueWithDefault.Value<AgentRef>() {
+      public AgentRef get() {
+        SBuildAgent agent = null;
+        if (myBuild != null) {
+          agent = myBuild.getAgent();
+        } else if (myQueuedBuild != null) {
+          agent = myQueuedBuild.getBuildAgent();
+        }
+        return agent == null ? null : new AgentRef(agent, myApiUrlBuilder);
+      }
+    });
   }
 
   @XmlElement(name = "buildType")
   public BuildType getBuildType() {
     final SBuildType buildType = myBuildPromotion.getBuildType();
-    return buildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("buildType", false),
-                                                                     new BuildType(new BuildTypeOrTemplate(buildType), myFields.getNestedField("buildType"), myBeanContext));
+    return buildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("buildType", false), new ValueWithDefault.Value<BuildType>() {
+      public BuildType get() {
+        return new BuildType(new BuildTypeOrTemplate(buildType), myFields.getNestedField("buildType"), myBeanContext);
+      }
+    });
   }
 
   @XmlElement
@@ -291,7 +302,11 @@ public class Build {
 
   @XmlElement
   public Tags getTags() {
-    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("tags", false), new Tags(myBuild.getTags()));
+    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("tags", false), new ValueWithDefault.Value<Tags>() {
+      public Tags get() {
+        return new Tags(myBuild.getTags());
+      }
+    });
   }
 
   @XmlElement(name = "pinInfo")
@@ -299,39 +314,55 @@ public class Build {
     if (myBuild == null || !myBuild.isPinned() || !myBuild.isFinished()) {
       return null;
     }
-    SFinishedBuild finishedBuild = (SFinishedBuild)myBuild;  //TeamCity API: getPinComment() is only available for finished build, while isPinned is available for running
-    final jetbrains.buildServer.serverSide.comments.Comment pinComment = finishedBuild.getPinComment();
-    if (pinComment == null) {
-      return null;
-    }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("pinInfo", false), new Comment(pinComment, myApiUrlBuilder));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("pinInfo", false), new ValueWithDefault.Value<Comment>() {
+      public Comment get() {
+        SFinishedBuild finishedBuild = (SFinishedBuild)myBuild;  //TeamCity API: getPinComment() is only available for finished build, while isPinned is available for running
+        final jetbrains.buildServer.serverSide.comments.Comment pinComment = finishedBuild.getPinComment();
+        if (pinComment == null) {
+          return null;
+        }
+        return new Comment(pinComment, myApiUrlBuilder);
+      }
+    });
   }
 
   @XmlElement
   public Properties getProperties() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("properties", false), new Properties(myBuildPromotion.getParameters()));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
+      public Properties get() {
+        return new Properties(myBuildPromotion.getParameters());
+      }
+    });
   }
 
   @XmlElement
   public Properties getCustomProperties() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("customProperties", false), new Properties(myBuildPromotion.getCustomParameters()));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("customProperties", false), new ValueWithDefault.Value<Properties>() {
+      public Properties get() {
+        return new Properties(myBuildPromotion.getCustomParameters());
+      }
+    });
   }
 
   @XmlElement
   public Properties getAttributes() {
-    final Map<String, Object> buildAttributes = ((BuildPromotionEx)myBuildPromotion).getAttributes();
-    final LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
-    if (TeamCityProperties.getBoolean(REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES)) {
-      for (Map.Entry<String, Object> attribute : buildAttributes.entrySet()) {
-        result.put(attribute.getKey(), attribute.getValue().toString());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("attributes", false), new ValueWithDefault.Value<Properties>() {
+      public Properties get() {
+        final Map<String, Object> buildAttributes = ((BuildPromotionEx)myBuildPromotion).getAttributes();
+        final LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
+        if (TeamCityProperties.getBoolean(REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES)) {
+          for (Map.Entry<String, Object> attribute : buildAttributes.entrySet()) {
+            result.put(attribute.getKey(), attribute.getValue().toString());
+          }
+        } else {
+          final Object value = buildAttributes.get(BuildAttributes.CLEAN_SOURCES);
+          if (value != null) {
+            result.put(BuildAttributes.CLEAN_SOURCES, value.toString());
+          }
+        }
+        return new Properties(result);
       }
-    } else {
-      final Object value = buildAttributes.get(BuildAttributes.CLEAN_SOURCES);
-      if (value != null) {
-        result.put(BuildAttributes.CLEAN_SOURCES, value.toString());
-      }
-    }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("attributes", false), new Properties(result));
+    });
   }
 
   @XmlElement
@@ -418,17 +449,20 @@ public class Build {
       //todo: support serving artifact dependencies for queued build, may be rename the node
       return null;
     }
-    final Map<jetbrains.buildServer.Build, List<ArtifactInfo>> artifacts = myBuild.getDownloadedArtifacts().getArtifacts();
-    List<BuildPromotion> builds = new ArrayList<BuildPromotion>(artifacts.size());
-    for (jetbrains.buildServer.Build sourceBuild : artifacts.keySet()) {
-      //TeamCity API: cast to SBuild?
-      builds.add(((SBuild)sourceBuild).getBuildPromotion());
-    }
-    Collections.sort(builds, new BuildPromotionDependenciesComparator());
-    return ValueWithDefault.decideDefault(myFields.isIncluded("artifact-dependencies", false),
-                                          new Builds(builds, null,
-                                                     myFields.getNestedField("artifact-dependencies", Fields.NONE, Fields.LONG),
-                                                     myBeanContext));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("artifact-dependencies", false), new ValueWithDefault.Value<Builds>() {
+      public Builds get() {
+        final Map<jetbrains.buildServer.Build, List<ArtifactInfo>> artifacts = myBuild.getDownloadedArtifacts().getArtifacts();
+        final List<BuildPromotion> builds = new ArrayList<BuildPromotion>(artifacts.size());
+        for (jetbrains.buildServer.Build sourceBuild : artifacts.keySet()) {
+          //TeamCity API: cast to SBuild?
+          builds.add(((SBuild)sourceBuild).getBuildPromotion());
+        }
+        Collections.sort(builds, new BuildPromotionDependenciesComparator());
+        return new Builds(builds, null,
+                          myFields.getNestedField("artifact-dependencies", Fields.NONE, Fields.LONG),
+                          myBeanContext);
+      }
+    });
   }
 
   /**
@@ -440,14 +474,21 @@ public class Build {
       //todo: support serving for the running/finished builds, via a link
       return null;
     }
-    final List<SArtifactDependency> artifactDependencies = ((BuildPromotionEx)myBuildPromotion).getCustomArtifactDependencies(); //TeamCity API: cast
-    return ValueWithDefault.decideDefault(myFields.isIncluded("custom-artifact-dependencies", false),
-                                          new PropEntitiesArtifactDep(artifactDependencies, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder)));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("custom-artifact-dependencies", false), new ValueWithDefault.Value<PropEntitiesArtifactDep>() {
+      public PropEntitiesArtifactDep get() {
+        final List<SArtifactDependency> artifactDependencies = ((BuildPromotionEx)myBuildPromotion).getCustomArtifactDependencies(); //TeamCity API: cast
+        return new PropEntitiesArtifactDep(artifactDependencies, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+      }
+    });
   }
 
   @XmlElement(name = "revisions")
   public Revisions getRevisions() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("revisions", false), new Revisions(myBuildPromotion.getRevisions(), myApiUrlBuilder));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("revisions", false), new ValueWithDefault.Value<Revisions>() {
+      public Revisions get() {
+        return new Revisions(myBuildPromotion.getRevisions(), myApiUrlBuilder);
+      }
+    });
   }
 
   @XmlElement(name = "lastChanges")
@@ -455,17 +496,20 @@ public class Build {
     if (!myFields.isIncluded("lastChanges", false, true)) {
       return null;
     }
-    final List<SVcsModification> result = new ArrayList<SVcsModification>();
-    final Long lastModificationId = myBuildPromotion.getLastModificationId();
-    if (lastModificationId != null && lastModificationId != -1) {
-      SVcsModification modification = myBeanContext.getSingletonService(VcsModificationHistory.class).findChangeById(lastModificationId);
-      if (modification != null) {
-        result.add(modification);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("lastChanges", false), new ValueWithDefault.Value<Changes>() {
+      public Changes get() {
+        final List<SVcsModification> result = new ArrayList<SVcsModification>();
+        final Long lastModificationId = myBuildPromotion.getLastModificationId();
+        if (lastModificationId != null && lastModificationId != -1) {
+          SVcsModification modification = myBeanContext.getSingletonService(VcsModificationHistory.class).findChangeById(lastModificationId);
+          if (modification != null) {
+            result.add(modification);
+          }
+        }
+        result.addAll(myBuildPromotion.getPersonalChanges());
+        return new Changes(result, null, myFields.getNestedField("lastChanges", Fields.NONE, Fields.LONG), myBeanContext);
       }
-    }
-    result.addAll(myBuildPromotion.getPersonalChanges());
-    return ValueWithDefault
-      .decideDefault(myFields.isIncluded("lastChanges", false), new Changes(result, null, myFields.getNestedField("lastChanges", Fields.NONE, Fields.LONG), myBeanContext));
+    });
   }
 
   @XmlElement(name = "changes")
@@ -473,49 +517,67 @@ public class Build {
     if (!myFields.isIncluded("changes", false, true)) {
       return null;
     }
-    final List<SVcsModification> changesInternal = ChangeFinder.getBuildChanges(myBuildPromotion);
-    final String href;
-    if (myBuild != null) {
-      href = ChangeRequest.getBuildChangesHref(myBuild);
-    } else {
-      href = ChangeRequest.getChangesHref(myBuildPromotion);
-    }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("changes", false),
-                                          new Changes(changesInternal, new PagerData(href), myFields.getNestedField("changes"), myBeanContext));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("changes", false), new ValueWithDefault.Value<Changes>() {
+      @Nullable
+      public Changes get() {
+        final List<SVcsModification> changesInternal = ChangeFinder.getBuildChanges(myBuildPromotion);
+        final String href;
+        if (myBuild != null) {
+          href = ChangeRequest.getBuildChangesHref(myBuild);
+        } else {
+          href = ChangeRequest.getChangesHref(myBuildPromotion);
+        }
+        return new Changes(changesInternal, new PagerData(href), myFields.getNestedField("changes"), myBeanContext);
+      }
+    });
   }
 
   @XmlElement(name = "triggered")
   public TriggeredBy getTriggered() {
-    jetbrains.buildServer.serverSide.TriggeredBy triggeredBy = null;
-    if (myBuild != null) {
-      triggeredBy = myBuild.getTriggeredBy();
-    } else if (myQueuedBuild != null) {
-      triggeredBy = myQueuedBuild.getTriggeredBy();
-    }
-    return triggeredBy == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("triggered", false), new TriggeredBy(triggeredBy, myDataProvider, myApiUrlBuilder));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("triggered", false), new ValueWithDefault.Value<TriggeredBy>() {
+      public TriggeredBy get() {
+        jetbrains.buildServer.serverSide.TriggeredBy triggeredBy = null;
+        if (myBuild != null) {
+          triggeredBy = myBuild.getTriggeredBy();
+        } else if (myQueuedBuild != null) {
+          triggeredBy = myQueuedBuild.getTriggeredBy();
+        }
+        return triggeredBy == null ? null : new TriggeredBy(triggeredBy, myDataProvider, myApiUrlBuilder);
+      }
+    });
   }
 
   @XmlElement(name = "relatedIssues")
   public IssueUsages getIssues() {
-    final boolean includeAllInline = TeamCityProperties.getBoolean("rest.beans.build.inlineRelatedIssues");
     return myBuild == null
            ? null
-           : ValueWithDefault.decideDefault(myFields.isIncluded("relatedIssues", false),
-                                            new IssueUsages(myBuild, myFields.getNestedField("relatedIssues", Fields.NONE, includeAllInline ? Fields.LONG : Fields.SHORT),
-                                                            myBeanContext));
+           : ValueWithDefault.decideDefault(myFields.isIncluded("relatedIssues", false), new ValueWithDefault.Value<IssueUsages>() {
+             public IssueUsages get() {
+               final boolean includeAllInline = TeamCityProperties.getBoolean("rest.beans.build.inlineRelatedIssues");
+               return new IssueUsages(myBuild, myFields.getNestedField("relatedIssues", Fields.NONE, includeAllInline ? Fields.LONG : Fields.SHORT), myBeanContext);
+             }
+           });
   }
 
   @XmlElement(name = "user")
   public UserRef getPersonalBuildUser() {
-    final SUser owner = myBuildPromotion.getOwner();
-    return owner == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("user", false), new UserRef(owner, myApiUrlBuilder));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("user", false), new ValueWithDefault.Value<UserRef>() {
+      public UserRef get() {
+        final SUser owner = myBuildPromotion.getOwner();
+        return owner == null ? null : new UserRef(owner, myApiUrlBuilder);
+      }
+    });
   }
 
   @XmlElement(name = "artifacts")
   public Href getArtifacts() {
     if (myBuild == null) return null;
-    final Href value = new Href(BuildArtifactsFinder.fileApiUrlBuilderForBuild(myApiUrlBuilder, myBuild, null).getChildrenHref(null));
-    return ValueWithDefault.decideDefault(myFields.isIncluded("artifacts", false), value);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("artifacts", false), new ValueWithDefault.Value<Href>() {
+      @Nullable
+      public Href get() {
+        return new Href(BuildArtifactsFinder.fileApiUrlBuilderForBuild(myApiUrlBuilder, myBuild, null).getChildrenHref(null));
+      }
+    });
   }
 
   @XmlElement(name = "testOccurrences")
@@ -623,7 +685,11 @@ public class Build {
 
   @XmlElement(name = CANCELED_INFO)
   public Comment getCanceledInfo() {  //TeamCity API: is only available for running or finished build, while isCanceled is available for queued
-    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded(CANCELED_INFO, false), getCanceledComment(myBuild, myApiUrlBuilder, myServiceLocator));
+    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded(CANCELED_INFO, false), new ValueWithDefault.Value<Comment>() {
+      public Comment get() {
+        return getCanceledComment(myBuild, myApiUrlBuilder, myServiceLocator);
+      }
+    });
   }
 
 
@@ -640,25 +706,31 @@ public class Build {
 
   @XmlElement(name = "compatibleAgents")
   public Href getCompatibleAgents() {
-    return myQueuedBuild == null
-           ? null
-           : ValueWithDefault.decideDefault(myFields.isIncluded("compatibleAgents", false), new Href(BuildQueueRequest.getCompatibleAgentsHref(myQueuedBuild), myApiUrlBuilder));
+    return myQueuedBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("compatibleAgents", false), new ValueWithDefault.Value<Href>() {
+      public Href get() {
+        return new Href(BuildQueueRequest.getCompatibleAgentsHref(myQueuedBuild), myApiUrlBuilder);
+      }
+    });
   }
 
   @XmlElement
   public String getStartEstimate() {
     final Boolean include = myFields.isIncluded("startEstimate", false);
     if (myQueuedBuild == null || (include != null && !include)) return null;
+    return ValueWithDefault.decideDefault(include, new ValueWithDefault.Value<String>() {
+      @Nullable
+      public String get() {
+        final BuildEstimates buildEstimates = myQueuedBuild.getBuildEstimates();
+        if (buildEstimates == null) return null;
 
-    final BuildEstimates buildEstimates = myQueuedBuild.getBuildEstimates();
-    if (buildEstimates == null) return null;
+        final TimeInterval timeInterval = buildEstimates.getTimeInterval();
+        if (timeInterval == null) return null;
 
-    final TimeInterval timeInterval = buildEstimates.getTimeInterval();
-    if (timeInterval == null) return null;
-
-    final TimePoint endPoint = timeInterval.getEndPoint();
-    if (endPoint == null) return null;
-    return ValueWithDefault.decideDefault(include, Util.formatTime(endPoint.getAbsoluteTime()));
+        final TimePoint endPoint = timeInterval.getEndPoint();
+        if (endPoint == null) return null;
+        return Util.formatTime(endPoint.getAbsoluteTime());
+      }
+    });
   }
 
   @XmlElement
@@ -666,12 +738,17 @@ public class Build {
     final Boolean include = myFields.isIncluded("waitReason", false);
     if (myQueuedBuild == null || (include != null && !include)) return null;
 
-    final BuildEstimates buildEstimates = myQueuedBuild.getBuildEstimates();
-    if (buildEstimates == null) return null;
+    return ValueWithDefault.decideDefault(include, new ValueWithDefault.Value<String>() {
+      @Nullable
+      public String get() {
+        final BuildEstimates buildEstimates = myQueuedBuild.getBuildEstimates();
+        if (buildEstimates == null) return null;
 
-    final WaitReason waitReason = buildEstimates.getWaitReason();
-    if (waitReason == null) return null;
-    return ValueWithDefault.decideDefault(include, waitReason.getDescription());
+        final WaitReason waitReason = buildEstimates.getWaitReason();
+        if (waitReason == null) return null;
+        return waitReason.getDescription();
+      }
+    });
   }
 
   public static Comment getCanceledComment(@NotNull final SBuild build, @NotNull final ApiUrlBuilder apiUrlBuilder, @NotNull final ServiceLocator serviceLocator) {
