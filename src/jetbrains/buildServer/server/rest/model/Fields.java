@@ -187,6 +187,11 @@ public class Fields {
     return new Fields(fieldSpec, newRestrictedFields, true);
   }
 
+  @Nullable
+  public String getCustomDimension(@NotNull final String nestedFieldName) {
+    return getParsedCustomFields().getSingleDimensionValue(nestedFieldName);
+  }
+
   private static String minPattern(final String a, final String b) {
     if (ALL_NESTED_FIELDS_PATTERN.equals(a)) {
       return b;
