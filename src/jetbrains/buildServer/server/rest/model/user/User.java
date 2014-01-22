@@ -26,10 +26,12 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
@@ -45,68 +47,86 @@ import org.jetbrains.annotations.Nullable;
 "properties", "roles", "groups"})
 public class User {
   private SUser myUser;
+  private Fields myFields;
   private BeanContext myContext;
 
   public User() {
   }
 
-  public User(SUser user, @NotNull final BeanContext context) {
-    this.myUser = user;
+  public User(jetbrains.buildServer.users.User user, @NotNull final Fields fields, @NotNull final BeanContext context) {
+    this.myUser = (SUser)user;
+    myFields = fields;
     myContext = context;
   }
 
   @XmlAttribute
   public Long getId() {
-    return myUser.getId();
+    return  ValueWithDefault.decideDefault(myFields.isIncluded("id"), myUser.getId());
   }
 
   @XmlAttribute
   public String getName() {
-    return myUser.getName();
+    return ValueWithDefault.decideDefault(myFields.isIncluded("name"), StringUtil.isEmpty(myUser.getName()) ? null : myUser.getName());
   }
 
   @XmlAttribute
   public String getUsername() {
-    return myUser.getUsername();
+    return ValueWithDefault.decideDefault(myFields.isIncluded("username"), myUser.getUsername());
   }
 
   @XmlAttribute
   public String getLastLogin() {
-    Date lastLoginTimestamp = myUser.getLastLoginTimestamp();
-    if (lastLoginTimestamp != null) {
-      return Util.formatTime(lastLoginTimestamp);
-    }
-    return null;
+    return ValueWithDefault.decideDefault(myFields.isIncluded("lastLogin", false), new ValueWithDefault.Value<String>() {
+      public String get() {
+        Date lastLoginTimestamp = myUser.getLastLoginTimestamp();
+        if (lastLoginTimestamp != null) {
+          return Util.formatTime(lastLoginTimestamp);
+        }
+        return null;
+      }
+    });
   }
 
   @XmlAttribute
   public String getHref() {
-    return myContext.getContextService(ApiUrlBuilder.class).getHref(myUser);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("href"), myContext.getContextService(ApiUrlBuilder.class).getHref(myUser));
   }
 
   @XmlAttribute
   public String getEmail() {
-    return myUser.getEmail();
+    return ValueWithDefault.decideDefault(myFields.isIncluded("email"), StringUtil.isEmpty(myUser.getEmail()) ? null : myUser.getEmail());
   }
 
   @XmlElement(name = "roles")
   public RoleAssignments getRoles() {
-    return new RoleAssignments(myUser.getRoles(), myUser, myContext);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("roles", false), new ValueWithDefault.Value<RoleAssignments>() {
+      public RoleAssignments get() {
+        return new RoleAssignments(myUser.getRoles(), myUser, myContext);
+      }
+    });
   }
 
   @XmlElement(name = "groups")
   public Groups getGroups() {
-    return new Groups(myUser.getUserGroups(), myContext.getContextService(ApiUrlBuilder.class));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("groups", false), new ValueWithDefault.Value<Groups>() {
+      public Groups get() {
+        return new Groups(myUser.getUserGroups(), myFields.getNestedField("groups"), myContext);
+      }
+    });
   }
 
   @XmlAttribute
   public String getRealm() {
-    return myUser.getRealm();
+    return ValueWithDefault.decideDefault(myFields.isIncluded("realm", false), myUser.getRealm());
   }
 
   @XmlElement(name = "properties")
   public Properties getProperties() {
-    return new Properties(getUserProperties(myUser));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
+      public Properties get() {
+        return new Properties(getUserProperties(myUser));
+      }
+    });
   }
 
   public static Map<String, String> getUserProperties(final SUser user) {

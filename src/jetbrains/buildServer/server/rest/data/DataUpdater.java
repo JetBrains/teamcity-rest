@@ -25,7 +25,6 @@ import jetbrains.buildServer.server.rest.errors.PartialUpdateError;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.group.Group;
-import jetbrains.buildServer.server.rest.model.group.GroupRef;
 import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
@@ -153,8 +152,13 @@ public class DataUpdater {
     myGroupManager.deleteUserGroup(group);
   }
 
-  private void addGroups(final SUser user, final Groups groups) {
+  public void addGroups(final SUser user, final Groups groups) {
+    for (SUserGroup userGroup : groups.getFromPosted(myDataProvider.getServer())) {
+      userGroup.addUser(user);
+    }
+    /*
     final ArrayList<Throwable> errors = new ArrayList<Throwable>();
+    groups.getFromPosted(myDataProvider.getServer())
     for (GroupRef group : groups.groups) {
       final SUserGroup foundGroup = myGroupManager.findUserGroupByKey(group.key);
       if (foundGroup != null) {
@@ -166,11 +170,12 @@ public class DataUpdater {
     if (errors.size() != 0) {
       throw new PartialUpdateError("Partial error adding user " + user.describe(false) + " to groups " + groups, errors);
     }
+    */
   }
 
-  private void removeAllGroups(final SUser user) {
+  public void removeAllGroups(final SUser user) {
     for (UserGroup group : user.getUserGroups()) {
-      if (!myGroupManager.isAllUsersGroup((SUserGroup)group)) //todo (TeamCity) need to cast
+      if (!myGroupManager.isAllUsersGroup((SUserGroup)group)) //TeamCity API issue: cast
       ((SUserGroup)group).removeUser(user);
     }
   }

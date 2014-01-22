@@ -29,7 +29,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
-import jetbrains.buildServer.server.rest.model.user.UserRef;
+import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.WebLinks;
@@ -105,15 +105,15 @@ public class Change {
   }
 
   @XmlElement(name = "user")
-  public UserRef getUser() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("user", false), new ValueWithDefault.Value<UserRef>() {
+  public User getUser() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("user", false), new ValueWithDefault.Value<User>() {
       @Nullable
-      public UserRef get() {
+      public User get() {
         final Collection<SUser> users = myModification.getCommitters();
         if (users.size() != 1){
           return null;
         }
-        return new UserRef(users.iterator().next(), myApiUrlBuilder);
+        return new User(users.iterator().next(), myFields.getNestedField("user"), myBeanContext);
       }
     });
   }

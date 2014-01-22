@@ -20,21 +20,22 @@ import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
-import jetbrains.buildServer.server.rest.model.user.UserRef;
+import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.TriggeredByBuilder;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.impl.BuildServerImpl;
 import jetbrains.buildServer.users.SUser;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
@@ -55,7 +56,7 @@ public class TriggeredBy {
 
 
   @XmlElement(name = "user")
-  public UserRef user;
+  public User user;
 
   @XmlElement(name = "buildType")
   public BuildType buildType;
@@ -75,25 +76,32 @@ public class TriggeredBy {
   public TriggeredBy() {
   }
 
-  public TriggeredBy(final jetbrains.buildServer.serverSide.TriggeredBy triggeredBy,
-                     final DataProvider dataProvider,
-                     final ApiUrlBuilder apiUrlBuilder) {
-    date = Util.formatTime(triggeredBy.getTriggeredDate());
+  public TriggeredBy(final jetbrains.buildServer.serverSide.TriggeredBy triggeredBy, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    date = ValueWithDefault.decideDefault(fields.isIncluded("date"), Util.formatTime(triggeredBy.getTriggeredDate()));
     final SUser user1 = triggeredBy.getUser();
-    user = user1 != null ? new UserRef(user1, apiUrlBuilder) : null;
+    user = user1 == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("user"), new ValueWithDefault.Value<User>() {
+      public User get() {
+        return new User(user1, fields.getNestedField("user"), beanContext);
+      }
+    });
 
-    //todo: (TeamCity) would be cool to extract common logic from ServerTriggeredByProcessor.render and provide visitor as a service
-    setType(triggeredBy, dataProvider, apiUrlBuilder);
+    //TeamCity API issue: would be cool to extract common logic from ServerTriggeredByProcessor.render and provide visitor as a service
+    setType(triggeredBy, fields, beanContext);
 
-    if (TeamCityProperties.getBoolean("rest.internalMode")) {
-      rawValue = triggeredBy.getRawTriggeredBy();
-      properties = new Properties(triggeredBy.getParameters());
-    }
+    final boolean includeProp = TeamCityProperties.getBoolean("rest.internalMode");
+    rawValue = ValueWithDefault.decideDefault(fields.isIncluded("rawValue", includeProp, includeProp), new ValueWithDefault.Value<String>() {
+      public String get() {
+        return triggeredBy.getRawTriggeredBy();
+      }
+    });
+    properties = ValueWithDefault.decideDefault(fields.isIncluded("properties", includeProp, includeProp), new ValueWithDefault.Value<Properties>() {
+      public Properties get() {
+        return new Properties(triggeredBy.getParameters());
+      }
+    });
   }
 
-  private void setType(final jetbrains.buildServer.serverSide.TriggeredBy triggeredBy,
-                       final DataProvider dataProvider,
-                       final ApiUrlBuilder apiUrlBuilder) {
+  private void setType(final jetbrains.buildServer.serverSide.TriggeredBy triggeredBy, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     final String rawTriggeredBy = triggeredBy.getRawTriggeredBy();
     if (rawTriggeredBy != null && !rawTriggeredBy.startsWith(TriggeredByBuilder.PARAMETERS_PREFIX)) {
       type = "unknown";
@@ -106,10 +114,14 @@ public class TriggeredBy {
     if (buildTypeId != null) {
       type = "buildType";
       try {
-        final SBuildType foundBuildType = dataProvider.getServer().getProjectManager().findBuildTypeById(buildTypeId);
+        final SBuildType foundBuildType = beanContext.getSingletonService(ProjectManager.class).findBuildTypeById(buildTypeId);
         buildType = foundBuildType == null
                     ? null
-                    : new BuildType(new BuildTypeOrTemplate(foundBuildType), Fields.SHORT, new BeanContext(dataProvider.getBeanFactory(), dataProvider.getServer(), apiUrlBuilder));
+                    : ValueWithDefault.decideDefault(fields.isIncluded("buildType"), new ValueWithDefault.Value<BuildType>() {
+                      public BuildType get() {
+                        return new BuildType(new BuildTypeOrTemplate(foundBuildType), fields.getNestedField("buildType", Fields.NONE, Fields.SHORT), beanContext);
+                      }
+                    });
       } catch (AccessDeniedException e) {
         buildType = null; //ignoring inability to view the triggering build type
       }

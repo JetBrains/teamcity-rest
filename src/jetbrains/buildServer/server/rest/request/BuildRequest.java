@@ -489,9 +489,9 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/" + Build.CANCELED_INFO)
   @Produces({"application/xml", "application/json"})
-  public Comment getCanceledInfo(@PathParam("buildLocator") String buildLocator) {
+  public Comment getCanceledInfo(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return Build.getCanceledComment(build, myBeanContext.getApiUrlBuilder(), myBeanContext.getServiceLocator());
+    return Build.getCanceledComment(build, new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @GET

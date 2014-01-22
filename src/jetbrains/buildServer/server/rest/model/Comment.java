@@ -16,11 +16,13 @@
 
 package jetbrains.buildServer.server.rest.model;
 
+import com.intellij.openapi.util.text.StringUtil;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.model.user.UserRef;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -29,10 +31,11 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 21.07.2009
  */
-@XmlType
+@XmlType(name= "comment")
+@XmlRootElement(name = "comment")
 public class Comment {
   @XmlElement(name = "user")
-  public UserRef user;
+  public jetbrains.buildServer.server.rest.model.user.User user;
   @XmlElement
   public String timestamp;
   @XmlElement
@@ -41,20 +44,26 @@ public class Comment {
   public Comment() {
   }
 
-  public Comment(@NotNull jetbrains.buildServer.serverSide.comments.Comment buildComment, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    init(buildComment.getUser(), buildComment.getTimestamp(), buildComment.getComment(), apiUrlBuilder);
+  public Comment(@NotNull jetbrains.buildServer.serverSide.comments.Comment buildComment, @NotNull final Fields fields, @NotNull final BeanContext context) {
+    init(buildComment.getUser(), buildComment.getTimestamp(), buildComment.getComment(), fields, context);
   }
 
-  public Comment(@Nullable User user, @NotNull Date timestamp, @Nullable String commentText, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    init(user, timestamp, commentText, apiUrlBuilder);
+  public Comment(@Nullable User user, @NotNull Date timestamp, @Nullable String commentText, @NotNull final Fields fields, @NotNull final BeanContext context) {
+    init(user, timestamp, commentText, fields, context);
   }
 
-  private void init(@Nullable User userP,
-                    @NotNull Date timestampP,
-                    @Nullable String commentTextP,
-                    @NotNull final ApiUrlBuilder apiUrlBuilderP) {
-    user = userP == null ? null : new UserRef(userP, apiUrlBuilderP);
-    timestamp = Util.formatTime(timestampP);
-    text = commentTextP == null ? null : commentTextP;
+  private void init(@Nullable final User userP,
+                    @NotNull final Date timestampP,
+                    @Nullable final String commentTextP,
+                    @NotNull final Fields fields,
+                    @NotNull final BeanContext context) {
+    user = userP == null ? null : ValueWithDefault
+          .decideDefault(fields.isIncluded("user"), new ValueWithDefault.Value<jetbrains.buildServer.server.rest.model.user.User>() {
+            public jetbrains.buildServer.server.rest.model.user.User get() {
+              return new jetbrains.buildServer.server.rest.model.user.User(userP, fields.getNestedField("user"), context);
+            }
+          });
+    timestamp = ValueWithDefault.decideDefault(fields.isIncluded("timestamp"), Util.formatTime(timestampP));
+    text = ValueWithDefault.decideDefault(fields.isIncluded("text"), StringUtil.isEmpty(commentTextP) ? null : commentTextP);
   }
 }

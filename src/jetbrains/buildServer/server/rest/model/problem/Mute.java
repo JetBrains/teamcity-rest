@@ -67,7 +67,7 @@ public class Mute {
     } else {
       boundingProject = new Project(null, item.getProjectId(), beanContext.getApiUrlBuilder());
     }
-    comment = new Comment(item.getMutingUser(), item.getMutingTime(), item.getMutingComment(), beanContext.getApiUrlBuilder());
+    comment = new Comment(item.getMutingUser(), item.getMutingTime(), item.getMutingComment(), fields.getNestedField("comment", Fields.NONE, Fields.LONG), beanContext);
 
     final MuteScope scope = item.getScope();
     switch (scope.getScopeType()) {

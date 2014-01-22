@@ -19,10 +19,14 @@ package jetbrains.buildServer.server.rest.model.user;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -32,18 +36,24 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "users")
 @XmlType(name = "users")
 public class Users {
+  @XmlAttribute
+  public Integer count;
+
   @XmlElement(name = "user")
-  public List<UserRef> users;
+  public List<User> users;
   private ApiUrlBuilder myApiUrlBuilder;
 
   public Users() {
   }
 
-  public Users(Collection<jetbrains.buildServer.users.User> userObjects, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    myApiUrlBuilder = apiUrlBuilder;
-    users = new ArrayList<UserRef>(userObjects.size());
-    for (jetbrains.buildServer.users.User user : userObjects) {
-      users.add(new UserRef(user, myApiUrlBuilder));
+  public Users(Collection<jetbrains.buildServer.users.User> userObjects, @NotNull final Fields fields, @NotNull final BeanContext context) {
+    if (fields.isIncluded("user", false, true)) {
+      users = new ArrayList<User>(userObjects.size());
+      final Fields nestedFields = fields.getNestedField("user");
+      for (jetbrains.buildServer.users.User user : userObjects) {
+        users.add(new User(user, fields.getNestedField("user"), context));
+      }
     }
+    count = userObjects == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("count"), userObjects.size());
   }
 }

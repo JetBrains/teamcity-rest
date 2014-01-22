@@ -19,14 +19,17 @@ package jetbrains.buildServer.server.rest.model.group;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
@@ -38,17 +41,24 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "groups")
 @XmlType(name = "groups")
 public class Groups {
+  @XmlAttribute
+  public Integer count;
+
   @XmlElement(name = "group")
-  public List<GroupRef> groups;
+  public List<Group> groups;
 
   public Groups() {
   }
 
-  public Groups(Collection<UserGroup> userGroups, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    groups = new ArrayList<GroupRef>(userGroups.size());
-    for (UserGroup userGroup : userGroups) {
-      groups.add(new GroupRef(userGroup, apiUrlBuilder));
+  public Groups(Collection<UserGroup> userGroups, @NotNull final Fields fields, @NotNull final BeanContext context) {
+    if (fields.isIncluded("group", false, true)) {
+      groups = new ArrayList<Group>(userGroups.size());
+      final Fields nestedFields = fields.getNestedField("group");
+      for (UserGroup userGroup : userGroups) {
+        groups.add(new Group((SUserGroup)userGroup, nestedFields, context)); //TeamCity API issue: cast
+      }
     }
+    count = userGroups == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("count"), userGroups.size());
   }
 
   @NotNull
@@ -56,8 +66,8 @@ public class Groups {
     if (groups == null) {
       throw new BadRequestException("No groups elements is supplied for the groups list.");
     }
-    return CollectionsUtil.convertCollection(groups, new Converter<SUserGroup, GroupRef>() {
-      public SUserGroup createFrom(@NotNull final GroupRef source) {
+    return CollectionsUtil.convertCollection(groups, new Converter<SUserGroup, Group>() {
+      public SUserGroup createFrom(@NotNull final Group source) {
         return source.getFromPosted(serviceLocator);
       }
     });

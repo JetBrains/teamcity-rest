@@ -16,15 +16,22 @@
 
 package jetbrains.buildServer.server.rest.model.group;
 
+import com.intellij.openapi.util.text.StringUtil;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.SUserGroup;
+import jetbrains.buildServer.groups.UserGroupManager;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.server.rest.model.user.Users;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -33,7 +40,14 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlRootElement(name = "group")
 @XmlType(name = "group")
-public class Group extends GroupRef {
+public class Group {
+  @XmlAttribute
+  public String key;
+  @XmlAttribute
+  public String name;
+  @XmlAttribute
+  public String href;
+
   @XmlAttribute(name = "description")
   public String description;
 
@@ -52,13 +66,43 @@ public class Group extends GroupRef {
   public Group() {
   }
 
-  public Group(SUserGroup userGroup, @NotNull final BeanContext context) {
-    super(userGroup, context.getContextService(ApiUrlBuilder.class));
-    description = userGroup.getDescription();
+  public Group(@NotNull final SUserGroup userGroup, @NotNull final Fields fields, @NotNull final BeanContext context) {
+    this.key = ValueWithDefault.decideDefault(fields.isIncluded("key"), userGroup.getKey());
+    this.name = ValueWithDefault.decideDefault(fields.isIncluded("name"), userGroup.getName());
+    this.href = ValueWithDefault.decideDefault(fields.isIncluded("href"), context.getApiUrlBuilder().getHref(userGroup));
+    this.description = ValueWithDefault.decideDefault(fields.isIncluded("description"), StringUtil.isEmpty(userGroup.getDescription()) ? null : userGroup.getDescription());
     final ApiUrlBuilder apiUrlBuilder = context.getContextService(ApiUrlBuilder.class);
-    parentGroups = new Groups(userGroup.getParentGroups(), apiUrlBuilder);
-    childGroups = new Groups(userGroup.getDirectSubgroups(), apiUrlBuilder);
-    users = new Users(userGroup.getDirectUsers(), apiUrlBuilder);
-    roleAssignments = new RoleAssignments(userGroup.getRoles(), userGroup, context);
+    parentGroups = ValueWithDefault.decideDefault(fields.isIncluded("parent-groups", false), new ValueWithDefault.Value<Groups>() {
+      public Groups get() {
+        return new Groups(userGroup.getParentGroups(), fields.getNestedField("parent-groups", Fields.NONE, Fields.LONG), context);
+      }
+    });
+    childGroups = ValueWithDefault.decideDefault(fields.isIncluded("child-groups", false), new ValueWithDefault.Value<Groups>() {
+      public Groups get() {
+        return new Groups(userGroup.getDirectSubgroups(), fields.getNestedField("child-groups", Fields.NONE, Fields.LONG), context);
+      }
+    });
+    users = ValueWithDefault.decideDefault(fields.isIncluded("users", false), new ValueWithDefault.Value<Users>() {
+      public Users get() {
+        return new Users(userGroup.getDirectUsers(), fields.getNestedField("users", Fields.NONE, Fields.LONG), context);
+      }
+    });
+    roleAssignments = ValueWithDefault.decideDefault(fields.isIncluded("roles", false), new ValueWithDefault.Value<RoleAssignments>() {
+      public RoleAssignments get() {
+        return new RoleAssignments(userGroup.getRoles(), userGroup, context);
+      }
+    });
+  }
+
+  @NotNull
+  public SUserGroup getFromPosted(final ServiceLocator serviceLocator) {
+    if (key == null) {
+      throw new BadRequestException("No 'key' attribute is supplied for the posted group.");
+    }
+    final SUserGroup userGroupByKey = serviceLocator.getSingletonService(UserGroupManager.class).findUserGroupByKey(key);
+    if (userGroupByKey == null) {
+      throw new NotFoundException("No group is found by key '" + key + "'");
+    }
+    return userGroupByKey;
   }
 }

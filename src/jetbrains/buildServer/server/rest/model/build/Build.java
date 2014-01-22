@@ -39,7 +39,7 @@ import jetbrains.buildServer.server.rest.model.change.Revisions;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
-import jetbrains.buildServer.server.rest.model.user.UserRef;
+import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.request.*;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
@@ -55,7 +55,6 @@ import jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
 import jetbrains.buildServer.users.SUser;
-import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -297,7 +296,11 @@ public class Build {
   @XmlElement(defaultValue = "") //todo: remove comment
   public Comment getComment() {
     final jetbrains.buildServer.serverSide.comments.Comment comment = myBuildPromotion.getBuildComment();
-    return comment == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("comment", false), new Comment(comment, myApiUrlBuilder));
+    return comment == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("comment", false), new ValueWithDefault.Value<Comment>() {
+      public Comment get() {
+        return new Comment(comment, myFields.getNestedField("comment", Fields.NONE, Fields.LONG), myBeanContext);
+      }
+    });
   }
 
   @XmlElement
@@ -321,7 +324,7 @@ public class Build {
         if (pinComment == null) {
           return null;
         }
-        return new Comment(pinComment, myApiUrlBuilder);
+        return new Comment(pinComment, myFields.getNestedField("pinInfo", Fields.NONE, Fields.LONG), myBeanContext);
       }
     });
   }
@@ -542,7 +545,7 @@ public class Build {
         } else if (myQueuedBuild != null) {
           triggeredBy = myQueuedBuild.getTriggeredBy();
         }
-        return triggeredBy == null ? null : new TriggeredBy(triggeredBy, myDataProvider, myApiUrlBuilder);
+        return triggeredBy == null ? null : new TriggeredBy(triggeredBy, myFields.getNestedField("triggered", Fields.NONE, Fields.LONG),myBeanContext);
       }
     });
   }
@@ -560,11 +563,11 @@ public class Build {
   }
 
   @XmlElement(name = "user")
-  public UserRef getPersonalBuildUser() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("user", false), new ValueWithDefault.Value<UserRef>() {
-      public UserRef get() {
+  public jetbrains.buildServer.server.rest.model.user.User getPersonalBuildUser() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("user", false), new ValueWithDefault.Value<jetbrains.buildServer.server.rest.model.user.User>() {
+      public jetbrains.buildServer.server.rest.model.user.User get() {
         final SUser owner = myBuildPromotion.getOwner();
-        return owner == null ? null : new UserRef(owner, myApiUrlBuilder);
+        return owner == null ? null : new User(owner, myFields.getNestedField("user"), myBeanContext);
       }
     });
   }
@@ -687,7 +690,7 @@ public class Build {
   public Comment getCanceledInfo() {  //TeamCity API: is only available for running or finished build, while isCanceled is available for queued
     return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded(CANCELED_INFO, false), new ValueWithDefault.Value<Comment>() {
       public Comment get() {
-        return getCanceledComment(myBuild, myApiUrlBuilder, myServiceLocator);
+        return getCanceledComment(myBuild, myFields.getNestedField(CANCELED_INFO, Fields.NONE, Fields.LONG), myBeanContext);
       }
     });
   }
@@ -751,17 +754,17 @@ public class Build {
     });
   }
 
-  public static Comment getCanceledComment(@NotNull final SBuild build, @NotNull final ApiUrlBuilder apiUrlBuilder, @NotNull final ServiceLocator serviceLocator) {
+  public static Comment getCanceledComment(@NotNull final SBuild build, @NotNull final Fields fields, @NotNull final BeanContext context) {
     final CanceledInfo canceledInfo = build.getCanceledInfo();
     if (canceledInfo == null) return null;
 
-    User user = null;
+    jetbrains.buildServer.users.User user = null;
     if (canceledInfo.isCanceledByUser()) {
       final Long userId = canceledInfo.getUserId();
       assert userId != null;
-      user = serviceLocator.getSingletonService(UserModel.class).findUserById(userId);
+      user = context.getSingletonService(UserModel.class).findUserById(userId);
     }
-    return new Comment(user, new Date(canceledInfo.getCreatedAt()), canceledInfo.getComment(), apiUrlBuilder);
+    return new Comment(user, new Date(canceledInfo.getCreatedAt()), canceledInfo.getComment(), fields, context);
   }
 
   /**

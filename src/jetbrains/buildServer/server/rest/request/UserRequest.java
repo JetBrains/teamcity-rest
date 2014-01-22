@@ -19,16 +19,15 @@ package jetbrains.buildServer.server.rest.request;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.groups.SUserGroup;
-import jetbrains.buildServer.groups.UserGroup;
-import jetbrains.buildServer.groups.UserGroupManager;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
 import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
-import jetbrains.buildServer.server.rest.model.group.GroupRef;
+import jetbrains.buildServer.server.rest.model.group.Group;
 import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
@@ -67,26 +66,26 @@ public class UserRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
-  public Users serveUsers() {
+  public Users serveUsers(@QueryParam("fields") String fields) {
     if (TeamCityProperties.getBooleanOrTrue(REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
       myUserFinder.checkViewAllUsersPermission();
     }
-    return new Users(myDataProvider.getAllUsers(), myApiUrlBuilder);
+    return new Users(myDataProvider.getAllUsers(), new Fields(fields,Fields.LONG), myBeanContext);
   }
 
   @POST
   @Consumes({"application/xml", "application/json"})
-  public User createUser(User userData) {
+  public User createUser(User userData, @QueryParam("fields") String fields) {
     final SUser user = myDataUpdater.createUser(userData.getSubmittedUsername());
     myDataUpdater.modify(user, userData, myBeanContext);
-    return new User(user, myBeanContext);
+    return new User(user, new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @GET
   @Path("/{userLocator}")
   @Produces({"application/xml", "application/json"})
-  public User serveUser(@PathParam("userLocator") String userLocator) {
-    return new User(myUserFinder.getUser(userLocator), myBeanContext);
+  public User serveUser(@PathParam("userLocator") String userLocator, @QueryParam("fields") String fields) {
+    return new User(myUserFinder.getUser(userLocator), new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @DELETE
@@ -101,10 +100,10 @@ public class UserRequest {
   @Path("/{userLocator}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public User updateUser(@PathParam("userLocator") String userLocator, User userData) {
+  public User updateUser(@PathParam("userLocator") String userLocator, User userData, @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getUser(userLocator);
     myDataUpdater.modify(user, userData, myBeanContext);
-    return new User(user, myBeanContext);
+    return new User(user, new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @GET
@@ -253,10 +252,10 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/groups")
   @Produces({"application/xml", "application/json"})
-  public Groups getGroups(@PathParam("userLocator") String userLocator) {
+  public Groups getGroups(@PathParam("userLocator") String userLocator, @QueryParam("fields") String fields) {
     myUserFinder.checkViewUserPermission(userLocator);
     SUser user = myUserFinder.getUser(userLocator);
-    return new Groups(user.getUserGroups(), myApiUrlBuilder);
+    return new Groups(user.getUserGroups(), new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   /**
@@ -266,32 +265,22 @@ public class UserRequest {
   @Path("/{userLocator}/groups")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Groups replaceGroups(@PathParam("userLocator") String userLocator, Groups groups) {
+  public Groups replaceGroups(@PathParam("userLocator") String userLocator, Groups groups, @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getUser(userLocator);
-
-    final String allUserGroupKey = myBeanContext.getServiceLocator().getSingletonService(UserGroupManager.class).getAllUsersGroup().getKey();
-    for (UserGroup userGroup : user.getUserGroups()) {
-      if (!allUserGroupKey.equals(userGroup.getKey())){
-        ((SUserGroup)userGroup).removeUser(user); //TeamCity API issue: cast
-      }
-    }
-    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
-    for (SUserGroup userGroup : groups.getFromPosted(context.getServiceLocator())) {
-      userGroup.addUser(user);
-    }
-    return new Groups(user.getUserGroups(), myApiUrlBuilder);
+    myDataUpdater.removeAllGroups(user);
+    myDataUpdater.addGroups(user, groups);
+    return new Groups(user.getUserGroups(), new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @POST
   @Path("/{userLocator}/groups")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public GroupRef addGroup(@PathParam("userLocator") String userLocator, GroupRef group) {
+  public Group addGroup(@PathParam("userLocator") String userLocator, Group group, @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getUser(userLocator);
-    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
-    SUserGroup userGroup = group.getFromPosted(context.getServiceLocator());
+    SUserGroup userGroup = group.getFromPosted(myBeanContext.getServiceLocator());
     userGroup.addUser(user);
-    return new GroupRef(userGroup, myApiUrlBuilder);
+    return new Group(userGroup, new Fields(fields, Fields.LONG), myBeanContext);
   }
 
 }
