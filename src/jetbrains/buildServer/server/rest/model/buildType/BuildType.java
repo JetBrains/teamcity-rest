@@ -26,10 +26,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptorFactory;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.APIController;
-import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.data.ProjectFinder;
-import jetbrains.buildServer.server.rest.data.VcsRootFinder;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.build.Builds;
@@ -205,8 +202,21 @@ public class BuildType {
       return null;
     }
 
-    final String buildsHref = myBeanContext.getApiUrlBuilder().getBuildsHref(myBuildType.getBuildType());
-    return ValueWithDefault.decideDefault(myFields.isIncluded("builds", false), new Builds(null, new PagerData(buildsHref), myFields.getNestedField("builds"), myBeanContext));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("builds", false), new ValueWithDefault.Value<Builds>() {
+      public Builds get() {
+        String buildsHref;
+        List<BuildPromotion> builds = null;
+        final Fields buildsFields = myFields.getNestedField("builds");
+        final String buildsLocator = buildsFields.getCustomDimension("locator");
+        if (buildsLocator != null){
+          builds = BuildFinder.getBuildPromotions(myBeanContext.getSingletonService(BuildFinder.class).getBuildsSimplified(myBuildType.getBuildType(), buildsLocator));
+          buildsHref = myBeanContext.getApiUrlBuilder().transformRelativePath(BuildTypeRequest.getBuildsHref(myBuildType.getBuildType(), buildsLocator));
+        }else{
+          buildsHref = myBeanContext.getApiUrlBuilder().getBuildsHref(myBuildType.getBuildType());
+        }
+        return new Builds(builds, new PagerData(buildsHref), buildsFields, myBeanContext);
+      }
+    });
   }
 
   @XmlElement

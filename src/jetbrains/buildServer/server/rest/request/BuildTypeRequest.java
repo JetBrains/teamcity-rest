@@ -103,6 +103,10 @@ public class BuildTypeRequest {
     return getBuildTypeHref(buildType) + "/builds/";
   }
 
+  public static String getBuildsHref(final SBuildType buildType, @NotNull String locator) {
+    return getBuildTypeHref(buildType) + "/builds" + "?locator=" + locator; //todo: URL-escape
+  }
+
   @GET
   @Produces({"application/xml", "application/json"})
   public BuildTypes serveBuildTypesXML(@QueryParam("fields") String fields) {

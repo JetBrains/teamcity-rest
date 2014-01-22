@@ -130,6 +130,22 @@ public class BuildFinder {
                       fields, beanContext);
   }
 
+  public List<SBuild> getBuildsSimplified(final SBuildType buildType, @NotNull final String locatorText) {
+    BuildsFilter buildsFilter;
+    Locator locator = new Locator(locatorText);
+    buildsFilter = getBuildsFilter(locator, buildType);
+    locator.checkLocatorFullyProcessed();
+
+    final Integer c = buildsFilter.getCount();
+    if (c != null) {
+      buildsFilter.setCount(c != -1 ? c : null);
+    } else {
+      buildsFilter.setCount(jetbrains.buildServer.server.rest.request.Constants.DEFAULT_PAGE_ITEMS_COUNT_INT);
+    }
+
+    return getBuilds(buildsFilter);
+  }
+
   public static List<BuildPromotion> getBuildPromotions(final Collection<SBuild> buildsList) {
     return CollectionsUtil.convertCollection(buildsList, new Converter<BuildPromotion, SBuild>() {
       public BuildPromotion createFrom(@NotNull final SBuild source) {
