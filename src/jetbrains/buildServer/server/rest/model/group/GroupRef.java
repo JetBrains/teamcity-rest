@@ -19,8 +19,13 @@ package jetbrains.buildServer.server.rest.model.group;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
+import jetbrains.buildServer.groups.UserGroupManager;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -44,5 +49,16 @@ public class GroupRef {
     this.key = userGroup.getKey();
     this.name = userGroup.getName();
     this.href = apiUrlBuilder.getHref(userGroup);
+  }
+
+  @NotNull
+  public SUserGroup getFromPosted(final ServiceLocator serviceLocator) {
+    if (key == null){
+      throw new BadRequestException("No 'key' attribute is supplied for the posted group.");
+    }
+    final SUserGroup userGroupByKey = serviceLocator.getSingletonService(UserGroupManager.class).findUserGroupByKey(key);
+    if (userGroupByKey == null)
+      throw new NotFoundException("No group is found by key '" + key + "'");
+    return userGroupByKey;
   }
 }

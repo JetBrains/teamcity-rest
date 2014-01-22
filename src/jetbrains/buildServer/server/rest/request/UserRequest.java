@@ -18,6 +18,9 @@ package jetbrains.buildServer.server.rest.request;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import jetbrains.buildServer.groups.SUserGroup;
+import jetbrains.buildServer.groups.UserGroup;
+import jetbrains.buildServer.groups.UserGroupManager;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
@@ -25,6 +28,8 @@ import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
+import jetbrains.buildServer.server.rest.model.group.GroupRef;
+import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.server.rest.model.user.User;
@@ -46,6 +51,7 @@ public class UserRequest {
   @Context @NotNull private UserFinder myUserFinder;
   @Context @NotNull private DataUpdater myDataUpdater;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
+  @Context @NotNull private BeanContext myBeanContext;
 
   public static final String API_USERS_URL = Constants.API_URL + "/users";
 
@@ -72,16 +78,15 @@ public class UserRequest {
   @Consumes({"application/xml", "application/json"})
   public User createUser(User userData) {
     final SUser user = myDataUpdater.createUser(userData.getSubmittedUsername());
-    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
-    myDataUpdater.modify(user, userData, context);
-    return new User(user, context);
+    myDataUpdater.modify(user, userData, myBeanContext);
+    return new User(user, myBeanContext);
   }
 
   @GET
   @Path("/{userLocator}")
   @Produces({"application/xml", "application/json"})
   public User serveUser(@PathParam("userLocator") String userLocator) {
-    return new User(myUserFinder.getUser(userLocator), new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
+    return new User(myUserFinder.getUser(userLocator), myBeanContext);
   }
 
   @DELETE
@@ -98,9 +103,8 @@ public class UserRequest {
   @Produces({"application/xml", "application/json"})
   public User updateUser(@PathParam("userLocator") String userLocator, User userData) {
     SUser user = myUserFinder.getUser(userLocator);
-    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
-    myDataUpdater.modify(user, userData, context);
-    return new User(user, context);
+    myDataUpdater.modify(user, userData, myBeanContext);
+    return new User(user, myBeanContext);
   }
 
   @GET
@@ -173,7 +177,7 @@ public class UserRequest {
   public RoleAssignments listRoles(@PathParam("userLocator") String userLocator) {
     myUserFinder.checkViewUserPermission(userLocator); //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
     SUser user = myUserFinder.getUser(userLocator);
-    return new RoleAssignments(user.getRoles(), user, new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
+    return new RoleAssignments(user.getRoles(), user, myBeanContext);
   }
 
 
@@ -189,11 +193,10 @@ public class UserRequest {
     for (RoleEntry roleEntry : user.getRoles()) {
       user.removeRole(roleEntry.getScope(), roleEntry.getRole());
     }
-    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
     for (RoleAssignment roleAssignment : roleAssignments.roleAssignments) {
-      user.addRole(RoleAssignment.getScope(roleAssignment.scope, context), myDataProvider.getRoleById(roleAssignment.roleId));
+      user.addRole(RoleAssignment.getScope(roleAssignment.scope, myBeanContext), myDataProvider.getRoleById(roleAssignment.roleId));
     }
-    return new RoleAssignments(user.getRoles(), user, context);
+    return new RoleAssignments(user.getRoles(), user, myBeanContext);
   }
 
   @POST
@@ -202,9 +205,8 @@ public class UserRequest {
   @Produces({"application/xml", "application/json"})
   public RoleAssignment addRole(@PathParam("userLocator") String userLocator, RoleAssignment roleAssignment) {
     SUser user = myUserFinder.getUser(userLocator);
-    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
-    user.addRole(RoleAssignment.getScope(roleAssignment.scope, context), myDataProvider.getRoleById(roleAssignment.roleId));
-    return new RoleAssignment(DataProvider.getUserRoleEntry(user, roleAssignment.roleId, roleAssignment.scope, context), user, context);
+    user.addRole(RoleAssignment.getScope(roleAssignment.scope, myBeanContext), myDataProvider.getRoleById(roleAssignment.roleId));
+    return new RoleAssignment(DataProvider.getUserRoleEntry(user, roleAssignment.roleId, roleAssignment.scope, myBeanContext), user, myBeanContext);
   }
 
   @GET
@@ -214,8 +216,7 @@ public class UserRequest {
                                  @PathParam("scope") String scopeValue) {
     myUserFinder.checkViewUserPermission(userLocator);  //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
     SUser user = myUserFinder.getUser(userLocator);
-    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
-    return new RoleAssignment(DataProvider.getUserRoleEntry(user, roleId, scopeValue, context), user, context);
+    return new RoleAssignment(DataProvider.getUserRoleEntry(user, roleId, scopeValue, myBeanContext), user, myBeanContext);
   }
 
   @DELETE
@@ -223,8 +224,7 @@ public class UserRequest {
   public void deleteRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
                          @PathParam("scope") String scopeValue) {
     SUser user = myUserFinder.getUser(userLocator);
-    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
-    user.removeRole(RoleAssignment.getScope(scopeValue, context), myDataProvider.getRoleById(roleId));
+    user.removeRole(RoleAssignment.getScope(scopeValue, myBeanContext), myDataProvider.getRoleById(roleId));
   }
 
 
@@ -246,8 +246,52 @@ public class UserRequest {
                             @PathParam("roleId") String roleId,
                             @PathParam("scope") String scopeValue) {
     SUser user = myUserFinder.getUser(userLocator);
-    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
-    user.addRole(RoleAssignment.getScope(scopeValue, context), myDataProvider.getRoleById(roleId));
-    return new RoleAssignment(DataProvider.getUserRoleEntry(user, roleId, scopeValue, context), user, context);
+    user.addRole(RoleAssignment.getScope(scopeValue, myBeanContext), myDataProvider.getRoleById(roleId));
+    return new RoleAssignment(DataProvider.getUserRoleEntry(user, roleId, scopeValue, myBeanContext), user, myBeanContext);
   }
+
+  @GET
+  @Path("/{userLocator}/groups")
+  @Produces({"application/xml", "application/json"})
+  public Groups getGroups(@PathParam("userLocator") String userLocator) {
+    myUserFinder.checkViewUserPermission(userLocator);
+    SUser user = myUserFinder.getUser(userLocator);
+    return new Groups(user.getUserGroups(), myApiUrlBuilder);
+  }
+
+  /**
+   * Replaces user's roles with the submitted ones
+   */
+  @PUT
+  @Path("/{userLocator}/groups")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public Groups replaceGroups(@PathParam("userLocator") String userLocator, Groups groups) {
+    SUser user = myUserFinder.getUser(userLocator);
+
+    final String allUserGroupKey = myBeanContext.getServiceLocator().getSingletonService(UserGroupManager.class).getAllUsersGroup().getKey();
+    for (UserGroup userGroup : user.getUserGroups()) {
+      if (!allUserGroupKey.equals(userGroup.getKey())){
+        ((SUserGroup)userGroup).removeUser(user); //TeamCity API issue: cast
+      }
+    }
+    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
+    for (SUserGroup userGroup : groups.getFromPosted(context.getServiceLocator())) {
+      userGroup.addUser(user);
+    }
+    return new Groups(user.getUserGroups(), myApiUrlBuilder);
+  }
+
+  @POST
+  @Path("/{userLocator}/groups")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public GroupRef addGroup(@PathParam("userLocator") String userLocator, GroupRef group) {
+    SUser user = myUserFinder.getUser(userLocator);
+    final BeanContext context = new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder);
+    SUserGroup userGroup = group.getFromPosted(context.getServiceLocator());
+    userGroup.addUser(user);
+    return new GroupRef(userGroup, myApiUrlBuilder);
+  }
+
 }
