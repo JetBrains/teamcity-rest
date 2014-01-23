@@ -32,7 +32,8 @@ import org.jetbrains.annotations.Nullable;
 public class Fields {
   private static final String NONE_FIELDS_PATTERN = "-";
   private static final String DEFAULT_FIELDS_SHORT_PATTERN = "";
-  private static final String DEFAULT_FIELDS_LONG_PATTERN = ".";
+  private static final String DEFAULT_FIELDS_SHORT_PATTERN_ALTERNATIVE = ".";
+  private static final String DEFAULT_FIELDS_LONG_PATTERN = "$";
   private static final String ALL_FIELDS_PATTERN = "*";
   private static final String ALL_NESTED_FIELDS_PATTERN = "**";
 
@@ -75,7 +76,7 @@ public class Fields {
   }
 
   public boolean isShort() {
-    return getCustomDimension(DEFAULT_FIELDS_SHORT_PATTERN) != null;
+    return DEFAULT_FIELDS_SHORT_PATTERN.equals(myFieldsSpec) || getCustomDimension(DEFAULT_FIELDS_SHORT_PATTERN_ALTERNATIVE) != null;
   }
 
   public boolean isAll() {
@@ -170,7 +171,7 @@ public class Fields {
 
     final String fieldSpec = getCustomDimension(nestedFieldName);
     if(fieldSpec != null){
-      return new Fields(minPattern(restrictedField.myFieldsSpec, fieldSpec), newRestrictedFields, true);
+      return new Fields(fieldSpec, newRestrictedFields, true);
     }
 
     if (isAllNested()) {
@@ -186,6 +187,7 @@ public class Fields {
     }
 
     if (isShort()) {
+      newRestrictedFields.put(nestedFieldName, NONE);
       return new Fields(minPattern(restrictedField.myFieldsSpec, defaultForShort.myFieldsSpec), newRestrictedFields, true);
     }
 
@@ -248,7 +250,7 @@ public class Fields {
     if (myFieldsSpecLocator == null && !StringUtil.isEmpty(myFieldsSpec)){
       myFieldsSpecLocator =
         new Locator(myFieldsSpec, true,
-                    NONE_FIELDS_PATTERN, DEFAULT_FIELDS_SHORT_PATTERN, DEFAULT_FIELDS_LONG_PATTERN, ALL_FIELDS_PATTERN, ALL_NESTED_FIELDS_PATTERN,
+                    NONE_FIELDS_PATTERN, DEFAULT_FIELDS_SHORT_PATTERN_ALTERNATIVE, DEFAULT_FIELDS_LONG_PATTERN, ALL_FIELDS_PATTERN, ALL_NESTED_FIELDS_PATTERN,
                     LOCATOR_CUSTOM_NAME);
     }
     return myFieldsSpecLocator;
