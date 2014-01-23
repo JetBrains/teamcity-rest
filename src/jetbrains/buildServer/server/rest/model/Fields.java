@@ -75,23 +75,23 @@ public class Fields {
   }
 
   public boolean isShort() {
-    return DEFAULT_FIELDS_SHORT_PATTERN.equals(myFieldsSpec);
+    return getCustomDimension(DEFAULT_FIELDS_SHORT_PATTERN) != null;
   }
 
   public boolean isAll() {
-    return ALL_FIELDS_PATTERN.equals(myFieldsSpec);
+    return getCustomDimension(ALL_FIELDS_PATTERN) != null;
   }
 
   public boolean isLong() {
-    return DEFAULT_FIELDS_LONG_PATTERN.equals(myFieldsSpec);
+    return getCustomDimension(DEFAULT_FIELDS_LONG_PATTERN) != null;
   }
 
   public boolean isAllNested() {
-    return ALL_NESTED_FIELDS_PATTERN.equals(myFieldsSpec);
+    return getCustomDimension(ALL_NESTED_FIELDS_PATTERN) != null;
   }
 
   public boolean isNone() {
-    return NONE_FIELDS_PATTERN.equals(myFieldsSpec);
+    return getCustomDimension(NONE_FIELDS_PATTERN) != null;
   }
 
   /**
@@ -112,6 +112,11 @@ public class Fields {
   @Nullable
   @Contract("_, !null, !null -> !null")
   public Boolean isIncluded(@NotNull final String fieldName, @Nullable final Boolean defaultForShort, @Nullable final Boolean defaultForLong) {
+    final String fieldSpec = getCustomDimension(fieldName);
+    if(fieldSpec != null){
+      return !NONE_FIELDS_PATTERN.equals(fieldSpec);
+    }
+
     if (isNone()){
       return false;
     }
@@ -132,8 +137,7 @@ public class Fields {
       return defaultForLong;
     }
 
-    final String fieldSpec = getCustomDimension(fieldName);
-    return fieldSpec != null && !NONE_FIELDS_PATTERN.equals(fieldSpec);
+    return false;
   }
 
   @NotNull
@@ -162,43 +166,41 @@ public class Fields {
     }
 
     final Map<String, Fields> newRestrictedFields = new HashMap<String, Fields>(myRestrictedFields);
+    newRestrictedFields.put(nestedFieldName, SHORT);
+
+    final String fieldSpec = getCustomDimension(nestedFieldName);
+    if(fieldSpec != null){
+      return new Fields(minPattern(restrictedField.myFieldsSpec, fieldSpec), newRestrictedFields, true);
+    }
 
     if (isAllNested()) {
-      newRestrictedFields.put(nestedFieldName, SHORT);
       return new Fields(minPattern(restrictedField.myFieldsSpec, ALL_NESTED_FIELDS_PATTERN), newRestrictedFields, true);
     }
 
     if (isLong()) {
-      newRestrictedFields.put(nestedFieldName, SHORT);
       return new Fields(minPattern(restrictedField.myFieldsSpec, defaultForLong.myFieldsSpec), newRestrictedFields, true);
     }
 
     if (isAll()) {
-      newRestrictedFields.put(nestedFieldName, SHORT);
       return new Fields(minPattern(restrictedField.myFieldsSpec, DEFAULT_FIELDS_SHORT_PATTERN), newRestrictedFields, true);
     }
 
     if (isShort()) {
-      newRestrictedFields.put(nestedFieldName, NONE);
       return new Fields(minPattern(restrictedField.myFieldsSpec, defaultForShort.myFieldsSpec), newRestrictedFields, true);
     }
 
-    newRestrictedFields.put(nestedFieldName, SHORT);
-    final String fieldSpec = getCustomDimension(nestedFieldName);
-    if (fieldSpec == null){
-      return NONE;
-    }
-    return new Fields(fieldSpec, newRestrictedFields, true);
+    return new Fields(NONE_FIELDS_PATTERN, newRestrictedFields, true);
   }
 
   @Nullable
   public String getCustomDimension(@NotNull final String fieldName) {
-    return StringUtil.isEmpty(myFieldsSpec) ? null : getParsedCustomFields().getSingleDimensionValue(fieldName);
+    final Locator parsedCustomFields = getParsedCustomFields();
+    return parsedCustomFields == null ? null : parsedCustomFields.getSingleDimensionValue(fieldName);
   }
 
   @Nullable
   public String getLocator() {
-    return StringUtil.isEmpty(myFieldsSpec) ? null : getParsedCustomFields().getSingleDimensionValue(LOCATOR_CUSTOM_NAME);
+    return  getCustomDimension(LOCATOR_CUSTOM_NAME);
   }
 
   private static String minPattern(final String a, final String b) {
@@ -241,9 +243,9 @@ public class Fields {
     return new Fields(myFieldsSpec, newRestrictedFields, true);
   }
 
-  @NotNull
+  @Nullable
   Locator getParsedCustomFields() {
-    if (myFieldsSpecLocator == null){
+    if (myFieldsSpecLocator == null && !StringUtil.isEmpty(myFieldsSpec)){
       myFieldsSpecLocator =
         new Locator(myFieldsSpec, true,
                     NONE_FIELDS_PATTERN, DEFAULT_FIELDS_SHORT_PATTERN, DEFAULT_FIELDS_LONG_PATTERN, ALL_FIELDS_PATTERN, ALL_NESTED_FIELDS_PATTERN,
