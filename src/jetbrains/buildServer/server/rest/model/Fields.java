@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model;
 
+import com.intellij.openapi.util.text.StringUtil;
 import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.server.rest.data.Locator;
@@ -29,20 +30,23 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 28.11.13
  */
 public class Fields {
-  private static final String NONE_FIELDS_PATTERN = "";
-  private static final String DEFAULT_FIELDS_SHORT_PATTERN = "$short";
-  private static final String DEFAULT_FIELDS_LONG_PATTERN = "$long";
+  private static final String NONE_FIELDS_PATTERN = "-";
+  private static final String DEFAULT_FIELDS_SHORT_PATTERN = "";
+  private static final String DEFAULT_FIELDS_LONG_PATTERN = ".";
   private static final String ALL_FIELDS_PATTERN = "*";
   private static final String ALL_NESTED_FIELDS_PATTERN = "**";
 
+  private static final String LOCATOR_CUSTOM_NAME = "$locator";
+
   public static final Fields NONE = new Fields(NONE_FIELDS_PATTERN); // no fields at all
-  public static final Fields SHORT = new Fields(DEFAULT_FIELDS_SHORT_PATTERN); // short form, only some fields, no nested fields
-  public static final Fields ALL = new Fields(ALL_FIELDS_PATTERN); // all fields on this level, nested fields in short forl only
-  public static final Fields LONG = new Fields(DEFAULT_FIELDS_LONG_PATTERN); // long form, with nested fields, generally default fields might be not included
-  public static final Fields ALL_NESTED = new Fields(ALL_NESTED_FIELDS_PATTERN); // maximum, all fields and all nested
+  public static final Fields SHORT = new Fields(DEFAULT_FIELDS_SHORT_PATTERN); // short (reference) form. Uses short or none form for the fields.
+  public static final Fields ALL = new Fields(ALL_FIELDS_PATTERN); // all fields are present and are in the short form
+  public static final Fields LONG = new Fields(DEFAULT_FIELDS_LONG_PATTERN);
+    // long form. Uses long, short or none form for the fields. Generally fields with default values are not included.
+  public static final Fields ALL_NESTED = new Fields(ALL_NESTED_FIELDS_PATTERN); // maximum, all fields are included in the same maximum form
 
   @NotNull private final String myFieldsSpec;
-  @NotNull private Locator myFieldsSpecLocator;
+  private Locator myFieldsSpecLocator;
   @NotNull private final Map<String, Fields> myRestrictedFields;
 
   private Fields(@NotNull String actualFieldsSpec, @Nullable Map<String, Fields> restrictedFields, boolean isInternal) {
@@ -67,7 +71,7 @@ public class Fields {
   }
 
   public boolean isMoreThenShort() {
-    return isLong() || isAll() || isAllNested();
+    return !isShort() && !isNone();
   }
 
   public boolean isShort() {
@@ -128,7 +132,7 @@ public class Fields {
       return defaultForLong;
     }
 
-    final String fieldSpec = getParsedCustomFields().getSingleDimensionValue(fieldName);
+    final String fieldSpec = getCustomDimension(fieldName);
     return fieldSpec != null && !NONE_FIELDS_PATTERN.equals(fieldSpec);
   }
 
@@ -180,7 +184,7 @@ public class Fields {
     }
 
     newRestrictedFields.put(nestedFieldName, SHORT);
-    final String fieldSpec = getParsedCustomFields().getSingleDimensionValue(nestedFieldName);
+    final String fieldSpec = getCustomDimension(nestedFieldName);
     if (fieldSpec == null){
       return NONE;
     }
@@ -188,8 +192,13 @@ public class Fields {
   }
 
   @Nullable
-  public String getCustomDimension(@NotNull final String nestedFieldName) {
-    return getParsedCustomFields().getSingleDimensionValue(nestedFieldName);
+  public String getCustomDimension(@NotNull final String fieldName) {
+    return StringUtil.isEmpty(myFieldsSpec) ? null : getParsedCustomFields().getSingleDimensionValue(fieldName);
+  }
+
+  @Nullable
+  public String getLocator() {
+    return StringUtil.isEmpty(myFieldsSpec) ? null : getParsedCustomFields().getSingleDimensionValue(LOCATOR_CUSTOM_NAME);
   }
 
   private static String minPattern(final String a, final String b) {
@@ -232,9 +241,13 @@ public class Fields {
     return new Fields(myFieldsSpec, newRestrictedFields, true);
   }
 
-  @NotNull Locator getParsedCustomFields(){
+  @NotNull
+  Locator getParsedCustomFields() {
     if (myFieldsSpecLocator == null){
-      myFieldsSpecLocator = new Locator(myFieldsSpec);
+      myFieldsSpecLocator =
+        new Locator(myFieldsSpec, true,
+                    NONE_FIELDS_PATTERN, DEFAULT_FIELDS_SHORT_PATTERN, DEFAULT_FIELDS_LONG_PATTERN, ALL_FIELDS_PATTERN, ALL_NESTED_FIELDS_PATTERN,
+                    LOCATOR_CUSTOM_NAME);
     }
     return myFieldsSpecLocator;
   }

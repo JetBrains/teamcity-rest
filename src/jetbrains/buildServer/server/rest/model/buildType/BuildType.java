@@ -207,7 +207,7 @@ public class BuildType {
         String buildsHref;
         List<BuildPromotion> builds = null;
         final Fields buildsFields = myFields.getNestedField("builds");
-        final String buildsLocator = buildsFields.getCustomDimension("locator");
+        final String buildsLocator = buildsFields.getLocator();
         if (buildsLocator != null){
           builds = BuildFinder.getBuildPromotions(myBeanContext.getSingletonService(BuildFinder.class).getBuildsSimplified(myBuildType.getBuildType(), buildsLocator));
           buildsHref = myBeanContext.getApiUrlBuilder().transformRelativePath(BuildTypeRequest.getBuildsHref(myBuildType.getBuildType(), buildsLocator));
