@@ -36,8 +36,11 @@ import org.jetbrains.annotations.Nullable;
  * <tt>name:Frodo,age:14</tt> - locator with two dimensions "name" which has value "Frodo" and "age", which has value "14"
  * <tt>text:(Freaking symbols:,name)</tt> - locator with single dimension "text" which has value "Freaking symbols:,name"
  * <p/>
- * Dimension name should be is alpha-numeric. Dimension value should not contain symbol "," if not enclosed in "(" and ")" or
- * should not contain symbol ")" (if enclosed in "(" and ")")
+ * Dimension name contain only alpha-numeric symbols in usual mode. Extended mode allows in addition to use any non-empty known dimensions name which contain no ":", ",", "(", symbols)
+ *<p/> Dimension value should not contain symbol "," if not enclosed in "(" and ")" or
+ * should contain properly paired parentheses ("(" and ")") if enclosed in "(" and ")"
+ *
+ * Usual mode supports single value locators. In extended mode, those will result in single dimension with value as name and empty value.
  *
  * @author Yegor.Yarko
  *         Date: 13.08.2010
@@ -60,15 +63,16 @@ public class Locator {
   @NotNull private final Collection<String> myIgnoreUnusedDimensions = new HashSet<String>();
   @NotNull private final Collection<String> myHddenSupportedDimensions = new HashSet<String>();
 
-  public Locator(@Nullable final String locator) throws LocatorProcessException{
+  public Locator(@Nullable final String locator) throws LocatorProcessException {
     this(locator, null);
   }
 
   /**
    * Creates a new locator as a copy of the passed one preserving the entire state.
+   *
    * @param locator
    */
-  public Locator(@NotNull final Locator locator){
+  public Locator(@NotNull final Locator locator) {
     myRawValue = locator.myRawValue;
     modified = locator.modified;
     myDimensions = new MultiValuesMap<String, String>();
@@ -84,29 +88,41 @@ public class Locator {
   }
 
   /**
+   * Creates usual mode locator
    *
    * @param locator
    * @param supportedDimensions dimensions supported in this locator, used in {@link #checkLocatorFullyProcessed()}
    * @throws LocatorProcessException
    */
-  public Locator(@Nullable final String locator, final String ... supportedDimensions) throws LocatorProcessException{
+  public Locator(@Nullable final String locator, final String... supportedDimensions) throws LocatorProcessException {
+    this(locator, false, supportedDimensions);
+  }
+
+  /**
+   * Creates usual or extended mode locator
+   *
+   * @param locator
+   * @param supportedDimensions dimensions supported in this locator, used in {@link #checkLocatorFullyProcessed()}
+   * @throws LocatorProcessException
+   */
+  public Locator(@Nullable final String locator, final boolean extendedMode, final String... supportedDimensions) throws LocatorProcessException {
     myRawValue = locator;
     if (StringUtil.isEmpty(locator)) {
       throw new LocatorProcessException("Invalid locator. Cannot be empty.");
     }
-    @SuppressWarnings("ConstantConditions")final boolean hasDimensions = locator.contains(DIMENSION_NAME_VALUE_DELIMITER);
-    if (!hasDimensions) {
+    mySupportedDimensions = supportedDimensions;
+    @SuppressWarnings("ConstantConditions") final boolean hasDimensions = locator.contains(DIMENSION_NAME_VALUE_DELIMITER);
+    if (!extendedMode && !hasDimensions) {
       mySingleValue = locator;
       myDimensions = new MultiValuesMap<String, String>();
     } else {
       mySingleValue = null;
       myDimensions = parse(locator);
     }
-    mySupportedDimensions = supportedDimensions;
   }
 
-  /** Creates an empty locator with dimensions.
-   *
+  /**
+   * Creates an empty locator with dimensions.
    */
   private Locator() {
     myRawValue = "";
@@ -115,67 +131,109 @@ public class Locator {
     mySupportedDimensions = null;
   }
 
-  public static Locator createEmptyLocator(final String ... supportedDimensions){
+  public static Locator createEmptyLocator(final String... supportedDimensions) {
     final Locator result = new Locator();
     result.mySupportedDimensions = supportedDimensions;
     return result;
   }
 
-  public boolean isEmpty(){
+  public boolean isEmpty() {
     return mySingleValue == null && myDimensions.isEmpty();
   }
 
-  public void addIgnoreUnusedDimensions(final String ... ignoreUnusedDimensions) {
+  public void addIgnoreUnusedDimensions(final String... ignoreUnusedDimensions) {
     myIgnoreUnusedDimensions.addAll(Arrays.asList(ignoreUnusedDimensions));
   }
 
   /**
    * Sets dimensions which will not be reported by checkLocatorFullyProcessed method as used but not declared
+   *
    * @param hiddenDimensions
    */
-  public void addHiddenDimensions(final String ... hiddenDimensions) {
+  public void addHiddenDimensions(final String... hiddenDimensions) {
     myHddenSupportedDimensions.addAll(Arrays.asList(hiddenDimensions));
   }
 
-  private static MultiValuesMap<String, String> parse(final String locator) {
+  private MultiValuesMap<String, String> parse(final String locator) {
     MultiValuesMap<String, String> result = new MultiValuesMap<String, String>();
     String currentDimensionName;
     String currentDimensionValue;
     int parsedIndex = 0;
     while (parsedIndex < locator.length()) {
-      int nameEnd = locator.indexOf(DIMENSION_NAME_VALUE_DELIMITER, parsedIndex);
-      if (nameEnd == parsedIndex || nameEnd == -1) {
-        throw new LocatorProcessException(locator, parsedIndex, "Could not find '" + DIMENSION_NAME_VALUE_DELIMITER + "'");
+      //expecting name start at parsedIndex
+      int nameEnd = locator.length();
+
+      String nextDelimeter = null;
+      int currentIndex = parsedIndex;
+      while (currentIndex < locator.length()) {
+        if (locator.startsWith(DIMENSIONS_DELIMITER, currentIndex)) {
+          nextDelimeter = DIMENSIONS_DELIMITER;
+          nameEnd = currentIndex;
+          break;
+        }
+        if (locator.startsWith(DIMENSION_COMPLEX_VALUE_START_DELIMITER, currentIndex)) {
+          nextDelimeter = DIMENSION_COMPLEX_VALUE_START_DELIMITER;
+          nameEnd = currentIndex;
+          break;
+        }
+        if (locator.startsWith(DIMENSION_NAME_VALUE_DELIMITER, currentIndex)) {
+          nextDelimeter = DIMENSION_NAME_VALUE_DELIMITER;
+          nameEnd = currentIndex;
+          break;
+        }
+        currentIndex++;
       }
+
+      if (nameEnd == parsedIndex) {
+        throw new LocatorProcessException(locator, parsedIndex, "Could not find dimension name, found '" + nextDelimeter + "' instead");
+      }
+
       currentDimensionName = locator.substring(parsedIndex, nameEnd);
-      if (!isValidName(currentDimensionName)){
+      if (!isValidName(currentDimensionName)) {
         throw new LocatorProcessException(locator, parsedIndex, "Invalid dimension name :'" + currentDimensionName + "'. Should contain only alpha-numeric symbols");
       }
-      final String valueAndRest = locator.substring(nameEnd + DIMENSION_NAME_VALUE_DELIMITER.length());
-      if (valueAndRest.startsWith(DIMENSION_COMPLEX_VALUE_START_DELIMITER)) {
-        //complex value detected
-        final int complexValueEnd = findMatchingEndDelimeterIndex(valueAndRest);
-        if (complexValueEnd == -1) {
-          throw new LocatorProcessException(locator, nameEnd + DIMENSION_NAME_VALUE_DELIMITER.length() + DIMENSION_COMPLEX_VALUE_START_DELIMITER.length(),
-                                            "Could not find matching '" + DIMENSION_COMPLEX_VALUE_END_DELIMITER + "'");
-        }
-        currentDimensionValue = valueAndRest.substring(DIMENSION_COMPLEX_VALUE_START_DELIMITER.length(), complexValueEnd);
-        parsedIndex = nameEnd + DIMENSION_NAME_VALUE_DELIMITER.length() + complexValueEnd + DIMENSION_COMPLEX_VALUE_END_DELIMITER.length();
-        if (parsedIndex != locator.length()) {
-          if (!locator.startsWith(DIMENSIONS_DELIMITER, parsedIndex)) {
-            throw new LocatorProcessException(locator, parsedIndex, "No dimensions delimiter '" + DIMENSIONS_DELIMITER + "' after complex value");
-          } else {
-            parsedIndex += DIMENSIONS_DELIMITER.length();
-          }
-        }
-      } else {
-        int valueEnd = valueAndRest.indexOf(DIMENSIONS_DELIMITER);
-        if (valueEnd == -1) {
-          currentDimensionValue = valueAndRest;
-          parsedIndex = locator.length();
+      currentDimensionValue = "";
+      parsedIndex = nameEnd;
+      if (nextDelimeter != null) {
+        if (DIMENSIONS_DELIMITER.equals(nextDelimeter)) {
+          parsedIndex = nameEnd + nextDelimeter.length();
         } else {
-          currentDimensionValue = valueAndRest.substring(0, valueEnd);
-          parsedIndex = nameEnd + DIMENSION_NAME_VALUE_DELIMITER.length() + valueEnd + DIMENSIONS_DELIMITER.length();
+          if (DIMENSION_NAME_VALUE_DELIMITER.equals(nextDelimeter)) {
+            parsedIndex = nameEnd + nextDelimeter.length();
+          }
+
+          if (DIMENSION_COMPLEX_VALUE_START_DELIMITER.equals(nextDelimeter)) {
+            parsedIndex = nameEnd;
+          }
+
+          //here begins the value at parsedIndex
+          final String valueAndRest = locator.substring(parsedIndex);
+          if (valueAndRest.startsWith(DIMENSION_COMPLEX_VALUE_START_DELIMITER)) {
+            //complex value detected
+            final int complexValueEnd = findMatchingEndDelimeterIndex(valueAndRest);
+            if (complexValueEnd == -1) {
+              throw new LocatorProcessException(locator, parsedIndex + DIMENSION_COMPLEX_VALUE_START_DELIMITER.length(),
+                                                "Could not find matching '" + DIMENSION_COMPLEX_VALUE_END_DELIMITER + "'");
+            }
+            currentDimensionValue = valueAndRest.substring(DIMENSION_COMPLEX_VALUE_START_DELIMITER.length(), complexValueEnd);
+            parsedIndex = parsedIndex + complexValueEnd + DIMENSION_COMPLEX_VALUE_END_DELIMITER.length();
+            if (parsedIndex != locator.length()) {
+              if (!locator.startsWith(DIMENSIONS_DELIMITER, parsedIndex)) {
+                throw new LocatorProcessException(locator, parsedIndex, "No dimensions delimiter '" + DIMENSIONS_DELIMITER + "' after complex value");
+              } else {
+                parsedIndex += DIMENSIONS_DELIMITER.length();
+              }
+            }
+          } else {
+            int valueEnd = valueAndRest.indexOf(DIMENSIONS_DELIMITER);
+            if (valueEnd == -1) {
+              currentDimensionValue = valueAndRest;
+              parsedIndex = locator.length();
+            } else {
+              currentDimensionValue = valueAndRest.substring(0, valueEnd);
+              parsedIndex = parsedIndex + valueEnd + DIMENSIONS_DELIMITER.length();
+            }
+          }
         }
       }
       result.put(currentDimensionName, currentDimensionValue);
@@ -187,10 +245,10 @@ public class Locator {
   private static int findMatchingEndDelimeterIndex(final String valueAndRest) {
     int pos = DIMENSION_COMPLEX_VALUE_START_DELIMITER.length();
     int nesting = 1;
-    while (nesting !=0) {
+    while (nesting != 0) {
       final int endDelimeterPosition = valueAndRest.indexOf(DIMENSION_COMPLEX_VALUE_END_DELIMITER, pos);
       final int startDelimeterPosition = valueAndRest.indexOf(DIMENSION_COMPLEX_VALUE_START_DELIMITER, pos);
-      if (endDelimeterPosition == -1){
+      if (endDelimeterPosition == -1) {
         return -1;
       }
       if (startDelimeterPosition == -1 || endDelimeterPosition < startDelimeterPosition) {
@@ -204,9 +262,11 @@ public class Locator {
     return pos - DIMENSION_COMPLEX_VALUE_END_DELIMITER.length();
   }
 
-  private static boolean isValidName(final String name) {
-    for (int i = 0; i < name.length(); i++) {
-      if (!Character.isLetter(name.charAt(i)) && !Character.isDigit(name.charAt(i))) return false;
+  private boolean isValidName(final String name) {
+    if ((mySupportedDimensions == null || !Arrays.asList(mySupportedDimensions).contains(name)) && !myHddenSupportedDimensions.contains(name)) {
+      for (int i = 0; i < name.length(); i++) {
+        if (!Character.isLetter(name.charAt(i)) && !Character.isDigit(name.charAt(i))) return false;
+      }
     }
     return true;
   }
@@ -253,7 +313,7 @@ public class Locator {
     final Set<String> usedDimensions = new HashSet<String>(myUsedDimensions);
     if (mySupportedDimensions != null) usedDimensions.removeAll(Arrays.asList(mySupportedDimensions));
     usedDimensions.removeAll(myHddenSupportedDimensions);
-    if (usedDimensions.size() > 0){
+    if (usedDimensions.size() > 0) {
       //found used dimensions which are not declared as used.
 
       //noinspection ThrowableInstanceNeverThrown
@@ -305,29 +365,28 @@ public class Locator {
   @Nullable
   public Boolean getSingleDimensionValueAsBoolean(@NotNull final String dimensionName) {
     final String value = getSingleDimensionValue(dimensionName);
-    if (value == null || "all".equalsIgnoreCase(value) || "any".equalsIgnoreCase(value)){
+    if (value == null || "all".equalsIgnoreCase(value) || "any".equalsIgnoreCase(value)) {
       return null;
     }
-    if ("true".equalsIgnoreCase(value) || "on".equalsIgnoreCase(value) || "yes".equalsIgnoreCase(value) || "in".equalsIgnoreCase(value)){
+    if ("true".equalsIgnoreCase(value) || "on".equalsIgnoreCase(value) || "yes".equalsIgnoreCase(value) || "in".equalsIgnoreCase(value)) {
       return true;
     }
-    if ("false".equalsIgnoreCase(value) || "off".equalsIgnoreCase(value) || "no".equalsIgnoreCase(value) || "out".equalsIgnoreCase(value)){
+    if ("false".equalsIgnoreCase(value) || "off".equalsIgnoreCase(value) || "no".equalsIgnoreCase(value) || "out".equalsIgnoreCase(value)) {
       return false;
     }
     throw new LocatorProcessException("Invalid value of dimension '" + dimensionName + "': '" + value + "'. Should be 'true', 'false' or 'any'.");
   }
 
   /**
-   *
    * @param dimensionName name of the dimension
-   * @param defaultValue default value to use if no dimension with the name is found
+   * @param defaultValue  default value to use if no dimension with the name is found
    * @return value specified by the dimension with name "dimensionName" (one of the possible values can be "null") or
    * "defaultValue" if such dimension is not present
    */
   @Nullable
   public Boolean getSingleDimensionValueAsBoolean(@NotNull final String dimensionName, @Nullable Boolean defaultValue) {
     final String value = getSingleDimensionValue(dimensionName);
-    if (value == null){
+    if (value == null) {
       return defaultValue;
     }
     return getSingleDimensionValueAsBoolean(dimensionName);
@@ -337,8 +396,7 @@ public class Locator {
    * Extracts the single dimension value from dimensions.
    *
    * @param dimensionName the name of the dimension to extract value.   @return 'null' if no such dimension is found, value of the dimension otherwise.
-   * @throws jetbrains.buildServer.server.rest.errors.LocatorProcessException
-   *          if there are more then a single dimension definition for a 'dimensionName' name or the dimension has no value specified.
+   * @throws jetbrains.buildServer.server.rest.errors.LocatorProcessException if there are more then a single dimension definition for a 'dimensionName' name or the dimension has no value specified.
    */
   @Nullable
   public String getSingleDimensionValue(@NotNull final String dimensionName) {
@@ -360,11 +418,12 @@ public class Locator {
   /**
    * Replaces all the dimensions values to the one specified.
    * Should be used only for multi-dimension locators.
-   * @param name name of the dimension
+   *
+   * @param name  name of the dimension
    * @param value value of the dimension
    */
   public Locator setDimension(@NotNull final String name, @NotNull final String value) {
-    if (isSingleValue()){
+    if (isSingleValue()) {
       throw new LocatorProcessException("Attempt to set dimension '" + name + "' for single value locator.");
     }
     myDimensions.removeAll(name);
@@ -377,7 +436,8 @@ public class Locator {
   /**
    * Sets the dimension specified to the passed value if the dimension is not yet set. Does noting is the dimension already has a value.
    * Should be used only for multi-dimension locators.
-   * @param name name of the dimension
+   *
+   * @param name  name of the dimension
    * @param value value of the dimension
    */
   public Locator setDimensionIfNotPresent(@NotNull final String name, @NotNull final String value) {
@@ -390,10 +450,11 @@ public class Locator {
   /**
    * Removes the dimension from the loctor. If no other dimensions are present does nothing and returns false.
    * Should be used only for multi-dimension locators.
+   *
    * @param name name of the dimension
    */
   public boolean removeDimension(@NotNull final String name) {
-    if (isSingleValue()){
+    if (isSingleValue()) {
       throw new LocatorProcessException("Attemt to remove dimension '" + name + "' for single value locator.");
     }
     boolean result = myDimensions.get(name) != null;
@@ -404,14 +465,15 @@ public class Locator {
 
   /**
    * Provides the names of dimensions whose values were never retrieved
+   *
    * @return names of the dimensions not yet queried
    */
   @NotNull
   public Set<String> getUnusedDimensions() {
     Set<String> result;
-    if (isSingleValue()){
+    if (isSingleValue()) {
       result = new HashSet<String>(Collections.singleton(LOCATOR_SINGLE_VALUE_UNUSED_NAME));
-    }else{
+    } else {
       result = new HashSet<String>(myDimensions.keySet());
     }
     result.removeAll(myUsedDimensions);
@@ -421,18 +483,20 @@ public class Locator {
   /**
    * Marks the passed dimensions as not used.
    * This also has a side effect of not reporting the dimensions as known but not reported, see "reportKnownButNotReportedDimensions" method.
+   *
    * @param dimensionNames
    */
-  public void markUnused(@NotNull String ... dimensionNames){
+  public void markUnused(@NotNull String... dimensionNames) {
     myUsedDimensions.removeAll(Arrays.asList(dimensionNames));
   }
 
   /**
-   *  Returns a locator based on the supplied one replacing the numeric value of the dimention specified with the passed number.
-   *  The structure of the returned locator might be diffeent from the passed one, while the same dimensions and values are present.
-   * @param locator existing locator, should be valid!
+   * Returns a locator based on the supplied one replacing the numeric value of the dimention specified with the passed number.
+   * The structure of the returned locator might be diffeent from the passed one, while the same dimensions and values are present.
+   *
+   * @param locator       existing locator, should be valid!
    * @param dimensionName only alpha-numeric characters are supported! Only numeric vaues withour brackets are supported!
-   * @param value new value for the dimention, only alpha-numeric characters are supported!
+   * @param value         new value for the dimention, only alpha-numeric characters are supported!
    * @return
    */
   public static String setDimension(@NotNull final String locator, @NotNull final String dimensionName, final long value) {
@@ -448,28 +512,28 @@ public class Locator {
     return result;
   }
 
-  public static String getStringLocator(final String ... strings){
+  public static String getStringLocator(final String... strings) {
     final Locator result = createEmptyLocator();
-    if (strings.length % 2 != 0){
+    if (strings.length % 2 != 0) {
       throw new IllegalArgumentException("The number of parameters should be even");
     }
     for (int i = 0; i < strings.length; i = i + 2) {
-      result.setDimension(strings[i], strings[i+1]);
+      result.setDimension(strings[i], strings[i + 1]);
     }
     return result.getStringRepresentation();
   }
 
-  public String getStringRepresentation(){
-    if (mySingleValue != null){
+  public String getStringRepresentation() {
+    if (mySingleValue != null) {
       return mySingleValue;
     }
-    if (!modified){
+    if (!modified) {
       return myRawValue;
     }
     String result = "";
     for (Map.Entry<String, Collection<String>> dimensionEntries : myDimensions.entrySet()) {
       for (String value : dimensionEntries.getValue()) {
-        if (!StringUtil.isEmpty(result)){
+        if (!StringUtil.isEmpty(result)) {
           result += DIMENSIONS_DELIMITER;
         }
         result += dimensionEntries.getKey() + DIMENSION_NAME_VALUE_DELIMITER + getValueForRendering(value);
@@ -479,7 +543,9 @@ public class Locator {
   }
 
   private String getValueForRendering(final String value) {
-    if (value.contains(DIMENSIONS_DELIMITER) || value.contains(DIMENSION_NAME_VALUE_DELIMITER)) return DIMENSION_COMPLEX_VALUE_START_DELIMITER + value + DIMENSION_COMPLEX_VALUE_END_DELIMITER;
+    if (value.contains(DIMENSIONS_DELIMITER) || value.contains(DIMENSION_NAME_VALUE_DELIMITER)) {
+      return DIMENSION_COMPLEX_VALUE_START_DELIMITER + value + DIMENSION_COMPLEX_VALUE_END_DELIMITER;
+    }
     return value;
   }
 }

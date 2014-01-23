@@ -204,12 +204,131 @@ public class LocatorTest {
     assertEquals("", locator.getSingleDimensionValue("x"));
   }
 
+  @Test
+  public void testMisc1() {
+    final Locator locator = new Locator("a:,b:");
+    assertEquals(2, locator.getDimensionsCount());
+    assertEquals("", locator.getSingleDimensionValue("a"));
+    assertEquals("", locator.getSingleDimensionValue("b"));
+    assertEquals(null, locator.getSingleDimensionValue("c"));
+  }
+
+  @Test
+  public void testValueLess1() {
+    final Locator locator = new Locator("id,number,status", true, null);
+    assertEquals(3, locator.getDimensionsCount());
+    assertEquals("", locator.getSingleDimensionValue("id"));
+    assertEquals("", locator.getSingleDimensionValue("number"));
+    assertEquals("", locator.getSingleDimensionValue("status"));
+  }
+
+  @Test
+  public void testValueLess2() {
+    final Locator locator = new Locator("buildType(name,project(id,name))", true, null);
+    assertEquals(1, locator.getDimensionsCount());
+    assertEquals("name,project(id,name)", locator.getSingleDimensionValue("buildType"));
+  }
+
+  @Test
+  public void testValueLess21() {
+    final Locator locator = new Locator("buildType(name,project(id,name),builds)", true, null);
+    assertEquals(1, locator.getDimensionsCount());
+    assertEquals("name,project(id,name),builds", locator.getSingleDimensionValue("buildType"));
+    assertEquals(null, locator.getSingleDimensionValue("builds"));
+  }
+
+  @Test
+  public void testValueLess22() {
+    final Locator locator = new Locator("buildType(name,project(id,name),builds),href", true, null);
+    assertEquals(2, locator.getDimensionsCount());
+    assertEquals("name,project(id,name),builds", locator.getSingleDimensionValue("buildType"));
+    assertEquals("", locator.getSingleDimensionValue("href"));
+  }
+
+  @Test
+  public void testValueLess23() {
+    final Locator locator = new Locator("count,buildType:(name,project(id,name),builds),href", true, null);
+    assertEquals(3, locator.getDimensionsCount());
+    assertEquals("", locator.getSingleDimensionValue("count"));
+    assertEquals("name,project(id,name),builds", locator.getSingleDimensionValue("buildType"));
+    assertEquals("", locator.getSingleDimensionValue("href"));
+  }
+
+  @Test
+  public void testValueLess3() {
+    final Locator locator = new Locator("name,project(id,name)", true, null);
+    assertEquals(2, locator.getDimensionsCount());
+    assertEquals("", locator.getSingleDimensionValue("name"));
+    assertEquals("id,name", locator.getSingleDimensionValue("project"));
+  }
+
+  @Test
+  public void testValueLess4() {
+    final Locator locator = new Locator("name,project(id,name),builds(),x", true, null);
+    assertEquals(4, locator.getDimensionsCount());
+    assertEquals("", locator.getSingleDimensionValue("name"));
+    assertEquals("id,name", locator.getSingleDimensionValue("project"));
+    assertEquals("", locator.getSingleDimensionValue("builds"));
+    assertEquals("", locator.getSingleDimensionValue("x"));
+  }
+
+  @Test
+  public void testValueLess5() {
+    final Locator locator = new Locator("count,parentProject(id),projects(id)", true, null);
+    assertEquals(3, locator.getDimensionsCount());
+    assertEquals("", locator.getSingleDimensionValue("count"));
+    assertEquals(null, locator.getSingleDimensionValue("parentproject"));
+    assertEquals("id", locator.getSingleDimensionValue("parentProject"));
+    assertEquals("id", locator.getSingleDimensionValue("projects"));
+  }
+
+  @Test
+  public void testMisc2() {
+    final Locator locator = new Locator("a:x y ,b(x y),c", true, null);
+    assertEquals(3, locator.getDimensionsCount());
+    assertEquals("x y ", locator.getSingleDimensionValue("a"));
+    assertEquals("x y", locator.getSingleDimensionValue("b"));
+    assertEquals("", locator.getSingleDimensionValue("c"));
+  }
+
+  @Test
+  public void testMisc3() {
+    final Locator locator = new Locator("name:,a", true, null);
+    assertEquals(2, locator.getDimensionsCount());
+    assertEquals("", locator.getSingleDimensionValue("name"));
+    assertEquals("", locator.getSingleDimensionValue("a"));
+    assertEquals(null, locator.getSingleDimensionValue("b"));
+  }
+
+  @Test
+  public void testSingleValueExtendedMode() {
+    final Locator locator = new Locator("a", true, null);
+    assertEquals(false, locator.isSingleValue());
+    assertEquals(1, locator.getDimensionsCount());
+    assertEquals("", locator.getSingleDimensionValue("a"));
+  }
+
+  @Test
+  public void testCustomNames1() {
+    final Locator locator = new Locator("~!@#$%^&*_+(c),+,$aaa:bbb", true, "~!@#$%^&*_+", "$aaa", "+", "-");
+    assertEquals(3, locator.getDimensionsCount());
+    assertEquals("c", locator.getSingleDimensionValue("~!@#$%^&*_+"));
+    assertEquals("", locator.getSingleDimensionValue("+"));
+    assertEquals("bbb", locator.getSingleDimensionValue("$aaa"));
+    assertEquals(null, locator.getSingleDimensionValue("aaa"));
+    assertEquals(null, locator.getSingleDimensionValue("~"));
+  }
+
+  @Test(expectedExceptions = LocatorProcessException.class)
+  public void testCustomNamesErrors() {
+    new Locator("~aa:b", true, "~a", "~aaa", "-");
+  }
+
   @DataProvider(name = "invalid-complex-values")
   public String[][] getInvalidComplexValues() {
     return new String[][] {
         {"name:("},
         {"name:(value"},
-        {"name:,a"},
         {":value"},
         {"name:value,:value2"},
         {"name:value,(a:b)"},
@@ -220,5 +339,22 @@ public class LocatorTest {
   @Test(dataProvider = "invalid-complex-values", expectedExceptions = LocatorProcessException.class)
   public void testComplexValuesParsingErrors(String value) {
     new Locator(value);
+  }
+
+  @DataProvider(name = "invalid-complex-values-extendedMode")
+  public String[][] getInvalidComplexValuesExtendedMode() {
+    return new String[][] {
+        {"a(b)(c),d"},
+        {"a,b(a ,( b)"},
+        {"+"},
+        {"-"},
+        {"$a"},
+        {"a$b"}
+    };
+  }
+
+  @Test(dataProvider = "invalid-complex-values-extendedMode", expectedExceptions = LocatorProcessException.class)
+  public void testComplexValuesParsingErrorsExtendedMode(String value) {
+    new Locator(value, true, null);
   }
 }
