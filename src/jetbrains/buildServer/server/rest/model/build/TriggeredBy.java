@@ -119,7 +119,7 @@ public class TriggeredBy {
                     ? null
                     : ValueWithDefault.decideDefault(fields.isIncluded("buildType"), new ValueWithDefault.Value<BuildType>() {
                       public BuildType get() {
-                        return new BuildType(new BuildTypeOrTemplate(foundBuildType), fields.getNestedField("buildType", Fields.NONE, Fields.SHORT), beanContext);
+                        return new BuildType(new BuildTypeOrTemplate(foundBuildType), fields.getNestedField("buildType"), beanContext);
                       }
                     });
       } catch (AccessDeniedException e) {

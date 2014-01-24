@@ -22,14 +22,11 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -49,15 +46,6 @@ public class Investigations {
   @XmlElement(name = "investigation") public List<Investigation> items;
 
   public Investigations() {
-  }
-
-  public Investigations(@Nullable final Collection<InvestigationWrapper> itemsP,
-                        @Nullable final Href hrefP,
-                        @NotNull final Fields fields,
-                        @Nullable final PagerData pagerData,
-                        @NotNull final ServiceLocator serviceLocator,
-                        @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    this(itemsP, hrefP, fields, pagerData, new BeanContext(serviceLocator.getSingletonService(BeanFactory.class), serviceLocator, apiUrlBuilder));
   }
 
   public Investigations(@Nullable final Collection<InvestigationWrapper> itemsP,

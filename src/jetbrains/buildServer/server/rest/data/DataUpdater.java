@@ -58,11 +58,11 @@ public class DataUpdater {
     try {
       return myUserModel.createUserAccount(null, username); //realm is hardly ever used in the system
     } catch (DuplicateUserAccountException e) {
-      throw new BadRequestException("Cannot create user as user with the same username already exists.", e);
+      throw new BadRequestException("Cannot create user as user with the same username already exists", e);
     } catch (MaxNumberOfUserAccountsReachedException e) {
-      throw new BadRequestException("Cannot create user as maximum user limit is reached.", e);
+      throw new BadRequestException("Cannot create user as maximum user limit is reached", e);
     } catch (EmptyUsernameException e) {
-      throw new BadRequestException("Cannot create user with empty username.", e);
+      throw new BadRequestException("Cannot create user with empty username", e);
     }
   }
   public void modify(SUser user, jetbrains.buildServer.server.rest.model.user.User userData, @NotNull BeanContext context) {
