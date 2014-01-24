@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
+import jetbrains.buildServer.server.rest.request.ProjectRequest;
 import jetbrains.buildServer.server.rest.request.VcsRootRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -146,7 +147,8 @@ public class Project {
     });
     parameters = ValueWithDefault.decideDefault(fields.isIncluded("parameters", false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
-        return new Properties(project.getParameters());
+        return new Properties(project.getParametersCollection(),project.getOwnParametersCollection(), ProjectRequest.getParametersHref(project),
+                              fields.getNestedField("parameters", Fields.NONE, Fields.LONG), beanContext.getServiceLocator());
       }
     });
     vcsRoots = ValueWithDefault.decideDefault(fields.isIncluded("vcsRoots", false), new ValueWithDefault.Value<Href>() {

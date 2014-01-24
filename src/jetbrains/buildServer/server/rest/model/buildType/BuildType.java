@@ -224,7 +224,8 @@ public class BuildType {
     return myBuildType == null ? null : ValueWithDefault
       .decideDefault(myFields.isIncluded("parameters", false), new ValueWithDefault.Value<Properties>() {
         public Properties get() {
-          return new Properties(myBuildType.get().getParameters(), null, myFields.getNestedField("parameters", Fields.NONE, Fields.LONG));
+          return new Properties(myBuildType.get().getParametersCollection(), myBuildType.get().getOwnParametersCollection(), BuildTypeRequest.getParametersHref(myBuildType),
+                                myFields.getNestedField("parameters", Fields.NONE, Fields.LONG), myBeanContext.getServiceLocator());
         }
       });
   }

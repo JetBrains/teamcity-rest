@@ -30,10 +30,10 @@ import jetbrains.buildServer.server.rest.data.ChangeFinder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.Entries;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Items;
 import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.change.Change;
@@ -195,9 +195,9 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/attributes")
   @Produces({"application/xml", "application/json"})
-  public Properties getChangeAttributes(@PathParam("changeLocator") String changeLocator) {
+  public Entries getChangeAttributes(@PathParam("changeLocator") String changeLocator) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
-    return new Properties(change.getAttributes());
+    return new Entries(change.getAttributes());
   }
   
   /**

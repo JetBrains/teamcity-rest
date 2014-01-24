@@ -17,18 +17,15 @@
 package jetbrains.buildServer.server.rest.model;
 
 import com.intellij.util.containers.SortedList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.util.CaseInsensitiveStringComparator;
-import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -60,10 +57,7 @@ public class Properties  implements DefaultValueAware {
   //todo: use another constructor
   public Properties(@NotNull final Map<String, String> propertiesP) {
     for (Map.Entry<String, String> prop : propertiesP.entrySet()) {
-      final String key = prop.getKey();
-      if (!isPropertyToExclude(key)) {
-        properties.add(new Property(key, prop.getValue()));
-      }
+        properties.add(new Property(prop.getKey(), prop.getValue()));
     }
   }
 
@@ -75,19 +69,31 @@ public class Properties  implements DefaultValueAware {
       this.count = ValueWithDefault.decideDefault(fields.isIncluded("count"), properties.size());
       if (fields.isIncluded("property", false, true)){
         for (java.util.Map.Entry<String, String> prop : properties.entrySet()) {
-          final String key = prop.getKey();
-          if (!isPropertyToExclude(key)) {
           this.properties.add(new Property(prop.getKey(), prop.getValue()));
-          }
         }
       }
     }
     this.href = ValueWithDefault.decideDefault(fields.isIncluded("href"), href);
   }
 
-  public static boolean isPropertyToExclude(@NotNull final String key) {
-    //todo: openAPI (TeamCity) or should jetbrains.buildServer.agent.Constants.SECURE_PROPERTY_PREFIX be used here?
-    return key.startsWith(SVcsRoot.SECURE_PROPERTY_PREFIX) && !TeamCityProperties.getBoolean("rest.listSecureProperties");
+  public Properties(@Nullable final Collection<Parameter> parameters,
+                    @Nullable final Collection<Parameter> ownParameters,
+                    @Nullable String href,
+                    @NotNull final Fields fields,
+                    @NotNull final ServiceLocator serviceLocator) {
+    if (parameters == null) {
+      this.count = null;
+      this.properties = null;
+    } else {
+      this.count = ValueWithDefault.decideDefault(fields.isIncluded("count"), parameters.size());
+      if (fields.isIncluded("property", false, true)) {
+        for (Parameter parameter : parameters) {
+          this.properties.add(
+            new Property(parameter, ownParameters != null && ownParameters.contains(parameter), fields.getNestedField("property", Fields.NONE, Fields.LONG), serviceLocator));
+        }
+      }
+    }
+    this.href = ValueWithDefault.decideDefault(fields.isIncluded("href"), href);
   }
 
   @NotNull
@@ -104,5 +110,17 @@ public class Properties  implements DefaultValueAware {
 
   public boolean isDefault() {
     return ValueWithDefault.isAllDefault(count, href, properties);
+  }
+
+  @NotNull
+  public List<Parameter> getFromPosted(@NotNull final ServiceLocator serviceLocator) {
+    if (properties == null) {
+      return Collections.emptyList();
+    }
+    final ArrayList<Parameter> result = new ArrayList<Parameter>(properties.size());
+    for (Property parameter : properties) {
+      result.add(parameter.getFromPosted(serviceLocator));
+    }
+    return result;
   }
 }

@@ -24,7 +24,7 @@ import jetbrains.buildServer.BuildTypeDescriptor;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
@@ -128,9 +128,7 @@ public class BuildTypeUtil {
       throw new BadRequestException(nameItProperty ? "Property" : "Parameter" + " name cannot be empty.");
     }
     if (parameters.containsKey(parameterName)) {
-      if (!checkSecure || !Properties.isPropertyToExclude(parameterName)) {
-        //TODO: need to process spec type to filter secure fields, may be include display value
-        //TODO: might support type spec here
+      if (!checkSecure || !Property.isPropertyToExclude(parameterName)) {
         return parameters.get(parameterName);
       } else {
         throw new BadRequestException("Secure " + (nameItProperty ? "properties" : "parameters") + " cannot be retrieved via remote API by default.");
@@ -139,7 +137,6 @@ public class BuildTypeUtil {
     throw new NotFoundException((nameItProperty ? "No property" : "No parameter") + " with name '" + parameterName + "' is found.");
   }
 
-  //TODO: support type spec here, http://youtrack.jetbrains.com/issue/TW-21220
   public static void changeParameter(final String parameterName,
                                      final String newValue,
                                      @NotNull final UserParametersHolder parametrizedEntity,

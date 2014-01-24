@@ -36,10 +36,10 @@ public class Entries {
   public long count;
 
   @XmlElement(name = "entry")
-  public List<Property> properties = new SortedList<Property>(new Comparator<Property>() {
+  public List<Entry> entries = new SortedList<Entry>(new Comparator<Entry>() {
     private final CaseInsensitiveStringComparator comp = new CaseInsensitiveStringComparator();
 
-    public int compare(final Property o1, final Property o2) {
+    public int compare(final Entry o1, final Entry o2) {
       return comp.compare(o1.name, o2.name);
     }
   });
@@ -50,15 +50,15 @@ public class Entries {
   public Entries(@NotNull final java.util.Map<String, String> propertiesP) {
     count = propertiesP.size();
     for (java.util.Map.Entry<String, String> prop : propertiesP.entrySet()) {
-      properties.add(new Property(prop.getKey(), prop.getValue()));
+      entries.add(new Entry(prop.getKey(), prop.getValue()));
     }
   }
 
   @NotNull
   public java.util.Map<String, String> getMap() {
-    final HashMap<String, String> result = new HashMap<String, String>(properties.size());
-    for (Property property : properties) {
-      result.put(property.name, property.value);
+    final HashMap<String, String> result = new HashMap<String, String>(entries.size());
+    for (Entry Entry : entries) {
+      result.put(Entry.name, Entry.value);
     }
     return result;
   }
