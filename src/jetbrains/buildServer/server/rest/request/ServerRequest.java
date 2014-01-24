@@ -43,7 +43,8 @@ import jetbrains.buildServer.util.StringUtil;
 @Path(ServerRequest.API_SERVER_URL)
 public class ServerRequest {
   public static final String SERVER_VERSION_RQUEST_PATH = "version";
-  public static final String API_SERVER_URL = Constants.API_URL + "/server";
+  public static final String SERVER_REQUEST_PATH = "/server";
+  public static final String API_SERVER_URL = Constants.API_URL + SERVER_REQUEST_PATH;
   @Context
   private DataProvider myDataProvider;
   @Context

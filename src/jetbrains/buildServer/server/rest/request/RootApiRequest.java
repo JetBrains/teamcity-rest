@@ -40,6 +40,8 @@ import org.jetbrains.annotations.NotNull;
  */
 @Path(Constants.API_URL)
 public class RootApiRequest {
+  public static final String API_VERSION = "/apiVersion";
+  public static final String VERSION = "/version";
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private BuildFinder myBuildFinder;
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
@@ -56,14 +58,14 @@ public class RootApiRequest {
   }
 
   @GET
-  @Path("/version")
+  @Path(VERSION)
   @Produces("text/plain")
   public String serveVersion() {
     return myDataProvider.getPluginInfo().getPluginXml().getInfo().getVersion();
   }
 
   @GET
-  @Path("/apiVersion")
+  @Path(API_VERSION)
   @Produces("text/plain")
   public String serveApiVersion() {
     return myDataProvider.getPluginInfo().getParameterValue("api.version");
