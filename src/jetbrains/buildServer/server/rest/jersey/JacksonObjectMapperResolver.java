@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.jersey;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.text.SimpleDateFormat;
+import java.util.Locale;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.ext.ContextResolver;
@@ -46,7 +47,7 @@ public class JacksonObjectMapperResolver implements ContextResolver<ObjectMapper
     myMapper = new ObjectMapper();
     myMapper.setSerializationInclusion(JsonSerialize.Inclusion.NON_NULL);
     myMapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
-    myMapper.setDateFormat(new SimpleDateFormat(Constants.TIME_FORMAT));
+    myMapper.setDateFormat(new SimpleDateFormat(Constants.TIME_FORMAT, Locale.ENGLISH));
     myMapper.configure(SerializationConfig.Feature.WRITE_EMPTY_JSON_ARRAYS, true);
     myMapper.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, TeamCityProperties.getBoolean("rest.response.json.deserialize.ignoreUnknownProperties"));
     if (TeamCityProperties.getBoolean(APIController.REST_RESPONSE_PRETTYFORMAT)) {

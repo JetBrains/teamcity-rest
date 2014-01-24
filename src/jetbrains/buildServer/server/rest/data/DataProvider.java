@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import jetbrains.buildServer.RootUrlHolder;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.groups.SUserGroup;
@@ -81,6 +82,7 @@ public class DataProvider {
   @NotNull private final ConfigurableApplicationContext myApplicationContext;
   @NotNull private final DBFunctionsProvider myDbFunctionsProvider;
   @NotNull private final ServiceLocator myServiceLocator;
+  @NotNull private final RootUrlHolder myRootUrlHolder;
 
   public DataProvider(@NotNull final SBuildServer myServer,
                       @NotNull final BuildHistory myBuildHistory,
@@ -100,8 +102,8 @@ public class DataProvider {
                       @NotNull final BeanFactory beanFactory,
                       @NotNull final ConfigurableApplicationContext applicationContext,
                       @NotNull final DBFunctionsProvider dbFunctionsProvider,
-                      @NotNull final ServiceLocator serviceLocator
-  ) {
+                      @NotNull final ServiceLocator serviceLocator,
+                      @NotNull final RootUrlHolder rootUrlHolder) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
     this.myUserModel = userModel;
@@ -121,6 +123,7 @@ public class DataProvider {
     myApplicationContext = applicationContext;
     myDbFunctionsProvider = dbFunctionsProvider;
     myServiceLocator = serviceLocator;
+    myRootUrlHolder = rootUrlHolder;
   }
 
   public static String dumpQuoted(final Collection<String> strings) {
@@ -284,7 +287,7 @@ public class DataProvider {
   @NotNull
   public static Date getDate(@NotNull final String dateString) {
     try {
-      return new SimpleDateFormat(Constants.TIME_FORMAT).parse(dateString);
+      return new SimpleDateFormat(Constants.TIME_FORMAT, Locale.ENGLISH).parse(dateString);
     } catch (ParseException e) {
       throw new BadRequestException("Could not parse date from value '" + dateString + "'. Supported format example : " + Util.formatTime(new Date()) + " :", e);
     }
@@ -360,17 +363,17 @@ public class DataProvider {
       "User " + authorityHolder.getAssociatedUser() + " does not have any of the permissions granted globally: " + Arrays.toString(permissions));
   }
 
-  public void checkProjectPermission(@NotNull final Permission permission, @Nullable final String projectId) throws AuthorizationFailedException{
+  public void checkProjectPermission(@NotNull final Permission permission, @Nullable final String internalProjectId) throws AuthorizationFailedException{
     final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
-    if (projectId == null){
+    if (internalProjectId == null){
       if (authorityHolder.isPermissionGrantedGlobally(permission)){
         return;
       }
       throw new AuthorizationFailedException("No permission '" + permission + " is granted globally.");
     }
-    if (!authorityHolder.isPermissionGrantedForProject(projectId, permission)) {
+    if (!authorityHolder.isPermissionGrantedForProject(internalProjectId, permission)) {
       throw new AuthorizationFailedException("User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission +
-                                             " in project with internal id: '" + projectId + "'");
+                                             " in project with internal id: '" + internalProjectId + "'");
     }
   }
 
@@ -488,5 +491,19 @@ public class DataProvider {
           throw new NotFoundException("No agent pool is found by id '" + agentPoolId + "'.");
         }
       }
+  }
+
+  /**
+   * methods to cover missing URLs form TeamCity open API (TeamCity API issue)
+   */
+  public String getBuildQueueUrl() {
+    return makeUrl("queue.html");
+  }
+
+  @NotNull
+  private String makeUrl(@NotNull String relativePart) {
+    String baseUrl = myRootUrlHolder.getRootUrl();
+    if (!baseUrl.endsWith("/")) baseUrl += "/";
+    return baseUrl + relativePart;
   }
 }

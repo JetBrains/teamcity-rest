@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -30,6 +31,6 @@ public class Util {
     if (time == null) {
       return null;
     }
-    return (new SimpleDateFormat(Constants.TIME_FORMAT)).format(time);
+    return (new SimpleDateFormat(Constants.TIME_FORMAT, Locale.ENGLISH)).format(time);
   }
 }
