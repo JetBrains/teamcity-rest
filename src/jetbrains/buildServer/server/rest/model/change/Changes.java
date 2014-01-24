@@ -25,6 +25,7 @@ import jetbrains.buildServer.server.rest.data.ChangeFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.vcs.SVcsModification;
 import org.jetbrains.annotations.NotNull;
@@ -36,10 +37,12 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "changes")
 public class Changes {
-  @Nullable private List<SVcsModification> myModifications;
+  @Nullable private CachingValue<List<SVcsModification>> myModifications;
   @Nullable private PagerData myPagerData;
   @NotNull private Fields myFields;
   @NotNull private BeanContext myBeanContext;
+
+  public static final String CHANGE = "change";
 
   public Changes() {
   }
@@ -48,22 +51,37 @@ public class Changes {
                  @Nullable final PagerData pagerData,
                  @NotNull Fields fields,
                  @NotNull final BeanContext beanContext) {
+    myModifications = new CachingValue<List<SVcsModification>>() {
+      @Override
+      protected List<SVcsModification> doGet() {
+        return modifications;
+      }
+    };
+    myPagerData = pagerData;
+    myFields = fields;
+    myBeanContext = beanContext;
+  }
+
+  public Changes(@Nullable final PagerData pagerData,
+                 @NotNull Fields fields,
+                 @NotNull final BeanContext beanContext,
+                 @Nullable final CachingValue<List<SVcsModification>> modifications) {
     myModifications = modifications;
     myPagerData = pagerData;
     myFields = fields;
     myBeanContext = beanContext;
   }
 
-  @XmlElement(name = "change")
+  @XmlElement(name = CHANGE)
   public List<Change> getChanges() {
     return myModifications == null
            ? null
-           : ValueWithDefault.decideDefault(myFields.isIncluded("change", false), new ValueWithDefault.Value<List<Change>>() {
+           : ValueWithDefault.decideDefault(myFields.isIncluded(CHANGE, false), new ValueWithDefault.Value<List<Change>>() {
              @Nullable
              public List<Change> get() {
-               List<Change> changes = new ArrayList<Change>(myModifications.size());
-               for (SVcsModification root : myModifications) {
-                 changes.add(new Change(root, myFields.getNestedField("change"), myBeanContext));
+               List<Change> changes = new ArrayList<Change>(myModifications.get().size());
+               for (SVcsModification root : myModifications.get()) {
+                 changes.add(new Change(root, myFields.getNestedField(CHANGE), myBeanContext));
                }
                return changes;
              }
@@ -72,7 +90,11 @@ public class Changes {
 
   @XmlAttribute
   public Integer getCount() {
-    return myModifications == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("count"), myModifications.size());
+    return myModifications == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("count"), new ValueWithDefault.Value<Integer>() {
+      public Integer get() {
+        return myModifications.get().size();
+      }
+    });
   }
 
   @XmlAttribute(required = false)

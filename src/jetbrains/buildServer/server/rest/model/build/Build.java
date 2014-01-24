@@ -41,10 +41,7 @@ import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.request.*;
-import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.server.rest.util.BeanFactory;
-import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
-import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.server.rest.util.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
@@ -334,6 +331,11 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
         return new Properties(myBuildPromotion.getParameters());
+        //todo: use "own" instead of customProperties, update customProperties submit
+        /*
+        return new Properties(getParametersCollection(myBuildPromotion), getOwnParametersCollection(myBuildPromotion), null, myFields.getNestedField("properties"),
+                              myServiceLocator);
+        */
       }
     });
   }
@@ -348,9 +350,9 @@ public class Build {
   }
 
   @XmlElement
-  public Properties getAttributes() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("attributes", false), new ValueWithDefault.Value<Properties>() {
-      public Properties get() {
+  public Entries getAttributes() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("attributes", false), new ValueWithDefault.Value<Entries>() {
+      public Entries get() {
         final Map<String, Object> buildAttributes = ((BuildPromotionEx)myBuildPromotion).getAttributes();
         final LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
         if (TeamCityProperties.getBoolean(REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES)) {
@@ -363,7 +365,7 @@ public class Build {
             result.put(BuildAttributes.CLEAN_SOURCES, value.toString());
           }
         }
-        return new Properties(result);
+        return new Entries(result);
       }
     });
   }
@@ -376,7 +378,7 @@ public class Build {
       final String statisticsHref = myBeanContext.getApiUrlBuilder().getHref(myBuild) + BuildRequest.STATISTICS;
         return ValueWithDefault.decideDefault(myFields.isIncluded("statistics", false), new ValueWithDefault.Value<Properties>() {
           public Properties get() {
-            final Fields nestedField = myFields.getNestedField("statistics", Fields.NONE, Fields.SHORT);
+            final Fields nestedField = myFields.getNestedField("statistics");
             return new Properties(nestedField.isMoreThenShort() ? getBuildStatisticsValues(myBuild) : null, //for performance reasons
                                   statisticsHref, nestedField);
           }
@@ -501,16 +503,21 @@ public class Build {
     }
     return ValueWithDefault.decideDefault(myFields.isIncluded("lastChanges", false), new ValueWithDefault.Value<Changes>() {
       public Changes get() {
-        final List<SVcsModification> result = new ArrayList<SVcsModification>();
-        final Long lastModificationId = myBuildPromotion.getLastModificationId();
-        if (lastModificationId != null && lastModificationId != -1) {
-          SVcsModification modification = myBeanContext.getSingletonService(VcsModificationHistory.class).findChangeById(lastModificationId);
-          if (modification != null) {
-            result.add(modification);
+        return new Changes(null, myFields.getNestedField("lastChanges", Fields.NONE, Fields.LONG), myBeanContext, new CachingValue<List<SVcsModification>>() {
+          @Override
+          protected List<SVcsModification> doGet() {
+            final List<SVcsModification> result = new ArrayList<SVcsModification>();
+            final Long lastModificationId = myBuildPromotion.getLastModificationId();
+            if (lastModificationId != null && lastModificationId != -1) {
+              SVcsModification modification = myBeanContext.getSingletonService(VcsModificationHistory.class).findChangeById(lastModificationId);
+              if (modification != null) {
+                result.add(modification);
+              }
+            }
+            result.addAll(myBuildPromotion.getPersonalChanges());
+            return result;
           }
-        }
-        result.addAll(myBuildPromotion.getPersonalChanges());
-        return new Changes(result, null, myFields.getNestedField("lastChanges", Fields.NONE, Fields.LONG), myBeanContext);
+        });
       }
     });
   }
@@ -521,16 +528,20 @@ public class Build {
       return null;
     }
     return ValueWithDefault.decideDefault(myFields.isIncluded("changes", false), new ValueWithDefault.Value<Changes>() {
-      @Nullable
       public Changes get() {
-        final List<SVcsModification> changesInternal = ChangeFinder.getBuildChanges(myBuildPromotion);
         final String href;
         if (myBuild != null) {
           href = ChangeRequest.getBuildChangesHref(myBuild);
         } else {
           href = ChangeRequest.getChangesHref(myBuildPromotion);
         }
-        return new Changes(changesInternal, new PagerData(href), myFields.getNestedField("changes"), myBeanContext);
+        final Fields changesFields = myFields.getNestedField("changes");
+        return new Changes(new PagerData(href), changesFields, myBeanContext, new CachingValue<List<SVcsModification>>() {
+          @Override
+          protected List<SVcsModification> doGet() {
+            return ChangeFinder.getBuildChanges(myBuildPromotion);
+          }
+        });
       }
     });
   }
@@ -850,7 +861,7 @@ public class Build {
   private Builds submittedBuildDependencies;
   private AgentRef submittedAgent;
   private PropEntitiesArtifactDep submittedCustomBuildArtifactDependencies;
-  private Properties submittedAttributes;
+  private Entries submittedAttributes;
 
   /**
    * Used only when posting for triggering a build
@@ -906,7 +917,7 @@ public class Build {
     this.submittedCustomBuildArtifactDependencies = submittedCustomBuildArtifactDependencies;
   }
 
-  public void setAttributes(final Properties submittedAttributes) {
+  public void setAttributes(final Entries submittedAttributes) {
     this.submittedAttributes = submittedAttributes;
   }
 
