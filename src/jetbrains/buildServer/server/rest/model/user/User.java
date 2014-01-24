@@ -43,8 +43,8 @@ import org.jetbrains.annotations.Nullable;
  * Date: 12.04.2009
  */
 @XmlRootElement(name = "user")
-@XmlType(name="user", propOrder = {"username", "name", "id", "email", "lastLogin", "href",
-"properties", "roles", "groups"})
+@XmlType(name = "user", propOrder = {"username", "name", "id", "email", "lastLogin", "password", "href",
+  "properties", "roles", "groups"})
 public class User {
   private SUser myUser;
   private Fields myFields;
@@ -172,6 +172,14 @@ public class User {
       return null; //do not report password back
     }
     throw new BadRequestException("Changing field '" + name + "' is not supported. Supported fields are: username, name, email, password");
+  }
+
+  /**
+   * Is only used for posting
+   */
+  @XmlAttribute
+  public String getPassword() {
+    return null;
   }
 
   // These are necessary for allowing to submit the same class
