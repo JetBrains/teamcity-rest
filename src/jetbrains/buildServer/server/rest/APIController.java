@@ -42,6 +42,7 @@ import jetbrains.buildServer.server.rest.jersey.JerseyWebComponent;
 import jetbrains.buildServer.server.rest.jersey.WadlGenerator;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.request.Constants;
+import jetbrains.buildServer.server.rest.request.RootApiRequest;
 import jetbrains.buildServer.server.rest.request.ServerRequest;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SecurityContextEx;
@@ -156,7 +157,9 @@ public class APIController extends BaseController implements ServletContextAware
         LOG.debug("Binding REST API to path '" + controllerBindPath + "'");
         webControllerManager.registerController(controllerBindPath + "/**", this);
         myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + BuildRequest.BUILDS_ROOT_REQUEST_PATH + "/*/" + BuildRequest.STATUS_ICON_REQUEST_NAME);
-        myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + ServerRequest.API_SERVER_URL + "/" + ServerRequest.SERVER_VERSION_RQUEST_PATH);
+        myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + ServerRequest.SERVER_REQUEST_PATH + "/" + ServerRequest.SERVER_VERSION_RQUEST_PATH);
+        myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + RootApiRequest.VERSION);
+        myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + RootApiRequest.API_VERSION);
         myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + Constants.EXTERNAL_APPLICATION_WADL_NAME);
         myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + Constants.EXTERNAL_APPLICATION_WADL_NAME + "/xsd*.xsd");
       }
