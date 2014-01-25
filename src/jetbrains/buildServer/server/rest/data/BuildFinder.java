@@ -48,19 +48,18 @@ public class BuildFinder {
   private static final Logger LOG = Logger.getInstance(BuildFinder.class.getName());
   public static final String DIMENSION_ID = "id";
   public static final String PROMOTION_ID = "promotionId";
-  @NotNull private final DataProvider myDataProvider;
+  @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final UserFinder myUserFinder;
   @NotNull private final AgentFinder myAgentFinder;
 
-  public BuildFinder(final @NotNull DataProvider dataProvider,
-                     final @NotNull ServiceLocator serviceLocator,
+  public BuildFinder(final @NotNull ServiceLocator serviceLocator,
                      final @NotNull BuildTypeFinder buildTypeFinder,
                      final @NotNull ProjectFinder projectFinder,
                      final @NotNull UserFinder userFinder,
                      final @NotNull AgentFinder agentFinder) {
-    myDataProvider = dataProvider;
+    myServiceLocator = serviceLocator;
     myBuildTypeFinder = buildTypeFinder;
     myProjectFinder = projectFinder;
     myUserFinder = userFinder;
@@ -130,10 +129,15 @@ public class BuildFinder {
                       fields, beanContext);
   }
 
-  public List<SBuild> getBuildsSimplified(final SBuildType buildType, @NotNull final String locatorText) {
-    BuildsFilter buildsFilter;
+  @NotNull
+  public List<SBuild> getBuildsSimplified(@Nullable final SBuildType buildType, @NotNull final String locatorText) {
+    return getBuilds(getBuildsFilter(buildType, locatorText));
+  }
+
+  @NotNull
+  public BuildsFilter getBuildsFilter(@Nullable final SBuildType buildType, final String locatorText) {
     Locator locator = new Locator(locatorText);
-    buildsFilter = getBuildsFilter(locator, buildType);
+    BuildsFilter buildsFilter = getBuildsFilter(locator, buildType);
     locator.checkLocatorFullyProcessed();
 
     final Integer c = buildsFilter.getCount();
@@ -142,8 +146,7 @@ public class BuildFinder {
     } else {
       buildsFilter.setCount(jetbrains.buildServer.server.rest.request.Constants.DEFAULT_PAGE_ITEMS_COUNT_INT);
     }
-
-    return getBuilds(buildsFilter);
+    return buildsFilter;
   }
 
   public static List<BuildPromotion> getBuildPromotions(final Collection<SBuild> buildsList) {
@@ -175,14 +178,15 @@ public class BuildFinder {
       if (buildType == null) {
         // no dimensions found and no build type, assume it's build id
 
-        @SuppressWarnings("ConstantConditions") SBuild build = myDataProvider.getServer().findBuildInstanceById(locator.getSingleValueAsLong()); //todo: report non-number more user-friendly
+        @SuppressWarnings("ConstantConditions") SBuild build =
+          myServiceLocator.getSingletonService(BuildsManager.class).findBuildInstanceById(locator.getSingleValueAsLong()); //todo: report non-number more user-friendly
         if (build == null) {
           throw new BadRequestException("Cannot find build by id '" + locator.getSingleValue() + "'.");
         }
         return build;
       }
       // no dimensions found and build type is specified, assume it's build number
-      @SuppressWarnings("ConstantConditions") SBuild build = myDataProvider.getServer().findBuildInstanceByBuildNumber(buildType.getBuildTypeId(),
+      @SuppressWarnings("ConstantConditions") SBuild build = myServiceLocator.getSingletonService(BuildsManager.class).findBuildInstanceByBuildNumber(buildType.getBuildTypeId(),
                                                                                                                        buildLocator);
       if (build == null) {
         throw new NotFoundException("No build can be found by number '" + buildLocator + "' in build configuration " + buildType + ".");
@@ -195,7 +199,7 @@ public class BuildFinder {
 
     Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (id != null) {
-      SBuild build = myDataProvider.getServer().findBuildInstanceById(id);
+      SBuild build = myServiceLocator.getSingletonService(BuildsManager.class).findBuildInstanceById(id);
       if (build == null) {
         throw new NotFoundException("No build can be found by id '" + id + "'.");
       }
@@ -210,7 +214,7 @@ public class BuildFinder {
 
     String number = locator.getSingleDimensionValue("number");
     if (number != null && buildType != null) {
-      SBuild build = myDataProvider.getServer().findBuildInstanceByBuildNumber(buildType.getBuildTypeId(), number);
+      SBuild build = myServiceLocator.getSingletonService(BuildsManager.class).findBuildInstanceByBuildNumber(buildType.getBuildTypeId(), number);
       if (build == null) {
         throw new NotFoundException("No build can be found by number '" + number + "' in build configuration " + buildType + ".");
       }
@@ -342,14 +346,14 @@ public class BuildFinder {
   private List<SBuild> getBuilds(@NotNull final BuildsFilter buildsFilter) {
     final ArrayList<SBuild> result = new ArrayList<SBuild>();
     //todo: sort and ensure there are no duplicates
-    result.addAll(BuildsFilterProcessor.getMatchingRunningBuilds(buildsFilter, myDataProvider.getRunningBuildsManager()));
+    result.addAll(BuildsFilterProcessor.getMatchingRunningBuilds(buildsFilter, myServiceLocator.getSingletonService(BuildsManager.class)));
     final Integer originalCount = buildsFilter.getCount();
     if (originalCount == null || result.size() < originalCount) {
       final BuildsFilter patchedBuildsFilter = new BuildsFilterWithBuildExcludes(buildsFilter, result);
       if (originalCount != null){
         patchedBuildsFilter.setCount(originalCount - result.size());
       }
-      result.addAll(BuildsFilterProcessor.getMatchingFinishedBuilds(patchedBuildsFilter, myDataProvider.getBuildHistory()));
+      result.addAll(BuildsFilterProcessor.getMatchingFinishedBuilds(patchedBuildsFilter, myServiceLocator.getSingletonService(BuildHistory.class)));
     }
     return result;
   }
@@ -365,7 +369,7 @@ public class BuildFinder {
 
   @NotNull
   public SBuild getBuildByPromotionId(@NotNull final Long promotionId) {
-    final BuildPromotion promotion = getBuildPromotion(promotionId, myDataProvider.getPromotionManager());
+    final BuildPromotion promotion = getBuildPromotion(promotionId, myServiceLocator.getSingletonService(BuildPromotionManager.class));
     SBuild build = promotion.getAssociatedBuild();
     if (build == null) {
       throw new NotFoundException("No associated build can be found for promotion with id '" + promotionId + "'.");
