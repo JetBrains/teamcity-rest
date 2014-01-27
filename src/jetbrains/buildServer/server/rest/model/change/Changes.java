@@ -99,7 +99,8 @@ public class Changes {
 
   @XmlAttribute(required = false)
   public String getHref() {
-    return myPagerData == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("href"), myPagerData.getHref());
+    return myPagerData == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("href"),
+                                                                       myBeanContext.getApiUrlBuilder().transformRelativePath(myPagerData.getHref()));
   }
 
   @XmlAttribute(required = false)
