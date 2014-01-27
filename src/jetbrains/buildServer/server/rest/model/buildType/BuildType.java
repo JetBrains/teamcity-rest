@@ -51,8 +51,8 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "buildType")
 @XmlType(name = "buildType", propOrder = { "id", "internalId", "name", "templateFlag", "paused", "description", "projectName", "projectId", "projectInternalId", "href", "webUrl",
-  "project", "template", "builds", "vcsRootEntries", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
-  "artifactDependencies", "agentRequirements", "investigations"})
+  "project", "template", "vcsRootEntries", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
+  "artifactDependencies", "agentRequirements", "builds", "investigations"})
 public class BuildType {
   private static final Logger LOG = Logger.getInstance(BuildType.class.getName());
 
@@ -210,9 +210,9 @@ public class BuildType {
         final String buildsLocator = buildsFields.getLocator();
         if (buildsLocator != null){
           builds = BuildFinder.getBuildPromotions(myBeanContext.getSingletonService(BuildFinder.class).getBuildsSimplified(myBuildType.getBuildType(), buildsLocator));
-          buildsHref = myBeanContext.getApiUrlBuilder().transformRelativePath(BuildTypeRequest.getBuildsHref(myBuildType.getBuildType(), buildsLocator));
+          buildsHref = BuildTypeRequest.getBuildsHref(myBuildType.getBuildType(), buildsLocator);
         }else{
-          buildsHref = myBeanContext.getApiUrlBuilder().getBuildsHref(myBuildType.getBuildType());
+          buildsHref = BuildTypeRequest.getBuildsHref(myBuildType.getBuildType());
         }
         return new Builds(builds, new PagerData(buildsHref), buildsFields, myBeanContext);
       }
