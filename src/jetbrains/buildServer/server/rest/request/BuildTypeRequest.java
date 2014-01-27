@@ -114,8 +114,18 @@ public class BuildTypeRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
-  public BuildTypes serveBuildTypesXML(@QueryParam("fields") String fields) {
-    return new BuildTypes(BuildTypes.fromBuildTypes(myDataProvider.getServer().getProjectManager().getAllBuildTypes()), new Fields(fields, Fields.LONG), myBeanContext);
+  public BuildTypes getBuildTypes(@QueryParam("locator") String locator, @QueryParam("fields") String fields,
+                                       @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+    final PagedSearchResult<BuildTypeOrTemplate> result = myBuildTypeFinder.getItems(locator);
+
+    /*
+    // will need this when pager support is implemented in BuildTypes
+    final PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
+                                          result.myCount, result.myEntries.size(),
+                                          locator,
+                                          "locator");
+    */
+    return new BuildTypes(result.myEntries, new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @POST

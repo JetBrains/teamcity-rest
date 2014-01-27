@@ -499,17 +499,37 @@ public class Locator {
    * @param value         new value for the dimention, only alpha-numeric characters are supported!
    * @return
    */
-  public static String setDimension(@NotNull final String locator, @NotNull final String dimensionName, final long value) {
+  public static String setDimension(@NotNull final String locator, @NotNull final String dimensionName, final String value) {
     final Matcher matcher = Pattern.compile(dimensionName + DIMENSION_NAME_VALUE_DELIMITER + "\\d+").matcher(locator);
-    String result = matcher.replaceFirst(dimensionName + DIMENSION_NAME_VALUE_DELIMITER + Long.toString(value));
+    String result = matcher.replaceFirst(dimensionName + DIMENSION_NAME_VALUE_DELIMITER + value);
     try {
       matcher.end();
     } catch (IllegalStateException e) {
       final Locator actualLocator = new Locator(locator);
-      actualLocator.setDimension(dimensionName, String.valueOf(value));
+      actualLocator.setDimension(dimensionName, value);
       result = actualLocator.getStringRepresentation();
     }
     return result;
+  }
+
+  public static String setDimension(@NotNull final String locator, @NotNull final String dimensionName, final long value) {
+    return setDimension(locator, dimensionName, String.valueOf(value));
+  }
+
+  /**
+   * Same as "setDimension" but only modifies the locator if the dimension was not present already.
+   *
+   * @param locator       existing locator, should be valid!
+   * @param dimensionName only alpha-numeric characters are supported! Only numeric vaues withour brackets are supported!
+   * @param value         new value for the dimention, only alpha-numeric characters are supported!
+   * @return
+   */
+  public static String setDimensionIfNotPresent(@NotNull final String locator, @NotNull final String dimensionName, final String value) {
+    final Locator actualLocator = new Locator(locator);
+    if (actualLocator.getSingleDimensionValue(dimensionName) != null){
+      return actualLocator.setDimension(dimensionName, value).getStringRepresentation();
+    }
+    return locator;
   }
 
   public static String getStringLocator(final String... strings) {
