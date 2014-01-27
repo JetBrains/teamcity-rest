@@ -85,7 +85,7 @@ public class ProblemOccurrenceRequest {
                                   new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
                                                 result.myCount, result.myEntries.size(),
                                                 locatorText,
-                                                "locator"), new Fields(fields, Fields.LONG), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder)
+                                                "locator"),  new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder)
     );
   }
 
@@ -94,6 +94,6 @@ public class ProblemOccurrenceRequest {
   @Produces({"application/xml", "application/json"})
   public ProblemOccurrence serveInstance(@PathParam("problemLocator") String locatorText, @QueryParam("fields") String fields) {
     return new ProblemOccurrence(myProblemOccurrenceFinder.getItem(locatorText), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder),
-                                 new Fields(fields, Fields.LONG));
+                                  new Fields(fields));
   }
 }

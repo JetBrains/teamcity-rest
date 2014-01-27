@@ -93,7 +93,7 @@ public class AgentRequest {
                                           result.myCount, result.myEntries.size(),
                                           locatorToUse,
                                           "locator");
-    return new Agents(result.myEntries, pager, new Fields(fields, Fields.LONG), myBeanContext);
+    return new Agents(result.myEntries, pager,  new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -116,7 +116,7 @@ public class AgentRequest {
   @Produces({"application/xml", "application/json"})
   public AgentPool getAgentPool(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    return new AgentPool(myAgentPoolsFinder.getAgentPool(agent), new Fields(fields, Fields.LONG),myBeanContext);
+    return new AgentPool(myAgentPoolsFinder.getAgentPool(agent),  new Fields(fields),myBeanContext);
   }
 
   @PUT

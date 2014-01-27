@@ -147,7 +147,7 @@ public class BuildRequest {
                                @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     return myBuildFinder.getBuildsForRequest(myBuildTypeFinder.getBuildTypeIfNotNull(buildTypeLocator), status, userLocator, includePersonal,
                                            includeCanceled, onlyPinned, tags, agentName, sinceBuildLocator, sinceDate, start, count,
-                                           locator, "locator", uriInfo, request,  new Fields(fields, Fields.LONG), myBeanContext
+                                           locator, "locator", uriInfo, request,   new Fields(fields), myBeanContext
     );
   }
 
@@ -162,7 +162,7 @@ public class BuildRequest {
   @Path("/{buildLocator}")
   @Produces({"application/xml", "application/json"})
   public Build serveBuild(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
-    return new Build(myBuildFinder.getBuild(null, buildLocator), new Fields(fields, Fields.LONG), myBeanContext);
+    return new Build(myBuildFinder.getBuild(null, buildLocator),  new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -300,7 +300,7 @@ public class BuildRequest {
   @Produces({"application/xml", "application/json"})
   public IssueUsages serveBuildRelatedIssues(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return new IssueUsages(build, new Fields(fields, Fields.LONG), myBeanContext);
+    return new IssueUsages(build,  new Fields(fields), myBeanContext);
   }
 
 
@@ -491,7 +491,7 @@ public class BuildRequest {
   @Produces({"application/xml", "application/json"})
   public Comment getCanceledInfo(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return Build.getCanceledComment(build, new Fields(fields, Fields.LONG), myBeanContext);
+    return Build.getCanceledComment(build,  new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -507,7 +507,7 @@ public class BuildRequest {
   public ProblemOccurrences getProblems(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final List<BuildProblem> buildProblems = ((BuildPromotionEx)build.getBuildPromotion()).getBuildProblems();//todo: (TeamCity) is this OK to use?
-    return new ProblemOccurrences(buildProblems, ProblemOccurrenceRequest.getHref(build), null, new Fields(fields, Fields.LONG), myBeanContext);
+    return new ProblemOccurrences(buildProblems, ProblemOccurrenceRequest.getHref(build), null,  new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -517,7 +517,7 @@ public class BuildRequest {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final List<STestRun> allTests = build.getFullStatistics().getAllTests();
 //todo: investigate test repeat counts support
-    return new TestOccurrences(allTests, TestOccurrenceRequest.getHref(build), null, new Fields(fields, Fields.LONG), myBeanContext);
+    return new TestOccurrences(allTests, TestOccurrenceRequest.getHref(build), null,  new Fields(fields), myBeanContext);
   }
 
   @POST
@@ -544,7 +544,7 @@ public class BuildRequest {
     if (associatedBuild == null){
       return null;
     }
-    return new Build(associatedBuild, new Fields(fields, Fields.LONG), myBeanContext);
+    return new Build(associatedBuild,  new Fields(fields), myBeanContext);
   }
 
   private void restoreInQueue(final SRunningBuild runningBuild, final User user) {

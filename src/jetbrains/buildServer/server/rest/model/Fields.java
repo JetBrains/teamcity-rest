@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -39,12 +40,12 @@ public class Fields {
 
   private static final String LOCATOR_CUSTOM_NAME = "$locator";
 
-  public static final Fields NONE = new Fields(NONE_FIELDS_PATTERN); // no fields at all
-  public static final Fields SHORT = new Fields(DEFAULT_FIELDS_SHORT_PATTERN); // short (reference) form. Uses short or none form for the fields.
-  public static final Fields ALL = new Fields(ALL_FIELDS_PATTERN); // all fields are present and are in the short form
-  public static final Fields LONG = new Fields(DEFAULT_FIELDS_LONG_PATTERN);
+  public static final Fields NONE = new Fields(NONE_FIELDS_PATTERN, null, true); // no fields at all
+  public static final Fields SHORT = new Fields(DEFAULT_FIELDS_SHORT_PATTERN, null, true); // short (reference) form. Uses short or none form for the fields.
+  public static final Fields ALL = new Fields(ALL_FIELDS_PATTERN, null, true); // all fields are present and are in the short form
+  public static final Fields LONG = new Fields(DEFAULT_FIELDS_LONG_PATTERN, null, true);
     // long form. Uses long, short or none form for the fields. Generally fields with default values are not included.
-  public static final Fields ALL_NESTED = new Fields(ALL_NESTED_FIELDS_PATTERN); // maximum, all fields are included in the same maximum form
+  public static final Fields ALL_NESTED = new Fields(ALL_NESTED_FIELDS_PATTERN, null, true); // maximum, all fields are included in the same maximum form
 
   @NotNull private final String myFieldsSpec;
   private Locator myFieldsSpecLocator;
@@ -55,20 +56,21 @@ public class Fields {
     myRestrictedFields = restrictedFields != null ? new HashMap<String, Fields>(restrictedFields) : new HashMap<String, Fields>();
   }
 
-  public Fields() {
-    this(DEFAULT_FIELDS_SHORT_PATTERN, null, true);
-  }
-
-  public Fields (@NotNull String fieldsSpec){
-    this(fieldsSpec, null, true);
-  }
-
-  public Fields (@Nullable String fieldsSpec, @NotNull String defaultFieldsSpec){
-    this(fieldsSpec != null ? fieldsSpec : defaultFieldsSpec, null, true);
+  public Fields (@Nullable String fieldsSpec){
+    this(fieldsSpec, getDefaultFields());
   }
 
   public Fields(@Nullable String fieldsSpec, @NotNull Fields defaultFields) {
     this(fieldsSpec != null ? fieldsSpec : defaultFields.myFieldsSpec, null, true);
+  }
+
+  private static Fields getDefaultFields() {
+    final String defaultFieldsProperty = TeamCityProperties.getPropertyOrNull("rest.beans.fields.default");
+    if (defaultFieldsProperty == null){
+      return LONG;
+    }else{
+      return new Fields(defaultFieldsProperty, null, true);
+    }
   }
 
   public boolean isMoreThenShort() {

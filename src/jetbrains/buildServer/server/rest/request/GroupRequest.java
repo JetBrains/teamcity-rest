@@ -65,7 +65,7 @@ public class GroupRequest {
     if (TeamCityProperties.getBooleanOrTrue(UserRequest.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
       myUserFinder.checkViewAllUsersPermission();
     }
-    return new Groups(myUserGroupFinder.getAllGroups(),new Fields(fields, Fields.LONG), myBeanContext);
+    return new Groups(myUserGroupFinder.getAllGroups(), new Fields(fields), myBeanContext);
   }
 
   @POST
@@ -73,7 +73,7 @@ public class GroupRequest {
   @Produces({"application/xml", "application/json"})
   public Group addGroup(Group description, @QueryParam("fields") String fields) {
     SUserGroup group = myDataUpdater.createUserGroup(description);
-    return new Group(group, new Fields(fields, Fields.LONG), myBeanContext);
+    return new Group(group,  new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -83,7 +83,7 @@ public class GroupRequest {
     if (TeamCityProperties.getBooleanOrTrue(UserRequest.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
       myUserFinder.checkViewAllUsersPermission();
     }
-    return new Group(myUserGroupFinder.getGroup(groupLocator), new Fields(fields, Fields.LONG), myBeanContext);
+    return new Group(myUserGroupFinder.getGroup(groupLocator),  new Fields(fields), myBeanContext);
   }
 
   @DELETE

@@ -79,7 +79,7 @@ public class AgentPoolRequest {
   @Path("/{agentPoolLocator}")
   @Produces({"application/xml", "application/json"})
   public AgentPool getPool(@PathParam("agentPoolLocator") String agentPoolLocator, @QueryParam("fields") String fields) {
-    return new AgentPool(myAgentPoolsFinder.getAgentPool(agentPoolLocator), new Fields(fields, Fields.LONG), myBeanContext);
+    return new AgentPool(myAgentPoolsFinder.getAgentPool(agentPoolLocator),  new Fields(fields), myBeanContext);
   }
 
   @DELETE
@@ -119,7 +119,7 @@ public class AgentPoolRequest {
   @Produces({"application/xml", "application/json"})
   public Projects getPoolProjects(@PathParam("agentPoolLocator") String agentPoolLocator, @QueryParam("fields") String fields) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolsFinder.getAgentPool(agentPoolLocator);
-    return new Projects(myAgentPoolsFinder.getPoolProjects(agentPool), new Fields(fields, Fields.LONG), myBeanContext);
+    return new Projects(myAgentPoolsFinder.getPoolProjects(agentPool),  new Fields(fields), myBeanContext);
   }
 
   /**
@@ -179,7 +179,7 @@ public class AgentPoolRequest {
   public Project getPoolProject(@PathParam("agentPoolLocator") String agentPoolLocator, @PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolsFinder.getAgentPool(agentPoolLocator);
     final SProject project = myProjectFinder.getProject(projectLocator);
-    return new Project(project, new Fields(fields, Fields.LONG), myBeanContext);
+    return new Project(project,  new Fields(fields), myBeanContext);
   }
 
   @DELETE
@@ -202,7 +202,7 @@ public class AgentPoolRequest {
   @Produces({"application/xml", "application/json"})
   public Agents getPoolAgents(@PathParam("agentPoolLocator") String agentPoolLocator, @QueryParam("fields") String fields) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolsFinder.getAgentPool(agentPoolLocator);
-    return new Agents(myAgentPoolsFinder.getPoolAgents(agentPool), null, new Fields(fields, Fields.LONG), myBeanContext);
+    return new Agents(myAgentPoolsFinder.getPoolAgents(agentPool), null,  new Fields(fields), myBeanContext);
   }
 
   /**

@@ -71,7 +71,7 @@ public class ProblemRequest {
                                       "locator"),
                         myServiceLocator,
                         myApiUrlBuilder,
-                        new Fields(fields, Fields.LONG)
+                         new Fields(fields)
     );
   }
 
@@ -79,6 +79,6 @@ public class ProblemRequest {
   @Path("/{problemLocator}")
   @Produces({"application/xml", "application/json"})
   public Problem serveInstance(@PathParam("problemLocator") String locatorText, @QueryParam("fields") String fields) {
-    return new Problem(myProblemFinder.getItem(locatorText), myServiceLocator, myApiUrlBuilder, new Fields(fields, Fields.LONG));
+    return new Problem(myProblemFinder.getItem(locatorText), myServiceLocator, myApiUrlBuilder,  new Fields(fields));
   }
 }

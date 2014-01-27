@@ -70,7 +70,7 @@ public class UserRequest {
     if (TeamCityProperties.getBooleanOrTrue(REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
       myUserFinder.checkViewAllUsersPermission();
     }
-    return new Users(myDataProvider.getAllUsers(), new Fields(fields,Fields.LONG), myBeanContext);
+    return new Users(myDataProvider.getAllUsers(),  new Fields(fields), myBeanContext);
   }
 
   @POST
@@ -78,14 +78,14 @@ public class UserRequest {
   public User createUser(User userData, @QueryParam("fields") String fields) {
     final SUser user = myDataUpdater.createUser(userData.getSubmittedUsername());
     myDataUpdater.modify(user, userData, myBeanContext);
-    return new User(user, new Fields(fields, Fields.LONG), myBeanContext);
+    return new User(user,  new Fields(fields), myBeanContext);
   }
 
   @GET
   @Path("/{userLocator}")
   @Produces({"application/xml", "application/json"})
   public User serveUser(@PathParam("userLocator") String userLocator, @QueryParam("fields") String fields) {
-    return new User(myUserFinder.getUser(userLocator), new Fields(fields, Fields.LONG), myBeanContext);
+    return new User(myUserFinder.getUser(userLocator),  new Fields(fields), myBeanContext);
   }
 
   @DELETE
@@ -103,7 +103,7 @@ public class UserRequest {
   public User updateUser(@PathParam("userLocator") String userLocator, User userData, @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getUser(userLocator);
     myDataUpdater.modify(user, userData, myBeanContext);
-    return new User(user, new Fields(fields, Fields.LONG), myBeanContext);
+    return new User(user,  new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -255,7 +255,7 @@ public class UserRequest {
   public Groups getGroups(@PathParam("userLocator") String userLocator, @QueryParam("fields") String fields) {
     myUserFinder.checkViewUserPermission(userLocator);
     SUser user = myUserFinder.getUser(userLocator);
-    return new Groups(user.getUserGroups(), new Fields(fields, Fields.LONG), myBeanContext);
+    return new Groups(user.getUserGroups(),  new Fields(fields), myBeanContext);
   }
 
   /**
@@ -269,7 +269,7 @@ public class UserRequest {
     SUser user = myUserFinder.getUser(userLocator);
     myDataUpdater.removeAllGroups(user);
     myDataUpdater.addGroups(user, groups);
-    return new Groups(user.getUserGroups(), new Fields(fields, Fields.LONG), myBeanContext);
+    return new Groups(user.getUserGroups(),  new Fields(fields), myBeanContext);
   }
 
   @POST
@@ -280,7 +280,7 @@ public class UserRequest {
     SUser user = myUserFinder.getUser(userLocator);
     SUserGroup userGroup = group.getFromPosted(myBeanContext.getServiceLocator());
     userGroup.addUser(user);
-    return new Group(userGroup, new Fields(fields, Fields.LONG), myBeanContext);
+    return new Group(userGroup,  new Fields(fields), myBeanContext);
   }
 
 }

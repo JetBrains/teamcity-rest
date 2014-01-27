@@ -125,7 +125,7 @@ public class BuildTypeRequest {
                                           locator,
                                           "locator");
     */
-    return new BuildTypes(result.myEntries, new Fields(fields, Fields.LONG), myBeanContext);
+    return new BuildTypes(result.myEntries,  new Fields(fields), myBeanContext);
   }
 
   @POST
@@ -134,7 +134,7 @@ public class BuildTypeRequest {
   public BuildType addBuildType(BuildType buildType, @QueryParam("fields") String fields) {
     final BuildTypeOrTemplate newBuildType = buildType.createNewBuildTypeFromPosted(myServiceLocator);
     newBuildType.get().persist();
-    return new BuildType(newBuildType, new Fields(fields, Fields.LONG), myBeanContext);
+    return new BuildType(newBuildType,  new Fields(fields), myBeanContext);
   }
 
   /**
@@ -145,7 +145,7 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public BuildType serveBuildTypeXML(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    return new BuildType(buildType, new Fields(fields, Fields.LONG), myBeanContext);
+    return new BuildType(buildType,  new Fields(fields), myBeanContext);
   }
 
   @DELETE
@@ -189,17 +189,17 @@ public class BuildTypeRequest {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     if (locator == null){
       return new Properties(buildType.get().getParametersCollection(), buildType.get().getOwnParametersCollection(), getParametersHref(buildType),
-                            new Fields(fields, Fields.LONG), myServiceLocator);
+                             new Fields(fields), myServiceLocator);
     }
     final Boolean own = locator.getSingleDimensionValueAsBoolean("own");
     if (own == null){
       locator.checkLocatorFullyProcessed();
       return new Properties(buildType.get().getBuildParametersCollection(), buildType.get().getOwnParametersCollection(), getParametersHref(buildType),
-                            new Fields(fields, Fields.LONG), myServiceLocator);
+                             new Fields(fields), myServiceLocator);
     }
     if (own){
       return new Properties(buildType.get().getOwnParametersCollection(), buildType.get().getOwnParametersCollection(), getParametersHref(buildType),
-                            new Fields(fields, Fields.LONG), myServiceLocator);
+                             new Fields(fields), myServiceLocator);
     }else{
       throw new BadRequestException("Sorry, getting only not own parameters is not supported at the moment");
     }
@@ -213,7 +213,7 @@ public class BuildTypeRequest {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     buildType.get().addParameter(parameter.getFromPosted(myServiceLocator));
     buildType.get().persist();
-    return Property.createFrom(parameter.name, buildType.get(), new Fields(fields, Fields.LONG), myServiceLocator);
+    return Property.createFrom(parameter.name, buildType.get(),  new Fields(fields), myServiceLocator);
   }
 
   @PUT
@@ -228,7 +228,7 @@ public class BuildTypeRequest {
     }
     buildType.get().persist();
     return new Properties(buildType.get().getBuildParametersCollection(), buildType.get().getOwnParametersCollection(), getParametersHref(buildType),
-                          new Fields(fields, Fields.LONG), myServiceLocator);
+                           new Fields(fields), myServiceLocator);
   }
 
   @DELETE
@@ -362,7 +362,7 @@ public class BuildTypeRequest {
     if (template == null) {
       throw new NotFoundException("No template associated."); //todo: how to report it duly?
     }
-    return new BuildType(new BuildTypeOrTemplate(template), new Fields(fields, Fields.LONG), myBeanContext);
+    return new BuildType(new BuildTypeOrTemplate(template),  new Fields(fields), myBeanContext);
   }
 
   @PUT
@@ -374,7 +374,7 @@ public class BuildTypeRequest {
     BuildTypeTemplate template = myBuildTypeFinder.getBuildTemplate(null, templateLocator);
     buildType.attachToTemplate(template);
     buildType.persist();
-    return new BuildType(new BuildTypeOrTemplate(template), new Fields(fields, Fields.LONG), myBeanContext);
+    return new BuildType(new BuildTypeOrTemplate(template),  new Fields(fields), myBeanContext);
   }
 //todo: allow also to post back the XML from GET request (http://devnet.jetbrains.net/message/5466528#5466528)
 
@@ -1316,7 +1316,7 @@ public class BuildTypeRequest {
   public Investigations getInvestigations(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
     return new Investigations(myInvestigationFinder.getInvestigationWrappersForBuildType(buildType), new Href(InvestigationRequest.getHref(buildType), myApiUrlBuilder),
-                              new Fields(fields, Fields.LONG), null, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+                               new Fields(fields), null, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   /**
@@ -1369,7 +1369,7 @@ public class BuildTypeRequest {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
 
     return myBuildFinder.getBuildsForRequest(buildType, status, userLocator, includePersonal, includeCanceled, onlyPinned, tags, agentName,
-                                           sinceBuildLocator, sinceDate, start, count, locator, "locator", uriInfo, request, new Fields(fields, Fields.LONG), myBeanContext
+                                           sinceBuildLocator, sinceDate, start, count, locator, "locator", uriInfo, request,  new Fields(fields), myBeanContext
     );
   }
 
@@ -1381,7 +1381,7 @@ public class BuildTypeRequest {
                                      @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
     SBuild build = myBuildFinder.getBuild(buildType, buildLocator);
-    return new Build(build, new Fields(fields, Fields.LONG), myBeanContext);
+    return new Build(build,  new Fields(fields), myBeanContext);
   }
 
 

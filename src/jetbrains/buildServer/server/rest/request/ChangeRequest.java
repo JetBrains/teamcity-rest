@@ -127,7 +127,7 @@ public class ChangeRequest {
     return new Changes(buildModifications.myEntries,
                        new PagerData(requestUriBuilder, request.getContextPath(), buildModifications.myStart,
                                      buildModifications.myCount, buildModifications.myEntries.size(), actualLocator.getStringRepresentation(), "locator"),
-                       new Fields(fields, Fields.LONG), myBeanContext);
+                        new Fields(fields), myBeanContext);
   }
 
   private void updateLocatorDimension(@NotNull final Locator locator, @NotNull final String dimensionName, @Nullable final String value) {
@@ -145,7 +145,7 @@ public class ChangeRequest {
   @Path("/{changeLocator}")
   @Produces({"application/xml", "application/json"})
   public Change serveChange(@PathParam("changeLocator") String changeLocator, @QueryParam("fields") String fields) {
-    return new Change(myChangeFinder.getItem(changeLocator), new Fields(fields, Fields.LONG), myBeanContext);
+    return new Change(myChangeFinder.getItem(changeLocator),  new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -164,7 +164,7 @@ public class ChangeRequest {
   @Produces({"application/xml", "application/json"})
   public Changes getParentChanges(@PathParam("changeLocator") String changeLocator, @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
-    return new Changes(new ArrayList<SVcsModification>(change.getParentModifications()), null, new Fields(fields, Fields.LONG), myBeanContext);
+    return new Changes(new ArrayList<SVcsModification>(change.getParentModifications()), null,  new Fields(fields), myBeanContext);
   }
 
   /**
@@ -208,7 +208,7 @@ public class ChangeRequest {
   @Produces({"application/xml", "application/json"})
   public Changes getChangeDuplicates(@PathParam("changeLocator") String changeLocator, @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
-    return new Changes(new ArrayList<SVcsModification>(change.getDuplicates()), null, new Fields(fields, Fields.LONG), myBeanContext);
+    return new Changes(new ArrayList<SVcsModification>(change.getDuplicates()), null,  new Fields(fields), myBeanContext);
   }
 
   /**
@@ -230,7 +230,7 @@ public class ChangeRequest {
   @Produces({"application/xml", "application/json"})
   public BuildTypes getRelatedBuildTypes(@PathParam("changeLocator") String changeLocator, @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
-    return new BuildTypes(BuildTypes.fromBuildTypes(change.getRelatedConfigurations()), new Fields(fields, Fields.LONG), myBeanContext);
+    return new BuildTypes(BuildTypes.fromBuildTypes(change.getRelatedConfigurations()),  new Fields(fields), myBeanContext);
   }
 
  /**
@@ -241,6 +241,6 @@ public class ChangeRequest {
   @Produces({"application/xml", "application/json"})
   public Builds getChangeFirstBuilds(@PathParam("changeLocator") String changeLocator, @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
-    return new Builds(BuildFinder.getBuildPromotions(change.getFirstBuilds().values()), null, new Fields(fields, Fields.LONG), myBeanContext);
+    return new Builds(BuildFinder.getBuildPromotions(change.getFirstBuilds().values()), null,  new Fields(fields), myBeanContext);
   }
 }

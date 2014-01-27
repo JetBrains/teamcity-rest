@@ -90,7 +90,7 @@ public class ProjectRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public Projects serveProjects(@QueryParam("fields") String fields) {
-    return new Projects(myDataProvider.getServer().getProjectManager().getProjects(), new Fields(fields, Fields.LONG),
+    return new Projects(myDataProvider.getServer().getProjectManager().getProjects(),  new Fields(fields),
                         new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
@@ -169,7 +169,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}")
   @Produces({"application/xml", "application/json"})
   public Project serveProject(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
-    return new Project(myProjectFinder.getProject(projectLocator), new Fields(fields, Fields.LONG), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new Project(myProjectFinder.getProject(projectLocator),  new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @DELETE
@@ -202,7 +202,7 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   public BuildTypes serveBuildTypesInProject(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getProject(projectLocator);
-    return new BuildTypes(BuildTypes.fromBuildTypes(project.getOwnBuildTypes()), new Fields(fields, Fields.LONG), myBeanContext);
+    return new BuildTypes(BuildTypes.fromBuildTypes(project.getOwnBuildTypes()),  new Fields(fields), myBeanContext);
   }
 
   @POST
@@ -216,7 +216,7 @@ public class ProjectRequest {
     }
     final SBuildType buildType = project.createBuildType(name);
     buildType.persist();
-    return new BuildType(new BuildTypeOrTemplate(buildType), new Fields(fields, Fields.LONG), myBeanContext);
+    return new BuildType(new BuildTypeOrTemplate(buildType),  new Fields(fields), myBeanContext);
   }
 
   /**
@@ -246,7 +246,7 @@ public class ProjectRequest {
       }
     }
     resultingBuildType.persist();
-    return new BuildType(new BuildTypeOrTemplate(resultingBuildType), new Fields(fields, Fields.LONG), myBeanContext);
+    return new BuildType(new BuildTypeOrTemplate(resultingBuildType),  new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -254,7 +254,7 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   public BuildType serveBuildType(@PathParam("projectLocator") String projectLocator, @PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(myProjectFinder.getProject(projectLocator), buildTypeLocator);
-    return new BuildType(new BuildTypeOrTemplate(buildType), new Fields(fields, Fields.LONG), myBeanContext);
+    return new BuildType(new BuildTypeOrTemplate(buildType),  new Fields(fields), myBeanContext);
   }
 
 
@@ -263,7 +263,7 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   public BuildTypes serveTemplatesInProject(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getProject(projectLocator);
-    return new BuildTypes(BuildTypes.fromTemplates(project.getOwnBuildTypeTemplates()), new Fields(fields, Fields.LONG),
+    return new BuildTypes(BuildTypes.fromTemplates(project.getOwnBuildTypeTemplates()),  new Fields(fields),
                           new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
@@ -278,7 +278,7 @@ public class ProjectRequest {
     }
     final BuildTypeTemplate buildType = project.createBuildTypeTemplate(name);
     buildType.persist();
-    return new BuildType(new BuildTypeOrTemplate(buildType), new Fields(fields, Fields.LONG), myBeanContext);
+    return new BuildType(new BuildTypeOrTemplate(buildType),  new Fields(fields), myBeanContext);
   }
 
   /**
@@ -309,7 +309,7 @@ public class ProjectRequest {
       }
     }
     resultingBuildType.persist();
-    return new BuildType(new BuildTypeOrTemplate(resultingBuildType), new Fields(fields, Fields.LONG), myBeanContext);
+    return new BuildType(new BuildTypeOrTemplate(resultingBuildType),  new Fields(fields), myBeanContext);
   }
 
 
@@ -318,7 +318,7 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   public BuildType serveBuildTypeTemplates(@PathParam("projectLocator") String projectLocator, @PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
     BuildTypeTemplate buildType = myBuildTypeFinder.getBuildTemplate(myProjectFinder.getProject(projectLocator), buildTypeLocator);
-    return new BuildType(new BuildTypeOrTemplate(buildType), new Fields(fields, Fields.LONG), myBeanContext);
+    return new BuildType(new BuildTypeOrTemplate(buildType),  new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -327,7 +327,7 @@ public class ProjectRequest {
   public Properties serveParameters(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getProject(projectLocator);
     return new Properties(project.getParametersCollection(), project.getOwnParametersCollection(), getParametersHref(project),
-                          new Fields(fields, Fields.LONG), myServiceLocator);
+                           new Fields(fields), myServiceLocator);
   }
 
   @PUT
@@ -342,7 +342,7 @@ public class ProjectRequest {
     }
     project.persist();
     return new Properties(project.getParametersCollection(), project.getOwnParametersCollection(), getParametersHref(project),
-                          new Fields(fields, Fields.LONG), myServiceLocator);
+                           new Fields(fields), myServiceLocator);
   }
 
   @POST
@@ -453,7 +453,7 @@ public class ProjectRequest {
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(myProjectFinder.getProject(projectLocator), buildTypeLocator);
     return myBuildFinder.getBuildsForRequest(buildType, status, userLocator, includePersonal, includeCanceled, onlyPinned, tags, agentName,
-                                             sinceBuildLocator, sinceDate, start, count, locator, "locator", uriInfo, request, new Fields(fields, Fields.LONG), myBeanContext);
+                                             sinceBuildLocator, sinceDate, start, count, locator, "locator", uriInfo, request,  new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -466,7 +466,7 @@ public class ProjectRequest {
     SBuildType buildType = myBuildTypeFinder.getBuildType(myProjectFinder.getProject(projectLocator), buildTypeLocator);
     SBuild build = myBuildFinder.getBuild(buildType, buildLocator);
 
-    return new Build(build, new Fields(fields, Fields.LONG), myBeanContext);
+    return new Build(build,  new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -490,7 +490,7 @@ public class ProjectRequest {
     final SProject actulParentProject = project.getParentProject();
     return actulParentProject == null
            ? null
-           : new Project(actulParentProject, new Fields(fields, Fields.LONG), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+           : new Project(actulParentProject,  new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @PUT

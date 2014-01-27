@@ -73,7 +73,7 @@ public class TestRequest {
                                    locatorText,
                                    "locator"),
                      new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder),
-                     new Fields(fields, Fields.LONG)
+                      new Fields(fields)
     );
   }
   
@@ -81,6 +81,6 @@ public class TestRequest {
   @Path("/{testLocator}")
   @Produces({"application/xml", "application/json"})
   public Test serveInstance(@PathParam("testLocator") String locatorText, @QueryParam("fields") String fields) {
-    return new Test(myTestFinder.getItem(locatorText), new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder), new Fields(fields, Fields.LONG));
+    return new Test(myTestFinder.getItem(locatorText), new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder),  new Fields(fields));
   }
 }

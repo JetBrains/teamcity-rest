@@ -101,7 +101,7 @@ public class BuildQueueRequest {
                                     result.myCount, builds.size(),
                                     locator,
                                     "locator"),
-                      new Fields(fields,Fields.LONG),
+                       new Fields(fields),
                       myBeanContext);
   }
 
@@ -166,7 +166,7 @@ public class BuildQueueRequest {
       throw new NotFoundException("No builds are fouind by the locator specified");
     }
     //todo: handle build merges in the queue
-    return new Build(buildPromotion, new Fields(fields, Fields.LONG), myBeanContext);
+    return new Build(buildPromotion,  new Fields(fields), myBeanContext);
   }
 
   @DELETE
@@ -219,7 +219,7 @@ public class BuildQueueRequest {
   @Path("/{queuedBuildLocator}" + COMPATIBLE_AGENTS)
   @Produces({"application/xml", "application/json"})
   public Agents serveCompatibleAgents(@PathParam("queuedBuildLocator") String queuedBuildLocator, @QueryParam("fields") String fields) {
-    return new Agents(myQueuedBuildFinder.getItem(queuedBuildLocator).getCompatibleAgents(), null, new Fields(fields, Fields.LONG), myBeanContext);
+    return new Agents(myQueuedBuildFinder.getItem(queuedBuildLocator).getCompatibleAgents(), null,  new Fields(fields), myBeanContext);
   }
 
   @GET

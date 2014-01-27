@@ -85,7 +85,7 @@ public class TestOccurrenceRequest {
                                new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
                                              result.myCount, result.myEntries.size(),
                                              locatorText,
-                                             "locator"), new Fields(fields, Fields.LONG), new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder)
+                                             "locator"),  new Fields(fields), new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder)
     );
   }
 
@@ -94,6 +94,6 @@ public class TestOccurrenceRequest {
   @Produces({"application/xml", "application/json"})
   public TestOccurrence serveInstance(@PathParam("testLocator") String locatorText, @QueryParam("fields") String fields) {
     return new TestOccurrence(myTestOccurrenceFinder.getItem(locatorText), new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder),
-                              new Fields(fields, Fields.LONG));
+                               new Fields(fields));
   }
 }
