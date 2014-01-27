@@ -159,7 +159,7 @@ public class Project {
 
     projects = ValueWithDefault.decideDefault(fields.isIncluded("projects", false), new ValueWithDefault.Value<Projects>() {
       public Projects get() {
-        return new Projects(project.getOwnProjects(), fields.getNestedField("projects"), beanContext);
+        return new Projects(project.getOwnProjects(), fields.getNestedField("projects", Fields.NONE, Fields.LONG), beanContext);
       }
     });
 
