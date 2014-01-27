@@ -50,6 +50,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   public static final String PAUSED = "paused";
   protected static final String COMPATIBLE_AGENT = "compatibleAgent";
   protected static final String COMPATIBLE_AGENTS_COUNT = "compatibleAgentsCount";
+  protected static final String FILTER_BUILDS = "filterByBuilds";
 
   private final ProjectFinder myProjectFinder;
   @NotNull private final AgentFinder myAgentFinder;
@@ -85,7 +86,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   @Override
   public Locator createLocator(@Nullable final String locatorText) {
     final Locator result = super.createLocator(locatorText);
-    result.addHiddenDimensions(COMPATIBLE_AGENT, COMPATIBLE_AGENTS_COUNT); //hide these for now
+    result.addHiddenDimensions(COMPATIBLE_AGENT, COMPATIBLE_AGENTS_COUNT, FILTER_BUILDS); //hide these for now
     return result;
   }
 
@@ -240,6 +241,34 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
           return item.getBuildType() != null && compatibleAgentsCount.equals(Integer.valueOf(item.getBuildType().getCompatibleAgents().size()).longValue());
         }
       });
+    }
+
+    final String filterBuilds = locator.getSingleDimensionValue(FILTER_BUILDS); //experimental
+    if (filterBuilds != null) {
+      final Locator filterBuildsLocator = new Locator(filterBuilds, "search", "match");
+      final String search = filterBuildsLocator.getSingleDimensionValue("search");
+      final String match = filterBuildsLocator.getSingleDimensionValue("match");
+      if (search != null) {
+        result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
+          public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+            if (item.getBuildType() == null) return false;
+            final BuildFinder buildFinder = myServiceLocator.getSingletonService(BuildFinder.class);
+            final List<BuildPromotion> buildPromotions = BuildFinder.getBuildPromotions(buildFinder.getBuildsSimplified(item.getBuildType(), search));
+            if (buildPromotions.isEmpty()) {
+              return false;
+            }
+            if (match == null) {
+              return buildPromotions.size() > 0;
+            }
+            final BuildPromotion buildPromotion = buildPromotions.get(0);
+            final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
+            if (associatedBuild == null){
+              return false; //queued builds are not yet supported
+            }
+            return buildFinder.getBuildsFilter(null, match).isIncluded(associatedBuild);
+          }
+        });
+      }
     }
 
     return result;
