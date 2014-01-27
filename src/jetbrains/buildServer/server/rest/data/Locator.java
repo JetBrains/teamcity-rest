@@ -522,6 +522,13 @@ public class Locator {
     return result;
   }
 
+  public static String setDimensionOrCreateNew(@Nullable final String locator, @NotNull final String dimensionName, final String value) {
+    if (!StringUtil.isEmpty(locator)){
+      return Locator.setDimension(locator, dimensionName, value);
+    }
+    return Locator.getStringLocator(dimensionName, value);
+  }
+
   public static String setDimension(@NotNull final String locator, @NotNull final String dimensionName, final long value) {
     return setDimension(locator, dimensionName, String.valueOf(value));
   }
@@ -536,7 +543,7 @@ public class Locator {
    */
   public static String setDimensionIfNotPresent(@NotNull final String locator, @NotNull final String dimensionName, final String value) {
     final Locator actualLocator = new Locator(locator);
-    if (actualLocator.getSingleDimensionValue(dimensionName) != null){
+    if (actualLocator.getSingleDimensionValue(dimensionName) == null){
       return actualLocator.setDimension(dimensionName, value).getStringRepresentation();
     }
     return locator;
