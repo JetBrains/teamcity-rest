@@ -69,10 +69,18 @@ public abstract class AbstractFinder<ITEM> {
 
     ITEM singleItem = findSingleItem(locator);
     if (singleItem != null){
+      // ignore start:0 dimension
+      final Long startDimension = locator.getSingleDimensionValueAsLong(PagerData.START);
+      if (startDimension == null || startDimension != 0) {
+        locator.markUnused(PagerData.START);
+      }
+
       locator.checkLocatorFullyProcessed();
       return new PagedSearchResult<ITEM>(Collections.singletonList(singleItem), null, null);
     }
+    locator.markAllUnused(); // nothing found - no dimensions should be marked as used then
 
+    //it is important to call "getPrefilteredItems" first as that process some of the dimensions which  "getFilter" can then ignore for performance reasons
     final List<ITEM> unfilteredItems = getPrefilteredItems(locator);
     AbstractFilter<ITEM> filter = getFilter(locator);
     locator.checkLocatorFullyProcessed();
@@ -81,7 +89,6 @@ public abstract class AbstractFinder<ITEM> {
 
   @NotNull
   protected List<ITEM> getItems(final @NotNull AbstractFilter<ITEM> filter, final @NotNull List<ITEM> unfilteredItems) {
-    //todo: current implementation is not effective: consider pre-filtering by filter fields, if specified
     final FilterItemProcessor<ITEM> filterItemProcessor = new FilterItemProcessor<ITEM>(filter);
     AbstractFilter.processList(unfilteredItems, filterItemProcessor);
     return filterItemProcessor.getResult();
@@ -118,6 +125,7 @@ public abstract class AbstractFinder<ITEM> {
   @NotNull
   public abstract List<ITEM> getAllItems();
 
+  @NotNull
   protected abstract AbstractFilter<ITEM> getFilter(final Locator locator);
 
   public String[] getKnownDimensions() {

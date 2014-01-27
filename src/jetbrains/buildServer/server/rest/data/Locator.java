@@ -491,6 +491,16 @@ public class Locator {
   }
 
   /**
+   * Marks all the used dimensions as not used.
+   * This also has a side effect of not reporting the dimensions as known but not reported, see "reportKnownButNotReportedDimensions" method.
+   *
+   * @param dimensionNames
+   */
+  public void markAllUnused() {
+    myUsedDimensions.clear();
+  }
+
+  /**
    * Returns a locator based on the supplied one replacing the numeric value of the dimention specified with the passed number.
    * The structure of the returned locator might be diffeent from the passed one, while the same dimensions and values are present.
    *
