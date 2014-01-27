@@ -28,6 +28,8 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -355,6 +357,25 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       return buildTypeOrTemplate.getTemplate();
     }
     throw new BadRequestException("No build type template by locator '" + buildTypeLocator + "'. Build type is found instead.");
+  }
+
+  @NotNull
+  public List<SBuildType> getBuildTypes(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
+    String actualLocator = Locator.setDimensionOrCreateNew(buildTypeLocator, TEMPLATE_DIMENSION_NAME, "false");
+
+    if (project != null) {
+        actualLocator = Locator.setDimensionIfNotPresent(actualLocator, DIMENSION_PROJECT, ProjectFinder.getLocator(project));
+    }
+
+    final PagedSearchResult<BuildTypeOrTemplate> items = getItems(actualLocator);
+    return CollectionsUtil.convertCollection(items.myEntries, new Converter<SBuildType, BuildTypeOrTemplate>() {
+      public SBuildType createFrom(@NotNull final BuildTypeOrTemplate source) {
+        if (project != null && !source.getProject().equals(project)) {
+          throw new BadRequestException("Found " + LogUtil.describe(source.getBuildType()) + " but it does not belong to project " + LogUtil.describe(project) + ".");
+        }
+        return source.getBuildType();
+      }
+    });
   }
 
   @Nullable

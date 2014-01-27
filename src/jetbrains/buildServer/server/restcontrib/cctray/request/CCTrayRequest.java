@@ -17,19 +17,19 @@
 package jetbrains.buildServer.server.restcontrib.cctray.request;
 
 import com.sun.jersey.spi.resource.Singleton;
-import java.util.ArrayList;
-import java.util.List;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.server.restcontrib.cctray.model.Projects;
-import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
@@ -38,28 +38,22 @@ import jetbrains.buildServer.serverSide.TeamCityProperties;
 @Path(Constants.API_URL + "/cctray")
 @Singleton
 public class CCTrayRequest {
-    @Context
-    private DataProvider myDataProvider;
-    @Context
-    private ServiceLocator myServiceLocator;
+  @Context @NotNull private ServiceLocator myServiceLocator;
+  @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
 
-    @GET
-    @Path("/projects.xml")
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public Projects serveProjects() {
-      return new Projects(myServiceLocator, getBuildTypes());
-    }
+  @GET
+  @Path("")
+  @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+  public Projects serveProjectsConvenienceCopy(@QueryParam("locator") String buildTypeLocator) {
+    return serveProjects(buildTypeLocator);
+  }
 
-    private List<SBuildType> getBuildTypes() {
-      final List<SBuildType> allBuildTypes = myDataProvider.getServer().getProjectManager().getAllBuildTypes();
-      if (TeamCityProperties.getBoolean("rest.cctray.includePausedBuildTypes")) {
-        return allBuildTypes;
-      } else {
-        final ArrayList<SBuildType> result = new ArrayList<SBuildType>();
-        for (SBuildType buildType : allBuildTypes) {
-          if (!buildType.isPaused()) result.add(buildType);
-        }
-        return result;
-      }
-    }
+  @GET
+  @Path("/projects.xml")
+  @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+  public Projects serveProjects(@QueryParam("locator") String buildTypeLocator) {
+    String actualLocator = Locator.setDimensionOrCreateNew(buildTypeLocator, BuildTypeFinder.TEMPLATE_DIMENSION_NAME, "false");
+    actualLocator = Locator.setDimensionIfNotPresent(actualLocator, BuildTypeFinder.PAUSED, String.valueOf(TeamCityProperties.getBoolean("rest.cctray.includePausedBuildTypes")));
+    return new Projects(myServiceLocator, myBuildTypeFinder.getBuildTypes(null, actualLocator));
+  }
 }
