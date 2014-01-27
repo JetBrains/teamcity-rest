@@ -21,14 +21,12 @@ import com.sun.jersey.core.spi.component.ComponentScope;
 import com.sun.jersey.spi.inject.Injectable;
 import com.sun.jersey.spi.inject.InjectableProvider;
 import java.lang.reflect.Type;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.PathTransformator;
-import jetbrains.buildServer.server.rest.PathTransformer;
 import jetbrains.buildServer.server.rest.RequestPathTransformInfo;
-import jetbrains.buildServer.server.rest.request.Constants;
 
 /**
  * @author Yegor.Yarko
@@ -42,6 +40,7 @@ public class UrlBuilderProvider implements InjectableProvider<Context, java.lang
   //TODO: may lead to concurrency issue as this instance is
   //TODO: created by spring not by Jersey!
   @Context private HttpHeaders headers;
+  @Context private HttpServletRequest request;
 
   public UrlBuilderProvider(final RequestPathTransformInfo requestPathTransformInfo) {
     myRequestPathTransformInfo = requestPathTransformInfo;
@@ -59,16 +58,7 @@ public class UrlBuilderProvider implements InjectableProvider<Context, java.lang
   }
 
   public ApiUrlBuilder getValue() {
-    return new ApiUrlBuilder(new PathTransformer() {
-      public String transform(final String path) {
-        return getRequestTranslator().getTransformedPath(path);
-      }
-    });
+    return new ApiUrlBuilder(new SimplePathTransformer(request, headers, myRequestPathTransformInfo));
   }
 
-  private PathTransformator getRequestTranslator() {
-    final String originalRequestPath =
-      headers.getRequestHeader(Constants.ORIGINAL_REQUEST_URI_HEADER_NAME).get(0); //todo report appropriate message
-    return myRequestPathTransformInfo.getReverseTransformator(originalRequestPath, false);
-  }
 }

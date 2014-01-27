@@ -21,15 +21,13 @@ import com.sun.jersey.core.spi.component.ComponentScope;
 import com.sun.jersey.spi.inject.Injectable;
 import com.sun.jersey.spi.inject.InjectableProvider;
 import java.lang.reflect.Type;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.PathTransformator;
-import jetbrains.buildServer.server.rest.PathTransformer;
 import jetbrains.buildServer.server.rest.RequestPathTransformInfo;
-import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 
@@ -45,6 +43,8 @@ public class BeanContextProvider implements InjectableProvider<Context, Type>, I
   //TODO: may lead to concurrency issue as this instance is
   //TODO: created by spring not by Jersey!
   @Context private HttpHeaders headers;
+  @Context private HttpServletRequest request;
+
   private final BeanFactory myFactory;
   private final ServiceLocator myServiceLocator;
 
@@ -66,16 +66,6 @@ public class BeanContextProvider implements InjectableProvider<Context, Type>, I
   }
 
   public BeanContext getValue() {
-    return new BeanContext(myFactory, myServiceLocator, new ApiUrlBuilder(new PathTransformer() {
-          public String transform(final String path) {
-            return getRequestTranslator().getTransformedPath(path);
-          }
-        }));
-  }
-
-  private PathTransformator getRequestTranslator() {
-    final String originalRequestPath =
-      headers.getRequestHeader(Constants.ORIGINAL_REQUEST_URI_HEADER_NAME).get(0); //todo report appropriate message
-    return myRequestPathTransformInfo.getReverseTransformator(originalRequestPath, false);
+    return new BeanContext(myFactory, myServiceLocator, new ApiUrlBuilder(new SimplePathTransformer(request, headers, myRequestPathTransformInfo)));
   }
 }
