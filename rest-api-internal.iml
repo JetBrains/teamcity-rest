@@ -78,12 +78,12 @@
     <orderEntry type="module-library">
       <library name="Test-libs">
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib-test/mockito-all-1.9.5.jar!/" />
           <root url="jar://$MODULE_DIR$/lib-test/testng-6.8.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib-test/mockito-core-1.9.5.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="jar://$MODULE_DIR$/lib-test/mockito-all-1.9.5.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib-test/mockito-core-1.9.5.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
