@@ -33,8 +33,8 @@ import org.jetbrains.annotations.Nullable;
 public class Fields {
   private static final String NONE_FIELDS_PATTERN = "-";
   private static final String DEFAULT_FIELDS_SHORT_PATTERN = "";
-  private static final String DEFAULT_FIELDS_SHORT_PATTERN_ALTERNATIVE = ".";
-  private static final String DEFAULT_FIELDS_LONG_PATTERN = "$";
+  private static final String DEFAULT_FIELDS_SHORT_PATTERN_ALTERNATIVE = "$short";
+  private static final String DEFAULT_FIELDS_LONG_PATTERN = "$long";
   private static final String ALL_FIELDS_PATTERN = "*";
   private static final String ALL_NESTED_FIELDS_PATTERN = "**";
 
@@ -220,7 +220,7 @@ public class Fields {
       if (DEFAULT_FIELDS_LONG_PATTERN.equals(b)) return a;
       return b;
     }
-    if (DEFAULT_FIELDS_SHORT_PATTERN.equals(a)) {
+    if (DEFAULT_FIELDS_SHORT_PATTERN.equals(a) || DEFAULT_FIELDS_SHORT_PATTERN_ALTERNATIVE.equals(a)) {
       if (ALL_NESTED_FIELDS_PATTERN.equals(b)) return a;
       if (DEFAULT_FIELDS_LONG_PATTERN.equals(b)) return a;
       if (ALL_FIELDS_PATTERN.equals(b)) return a;
