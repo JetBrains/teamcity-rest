@@ -28,7 +28,6 @@ public abstract class CachingValue<S> {
   final public S get(){
     if (myValue == null){
       myValue = doGet();
-      assert myValue != null;
     }
     return myValue;
   }
@@ -37,6 +36,7 @@ public abstract class CachingValue<S> {
    * Should not return null
    * @return
    */
+  @NotNull
   protected abstract S doGet();
 }
 

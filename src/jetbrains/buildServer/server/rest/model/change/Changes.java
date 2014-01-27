@@ -51,7 +51,7 @@ public class Changes {
                  @Nullable final PagerData pagerData,
                  @NotNull Fields fields,
                  @NotNull final BeanContext beanContext) {
-    myModifications = new CachingValue<List<SVcsModification>>() {
+    myModifications = modifications == null ? null : new CachingValue<List<SVcsModification>>() {
       @Override
       protected List<SVcsModification> doGet() {
         return modifications;
