@@ -208,7 +208,7 @@
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/db.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/server.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/web.jar"/>
-    <pathelement location="${basedir}/lib-test/mockito-all-1.9.5.jar"/>
+    <pathelement location="${basedir}/lib-test/mockito-core-1.9.5.jar"/>
     <pathelement location="${basedir}/lib-test/testng-6.8.jar"/>
     <path refid="library.teamcity_server_tests.classpath"/>
   </path>
@@ -237,7 +237,7 @@
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/db.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/server.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/web.jar"/>
-    <pathelement location="${basedir}/lib-test/mockito-all-1.9.5.jar"/>
+    <pathelement location="${basedir}/lib-test/mockito-core-1.9.5.jar"/>
     <pathelement location="${basedir}/lib-test/testng-6.8.jar"/>
     <path refid="library.teamcity_server_tests.classpath"/>
   </path>
