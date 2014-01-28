@@ -141,7 +141,11 @@ public class Build {
 
   @XmlAttribute (name = PROMOTION_ID)
   public Long getPromotionId() {
-    return myBuild != null ? null : ValueWithDefault.decideDefault(myFields.isIncluded(PROMOTION_ID, true), myBuildPromotion.getId());
+    if (myBuild != null) {
+      return ValueWithDefault.decideDefault(myFields.isIncluded(PROMOTION_ID, false, false), myBuild.getBuildId());
+    } else {
+      return ValueWithDefault.decideDefault(myFields.isIncluded(PROMOTION_ID, true), myBuildPromotion.getId());
+    }
   }
 
   @XmlAttribute
@@ -1101,7 +1105,7 @@ public class Build {
       return String.valueOf(build.getDefaultBranch());
     } else if ("unspecifiedBranch".equals(field)) {
       return String.valueOf(build.getUnspecifiedBranch());
-    } else if (PROMOTION_ID.equals(field)) { //Experimental support only, this is not exposed in any other way
+    } else if (PROMOTION_ID.equals(field) || "promotionId".equals(field)) { //Experimental support only, this is not exposed in any other way
       return (String.valueOf(build.getPromotionId()));
     } else if ("modificationId".equals(field)) { //Experimental support only, this is not exposed in any other way
       return String.valueOf(buildPromotion.getLastModificationId());

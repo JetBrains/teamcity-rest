@@ -47,7 +47,7 @@ import org.jetbrains.annotations.Nullable;
 public class BuildFinder {
   private static final Logger LOG = Logger.getInstance(BuildFinder.class.getName());
   public static final String DIMENSION_ID = "id";
-  public static final String PROMOTION_ID = "promotionId";
+  public static final String PROMOTION_ID = "taskId";
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
   @NotNull private final ProjectFinder myProjectFinder;
@@ -225,6 +225,9 @@ public class BuildFinder {
     }
 
     Long promotionId = locator.getSingleDimensionValueAsLong(PROMOTION_ID);
+    if (promotionId == null){
+      promotionId = locator.getSingleDimensionValueAsLong("promotionId"); //support TeamCity 8.0 dimension
+    }
     if (promotionId != null) {
       SBuild build = getBuildByPromotionId(promotionId);
       if (buildType != null && !buildType.getBuildTypeId().equals(build.getBuildTypeId())) {
