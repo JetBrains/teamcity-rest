@@ -64,7 +64,6 @@ public class Problem {
                  final @NotNull ApiUrlBuilder apiUrlBuilder,
                  final @NotNull Fields fields) {
     id = String.valueOf(problem.getId());
-    final long problemId = (long)problem.getId();
 
     type = problem.getType();
     identity = problem.getIdentity();

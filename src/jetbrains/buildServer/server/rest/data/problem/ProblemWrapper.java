@@ -16,15 +16,22 @@
 
 package jetbrains.buildServer.server.rest.data.problem;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.responsibility.BuildProblemResponsibilityEntry;
+import jetbrains.buildServer.responsibility.BuildProblemResponsibilityFacade;
+import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
-import jetbrains.buildServer.serverSide.problems.BuildProblem;
+import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
+import jetbrains.buildServer.serverSide.problems.BuildProblemInfo;
 import jetbrains.buildServer.serverSide.problems.BuildProblemManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -36,44 +43,45 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 21.11.13
  */
 public class ProblemWrapper implements Comparable<ProblemWrapper>{
-  private final Long id;
+  private final Integer id;
   private final String type;
   private final String identity;
-//  private final SProject project;
-  @NotNull private final ServiceLocator myServiceLocator;
   private List<MuteInfo> mutes;
   private List<InvestigationWrapper> investigations;
 
+  @NotNull private final ServiceLocator myServiceLocator;
+
   public ProblemWrapper(final int problemId, final @NotNull ServiceLocator serviceLocator) {
-    id = Long.valueOf(problemId);
+    id = problemId;
     myServiceLocator = serviceLocator;
-    //todo: TeamCity API (VB): get all the fields +mutes +investigations by id
-  //todo: TeamCity API (VB): what is buildProblemInfo.getBuildProblemDescription()
-    final BuildProblem problemById = ProblemFinder.findProblemById(id, serviceLocator);
-    if (problemById != null){
-      type = problemById.getBuildProblemData().getType();
-      identity = problemById.getBuildProblemData().getIdentity();
+
+    final BuildProblemData problemData = serviceLocator.getSingletonService(BuildProblemManager.class).findProblemDataById(problemId);
+    if (problemData != null) {
+      type = problemData.getType();
+      identity = problemData.getIdentity();
     }else{
       type = null;
       identity = null;
     }
-     //todo: also add type desciption?
+    //TeamCity API: would also be great to add type desciption
   }
 
   /**
-   * Creates a problem corresponding to the problem of the BuilProblem passed
+   * The same as above, just with a bit better performance
+   * @param problemId
+   * @param buildProblemData
+   * @param serviceLocator
    */
-  //todo: ONLY FOR PERFORMANCE OPTIMIZATION. Constructor above should be used once there is a suitable API
-  public ProblemWrapper(@NotNull final BuildProblem problem, final @NotNull ServiceLocator serviceLocator) {
-    id = (long)problem.getId();
+  public ProblemWrapper(final int problemId, @NotNull final BuildProblemData buildProblemData, final @NotNull ServiceLocator serviceLocator) {
+    id = problemId;
     myServiceLocator = serviceLocator;
-    type = problem.getBuildProblemData().getType();
-    identity = problem.getBuildProblemData().getIdentity();
+    type = buildProblemData.getType();
+    identity = buildProblemData.getIdentity();
   }
 
   @NotNull
   public Long getId() {
-    return id;
+    return Long.valueOf(id);
   }
 
   @Nullable
@@ -86,17 +94,17 @@ public class ProblemWrapper implements Comparable<ProblemWrapper>{
     return identity;
   }
 
-  /*
-  @NotNull
-  public SProject getProject() {  //todo TeamCity API (VB): this assumes no problems for not existent proects are reported which might not be true
-    return project;
-  }
-  */
-
   @NotNull
   public List<MuteInfo> getMutes() {
     if (mutes == null) {
-      initMutesAndInvestigations();
+      Set<MuteInfo> mutesSet = new TreeSet<MuteInfo>();
+      final SProject rootProject = myServiceLocator.getSingletonService(ProjectManager.class).getRootProject();
+      final CurrentMuteInfo currentMuteInfo = myServiceLocator.getSingletonService(ProblemMutingService.class).getBuildProblemCurrentMuteInfo(rootProject.getProjectId(), id);
+      if (currentMuteInfo != null) {
+        mutesSet.addAll(currentMuteInfo.getProjectsMuteInfo().values());
+        mutesSet.addAll(currentMuteInfo.getBuildTypeMuteInfo().values());
+      }
+      mutes = new ArrayList<MuteInfo>(mutesSet);
     }
     return mutes;
   }
@@ -104,39 +112,37 @@ public class ProblemWrapper implements Comparable<ProblemWrapper>{
   @NotNull
   public List<InvestigationWrapper> getInvestigations() {
     if (investigations == null){
-      initMutesAndInvestigations();
+      final String rootProjectId = myServiceLocator.getSingletonService(ProjectFinder.class).getRootProject().getProjectId();
+      final List<BuildProblemResponsibilityEntry> responsibilities = myServiceLocator.getSingletonService(
+        BuildProblemResponsibilityFacade.class).findBuildProblemResponsibilities(new BuildProblemInfo() {
+        //TeamCity API issue: requires creating some fake object
+        public int getId() {
+          return id;
+        }
+
+        @NotNull
+        public String getProjectId() {
+          return rootProjectId;
+        }
+
+        @Nullable
+        public String getBuildProblemDescription() {
+          return null;
+        }
+      }, rootProjectId);
+
+      final Set<InvestigationWrapper> investigationsSet = new TreeSet<InvestigationWrapper>();
+      for (BuildProblemResponsibilityEntry responsibility : responsibilities) {
+        investigationsSet.add(new InvestigationWrapper(responsibility));
+      }
+      investigations = new ArrayList<InvestigationWrapper>(investigationsSet);
     }
     return investigations;
   }
 
-  private void initMutesAndInvestigations() {
-    Set<MuteInfo>  mutesSet = new TreeSet<MuteInfo>();
-    Set<InvestigationWrapper> investigationsSet = new LinkedHashSet<InvestigationWrapper>();
-    final SProject rootProject = myServiceLocator.getSingletonService(ProjectManager.class).getRootProject();
-    final List<BuildProblem> currentBuildProblemsList = myServiceLocator.getSingletonService(BuildProblemManager.class).getCurrentBuildProblemsList(rootProject);
-    //todo: bug: searches only inside current problems: mutes and investigations from non-current problems are not returned
-    for (BuildProblem buildProblem : currentBuildProblemsList) {
-      if (id.equals(Long.valueOf(buildProblem.getId()))){
-        final CurrentMuteInfo currentMuteInfo = buildProblem.getCurrentMuteInfo();
-        if (currentMuteInfo != null){
-          mutesSet.addAll(currentMuteInfo.getProjectsMuteInfo().values());
-          mutesSet.addAll(currentMuteInfo.getBuildTypeMuteInfo().values());
-        }
-        final BuildProblemResponsibilityEntry responsibility = buildProblem.getResponsibility();
-        if (responsibility != null){
-          investigationsSet.add(new InvestigationWrapper(responsibility)); //todo: check that deduplication works OK here
-        }
-      }
-    }
-
-    mutes = new ArrayList<MuteInfo>(mutesSet);
-    investigations = new ArrayList<InvestigationWrapper>(investigationsSet);
-  }
-
-
   //todo: review all methods below
   public int compareTo(@NotNull final ProblemWrapper o) {
-    return id.compareTo(o.getId());
+    return Long.valueOf(id).compareTo(o.getId());
   }
 
   @Override

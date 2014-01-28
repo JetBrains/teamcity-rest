@@ -32,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 10.11.13
  */
-public class InvestigationWrapper implements ResponsibilityEntry {
+public class InvestigationWrapper implements ResponsibilityEntry, Comparable<InvestigationWrapper>{
   @NotNull private final ResponsibilityEntry myRE;
   private final BuildTypeResponsibilityEntry myBuildTypeRE;
   private final TestNameResponsibilityEntry myTestRE;
