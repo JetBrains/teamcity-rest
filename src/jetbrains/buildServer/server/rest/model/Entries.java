@@ -23,6 +23,8 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.util.DefaultValueAware;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.util.CaseInsensitiveStringComparator;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,7 +33,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 13.07.2009
  */
 @XmlRootElement(name = "entries")
-public class Entries {
+public class Entries implements DefaultValueAware{
   @XmlAttribute
   public long count;
 
@@ -61,5 +63,9 @@ public class Entries {
       result.put(Entry.name, Entry.value);
     }
     return result;
+  }
+
+  public boolean isDefault() {
+    return ValueWithDefault.isAllDefault(count, entries);
   }
 }
