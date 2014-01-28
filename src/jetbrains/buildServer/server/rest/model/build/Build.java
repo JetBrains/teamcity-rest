@@ -47,6 +47,7 @@ import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.buildDistribution.WaitReason;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
+import jetbrains.buildServer.serverSide.impl.BuildPromotionImpl;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
@@ -79,7 +80,7 @@ import org.springframework.beans.factory.annotation.Autowired;
            "agent", "compatibleAgents"/*q*/,
            "testOccurrences"/*rf*/, "problemOccurrences"/*rf*/,
            "artifacts"/*rf*/, "issues"/*rf*/,
-           "properties", "customProperties", "attributes", "statistics"/*rf*/,
+           "properties", "attributes", "statistics"/*rf*/,
            "buildDependencies", "buildArtifactDependencies", "customBuildArtifactDependencies"/*q*/,
            "triggeringOptions"/*only when triggering*/})
 public class Build {
@@ -334,21 +335,13 @@ public class Build {
   public Properties getProperties() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
-        return new Properties(myBuildPromotion.getParameters());
-        //todo: use "own" instead of customProperties, update customProperties submit
-        /*
-        return new Properties(getParametersCollection(myBuildPromotion), getOwnParametersCollection(myBuildPromotion), null, myFields.getNestedField("properties"),
-                              myServiceLocator);
-        */
-      }
-    });
-  }
-
-  @XmlElement
-  public Properties getCustomProperties() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("customProperties", false), new ValueWithDefault.Value<Properties>() {
-      public Properties get() {
-        return new Properties(myBuildPromotion.getCustomParameters());
+        final Collection<Parameter> parameters = ((BuildPromotionImpl)myBuildPromotion).getParametersCollection(); //TeamCity API isuse: cast
+        final Collection<Parameter> customParameters = CollectionsUtil.convertCollection(myBuildPromotion.getCustomParameters().entrySet(), new Converter<Parameter, Map.Entry<String, String>>() {
+          public Parameter createFrom(@NotNull final Map.Entry<String, String> source) {
+            return new SimpleParameter(source.getKey(), source.getValue());
+          }
+        });
+        return new Properties(parameters, customParameters, null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myServiceLocator);
       }
     });
   }
@@ -858,7 +851,7 @@ public class Build {
   private String submittedBuildTypeId;
   private BuildType submittedBuildType;
   private Comment submittedComment;
-  private Properties submittedCustomProperties;
+  private Properties submittedProperties;
   private String submittedBranchName;
   private Boolean submittedPersonal;
   private Changes submittedLastChanges;
@@ -893,8 +886,8 @@ public class Build {
     this.submittedComment = submittedComment;
   }
 
-  public void setCustomProperties(final Properties submittedCustomProperties) {
-    this.submittedCustomProperties = submittedCustomProperties;
+  public void setProperties(final Properties submittedProperties) {
+    this.submittedProperties = submittedProperties;
   }
 
   public void setBranchName(final String submittedBranchName) {
@@ -965,7 +958,9 @@ public class Build {
         throw new BadRequestException("Submitted comment does not have 'text' set.");
       }
     }
-    if (submittedCustomProperties != null) customizer.setParameters(submittedCustomProperties.getMap());
+    if (submittedProperties != null){
+      customizer.setParameters(submittedProperties.getMap());
+    }
 
     if (submittedBranchName != null) customizer.setDesiredBranchName(submittedBranchName);
     if (submittedPersonal != null) customizer.setPersonal(submittedPersonal);
@@ -984,7 +979,8 @@ public class Build {
       customizer.setRebuildDependencies(CollectionsUtil.convertCollection(
         submittedTriggeringOptions.rebuildDependencies.getFromPosted(serviceLocator.getSingletonService(BuildTypeFinder.class)), new Converter<String, BuildTypeOrTemplate>() {
         public String createFrom(@NotNull final BuildTypeOrTemplate source) {
-          if (!source.isBuildType()) {
+          if (source.getBuildType() == null) {
+            //noinspection ConstantConditions
             throw new BadRequestException("Template is specified instead of a build type. Template id: '" + source.getTemplate().getExternalId() + "'");
           }
           return source.getBuildType().getInternalId();
