@@ -22,10 +22,14 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.FilterUtil;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.Parameter;
+import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.util.CaseInsensitiveStringComparator;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -96,14 +100,30 @@ public class Properties  implements DefaultValueAware {
     this.href = ValueWithDefault.decideDefault(fields.isIncluded("href"), href);
   }
 
+  public static List<Parameter> convertToSimpleParameters(final Map<String, String> parametersMap) {
+    return CollectionsUtil.convertCollection(parametersMap.entrySet(), new Converter<Parameter, Map.Entry<String, String>>() {
+      public Parameter createFrom(@NotNull final Map.Entry<String, String> source) {
+        return new SimpleParameter(source.getKey(), source.getValue());
+      }
+    });
+  }
+
   @NotNull
   public Map<String, String> getMap() {
+    return getMap(null);
+  }
+
+  @NotNull
+  public Map<String, String> getMap(final Boolean ownOnly) {
     if (properties == null) {
       return new HashMap<String, String>();
     }
     final HashMap<String, String> result = new HashMap<String, String>(properties.size());
     for (Property property : properties) {
-      result.put(property.name, property.value);
+      boolean actualOwn =  property.own != null && property.own;
+      if (FilterUtil.isIncludedByBooleanFilter(ownOnly, actualOwn)){
+        result.put(property.name, property.value);
+      }
     }
     return result;
   }

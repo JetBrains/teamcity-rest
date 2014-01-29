@@ -47,7 +47,6 @@ import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.buildDistribution.WaitReason;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
-import jetbrains.buildServer.serverSide.impl.BuildPromotionImpl;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
@@ -335,12 +334,8 @@ public class Build {
   public Properties getProperties() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
-        final Collection<Parameter> parameters = ((BuildPromotionImpl)myBuildPromotion).getParametersCollection(); //TeamCity API isuse: cast
-        final Collection<Parameter> customParameters = CollectionsUtil.convertCollection(myBuildPromotion.getCustomParameters().entrySet(), new Converter<Parameter, Map.Entry<String, String>>() {
-          public Parameter createFrom(@NotNull final Map.Entry<String, String> source) {
-            return new SimpleParameter(source.getKey(), source.getValue());
-          }
-        });
+        final Collection<Parameter> parameters = Properties.convertToSimpleParameters(myBuildPromotion.getParameters());
+        final Collection<Parameter> customParameters = Properties.convertToSimpleParameters(Build.this.myBuildPromotion.getCustomParameters());
         return new Properties(parameters, customParameters, null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myServiceLocator);
       }
     });
