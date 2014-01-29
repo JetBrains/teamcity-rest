@@ -16,10 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
@@ -28,10 +25,7 @@ import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
-import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.errors.*;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
@@ -105,6 +99,47 @@ public class BuildQueueRequest {
                       myBeanContext);
   }
 
+  /**
+   * Experimental! Deletes the set of builds filtered
+   *
+   * @param locator Build locator to filter builds to delete
+   * @return
+   */
+  @DELETE
+  @Produces({"application/xml", "application/json"})
+  public void deleteBuildsExperimental(@QueryParam("locator") String locator, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+    final PagedSearchResult<SQueuedBuild> result = myQueuedBuildFinder.getItems(locator);
+    final List<Throwable> errors = new ArrayList<Throwable>();
+
+    final jetbrains.buildServer.serverSide.BuildQueue buildQueue = myServiceLocator.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class);
+    final List<String> itemIds = CollectionsUtil.convertCollection(result.myEntries, new Converter<String, SQueuedBuild>() {
+      public String createFrom(@NotNull final SQueuedBuild source) {
+        return source.getItemId();
+      }
+    });
+    buildQueue.removeItems(itemIds, myDataProvider.getCurrentUser(), null);
+
+    //TeamCity API issue: TW-34143
+    for (String itemId : itemIds) {
+      if (buildQueue.findQueued(itemId) != null) {
+        errors.add(new AuthorizationFailedException("Build was not canceled. Probably not sufficient permisisons."));
+      }
+    }
+
+    //now delete the canceled builds
+    for (SQueuedBuild build : result.myEntries) {
+      final SBuild associatedBuild = build.getBuildPromotion().getAssociatedBuild();
+      if (associatedBuild == null) {
+        errors.add(new OperationException("After canceling a build with promotion id '" + build.getBuildPromotion().getId() + "' , no canceled build found to delete."));
+      } else{
+        myDataProvider.deleteBuild(associatedBuild);
+      }
+    }
+    if (errors.size() >0){
+      throw new PartialUpdateError("Some builds were not deleted", errors);
+    }
+  }
+
   @PUT
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
@@ -129,7 +164,7 @@ public class BuildQueueRequest {
     });
     buildQueue.removeItems(queuedBuildIds, myDataProvider.getCurrentUser(), null); //todo: consider providing comment here
 
-    //todo: TeamCity API issue: TW-34143
+    //TeamCity API issue: TW-34143
     if (!buildQueue.isQueueEmpty()) {
       throw new AuthorizationFailedException("Some builds were not canceled. Probably not sufficient permisisons.");
     }
@@ -209,7 +244,7 @@ public class BuildQueueRequest {
     final String itemId = build.getItemId();
     buildQueue.removeItems(Collections.singleton(itemId), myDataProvider.getCurrentUser(), comment);
 
-    //todo: TeamCity API issue: TW-34143
+    //TeamCity API issue: TW-34143
     if (buildQueue.findQueued(itemId) != null) {
       throw new AuthorizationFailedException("Build was not canceled. Probably not sufficient permisisons.");
     }
