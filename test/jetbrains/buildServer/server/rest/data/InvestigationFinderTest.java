@@ -62,7 +62,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     assertEquals(true, investigation1.isBuildType());
     assertEquals(false, investigation1.isProblem());
     assertEquals(false, investigation1.isTest());
-    assertEquals("buildtype", investigation1.getType());
+    assertEquals("buildType", investigation1.getType());
 
     final BuildTypeResponsibilityEntry buildTypeRE = investigation1.getBuildTypeRE();
     assertEquals(true, buildTypeRE != null);
@@ -92,7 +92,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     assertEquals("TAKEN", investigation.state);
     assertEquals((Long)myUser.getId(), investigation.responsible.getId());
     assertEquals("The comment", investigation.assignment.text);
-    assertEquals("buildtype", investigation.scope.type);
+    assertEquals("buildType", investigation.scope.type);
     assertEquals(myBuildType.getExternalId(), investigation.scope.buildType.getId());
     assertEquals(null, investigation.scope.project);
   }

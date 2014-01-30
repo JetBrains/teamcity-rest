@@ -72,7 +72,7 @@ public class InvestigationWrapper implements ResponsibilityEntry, Comparable<Inv
   }
 
   public String getType() {
-    if (isBuildType()) return "buildtype";
+    if (isBuildType()) return "buildType";
     if (isTest()) return "test";
     if (isProblem()) return "problem";
     return "unknown";
