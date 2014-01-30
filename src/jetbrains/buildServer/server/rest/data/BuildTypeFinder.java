@@ -22,6 +22,7 @@ import java.util.List;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
@@ -49,6 +50,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   private static final String AFFECTED_PROJECT = "affectedProject";
   public static final String DIMENSION_NAME = "name";
   public static final String TEMPLATE_DIMENSION_NAME = "template";
+  public static final String TEMPLATE_FLAG_DIMENSION_NAME = "templateFlag";
   public static final String PAUSED = "paused";
   protected static final String COMPATIBLE_AGENT = "compatibleAgent";
   protected static final String COMPATIBLE_AGENTS_COUNT = "compatibleAgentsCount";
@@ -63,7 +65,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
                          @NotNull final ProjectFinder projectFinder,
                          @NotNull final AgentFinder agentFinder,
                          @NotNull final ServiceLocator serviceLocator) {
-    super(new String[]{DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_PROJECT, AFFECTED_PROJECT, DIMENSION_NAME, TEMPLATE_DIMENSION_NAME, PAUSED,
+    super(new String[]{DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_PROJECT, AFFECTED_PROJECT, DIMENSION_NAME, TEMPLATE_FLAG_DIMENSION_NAME, TEMPLATE_DIMENSION_NAME, PAUSED,
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME,
       PagerData.START,
       PagerData.COUNT
@@ -134,8 +136,16 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
     String internalId = locator.getSingleDimensionValue(DIMENSION_INTERNAL_ID);
     if (!StringUtil.isEmpty(internalId)) {
-      //todo: this assumes common namespace for build types and templates
-      final Boolean template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_DIMENSION_NAME);
+      Boolean template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_FLAG_DIMENSION_NAME);
+      if (template == null) {
+        //legacy support for boolean value
+        try {
+          template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_DIMENSION_NAME);
+        } catch (LocatorProcessException e) {
+          //override default message as it might be confusing here due to legacy support
+          throw new BadRequestException("Try omitting dimension '" + TEMPLATE_DIMENSION_NAME + "' here");
+        }
+      }
       BuildTypeOrTemplate buildType = findBuildTypeOrTemplateByInternalId(internalId, template);
       if (buildType != null) {
         return buildType;
@@ -145,7 +155,16 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
     String id = locator.getSingleDimensionValue(DIMENSION_ID);
     if (!StringUtil.isEmpty(id)) {
-      final Boolean template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_DIMENSION_NAME);
+      Boolean template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_FLAG_DIMENSION_NAME);
+      if (template == null) {
+        //legacy support for boolean value
+        try {
+          template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_DIMENSION_NAME);
+        } catch (LocatorProcessException e) {
+          //override default message as it might be confusing here due to legacy support
+          throw new BadRequestException("Try omitting dimension '" + TEMPLATE_DIMENSION_NAME + "' here");
+        }
+      }
       BuildTypeOrTemplate buildType = findBuildTypeOrTemplateByExternalId(id, template);
       if (buildType != null) {
         return buildType;
@@ -170,7 +189,16 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
     String name = locator.getSingleDimensionValue(DIMENSION_NAME);
     if (name != null) {
-      final Boolean template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_DIMENSION_NAME);
+      Boolean template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_FLAG_DIMENSION_NAME);
+      if (template == null) {
+        //legacy support for boolean value
+        try {
+          template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_DIMENSION_NAME);
+        } catch (LocatorProcessException e) {
+          //override default message as it might be confusing here due to legacy support
+          throw new BadRequestException("Try omitting dimension '" + TEMPLATE_DIMENSION_NAME + "' here");
+        }
+      }
       final BuildTypeOrTemplate buildTypeByName = findBuildTypeByName(project, name, template);
       if (buildTypeByName != null) {
         return buildTypeByName;
@@ -292,7 +320,13 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       affectedProject = myProjectFinder.getProject(affectedProjectLocator);
     }
 
-    final Boolean template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_DIMENSION_NAME);
+    final String templateLocator = locator.getSingleDimensionValue(TEMPLATE_DIMENSION_NAME);
+    if (templateLocator != null) {
+      final BuildTypeTemplate buildTemplate = getBuildTemplate(null, templateLocator);
+      return BuildTypes.fromBuildTypes(buildTemplate.getUsages());
+    }
+
+    Boolean template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_FLAG_DIMENSION_NAME);
     if (template == null || !template) {
       if (project != null) {
         result.addAll(BuildTypes.fromBuildTypes(project.getOwnBuildTypes()));
@@ -361,7 +395,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
   @NotNull
   public List<SBuildType> getBuildTypes(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
-    String actualLocator = Locator.setDimensionOrCreateNew(buildTypeLocator, TEMPLATE_DIMENSION_NAME, "false");
+    String actualLocator = Locator.setDimensionOrCreateNew(buildTypeLocator, TEMPLATE_FLAG_DIMENSION_NAME, "false");
 
     if (project != null) {
         actualLocator = Locator.setDimensionIfNotPresent(actualLocator, DIMENSION_PROJECT, ProjectFinder.getLocator(project));

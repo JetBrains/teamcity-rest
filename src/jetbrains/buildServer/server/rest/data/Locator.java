@@ -190,7 +190,7 @@ public class Locator {
 
       currentDimensionName = locator.substring(parsedIndex, nameEnd);
       if (!isValidName(currentDimensionName)) {
-        throw new LocatorProcessException(locator, parsedIndex, "Invalid dimension name :'" + currentDimensionName + "'. Should contain only alpha-numeric symbols");
+        throw new LocatorProcessException(locator, parsedIndex, "Invalid dimension name :'" + currentDimensionName + "'. Should contain only alpha-numeric symbols or be known one");
       }
       currentDimensionValue = "";
       parsedIndex = nameEnd;
