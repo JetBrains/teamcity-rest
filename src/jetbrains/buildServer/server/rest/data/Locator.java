@@ -504,12 +504,16 @@ public class Locator {
    * Returns a locator based on the supplied one replacing the numeric value of the dimention specified with the passed number.
    * The structure of the returned locator might be diffeent from the passed one, while the same dimensions and values are present.
    *
-   * @param locator       existing locator, should be valid!
+   * @param locator       existing locator (should be valid), or null to create new locator
    * @param dimensionName only alpha-numeric characters are supported! Only numeric vaues withour brackets are supported!
    * @param value         new value for the dimention, only alpha-numeric characters are supported!
    * @return
    */
-  public static String setDimension(@NotNull final String locator, @NotNull final String dimensionName, final String value) {
+  public static String setDimension(@Nullable final String locator, @NotNull final String dimensionName, final String value) {
+    if (locator == null){
+      return Locator.getStringLocator(dimensionName, value);
+    }
+
     final Matcher matcher = Pattern.compile(dimensionName + DIMENSION_NAME_VALUE_DELIMITER + "\\d+").matcher(locator);
     String result = matcher.replaceFirst(dimensionName + DIMENSION_NAME_VALUE_DELIMITER + value);
     try {
@@ -520,13 +524,6 @@ public class Locator {
       result = actualLocator.getStringRepresentation();
     }
     return result;
-  }
-
-  public static String setDimensionOrCreateNew(@Nullable final String locator, @NotNull final String dimensionName, final String value) {
-    if (!StringUtil.isEmpty(locator)){
-      return Locator.setDimension(locator, dimensionName, value);
-    }
-    return Locator.getStringLocator(dimensionName, value);
   }
 
   public static String setDimension(@NotNull final String locator, @NotNull final String dimensionName, final long value) {
@@ -541,7 +538,11 @@ public class Locator {
    * @param value         new value for the dimention, only alpha-numeric characters are supported!
    * @return
    */
-  public static String setDimensionIfNotPresent(@NotNull final String locator, @NotNull final String dimensionName, final String value) {
+  public static String setDimensionIfNotPresent(@Nullable final String locator, @NotNull final String dimensionName, final String value) {
+    if (locator == null){
+      return Locator.getStringLocator(dimensionName, value);
+    }
+
     final Locator actualLocator = new Locator(locator);
     if (actualLocator.getSingleDimensionValue(dimensionName) == null){
       return actualLocator.setDimension(dimensionName, value).getStringRepresentation();

@@ -112,11 +112,16 @@ public class BuildTypeRequest {
     return getBuildTypeHref(buildType) + PARAMETERS;
   }
 
+  /**
+   * Lists build types registered on the server. Build templates are not included by default
+   */
   @GET
   @Produces({"application/xml", "application/json"})
   public BuildTypes getBuildTypes(@QueryParam("locator") String locator, @QueryParam("fields") String fields,
                                        @Context UriInfo uriInfo, @Context HttpServletRequest request) {
-    final PagedSearchResult<BuildTypeOrTemplate> result = myBuildTypeFinder.getItems(locator);
+    //do not return templates unless specifically requested
+    final String actualLocator = Locator.setDimensionIfNotPresent(locator, BuildTypeFinder.TEMPLATE_FLAG_DIMENSION_NAME, "false");
+    final PagedSearchResult<BuildTypeOrTemplate> result = myBuildTypeFinder.getItems(actualLocator);
 
     /*
     // will need this when pager support is implemented in BuildTypes

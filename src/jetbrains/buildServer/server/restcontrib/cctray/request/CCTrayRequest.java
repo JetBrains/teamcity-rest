@@ -52,7 +52,7 @@ public class CCTrayRequest {
   @Path("/projects.xml")
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
   public Projects serveProjects(@QueryParam("locator") String buildTypeLocator) {
-    String actualLocator = Locator.setDimensionOrCreateNew(buildTypeLocator, BuildTypeFinder.TEMPLATE_DIMENSION_NAME, "false");
+    String actualLocator = Locator.setDimension(buildTypeLocator, BuildTypeFinder.TEMPLATE_DIMENSION_NAME, "false");
     actualLocator = Locator.setDimensionIfNotPresent(actualLocator, BuildTypeFinder.PAUSED, String.valueOf(TeamCityProperties.getBoolean("rest.cctray.includePausedBuildTypes")));
     return new Projects(myServiceLocator, myBuildTypeFinder.getBuildTypes(null, actualLocator));
   }

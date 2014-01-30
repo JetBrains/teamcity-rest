@@ -395,7 +395,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
   @NotNull
   public List<SBuildType> getBuildTypes(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
-    String actualLocator = Locator.setDimensionOrCreateNew(buildTypeLocator, TEMPLATE_FLAG_DIMENSION_NAME, "false");
+    String actualLocator = Locator.setDimension(buildTypeLocator, TEMPLATE_FLAG_DIMENSION_NAME, "false");
 
     if (project != null) {
         actualLocator = Locator.setDimensionIfNotPresent(actualLocator, DIMENSION_PROJECT, ProjectFinder.getLocator(project));
