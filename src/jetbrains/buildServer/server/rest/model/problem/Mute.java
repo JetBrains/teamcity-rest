@@ -27,7 +27,6 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
-import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.ProjectManager;
@@ -42,16 +41,24 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 11.02.12
  */
 @SuppressWarnings("PublicField")
-@XmlType(name = "mute"/*, propOrder = {"id",
-  "project"}*/)
+@XmlType(name = "mute")
 public class Mute {
   @XmlAttribute public long id;
 
-  @XmlElement public Project boundingProject; //todo:review whether this is necessary, might also be the same in Problem
+//  @XmlElement public Project boundingProject; //seems like this is redundant information
   @XmlElement public Comment comment;
 
+  /**
+   * List of projects where the item is muted.
+   * At this time always consists of a single element
+   */
   @XmlElement public Projects projects;
+  /**
+   * List of buldTypes where the item is muted.
+   */
   @XmlElement public BuildTypes buildTypes;
+
+  @XmlElement public Resolution resolution;
 
   public Mute() {
   }
@@ -61,19 +68,20 @@ public class Mute {
 
     id = item.getId();
 
+    /*
     final SProject projectById = beanContext.getSingletonService(ProjectManager.class).findProjectById(item.getProjectId());
     if (projectById != null) {
       boundingProject = new Project(projectById, fields.getNestedField("project"), beanContext);
     } else {
       boundingProject = new Project(null, item.getProjectId(), beanContext.getApiUrlBuilder());
     }
+    */
     comment = new Comment(item.getMutingUser(), item.getMutingTime(), item.getMutingComment(), fields.getNestedField("comment", Fields.NONE, Fields.LONG), beanContext);
 
     final MuteScope scope = item.getScope();
     switch (scope.getScopeType()) {
       case IN_ONE_BUILD:
         // seems like it makes no sense to expose this here
-        //todo: should be expose on the build level
         break;
       case IN_CONFIGURATION:
         buildTypes =
@@ -86,8 +94,8 @@ public class Mute {
         break;
       default:
         //unsupported scope
-        //todo: report it somehow
     }
+    resolution = new Resolution(item.getAutoUnmuteOptions(), fields.getNestedField("resolution", Fields.NONE, Fields.LONG));
   }
 
   private List<SBuildType> getBuildTypesByInternalIds(final Collection<String> buildTypeIds, final BeanContext beanContext) {

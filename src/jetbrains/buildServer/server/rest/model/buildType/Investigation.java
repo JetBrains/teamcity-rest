@@ -24,6 +24,7 @@ import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.problem.Resolution;
 import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -54,6 +55,9 @@ public class Investigation {
   @XmlElement
   public InvestigationScope scope;
 
+  @XmlElement
+  public Resolution resolution;
+
   public Investigation() {
   }
 
@@ -73,12 +77,12 @@ public class Investigation {
       ValueWithDefault.decideDefault(fields.isIncluded("scope"), new InvestigationScope(investigation, fields.getNestedField("scope", Fields.NONE, Fields.LONG), beanContext));
     responsible = ValueWithDefault.decideDefault(fields.isIncluded("responsible"), new User(investigation.getResponsibleUser(), fields.getNestedField("responsible"), beanContext));
 
-    //todo: add all investigation fields: state, removeType, etc.
     assignment = ValueWithDefault.decideDefault(fields.isIncluded("assignment"), new ValueWithDefault.Value<Comment>() {
       public Comment get() {
         return new Comment(investigation.getReporterUser(), investigation.getTimestamp(), investigation.getComment(), fields.getNestedField("assignment", Fields.NONE, Fields.LONG),
                            beanContext);
       }
     });
+    resolution = new Resolution(investigation.getRemoveMethod(), fields.getNestedField("resolution", Fields.NONE, Fields.LONG));
   }
 }
