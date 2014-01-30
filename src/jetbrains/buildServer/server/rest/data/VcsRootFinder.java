@@ -364,9 +364,10 @@ public class VcsRootFinder{
 
   public void checkPermission(@NotNull final Permission permission, @NotNull final SVcsRoot root) {
     final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
-    if (!authorityHolder.isPermissionGrantedForProject(root.getProject().getProjectId(), permission)){
-      throw new AuthorizationFailedException("User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission +
-                                             " in any of the projects VCS root with id '" + root.getId() + "' is used in");
+    if (!authorityHolder.isPermissionGrantedForProject(root.getProject().getProjectId(), permission)) {
+      throw new AuthorizationFailedException(
+        "User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission + " in the project with internal id '" + root.getProject().getProjectId() +
+        "' where VCS root with internal id '" + root.getId() + "' is defined");
     }
   }
 }
