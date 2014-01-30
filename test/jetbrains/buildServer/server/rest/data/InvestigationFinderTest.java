@@ -62,7 +62,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     assertEquals(true, investigation1.isBuildType());
     assertEquals(false, investigation1.isProblem());
     assertEquals(false, investigation1.isTest());
-    assertEquals("BuildType", investigation1.getType());
+    assertEquals("buildtype", investigation1.getType());
 
     final BuildTypeResponsibilityEntry buildTypeRE = investigation1.getBuildTypeRE();
     assertEquals(true, buildTypeRE != null);
@@ -92,7 +92,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     assertEquals("TAKEN", investigation.state);
     assertEquals((Long)myUser.getId(), investigation.responsible.getId());
     assertEquals("The comment", investigation.assignment.text);
-    assertEquals("BuildType", investigation.scope.type);
+    assertEquals("buildtype", investigation.scope.type);
     assertEquals(myBuildType.getExternalId(), investigation.scope.buildType.getId());
     assertEquals(null, investigation.scope.project);
   }
@@ -120,7 +120,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     assertEquals("TAKEN", investigation.state);
     assertEquals((Long)myUser.getId(), investigation.responsible.getId());
     assertEquals("The comment", investigation.assignment.text);
-    assertEquals("Test", investigation.scope.type);
+    assertEquals("test", investigation.scope.type);
 
     assertEquals(FAIL_TEST2_NAME, investigation.scope.test.name);
     assertEquals(myProject.getExternalId(), investigation.scope.project.id);
@@ -152,7 +152,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     assertEquals("TAKEN", investigation.state);
     assertEquals((Long)myUser.getId(), investigation.responsible.getId());
     assertEquals("The comment", investigation.assignment.text);
-    assertEquals("Problem", investigation.scope.type);
+    assertEquals("problem", investigation.scope.type);
 
     assertEquals(PROBLEM_IDENTITY, investigation.scope.problem.identity);
     assertEquals(myProject.getExternalId(), investigation.scope.project.id);

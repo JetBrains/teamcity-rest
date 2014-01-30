@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.responsibility.BuildProblemResponsibilityEntry;
@@ -42,8 +43,8 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 @XmlType
 public class InvestigationScope {
-  @XmlElement
-  public String type; //todo: make this typed
+  @XmlAttribute
+  public String type; //todo: consider making this typed to expose to xsd
 
   @XmlElement
   public BuildType buildType;
