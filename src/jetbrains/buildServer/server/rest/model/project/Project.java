@@ -165,11 +165,14 @@ public class Project {
 
     parentProjectId = ValueWithDefault.decideDefault(fields.isIncluded("parentProjectId"), actulParentProject == null ? null : actulParentProject.getExternalId());
 
-    if (TeamCityProperties.getBoolean("rest.beans.project.addParentProjectAttributes")) {
-      parentProjectName = actulParentProject == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("parentProjectName"), actulParentProject.getFullName());
-      parentProjectInternalId = actulParentProject == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("parentProjectInternalId", includeInternal, includeInternal),
-                                                                                                   actulParentProject.getProjectId());
-    }
+    final boolean forceParentAttributes = TeamCityProperties.getBoolean("rest.beans.project.addParentProjectAttributes");
+    parentProjectName = actulParentProject == null
+                        ? null
+                        : ValueWithDefault.decideDefault(fields.isIncluded("parentProjectName", false, false) || forceParentAttributes, actulParentProject.getFullName());
+    parentProjectInternalId = actulParentProject == null
+                              ? null
+                              : ValueWithDefault.decideDefault(forceParentAttributes || fields.isIncluded("parentProjectInternalId", includeInternal, includeInternal),
+                                                               actulParentProject.getProjectId());
   }
 
   public Project(@Nullable final String externalId, @Nullable final String internalId, @NotNull final ApiUrlBuilder apiUrlBuilder) {
