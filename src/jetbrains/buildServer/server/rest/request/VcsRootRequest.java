@@ -84,6 +84,9 @@ public class VcsRootRequest {
       vcsRootDescription.vcsName,
       vcsRootDescription.name != null ? vcsRootDescription.name : null,
       vcsRootDescription.properties.getMap());
+    if (vcsRootDescription.id != null) {
+      newVcsRoot.setExternalId(vcsRootDescription.id);
+    }
     if (vcsRootDescription.modificationCheckInterval != null) {
       newVcsRoot.setModificationCheckInterval(vcsRootDescription.modificationCheckInterval);
     }
