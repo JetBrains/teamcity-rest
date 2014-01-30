@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.util.ArrayList;
 import java.util.List;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -54,6 +55,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   public static final String PAUSED = "paused";
   protected static final String COMPATIBLE_AGENT = "compatibleAgent";
   protected static final String COMPATIBLE_AGENTS_COUNT = "compatibleAgentsCount";
+  protected static final String PARAMETER = "parameter";
   protected static final String FILTER_BUILDS = "filterByBuilds";
 
   private final ProjectFinder myProjectFinder;
@@ -90,7 +92,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   @Override
   public Locator createLocator(@Nullable final String locatorText) {
     final Locator result = super.createLocator(locatorText);
-    result.addHiddenDimensions(COMPATIBLE_AGENT, COMPATIBLE_AGENTS_COUNT, FILTER_BUILDS); //hide these for now
+    result.addHiddenDimensions(COMPATIBLE_AGENT, COMPATIBLE_AGENTS_COUNT, PARAMETER, FILTER_BUILDS); //hide these for now
     return result;
   }
 
@@ -269,6 +271,16 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
         public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
           return item.getBuildType() != null && compatibleAgentsCount.equals(Integer.valueOf(item.getBuildType().getCompatibleAgents().size()).longValue());
+        }
+      });
+    }
+
+    final String parameterDimension = locator.getSingleDimensionValue(PARAMETER);
+    if (parameterDimension != null) {
+      final ParameterCondition parameterCondition = ParameterCondition.create(parameterDimension);
+      result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
+        public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+          return parameterCondition.matches(new MapParametersProviderImpl(item.get().getParameters()));
         }
       });
     }
