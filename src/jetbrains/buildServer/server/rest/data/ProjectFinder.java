@@ -189,4 +189,13 @@ public class ProjectFinder {
   public BuildProject findProjectByInternalId(final String projectInternalId) {
     return myProjectManager.findProjectById(projectInternalId);
   }
+
+  @NotNull
+  public static SProject getProjectByInternalId(@NotNull final String projectInternalId, @NotNull final ProjectManager projectManager) {
+    final SProject project = projectManager.findProjectById(projectInternalId);
+    if (project == null) {
+      throw new NotFoundException("No project found by internal id '" + projectInternalId + "'.");
+    }
+    return project;
+  }
 }

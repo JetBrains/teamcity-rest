@@ -16,24 +16,16 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
-import jetbrains.buildServer.server.rest.model.project.Projects;
+import jetbrains.buildServer.server.rest.model.buildType.ProblemScope;
+import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.ProjectManager;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
-import jetbrains.buildServer.serverSide.mute.MuteScope;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -43,21 +35,11 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 @XmlType(name = "mute")
 public class Mute {
-  @XmlAttribute public long id;
+  @XmlAttribute public Integer id;
 
-//  @XmlElement public Project boundingProject; //seems like this is redundant information
-  @XmlElement public Comment comment;
-
-  /**
-   * List of projects where the item is muted.
-   * At this time always consists of a single element
-   */
-  @XmlElement public Projects projects;
-  /**
-   * List of buldTypes where the item is muted.
-   */
-  @XmlElement public BuildTypes buildTypes;
-
+  @XmlElement public Comment assignment;
+  @XmlElement public ProblemScope scope;
+  @XmlElement public ProblemTarget target;
   @XmlElement public Resolution resolution;
 
   public Mute() {
@@ -66,64 +48,28 @@ public class Mute {
   public Mute(final @NotNull MuteInfo item, final @NotNull BeanContext beanContext) {
     final Fields fields = Fields.LONG;
 
-    id = item.getId();
+    id = ValueWithDefault.decideDefault(fields.isIncluded("id"), item.getId());
 
-    /*
-    final SProject projectById = beanContext.getSingletonService(ProjectManager.class).findProjectById(item.getProjectId());
-    if (projectById != null) {
-      boundingProject = new Project(projectById, fields.getNestedField("project"), beanContext);
-    } else {
-      boundingProject = new Project(null, item.getProjectId(), beanContext.getApiUrlBuilder());
-    }
-    */
-    comment = new Comment(item.getMutingUser(), item.getMutingTime(), item.getMutingComment(), fields.getNestedField("comment", Fields.NONE, Fields.LONG), beanContext);
+    assignment = ValueWithDefault.decideDefault(fields.isIncluded("assignment"), new ValueWithDefault.Value<Comment>() {
+      public Comment get() {
+        return new Comment(item.getMutingUser(), item.getMutingTime(), item.getMutingComment(), fields.getNestedField("assignment", Fields.NONE, Fields.LONG), beanContext);
+      }
+    });
 
-    final MuteScope scope = item.getScope();
-    switch (scope.getScopeType()) {
-      case IN_ONE_BUILD:
-        // seems like it makes no sense to expose this here
-        break;
-      case IN_CONFIGURATION:
-        buildTypes =
-          new BuildTypes(BuildTypes.fromBuildTypes(getBuildTypesByInternalIds(scope.getBuildTypeIds(), beanContext)), fields.getNestedField("buildTypes", Fields.NONE, Fields.LONG),
-                         beanContext);
-        break;
-      case IN_PROJECT:
-        projects = new Projects(Collections.singletonList(getProjectByInternalId(scope.getProjectId(), beanContext)), fields.getNestedField("projects", Fields.NONE, Fields.LONG),
-                                beanContext);
-        break;
-      default:
-        //unsupported scope
-    }
-    resolution = new Resolution(item.getAutoUnmuteOptions(), fields.getNestedField("resolution", Fields.NONE, Fields.LONG));
-  }
-
-  private List<SBuildType> getBuildTypesByInternalIds(final Collection<String> buildTypeIds, final BeanContext beanContext) {
-    final ArrayList<SBuildType> result = new ArrayList<SBuildType>(buildTypeIds.size());
-    for (String buildTypeId : buildTypeIds) {
-      final SBuildType buildType = getBuildTypeByInternalId(buildTypeId, beanContext);
-      result.add(buildType);
-    }
-    return result;
-  }
-
-  // consider moving into utility class/finder
-  @NotNull
-  private SBuildType getBuildTypeByInternalId(final String buildTypeInternalId, final BeanContext beanContext) {
-    final SBuildType result = beanContext.getSingletonService(ProjectManager.class).findBuildTypeById(buildTypeInternalId);
-    if (result == null) {
-      throw new NotFoundException("No buildType found by internal id '" + buildTypeInternalId + "'.");
-    }
-    return result;
-  }
-
-  // consider moving into utility class/finder
-  @NotNull
-  private SProject getProjectByInternalId(final String projectInternalId, final BeanContext beanContext) {
-    final SProject project = beanContext.getSingletonService(ProjectManager.class).findProjectById(projectInternalId);
-    if (project == null) {
-      throw new NotFoundException("No project found by internal id '" + projectInternalId + "'.");
-    }
-    return project;
+    scope = ValueWithDefault.decideDefault(fields.isIncluded("scope"), new ValueWithDefault.Value<ProblemScope>() {
+      public ProblemScope get() {
+        return new ProblemScope(item.getScope(), fields.getNestedField("scope", Fields.NONE, Fields.LONG), beanContext);
+      }
+    });
+    target = ValueWithDefault.decideDefault(fields.isIncluded("target"), new ValueWithDefault.Value<ProblemTarget>() {
+      public ProblemTarget get() {
+        return new ProblemTarget(item, fields.getNestedField("target", Fields.NONE, Fields.LONG), beanContext);
+      }
+    });
+    resolution = ValueWithDefault.decideDefault(fields.isIncluded("resolution"), new ValueWithDefault.Value<Resolution>() {
+      public Resolution get() {
+        return new Resolution(item.getAutoUnmuteOptions(), fields.getNestedField("resolution", Fields.NONE, Fields.LONG));
+      }
+    });
   }
 }

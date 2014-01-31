@@ -29,6 +29,7 @@ import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -36,27 +37,26 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 11.02.12
  */
 @SuppressWarnings("PublicField")
-@XmlType
+@XmlType(name = "investigation")
 @XmlRootElement(name = "investigation")
 public class Investigation {
-  @XmlAttribute
-  public String id;
-  @XmlAttribute
-  public String state;
-  @XmlAttribute
-  public String href;
+  protected static final String REST_BEANS_INVESTIGATIONS_COMPATIBILITY = "rest.beans.buildTypeInvestigationCompatibility";
+  @XmlAttribute public String id;
+  @XmlAttribute public String state;
+  @XmlAttribute public String href;
 
-  @XmlElement
-  public User responsible;
+  @XmlElement public User assignee;
+  @XmlElement public Comment assignment;
+  @XmlElement public ProblemScope scope;
+  @XmlElement public ProblemTarget target;
+  @XmlElement public Resolution resolution;
 
-  @XmlElement
-  public Comment assignment;
-
-  @XmlElement
-  public InvestigationScope scope;
-
-  @XmlElement
-  public Resolution resolution;
+  /**
+   * Used only in compatibility mode
+   *
+   * @deprecated
+   */
+  @XmlElement public User responsible;
 
   public Investigation() {
   }
@@ -66,16 +66,28 @@ public class Investigation {
                        final @NotNull BeanContext beanContext) {
     final ResponsibilityEntry.State stateOjbect = investigation.getState();
     state = ValueWithDefault.decideDefault(fields.isIncluded("state"), stateOjbect.name());
-    if (stateOjbect.equals(ResponsibilityEntry.State.NONE)){
+    if (stateOjbect.equals(ResponsibilityEntry.State.NONE)) {
       return;
     }
 
     id = ValueWithDefault.decideDefault(fields.isIncluded("id"), investigation.getId());
     href = ValueWithDefault.decideDefault(fields.isIncluded("href"), InvestigationRequest.getHref(investigation));
 
-    scope =
-      ValueWithDefault.decideDefault(fields.isIncluded("scope"), new InvestigationScope(investigation, fields.getNestedField("scope", Fields.NONE, Fields.LONG), beanContext));
-    responsible = ValueWithDefault.decideDefault(fields.isIncluded("responsible"), new User(investigation.getResponsibleUser(), fields.getNestedField("responsible"), beanContext));
+    target = ValueWithDefault.decideDefault(fields.isIncluded("target"), new ValueWithDefault.Value<ProblemTarget>() {
+      public ProblemTarget get() {
+        return new ProblemTarget(investigation, fields.getNestedField("target", Fields.NONE, Fields.LONG), beanContext);
+      }
+    });
+    scope = ValueWithDefault.decideDefault(fields.isIncluded("scope"), new ValueWithDefault.Value<ProblemScope>() {
+      public ProblemScope get() {
+        return new ProblemScope(investigation, fields.getNestedField("scope", Fields.NONE, Fields.LONG), beanContext);
+      }
+    });
+    assignee = ValueWithDefault.decideDefault(fields.isIncluded("assignee"), new ValueWithDefault.Value<User>() {
+      public User get() {
+        return new User(investigation.getResponsibleUser(), fields.getNestedField("assignee"), beanContext);
+      }
+    });
 
     assignment = ValueWithDefault.decideDefault(fields.isIncluded("assignment"), new ValueWithDefault.Value<Comment>() {
       public Comment get() {
@@ -84,5 +96,10 @@ public class Investigation {
       }
     });
     resolution = new Resolution(investigation.getRemoveMethod(), fields.getNestedField("resolution", Fields.NONE, Fields.LONG));
+
+    //support for pre-8.1
+    if (TeamCityProperties.getBoolean(Investigation.REST_BEANS_INVESTIGATIONS_COMPATIBILITY)) {
+      responsible = assignee;
+    }
   }
 }

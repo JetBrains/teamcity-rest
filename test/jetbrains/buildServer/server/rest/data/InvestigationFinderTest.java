@@ -10,6 +10,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.PathTransformer;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
+import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.buildType.Investigation;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
@@ -17,10 +18,12 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
+import jetbrains.buildServer.serverSide.TestName2IndexImpl;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.problems.BuildProblemInfoImpl;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectManagerImpl;
+import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
 import jetbrains.buildServer.tests.TestName;
 import jetbrains.buildServer.users.SUser;
 import org.testng.annotations.BeforeMethod;
@@ -38,6 +41,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
   private ProjectManagerImpl myProjectManager;
   private BuildTypeEx myBuildType;
   private SUser myUser;
+  private TestName2IndexImpl myTestName2Index;
 
   @Override
   @BeforeMethod
@@ -46,7 +50,11 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     myProjectManager = myFixture.getProjectManager();
     final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
     final UserFinder userFinder = new UserFinder(myFixture);
-    myInvestigationFinder = new InvestigationFinder(projectFinder, null, null, null, userFinder, myFixture.getResponsibilityFacadeEx(), myFixture.getResponsibilityFacadeEx(),
+    myTestName2Index = myFixture.getSingletonService(TestName2IndexImpl.class);
+    final TestFinder testFinder = new TestFinder(projectFinder, myFixture.getTestManager(), myTestName2Index,
+                                                 myFixture.getCurrentProblemsManager(), myFixture.getSingletonService(ProblemMutingService.class));
+    myFixture.addService(testFinder);
+    myInvestigationFinder = new InvestigationFinder(projectFinder, null, null, testFinder, userFinder, myFixture.getResponsibilityFacadeEx(), myFixture.getResponsibilityFacadeEx(),
                                                     myFixture.getResponsibilityFacadeEx());
   }
 
@@ -62,7 +70,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     assertEquals(true, investigation1.isBuildType());
     assertEquals(false, investigation1.isProblem());
     assertEquals(false, investigation1.isTest());
-    assertEquals("buildType", investigation1.getType());
+    assertEquals("anyProblem", investigation1.getType());
 
     final BuildTypeResponsibilityEntry buildTypeRE = investigation1.getBuildTypeRE();
     assertEquals(true, buildTypeRE != null);
@@ -90,18 +98,21 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     final Investigation investigation = investigations.items.get(0);
     assertEquals("buildType:(id:" + myBuildType.getExternalId() + ")", investigation.id);
     assertEquals("TAKEN", investigation.state);
-    assertEquals((Long)myUser.getId(), investigation.responsible.getId());
+    assertEquals((Long)myUser.getId(), investigation.assignee.getId());
     assertEquals("The comment", investigation.assignment.text);
-    assertEquals("buildType", investigation.scope.type);
-    assertEquals(myBuildType.getExternalId(), investigation.scope.buildType.getId());
+    assertEquals(Boolean.TRUE, investigation.target.anyProblem);
+    assertEquals(null, investigation.target.problems);
+    assertEquals(null, investigation.target.tests);
+    assertEquals(myBuildType.getExternalId(), investigation.scope.buildTypes.buildTypes.get(0).getId());
     assertEquals(null, investigation.scope.project);
   }
 
-  @Test(enabled = false)
+  @Test
   public void testTestInvestigationModel() throws Exception {
     createFailingBuild();
 
-    myFixture.getResponsibilityFacadeEx().setTestNameResponsibility(new TestName(FAIL_TEST2_NAME), myProject.getProjectId(),
+    final TestName testName = new TestName(FAIL_TEST2_NAME);
+    myFixture.getResponsibilityFacadeEx().setTestNameResponsibility(testName, myProject.getProjectId(),
                                                                     createRespEntry(ResponsibilityEntry.State.TAKEN, myUser));
 
     final PagedSearchResult<InvestigationWrapper> ivestigationWrappers = myInvestigationFinder.getItems((String)null);
@@ -116,13 +127,15 @@ public class InvestigationFinderTest extends BaseServerTestCase {
 
     assertEquals(1, investigations.count.longValue());
     final Investigation investigation = investigations.items.get(0);
-    assertEquals(null, investigation.id);
+    assertEquals("test:(id:" + myTestName2Index.findTestNameId(testName) + "),assignmentProject:(id:" + myProject.getExternalId() + ")", investigation.id);
     assertEquals("TAKEN", investigation.state);
-    assertEquals((Long)myUser.getId(), investigation.responsible.getId());
+    assertEquals((Long)myUser.getId(), investigation.assignee.getId());
     assertEquals("The comment", investigation.assignment.text);
-    assertEquals("test", investigation.scope.type);
+    assertEquals(null, investigation.target.anyProblem);
+    assertEquals(null, investigation.target.problems);
 
-    assertEquals(FAIL_TEST2_NAME, investigation.scope.test.name);
+    assertEquals(FAIL_TEST2_NAME, investigation.target.tests.items.get(0).name);
+    assertEquals(null, investigation.scope.buildTypes);
     assertEquals(myProject.getExternalId(), investigation.scope.project.id);
   }
 
@@ -150,11 +163,12 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     final Investigation investigation = investigations.items.get(0);
     assertEquals("assignmentProject:(id:" + myProject.getExternalId() + "),problem:(id:" + buildProblemResponsibility.getBuildProblemInfo().getId() + ")", investigation.id);
     assertEquals("TAKEN", investigation.state);
-    assertEquals((Long)myUser.getId(), investigation.responsible.getId());
+    assertEquals((Long)myUser.getId(), investigation.assignee.getId());
     assertEquals("The comment", investigation.assignment.text);
-    assertEquals("problem", investigation.scope.type);
+    assertEquals(null, investigation.target.anyProblem);
+    assertEquals(null, investigation.target.tests);
 
-    assertEquals(PROBLEM_IDENTITY, investigation.scope.problem.identity);
+    assertEquals(PROBLEM_IDENTITY, investigation.target.problems.items.get(0).identity);
     assertEquals(myProject.getExternalId(), investigation.scope.project.id);
   }
 

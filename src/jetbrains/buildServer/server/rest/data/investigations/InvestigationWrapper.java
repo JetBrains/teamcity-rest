@@ -33,6 +33,11 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 10.11.13
  */
 public class InvestigationWrapper implements ResponsibilityEntry, Comparable<InvestigationWrapper>{
+  public static final String TEST_TYPE = "test";
+  public static final String PROBLEM_TYPE = "problem";
+  public static final String ANY_PROBLEM_TYPE = "anyProblem";
+  public static final String UNKNOWN_TYPE = "unknown";
+
   @NotNull private final ResponsibilityEntry myRE;
   private final BuildTypeResponsibilityEntry myBuildTypeRE;
   private final TestNameResponsibilityEntry myTestRE;
@@ -72,10 +77,10 @@ public class InvestigationWrapper implements ResponsibilityEntry, Comparable<Inv
   }
 
   public String getType() {
-    if (isBuildType()) return "buildType";
-    if (isTest()) return "test";
-    if (isProblem()) return "problem";
-    return "unknown";
+    if (isBuildType()) return ANY_PROBLEM_TYPE;
+    if (isTest()) return TEST_TYPE;
+    if (isProblem()) return PROBLEM_TYPE;
+    return UNKNOWN_TYPE;
   }
 
 

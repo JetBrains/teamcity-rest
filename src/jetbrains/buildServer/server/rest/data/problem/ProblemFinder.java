@@ -235,4 +235,12 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     }
     return new ArrayList<ProblemWrapper>(result);
   }
+
+  public static List<ProblemWrapper> getProblemWrappers(@NotNull Collection<Integer> problemIds, @NotNull final ServiceLocator serviceLocator) {
+    final HashSet<ProblemWrapper> result = new HashSet<ProblemWrapper>(problemIds.size());
+    for (Integer problemId : problemIds) {
+      result.add(new ProblemWrapper(problemId, serviceLocator));
+    }
+    return new ArrayList<ProblemWrapper>(result);
+  }
 }

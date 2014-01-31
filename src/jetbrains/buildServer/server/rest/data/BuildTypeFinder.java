@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
@@ -544,5 +545,24 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       return new BuildTypeOrTemplate(buildTypeTemplateByStrippedId);
     }
     return null;
+  }
+
+  @NotNull
+  public static List<SBuildType> getBuildTypesByInternalIds(@NotNull final Collection<String> buildTypeIds, @NotNull final ProjectManager projectManager) {
+    final ArrayList<SBuildType> result = new ArrayList<SBuildType>(buildTypeIds.size());
+    for (String buildTypeId : buildTypeIds) {
+      final SBuildType buildType = getBuildTypeByInternalId(buildTypeId, projectManager);
+      result.add(buildType);
+    }
+    return result;
+  }
+
+  @NotNull
+  public static SBuildType getBuildTypeByInternalId(@NotNull final String buildTypeInternalId, @NotNull final ProjectManager projectManager) {
+    final SBuildType result = projectManager.findBuildTypeById(buildTypeInternalId);
+    if (result == null) {
+      throw new NotFoundException("No buildType found by internal id '" + buildTypeInternalId + "'.");
+    }
+    return result;
   }
 }
