@@ -85,12 +85,16 @@
     <orderEntry type="module-library" scope="TEST">
       <library name="TestNG &amp; Mockito">
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib-test/mockito-all-1.9.5.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib-test/mockito-core-1.9.5.jar!/" />
           <root url="jar://$MODULE_DIR$/lib-test/testng-6.8.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib-test/hamcrest-core-1.3.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib-test/hamcrest-integration-1.3.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib-test/hamcrest-library-1.3.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib-test/junit-4.11.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="jar://$MODULE_DIR$/lib-test/mockito-all-1.9.5.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib-test/mockito-core-1.9.5.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
