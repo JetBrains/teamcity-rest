@@ -23,11 +23,10 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.build.BuildRef;
+import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.ProblemOccurrenceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import org.jetbrains.annotations.NotNull;
@@ -65,7 +64,7 @@ public class ProblemOccurrence {
   @XmlElement public Problem problem;
   @XmlElement public Mute mute;
 
-  @XmlElement public BuildRef build;
+  @XmlElement public Build build;
 
   public ProblemOccurrence() {
   }
@@ -73,38 +72,41 @@ public class ProblemOccurrence {
   public ProblemOccurrence(final @NotNull BuildProblem problemP,
                            final @NotNull BeanContext beanContext,
                            @NotNull final Fields fields) {
-    id = ProblemOccurrenceFinder.getProblemOccurrenceLocator(problemP);
-    type = problemP.getBuildProblemData().getType();
-    identity = problemP.getBuildProblemData().getIdentity();
-    href = beanContext.getApiUrlBuilder().transformRelativePath(ProblemOccurrenceRequest.getHref(problemP));
+    id = ValueWithDefault.decideDefault(fields.isIncluded("id"), ProblemOccurrenceFinder.getProblemOccurrenceLocator(problemP));
+    type = ValueWithDefault.decideDefault(fields.isIncluded("type"), problemP.getBuildProblemData().getType());
+    identity = ValueWithDefault.decideDefault(fields.isIncluded("identity"), problemP.getBuildProblemData().getIdentity());
+    href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(ProblemOccurrenceRequest.getHref(problemP)));
 
     final MuteInfo muteInfo = problemP.getMuteInBuildInfo();
-    if (muteInfo != null) muted = true;
+    muted = ValueWithDefault.decideDefault(fields.isIncluded("muted"), muteInfo != null);
 
-    if (!problemP.getAllResponsibilities().isEmpty()) {
-      currentlyInvestigated = true;
-    }
-    if (problemP.getCurrentMuteInfo() != null) {
-      currentlyMuted = true;
-    }
-
-    if (fields.isMoreThenShort()) {
-      details = problemP.getBuildProblemData().getDescription();
-      additionalData = problemP.getBuildProblemData().getAdditionalData();
-
-      problem = new Problem(new ProblemWrapper(problemP.getId(), problemP.getBuildProblemData(), beanContext.getServiceLocator()),
-                            beanContext.getServiceLocator(), beanContext.getApiUrlBuilder(),
-                            fields.getNestedField("problem"));
-
-      if (muteInfo != null) {
-        mute = new Mute(muteInfo, beanContext);
+    currentlyInvestigated = ValueWithDefault.decideDefault(fields.isIncluded("currentlyInvestigated"), new ValueWithDefault.Value<Boolean>() {
+      public Boolean get() {
+        return !problemP.getAllResponsibilities().isEmpty();
       }
+    });
 
-      final BuildPromotion buildPromotion = problemP.getBuildPromotion();
-      final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
-      if (associatedBuild != null) {
-        build = new BuildRef(associatedBuild, beanContext.getServiceLocator(), beanContext.getApiUrlBuilder());
+    currentlyMuted = ValueWithDefault.decideDefault(fields.isIncluded("currentlyMuted"), problemP.getCurrentMuteInfo() != null);
+
+    details = ValueWithDefault.decideDefault(fields.isIncluded("details", false), problemP.getBuildProblemData().getDescription());
+    additionalData = ValueWithDefault.decideDefault(fields.isIncluded("additionalData", false), problemP.getBuildProblemData().getAdditionalData());
+
+    problem = ValueWithDefault.decideDefault(fields.isIncluded("problem", false), new ValueWithDefault.Value<Problem>() {
+      public Problem get() {
+        return new Problem(new ProblemWrapper(problemP.getId(), problemP.getBuildProblemData(), beanContext.getServiceLocator()),
+                           fields.getNestedField("problem"), beanContext);
       }
     }
+    );
+
+    mute = muteInfo == null
+           ? null
+           : ValueWithDefault.decideDefault(fields.isIncluded("mute", false), new Mute(muteInfo, fields.getNestedField("mute", Fields.NONE, Fields.LONG), beanContext));
+
+    build = ValueWithDefault.decideDefault(fields.isIncluded("build", false), new ValueWithDefault.Value<Build>() {
+      public Build get() {
+        return new Build(problemP.getBuildPromotion(), fields.getNestedField("build"), beanContext);
+      }
+    });
   }
 }

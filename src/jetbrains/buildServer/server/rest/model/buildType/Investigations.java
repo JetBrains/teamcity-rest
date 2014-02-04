@@ -27,6 +27,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -37,13 +38,15 @@ import org.jetbrains.annotations.Nullable;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "investigations")
-public class Investigations {
+public class Investigations implements DefaultValueAware {
   @XmlAttribute public Integer count;
   @XmlAttribute(required = false) @Nullable public String nextHref;
   @XmlAttribute(required = false) @Nullable public String prevHref;
   @XmlAttribute(name = "href") public String href;
 
   @XmlElement(name = "investigation") public List<Investigation> items;
+
+  private boolean isDefault;
 
   public Investigations() {
   }
@@ -53,23 +56,35 @@ public class Investigations {
                         @NotNull final Fields fields,
                         @Nullable final PagerData pagerData,
                         @NotNull final BeanContext beanContext) {
-    href = hrefP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), hrefP.getHref());
+    this.href = hrefP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), hrefP.getHref());
 
-    if (itemsP != null) {
-      if (fields.isIncluded("investigation", false, true)) {
-        items = new ArrayList<Investigation>(itemsP.size());
+    items = itemsP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("investigation", false), new ValueWithDefault.Value<List<Investigation>>() {
+      public List<Investigation> get() {
+        final ArrayList<Investigation> result = new ArrayList<Investigation>(itemsP.size());
         for (InvestigationWrapper item : itemsP) {
-          items.add(new Investigation(item, fields.getNestedField("investigation", Fields.LONG, Fields.LONG), beanContext));
+          result.add(new Investigation(item, fields.getNestedField("investigation", Fields.NONE, Fields.LONG), beanContext));
         }
+        return result;
       }
-      count = ValueWithDefault.decideDefault(fields.isIncluded("count"), itemsP.size());
+    });
 
-      if (pagerData != null) {
-        nextHref = pagerData.getNextHref() == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("nextHref"),
-                                                                                           beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()));
-        prevHref = pagerData.getPrevHref() == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("prevHref"),
-                                                                                           beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()));
-      }
-      }
+    count = itemsP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("count", true), itemsP.size());
+
+    if (pagerData != null) {
+      nextHref = pagerData.getNextHref() == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("nextHref"),
+                                                                                         beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()));
+      prevHref = pagerData.getPrevHref() == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("prevHref"),
+                                                                                         beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()));
+    }
+
+    if (itemsP != null && itemsP.isEmpty()) {
+      isDefault = true;
+    } else {
+      isDefault = ValueWithDefault.isAllDefault(count, hrefP, itemsP);
+    }
+  }
+
+  public boolean isDefault() {
+    return isDefault;
   }
 }

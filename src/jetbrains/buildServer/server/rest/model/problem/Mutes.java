@@ -16,16 +16,20 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.DefaultValueAware;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,30 +39,50 @@ import org.jetbrains.annotations.Nullable;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "mutes")
-public class Mutes {
-  @XmlAttribute public long count;
+public class Mutes implements DefaultValueAware{
+  @XmlAttribute public Integer count;
   @XmlAttribute(required = false) @Nullable public String nextHref;
   @XmlAttribute(required = false) @Nullable public String prevHref;
   @XmlAttribute(name = "href") public String href;
 
   @XmlElement(name = "mute") public List<Mute> items;
 
+  private boolean isDefault;
+
   public Mutes() {
   }
 
-  public Mutes(@NotNull final Collection<MuteInfo> itemsP,
+  public Mutes(@Nullable final Collection<MuteInfo> itemsP,
                @Nullable final Href hrefP, //todo: not nulls are not yet implemented
                @Nullable final PagerData pagerData,
+               @NotNull final Fields fields,
                @NotNull final BeanContext beanContext) {
-    items = new ArrayList<Mute>(itemsP.size()); //todo: consider adding ordering/sorting
-    for (MuteInfo item : itemsP) {
-      items.add(new Mute(item, beanContext));
-    }
-    href = hrefP !=  null ? hrefP.getHref() : null;
+    items = itemsP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("mute", false), new ValueWithDefault.Value<List<Mute>>() {
+      public List<Mute> get() {
+        return CollectionsUtil.convertCollection(itemsP, new Converter<Mute, MuteInfo>() {
+          public Mute createFrom(@NotNull final MuteInfo source) {
+            return new Mute(source, fields.getNestedField("mute", Fields.NONE, Fields.LONG), beanContext);
+          }
+        });
+      }
+    });
+    href = hrefP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), hrefP.getHref());
     if (pagerData != null) {
-      nextHref = pagerData.getNextHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null;
-      prevHref = pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null;
+      nextHref = pagerData.getNextHref() == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("nextHref"),
+                                                                                         beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()));
+      prevHref = pagerData.getPrevHref() == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("prevHref"),
+                                                                                         beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()));
     }
-    count = items.size();
+    count = itemsP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("count", true), itemsP.size());
+
+    if (itemsP != null && itemsP.isEmpty()) {
+      isDefault = true;
+    } else {
+      isDefault = ValueWithDefault.isAllDefault(count, hrefP, itemsP);
+    }
+  }
+
+  public boolean isDefault() {
+    return isDefault;
   }
 }

@@ -61,7 +61,7 @@ public class ProblemTarget {
 
     anyProblem = ValueWithDefault.decideDefault(fields.isIncluded("anyProblem"), false);
     if (investigation.getTestRE() != null) {
-      tests = ValueWithDefault.decideDefault(fields.isIncluded("tests"), new ValueWithDefault.Value<Tests>() {
+      tests = ValueWithDefault.decideDefault(fields.isIncluded("tests", false), new ValueWithDefault.Value<Tests>() {
         public Tests get() {
           @NotNull final TestNameResponsibilityEntry testRE = investigation.getTestRE();
 
@@ -69,15 +69,15 @@ public class ProblemTarget {
           if (foundTest == null) {
             throw new InvalidStateException("Cannot find test for investigation. Test name id: '" + testRE.getTestNameId() + "'.");
           }
-          return new Tests(Collections.singletonList(foundTest), null, beanContext, fields.getNestedField("tests"));
+          return new Tests(Collections.singletonList(foundTest), null, beanContext, fields.getNestedField("tests", Fields.NONE, Fields.LONG));
         }
       });
     } else if (investigation.getProblemRE() != null) {
-      problems = ValueWithDefault.decideDefault(fields.isIncluded("problems"), new ValueWithDefault.Value<Problems>() {
+      problems = ValueWithDefault.decideDefault(fields.isIncluded("problems", false), new ValueWithDefault.Value<Problems>() {
         public Problems get() {
           final BuildProblemResponsibilityEntry problemRE = investigation.getProblemRE();
           return new Problems(Collections.singletonList(new ProblemWrapper(problemRE.getBuildProblemInfo().getId(), beanContext.getServiceLocator())),
-                              null, beanContext.getServiceLocator(), beanContext.getApiUrlBuilder(), fields.getNestedField("problems"));
+                              null, fields.getNestedField("problems", Fields.NONE, Fields.LONG), beanContext);
         }
       });
     }
@@ -87,15 +87,15 @@ public class ProblemTarget {
                        @NotNull final Fields fields,
                        @NotNull final BeanContext beanContext) {
     anyProblem = ValueWithDefault.decideDefault(fields.isIncluded("anyProblem"), false);
-    tests = ValueWithDefault.decideDefault(fields.isIncluded("tests"), new ValueWithDefault.Value<Tests>() {
+    tests = ValueWithDefault.decideDefault(fields.isIncluded("tests", false), new ValueWithDefault.Value<Tests>() {
       public Tests get() {
-        return new Tests(item.getTests(), null, beanContext, fields.getNestedField("tests"));
+        return new Tests(item.getTests(), null, beanContext, fields.getNestedField("tests", Fields.NONE, Fields.LONG));
       }
     });
-    problems = ValueWithDefault.decideDefault(fields.isIncluded("problems"), new ValueWithDefault.Value<Problems>() {
+    problems = ValueWithDefault.decideDefault(fields.isIncluded("problems", false), new ValueWithDefault.Value<Problems>() {
       public Problems get() {
         return new Problems(ProblemFinder.getProblemWrappers(item.getBuildProblemIds(), beanContext.getServiceLocator()),
-                            null, beanContext.getServiceLocator(), beanContext.getApiUrlBuilder(), fields.getNestedField("problems"));
+                            null, fields.getNestedField("problems", Fields.NONE, Fields.LONG), beanContext);
       }
     });
   }

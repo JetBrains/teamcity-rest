@@ -29,6 +29,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.problem.Problem;
 import jetbrains.buildServer.server.rest.model.problem.Problems;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -40,6 +41,7 @@ public class ProblemRequest {
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private ProblemFinder myProblemFinder;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
+  @Context @NotNull private BeanContext myBeanContext;
 
   public static final String API_SUB_URL = Constants.API_URL + "/problems";
 
@@ -69,16 +71,13 @@ public class ProblemRequest {
                                       result.myCount, result.myEntries.size(),
                                       locatorText,
                                       "locator"),
-                        myServiceLocator,
-                        myApiUrlBuilder,
-                         new Fields(fields)
-    );
+                        new Fields(fields), myBeanContext);
   }
 
   @GET
   @Path("/{problemLocator}")
   @Produces({"application/xml", "application/json"})
   public Problem serveInstance(@PathParam("problemLocator") String locatorText, @QueryParam("fields") String fields) {
-    return new Problem(myProblemFinder.getItem(locatorText), myServiceLocator, myApiUrlBuilder,  new Fields(fields));
+    return new Problem(myProblemFinder.getItem(locatorText), new Fields(fields), myBeanContext);
   }
 }

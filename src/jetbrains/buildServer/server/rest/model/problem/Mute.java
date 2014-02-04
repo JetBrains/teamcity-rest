@@ -45,28 +45,26 @@ public class Mute {
   public Mute() {
   }
 
-  public Mute(final @NotNull MuteInfo item, final @NotNull BeanContext beanContext) {
-    final Fields fields = Fields.LONG;
-
+  public Mute(final @NotNull MuteInfo item, @NotNull final Fields fields, final @NotNull BeanContext beanContext) {
     id = ValueWithDefault.decideDefault(fields.isIncluded("id"), item.getId());
 
-    assignment = ValueWithDefault.decideDefault(fields.isIncluded("assignment"), new ValueWithDefault.Value<Comment>() {
+    assignment = ValueWithDefault.decideDefault(fields.isIncluded("assignment", false), new ValueWithDefault.Value<Comment>() {
       public Comment get() {
         return new Comment(item.getMutingUser(), item.getMutingTime(), item.getMutingComment(), fields.getNestedField("assignment", Fields.NONE, Fields.LONG), beanContext);
       }
     });
 
-    scope = ValueWithDefault.decideDefault(fields.isIncluded("scope"), new ValueWithDefault.Value<ProblemScope>() {
+    scope = ValueWithDefault.decideDefault(fields.isIncluded("scope", false), new ValueWithDefault.Value<ProblemScope>() {
       public ProblemScope get() {
         return new ProblemScope(item.getScope(), fields.getNestedField("scope", Fields.NONE, Fields.LONG), beanContext);
       }
     });
-    target = ValueWithDefault.decideDefault(fields.isIncluded("target"), new ValueWithDefault.Value<ProblemTarget>() {
+    target = ValueWithDefault.decideDefault(fields.isIncluded("target", false), new ValueWithDefault.Value<ProblemTarget>() {
       public ProblemTarget get() {
         return new ProblemTarget(item, fields.getNestedField("target", Fields.NONE, Fields.LONG), beanContext);
       }
     });
-    resolution = ValueWithDefault.decideDefault(fields.isIncluded("resolution"), new ValueWithDefault.Value<Resolution>() {
+    resolution = ValueWithDefault.decideDefault(fields.isIncluded("resolution", false), new ValueWithDefault.Value<Resolution>() {
       public Resolution get() {
         return new Resolution(item.getAutoUnmuteOptions(), fields.getNestedField("resolution", Fields.NONE, Fields.LONG));
       }

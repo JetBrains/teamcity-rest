@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.request.InvestigationRequest;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
 import jetbrains.buildServer.server.rest.request.TestRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
@@ -45,42 +46,52 @@ import org.jetbrains.annotations.NotNull;
 @XmlType(name = "test", propOrder = {"id", "name",
   "mutes", "investigations", "testOccurrences"})
 public class Test {
-  @XmlAttribute public long id;
+  @XmlAttribute public Long id;
   @XmlAttribute public String name;
   @XmlAttribute public String href;
 
-  @XmlElement public Mutes mutes;  // todo: also make this href
+  @XmlElement public Mutes mutes;
   @XmlElement public Investigations investigations;
-  @XmlElement public Href testOccurrences;
+  @XmlElement public TestOccurrences testOccurrences;
 
   public Test() {
   }
 
   public Test(final @NotNull STest test, final @NotNull BeanContext beanContext, @NotNull final Fields fields) {
-    id = test.getTestNameId();
-    name = test.getName().getAsString();
+    id = ValueWithDefault.decideDefault(fields.isIncluded("id"), test.getTestNameId());
+    name = ValueWithDefault.decideDefault(fields.isIncluded("name"), test.getName().getAsString());
 
     final ApiUrlBuilder apiUrlBuilder = beanContext.getApiUrlBuilder();
-    href = apiUrlBuilder.transformRelativePath(TestRequest.getHref(test));
+    href = ValueWithDefault.decideDefault(fields.isIncluded("href"), apiUrlBuilder.transformRelativePath(TestRequest.getHref(test)));
 
-    if (fields.isMoreThenShort()) {
-      final ArrayList<MuteInfo> muteInfos = new ArrayList<MuteInfo>();
-      final CurrentMuteInfo currentMuteInfo = test.getCurrentMuteInfo(); //todo: TeamCity API: how to get unique mutes?
-      if (currentMuteInfo != null) {
-        muteInfos.addAll(new LinkedHashSet<MuteInfo>(currentMuteInfo.getProjectsMuteInfo().values())); //add with deduplication
-        muteInfos.addAll(new LinkedHashSet<MuteInfo>(currentMuteInfo.getBuildTypeMuteInfo().values())); //add with deduplication
+    mutes = ValueWithDefault.decideDefault(fields.isIncluded("mutes", false), new ValueWithDefault.Value<Mutes>() {
+      public Mutes get() {
+        final ArrayList<MuteInfo> muteInfos = new ArrayList<MuteInfo>();
+        final CurrentMuteInfo currentMuteInfo = test.getCurrentMuteInfo(); //todo: TeamCity API: how to get unique mutes?
+        if (currentMuteInfo != null) {
+          muteInfos.addAll(new LinkedHashSet<MuteInfo>(currentMuteInfo.getProjectsMuteInfo().values())); //add with deduplication
+          muteInfos.addAll(new LinkedHashSet<MuteInfo>(currentMuteInfo.getBuildTypeMuteInfo().values())); //add with deduplication
+        }
+        return new Mutes(muteInfos, null, null, fields.getNestedField("mutes", Fields.NONE, Fields.LONG), beanContext);
       }
-      if (muteInfos.size() > 0) {
-        mutes = new Mutes(muteInfos, null, null, beanContext);
+    });
+
+    investigations = ValueWithDefault.decideDefault(fields.isIncluded("investigations", false), new ValueWithDefault.Value<Investigations>() {
+      public Investigations get() {
+        return new Investigations(beanContext.getSingletonService(InvestigationFinder.class).getInvestigationWrappers(test),
+                                  new Href(InvestigationRequest.getHref(test), apiUrlBuilder),
+                                  fields.getNestedField("investigations"),
+                                  null,
+                                  beanContext);
       }
-      if (test.getAllResponsibilities().size() > 0) {
-        investigations = new Investigations(beanContext.getSingletonService(InvestigationFinder.class).getInvestigationWrappers(test),
-                                            new Href(InvestigationRequest.getHref(test), apiUrlBuilder),
-                                            fields.getNestedField("investigations"),
-                                            null,
-                                            beanContext);
+    });
+
+    testOccurrences = ValueWithDefault.decideDefault(fields.isIncluded("testOccurrences", false), new ValueWithDefault.Value<TestOccurrences>() {
+      public TestOccurrences get() {
+        //todo: add support for locator + filter here, like for builds in BuildType
+        final Fields nestedFields = fields.getNestedField("testOccurrences");
+        return new TestOccurrences(null, null, null, null, null, null, null, TestOccurrenceRequest.getHref(test), null, nestedFields, beanContext);
       }
-      testOccurrences = new Href(TestOccurrenceRequest.getHref(test), apiUrlBuilder);
-    }
+    });
   }
 }

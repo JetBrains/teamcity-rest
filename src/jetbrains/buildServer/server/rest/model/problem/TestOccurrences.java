@@ -68,7 +68,7 @@ public class TestOccurrences extends OccurrencesSummary {
                          @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     super(passed, failed, newFailed, ignored, muted, fields);
     if (itemsP != null) {
-      items = ValueWithDefault.decideDefault(fields.isIncluded("testOccurrence"), new ValueWithDefault.Value<List<TestOccurrence>>() {
+      items = ValueWithDefault.decideDefault(fields.isIncluded("testOccurrence", false), new ValueWithDefault.Value<List<TestOccurrence>>() {
         @Nullable
         public List<TestOccurrence> get() {
           final List<STestRun> sortedItems = new ArrayList<STestRun>(itemsP);
@@ -80,15 +80,12 @@ public class TestOccurrences extends OccurrencesSummary {
           return result;
         }
       });
-      this.count = ValueWithDefault.decideDefault(fields.isIncluded("count", true), items.size());
+      this.count = ValueWithDefault.decideDefault(fields.isIncluded("count", true), itemsP.size());
     } else {
       this.count = ValueWithDefault.decideDefault(fields.isIncluded("count"), count);
     }
 
-    this.href = ValueWithDefault.decide(fields.isIncluded("href"),
-                                        shortHref != null ? beanContext.getApiUrlBuilder().transformRelativePath(shortHref) : null,
-                                        null,
-                                        !ValueWithDefault.isAllDefault(count, passed, failed, newFailed, ignored, muted));
+    this.href = shortHref == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(shortHref));
 
     if (pagerData != null) {
       nextHref = pagerData.getNextHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null;

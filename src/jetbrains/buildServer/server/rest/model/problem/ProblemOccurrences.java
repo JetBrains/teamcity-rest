@@ -48,6 +48,8 @@ public class ProblemOccurrences extends OccurrencesSummary {
   @XmlAttribute(required = false) @Nullable public String nextHref;
   @XmlAttribute(required = false) @Nullable public String prevHref;
 
+  private boolean isDefault;
+
   public ProblemOccurrences() {
   }
 
@@ -69,7 +71,7 @@ public class ProblemOccurrences extends OccurrencesSummary {
                             @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     super(passed, failed, newFailed, ignored, muted, fields);
     if (itemsP != null) {
-      items = ValueWithDefault.decideDefault(fields.isIncluded("problemOccurrence"), new ValueWithDefault.Value<List<ProblemOccurrence>>() {
+      items = ValueWithDefault.decideDefault(fields.isIncluded("problemOccurrence", false), new ValueWithDefault.Value<List<ProblemOccurrence>>() {
         @Nullable
         public List<ProblemOccurrence> get() {
           final List<BuildProblem> sortedItems = new ArrayList<BuildProblem>(itemsP);
@@ -90,20 +92,27 @@ public class ProblemOccurrences extends OccurrencesSummary {
       this.count = ValueWithDefault.decideDefault(fields.isIncluded("count"), count);
     }
 
-    this.href = ValueWithDefault.decide(fields.isIncluded("href"),
-                                        shortHref != null ? beanContext.getApiUrlBuilder().transformRelativePath(shortHref) : null,
-                                        null,
-                                        !ValueWithDefault.isAllDefault(count, passed, failed, newFailed, ignored, muted));
+    this.href = shortHref == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(shortHref));
 
     if (pagerData != null) {
       nextHref = pagerData.getNextHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null;
       prevHref = pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null;
     }
+
+    if (!super.isDefault()) {
+      isDefault = false;
+    } else if (itemsP != null && itemsP.isEmpty()) {
+      isDefault = true;
+    } else if (count != null && ValueWithDefault.isDefault(count)) {
+      isDefault = true;
+    } else {
+      isDefault = ValueWithDefault.isAllDefault(this.count, this.href, this.items);
+    }
   }
 
   @Override
   public boolean isDefault() {
-    return ValueWithDefault.isAllDefault(count, href, items) && super.isDefault();
+    return isDefault;
   }
 
 }

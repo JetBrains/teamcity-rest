@@ -23,7 +23,11 @@ import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.DefaultValueAware;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.STest;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -33,30 +37,45 @@ import org.jetbrains.annotations.Nullable;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "tests")
-public class Tests {
+public class Tests implements DefaultValueAware {
   @XmlElement(name = "test") public List<Test> items;
-  @XmlAttribute public long count;
+  @XmlAttribute public Integer count;
   @XmlAttribute(required = false) @Nullable public String nextHref;
   @XmlAttribute(required = false) @Nullable public String prevHref;
 
   public Tests() {
   }
 
-  public Tests(@NotNull final Collection<STest> itemsP, @Nullable final PagerData pagerData, @NotNull final BeanContext beanContext, @NotNull final Fields fields) {
-    final List<STest> sortedItems = new ArrayList<STest>(itemsP);
-    Collections.sort(sortedItems, new Comparator<STest>() {
-      public int compare(final STest o1, final STest o2) {
-        return o1.getName().compareTo(o2.getName());
-      }
-    });
-    items = new ArrayList<Test>(sortedItems.size());
-    for (STest item : sortedItems) {
-      items.add(new Test(item, beanContext, fields.getNestedField("test")));
+  public Tests(@Nullable final Collection<STest> itemsP, @Nullable final PagerData pagerData, @NotNull final BeanContext beanContext, @NotNull final Fields fields) {
+    if (itemsP != null) {
+      items = ValueWithDefault.decideDefault(fields.isIncluded("test", false), new ValueWithDefault.Value<List<Test>>() {
+        public List<Test> get() {
+          final List<STest> sortedItems = new ArrayList<STest>(itemsP);
+          Collections.sort(sortedItems, new Comparator<STest>() {
+            public int compare(final STest o1, final STest o2) {
+              return o1.getName().compareTo(o2.getName());
+            }
+          });
+          return CollectionsUtil.convertCollection(sortedItems, new Converter<Test, STest>() {
+            public Test createFrom(@NotNull final STest source) {
+              return new Test(source, beanContext, fields.getNestedField("test"));
+            }
+          });
+        }
+      });
+
+      this.count = ValueWithDefault.decideDefault(fields.isIncluded("count", true), itemsP.size());
     }
+
     if (pagerData != null) {
-      nextHref = pagerData.getNextHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null;
-      prevHref = pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null;
+      nextHref = pagerData.getNextHref() == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("nextHref"),
+                                                                                         beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()));
+      prevHref = pagerData.getPrevHref() == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("prevHref"),
+                                                                                         beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()));
     }
-    count = items.size();
+  }
+
+  public boolean isDefault() {
+    return ValueWithDefault.isAllDefault(items, count);
   }
 }

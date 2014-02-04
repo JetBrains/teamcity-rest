@@ -23,20 +23,19 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.build.BuildRef;
+import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildStatisticsOptions;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
- *         Date: 11.02.12
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "testOccurrence")
@@ -69,7 +68,7 @@ public class TestOccurrence {
   @XmlElement public Test test;
   @XmlElement public Mute mute;
 
-  @XmlElement public BuildRef build;
+  @XmlElement public Build build;
   @XmlElement public TestOccurrence firstFailed;
   @XmlElement public TestOccurrence nextFixed;
 
@@ -78,66 +77,81 @@ public class TestOccurrence {
 
   public TestOccurrence(final @NotNull STestRun testRun, final @NotNull BeanContext beanContext, @NotNull final Fields fields) {
     final STest sTest = testRun.getTest();
-    id = TestOccurrenceFinder.getTestRunLocator(testRun); //STestRun.getTestRunId() can be the same between different builds
+    //STestRun.getTestRunId() can be the same between different builds
+    id = ValueWithDefault.decideDefault(fields.isIncluded("id"), TestOccurrenceFinder.getTestRunLocator(testRun));
 
-    name = sTest.getName().getAsString();
+    name = ValueWithDefault.decideDefault(fields.isIncluded("name"), sTest.getName().getAsString());
 
-    status = testRun.getStatus().getText();
+    status = ValueWithDefault.decideDefault(fields.isIncluded("status"), testRun.getStatus().getText());
 
-    href = beanContext.getApiUrlBuilder().transformRelativePath(TestOccurrenceRequest.getHref(testRun));
+    href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(TestOccurrenceRequest.getHref(testRun)));
 
-    duration = testRun.getDuration();
+    duration = ValueWithDefault.decideDefault(fields.isIncluded("duration"), testRun.getDuration());
     //testRun.getOrderId();
 
-    ignored = testRun.isIgnored();
+    ignored = ValueWithDefault.decideDefault(fields.isIncluded("ignored"), testRun.isIgnored());
 
     final MuteInfo muteInfo = testRun.getMuteInfo();
-    if (muteInfo != null) muted = true;
+    muted = ValueWithDefault.decideDefault(fields.isIncluded("muted"), muteInfo != null);
 
-    if (beanContext.getSingletonService(TestOccurrenceFinder.class).isCurrentlyInvestigated(testRun)) {
-      currentlyInvestigated = true;
-    }
-    if (beanContext.getSingletonService(TestOccurrenceFinder.class).isCurrentlyMuted(testRun)) {
-      currentlyMuted = true;
-    }
-
-    if (fields.isMoreThenShort()) {
-    /*
-    final TestFailureInfo failureInfo = testRun.getFailureInfo();
-    if (failureInfo != null){
-      details = failureInfo.getShortStacktrace();
-    }
-    */
-      details = testRun.getFullText();
-
-      ignoreDetails = testRun.getIgnoreComment();
-
-      //todo: add links to the test failure (or build) it fixed in and the build if first failed in (if not the same)
-      //testRun.isNewFailure();
-      //testRun.isFixed();
-
-      test = new Test(sTest, beanContext, fields.getNestedField("test"));
-
-      if (muteInfo != null) {
-        mute = new Mute(muteInfo, beanContext);
+    final TestOccurrenceFinder testOccurrenceFinder = beanContext.getSingletonService(TestOccurrenceFinder.class);
+    currentlyInvestigated = ValueWithDefault.decideDefault(fields.isIncluded("currentlyInvestigated"), new ValueWithDefault.Value<Boolean>() {
+      public Boolean get() {
+        return testOccurrenceFinder.isCurrentlyInvestigated(testRun);
       }
-
-      build = new BuildRef(testRun.getBuild(), beanContext.getServiceLocator(), beanContext.getApiUrlBuilder());
-
-      final SBuild firstFailedInBuild = testRun.getFirstFailed();
-      if (firstFailedInBuild != null) {
-        //noinspection ConstantConditions
-        firstFailed = new TestOccurrence(getTestRun(firstFailedInBuild, testRun), beanContext, fields.getNestedField("firstFailed"));
+    });
+    currentlyMuted = ValueWithDefault.decideDefault(fields.isIncluded("currentlyMuted"), new ValueWithDefault.Value<Boolean>() {
+      public Boolean get() {
+        return testOccurrenceFinder.isCurrentlyMuted(testRun);
       }
-      final SBuild fixedInBuild = testRun.getFixedIn();
-      if (fixedInBuild != null) {
-        //noinspection ConstantConditions
-        nextFixed = new TestOccurrence(getTestRun(fixedInBuild, testRun), beanContext, fields.getNestedField("firstFailed"));
+    });
+
+    details = ValueWithDefault.decideDefault(fields.isIncluded("details", false), new ValueWithDefault.Value<String>() {
+      public String get() {
+        return testRun.getFullText();
       }
-    }
+    });
+
+    ignoreDetails = ValueWithDefault.decideDefault(fields.isIncluded("ignoreDetails", false), new ValueWithDefault.Value<String>() {
+      public String get() {
+        return testRun.getIgnoreComment();
+      }
+    });
+
+    test = ValueWithDefault.decideDefault(fields.isIncluded("test", false), new ValueWithDefault.Value<Test>() {
+      public Test get() {
+        return new Test(sTest, beanContext, fields.getNestedField("test"));
+      }
+    });
+
+    mute = muteInfo == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("mute", false), new ValueWithDefault.Value<Mute>() {
+      public Mute get() {
+        return new Mute(muteInfo, fields.getNestedField("mute", Fields.NONE, Fields.LONG), beanContext);
+      }
+    });
+
+    build = ValueWithDefault.decideDefault(fields.isIncluded("build", false), new ValueWithDefault.Value<Build>() {
+      public Build get() {
+        return new Build(testRun.getBuild(), fields.getNestedField("build"), beanContext);
+      }
+    });
+
+    firstFailed = ValueWithDefault.decideDefault(fields.isIncluded("firstFailed", false), new ValueWithDefault.Value<TestOccurrence>() {
+      public TestOccurrence get() {
+        final SBuild firstFailedInBuild = testRun.getFirstFailed();
+        return firstFailedInBuild == null ? null : new TestOccurrence(getTestRun(firstFailedInBuild, testRun), beanContext, fields.getNestedField("firstFailed"));
+      }
+    });
+
+    nextFixed = ValueWithDefault.decideDefault(fields.isIncluded("nextFixed", false), new ValueWithDefault.Value<TestOccurrence>() {
+      public TestOccurrence get() {
+        final SBuild fixedInBuild = testRun.getFixedIn();
+        return fixedInBuild == null ? null : new TestOccurrence(getTestRun(fixedInBuild, testRun), beanContext, fields.getNestedField("firstFailed"));
+      }
+    });
   }
 
-  @Nullable
+  @NotNull
   private STestRun getTestRun(@NotNull final SBuild build, @NotNull final STestRun sampleTestRun) {
     //todo: TeamCity API (MP): is there a dedicated API for this?
     //todo: handle several returned test runs
