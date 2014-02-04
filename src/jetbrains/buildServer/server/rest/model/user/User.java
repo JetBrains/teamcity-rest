@@ -25,6 +25,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
+import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -94,13 +95,18 @@ public class User {
 
   @XmlAttribute
   public String getEmail() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("email"), StringUtil.isEmpty(myUser.getEmail()) ? null : myUser.getEmail());
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("email", false), new ValueWithDefault.Value<String>() {
+      public String get() {
+        return StringUtil.isEmpty(myUser.getEmail()) ? null : myUser.getEmail();
+      }
+    });
   }
 
   @XmlElement(name = "roles")
   public RoleAssignments getRoles() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("roles", false), new ValueWithDefault.Value<RoleAssignments>() {
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("roles", false), new ValueWithDefault.Value<RoleAssignments>() {
       public RoleAssignments get() {
+        myContext.getSingletonService(UserFinder.class).checkViewUserPermission(myUser); //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
         return new RoleAssignments(myUser.getRoles(), myUser, myContext);
       }
     });
@@ -108,9 +114,10 @@ public class User {
 
   @XmlElement(name = "groups")
   public Groups getGroups() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("groups", false), new ValueWithDefault.Value<Groups>() {
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("groups", false), new ValueWithDefault.Value<Groups>() {
       public Groups get() {
-        return new Groups(myUser.getUserGroups(), myFields.getNestedField("groups"), myContext);
+        myContext.getSingletonService(UserFinder.class).checkViewUserPermission(myUser); //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
+        return new Groups(myUser.getUserGroups(), myFields.getNestedField("groups", Fields.NONE, Fields.LONG), myContext);
       }
     });
   }
@@ -122,7 +129,7 @@ public class User {
 
   @XmlElement(name = "properties")
   public Properties getProperties() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
         return new Properties(getUserProperties(myUser));
       }

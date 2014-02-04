@@ -102,6 +102,10 @@ public class UserFinder {
       return;
     }
 
+    checkViewUserPermission(user);
+  }
+
+  public void checkViewUserPermission(final @NotNull SUser user) {
     final jetbrains.buildServer.users.User currentUser = myServiceLocator.getSingletonService(DataProvider.class).getCurrentUser();
     if (currentUser != null && currentUser.getId() == user.getId()) {
       return;

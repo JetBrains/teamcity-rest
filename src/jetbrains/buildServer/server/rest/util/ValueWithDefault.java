@@ -16,7 +16,10 @@
 
 package jetbrains.buildServer.server.rest.util;
 
+import com.intellij.openapi.diagnostic.Logger;
 import java.util.Collection;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -25,6 +28,8 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 10.01.14
  */
 public class ValueWithDefault {
+  final static Logger LOG = Logger.getInstance(ValueWithDefault.class.getName());
+
   @Nullable
   public static <T> T decideDefault(@Nullable Boolean include, @Nullable T value) {
     return decide(include, value, null, !ValueWithDefault.isDefault(value));
@@ -53,6 +58,19 @@ public class ValueWithDefault {
       return ValueWithDefault.isDefault(resultValue) ? null : resultValue;
     } else {
       return include ? value.get() : null;
+    }
+  }
+
+  @Nullable
+  public static <T> T decideDefaultIgnoringAccessDenied(@Nullable Boolean include, @NotNull Value<T> value) {
+    try {
+      return decideDefault(include, value);
+    } catch (AccessDeniedException e) {
+      if (LOG.isDebugEnabled()) LOG.debug("Got permisisons issue while getting value, ignoring the field. Error: " + e.toString());
+      return null;
+    } catch (AuthorizationFailedException e) {
+      if (LOG.isDebugEnabled()) LOG.debug("Got permisisons issue while getting value, ignoring the field. Error: " + e.toString());
+      return null;
     }
   }
 
