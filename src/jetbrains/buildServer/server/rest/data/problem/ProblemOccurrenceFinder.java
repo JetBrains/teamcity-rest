@@ -138,7 +138,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   @Override
   public List<BuildProblem> getAllItems() {
     ArrayList<String> exampleLocators = new ArrayList<String>();
-    exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "XXX"));
+//    exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "XXX"));
     exampleLocators.add(Locator.getStringLocator(BUILD, "XXX"));
     exampleLocators.add(Locator.getStringLocator(PROBLEM, "XXX"));
     exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
@@ -339,7 +339,13 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
         public void run(final DBFunctions dbf) throws DBException {
           dbf.queryForTuples(new Object() {
             public void getBuildProblem(String build_state_id) throws IOException {
-              result.add(findProblem(buildFinder.getBuildByPromotionId(Long.valueOf(build_state_id)), problemId));
+              final SBuild buildByPromotionId = buildFinder.getBuildByPromotionId(Long.valueOf(build_state_id));
+              if (buildByPromotionId.getBuildType() == null ){
+                //missing build type, skip. Workaround for http://youtrack.jetbrains.com/issue/TW-34733
+              } else{
+                final BuildProblem problem = findProblem(buildByPromotionId, problemId);
+                if (problem != null) result.add(problem);
+              }
             }
           },
                              "getBuildProblem",
