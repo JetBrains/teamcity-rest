@@ -428,6 +428,9 @@ public class DataProvider {
     if (associatedUser == null){
       return null;
     }
+    if (SUser.class.isAssignableFrom(associatedUser.getClass())){
+      return (SUser)associatedUser;
+    }
     return userModel.findUserAccount(null, associatedUser.getUsername());
   }
 
