@@ -142,7 +142,7 @@ public class Build {
   @XmlAttribute (name = PROMOTION_ID)
   public Long getPromotionId() {
     if (myBuild != null) {
-      return ValueWithDefault.decideDefault(myFields.isIncluded(PROMOTION_ID, false, false), myBuild.getBuildId());
+      return ValueWithDefault.decideDefault(myFields.isIncluded(PROMOTION_ID, false, false), myBuildPromotion.getId());
     } else {
       return ValueWithDefault.decideDefault(myFields.isIncluded(PROMOTION_ID, true), myBuildPromotion.getId());
     }
@@ -601,6 +601,10 @@ public class Build {
                                               final int mutedTestsCount =
                                                 statistics.getFailedTestsIncludingMuted().size() - statistics.getFailedTestCount(); //TeamCity API: not effective
                                               final Fields testOccurrencesFields = myFields.getNestedField("testOccurrences");
+                                              if (myBuild.getBuildType() == null){
+                                                //workaround for http://youtrack.jetbrains.com/issue/TW-34734
+                                                return null;
+                                              }
                                               final List<STestRun> tests = ValueWithDefault.decideDefault(
                                                 testOccurrencesFields.isIncluded("testOccurrence", false), myBuild.getFullStatistics().getAllTests());
                                               return new TestOccurrences(tests,
