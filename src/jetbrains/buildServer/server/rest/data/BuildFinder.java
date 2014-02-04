@@ -231,7 +231,7 @@ public class BuildFinder {
     if (promotionId != null) {
       SBuild build = getBuildByPromotionId(promotionId);
       if (buildType != null && !buildType.getBuildTypeId().equals(build.getBuildTypeId())) {
-        throw new NotFoundException("No build can be found by promotion id '" + promotionId + "' in build type '" + buildType + "'.");
+        throw new NotFoundException("No build can be found by " + PROMOTION_ID + " '" + promotionId + "' in build type '" + buildType + "'.");
       }
       if (locator.getDimensionsCount() > 1) {
         LOG.info("Build locator '" + buildLocator + "' has '" + PROMOTION_ID + "' dimension and others. Others are ignored.");
@@ -365,7 +365,7 @@ public class BuildFinder {
   public static BuildPromotion getBuildPromotion(final long promotionId, @NotNull final BuildPromotionManager promotionManager) {
     final BuildPromotion buildPromotion = promotionManager.findPromotionById(promotionId);
     if (buildPromotion == null) {
-      throw new NotFoundException("No build promotion can be found by id '" + promotionId + "'.");
+      throw new NotFoundException("No build can be found by " + PROMOTION_ID + " '" + promotionId + "'.");
     }
     return buildPromotion;
   }
@@ -375,7 +375,7 @@ public class BuildFinder {
     final BuildPromotion promotion = getBuildPromotion(promotionId, myServiceLocator.getSingletonService(BuildPromotionManager.class));
     SBuild build = promotion.getAssociatedBuild();
     if (build == null) {
-      throw new NotFoundException("No associated build can be found for promotion with id '" + promotionId + "'.");
+      throw new NotFoundException("No associated build can be found for " + PROMOTION_ID + " (build promotion id) '" + promotionId + "'.");
     }
     return build;
   }
