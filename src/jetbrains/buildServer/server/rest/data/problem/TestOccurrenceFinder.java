@@ -39,7 +39,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   private static final String TEST = "test";
   private static final String BUILD_TYPE = "buildType";
   public static final String AFFECTED_PROJECT = "affectedProject";
-  private static final String CURRENT = "current";
+  private static final String CURRENT = "currentlyFailing";
   private static final String STATUS = "status";
   private static final String BRANCH = "branch";
   private static final String IGNORED = "ignored";

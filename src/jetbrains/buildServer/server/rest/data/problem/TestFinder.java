@@ -38,7 +38,7 @@ import org.jetbrains.annotations.Nullable;
 public class TestFinder extends AbstractFinder<STest> {
   private static final String NAME = "name";
   public static final String AFFECTED_PROJECT = "affectedProject";
-  private static final String CURRENT = "current";
+  private static final String CURRENT = "currentlyFailing";
   public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
   public static final String CURRENTLY_MUTED = "currentlyMuted";
 

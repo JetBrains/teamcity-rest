@@ -44,7 +44,7 @@ import org.jetbrains.annotations.Nullable;
 public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   private static final String BUILD = "build";
   private static final String IDENTITY = "identity";
-  private static final String CURRENT = "current";
+  private static final String CURRENT = "currentlyFailing";
   private static final String PROBLEM = "problem";
   public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
   public static final String MUTED = "muted";

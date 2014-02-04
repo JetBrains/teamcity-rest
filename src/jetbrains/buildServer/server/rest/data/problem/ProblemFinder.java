@@ -35,7 +35,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 09.11.13
  */
 public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
-  private static final String CURRENT = "current";
+  private static final String CURRENT = "currentlyFailing";
   public static final String IDENTITY = "identity";
   public static final String TYPE = "type";
   public static final String AFFECTED_PROJECT = "affectedProject";
