@@ -82,11 +82,18 @@ public class ProblemOccurrence {
 
     currentlyInvestigated = ValueWithDefault.decideDefault(fields.isIncluded("currentlyInvestigated"), new ValueWithDefault.Value<Boolean>() {
       public Boolean get() {
+        if (problemP.getBuildPromotion().getBuildType() == null){
+          //missing build type, skip. Workaround for http://youtrack.jetbrains.com/issue/TW-34733
+          return null;
+        }
         return !problemP.getAllResponsibilities().isEmpty();
       }
     });
 
-    currentlyMuted = ValueWithDefault.decideDefault(fields.isIncluded("currentlyMuted"), problemP.getCurrentMuteInfo() != null);
+    if (problemP.getBuildPromotion().getBuildType() != null){
+      //ensuring build type exists. Workaround for http://youtrack.jetbrains.com/issue/TW-34733
+      currentlyMuted = ValueWithDefault.decideDefault(fields.isIncluded("currentlyMuted"), problemP.getCurrentMuteInfo() != null);
+    }
 
     details = ValueWithDefault.decideDefault(fields.isIncluded("details", false), problemP.getBuildProblemData().getDescription());
     additionalData = ValueWithDefault.decideDefault(fields.isIncluded("additionalData", false), problemP.getBuildProblemData().getAdditionalData());
