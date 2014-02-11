@@ -335,7 +335,15 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
     final String templateLocator = locator.getSingleDimensionValue(TEMPLATE_DIMENSION_NAME);
     if (templateLocator != null) {
-      final BuildTypeTemplate buildTemplate = getBuildTemplate(null, templateLocator);
+      final BuildTypeTemplate buildTemplate;
+      try {
+        buildTemplate = getBuildTemplate(null, templateLocator);
+      } catch (NotFoundException e) {
+        throw new NotFoundException("No templates found by locator '" + templateLocator + "' specified in '" + TEMPLATE_DIMENSION_NAME + "' dimension : " + e.getMessage());
+      } catch (BadRequestException e) {
+        throw new BadRequestException(
+          "Error while searching for templates by locator '" + templateLocator + "' specified in '" + TEMPLATE_DIMENSION_NAME + "' dimension : " + e.getMessage(), e);
+      }
       return BuildTypes.fromBuildTypes(buildTemplate.getUsages());
     }
 
@@ -403,7 +411,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     if (buildTypeOrTemplate.getTemplate() != null) {
       return buildTypeOrTemplate.getTemplate();
     }
-    throw new BadRequestException("No build type template by locator '" + buildTypeLocator + "'. Build type is found instead.");
+    throw new BadRequestException("No build type template found by locator '" + buildTypeLocator + "'. Build type is found instead.");
   }
 
   @NotNull
