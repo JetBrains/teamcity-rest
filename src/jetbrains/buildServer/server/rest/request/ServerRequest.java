@@ -96,6 +96,8 @@ public class ServerRequest {
                             @QueryParam("includeDatabase") Boolean includeDatabase,
                             @QueryParam("includeBuildLogs") Boolean includeBuildLogs,
                             @QueryParam("includePersonalChanges") Boolean includePersonalChanges,
+                            @QueryParam("includeRunningBuilds") Boolean includeRunningBuilds,
+                            @QueryParam("includeSupplimentaryData") Boolean includeSupplimentaryData,
                             @InjectParam BackupProcessManager backupManager) {
     BackupConfig backupConfig = new BackupConfig();
     if (StringUtil.isNotEmpty(fileName)) {
@@ -115,6 +117,8 @@ public class ServerRequest {
     if (includeDatabase != null) backupConfig.setIncludeDatabase(includeDatabase);
     if (includeBuildLogs != null) backupConfig.setIncludeBuildLogs(includeBuildLogs);
     if (includePersonalChanges != null) backupConfig.setIncludePersonalChanges(includePersonalChanges);
+    if (includeRunningBuilds != null) backupConfig.setIncludeRunningBuilds(includeRunningBuilds);
+    if (includeSupplimentaryData != null) backupConfig.setIncludeSupplementaryData(includeSupplimentaryData);
 
     try {
       backupManager.startBackup(backupConfig);
