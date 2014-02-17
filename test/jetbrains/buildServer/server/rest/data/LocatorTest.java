@@ -332,7 +332,9 @@ public class LocatorTest {
         {":value"},
         {"name:value,:value2"},
         {"name:value,(a:b)"},
-        {"name:(val)a"}
+        {"name:(val)a"},
+        {"-:x"},
+        {"a-b:y"}
     };
   }
 
@@ -347,7 +349,6 @@ public class LocatorTest {
         {"a(b)(c),d"},
         {"a,b(a ,( b)"},
         {"+"},
-        {"-"},
         {"$a"},
         {"a$b"}
     };
@@ -355,6 +356,22 @@ public class LocatorTest {
 
   @Test(dataProvider = "invalid-complex-values-extendedMode", expectedExceptions = LocatorProcessException.class)
   public void testComplexValuesParsingErrorsExtendedMode(String value) {
+    new Locator(value, true, null);
+  }
+
+  @DataProvider(name = "valid-complex-values-extendedMode")
+  public String[][] getValidComplexValuesExtendedMode() {
+    return new String[][]{
+      {"-"},
+      {"a-b(-)"},
+      {"a-b"},
+      {"a-b:ccc"},
+      {"a-b:(ccc-ddd)"}
+    };
+  }
+
+  @Test(dataProvider = "valid-complex-values-extendedMode")
+  public void testComplexValuesParsingNoErrorsExtendedMode(String value) {
     new Locator(value, true, null);
   }
 }

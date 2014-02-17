@@ -54,6 +54,7 @@ public class Locator {
   public static final String LOCATOR_SINGLE_VALUE_UNUSED_NAME = "single value";
 
   private final String myRawValue;
+  private final boolean myExtendedMode;
   private boolean modified = false;
   private final MultiValuesMap<String, String> myDimensions;
   private final String mySingleValue;
@@ -85,6 +86,7 @@ public class Locator {
     mySupportedDimensions = mySupportedDimensions != null ? mySupportedDimensions.clone() : null;
     myIgnoreUnusedDimensions.addAll(locator.myIgnoreUnusedDimensions);
     myHddenSupportedDimensions.addAll(locator.myHddenSupportedDimensions);
+    myExtendedMode = locator.myExtendedMode;
   }
 
   /**
@@ -107,6 +109,7 @@ public class Locator {
    */
   public Locator(@Nullable final String locator, final boolean extendedMode, final String... supportedDimensions) throws LocatorProcessException {
     myRawValue = locator;
+    myExtendedMode = extendedMode;
     if (StringUtil.isEmpty(locator)) {
       throw new LocatorProcessException("Invalid locator. Cannot be empty.");
     }
@@ -129,6 +132,7 @@ public class Locator {
     mySingleValue = null;
     myDimensions = new MultiValuesMap<String, String>();
     mySupportedDimensions = null;
+    myExtendedMode = false;
   }
 
   public static Locator createEmptyLocator(final String... supportedDimensions) {
@@ -265,7 +269,7 @@ public class Locator {
   private boolean isValidName(final String name) {
     if ((mySupportedDimensions == null || !Arrays.asList(mySupportedDimensions).contains(name)) && !myHddenSupportedDimensions.contains(name)) {
       for (int i = 0; i < name.length(); i++) {
-        if (!Character.isLetter(name.charAt(i)) && !Character.isDigit(name.charAt(i))) return false;
+        if (!Character.isLetter(name.charAt(i)) && !Character.isDigit(name.charAt(i)) && !(name.charAt(i) == '-' && myExtendedMode)) return false;
       }
     }
     return true;
