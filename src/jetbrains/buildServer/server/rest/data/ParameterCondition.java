@@ -16,10 +16,9 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import jetbrains.buildServer.parameters.ParametersProvider;
-import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -37,11 +36,11 @@ public class ParameterCondition {
   public static final String NAME = "name";
   public static final String VALUE = "value";
   public static final String TYPE = "matchType";
-  @NotNull private final String myParameterName;
+  @Nullable private final String myParameterName;
   @Nullable private final String myParameterValue;
   @NotNull private final RequirementType myRequirementType;
 
-  public ParameterCondition(@NotNull final String name, @Nullable final String value, final @NotNull RequirementType requirementType) {
+  public ParameterCondition(@Nullable final String name, @Nullable final String value, final @NotNull RequirementType requirementType) {
     myParameterName = name;
     myParameterValue = value;
     myRequirementType = requirementType;
@@ -54,10 +53,6 @@ public class ParameterCondition {
     final Locator locator = new Locator(propertyConditionLocator, NAME, VALUE, TYPE);
 
     final String name = locator.getSingleDimensionValue(NAME);
-    if (StringUtil.isEmpty(name)){
-      throw new BadRequestException("Property name should not be empty in dimension 'name' of the locator : '" + propertyConditionLocator + "'");
-    }
-
     final String value = locator.getSingleDimensionValue(VALUE);
 
     RequirementType requirement = value != null ? RequirementType.CONTAINS : RequirementType.EXISTS;
@@ -83,8 +78,24 @@ public class ParameterCondition {
   }
 
   public boolean matches(final ParametersProvider parametersProvider) {
-    final String value = parametersProvider.get(myParameterName);
-    return myRequirementType.match(new Requirement(myParameterName, myParameterValue, myRequirementType), Collections.singletonMap(myParameterName, value), false);
+    if (!StringUtil.isEmpty(myParameterName)) {
+      final String value = parametersProvider.get(myParameterName);
+      return matches(value);
+    }
+    for (Map.Entry<String, String> parameter : parametersProvider.getAll().entrySet()) {
+      if (matches(parameter.getValue())) return true;
+    }
+    return false;
+  }
+
+  public boolean matches(@Nullable final String value) {
+    if (myRequirementType.isActualValueRequired() && value == null) {
+      return false;
+    }
+    if (!myRequirementType.isActualValueCanBeEmpty() && (value == null || value.length() == 0)) {
+      return false;
+    }
+    return myRequirementType.matchValues(myParameterValue, value);
   }
 
   @Override
