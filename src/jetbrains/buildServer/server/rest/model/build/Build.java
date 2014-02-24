@@ -593,20 +593,28 @@ public class Build {
                                           new ValueWithDefault.Value<TestOccurrences>() {
                                             @Nullable
                                             public TestOccurrences get() {
-                                              final ShortStatistics statistics = myBuild.getShortStatistics();
+                                              final Fields testOccurrencesFields = myFields.getNestedField("testOccurrences");
+                                              final Boolean testDetailsIncluded = TestOccurrences.isTestOccurrenceIncluded(testOccurrencesFields);
+                                              final BuildStatistics fullStatistics = (testDetailsIncluded == null || testDetailsIncluded) ?
+                                                                                     myBuild.getFullStatistics() : null;
+                                              final ShortStatistics statistics = fullStatistics != null ? fullStatistics : myBuild.getShortStatistics();
                                               if (statistics.getAllTestCount() == 0) {
                                                 return null;
                                               }
 
                                               final int mutedTestsCount =
                                                 statistics.getFailedTestsIncludingMuted().size() - statistics.getFailedTestCount(); //TeamCity API: not effective
-                                              final Fields testOccurrencesFields = myFields.getNestedField("testOccurrences");
                                               if (myBuild.getBuildType() == null){
                                                 //workaround for http://youtrack.jetbrains.com/issue/TW-34734
                                                 return null;
                                               }
                                               final List<STestRun> tests = ValueWithDefault.decideDefault(
-                                                testOccurrencesFields.isIncluded("testOccurrence", false), myBuild.getFullStatistics().getAllTests());
+                                                testDetailsIncluded, new ValueWithDefault.Value<List<STestRun>>() {
+                                                  public List<STestRun> get() {
+                                                    return (fullStatistics != null ? fullStatistics : myBuild.getFullStatistics()).getAllTests();
+                                                  }
+                                                }
+                                              );
                                               return new TestOccurrences(tests,
                                                                          statistics.getAllTestCount(),
                                                                          statistics.getPassedTestCount(),
