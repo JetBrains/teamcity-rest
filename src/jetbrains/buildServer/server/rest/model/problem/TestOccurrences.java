@@ -68,7 +68,7 @@ public class TestOccurrences extends OccurrencesSummary {
                          @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     super(passed, failed, newFailed, ignored, muted, fields);
     if (itemsP != null) {
-      items = ValueWithDefault.decideDefault(fields.isIncluded("testOccurrence", false), new ValueWithDefault.Value<List<TestOccurrence>>() {
+      items = ValueWithDefault.decideDefault(isTestOccurrenceIncluded(fields), new ValueWithDefault.Value<List<TestOccurrence>>() {
         @Nullable
         public List<TestOccurrence> get() {
           final List<STestRun> sortedItems = new ArrayList<STestRun>(itemsP);
@@ -91,6 +91,11 @@ public class TestOccurrences extends OccurrencesSummary {
       nextHref = pagerData.getNextHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null;
       prevHref = pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null;
     }
+  }
+
+  @Nullable
+  public static Boolean isTestOccurrenceIncluded(@NotNull final Fields fields) {
+    return fields.isIncluded("testOccurrence", false);
   }
 
   @Override
