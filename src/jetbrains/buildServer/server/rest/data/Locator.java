@@ -83,7 +83,7 @@ public class Locator {
 
     mySingleValue = locator.mySingleValue;
     myUsedDimensions.addAll(locator.myUsedDimensions);
-    mySupportedDimensions = mySupportedDimensions != null ? mySupportedDimensions.clone() : null;
+    mySupportedDimensions = locator.mySupportedDimensions != null ? locator.mySupportedDimensions.clone() : null;
     myIgnoreUnusedDimensions.addAll(locator.myIgnoreUnusedDimensions);
     myHddenSupportedDimensions.addAll(locator.myHddenSupportedDimensions);
     myExtendedMode = locator.myExtendedMode;
