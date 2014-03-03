@@ -83,7 +83,7 @@ public class VcsRootInstancesFilter extends AbstractFilter<VcsRootInstance> {
     if (myVcsRoot != null && !myVcsRoot.equals(root.getParent())) {
       return false;
     }
-    if (myRepositoryIdString != null && !VcsRootsFilter.repositoryIdStringMatches(root, myRepositoryIdString, myVcsManager)) {
+    if (myRepositoryIdString != null && !VcsRootsFilter.repositoryIdStringMatches(root.getParent(), myRepositoryIdString, myVcsManager)) {
       return false;
     }
 

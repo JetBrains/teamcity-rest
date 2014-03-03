@@ -32,6 +32,7 @@ import jetbrains.buildServer.vcs.SingleVersionRepositoryStateAdapter;
 import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsRootInstanceEx;
 import jetbrains.buildServer.vcs.VcsRootStatus;
+import jetbrains.buildServer.vcs.impl.RepositoryStateManager;
 
 /**
  * @author Yegor.Yarko
@@ -125,9 +126,9 @@ public class VcsRootInstance {
      } else if ("vcsName".equals(field)) {
        return rootInstance.getVcsName();
      } else if ("projectInternalId".equals(field)) { //Not documented, do we actually need this?
-       return rootInstance.getScope().getOwnerProjectId();
+       return rootInstance.getParent().getScope().getOwnerProjectId();
      } else if ("projectId".equals(field)) { //Not documented
-       return rootInstance.getProject().getExternalId();
+       return rootInstance.getParent().getProject().getExternalId();
      } else if ("repositoryMappings".equals(field)) { //Not documented
        try {
          return String.valueOf(VcsRoot.getRepositoryMappings(rootInstance, dataProvider.getVcsManager()));
@@ -161,7 +162,7 @@ public class VcsRootInstance {
                                    final String newValue,
                                    final DataProvider dataProvider) {
     if ("lastVersionInternal".equals(field)) {
-      ((VcsRootInstanceEx)rootInstance).setLastUsedState(new SingleVersionRepositoryStateAdapter(newValue));
+      dataProvider.getBean(RepositoryStateManager.class).setRepositoryState(rootInstance, new SingleVersionRepositoryStateAdapter(newValue));
       return;
     }
     throw new NotFoundException("Setting of field '" + field + "' is not supported. Supported is: lastVersionInternal");

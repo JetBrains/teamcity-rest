@@ -234,7 +234,7 @@ public class VcsRoot {
     throw new NotFoundException("Setting field '" + field + "' is not supported. Supported are: name, project, modificationCheckInterval");
   }
 
-  public static Collection<VcsMappingElement> getRepositoryMappings(@NotNull final SVcsRoot root, @NotNull final VcsManager vcsManager) throws VcsException {
+  public static Collection<VcsMappingElement> getRepositoryMappings(@NotNull final jetbrains.buildServer.vcs.VcsRoot root, @NotNull final VcsManager vcsManager) throws VcsException {
     final VcsSettings vcsSettings = new VcsSettings(root, "");
     final MappingGeneratorService mappingGenerator = vcsManager.getVcsService(vcsSettings, MappingGeneratorService.class);
 
