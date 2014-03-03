@@ -3,6 +3,7 @@ package jetbrains.buildServer.server.rest.data;
 import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
@@ -73,5 +74,25 @@ public class UserFinder {
       return user;
     }
     throw new NotFoundException("User locator '" + userLocator + "' is not supported.");
+  }
+
+  public void checkViewUserPermission(String userLocator) {
+    SUser user;
+    try {
+      user = getUser(userLocator);
+    } catch (RuntimeException e) { // ensuring user without permissions could not get details on existing users by error messages
+      checkViewAllUsersPermission();
+      return;
+    }
+
+    final jetbrains.buildServer.users.User currentUser = myDataProvider.getServer().getSingletonService(DataProvider.class).getCurrentUser();
+    if (currentUser != null && currentUser.getId() == user.getId()) {
+      return;
+    }
+    checkViewAllUsersPermission();
+  }
+
+  public void checkViewAllUsersPermission() {
+    myDataProvider.getServer().getSingletonService(DataProvider.class).checkGlobalPermissionAnyOf(new Permission[]{Permission.VIEW_USER_PROFILE, Permission.CHANGE_USER});
   }
 }

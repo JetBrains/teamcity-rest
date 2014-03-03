@@ -19,10 +19,7 @@ package jetbrains.buildServer.server.rest.data;
 import com.intellij.openapi.diagnostic.Logger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroupManager;
@@ -379,6 +376,19 @@ public class DataProvider {
       throw new AuthorizationFailedException(
         "User " + authorityHolder.getAssociatedUser() + " does not have global permission " + permission);
     }
+  }
+
+  public void checkGlobalPermissionAnyOf(final Permission[] permissions) throws AuthorizationFailedException{
+    final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
+    for (Permission permission : permissions) {
+      if (authorityHolder.isPermissionGrantedForAnyProject(permission)) {
+        return;
+      }
+    }
+
+    throw new AuthorizationFailedException(
+      "User " + authorityHolder.getAssociatedUser() + " does not have any of the permissions granted globally: " + Arrays
+        .toString(permissions));
   }
 
   public void checkProjectPermission(@NotNull final Permission permission, @Nullable final String projectId) throws AuthorizationFailedException{
