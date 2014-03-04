@@ -61,14 +61,10 @@ public class JerseyWebComponent extends SpringServlet {
     for (String name : BeanFactoryUtils.beanNamesIncludingAncestors(springContext)) {
       final Class<?> type = ClassUtils.getUserClass(springContext.getType(name));
       if (ResourceConfig.isProviderClass(type)) {
-        LOG.info("Registering Spring bean, " + name +
-                ", of type " + type.getName() +
-                " as a provider class");
+        LOG.debug("Registering Spring bean, " + name + ", of type " + type.getName() + " as a provider class");
         rc.getClasses().add(type);
       } else if (ResourceConfig.isRootResourceClass(type)) {
-        LOG.info("Registering Spring bean, " + name +
-                ", of type " + type.getName() +
-                " as a root resource class");
+        LOG.debug("Registering Spring bean, " + name + ", of type " + type.getName() + " as a root resource class");
         rc.getClasses().add(type);
       }
     }
