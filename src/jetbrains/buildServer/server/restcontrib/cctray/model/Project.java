@@ -16,16 +16,15 @@
 
 package jetbrains.buildServer.server.restcontrib.cctray.model;
 
-import com.sun.org.apache.xerces.internal.jaxp.datatype.XMLGregorianCalendarImpl;
+import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Locale;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlSchemaType;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.CollapsedStringAdapter;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import javax.xml.datatype.XMLGregorianCalendar;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.serverSide.*;
 
@@ -163,15 +162,13 @@ public class Project {
      */
     @XmlAttribute(name = "lastBuildTime", required = true)
     @XmlSchemaType(name = "dateTime")
-    public XMLGregorianCalendar getLastBuildTime() {
-        final GregorianCalendar calendar = new GregorianCalendar();
+    public String getLastBuildTime() {
         final SFinishedBuild lastBuild = myBuildType.getLastChangesFinished();
         if (lastBuild == null) {
             // is this OK?
             return null;
         }
-        calendar.setTime(lastBuild.getStartDate());
-        return new XMLGregorianCalendarImpl(calendar);
+        return getFormattedTime(lastBuild.getStartDate());
     }
 
     /**
@@ -182,9 +179,7 @@ public class Project {
      */
     @XmlAttribute(name = "nextBuildTime")
     @XmlSchemaType(name = "dateTime")
-    public XMLGregorianCalendar getNextBuildTime() {
-        final GregorianCalendar result = new GregorianCalendar();
-
+    public String getNextBuildTime() {
         final List<SQueuedBuild> queuedBuilds = myBuildType.getQueuedBuilds(null);
         for (SQueuedBuild build : queuedBuilds) {
             if (!build.isPersonal()) {
@@ -192,14 +187,23 @@ public class Project {
                 if (estimate != null) {
                     final TimeInterval interval = estimate.getTimeInterval();
                     if (interval != null && isValid(interval)) {
-                        result.setTime(interval.getStartPoint().getAbsoluteTime());
-                        return new XMLGregorianCalendarImpl(result);
+                        return getFormattedTime(interval.getStartPoint().getAbsoluteTime());
                     }
                 }
             }
         }
         //todo: get next VCS checking/scheduled time
         return null;
+    }
+
+    private String getFormattedTime(final Date date) {
+      final String withoutTimezone = (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.ENGLISH)).format(date);
+      final String timezone = (new SimpleDateFormat("Z", Locale.ENGLISH)).format(date);
+      String modifiedTimezone = "Z";
+      if (timezone.length() == 5) {
+        modifiedTimezone = timezone.substring(0, 3) + ":" + timezone.substring(3);
+      }
+      return withoutTimezone + modifiedTimezone;
     }
 
   private static boolean isValid(final TimeInterval interval) {
