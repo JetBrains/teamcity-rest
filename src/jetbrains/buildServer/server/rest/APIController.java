@@ -52,6 +52,7 @@ import jetbrains.buildServer.serverSide.SecurityContextEx;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.FuncThrow;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.log4j.Level;
@@ -111,16 +112,12 @@ public class APIController extends BaseController implements ServletContextAware
     mySecurityContext = securityContext;
     myRequestPathTransformInfo = requestPathTransformInfo;
 
-    if (TeamCityProperties.getBooleanOrTrue("rest.delayedControllerInitialize")) {
-      server.addListener(new BuildServerAdapter() {
-        @Override
-        public void pluginsLoaded() {
-          initializeController();
-        }
-      });
-    } else {
-      initializeController();
-    }
+    server.addListener(new BuildServerAdapter() {
+      @Override
+      public void pluginsLoaded() {
+        initializeController();
+      }
+    });
 
     if (TeamCityProperties.getBoolean("rest.use.authToken")) {
       try {
@@ -166,7 +163,7 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   private List<String> filterOtherPlugins(final List<String> bindPaths) {
-    if (TeamCityProperties.getBoolean(REST_PREFER_OWN_BIND_PATHS)) {  // support list of plugin names as values
+    if (TeamCityProperties.getBoolean(REST_PREFER_OWN_BIND_PATHS)) {  //todo: support list of plugin names as values, default to "rest-api"
       return bindPaths;
     }
     final ArrayList<String> result = new ArrayList<String>(bindPaths);
@@ -177,11 +174,11 @@ public class APIController extends BaseController implements ServletContextAware
       if (myPluginDescriptor.getPluginName().equals(plugin.getPluginName())) {
         continue;
       }
-      if (ServerPluginInfo.class.isAssignableFrom(plugin.getClass())) {
-        final ServerPluginInfo serverPluginInfo = (ServerPluginInfo)plugin;
-        String bindPath = serverPluginInfo.getParameterValue(Constants.BIND_PATH_PROPERTY_NAME);
+      if (plugin instanceof PluginDescriptor) {
+        final PluginDescriptor pluginDescriptor = (ServerPluginInfo)plugin; //TeamCity API issue: cast
+        String bindPath = pluginDescriptor.getParameterValue(Constants.BIND_PATH_PROPERTY_NAME);
         if (!StringUtil.isEmpty(bindPath)) {
-          final List<String> pathToExclude = getBindPaths(serverPluginInfo);
+          final List<String> pathToExclude = getBindPaths(pluginDescriptor);
           if (result.removeAll(pathToExclude)){
             LOG.info("Excluding paths from handling by plugin '" + myPluginDescriptor.getPluginName() + "' as they are handled by plugin '" + plugin.getPluginName() + "': " +
                      pathToExclude + ". Set " + REST_PREFER_OWN_BIND_PATHS + " to 'false' to turn this logic off.");
@@ -238,7 +235,7 @@ public class APIController extends BaseController implements ServletContextAware
     }
   }
 
-  private List<String> getBindPaths(final ServerPluginInfo pluginDescriptor) {
+  private List<String> getBindPaths(@NotNull final PluginDescriptor pluginDescriptor) {
     String bindPath = pluginDescriptor.getParameterValue(Constants.BIND_PATH_PROPERTY_NAME);
     if (bindPath == null) {
       LOG.error("Not property '" + Constants.BIND_PATH_PROPERTY_NAME + "' found in pugin descriptor file in " + getPluginIdentifyingText() + ". Corrupted plugin?");
