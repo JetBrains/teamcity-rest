@@ -74,7 +74,7 @@ public class APIController extends BaseController implements ServletContextAware
   final static Logger LOG = Logger.getInstance(APIController.class.getName());
   public static final String REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME = "rest.cors.origins";
   public static final String REST_RESPONSE_PRETTYFORMAT = "rest.response.prettyformat";
-  public static final String REST_PREFER_OWN_BIND_PATHS = "rest.prefer.own.bind.paths";
+  public static final String REST_PREFER_OWN_BIND_PATHS = "rest.allow.bind.paths.override";
   private JerseyWebComponent myWebComponent;
   private final ConfigurableApplicationContext myConfigurableApplicationContext;
   private final SecurityContextEx mySecurityContext;
@@ -163,7 +163,7 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   private List<String> filterOtherPlugins(final List<String> bindPaths) {
-    if (TeamCityProperties.getBoolean(REST_PREFER_OWN_BIND_PATHS)) {  //todo: support list of plugin names as values, default to "rest-api"
+    if (!TeamCityProperties.getBooleanOrTrue(REST_PREFER_OWN_BIND_PATHS)) {  //todo: support list of plugin names as values, default to "rest-api"
       return bindPaths;
     }
     final ArrayList<String> result = new ArrayList<String>(bindPaths);
