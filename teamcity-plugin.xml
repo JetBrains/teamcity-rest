@@ -15,6 +15,6 @@
   <deployment use-separate-classloader="true"/>
   <parameters>
     <parameter name="api.path">/app/rest,/app/rest/latest,/app/rest/8.0,/app/rest/8.1,/api</parameter>
-    <parameter name="api.version">8.0</parameter>
+    <parameter name="api.version">8.1</parameter>
   </parameters>
 </teamcity-plugin>
