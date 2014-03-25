@@ -115,7 +115,7 @@ public class Build {
   public Build(@NotNull final SBuild build, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     myBuild = build;
     myBuildPromotion = myBuild.getBuildPromotion();
-    myQueuedBuild = myBuildPromotion.getQueuedBuild();
+    myQueuedBuild = null;
 
     myBeanContext = beanContext;
     myApiUrlBuilder = beanContext.getApiUrlBuilder();
@@ -125,8 +125,8 @@ public class Build {
 
   public Build(@NotNull final BuildPromotion buildPromotion, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     myBuildPromotion = buildPromotion;
-    myBuild = myBuildPromotion.getAssociatedBuild();
     myQueuedBuild = myBuildPromotion.getQueuedBuild();
+    myBuild = myQueuedBuild != null ? null : myBuildPromotion.getAssociatedBuild();
 
     myBeanContext = beanContext;
     myApiUrlBuilder = beanContext.getApiUrlBuilder();
