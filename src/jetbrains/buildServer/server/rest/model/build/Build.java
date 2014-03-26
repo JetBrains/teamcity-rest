@@ -45,6 +45,7 @@ import jetbrains.buildServer.server.rest.util.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.buildDistribution.WaitReason;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -488,6 +489,11 @@ public class Build {
     });
   }
 
+  /**
+   * Lists last change(s) included into the build so that this can be used in the build start request.
+   * The set of the changes included can vary in the future TeamCity versions. In TeamCity 8.1 this is the last usual change and also a personal change (for personal build only)
+   * @return
+   */
   @XmlElement(name = "lastChanges")
   public Changes getLastChanges() {
     if (!myFields.isIncluded("lastChanges", false, true)) {
@@ -496,14 +502,19 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded("lastChanges", false), new ValueWithDefault.Value<Changes>() {
       public Changes get() {
         return new Changes(null, myFields.getNestedField("lastChanges", Fields.NONE, Fields.LONG), myBeanContext, new CachingValue<List<SVcsModification>>() {
+          @NotNull
           @Override
           protected List<SVcsModification> doGet() {
             final List<SVcsModification> result = new ArrayList<SVcsModification>();
             final Long lastModificationId = myBuildPromotion.getLastModificationId();
             if (lastModificationId != null && lastModificationId != -1) {
-              SVcsModification modification = myBeanContext.getSingletonService(VcsModificationHistory.class).findChangeById(lastModificationId);
-              if (modification != null) {
-                result.add(modification);
+              try {
+                SVcsModification modification = myBeanContext.getSingletonService(VcsModificationHistory.class).findChangeById(lastModificationId);
+                if (modification != null && modification.getRelatedConfigurations().contains(myBuildPromotion.getBuildType())) {
+                  result.add(modification);
+                }
+              } catch (AccessDeniedException e) {
+                //ignore: the associated modification id probably does not belong to the build configuration (related to TW-35390)
               }
             }
             result.addAll(myBuildPromotion.getPersonalChanges());
