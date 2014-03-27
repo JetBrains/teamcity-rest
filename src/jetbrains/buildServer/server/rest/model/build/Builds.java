@@ -86,7 +86,7 @@ public class Builds implements DefaultValueAware {
       prevHref = ValueWithDefault
         .decideDefault(fields.isIncluded("prevHref"), pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null);
     }
-    count = buildObjects == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("count"), buildObjects.size());
+    count = buildObjects == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), buildObjects.size());
   }
 
   public boolean isDefault() {

@@ -80,9 +80,9 @@ public class TestOccurrences extends OccurrencesSummary {
           return result;
         }
       });
-      this.count = ValueWithDefault.decideDefault(fields.isIncluded("count", true), itemsP.size());
+      this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", true), itemsP.size());
     } else {
-      this.count = ValueWithDefault.decideDefault(fields.isIncluded("count"), count);
+      this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), count);
     }
 
     this.href = shortHref == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(shortHref));

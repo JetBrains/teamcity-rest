@@ -54,6 +54,6 @@ public class Users {
         users.add(new User(user, fields.getNestedField("user"), context));
       }
     }
-    count = userObjects == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("count"), userObjects.size());
+    count = userObjects == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), userObjects.size());
   }
 }
