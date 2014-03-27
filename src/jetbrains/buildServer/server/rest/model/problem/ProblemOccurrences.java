@@ -87,9 +87,9 @@ public class ProblemOccurrences extends OccurrencesSummary {
           return result;
         }
       });
-      this.count = ValueWithDefault.decideDefault(fields.isIncluded("count", true), items.size());
+      this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", true), items.size());
     } else {
-      this.count = ValueWithDefault.decideDefault(fields.isIncluded("count"), count);
+      this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), count);
     }
 
     this.href = shortHref == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(shortHref));

@@ -70,7 +70,7 @@ public class Properties  implements DefaultValueAware {
       this.count = null;
       this.properties = null;
     } else {
-      this.count = ValueWithDefault.decideDefault(fields.isIncluded("count"), properties.size());
+      this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), properties.size());
       if (fields.isIncluded("property", false, true)){
         for (java.util.Map.Entry<String, String> prop : properties.entrySet()) {
           this.properties.add(new Property(prop.getKey(), prop.getValue()));
@@ -89,7 +89,7 @@ public class Properties  implements DefaultValueAware {
       this.count = null;
       this.properties = null;
     } else {
-      this.count = ValueWithDefault.decideDefault(fields.isIncluded("count"), parameters.size());
+      this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), parameters.size());
       if (fields.isIncluded("property", false, true)) {
         for (Parameter parameter : parameters) {
           this.properties.add(

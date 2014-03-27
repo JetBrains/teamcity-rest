@@ -58,7 +58,7 @@ public class Groups {
         groups.add(new Group((SUserGroup)userGroup, nestedFields, context)); //TeamCity API issue: cast
       }
     }
-    count = userGroups == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("count"), userGroups.size());
+    count = userGroups == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), userGroups.size());
   }
 
   @NotNull

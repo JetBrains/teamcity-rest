@@ -52,7 +52,7 @@ public class BuildTypes {
   }
 
   public BuildTypes(@NotNull final List<BuildTypeOrTemplate> items, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
-    this.count = ValueWithDefault.decideDefault(fields.isIncluded("count"), items.size());
+    this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), items.size());
     if (fields.isIncluded("buildType", false, true)){
       this.buildTypes = new ArrayList<BuildType>(items.size());
       for (BuildTypeOrTemplate buildType : items) {

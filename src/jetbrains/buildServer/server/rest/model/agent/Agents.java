@@ -64,7 +64,7 @@ public class Agents {
       agents = null;
     }
 
-    count = ValueWithDefault.decideDefault(fields.isIncluded("count"), agentObjects.size());
+    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), agentObjects.size());
 
     if (pagerData != null) {
       nextHref = ValueWithDefault

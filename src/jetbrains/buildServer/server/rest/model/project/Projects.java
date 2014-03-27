@@ -61,7 +61,7 @@ public class Projects {
     }else{
       projects = null;
     }
-    count = ValueWithDefault.decideDefault(fields.isIncluded("count"), projectObjects.size());
+    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), projectObjects.size());
   }
 
   @NotNull
