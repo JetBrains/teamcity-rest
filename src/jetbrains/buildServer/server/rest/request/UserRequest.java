@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import java.util.List;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.groups.SUserGroup;
@@ -270,8 +271,7 @@ public class UserRequest {
   @Produces({"application/xml", "application/json"})
   public Groups replaceGroups(@PathParam("userLocator") String userLocator, Groups groups, @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getUser(userLocator);
-    myDataUpdater.removeAllGroups(user);
-    myDataUpdater.addGroups(user, groups);
+    myDataUpdater.replaceUserGroups(user, groups.getFromPosted(myDataProvider.getServer()));
     return new Groups(user.getUserGroups(),  new Fields(fields), myBeanContext);
   }
 
