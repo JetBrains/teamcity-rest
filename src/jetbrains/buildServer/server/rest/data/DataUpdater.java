@@ -16,9 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import jetbrains.buildServer.groups.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.PartialUpdateError;
@@ -90,8 +88,7 @@ public class DataUpdater {
 
     try {
       if (userData.getSubmittedGroups() != null) {
-        removeAllGroups(user);
-        addGroups(user, userData.getSubmittedGroups());
+        replaceUserGroups(user, userData.getSubmittedGroups().getFromPosted(myDataProvider.getServer()));
       }
     } catch (PartialUpdateError partialUpdateError) {
       errors.add(partialUpdateError);
@@ -152,31 +149,21 @@ public class DataUpdater {
     myGroupManager.deleteUserGroup(group);
   }
 
-  public void addGroups(final SUser user, final Groups groups) {
-    for (SUserGroup userGroup : groups.getFromPosted(myDataProvider.getServer())) {
-      userGroup.addUser(user);
-    }
-    /*
-    final ArrayList<Throwable> errors = new ArrayList<Throwable>();
-    groups.getFromPosted(myDataProvider.getServer())
-    for (GroupRef group : groups.groups) {
-      final SUserGroup foundGroup = myGroupManager.findUserGroupByKey(group.key);
-      if (foundGroup != null) {
-        foundGroup.addUser(user);
-      } else {
-        errors.add(new BadRequestException("Can't find group by key '" + group.key + "'"));
-      }
-    }
-    if (errors.size() != 0) {
-      throw new PartialUpdateError("Partial error adding user " + user.describe(false) + " to groups " + groups, errors);
-    }
-    */
-  }
-
-  public void removeAllGroups(final SUser user) {
+  public void replaceUserGroups(final SUser user, final List<SUserGroup> groupsP) {
+    TreeSet<SUserGroup> groupsToProcess = new TreeSet<SUserGroup>(groupsP);
+    //removing
     for (UserGroup group : user.getUserGroups()) {
-      if (!myGroupManager.isAllUsersGroup((SUserGroup)group)) //TeamCity API issue: cast
-      ((SUserGroup)group).removeUser(user);
+      final SUserGroup userGroup = (SUserGroup)group; //TeamCity API issue: cast
+      if (!groupsToProcess.contains(userGroup)) {
+        if (!myGroupManager.isAllUsersGroup(userGroup)) {
+          userGroup.removeUser(user);
+        }
+      }
+      groupsToProcess.remove(userGroup);
+    }
+    //adding
+    for (UserGroup group : groupsToProcess) {
+      ((SUserGroup)group).addUser(user);
     }
   }
 
