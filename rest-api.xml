@@ -96,6 +96,7 @@
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/openapi.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/spring-webmvc.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/spring.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/user-agent-utils-1.12.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/util.jar"/>
   </path>
   
@@ -208,12 +209,12 @@
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/db.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/server.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/web.jar"/>
-    <pathelement location="${basedir}/lib-test/mockito-core-1.9.5.jar"/>
-    <pathelement location="${basedir}/lib-test/testng-6.8.jar"/>
     <pathelement location="${basedir}/lib-test/hamcrest-core-1.3.jar"/>
     <pathelement location="${basedir}/lib-test/hamcrest-integration-1.3.jar"/>
     <pathelement location="${basedir}/lib-test/hamcrest-library-1.3.jar"/>
     <pathelement location="${basedir}/lib-test/junit-4.11.jar"/>
+    <pathelement location="${basedir}/lib-test/mockito-core-1.9.5.jar"/>
+    <pathelement location="${basedir}/lib-test/testng-6.8.jar"/>
     <path refid="library.teamcity_server_tests.classpath"/>
   </path>
   
@@ -241,12 +242,12 @@
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/db.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/server.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/web.jar"/>
-    <pathelement location="${basedir}/lib-test/mockito-core-1.9.5.jar"/>
-    <pathelement location="${basedir}/lib-test/testng-6.8.jar"/>
     <pathelement location="${basedir}/lib-test/hamcrest-core-1.3.jar"/>
     <pathelement location="${basedir}/lib-test/hamcrest-integration-1.3.jar"/>
     <pathelement location="${basedir}/lib-test/hamcrest-library-1.3.jar"/>
     <pathelement location="${basedir}/lib-test/junit-4.11.jar"/>
+    <pathelement location="${basedir}/lib-test/mockito-core-1.9.5.jar"/>
+    <pathelement location="${basedir}/lib-test/testng-6.8.jar"/>
     <path refid="library.teamcity_server_tests.classpath"/>
   </path>
   

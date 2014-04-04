@@ -23,6 +23,7 @@ import com.sun.jersey.api.core.PackagesResourceConfig;
 import com.sun.jersey.api.core.ResourceConfig;
 import com.sun.jersey.api.json.JSONConfiguration;
 import com.sun.jersey.core.util.FeaturesAndProperties;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.*;
@@ -36,6 +37,9 @@ import javax.servlet.http.HttpServletResponse;
 import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.controllers.AuthorizationInterceptor;
 import jetbrains.buildServer.controllers.BaseController;
+import jetbrains.buildServer.controllers.interceptors.PathSet;
+import jetbrains.buildServer.controllers.interceptors.auth.HttpAuthenticationManager;
+import jetbrains.buildServer.controllers.interceptors.auth.HttpAuthenticationResult;
 import jetbrains.buildServer.plugins.PluginManager;
 import jetbrains.buildServer.plugins.bean.PluginInfo;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
@@ -54,6 +58,8 @@ import jetbrains.buildServer.util.FuncThrow;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
+import jetbrains.buildServer.web.util.SessionUser;
+import jetbrains.buildServer.web.util.UserAgentUtil;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.log4j.Level;
 import org.jetbrains.annotations.NotNull;
@@ -75,6 +81,16 @@ public class APIController extends BaseController implements ServletContextAware
   public static final String REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME = "rest.cors.origins";
   public static final String REST_RESPONSE_PRETTYFORMAT = "rest.response.prettyformat";
   public static final String REST_PREFER_OWN_BIND_PATHS = "rest.allow.bind.paths.override";
+
+  private final boolean myInternalAuthProcessing = TeamCityProperties.getBoolean("rest.cors.optionsRequest.allowUnauthorized");
+  private final String[] myPathsWithoutAuth = new String[]{
+    BuildRequest.BUILDS_ROOT_REQUEST_PATH + "/*/" + BuildRequest.STATUS_ICON_REQUEST_NAME,
+    ServerRequest.SERVER_REQUEST_PATH + "/" + ServerRequest.SERVER_VERSION_RQUEST_PATH,
+    RootApiRequest.VERSION,
+    RootApiRequest.API_VERSION,
+    Constants.EXTERNAL_APPLICATION_WADL_NAME,
+    Constants.EXTERNAL_APPLICATION_WADL_NAME + "/xsd*.xsd"};
+
   private JerseyWebComponent myWebComponent;
   private final ConfigurableApplicationContext myConfigurableApplicationContext;
   private final SecurityContextEx mySecurityContext;
@@ -82,11 +98,13 @@ public class APIController extends BaseController implements ServletContextAware
   private final ServerPluginInfo myPluginDescriptor;
   private final ExtensionHolder myExtensionHolder;
   private final AuthorizationInterceptor myAuthorizationInterceptor;
+  @NotNull private final HttpAuthenticationManager myAuthManager;
   @NotNull private final PluginManager myPluginManager;
 
   private ClassLoader myClassloader;
   private String myAuthToken;
   private final RequestPathTransformInfo myRequestPathTransformInfo;
+  private final PathSet myUnauthenticatedPathSet = new PathSet();
 
   private final CachingValuesFromInternalProperty myAllowedOrigins = new CachingValuesFromInternalProperty();
   private final CachingValuesFromInternalProperty myDisabledRequests = new CachingValuesFromInternalProperty();
@@ -99,12 +117,14 @@ public class APIController extends BaseController implements ServletContextAware
                        final ServerPluginInfo pluginDescriptor,
                        final ExtensionHolder extensionHolder,
                        final AuthorizationInterceptor authorizationInterceptor,
+                       @NotNull final HttpAuthenticationManager authManager,
                        @NotNull final PluginManager pluginManager) throws ServletException {
     super(server);
     myWebControllerManager = webControllerManager;
     myPluginDescriptor = pluginDescriptor;
     myExtensionHolder = extensionHolder;
     myAuthorizationInterceptor = authorizationInterceptor;
+    myAuthManager = authManager;
     myPluginManager = pluginManager;
     setSupportedMethods(new String[]{METHOD_GET, METHOD_HEAD, METHOD_POST, "PUT", "OPTIONS", "DELETE"});
 
@@ -223,16 +243,25 @@ public class APIController extends BaseController implements ServletContextAware
       for (String controllerBindPath : bindPaths) {
         LOG.debug("Binding REST API " + getPluginIdentifyingText() + " to path '" + controllerBindPath + "'");
         webControllerManager.registerController(controllerBindPath + "/**", this);
-        myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + BuildRequest.BUILDS_ROOT_REQUEST_PATH + "/*/" + BuildRequest.STATUS_ICON_REQUEST_NAME);
-        myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + ServerRequest.SERVER_REQUEST_PATH + "/" + ServerRequest.SERVER_VERSION_RQUEST_PATH);
-        myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + RootApiRequest.VERSION);
-        myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + RootApiRequest.API_VERSION);
-        myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + Constants.EXTERNAL_APPLICATION_WADL_NAME);
-        myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + Constants.EXTERNAL_APPLICATION_WADL_NAME + "/xsd*.xsd");
+        if (myInternalAuthProcessing &&
+            !controllerBindPath.equals("/app/rest")) {// this is a special case as it contains paths of other plugins under it. Thus, it cannot be registered as not requiring auth
+          myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + "/**");
+          for (String path : myPathsWithoutAuth) {
+            myUnauthenticatedPathSet.addPath(controllerBindPath + path);
+          }
+        } else {
+          for (String path : myPathsWithoutAuth) {
+            myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + path);
+          }
+        }
       }
     } catch (Exception e) {
       LOG.error("Error registering controller in " + getPluginIdentifyingText(), e);
     }
+  }
+
+  private boolean requestForMyPathNotRequiringAuth(final HttpServletRequest request) {
+    return myUnauthenticatedPathSet.matches(WebUtil.getOriginalPathWithoutAuthenticationType(request));
   }
 
   private List<String> getBindPaths(@NotNull final PluginDescriptor pluginDescriptor) {
@@ -351,7 +380,23 @@ public class APIController extends BaseController implements ServletContextAware
     final boolean runAsSystemActual = runAsSystem;
     try {
 
-      processCorsRequest(request, response);
+      final boolean corsRequest = processCorsRequest(request, response);
+      if (corsRequest && request.getMethod().equalsIgnoreCase("OPTIONS")){
+        //handling browser pre-flight requests
+        LOG.debug("Pre-flight OPTIONS request detected, replying with status 204");
+        response.setStatus(204);
+        return null;
+      }
+      if (myInternalAuthProcessing && SessionUser.getUser(request) == null && !requestForMyPathNotRequiringAuth(request)){
+        if (processRequestAuthentication(request, response, myAuthManager)){
+          return null;
+        }
+        if (SessionUser.getUser(request) == null){
+          response.setStatus(401);
+          response.getWriter().write("TeamCity core was unable to handle authentication.");
+          return null;
+        }
+      }
 
       // workaround for http://jetbrains.net/tracker/issue2/TW-7656
       jetbrains.buildServer.util.Util.doUnderContextClassLoader(getClass().getClassLoader(), new FuncThrow<Void, Throwable>() {
@@ -389,6 +434,26 @@ public class APIController extends BaseController implements ServletContextAware
     return null;
   }
 
+  private static boolean processRequestAuthentication(@NotNull final HttpServletRequest request,
+                                                   @NotNull final HttpServletResponse response,
+                                                   @NotNull final HttpAuthenticationManager authManager) throws IOException {
+      boolean canRedirect = UserAgentUtil.isBrowser(request);
+      final HttpAuthenticationResult authResult = authManager.processAuthenticationRequest(request, response, canRedirect);
+      if (canRedirect) {
+        final String redirectUrl = authResult.getRedirectUrl();
+        if (redirectUrl != null) {
+          response.sendRedirect(redirectUrl);
+          return true;
+        }
+      }
+
+      if (authResult.getType() != HttpAuthenticationResult.Type.AUTHENTICATED) {
+        authManager.processUnauthenticatedRequest(request, response, null, canRedirect);
+        return true;
+      }
+    return false;
+  }
+
   private boolean matches(final String requestURI, final  String[] disabledRequests) {
     for (String requestPattern : disabledRequests) {
       if (requestURI.matches(requestPattern)){
@@ -408,26 +473,29 @@ public class APIController extends BaseController implements ServletContextAware
     return result;
   }
 
-  private void processCorsRequest(final HttpServletRequest request, final HttpServletResponse response) {
+  private boolean processCorsRequest(final HttpServletRequest request, final HttpServletResponse response) {
     final String origin = request.getHeader("Origin");
     if (StringUtil.isNotEmpty(origin)) {
       final String[] originsArray = myAllowedOrigins.getParsedValues(TeamCityProperties.getProperty(REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME));
       if (ArrayUtil.contains(origin, originsArray)) {
         addOriginHeaderToResponse(response, origin);
         addOtherHeadersToResponse(request, response);
-      } else if (ArrayUtil.contains("*", originsArray)){
+        return true;
+      } else if (ArrayUtil.contains("*", originsArray)) {
         LOG.debug("Got CORS request from origin '" + origin + "', but this origin is not allowed. However, '*' is. Replying with '*'." +
                   " Add the origin to '" + REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME +
                   "' internal property (comma-separated) to trust the applications hosted on the domain. Current allowed origins are: " +
                   Arrays.toString(originsArray));
         addOriginHeaderToResponse(response, "*");
-      }else {
+        return true;
+      } else {
         LOG.debug("Got CORS request from origin '" + origin + "', but this origin is not allowed. Add the origin to '" +
                   REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME +
                   "' internal property (comma-separated) to trust the applications hosted on the domain. Current allowed origins are: " +
                   Arrays.toString(originsArray));
       }
     }
+    return false;
   }
 
   private void addOriginHeaderToResponse(final HttpServletResponse response, final String origin) {
