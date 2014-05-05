@@ -1131,6 +1131,30 @@ public class Build {
     } else if ("changesCollectingInProgress".equals(field)) { //Experimental support only
       return String.valueOf(((BuildPromotionEx)buildPromotion).isChangesCollectingInProgress());
     }
+
+    final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
+    final SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+
+    if ("triggeredBy.username".equals(field)) { //Experimental support only
+      if (associatedBuild != null) {
+        final SUser user = associatedBuild.getTriggeredBy().getUser();
+        return user == null ? null : user.getUsername();
+      }
+      if (queuedBuild != null) {
+        final SUser user = queuedBuild.getTriggeredBy().getUser();
+        return user == null ? null : user.getUsername();
+      }
+      return null;
+    } else if ("triggeredBy.raw".equals(field)) { //Experimental support only
+      if (associatedBuild != null) {
+        return associatedBuild.getTriggeredBy().getRawTriggeredBy();
+      }
+      if (queuedBuild != null) {
+        return queuedBuild.getTriggeredBy().getRawTriggeredBy();
+      }
+      return null;
+    }
+
     throw new NotFoundException("Field '" + field + "' is not supported. Supported are: number, status, id, startDate, finishDate, buildTypeId, branchName.");
   }
 }
