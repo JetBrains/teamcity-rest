@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
-import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -27,12 +26,13 @@ import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.BuildStatisticsOptions;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
 import org.jetbrains.annotations.NotNull;
+
+import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_NO_DETAILS;
 
 /**
  * @author Yegor.Yarko
@@ -153,10 +153,10 @@ public class TestOccurrence {
 
   @NotNull
   private STestRun getTestRun(@NotNull final SBuild build, @NotNull final STestRun sampleTestRun) {
-    //todo: TeamCity API (MP): is there a dedicated API for this?
-    //todo: handle several returned test runs
-    final List<STestRun> testRuns = build.getBuildStatistics(new BuildStatisticsOptions(BuildStatisticsOptions.PASSED_TESTS | BuildStatisticsOptions.IGNORED_TESTS, 0))
-      .findTestsBy(sampleTestRun.getTest().getName());
-    return testRuns.iterator().next();
+    final STestRun testRun = build.getBuildStatistics(ALL_TESTS_NO_DETAILS).findTestByTestNameId(sampleTestRun.getTest().getTestNameId());
+    if (testRun == null) {
+      throw new IllegalArgumentException("Cannot find test with name " + sampleTestRun.getFullText() + " in build " + build);
+    }
+    return testRun;
   }
 }

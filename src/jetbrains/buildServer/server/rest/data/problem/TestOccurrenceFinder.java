@@ -30,6 +30,8 @@ import jetbrains.buildServer.tests.TestName;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_NO_DETAILS;
+
 /**
  * @author Yegor.Yarko
  *         Date: 17.11.13
@@ -376,26 +378,13 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   @Nullable
   private STestRun findTest(final @NotNull Long testNameId, final @NotNull SBuild build) {
-//    final List<STestRun> allTests = build.getFullStatistics().getAllTests();
-    final List<STestRun> allTests = build.getBuildStatistics(new BuildStatisticsOptions(BuildStatisticsOptions.IGNORED_TESTS | BuildStatisticsOptions.PASSED_TESTS, 0)).getAllTests();
-    //todo: TeamCity API: if stacktraces are not loaded,should I then load them somehow to get them for the returned STestRun (see TestOccurrence)
-    for (STestRun test : allTests) {
-      if (testNameId == test.getTest().getTestNameId()) return test; //todo: TeamCity API: does this support multiple test runs???
-    }
-    return null;
+    return build.getBuildStatistics(ALL_TESTS_NO_DETAILS).findTestByTestNameId(testNameId);
   }
 
   @Nullable
   private STestRun findTestByTestRunId(@NotNull final Long testRunId, @NotNull final SBuild build) {
     //todo: TeamCity API (MP) how to implement this without build?
-//    final List<STestRun> allTests = build.getFullStatistics().getAllTests();
-    final List<STestRun> allTests = build.getBuildStatistics(new BuildStatisticsOptions(BuildStatisticsOptions.IGNORED_TESTS | BuildStatisticsOptions.PASSED_TESTS, 0)).getAllTests();
     //todo: TeamCity API: if stacktraces are not loaded,should I then load them somehow to get them for the returned STestRun (see TestOccurrence)
-    for (STestRun test : allTests) {
-      if (testRunId.equals(Long.valueOf(test.getTestRunId()))) {
-        return test;
-      }
-    }
-    return null;
+    return build.getBuildStatistics(ALL_TESTS_NO_DETAILS).findTestByTestRunId(testRunId);
   }
 }
