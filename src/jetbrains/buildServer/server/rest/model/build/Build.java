@@ -277,7 +277,7 @@ public class Build {
 
   @XmlElement(name = "buildType")
   public BuildType getBuildType() {
-    final SBuildType buildType = myBuildPromotion.getBuildType();
+    final SBuildType buildType = myBuildPromotion.getParentBuildType();
     return buildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("buildType", false), new ValueWithDefault.Value<BuildType>() {
       public BuildType get() {
         return new BuildType(new BuildTypeOrTemplate(buildType), myFields.getNestedField("buildType"), myBeanContext);
@@ -286,7 +286,7 @@ public class Build {
   }
 
   @XmlElement
-  public String getStartDate() {
+  public String getStartDate() { // consider adding myBuild.getServerStartDate()
     return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("startDate", false), Util.formatTime(myBuild.getStartDate()));
   }
 
@@ -510,7 +510,7 @@ public class Build {
             if (lastModificationId != null && lastModificationId != -1) {
               try {
                 SVcsModification modification = myBeanContext.getSingletonService(VcsModificationHistory.class).findChangeById(lastModificationId);
-                if (modification != null && modification.getRelatedConfigurations().contains(myBuildPromotion.getBuildType())) {
+                if (modification != null && modification.getRelatedConfigurations().contains(myBuildPromotion.getParentBuildType())) {
                   result.add(modification);
                 }
               } catch (AccessDeniedException e) {
