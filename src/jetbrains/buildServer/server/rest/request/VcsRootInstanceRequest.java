@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.VcsRootFinder;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Entries;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -125,6 +126,18 @@ public class VcsRootInstanceRequest {
     return VcsRootInstance.getFieldValue(rootInstance, fieldName, myDataProvider);
   }
 
+  @DELETE
+  @Path("/{vcsRootInstanceLocator}/{field}")
+  public void deleteInstanceField(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator, @PathParam("field") String fieldName) {
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
+    myVcsRootFinder.checkPermission(Permission.EDIT_PROJECT, rootInstance);
+    if (VcsRootInstance.LAST_VERSION_INTERNAL.equals(fieldName) || VcsRootInstance.LAST_VERSION.equals(fieldName)) {
+      VcsRootInstance.setFieldValue(rootInstance, fieldName, "", myDataProvider);
+    } else {
+      throw new BadRequestException("Only \"" + VcsRootInstance.LAST_VERSION_INTERNAL + "\" field is supported for deletion.");
+    }
+  }
+
   @GET
   @Path("/{vcsRootInstanceLocator}/repositoryState")
   @Produces({"application/xml", "application/json"})
@@ -133,6 +146,14 @@ public class VcsRootInstanceRequest {
     myVcsRootFinder.checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance);
     final RepositoryState repositoryState = myDataProvider.getBean(RepositoryStateManager.class).getRepositoryState(rootInstance);
     return new Entries(repositoryState.getBranchRevisions());
+  }
+
+  @DELETE
+  @Path("/{vcsRootInstanceLocator}/repositoryState")
+  public void deleteRepositoryState(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator) {
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
+    myVcsRootFinder.checkPermission(Permission.EDIT_PROJECT, rootInstance);
+    myDataProvider.getBean(RepositoryStateManager.class).setRepositoryState(rootInstance, new SingleVersionRepositoryStateAdapter((String)null));
   }
 
   @GET

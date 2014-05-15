@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.change;
 
+import com.intellij.openapi.util.text.StringUtil;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -43,6 +44,8 @@ import jetbrains.buildServer.vcs.impl.RepositoryStateManager;
   "parent", "properties"})
 @SuppressWarnings("PublicField")
 public class VcsRootInstance {
+  public static final String LAST_VERSION_INTERNAL = "lastVersionInternal";
+  public static final String LAST_VERSION = "lastVersion";
   private jetbrains.buildServer.vcs.VcsRootInstance myRoot;
   private ApiUrlBuilder myApiUrlBuilder;
 
@@ -135,12 +138,12 @@ public class VcsRootInstance {
        } catch (VcsException e) {
          throw new InvalidStateException("Error retrieving mapping", e);
        }
-    } else if ("lastVersion".equals(field)) {
+    } else if (LAST_VERSION.equals(field)) {
       final RepositoryVersion currentRevision = rootInstance.getLastUsedRevision();
-      return currentRevision != null ? currentRevision.getDisplayVersion() : null; //todo: current status code for this case is 204/not changed. Should be different
-    } else if ("lastVersionInternal".equals(field)) {
+      return currentRevision != null ? currentRevision.getDisplayVersion() : ""; //if we return null, status code for this case is 204/not changed and cached value can be used
+    } else if (LAST_VERSION_INTERNAL.equals(field)) {
       final RepositoryVersion currentRevision = rootInstance.getLastUsedRevision();
-      return currentRevision != null ? currentRevision.getVersion() : null;
+      return currentRevision != null ? currentRevision.getVersion() : "";
     } else if ("currentVersion".equals(field)) {
       try {
         return rootInstance.getCurrentRevision().getDisplayVersion();
@@ -154,18 +157,23 @@ public class VcsRootInstance {
         throw new InvalidStateException("Error while getting current revision: ", e);
       }
     }
-    throw new NotFoundException("Field '" + field + "' is not supported. Supported are: id, name, vcsName, lastVersion, lastVersionInternal, currentVersion, currentVersionInternal.");
+    throw new NotFoundException(
+      "Field '" + field + "' is not supported. Supported are: id, name, vcsName, " + LAST_VERSION + ", " + LAST_VERSION_INTERNAL + ", currentVersion, currentVersionInternal.");
   }
 
   public static void setFieldValue(final jetbrains.buildServer.vcs.VcsRootInstance rootInstance,
                                    final String field,
                                    final String newValue,
                                    final DataProvider dataProvider) {
-    if ("lastVersionInternal".equals(field)) {
-      dataProvider.getBean(RepositoryStateManager.class).setRepositoryState(rootInstance, new SingleVersionRepositoryStateAdapter(newValue));
+    if (LAST_VERSION_INTERNAL.equals(field) || (LAST_VERSION.equals(field) && StringUtil.isEmpty(newValue))) {
+      if (!StringUtil.isEmpty(newValue)) {
+        dataProvider.getBean(RepositoryStateManager.class).setRepositoryState(rootInstance, new SingleVersionRepositoryStateAdapter(newValue));
+      } else {
+        dataProvider.getBean(RepositoryStateManager.class).setRepositoryState(rootInstance, new SingleVersionRepositoryStateAdapter((String)null));
+      }
       return;
     }
-    throw new NotFoundException("Setting of field '" + field + "' is not supported. Supported is: lastVersionInternal");
+    throw new NotFoundException("Setting of field '" + field + "' is not supported. Supported is: " + LAST_VERSION_INTERNAL);
   }
 }
 
