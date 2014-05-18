@@ -69,7 +69,7 @@ public class ProjectFinder {
       if (project != null) {
         return project;
       }
-      final List<SProject> projectsByName = findProjectsByName(getRootProject(), singleValue);
+      final List<SProject> projectsByName = findProjectsByName(null, singleValue);
       if (projectsByName.size() == 1) {
         project = projectsByName.get(0);
         if (project != null) {
@@ -120,11 +120,7 @@ public class ProjectFinder {
     String name = locator.getSingleDimensionValue("name");
     if (name != null) {
       final String parentProjectLocator = locator.getSingleDimensionValue("parentProject");
-      @NotNull SProject parentProject = getRootProject();
-      if (parentProjectLocator != null){
-        parentProject = getProject(parentProjectLocator);
-      }
-      final SProject projectByName = getProjectByName(parentProject, name);
+      final SProject projectByName = getProjectByName(parentProjectLocator == null ? null : getProject(parentProjectLocator), name);
       locator.checkLocatorFullyProcessed();
       return projectByName;
     }
@@ -138,10 +134,10 @@ public class ProjectFinder {
   }
 
   @NotNull
-  private SProject getProjectByName(@NotNull final SProject parentProject, @NotNull final String name) {
+  private SProject getProjectByName(@Nullable final SProject parentProject, @NotNull final String name) {
     final List<SProject> projectsByName = findProjectsByName(parentProject, name);
     if (projectsByName.size() == 0) {
-      throw new NotFoundException("No project cannot be found by name '" + name + "'.");
+      throw new NotFoundException("No project can be found by name '" + name + "'" + (parentProject == null ? "" : " in the project " + parentProject.getExtendedFullName()) + ".");
     }
     if (projectsByName.size() > 1) {
       throw new NotFoundException(
@@ -169,9 +165,21 @@ public class ProjectFinder {
     return "<empty>";
   }
 
+  /**
+   * Finds projects with the given name under the project specified
+   * @param parentProject Project under which to search. If 'null' - process all projects including root one.
+   * @param name
+   * @return
+   */
   @NotNull
-  private List<SProject> findProjectsByName(@NotNull SProject parentProject, @NotNull final String name) {
+  private List<SProject> findProjectsByName(@Nullable SProject parentProject, @NotNull final String name) {
     final ArrayList<SProject> result = new ArrayList<SProject>();
+    if (parentProject == null) {
+      parentProject = getRootProject();
+      if (name.equals(parentProject.getName())) { //process root project as well
+        result.add(parentProject);
+      }
+    }
     for (SProject project : parentProject.getProjects()) {
       if (name.equals(project.getName())){
         result.add(project);
