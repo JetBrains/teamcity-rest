@@ -98,12 +98,12 @@ public class NewProjectDescription extends CopyOptionsDescription{
 
   @NotNull
   public String getId(@NotNull final ServiceLocator serviceLocator) {
-    if (id != null){
-      return id;
+    if (id == null){
+      if (name == null){
+        throw new BadRequestException("'name' and 'id' should not be empty at the same time.");
+      }
+      id = serviceLocator.getSingletonService(ProjectIdentifiersManager.class).generateNewExternalId(getParentProject(serviceLocator).getExternalId(), name, null);
     }
-    if (name == null){
-      throw new BadRequestException("'name' and 'id' should not be empty at the same time.");
-    }
-    return serviceLocator.getSingletonService(ProjectIdentifiersManager.class).generateNewExternalId(getParentProject(serviceLocator).getExternalId(), name, null);
+    return id;
   }
 }

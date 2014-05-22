@@ -90,9 +90,9 @@ public class NewBuildTypeDescription extends CopyOptionsDescription{
 
   @NotNull
   public String getId(@NotNull final ServiceLocator serviceLocator, @NotNull SProject project) {
-    if (id != null){
-      return id;
+    if (id == null){
+      id = serviceLocator.getSingletonService(BuildTypeIdentifiersManager.class).generateNewExternalId(project.getExternalId(), getName(), null);
     }
-    return serviceLocator.getSingletonService(BuildTypeIdentifiersManager.class).generateNewExternalId(project.getExternalId(), getName(), null);
+    return id;
   }
 }
