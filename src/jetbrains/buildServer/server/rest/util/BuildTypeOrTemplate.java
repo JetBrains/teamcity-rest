@@ -150,7 +150,6 @@ public class BuildTypeOrTemplate implements Loggable {
       if ("paused".equals(field)){
         myBuildType.setPaused(Boolean.valueOf(value), dataProvider.getCurrentUser(), TeamCityProperties.getProperty("rest.defaultActionComment"));
         //TeamCity API: why not use current user by default?
-        myBuildTypeIdentity.persist();
         return;
       }
     }

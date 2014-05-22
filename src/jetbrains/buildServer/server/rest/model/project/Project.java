@@ -207,12 +207,13 @@ public class Project {
     throw new NotFoundException("Field '" + field + "' is not supported.  Supported are: id, name, description, archived, internalId.");
   }
 
-  public static void setFieldValue(final SProject project, final String field, final String value, @NotNull final DataProvider dataProvider) {
+  public static void setFieldValueAndPersist(final SProject project, final String field, final String value, @NotNull final DataProvider dataProvider) {
     if ("name".equals(field)) {
       if (StringUtil.isEmpty(value)){
         throw new BadRequestException("Project name cannot be empty.");
       }
       project.setName(value);
+      project.persist();
       return;
     } else if ("id".equals(field)) {
       if (StringUtil.isEmpty(value)){
@@ -222,6 +223,7 @@ public class Project {
       return;
     } else if ("description".equals(field)) {
       project.setDescription(value);
+      project.persist();
       return;
     } else if ("archived".equals(field)) {
       project.setArchived(Boolean.valueOf(value), dataProvider.getCurrentUser());

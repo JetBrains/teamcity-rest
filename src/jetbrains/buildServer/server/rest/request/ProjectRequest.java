@@ -192,8 +192,7 @@ public class ProjectRequest {
   @Produces("text/plain")
   public String setProjectFiled(@PathParam("projectLocator") String projectLocator, @PathParam("field") String fieldName, String newValue) {
     final SProject project = myProjectFinder.getProject(projectLocator);
-    Project.setFieldValue(project, fieldName, newValue, myDataProvider);
-    project.persist();
+    Project.setFieldValueAndPersist(project, fieldName, newValue, myDataProvider);
     return Project.getFieldValue(project, fieldName);
   }
 
