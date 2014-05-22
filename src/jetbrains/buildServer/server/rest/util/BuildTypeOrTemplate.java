@@ -125,7 +125,7 @@ public class BuildTypeOrTemplate implements Loggable {
     myBuildTypeIdentity.remove();
   }
 
-  public void setFieldValue(@NotNull final String field, @Nullable final String value, @NotNull final DataProvider dataProvider) {
+  public void setFieldValueAndPersist(@NotNull final String field, @Nullable final String value, @NotNull final DataProvider dataProvider) {
     if ("id".equals(field)) {
       if (value != null){
         myBuildTypeIdentity.setExternalId(value);
@@ -136,18 +136,21 @@ public class BuildTypeOrTemplate implements Loggable {
     } else if ("name".equals(field)) {
       if (value != null){
         setName(value);
+        myBuildTypeIdentity.persist();
       }else{
         throw new BadRequestException("Name cannot be empty");
       }
       return;
     } else if ("description".equals(field)) {
       setDescription(value);
+      myBuildTypeIdentity.persist();
       return;
     }
     if (myBuildType!=null){
       if ("paused".equals(field)){
         myBuildType.setPaused(Boolean.valueOf(value), dataProvider.getCurrentUser(), TeamCityProperties.getProperty("rest.defaultActionComment"));
-        //todo (TeamCity) why not use current user by default?
+        //TeamCity API: why not use current user by default?
+        myBuildTypeIdentity.persist();
         return;
       }
     }

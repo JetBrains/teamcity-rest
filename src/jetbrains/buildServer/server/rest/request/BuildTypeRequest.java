@@ -174,8 +174,7 @@ public class BuildTypeRequest {
   @Produces("text/plain")
   public String setBuildTypeField(@PathParam("btLocator") String buildTypeLocator, @PathParam("field") String fieldName, String newValue) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    buildType.setFieldValue(fieldName, newValue, myDataProvider);
-    buildType.get().persist();
+    buildType.setFieldValueAndPersist(fieldName, newValue, myDataProvider);
     return buildType.getFieldValue(fieldName);
   }
 
