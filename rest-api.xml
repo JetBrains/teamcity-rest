@@ -315,13 +315,133 @@
     <delete dir="${rest-api.testoutput.dir}"/>
   </target>
   
+  
+  <!-- Module contrib -->
+  
+  <dirname property="module.contrib.basedir" file="${ant.file}"/>
+  
+  <property name="compiler.args.contrib" value="${compiler.args}"/>
+  
+  <property name="contrib.output.dir" value="${module.contrib.basedir}/out/production/contrib"/>
+  <property name="contrib.testoutput.dir" value="${module.contrib.basedir}/out/test/contrib"/>
+  
+  <path id="contrib.module.bootclasspath">
+    <!-- Paths to be included in compilation bootclasspath -->
+  </path>
+  
+  <path id="contrib.module.production.classpath">
+    <pathelement location="${rest-api.output.dir}"/>
+    <pathelement location="${basedir}/lib/asm-3.1.jar"/>
+    <pathelement location="${basedir}/lib/jaxb-api-2.2.4.jar"/>
+    <pathelement location="${basedir}/lib/jaxb-impl-2.2.4-1.jar"/>
+    <pathelement location="${basedir}/lib/jersey-core-1.16.jar"/>
+    <pathelement location="${basedir}/lib/jersey-json-1.16.jar"/>
+    <pathelement location="${basedir}/lib/jersey-server-1.16.jar"/>
+    <pathelement location="${basedir}/lib/jersey-servlet-1.16.jar"/>
+    <pathelement location="${basedir}/lib/jersey-spring-1.16.jar"/>
+    <path refid="library.teamcity_open_api_server.classpath"/>
+    <path refid="library.teamcity_open_api_common.classpath"/>
+    <path refid="library.teamcity_third-party.classpath"/>
+    <path refid="library.tomcat.classpath"/>
+    <pathelement location="${basedir}/lib/jackson-core-asl-1.9.11.jar"/>
+    <pathelement location="${basedir}/lib/jackson-jaxrs-1.9.11.jar"/>
+    <pathelement location="${basedir}/lib/jackson-mapper-asl-1.9.11.jar"/>
+    <pathelement location="${basedir}/lib/jackson-xc-1.9.11.jar"/>
+    <pathelement location="${basedir}/lib/jettison-1.3.3.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/common-impl.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/db.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/server.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/web.jar"/>
+  </path>
+  
+  <path id="contrib.runtime.production.module.classpath">
+    <pathelement location="${contrib.output.dir}"/>
+    <path refid="rest-api.runtime.production.module.classpath"/>
+  </path>
+  
+  <path id="contrib.module.classpath">
+    <pathelement location="${contrib.output.dir}"/>
+    <pathelement location="${rest-api.testoutput.dir}"/>
+    <pathelement location="${rest-api.output.dir}"/>
+    <pathelement location="${basedir}/lib/asm-3.1.jar"/>
+    <pathelement location="${basedir}/lib/jaxb-api-2.2.4.jar"/>
+    <pathelement location="${basedir}/lib/jaxb-impl-2.2.4-1.jar"/>
+    <pathelement location="${basedir}/lib/jersey-core-1.16.jar"/>
+    <pathelement location="${basedir}/lib/jersey-json-1.16.jar"/>
+    <pathelement location="${basedir}/lib/jersey-server-1.16.jar"/>
+    <pathelement location="${basedir}/lib/jersey-servlet-1.16.jar"/>
+    <pathelement location="${basedir}/lib/jersey-spring-1.16.jar"/>
+    <path refid="library.teamcity_open_api_server.classpath"/>
+    <path refid="library.teamcity_open_api_common.classpath"/>
+    <path refid="library.teamcity_third-party.classpath"/>
+    <path refid="library.tomcat.classpath"/>
+    <pathelement location="${basedir}/lib/jackson-core-asl-1.9.11.jar"/>
+    <pathelement location="${basedir}/lib/jackson-jaxrs-1.9.11.jar"/>
+    <pathelement location="${basedir}/lib/jackson-mapper-asl-1.9.11.jar"/>
+    <pathelement location="${basedir}/lib/jackson-xc-1.9.11.jar"/>
+    <pathelement location="${basedir}/lib/jettison-1.3.3.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/common-impl.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/db.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/server.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/web.jar"/>
+  </path>
+  
+  <path id="contrib.runtime.module.classpath">
+    <pathelement location="${contrib.testoutput.dir}"/>
+    <pathelement location="${contrib.output.dir}"/>
+    <path refid="rest-api.runtime.module.classpath"/>
+  </path>
+  
+  
+  <patternset id="excluded.from.module.contrib">
+    <patternset refid="ignored.files"/>
+  </patternset>
+  
+  <patternset id="excluded.from.compilation.contrib">
+    <patternset refid="excluded.from.module.contrib"/>
+  </patternset>
+  
+  <path id="contrib.module.sourcepath">
+    <dirset dir="${module.contrib.basedir}/contrib">
+      <include name="src"/>
+    </dirset>
+  </path>
+  
+  
+  <target name="compile.module.contrib" depends="compile.module.contrib.production,compile.module.contrib.tests" description="Compile module contrib"/>
+  
+  <target name="compile.module.contrib.production" depends="register.custom.compilers,compile.module.rest-api" description="Compile module contrib; production classes">
+    <mkdir dir="${contrib.output.dir}"/>
+    <javac2 destdir="${contrib.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true">
+      <compilerarg line="${compiler.args.contrib}"/>
+      <bootclasspath refid="contrib.module.bootclasspath"/>
+      <classpath refid="contrib.module.production.classpath"/>
+      <src refid="contrib.module.sourcepath"/>
+      <patternset refid="excluded.from.compilation.contrib"/>
+    </javac2>
+    
+    <copy todir="${contrib.output.dir}">
+      <fileset dir="${module.contrib.basedir}/contrib/src">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+    </copy>
+  </target>
+  
+  <target name="compile.module.contrib.tests" depends="register.custom.compilers,compile.module.contrib.production" description="compile module contrib; test classes" unless="skip.tests"/>
+  
+  <target name="clean.module.contrib" description="cleanup module">
+    <delete dir="${contrib.output.dir}"/>
+    <delete dir="${contrib.testoutput.dir}"/>
+  </target>
+  
   <target name="init" description="Build initialization">
     <!-- Perform any build initialization in this target -->
   </target>
   
-  <target name="clean" depends="clean.module.rest-api" description="cleanup all"/>
+  <target name="clean" depends="clean.module.rest-api, clean.module.contrib" description="cleanup all"/>
   
-  <target name="build.modules" depends="init, clean, compile.module.rest-api" description="build all modules"/>
+  <target name="build.modules" depends="init, clean, compile.module.rest-api, compile.module.contrib" description="build all modules"/>
   
   <target name="all" depends="build.modules" description="build all"/>
 </project>

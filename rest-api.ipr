@@ -272,6 +272,9 @@
             <option name="USE_RELATIVE_INDENTS" value="false" />
           </value>
         </option>
+        <XML>
+          <option name="XML_LEGACY_SETTINGS_IMPORTED" value="true" />
+        </XML>
         <codeStyleSettings language="JAVA">
           <indentOptions>
             <option name="INDENT_SIZE" value="2" />
@@ -301,6 +304,7 @@
   </component>
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/contrib/contrib.iml" filepath="$PROJECT_DIR$/contrib/contrib.iml" />
       <module fileurl="file://$PROJECT_DIR$/rest-api.iml" filepath="$PROJECT_DIR$/rest-api.iml" />
     </modules>
   </component>

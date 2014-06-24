@@ -22,7 +22,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module-library">
+    <orderEntry type="module-library" exported="">
       <library name="Jersey">
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/asm-3.1.jar!/" />
@@ -47,11 +47,11 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="library" name="TeamCity Open API server" level="project" />
-    <orderEntry type="library" name="TeamCity Open API common" level="project" />
-    <orderEntry type="library" name="TeamCity Third-Party" level="project" />
-    <orderEntry type="library" name="Tomcat" level="project" />
-    <orderEntry type="module-library">
+    <orderEntry type="library" exported="" name="TeamCity Open API server" level="project" />
+    <orderEntry type="library" exported="" name="TeamCity Open API common" level="project" />
+    <orderEntry type="library" exported="" name="TeamCity Third-Party" level="project" />
+    <orderEntry type="library" exported="" name="Tomcat" level="project" />
+    <orderEntry type="module-library" exported="">
       <library name="JaxB">
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/jackson-core-asl-1.9.11.jar!/" />
@@ -70,7 +70,7 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="module-library">
+    <orderEntry type="module-library" exported="">
       <library name="TeamCity Closed API server">
         <CLASSES>
           <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/server.jar!/" />

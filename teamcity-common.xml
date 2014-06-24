@@ -42,7 +42,7 @@
 
     <sequential>
 
-      <antcall target="check.already.defined"/>
+      <!--<antcall target="check.already.defined"/>-->
 
       <property name="teamcity.internal.distrib.prep" value="${basedir}/temp/dist_prep"/>
       <property name="teamcity.internal.distrib.prep.agent" value="${teamcity.internal.distrib.prep}/agent"/>

@@ -22,13 +22,13 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="server-openapi" />
-    <orderEntry type="module" module-name="common" />
-    <orderEntry type="module" module-name="runtime-util" />
-    <orderEntry type="module" module-name="web-openapi" />
-    <orderEntry type="module" module-name="server" />
-    <orderEntry type="module" module-name="web" />
-    <orderEntry type="module-library">
+    <orderEntry type="module" module-name="server-openapi" exported="" />
+    <orderEntry type="module" module-name="common" exported="" />
+    <orderEntry type="module" module-name="runtime-util" exported="" />
+    <orderEntry type="module" module-name="web-openapi" exported="" />
+    <orderEntry type="module" module-name="server" exported="" />
+    <orderEntry type="module" module-name="web" exported="" />
+    <orderEntry type="module-library" exported="">
       <library name="Jersey">
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/asm-3.1.jar!/" />
@@ -55,8 +55,8 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="library" name="Tomcat" level="project" />
-    <orderEntry type="module-library">
+    <orderEntry type="library" exported="" name="Tomcat" level="project" />
+    <orderEntry type="module-library" exported="">
       <library name="Jackson">
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/jackson-core-asl-1.9.11.jar!/" />
@@ -73,9 +73,9 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="library" name="log4j-1.2.12" level="project" />
-    <orderEntry type="library" name="commons-compress" level="project" />
-    <orderEntry type="module-library">
+    <orderEntry type="library" exported="" name="log4j-1.2.12" level="project" />
+    <orderEntry type="library" exported="" name="commons-compress" level="project" />
+    <orderEntry type="module-library" exported="">
       <library name="Test-libs">
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib-test/testng-6.8.jar!/" />
@@ -92,7 +92,7 @@
       </library>
     </orderEntry>
     <orderEntry type="module" module-name="server-test-core" scope="TEST" />
-    <orderEntry type="module" module-name="web-startup" />
+    <orderEntry type="module" module-name="web-startup" exported="" />
   </component>
 </module>
 
