@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest;
 
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ConfigurableApplicationContext;
 
 /**
@@ -26,8 +27,22 @@ import org.springframework.context.ConfigurableApplicationContext;
  */
 public abstract class RESTControllerExtensionAdapter implements RESTControllerExtension{
   @NotNull
+  private ConfigurableApplicationContext myContext;
+
+  @NotNull
   public abstract String getPackage();
 
   @NotNull
-  public abstract ConfigurableApplicationContext getContext();
+  public ConfigurableApplicationContext getContext() {
+    return myContext;
+  }
+
+  /**
+   * Do not invoke!
+   * It's autowired by Spring.
+   */
+  @Autowired
+  public void setContext(@NotNull ConfigurableApplicationContext myContext) {
+    this.myContext = myContext;
+  }
 }
