@@ -10,7 +10,10 @@
   <import file="teamcity-common.xml"/>
   <import file="rest-api.xml"/>
 
-  <target name="package" depends="define.version, package-core, package-contrib"/>
+  <target name="package" depends="define.version">
+    <antcall target="package-core"/>
+    <antcall target="package-contrib"/>
+  </target>
 
   <target name="package-core" depends="define.version">
     <package.teamcity.plugin name="${plugin.name}" server.output="${rest-api.output.dir}"
