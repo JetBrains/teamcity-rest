@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest;
 
 import org.jetbrains.annotations.NotNull;
+import org.springframework.context.ConfigurableApplicationContext;
 
 /**
  * @see jetbrains.buildServer.server.rest.RESTControllerExtension
@@ -26,4 +27,7 @@ import org.jetbrains.annotations.NotNull;
 public abstract class RESTControllerExtensionAdapter implements RESTControllerExtension{
   @NotNull
   public abstract String getPackage();
+
+  @NotNull
+  public abstract ConfigurableApplicationContext getContext();
 }

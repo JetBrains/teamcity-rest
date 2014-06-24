@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest;
 
 import jetbrains.buildServer.serverSide.ServerExtension;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.context.ConfigurableApplicationContext;
 
 /**
  * Extension to add new resources (services) to REST API plugin.
@@ -36,4 +37,10 @@ public interface RESTControllerExtension extends ServerExtension {
    */
   @NotNull
   String getPackage();
+
+  /**
+   * @return application context for this controller extension
+   */
+  @NotNull
+  ConfigurableApplicationContext getContext();
 }

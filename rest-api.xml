@@ -18,12 +18,9 @@
     <exclude name="**/CVS/**"/>
     <exclude name="**/SCCS/**"/>
     <exclude name="**/RCS/**"/>
+    <exclude name="**/rcs/**"/>
     <exclude name="**/.DS_Store/**"/>
     <exclude name="**/.svn/**"/>
-    <exclude name="**/.sbas/**"/>
-    <exclude name="**/.IJI.*/**"/>
-    <exclude name="**/vssver.scc/**"/>
-    <exclude name="**/vssver2.scc/**"/>
     <exclude name="**/.pyc/**"/>
     <exclude name="**/.pyo/**"/>
     <exclude name="**/*.pyc/**"/>
@@ -36,8 +33,10 @@
     <exclude name="**/*~/**"/>
     <exclude name="**/__pycache__/**"/>
     <exclude name="**/.bundle/**"/>
-    <exclude name="**/*.orig/**"/>
     <exclude name="**/*.rbc/**"/>
+    <exclude name="**/vssver.scc/**"/>
+    <exclude name="**/vssver2.scc/**"/>
+    <exclude name="**/*.orig/**"/>
   </patternset>
   <patternset id="library.patterns">
     <include name="*.war"/>
@@ -91,7 +90,7 @@
   
   <path id="library.teamcity_third-party.classpath">
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/annotations.jar"/>
-    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/commons-compress-1.4.1.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/commons-compress-1.5.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/log4j-1.2.12.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/openapi.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/spring-webmvc.jar"/>

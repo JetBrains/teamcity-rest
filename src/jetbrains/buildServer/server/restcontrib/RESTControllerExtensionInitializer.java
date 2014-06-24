@@ -18,15 +18,28 @@ package jetbrains.buildServer.server.restcontrib;
 
 import jetbrains.buildServer.server.rest.RESTControllerExtensionAdapter;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.context.ConfigurableApplicationContext;
 
 /**
  * @author Yegor.Yarko
  *         Date: 20.06.2010
  */
 public class RESTControllerExtensionInitializer extends RESTControllerExtensionAdapter {
+  private final ConfigurableApplicationContext myPluginContext;
+
+  public RESTControllerExtensionInitializer(@NotNull final ConfigurableApplicationContext context) {
+    myPluginContext = context;
+  }
+
     @Override
     @NotNull
     public String getPackage() {
         return "jetbrains.buildServer.server.restcontrib";
     }
+
+  @NotNull
+  @Override
+  public ConfigurableApplicationContext getContext() {
+    return myPluginContext;
+  }
 }

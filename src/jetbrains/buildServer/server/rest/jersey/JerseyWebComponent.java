@@ -26,6 +26,8 @@ import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.util.ClassUtils;
 
+import java.util.Collection;
+
 /**
  * @author Yegor.Yarko
  *         Date: 24.03.2009
@@ -36,13 +38,15 @@ public class JerseyWebComponent extends SpringServlet {
   private static final long serialVersionUID = 5686455305749079671L;
 
   private static final Logger LOG = Logger.getInstance(JerseyWebComponent.class.getName());
-  private ConfigurableApplicationContext myWebApplicationContext;
   private ExtensionHolder myExtensionHolder;
+  private Collection<ConfigurableApplicationContext> myContexts;
 
   @Override
   protected void initiate(ResourceConfig rc, WebApplication wa) {
     try {
-      registerResourceProviders(rc, myWebApplicationContext);
+      for (ConfigurableApplicationContext context : myContexts) {
+        registerResourceProviders(rc, context);
+      }
       wa.initiate(rc, new ExtensionHolderProviderFactory(myExtensionHolder));
     } catch (RuntimeException e) {
       LOG.error("Exception occurred during REST API initialization", e);
@@ -70,8 +74,8 @@ public class JerseyWebComponent extends SpringServlet {
     }
   }
 
-  public void setWebApplicationContext(@NotNull final ConfigurableApplicationContext webApplicationContext) {
-    myWebApplicationContext = webApplicationContext;
+  public void setContexts(@NotNull Collection<ConfigurableApplicationContext> contexts) {
+    myContexts = contexts;
   }
 
   public void setExtensionHolder(@NotNull final ExtensionHolder extensionHolder) {

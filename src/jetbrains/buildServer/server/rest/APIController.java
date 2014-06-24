@@ -284,7 +284,12 @@ public class APIController extends BaseController implements ServletContextAware
   private void init() throws ServletException {
     myWebComponent = new JerseyWebComponent();
     myWebComponent.setExtensionHolder(myExtensionHolder);
-    myWebComponent.setWebApplicationContext(myConfigurableApplicationContext);
+    final Set<ConfigurableApplicationContext> contexts = new HashSet<ConfigurableApplicationContext>();
+    contexts.add(myConfigurableApplicationContext);
+    for (RESTControllerExtension extension : myServer.getExtensions(RESTControllerExtension.class)) {
+      contexts.add(extension.getContext());
+    }
+    myWebComponent.setContexts(contexts);
     myWebComponent.init(createJerseyConfig());
   }
 
