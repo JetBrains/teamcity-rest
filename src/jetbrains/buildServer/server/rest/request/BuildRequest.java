@@ -562,10 +562,6 @@ public class BuildRequest {
 
   @DELETE
   @Path("/{buildLocator}")
-  @Produces("text/plain")
-  /**
-   * May not work for non-personal builds: http://youtrack.jetbrains.net/issue/TW-9858
-   */
   public void deleteBuild(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     if (!build.isFinished()) {
