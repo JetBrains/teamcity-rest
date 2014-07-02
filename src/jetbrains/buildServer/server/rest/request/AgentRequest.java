@@ -105,7 +105,6 @@ public class AgentRequest {
 
   @DELETE
   @Path("/{agentLocator}")
-  @Produces({"application/xml", "application/json"})
   public void deleteAgent(@PathParam("agentLocator") String agentLocator) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     myServiceLocator.getSingletonService(BuildAgentManager.class).removeAgent(agent, myDataProvider.getCurrentUser());

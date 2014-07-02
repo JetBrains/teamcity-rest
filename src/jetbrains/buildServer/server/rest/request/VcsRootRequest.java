@@ -105,7 +105,6 @@ public class VcsRootRequest {
 
   @DELETE
   @Path("/{vcsRootLocator}")
-  @Produces({"application/xml", "application/json"})
   public void deleteRoot(@PathParam("vcsRootLocator") String vcsRootLocator) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
     try {
@@ -227,7 +226,6 @@ public class VcsRootRequest {
 
   @DELETE
   @Path("/{vcsRootLocator}/properties/{name}")
-  @Produces("text/plain")
   public void deleteParameter(@PathParam("vcsRootLocator") String vcsRootLocator,
                                        @PathParam("name") String parameterName) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);

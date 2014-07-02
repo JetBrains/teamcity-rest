@@ -392,7 +392,6 @@ public class ProjectRequest {
 
   @DELETE
   @Path("/{projectLocator}" + PARAMETERS + "/{name}")
-  @Produces("text/plain")
   public void deleteParameter(@PathParam("projectLocator") String projectLocator, @PathParam("name") String parameterName) {
     SProject project = myProjectFinder.getProject(projectLocator);
     BuildTypeUtil.deleteParameter(parameterName, project);
@@ -513,7 +512,6 @@ public class ProjectRequest {
 
   @DELETE
   @Path("/{projectLocator}/agentPools/{agentPoolLocator}")
-  @Produces({"application/xml", "application/json"})
   public void getProjectAgentPools(@PathParam("projectLocator") String projectLocator, @PathParam("agentPoolLocator") String agentPoolLocator) {
     SProject project = myProjectFinder.getProject(projectLocator);
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolsFinder.getAgentPool(agentPoolLocator);

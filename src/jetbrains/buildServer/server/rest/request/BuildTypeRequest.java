@@ -274,7 +274,6 @@ public class BuildTypeRequest {
 
   @DELETE
   @Path("/{btLocator}" + PARAMETERS + "/{name}")
-  @Produces("text/plain")
   public void deleteBuildTypeParameter(@PathParam("btLocator") String buildTypeLocator,
                                        @PathParam("name") String parameterName) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);

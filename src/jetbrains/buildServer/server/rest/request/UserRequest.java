@@ -94,7 +94,6 @@ public class UserRequest {
 
   @DELETE
   @Path("/{userLocator}")
-  @Produces({"application/xml", "application/json"})
   public void deleteUser(@PathParam("userLocator") String userLocator) {
     final SUser user = myUserFinder.getUser(userLocator);
     myDataProvider.getServer().getSingletonService(UserModel.class).removeUserAccount(user.getId());

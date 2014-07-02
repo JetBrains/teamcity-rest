@@ -106,7 +106,6 @@ public class BuildQueueRequest {
    * @return
    */
   @DELETE
-  @Produces({"application/xml", "application/json"})
   public void deleteBuildsExperimental(@QueryParam("locator") String locator, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final PagedSearchResult<SQueuedBuild> result = myQueuedBuildFinder.getItems(locator);
     final List<Throwable> errors = new ArrayList<Throwable>();
