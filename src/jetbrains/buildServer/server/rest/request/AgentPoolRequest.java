@@ -184,7 +184,6 @@ public class AgentPoolRequest {
 
   @DELETE
   @Path("/{agentPoolLocator}/projects/{projectLocator}")
-  @Produces({"application/xml", "application/json"})
   public void deletePoolProject(@PathParam("agentPoolLocator") String agentPoolLocator, @PathParam("projectLocator") String projectLocator) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolsFinder.getAgentPool(agentPoolLocator);
     final SProject project = myProjectFinder.getProject(projectLocator);
