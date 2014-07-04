@@ -184,26 +184,34 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
   }
 
   /**
-   * Returns build promotion if found. Othervise returns null. Throws no locator exceptions
+   * Returns build promotion of the queued or already started build, if found.
    */
-  @Nullable
+  @NotNull
   public BuildPromotion getBuildPromotionByBuildQueueLocator(@Nullable final String buildQueueLocator) {
     if (StringUtil.isEmpty(buildQueueLocator)) {
-      return null;
+      throw new BadRequestException("Empty locator is not supported.");
     }
 
     final Locator locator = new Locator(buildQueueLocator);
 
     if (locator.isSingleValue()) { // assume it's promotion id
       @SuppressWarnings("ConstantConditions") @NotNull final Long singleValueAsLong = locator.getSingleValueAsLong();
-      return myDataProvider.getPromotionManager().findPromotionById(singleValueAsLong);
+      final BuildPromotion promotionById = myDataProvider.getPromotionManager().findPromotionById(singleValueAsLong);
+      if (promotionById == null) {
+        throw new NotFoundException("No promotion object can be found by id '" + singleValueAsLong + "'.");
+      }
+      return promotionById;
     }
 
     Long id = locator.getSingleDimensionValueAsLong(PROMOTION_ID);
     if (id != null) {
-      return myDataProvider.getPromotionManager().findPromotionById(id);
+      final BuildPromotion promotionById = myDataProvider.getPromotionManager().findPromotionById(id);
+      if (promotionById == null) {
+        throw new NotFoundException("No promotion object can be found by id '" + id + "'.");
+      }
+      return promotionById;
     }
 
-    return null;
+    return getItem(buildQueueLocator).getBuildPromotion();
   }
 }
