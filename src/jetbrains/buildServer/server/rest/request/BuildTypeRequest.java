@@ -32,6 +32,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -51,6 +52,7 @@ import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
@@ -915,16 +917,17 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/artifact-dependencies")
   @Produces({"application/xml", "application/json"})
   public PropEntityArtifactDep addArtifactDep(@PathParam("btLocator") String buildTypeLocator, PropEntityArtifactDep description) {
+    //todo: change order-based locator as it is not reliable
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
 
-    final List<SArtifactDependency> dependencies = buildType.get().getArtifactDependencies();
-    dependencies.add(description.createDependency(myServiceLocator));
-    int orderNum = dependencies.size() - 1;
+    final List<SArtifactDependency> dependencies = new ArrayList<SArtifactDependency>(buildType.get().getArtifactDependencies());
+    final SArtifactDependency newDependency = description.createDependency(myServiceLocator);
+    dependencies.add(newDependency);
     buildType.get().setArtifactDependencies(dependencies);
     buildType.get().persist();
-    //todo: might not be a good way to get just added dependency
-    return new PropEntityArtifactDep(buildType.get().getArtifactDependencies().get(orderNum), orderNum,
-                                     new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    //todo: might need to retrieve just added dependency instead of using the initial object
+    int orderNum = buildType.get().getArtifactDependencies().indexOf(newDependency);
+    return new PropEntityArtifactDep(newDependency, orderNum, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @GET
@@ -957,19 +960,23 @@ public class BuildTypeRequest {
   public PropEntityArtifactDep replaceArtifactDep(@PathParam("btLocator") String buildTypeLocator,
                                                   @PathParam("artifactDepLocator") String artifactDepLocator,
                                                   PropEntityArtifactDep description) {
+    //todo: change order-based locator as it is not reliable
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
 
-    final int orderNum = DataProvider.getArtifactDepOrderNum(buildType.get(), artifactDepLocator);
     final SArtifactDependency newDependency = description.createDependency(myServiceLocator);
-
     final List<SArtifactDependency> dependencies = buildType.get().getArtifactDependencies();
-    dependencies.set(orderNum, newDependency);
+
+    final int orderNum = DataProvider.getArtifactDepOrderNum(buildType.get(), artifactDepLocator);
+    try {
+      dependencies.set(orderNum, newDependency);
+    } catch (IndexOutOfBoundsException e) {
+      throw new InvalidStateException("Cannot find dependency with order number " + orderNum + " in build type " + LogUtil.describe(buildType.get()), e);
+    }
     buildType.get().setArtifactDependencies(dependencies);
 
     buildType.get().persist();
 
-    return new PropEntityArtifactDep(buildType.get().getArtifactDependencies().get(orderNum), orderNum,
-                                     new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new PropEntityArtifactDep(newDependency, orderNum, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @GET
