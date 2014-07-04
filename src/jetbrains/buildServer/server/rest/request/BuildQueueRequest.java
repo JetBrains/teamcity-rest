@@ -194,12 +194,9 @@ public class BuildQueueRequest {
   @Path("/{queuedBuildLocator}")
   @Produces({"application/xml", "application/json"})
   public Build getBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletResponse response) {
-    //redirect if the build was already started
-    final BuildPromotion buildPromotion = myQueuedBuildFinder.getBuildPromotionByBuildQueueLocator(queuedBuildLocator);  //todo: support full locators here (locators for build promotion)
-    if (buildPromotion == null){
-      throw new NotFoundException("No builds are fouind by the locator specified");
-    }
-    //todo: handle build merges in the queue
+    //also find already started builds
+    BuildPromotion buildPromotion = myQueuedBuildFinder.getBuildPromotionByBuildQueueLocator(queuedBuildLocator);
+    //todo: handle build merges in the queue (TW-33260)
     return new Build(buildPromotion,  new Fields(fields), myBeanContext);
   }
 
@@ -261,8 +258,8 @@ public class BuildQueueRequest {
   @Produces("text/plain")
   public String serveBuildFieldByBuildOnly(@PathParam("buildLocator") String buildLocator,
                                            @PathParam("field") String field) {
-    SQueuedBuild build = myQueuedBuildFinder.getItem(buildLocator);
-    return Build.getFieldValue(build.getBuildPromotion(), field, myBeanContext);
+    final BuildPromotion buildPromotion = myQueuedBuildFinder.getBuildPromotionByBuildQueueLocator(buildLocator);
+    return Build.getFieldValue(buildPromotion, field, myBeanContext);
   }
 
   @POST
