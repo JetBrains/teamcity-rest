@@ -156,7 +156,16 @@ public class BuildArtifactsFinder {
       }
 //      builder.header("ETag", EncryptUtil.md5(fileElement.getSize() + element.getName() + fileElement.getFile().lastModified())); //ETag should be "strong" validator or specified as "weak"
     }
-    builder.entity(output).header(HttpHeaders.CONTENT_LENGTH, element.getSize());
+
+    try {
+      final long size = element.getSize();
+      if (size >= 0){
+        builder.header(HttpHeaders.CONTENT_LENGTH, size);
+      }
+    } catch (IllegalStateException e) {
+      //just do not add the header in the case
+    }
+    builder.entity(output);
     return builder;
   }
 
