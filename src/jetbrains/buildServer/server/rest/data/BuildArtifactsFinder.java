@@ -20,9 +20,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
@@ -146,7 +148,25 @@ public class BuildArtifactsFinder {
     } else {
       builder = builder.header("Content-Disposition", WebUtil.getContentDispositionValue(request, null, element.getName()));
     }
-    return builder.entity(output);
+
+    if (element instanceof ArtifactTreeElement){
+      final Long lastModified = ((ArtifactTreeElement)element).getLastModified();
+      if (lastModified != null){
+        builder.lastModified(new Date(lastModified));
+      }
+//      builder.header("ETag", EncryptUtil.md5(fileElement.getSize() + element.getName() + fileElement.getFile().lastModified())); //ETag should be "strong" validator or specified as "weak"
+    }
+
+    try {
+      final long size = element.getSize();
+      if (size >= 0){
+        builder.header(HttpHeaders.CONTENT_LENGTH, size);
+      }
+    } catch (IllegalStateException e) {
+      //just do not add the header in the case
+    }
+    builder.entity(output);
+    return builder;
   }
 
   public static StreamingOutput getStreamingOutput(@NotNull final Element element) {
