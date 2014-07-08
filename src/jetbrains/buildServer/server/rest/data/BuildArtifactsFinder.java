@@ -19,10 +19,12 @@ package jetbrains.buildServer.server.rest.data;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
@@ -45,6 +47,7 @@ import jetbrains.buildServer.serverSide.artifacts.BuildArtifactHolder;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifacts;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactsViewMode;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.ArchiveUtil;
 import jetbrains.buildServer.util.FileUtil;
@@ -55,6 +58,7 @@ import jetbrains.buildServer.util.browser.BrowserException;
 import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactElement;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
+import jetbrains.buildServer.web.util.HttpByteRange;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -134,9 +138,47 @@ public class BuildArtifactsFinder {
       throw new NotFoundException("Cannot provide content for '" + path + "'. To get children use '" + fileApiUrlBuilder.getChildrenHref(element) + "'.");
     }
 
-    final StreamingOutput output = BuildArtifactsFinder.getStreamingOutput(element);
+    final String rangeHeader = request.getHeader("Range");
 
-    Response.ResponseBuilder builder = Response.ok();
+    Long fullFileSize = null;
+    try {
+      final long size = element.getSize();
+      if (size >= 0) {
+        fullFileSize = size;
+      }
+    } catch (IllegalStateException e) {
+      //just do not set size in the case
+    }
+
+    Response.ResponseBuilder builder;
+    if (StringUtil.isEmpty(rangeHeader)) {
+      builder = Response.ok().entity(BuildArtifactsFinder.getStreamingOutput(element, null, null));
+      if (fullFileSize != null) {
+        builder.header(HttpHeaders.CONTENT_LENGTH, fullFileSize);
+      }
+    } else {
+      try {
+        HttpByteRange range = new HttpByteRange(rangeHeader, fullFileSize);
+        if (range.getRangesCount() > 1) {
+          builder = Response.status(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE).entity("Multiple Range header ranges are not (yet) supported");
+        } else {
+          final HttpByteRange.SimpleRange firstRange = range.getSimpleRangesIterator().next();
+
+          builder = Response.status(HttpServletResponse.SC_PARTIAL_CONTENT);
+          final long rangeLength = firstRange.getLength();
+          builder.entity(BuildArtifactsFinder.getStreamingOutput(element, firstRange.getBeginIndex(), rangeLength));
+          builder.header("Content-Range", range.getContentRangeHeaderValue(firstRange));
+          if (fullFileSize != null) {
+            builder.header(HttpHeaders.CONTENT_LENGTH, rangeLength);
+          }
+        }
+      } catch (ParseException e) {
+        builder = Response.status(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE).entity("Error parsing Range header: " + e.getMessage());
+      }
+    }
+
+    builder.header("Accept-Ranges", HttpByteRange.RANGE_UNIT_BYTES);
+
     if (TeamCityProperties.getBooleanOrTrue("rest.build.artifacts.setMimeType")) {
       builder = builder.type(WebUtil.getMimeType(request, path));
     } else {
@@ -154,28 +196,28 @@ public class BuildArtifactsFinder {
       if (lastModified != null){
         builder.lastModified(new Date(lastModified));
       }
-//      builder.header("ETag", EncryptUtil.md5(fileElement.getSize() + element.getName() + fileElement.getFile().lastModified())); //ETag should be "strong" validator or specified as "weak"
+      builder.header("ETag", "W/\"" + EncryptUtil.md5((element.getSize() >= 0 ? String.valueOf(element.getSize()) : "") + lastModified) + "\""); //mark ETag as "weak"
+    }else{
+      if (element.getSize() >= 0){
+        builder.header("ETag", "W/\"" + EncryptUtil.md5(String.valueOf(element.getSize())) + "\""); //mark ETag as "weak"
+      }
     }
 
-    try {
-      final long size = element.getSize();
-      if (size >= 0){
-        builder.header(HttpHeaders.CONTENT_LENGTH, size);
-      }
-    } catch (IllegalStateException e) {
-      //just do not add the header in the case
-    }
-    builder.entity(output);
     return builder;
   }
 
-  public static StreamingOutput getStreamingOutput(@NotNull final Element element) {
+  public static StreamingOutput getStreamingOutput(@NotNull final Element element, @Nullable final Long startOffset, @Nullable final Long length) {
     return new StreamingOutput() {
         public void write(final OutputStream output) throws WebApplicationException {
           InputStream inputStream = null;
           try {
             inputStream = element.getInputStream();
-            TCStreamUtil.writeBinary(inputStream, output);
+            if (startOffset != null || length != null) {
+              TCStreamUtil.skip(inputStream, startOffset != null ? startOffset : 0);
+              TCStreamUtil.writeBinary(inputStream, length != null ? length : element.getSize(), output);
+            } else {
+              TCStreamUtil.writeBinary(inputStream, output);
+            }
           } catch (IOException e) {
             //todo add better processing
             throw new OperationException("Error while processing file '" + element.getFullName() + "' content: " + e.getMessage(), e);
