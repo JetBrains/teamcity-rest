@@ -159,6 +159,7 @@ public class BuildArtifactsFinder {
     } else {
       try {
         HttpByteRange range = new HttpByteRange(rangeHeader, fullFileSize);
+        //todo: support requests with "Range: bytes=XX-" header and unknown content-length via multipart/byteranges Content-Type including Content-Range fields for each part
         if (range.getRangesCount() > 1) {
           builder = Response.status(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE).entity("Multiple Range header ranges are not (yet) supported");
         } else {
@@ -174,6 +175,9 @@ public class BuildArtifactsFinder {
         }
       } catch (ParseException e) {
         builder = Response.status(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE).entity("Error parsing Range header: " + e.getMessage());
+        if (fullFileSize != null){
+          builder.header("Content-Range", HttpByteRange.getContentRangeHeaderValueFor416Response(fullFileSize));
+        }
       }
     }
 
