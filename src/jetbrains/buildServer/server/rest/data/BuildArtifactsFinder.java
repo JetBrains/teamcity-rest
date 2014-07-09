@@ -127,17 +127,16 @@ public class BuildArtifactsFinder {
                                              @NotNull final FileApiUrlBuilder fileApiUrlBuilder,
                                              HttpServletRequest request) {
     Element element = getElement(browser, path, where);
-    return getContent(element, path, fileApiUrlBuilder, request);
-  }
-
-  public static Response.ResponseBuilder getContent(@NotNull final Element element,
-                                             @NotNull final String path,
-                                             @NotNull final FileApiUrlBuilder fileApiUrlBuilder,
-                                             @NotNull final HttpServletRequest request) {
     if (!element.isContentAvailable()) {
       throw new NotFoundException("Cannot provide content for '" + path + "'. To get children use '" + fileApiUrlBuilder.getChildrenHref(element) + "'.");
     }
+    return getContent(element, request);
+  }
 
+  public static Response.ResponseBuilder getContent(@NotNull final Element element, @NotNull final HttpServletRequest request) {
+    if (!element.isContentAvailable()) {
+      throw new NotFoundException("Cannot provide content for '" + element.getFullName() + "' (not a file).");
+    }
     final String rangeHeader = request.getHeader("Range");
 
     Long fullFileSize = null;
@@ -184,7 +183,7 @@ public class BuildArtifactsFinder {
     builder.header("Accept-Ranges", HttpByteRange.RANGE_UNIT_BYTES);
 
     if (TeamCityProperties.getBooleanOrTrue("rest.build.artifacts.setMimeType")) {
-      builder = builder.type(WebUtil.getMimeType(request, path));
+      builder = builder.type(WebUtil.getMimeType(request, element.getName()));
     } else {
       builder = builder.type(MediaType.APPLICATION_OCTET_STREAM_TYPE);
     }

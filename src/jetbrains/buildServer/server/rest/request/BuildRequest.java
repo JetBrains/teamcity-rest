@@ -62,6 +62,7 @@ import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.TCStreamUtil;
 import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsManager;
+import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
 import jetbrains.buildServer.web.util.SessionUser;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
@@ -236,11 +237,12 @@ public class BuildRequest {
                                      @Context HttpServletRequest request) {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final String resolvedPath = getResolvedIfNecessary(build, path, resolveParameters);
-    final Response.ResponseBuilder builder =
-      BuildArtifactsFinder.getContent(BuildArtifactsFinder.getArtifactElement(build, resolvedPath, BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT),
-                                      resolvedPath,
-                                      BuildArtifactsFinder.fileApiUrlBuilderForBuild(myBeanContext.getApiUrlBuilder(), build, null),
-                                      request);
+    final ArtifactTreeElement artifactElement = BuildArtifactsFinder.getArtifactElement(build, resolvedPath, BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
+    if (!artifactElement.isContentAvailable()) {
+      throw new NotFoundException("Cannot provide content for '" + path + "'. To get children use '" +
+                                  BuildArtifactsFinder.fileApiUrlBuilderForBuild(myBeanContext.getApiUrlBuilder(), build, null).getChildrenHref(artifactElement) + "'.");
+    }
+    final Response.ResponseBuilder builder = BuildArtifactsFinder.getContent(artifactElement, request);
     if (logBuildUsage){
       RepositoryUtil.logArtifactDownload(request, myBeanContext.getSingletonService(DownloadedArtifactsLogger.class), build, resolvedPath);
     }
