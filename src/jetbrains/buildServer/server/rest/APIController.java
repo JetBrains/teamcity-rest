@@ -80,7 +80,7 @@ public class APIController extends BaseController implements ServletContextAware
   private Logger LOG = Logger.getInstance(APIController.class.getName());
   public static final String REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME = "rest.cors.origins";
   public static final String REST_RESPONSE_PRETTYFORMAT = "rest.response.prettyformat";
-  public static final String REST_PREFER_OWN_BIND_PATHS = "rest.allow.bind.paths.override";
+  public static final String REST_PREFER_OWN_BIND_PATHS = "rest.allow.bind.paths.override.for.plugins";
 
   private final boolean myInternalAuthProcessing = TeamCityProperties.getBoolean("rest.cors.optionsRequest.allowUnauthorized");
   private final String[] myPathsWithoutAuth = new String[]{
@@ -184,7 +184,18 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   private List<String> filterOtherPlugins(final List<String> bindPaths) {
-    if (!TeamCityProperties.getBooleanOrTrue(REST_PREFER_OWN_BIND_PATHS)) {  //todo: support list of plugin names as values, default to "rest-api"
+    final String pluginNames = TeamCityProperties.getProperty(REST_PREFER_OWN_BIND_PATHS, "rest-api"); //by default allow only the latest/main plugin paths to be overriden
+    final String[] pluginNamesList = pluginNames.split(",");
+
+    final String ownPluginName = myPluginDescriptor.getPluginName();
+    boolean overridesAllowed = false;
+    for (String pluginName : pluginNamesList) {
+      if (ownPluginName.equals(pluginName.trim())){
+        overridesAllowed = true;
+        break;
+      }
+    }
+    if (!overridesAllowed) {
       return bindPaths;
     }
     final ArrayList<String> result = new ArrayList<String>(bindPaths);
@@ -192,7 +203,7 @@ public class APIController extends BaseController implements ServletContextAware
     final Collection<PluginInfo> allPlugins = myPluginManager.getDetectedPlugins();
     //is the plugin actually loaded? Might need to check only the successfully loaded plugins
     for (PluginInfo plugin : allPlugins) {
-      if (myPluginDescriptor.getPluginName().equals(plugin.getPluginName())) {
+      if (ownPluginName.equals(plugin.getPluginName())) {
         continue;
       }
       if (plugin instanceof PluginDescriptor) {
@@ -201,8 +212,9 @@ public class APIController extends BaseController implements ServletContextAware
         if (!StringUtil.isEmpty(bindPath)) {
           final List<String> pathToExclude = getBindPaths(pluginDescriptor);
           if (result.removeAll(pathToExclude)){
-            LOG.info("Excluding paths from handling by plugin '" + myPluginDescriptor.getPluginName() + "' as they are handled by plugin '" + plugin.getPluginName() + "': " +
-                     pathToExclude + ". Set " + REST_PREFER_OWN_BIND_PATHS + " to 'false' to turn this logic off.");
+            LOG.info("Excluding paths from handling by plugin '" + ownPluginName + "' as they are handled by plugin '" + plugin.getPluginName() + "': " +
+                     pathToExclude + ". Set " + REST_PREFER_OWN_BIND_PATHS + " internal property to empty value to prohibit overriding." +
+                     " (The property sets comma-separated list of plugin names which bind paths can be overriden.)");
           }
         }
       } else {
