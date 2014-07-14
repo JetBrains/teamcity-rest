@@ -31,12 +31,15 @@ import org.jetbrains.annotations.Nullable;
  * Date: 02.08.11 14:34
  */
 public class ExtensionHolderProviderFactory implements IoCComponentProviderFactory {
-  private static final Logger LOG = Logger.getInstance(ExtensionHolderProviderFactory.class.getName());
+  private Logger LOG = Logger.getInstance(ExtensionHolderProviderFactory.class.getName());
 
   private final ExtensionHolder myExtensionHolder;
+  private final String myPluginName;
 
-  public ExtensionHolderProviderFactory(@NotNull ExtensionHolder extensionHolder) {
+  public ExtensionHolderProviderFactory(@NotNull ExtensionHolder extensionHolder, final String pluginName) {
     myExtensionHolder = extensionHolder;
+    myPluginName = pluginName;
+    LOG = Logger.getInstance(ExtensionHolderProviderFactory.class.getName() + "/" + myPluginName);
   }
 
   public IoCComponentProvider getComponentProvider(@NotNull final Class<?> c) {
@@ -45,10 +48,10 @@ public class ExtensionHolderProviderFactory implements IoCComponentProviderFacto
 
   public IoCComponentProvider getComponentProvider(@Nullable final ComponentContext cc,
                                                    @NotNull final Class<?> c) {
-    LOG.debug("Request for class: " + c);
 
     final Object o = myExtensionHolder.findSingletonService(c);
     if (o != null) {
+      LOG.debug("Request for class: " + c + " as extension, found: " + o.toString());
       return new IoCManagedComponentProvider() {
         public Object getInstance() {
           return myExtensionHolder.findSingletonService(c);
@@ -63,6 +66,7 @@ public class ExtensionHolderProviderFactory implements IoCComponentProviderFacto
         }
       };
     }
+    LOG.debug("Request for class: " + c + " as extension, nothing found.");
     return null;
   }
 }

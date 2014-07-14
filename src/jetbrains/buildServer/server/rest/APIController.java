@@ -77,7 +77,7 @@ import org.springframework.web.servlet.ModelAndView;
 public class APIController extends BaseController implements ServletContextAware {
   public static final String REST_COMPATIBILITY_ALLOW_EXTERNAL_ID_AS_INTERNAL = "rest.compatibility.allowExternalIdAsInternal";
   public static final String INCLUDE_INTERNAL_ID_PROPERTY_NAME = "rest.beans.includeInternalId";
-  final static Logger LOG = Logger.getInstance(APIController.class.getName());
+  private Logger LOG = Logger.getInstance(APIController.class.getName());
   public static final String REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME = "rest.cors.origins";
   public static final String REST_RESPONSE_PRETTYFORMAT = "rest.response.prettyformat";
   public static final String REST_PREFER_OWN_BIND_PATHS = "rest.allow.bind.paths.override";
@@ -120,12 +120,13 @@ public class APIController extends BaseController implements ServletContextAware
                        @NotNull final HttpAuthenticationManager authManager,
                        @NotNull final PluginManager pluginManager) throws ServletException {
     super(server);
+    LOG = Logger.getInstance(APIController.class.getName() + "/" + pluginDescriptor.getPluginName());
     myWebControllerManager = webControllerManager;
     myPluginDescriptor = pluginDescriptor;
     myExtensionHolder = extensionHolder;
     myAuthorizationInterceptor = authorizationInterceptor;
-    myAuthManager = authManager;
     myPluginManager = pluginManager;
+    myAuthManager = authManager;
     setSupportedMethods(new String[]{METHOD_GET, METHOD_HEAD, METHOD_POST, "PUT", "OPTIONS", "DELETE"});
 
     myConfigurableApplicationContext = configurableApplicationContext;
@@ -282,7 +283,7 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   private void init() throws ServletException {
-    myWebComponent = new JerseyWebComponent();
+    myWebComponent = new JerseyWebComponent(myPluginDescriptor.getPluginName());
     myWebComponent.setExtensionHolder(myExtensionHolder);
     final Set<ConfigurableApplicationContext> contexts = new HashSet<ConfigurableApplicationContext>();
     contexts.add(myConfigurableApplicationContext);
@@ -295,14 +296,18 @@ public class APIController extends BaseController implements ServletContextAware
 
   private FilterConfig createJerseyConfig() {
     return new FilterConfig() {
-      Map<String, String> initParameters = new HashMap<String, String>();
+      private final Map<String, String> initParameters = new HashMap<String, String>();
 
       {
         initParameters.put(ResourceConfig.PROPERTY_WADL_GENERATOR_CONFIG, WadlGenerator.class.getCanonicalName());
         initParameters.put(JSONConfiguration.FEATURE_POJO_MAPPING, "true");
-        initParameters.put(PackagesResourceConfig.PROPERTY_PACKAGES, "org.codehaus.jackson.jaxrs;jetbrains.buildServer.server.rest.request;" + getPackagesFromExtensions());
+        final String packagesFromExtensions = getPackagesFromExtensions();
+        initParameters.put(PackagesResourceConfig.PROPERTY_PACKAGES, "org.codehaus.jackson.jaxrs;jetbrains.buildServer.server.rest.request;" + packagesFromExtensions);
         if (TeamCityProperties.getBoolean(APIController.REST_RESPONSE_PRETTYFORMAT)) {
           initParameters.put(FeaturesAndProperties.FEATURE_FORMATTED, "true");
+        }
+        if (!packagesFromExtensions.isEmpty()){
+          LOG.info("Packages registered by extensions: " + packagesFromExtensions);
         }
       }
 
@@ -532,7 +537,7 @@ public class APIController extends BaseController implements ServletContextAware
     }
   }
 
-  public static void reportRestErrorResponse(@NotNull final HttpServletResponse response,
+  public void reportRestErrorResponse(@NotNull final HttpServletResponse response,
                                              final int statusCode,
                                              @Nullable final Throwable e,
                                              @Nullable final String message,

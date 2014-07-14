@@ -20,13 +20,12 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.sun.jersey.api.core.ResourceConfig;
 import com.sun.jersey.spi.container.WebApplication;
 import com.sun.jersey.spi.spring.container.servlet.SpringServlet;
+import java.util.Collection;
 import jetbrains.buildServer.ExtensionHolder;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.util.ClassUtils;
-
-import java.util.Collection;
 
 /**
  * @author Yegor.Yarko
@@ -36,10 +35,16 @@ import java.util.Collection;
 
 public class JerseyWebComponent extends SpringServlet {
   private static final long serialVersionUID = 5686455305749079671L;
+  private final String myPluginName;
 
-  private static final Logger LOG = Logger.getInstance(JerseyWebComponent.class.getName());
+  private Logger LOG = Logger.getInstance(JerseyWebComponent.class.getName());
   private ExtensionHolder myExtensionHolder;
   private Collection<ConfigurableApplicationContext> myContexts;
+
+  public JerseyWebComponent(final String pluginName) {
+    myPluginName = pluginName;
+    LOG = Logger.getInstance(JerseyWebComponent.class.getName() + "/" + myPluginName);
+  }
 
   @Override
   protected void initiate(ResourceConfig rc, WebApplication wa) {
@@ -47,7 +52,7 @@ public class JerseyWebComponent extends SpringServlet {
       for (ConfigurableApplicationContext context : myContexts) {
         registerResourceProviders(rc, context);
       }
-      wa.initiate(rc, new ExtensionHolderProviderFactory(myExtensionHolder));
+      wa.initiate(rc, new ExtensionHolderProviderFactory(myExtensionHolder, myPluginName));
     } catch (RuntimeException e) {
       LOG.error("Exception occurred during REST API initialization", e);
       throw e;
