@@ -85,4 +85,6 @@
   <bean id="beanFactoryContextProvider" class="jetbrains.buildServer.server.rest.jersey.BeanFactoryContextProvider"/>
 
   <bean id="jacksonObjectMapperResolver" class="jetbrains.buildServer.server.rest.jersey.JacksonObjectMapperResolver"/>
+
+  <bean id="extensionsAwareResourceConfig" class="jetbrains.buildServer.server.rest.jersey.ExtensionsAwareResourceConfig"/>
 </beans>

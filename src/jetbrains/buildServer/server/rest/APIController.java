@@ -18,11 +18,10 @@ package jetbrains.buildServer.server.rest;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.ArrayUtil;
-import com.intellij.util.Function;
-import com.sun.jersey.api.core.PackagesResourceConfig;
 import com.sun.jersey.api.core.ResourceConfig;
 import com.sun.jersey.api.json.JSONConfiguration;
 import com.sun.jersey.core.util.FeaturesAndProperties;
+import com.sun.jersey.spi.container.servlet.WebComponent;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -43,6 +42,7 @@ import jetbrains.buildServer.controllers.interceptors.auth.HttpAuthenticationRes
 import jetbrains.buildServer.plugins.PluginManager;
 import jetbrains.buildServer.plugins.bean.PluginInfo;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
+import jetbrains.buildServer.server.rest.jersey.ExtensionsAwareResourceConfig;
 import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
 import jetbrains.buildServer.server.rest.jersey.JerseyWebComponent;
 import jetbrains.buildServer.server.rest.jersey.WadlGenerator;
@@ -299,10 +299,14 @@ public class APIController extends BaseController implements ServletContextAware
     myWebComponent.setExtensionHolder(myExtensionHolder);
     final Set<ConfigurableApplicationContext> contexts = new HashSet<ConfigurableApplicationContext>();
     contexts.add(myConfigurableApplicationContext);
-    for (RESTControllerExtension extension : myServer.getExtensions(RESTControllerExtension.class)) {
+    for (RESTControllerExtension extension : getExtensions()) {
       contexts.add(extension.getContext());
     }
     myWebComponent.setContexts(contexts);
+    // ExtensionsAwareResourceConfig not initialized yet. We should wait for all extensions to load first.
+    // Now it's time to initilize and scan for extensions.
+    final ExtensionsAwareResourceConfig config = getApplicationContext().getBean(ExtensionsAwareResourceConfig.class);
+    config.onReload();
     myWebComponent.init(createJerseyConfig());
   }
 
@@ -313,22 +317,10 @@ public class APIController extends BaseController implements ServletContextAware
       {
         initParameters.put(ResourceConfig.PROPERTY_WADL_GENERATOR_CONFIG, WadlGenerator.class.getCanonicalName());
         initParameters.put(JSONConfiguration.FEATURE_POJO_MAPPING, "true");
-        final String packagesFromExtensions = getPackagesFromExtensions();
-        initParameters.put(PackagesResourceConfig.PROPERTY_PACKAGES, "org.codehaus.jackson.jaxrs;jetbrains.buildServer.server.rest.request;" + packagesFromExtensions);
+        initParameters.put(WebComponent.RESOURCE_CONFIG_CLASS, ExtensionsAwareResourceConfig.class.getCanonicalName());
         if (TeamCityProperties.getBoolean(APIController.REST_RESPONSE_PRETTYFORMAT)) {
           initParameters.put(FeaturesAndProperties.FEATURE_FORMATTED, "true");
         }
-        if (!packagesFromExtensions.isEmpty()){
-          LOG.info("Packages registered by extensions: " + packagesFromExtensions);
-        }
-      }
-
-      private String getPackagesFromExtensions() {
-        return StringUtil.join(myServer.getExtensions(RESTControllerExtension.class), new Function<RESTControllerExtension, String>() {
-          public String fun(final RESTControllerExtension restControllerExtension) {
-            return restControllerExtension.getPackage();
-          }
-        }, ";");
       }
 
       public String getFilterName() {
@@ -530,6 +522,16 @@ public class APIController extends BaseController implements ServletContextAware
 
     //this will actually not function for OPTION request until http://youtrack.jetbrains.com/issue/TW-22019 is fixed
     response.addHeader("Access-Control-Allow-Headers", request.getHeader("Access-Control-Request-Headers"));
+  }
+
+  @NotNull
+  public String[] getBasePackages() {
+    return new String[]{"org.codehaus.jackson.jaxrs","jetbrains.buildServer.server.rest.request"};
+  }
+
+  @NotNull
+  public Collection<RESTControllerExtension> getExtensions() {
+    return myServer.getExtensions(RESTControllerExtension.class);
   }
 
   class CachingValuesFromInternalProperty{

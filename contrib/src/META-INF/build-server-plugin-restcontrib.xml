@@ -6,6 +6,5 @@
        default-autowire="constructor">
 
   <bean id="restControllerExtensionInitializer" class="jetbrains.buildServer.server.restcontrib.RESTControllerExtensionInitializer"/>
-  <bean id="ccTrayRequest" class="jetbrains.buildServer.server.restcontrib.cctray.request.CCTrayRequest"/>
 
 </beans>
