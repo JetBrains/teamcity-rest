@@ -7,7 +7,7 @@
           <file>file://$MODULE_DIR$/src/META-INF/build-server-plugin-rest-api.xml</file>
         </fileset>
         <fileset id="fileset2" name="TeamCity Server Beans" removed="false">
-          <file>file://$MODULE_DIR$/../../server/src/META-INF/buildServerSpring.xml</file>
+          <file>file://$BUILDSERVER_PROJECT_HOME$/server/src/META-INF/buildServerSpring.xml</file>
         </fileset>
       </configuration>
     </facet>
