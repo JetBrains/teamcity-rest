@@ -29,6 +29,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.web.util.WebUtil;
+import org.apache.catalina.connector.ClientAbortException;
 import org.apache.log4j.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -95,7 +96,7 @@ public class ExceptionMapperUtil {
       logMessage = singleLineMessage + " URL: " + WebUtil.getRequestUrl(request) + ".";
     }
 
-    if (isInternalError) {
+    if (isInternalError && !isCommonExternalError(e)) {
       logMessage(LOG, level, logMessage, e);
     } else {
       logMessage(LOG, level, logMessage);
@@ -115,6 +116,16 @@ public class ExceptionMapperUtil {
     return result;
   }
 
+  private static boolean isCommonExternalError(@Nullable Throwable e) {
+    if (e == null) return false;
+    while (true) {
+      if (e instanceof ClientAbortException) return true;
+      final Throwable cause = e.getCause();
+      if (cause == null || cause == e) break;
+      e = cause;
+    }
+    return false;
+  }
 
   private static void logMessage(final Logger log, final Level level, final String message) {
     if (level.isGreaterOrEqual(Level.ERROR)) {
