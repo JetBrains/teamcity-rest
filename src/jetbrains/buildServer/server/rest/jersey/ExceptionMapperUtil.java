@@ -29,7 +29,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.web.util.WebUtil;
-import org.apache.catalina.connector.ClientAbortException;
 import org.apache.log4j.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -119,7 +118,7 @@ public class ExceptionMapperUtil {
   private static boolean isCommonExternalError(@Nullable Throwable e) {
     if (e == null) return false;
     while (true) {
-      if (e instanceof ClientAbortException) return true;
+      if (e.getClass().getName().equals("ClientAbortException")) return true;
       final Throwable cause = e.getCause();
       if (cause == null || cause == e) break;
       e = cause;
