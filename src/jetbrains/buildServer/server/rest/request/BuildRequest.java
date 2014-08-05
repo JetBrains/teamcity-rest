@@ -96,6 +96,8 @@ public class BuildRequest {
   public static final String CHILDREN = "/children";
   public static final String ARTIFACTS_CHILDREN = ARTIFACTS + CHILDREN;
 
+  protected static final String REST_BUILD_REQUEST_DELETE_LIMIT = "rest.buildRequest.delete.limit";
+
   @Context @NotNull private BeanContext myBeanContext;
   @Context @NotNull private DataProvider myDataProvider;
 
@@ -150,6 +152,23 @@ public class BuildRequest {
                                            includeCanceled, onlyPinned, tags, agentName, sinceBuildLocator, sinceDate, start, count,
                                            locator, "locator", uriInfo, request,   new Fields(fields), myBeanContext
     );
+  }
+
+  @DELETE
+  @Produces({"application/xml", "application/json"})
+  public void deleteBuilds(@QueryParam("locator") String locator, @Context HttpServletRequest request) {
+    if (locator == null){
+      throw new BadRequestException("Empty 'locator' parameter specified.");
+    }
+    final List<SBuild> builds = myBuildFinder.getBuildsSimplified(null, locator);
+    final int deleteLimit = TeamCityProperties.getInteger(REST_BUILD_REQUEST_DELETE_LIMIT, 10);
+    if (builds.size() > deleteLimit){
+      throw new BadRequestException("Refusing to delete more than " + deleteLimit + " builds as a precaution measure." +
+                                    " The limit is set via '" + REST_BUILD_REQUEST_DELETE_LIMIT + "' internal property on the server.");
+    }
+    for (SBuild build : builds) {
+      deleteBuild(request, build);
+    }
   }
 
   /**
@@ -566,18 +585,23 @@ public class BuildRequest {
   @Path("/{buildLocator}")
   public void deleteBuild(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    if (!build.isFinished()) {
-      final SRunningBuild runningBuild = Build.getRunningBuild(build, myBeanContext.getServiceLocator());
+    deleteBuild(request, build);
+  }
+
+  private void deleteBuild(@NotNull final HttpServletRequest request, @NotNull final SBuild build) {
+    SBuild buildToDelete = build;
+    if (!buildToDelete.isFinished()) {
+      final SRunningBuild runningBuild = Build.getRunningBuild(buildToDelete, myBeanContext.getServiceLocator());
       if (runningBuild != null) {
         final SUser currentUser = SessionUser.getUser(request);
         runningBuild.stop(currentUser, null);
-        build = runningBuild.getBuildPromotion().getAssociatedBuild();
-        if (build == null) {
+        buildToDelete = runningBuild.getBuildPromotion().getAssociatedBuild();
+        if (buildToDelete == null) {
           throw new OperationException("Cannot find associated build for promotion '" + runningBuild.getBuildPromotion().getId() + "'.");
         }
       }
     }
-    myDataProvider.deleteBuild(build);
+    myDataProvider.deleteBuild(buildToDelete);
   }
 
   private boolean isPersonalUserBuild(final SBuild build, @NotNull final SUser user) {
