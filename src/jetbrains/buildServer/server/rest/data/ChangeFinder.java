@@ -131,7 +131,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       return modification;
     }
 
-    Long id = locator.getSingleDimensionValueAsLong("id");
+    Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (id != null) {
       Boolean isPersonal = locator.getSingleDimensionValueAsBoolean(PERSONAL, false);
       if (isPersonal == null) {
@@ -141,7 +141,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
       SVcsModification modification = myVcsManager.findModificationById(id, isPersonal);
       if (modification == null) {
-        throw new NotFoundException("No change can be found by id '" + locator.getSingleDimensionValue("id") + "' (searching " +
+        throw new NotFoundException("No change can be found by id '" + locator.getSingleDimensionValue(DIMENSION_ID) + "' (searching " +
                                     (isPersonal ? "personal" : "non-personal") + " changes).");
       }
       locator.checkLocatorFullyProcessed();
@@ -364,13 +364,18 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   }
 
   private long getChangeIdBySinceChangeLocator(@NotNull final String sinceChangeDimension) {
+    //if change id - do not find change to support cases when it does not exist
     try {
-      //if change id - do not find change to support cases when it does not exist
       return Long.parseLong(sinceChangeDimension);
     } catch (NumberFormatException e) {
-      //not id - proceed as usual
-      return getItem(sinceChangeDimension).getId();
+      final Locator locator = createLocator(sinceChangeDimension);
+      Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
+      if (id != null && locator.getDimensionsCount() == 1) {
+        return id;
+      }
     }
+    //locator is not id - proceed as usual
+    return getItem(sinceChangeDimension).getId();
   }
 
   @Override
@@ -419,7 +424,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     }
 
     Long sinceChangeId = null;
-    final String sinceChangeLocator = locator.getSingleDimensionValue(SINCE_CHANGE); //todo: deprecate this
+    final String sinceChangeLocator = locator.getSingleDimensionValue(SINCE_CHANGE);
     if (sinceChangeLocator != null) {
       sinceChangeId = getChangeIdBySinceChangeLocator(sinceChangeLocator);
     }
