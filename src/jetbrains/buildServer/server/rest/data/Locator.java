@@ -135,6 +135,33 @@ public class Locator {
     myExtendedMode = false;
   }
 
+  /**
+   * The resultant locator will have all the dimensions from "defualts" locator set unless already defined.
+   * If "locator" text is empty, "defaults" locator will be used
+   *
+   * @param locator
+   * @param defaults
+   * @param supportedDimensions
+   * @return
+   */
+  public static Locator createLocator(final String locator, final Locator defaults, final String[] supportedDimensions) {
+    Locator result;
+    if (locator != null || defaults == null) {
+      result = new Locator(locator, supportedDimensions);
+    } else {
+      result = Locator.createEmptyLocator(supportedDimensions);
+    }
+
+    if (defaults != null && !result.isSingleValue()) {
+      for (String dimensionName : defaults.myDimensions.keySet()) {
+        final String value = defaults.getSingleDimensionValue(dimensionName);
+        if (value != null) result.setDimensionIfNotPresent(dimensionName, value);
+      }
+    }
+
+    return result;
+  }
+
   public static Locator createEmptyLocator(final String... supportedDimensions) {
     final Locator result = new Locator();
     result.mySupportedDimensions = supportedDimensions;

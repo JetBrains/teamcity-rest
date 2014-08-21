@@ -39,6 +39,7 @@
   <bean id="restDataProvider" class="jetbrains.buildServer.server.rest.data.DataProvider"/>
   <bean id="restbuildFinder" class="jetbrains.buildServer.server.rest.data.BuildFinder"/>
   <bean id="restQueuedBuildFinder" class="jetbrains.buildServer.server.rest.data.QueuedBuildFinder"/>
+  <bean id="restBuildPromotionFinder" class="jetbrains.buildServer.server.rest.data.BuildPromotionFinder"/>
   <bean id="restbuildTypeFinder" class="jetbrains.buildServer.server.rest.data.BuildTypeFinder"/>
   <bean id="restProjectFinder" class="jetbrains.buildServer.server.rest.data.ProjectFinder"/>
   <bean id="restUserGroupFinder" class="jetbrains.buildServer.server.rest.data.UserGroupFinder"/>
@@ -64,6 +65,7 @@
   <bean id="beanContextProvider" class="jetbrains.buildServer.server.rest.jersey.BeanContextProvider"/>
   <bean id="dataProviderContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataProviderContextProvider"/>
   <bean id="buildFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.BuildFinderContextProvider"/>
+  <bean id="buildPromotionFinderProvider" class="jetbrains.buildServer.server.rest.jersey.BuildPromotionFinderProvider"/>
   <bean id="buildQueuedBuildFinderProvider" class="jetbrains.buildServer.server.rest.jersey.QueuedBuildFinderProvider"/>
   <bean id="buildTypeFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.BuildTypeFinderContextProvider"/>
   <bean id="projectFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.ProjectFinderContextProvider"/>

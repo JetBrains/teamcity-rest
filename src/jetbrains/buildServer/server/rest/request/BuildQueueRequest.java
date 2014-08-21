@@ -25,13 +25,17 @@ import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
-import jetbrains.buildServer.server.rest.errors.*;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.errors.PartialUpdateError;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.BuildCancelRequest;
 import jetbrains.buildServer.server.rest.model.build.Builds;
+import jetbrains.buildServer.server.rest.model.build.Tags;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -39,6 +43,8 @@ import jetbrains.buildServer.serverSide.SQueuedBuild;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
+import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -52,6 +58,7 @@ public class BuildQueueRequest {
   public static final String COMPATIBLE_AGENTS = "/compatibleAgents";
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private QueuedBuildFinder myQueuedBuildFinder;
+  @Context @NotNull private BuildPromotionFinder myBuildPromotionFinder;
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
   @Context @NotNull private AgentFinder myAgentFinder;
 
@@ -252,6 +259,93 @@ public class BuildQueueRequest {
   public Agents serveCompatibleAgents(@PathParam("queuedBuildLocator") String queuedBuildLocator, @QueryParam("fields") String fields) {
     return new Agents(myQueuedBuildFinder.getItem(queuedBuildLocator).getCompatibleAgents(), null,  new Fields(fields), myBeanContext);
   }
+
+  @GET
+  @Path("/{buildLocator}/tags/")
+  @Produces({"application/xml", "application/json"})
+  public Tags serveTags(@PathParam("buildLocator") String buildLocator) {
+    BuildPromotion buildPromotion = myBuildPromotionFinder.getItem(buildLocator, getBuildPromotionLocatorDefaults());
+    return new Tags(buildPromotion.getTags());
+  }
+
+  /**
+   * Replaces build's tags.
+   *
+   * @param buildLocator build locator
+   */
+  @PUT
+  @Path("/{buildLocator}/tags/")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public Tags replaceTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
+    BuildPromotion buildPromotion = myBuildPromotionFinder.getItem(buildLocator, getBuildPromotionLocatorDefaults());
+
+    List<String> tagsToSet;
+    if (tags.tags == null || tags.tags.isEmpty()) {
+      tagsToSet = Collections.<String>emptyList();
+    } else {
+      for (String tag : tags.tags) { //check for empty tags: http://youtrack.jetbrains.com/issue/TW-34426
+        if (StringUtil.isEmpty(tag)) {
+          throw new BadRequestException("One of the submitted tags is empty. Cannot apply empty tag.");
+        }
+      }
+      tagsToSet = tags.tags;
+    }
+
+    buildPromotion.setTags(tagsToSet, SessionUser.getUser(request), false);
+    return new Tags(buildPromotion.getTags());
+  }
+
+  /**
+   * Adds a set of tags to a build
+   *
+   * @param buildLocator build locator
+   */
+  @POST
+  @Path("/{buildLocator}/tags/")
+  @Consumes({"application/xml", "application/json"})
+  public void addTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
+    BuildPromotion buildPromotion = myBuildPromotionFinder.getItem(buildLocator, getBuildPromotionLocatorDefaults());
+    if (tags.tags == null || tags.tags.isEmpty()) {
+      // Nothing to add
+      return;
+    }
+    for (String tag : tags.tags) { //check for empty tags: http://youtrack.jetbrains.com/issue/TW-34426
+      if (StringUtil.isEmpty(tag)) {
+        throw new BadRequestException("One of the submitted tags is empty. Cannot apply empty tag.");
+      }
+    }
+    final List<String> resultingTags = new ArrayList<String>(buildPromotion.getTags());
+    resultingTags.addAll(tags.tags);
+    buildPromotion.setTags(resultingTags, SessionUser.getUser(request), false);
+  }
+
+  /**
+   * Adds a single tag to a build
+   *
+   * @param buildLocator build locator
+   * @param tagName      name of a tag to add
+   */
+  @POST
+  @Path("/{buildLocator}/tags/")
+  @Consumes({"text/plain"})
+  @Produces({"text/plain"})
+  public String addTag(@PathParam("buildLocator") String buildLocator, String tagName, @Context HttpServletRequest request) {
+    if (StringUtil.isEmpty(tagName)) { //check for empty tags: http://youtrack.jetbrains.com/issue/TW-34426
+      throw new BadRequestException("Cannot apply empty tag, should have non empty request body");
+    }
+    this.addTags(buildLocator, new Tags(Arrays.asList(tagName)), request);
+    return tagName;
+  }
+//todo: add GET (true/false) and DELETE, may be PUT (true/false) for a single tag
+
+  @NotNull
+  private Locator getBuildPromotionLocatorDefaults() {
+    Locator defaultLocator = Locator.createEmptyLocator();
+    defaultLocator.setDimension(BuildPromotionFinder.STATE, BuildPromotionFinder.STATE_QUEUED);
+    return defaultLocator;
+  }
+
 
   @GET
   @Path("/{buildLocator}/{field}")

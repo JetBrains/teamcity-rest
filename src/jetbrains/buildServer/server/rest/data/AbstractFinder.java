@@ -45,7 +45,12 @@ public abstract class AbstractFinder<ITEM> {
 
   @NotNull
   public Locator createLocator(@Nullable final String locatorText) {
-    final Locator result = new Locator(locatorText, myKnownDimensions);
+    return createLocator(locatorText, null);
+  }
+
+  @NotNull
+  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
+    final Locator result = Locator.createLocator(locatorText, locatorDefaults, myKnownDimensions);
     result.addIgnoreUnusedDimensions(PagerData.COUNT);
     return result;
   }
@@ -96,10 +101,15 @@ public abstract class AbstractFinder<ITEM> {
 
   @NotNull
   public ITEM getItem(@Nullable final String locatorText) {
+    return getItem(locatorText, null);
+  }
+
+  @NotNull
+  public ITEM getItem(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     if (StringUtil.isEmpty(locatorText)) {
       throw new BadRequestException("Empty locator is not supported.");
     }
-    final Locator locator = createLocator(locatorText);
+    final Locator locator = createLocator(locatorText, locatorDefaults);
 
     if (!locator.isSingleValue()){
       locator.setDimension(PagerData.COUNT, "1"); //get only the first one that matches
@@ -107,7 +117,7 @@ public abstract class AbstractFinder<ITEM> {
     }
     final PagedSearchResult<ITEM> items = getItems(locator);
     if (items.myEntries.size() == 0) {
-      throw new NotFoundException("Nothing is found by locator '" + locatorText + "'.");
+      throw new NotFoundException("Nothing is found by locator '" + locator.getStringRepresentation() + "'.");
     }
     assert items.myEntries.size()== 1;
     return items.myEntries.get(0);
