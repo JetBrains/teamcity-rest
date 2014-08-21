@@ -20,13 +20,15 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.util.DefaultValueAware;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 
 /**
  * @author Yegor.Yarko
  *         Date: 13.07.2009
  */
 @XmlRootElement(name = "tags")
-public class Tags {
+public class Tags implements DefaultValueAware {
   @XmlElement(name = "tag")
   public List<String> tags;
 
@@ -35,5 +37,10 @@ public class Tags {
 
   public Tags(final List<String> tagsP) {
     tags = new ArrayList<String>(tagsP);
+  }
+
+  public boolean isDefault() {
+    //noinspection unchecked
+    return ValueWithDefault.isAllDefault(tags);
   }
 }

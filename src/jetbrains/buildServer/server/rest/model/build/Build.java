@@ -72,7 +72,7 @@ import org.springframework.beans.factory.annotation.Autowired;
          propOrder = {"id"/*rf*/, "promotionId"/*q*/, "buildTypeId", "number"/*rf*/, "status"/*rf*/, "state", "running"/*r*/, //"queued"/*q*/, "finished"/*f*/,
            "personal", "percentageComplete"/*r*/, "branchName", "defaultBranch", "unspecifiedBranch", "history", "pinned"/*rf*/, "href", "webUrl",
            "statusText"/*rf*/,
-           "buildType", "comment", "tags"/*rf*/, "pinInfo"/*f*/, "personalBuildUser",
+           "buildType", "comment", "tags", "pinInfo"/*f*/, "personalBuildUser",
            "startEstimate"/*q*/, "waitReason"/*q*/,
            "runningBuildInfo"/*r*/, "canceledInfo"/*rf*/,
            "queuedDate", "startDate"/*rf*/, "finishDate"/*f*/,
@@ -307,9 +307,9 @@ public class Build {
 
   @XmlElement
   public Tags getTags() {
-    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("tags", false), new ValueWithDefault.Value<Tags>() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("tags", false), new ValueWithDefault.Value<Tags>() {
       public Tags get() {
-        return new Tags(myBuild.getTags());
+        return new Tags(myBuildPromotion.getTags());
       }
     });
   }
