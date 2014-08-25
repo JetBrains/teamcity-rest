@@ -59,6 +59,7 @@ public class NewBuildTypeDescription extends CopyOptionsDescription{
   /**
    * @deprecated Use 'sourceBuildType' intead.
    */
+  @Deprecated
   @XmlAttribute public String sourceBuildTypeLocator;
 
   @XmlElement(name = "sourceBuildType")

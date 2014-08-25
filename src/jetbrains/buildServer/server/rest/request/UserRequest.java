@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import java.util.List;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.groups.SUserGroup;
@@ -233,6 +232,7 @@ public class UserRequest {
   /**
    * @deprecated Use PUT instead, preserving POST for compatibility
    */
+  @Deprecated
   @POST
   @Path("/{userLocator}/roles/{roleId}/{scope}")
   public void addRoleSimplePost(@PathParam("userLocator") String userLocator,

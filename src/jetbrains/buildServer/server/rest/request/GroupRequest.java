@@ -106,6 +106,7 @@ public class GroupRequest {
   /**
    * @deprecated Use POST instead, preserving PUT for compatibility
    */
+  @Deprecated
   @PUT
   @Path("/{groupLocator}/roles")
   @Consumes({"application/xml", "application/json"})

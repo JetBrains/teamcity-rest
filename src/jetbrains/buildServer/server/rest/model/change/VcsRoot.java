@@ -87,6 +87,7 @@ public class VcsRoot {
    * Used only when creating new VCS roots
    * @deprecated Specify project element instead
    */
+  @Deprecated
   @XmlAttribute
   public String projectLocator;
 

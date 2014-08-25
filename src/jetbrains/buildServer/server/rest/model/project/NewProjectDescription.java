@@ -65,6 +65,7 @@ public class NewProjectDescription extends CopyOptionsDescription{
   /**
    * @deprecated Use 'sourceProject' instead.
    */
+  @Deprecated
   @XmlAttribute public String sourceProjectLocator;
 
   @XmlElement(name = "sourceProject")
