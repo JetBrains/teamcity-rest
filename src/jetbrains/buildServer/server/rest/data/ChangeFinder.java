@@ -445,6 +445,10 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       return getProjectChanges(myVcsModificationHistory, myProjectFinder.getProject(projectLocator), sinceChangeId);
     }
 
+    if (sinceChangeId != null) {
+      return myVcsModificationHistory.getModificationsInRange(null, sinceChangeId, null);
+    }
+
     final String parentChangeLocator = locator.getSingleDimensionValue(CHILD_CHANGE);
     if (parentChangeLocator != null) {
       final SVcsModification parentChange = getItem(parentChangeLocator);
