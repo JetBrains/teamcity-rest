@@ -5,6 +5,7 @@
       <class name="jetbrains.buildServer.server.rest.data.LocatorTest"/>
       <class name="jetbrains.buildServer.server.rest.data.VcsRootFinderTest"/>
       <class name="jetbrains.buildServer.server.rest.data.InvestigationFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.BuildTypeFinderTest"/>
     </classes>
   </test>
 </suite>
