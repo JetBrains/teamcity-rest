@@ -286,6 +286,15 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       });
     }
 
+    final Boolean template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_FLAG_DIMENSION_NAME);
+    if (template != null) {
+      result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
+        public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+          return FilterUtil.isIncludedByBooleanFilter(template, item.isTemplate());
+        }
+      });
+    }
+
     final String filterBuilds = locator.getSingleDimensionValue(FILTER_BUILDS); //experimental
     if (filterBuilds != null) {
       final Locator filterBuildsLocator = new Locator(filterBuilds, "search", "match");
