@@ -42,7 +42,6 @@ public class CCTrayRequest {
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
 
   @GET
-  @Path("")
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
   public Projects serveProjectsConvenienceCopy(@QueryParam("locator") String buildTypeLocator) {
     return serveProjects(buildTypeLocator);
