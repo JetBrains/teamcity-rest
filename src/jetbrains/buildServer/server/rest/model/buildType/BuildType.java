@@ -308,6 +308,7 @@ public class BuildType {
     if (myFields.isIncluded("investigations", false, true)) {
       final ResponsibilityEntry.State state = myBuildType.getBuildType().getResponsibilityInfo().getState();
       if (!state.equals(ResponsibilityEntry.State.NONE)) {
+        //todo: include list by default, add support for locator + filter here, like for builds in BuildType
         return new Investigations(null, new Href(InvestigationRequest.getHref(myBuildType.getBuildType()), myBeanContext.getApiUrlBuilder()),
                                   myFields.getNestedField("investigations"), null, myBeanContext);
       }

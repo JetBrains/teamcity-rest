@@ -16,12 +16,14 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import org.jetbrains.annotations.Nullable;
+
 /**
  * @author Yegor.Yarko
  *         Date: 10.04.13
  */
 public class FilterUtil {
-  public static boolean isIncludedByBooleanFilter(final Boolean filterValue, final boolean actualValue) {
+  public static boolean isIncludedByBooleanFilter(@Nullable final Boolean filterValue, final boolean actualValue) {
     return filterValue == null || (!(filterValue ^ actualValue));
   }
 }
