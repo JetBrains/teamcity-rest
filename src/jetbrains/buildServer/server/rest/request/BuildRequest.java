@@ -28,10 +28,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import jetbrains.buildServer.controllers.artifacts.RepositoryUtil;
 import jetbrains.buildServer.parameters.ProcessingResult;
-import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
-import jetbrains.buildServer.server.rest.data.BuildFinder;
-import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
@@ -264,6 +261,52 @@ public class BuildRequest {
     final Response.ResponseBuilder builder = BuildArtifactsFinder.getContent(artifactElement, request);
     if (logBuildUsage){
       RepositoryUtil.logArtifactDownload(request, myBeanContext.getSingletonService(DownloadedArtifactsLogger.class), build, resolvedPath);
+    }
+    return builder.build();
+  }
+
+  /**
+   * Experimental
+   * @param path path within build artifacts
+   * @param name name of the file to pack the artifacts into
+   */
+  @GET
+  @Path("/{buildLocator}" + ARTIFACTS + "/packed" + "{path:(/.*)?}")
+  @Produces({MediaType.WILDCARD})
+  public Response getZippedArtifacts(@PathParam("buildLocator") final String buildLocator,
+                                     @PathParam("path") final String path,
+                                     @QueryParam("locator") final String locator,
+                                     @QueryParam("name") final String name,
+                                     @QueryParam("resolveParameters") final Boolean resolveParameters,
+                                     @QueryParam("logBuildUsage") @DefaultValue("true") final Boolean logBuildUsage,
+                                     @Context HttpServletRequest request) {
+    final SBuild build = myBuildFinder.getBuild(null, buildLocator);
+    String resolvedPath = getResolvedIfNecessary(build, path, resolveParameters);
+    String resolvedName = getResolvedIfNecessary(build, name, resolveParameters);
+    if ("".equals(resolvedName)) {
+      resolvedName = WebUtil.getFilename(build) + "_artifacts.zip";
+    }
+
+    String actualLocator = Locator.setDimensionIfNotPresent(locator, BuildArtifactsFinder.DIMENSION_RECURSIVE, "true"); //include al files recursively by default
+    actualLocator = Locator.setDimensionIfNotPresent(actualLocator, BuildArtifactsFinder.ARCHIVES_DIMENSION_NAME, "false"); //do not expand archives by default
+    final List<ArtifactTreeElement> artifacts = myBuildArtifactsFinder.getArtifacts(build, resolvedPath, actualLocator, myBeanContext);
+
+    final ArchiveElement archiveElement = new ArchiveElement(artifacts, resolvedName);
+    final Response.ResponseBuilder builder = BuildArtifactsFinder.getContentByStream(archiveElement, request, new BuildArtifactsFinder.StreamingOutputProvider() {
+      public boolean isRangeSupported() {
+        return false;
+      }
+
+      public StreamingOutput getStreamingOutput(@Nullable final Long startOffset, @Nullable final Long length) {
+        return archiveElement.getStreamingOutput(startOffset, length);
+      }
+    });
+
+    //if downloaded with build credentials, log usage for all files
+    if (logBuildUsage) {
+      for (ArtifactTreeElement artifact : artifacts) {
+        RepositoryUtil.logArtifactDownload(request, myBeanContext.getSingletonService(DownloadedArtifactsLogger.class), build, artifact.getFullName());
+      }
     }
     return builder.build();
   }

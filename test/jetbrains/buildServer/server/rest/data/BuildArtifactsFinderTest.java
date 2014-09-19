@@ -252,6 +252,37 @@ public class BuildArtifactsFinderTest extends BaseServerTestCase {
 
   }
 
+  @Test
+  public void testLocatorRecursive() throws Exception {
+    ArtifactTreeElement element;
+    List<ArtifactTreeElement> artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", "recursive:true", null);
+
+    assertSize(10, artifacts);
+    assertContainsByFullName(artifacts, "dir1");
+    assertContainsByFullName(artifacts, "archive.zip");
+    assertContainsByFullName(artifacts, "file.txt");
+    assertContainsByFullName(artifacts, "dir1/file.txt");
+    assertContainsByFullName(artifacts, "archive.zip!/a");
+    assertContainsByFullName(artifacts, "archive.zip!/file4.txt");
+    assertContainsByFullName(artifacts, "archive.zip!/a/b");
+    assertContainsByFullName(artifacts, "archive.zip!/a/file1.txt");
+    assertContainsByFullName(artifacts, "archive.zip!/a/file2.txt");
+    assertContainsByFullName(artifacts, "archive.zip!/a/b/file3.txt");
+
+    element = findElement(artifacts, "archive.zip");
+    assertTrue(element.isArchive());
+    assertFalse(element.isLeaf());
+    assertTrue(element.isContentAvailable());
+    assertSize(2, Lists.newArrayList(element.getChildren()));
+
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", "recursive:true,browseArchives:false", null);
+
+    assertSize(4, artifacts);
+    assertContainsByFullName(artifacts, "dir1");
+    assertContainsByFullName(artifacts, "archive.zip");
+    assertContainsByFullName(artifacts, "file.txt");
+    assertContainsByFullName(artifacts, "dir1/file.txt");
+  }
 
   private void assertContainsByFullName(final List<ArtifactTreeElement> artifacts, final String fullName) {
     if (findElement(artifacts, fullName) == null) {
