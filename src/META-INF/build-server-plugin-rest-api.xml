@@ -37,6 +37,8 @@
   <bean id="apiController" class="jetbrains.buildServer.server.rest.APIController"/>
 
   <bean id="restDataProvider" class="jetbrains.buildServer.server.rest.data.DataProvider"/>
+  <bean id="restPermissionChecker" class="jetbrains.buildServer.server.rest.data.PermissionChecker"/>
+
   <bean id="restbuildFinder" class="jetbrains.buildServer.server.rest.data.BuildFinder"/>
   <bean id="restQueuedBuildFinder" class="jetbrains.buildServer.server.rest.data.QueuedBuildFinder"/>
   <bean id="restBuildPromotionFinder" class="jetbrains.buildServer.server.rest.data.BuildPromotionFinder"/>

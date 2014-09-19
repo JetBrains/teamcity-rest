@@ -83,6 +83,7 @@ public class DataProvider {
   @NotNull private final DBFunctionsProvider myDbFunctionsProvider;
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final RootUrlHolder myRootUrlHolder;
+  @NotNull private final PermissionChecker myPermissionChecker;
 
   public DataProvider(@NotNull final SBuildServer myServer,
                       @NotNull final BuildHistory myBuildHistory,
@@ -103,7 +104,8 @@ public class DataProvider {
                       @NotNull final ConfigurableApplicationContext applicationContext,
                       @NotNull final DBFunctionsProvider dbFunctionsProvider,
                       @NotNull final ServiceLocator serviceLocator,
-                      @NotNull final RootUrlHolder rootUrlHolder) {
+                      @NotNull final RootUrlHolder rootUrlHolder,
+                      @NotNull final PermissionChecker permissionChecker) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
     this.myUserModel = userModel;
@@ -124,6 +126,7 @@ public class DataProvider {
     myDbFunctionsProvider = dbFunctionsProvider;
     myServiceLocator = serviceLocator;
     myRootUrlHolder = rootUrlHolder;
+    myPermissionChecker = permissionChecker;
   }
 
   public static String dumpQuoted(final Collection<String> strings) {
@@ -344,37 +347,15 @@ public class DataProvider {
   }
 
   public void checkGlobalPermission(final Permission permission) throws AuthorizationFailedException{
-    final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
-    if (!authorityHolder.isPermissionGrantedForAnyProject(permission)) {
-      throw new AuthorizationFailedException(
-        "User " + authorityHolder.getAssociatedUser() + " does not have global permission " + permission);
-    }
+    myPermissionChecker.checkGlobalPermission(permission);
   }
 
   public void checkGlobalPermissionAnyOf(final Permission[] permissions) throws AuthorizationFailedException{
-    final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
-    for (Permission permission : permissions) {
-      if (authorityHolder.isPermissionGrantedForAnyProject(permission)) {
-        return;
-      }
-    }
-
-    throw new AuthorizationFailedException(
-      "User " + authorityHolder.getAssociatedUser() + " does not have any of the permissions granted globally: " + Arrays.toString(permissions));
+    myPermissionChecker.checkGlobalPermissionAnyOf(permissions);
   }
 
   public void checkProjectPermission(@NotNull final Permission permission, @Nullable final String internalProjectId) throws AuthorizationFailedException{
-    final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
-    if (internalProjectId == null){
-      if (authorityHolder.isPermissionGrantedGlobally(permission)){
-        return;
-      }
-      throw new AuthorizationFailedException("No permission '" + permission + " is granted globally.");
-    }
-    if (!authorityHolder.isPermissionGrantedForProject(internalProjectId, permission)) {
-      throw new AuthorizationFailedException("User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission +
-                                             " in project with internal id: '" + internalProjectId + "'");
-    }
+    myPermissionChecker.checkProjectPermission(permission, internalProjectId);
   }
 
   // workaround for http://youtrack.jetbrains.com/issue/TW-28306
