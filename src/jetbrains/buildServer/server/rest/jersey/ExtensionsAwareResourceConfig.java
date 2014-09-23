@@ -27,6 +27,7 @@ import java.lang.annotation.Annotation;
 import java.util.*;
 import javax.ws.rs.Path;
 import javax.ws.rs.ext.Provider;
+import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.RESTControllerExtension;
 import org.jetbrains.annotations.NotNull;
@@ -39,17 +40,16 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @since 9.0
  */
 public class ExtensionsAwareResourceConfig extends DefaultResourceConfig implements ReloadListener {
+  private static Logger LOG = Logger.getInstance(ExtensionsAwareResourceConfig.class.getName());
+
   @NotNull private final APIController myController;
-
-  @Autowired
-  public ExtensionsAwareResourceConfig(@NotNull final APIController controller) {
-    myController = controller;
-  }
-
-  private static final Logger LOG = Logger.getInstance(ExtensionsAwareResourceConfig.class.getName());
-
   private final Set<Class<?>> myCachedClasses = new HashSet<Class<?>>();
 
+  @Autowired
+  public ExtensionsAwareResourceConfig(@NotNull final APIController controller, @SuppressWarnings("SpringJavaAutowiringInspection") final ServerPluginInfo pluginDescriptor) {
+    myController = controller;
+    LOG = Logger.getInstance(ExtensionsAwareResourceConfig.class.getName() + "/" + pluginDescriptor.getPluginName());
+  }
 
   @NotNull
   public Collection<Pair<String[], ClassLoader>> getScanningInfo() {
