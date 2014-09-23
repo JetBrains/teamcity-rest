@@ -23,9 +23,13 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.List;
-import jetbrains.buildServer.messages.Status;
+import jetbrains.BuildServerCreator;
+import jetbrains.buildServer.BaseTestCase;
+import jetbrains.buildServer.TempFiles;
+import jetbrains.buildServer.TestLogger;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
-import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
+import jetbrains.buildServer.serverSide.SRunningBuild;
+import jetbrains.buildServer.serverSide.db.TestDB;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
@@ -35,6 +39,8 @@ import jetbrains.buildServer.zip.ZipWriter;
 import junit.framework.AssertionFailedError;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -44,7 +50,10 @@ import org.testng.annotations.Test;
  */
 @SuppressWarnings({"ResultOfMethodCallIgnored", "ConstantConditions"})
 @Test
-public class BuildArtifactsFinderTest extends BaseServerTestCase {
+public class BuildArtifactsFinderTest extends BaseTestCase {
+  private BuildServerCreator myFixture;
+  private final TempFiles myTempFiles = new TempFiles();
+
   private BuildArtifactsFinder myBuildArtifactsFinder;
 
   private SFinishedBuild myBuildWithArtifacts;
@@ -80,13 +89,18 @@ public class BuildArtifactsFinderTest extends BaseServerTestCase {
       build();
   }
 
-  @SuppressWarnings("ResultOfMethodCallIgnored")
-  @Override
-  @BeforeMethod
-  public void setUp() throws Exception {
-    super.setUp();
+  @BeforeClass
+  protected void suiteSetUp() throws IOException {
+    TestLogger.initInternalProperties();
 
-    myBuildWithArtifacts = createBuild(Status.NORMAL);
+    TestDB.createSchemaIfNotCreated();
+    myFixture = new BuildServerCreator(BuildArtifactsFinderTest.class, myTempFiles.createTempDir());
+    myFixture.createNewServer();
+    myFixture.loadConfigurationFromDiskAndFireStartup();
+
+    final SRunningBuild runningBuild = myFixture.startBuild();
+    myBuildWithArtifacts = myFixture.finishBuild(runningBuild, false);
+
     final File artifactsDir = myBuildWithArtifacts.getArtifactsDirectory();
     artifactsDir.mkdirs();
 
@@ -95,6 +109,19 @@ public class BuildArtifactsFinderTest extends BaseServerTestCase {
     final PermissionChecker permissionChecker = new PermissionChecker(myFixture.getServer().getSecurityContext());
 
     myBuildArtifactsFinder = new BuildArtifactsFinder(permissionChecker);
+  }
+
+  @AfterClass
+  protected void suiteTearDown() {
+    myFixture.shutdown();
+    myTempFiles.cleanup();
+  }
+
+  @SuppressWarnings("ResultOfMethodCallIgnored")
+  @Override
+  @BeforeMethod
+  public void setUp() throws Exception {
+    super.setUp();
   }
 
   public void testLocatorSet1() throws Exception {
