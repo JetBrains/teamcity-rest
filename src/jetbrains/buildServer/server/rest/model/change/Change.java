@@ -44,7 +44,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * Date: 12.04.2009
  */
 @XmlRootElement(name = "change")
-@XmlType(name= "change", propOrder = {"id", "version", "username", "date", "personal", "href", "webLink",
+@XmlType(name= "change", propOrder = {"id", "version", "username", "date", "personal", "href", "webUrl",
   "comment", "user", "fileChanges", "vcsRootInstance"})
 public class Change {
   protected SVcsModification myModification;
@@ -84,8 +84,8 @@ public class Change {
   }
 
   @XmlAttribute
-  public String getWebLink() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("webLink"), myWebLinks.getChangeUrl(myModification.getId(), myModification.isPersonal()));
+  public String getWebUrl() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("webUrl"), myWebLinks.getChangeUrl(myModification.getId(), myModification.isPersonal()));
   }
 
   @XmlAttribute
