@@ -230,7 +230,7 @@ public class ChangeRequest {
   @Produces({"application/xml", "application/json"})
   public BuildTypes getRelatedBuildTypes(@PathParam("changeLocator") String changeLocator, @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
-    return new BuildTypes(BuildTypes.fromBuildTypes(change.getRelatedConfigurations()),  new Fields(fields), myBeanContext);
+    return new BuildTypes(BuildTypes.fromBuildTypes(change.getRelatedConfigurations()), null, new Fields(fields), myBeanContext);
   }
 
  /**

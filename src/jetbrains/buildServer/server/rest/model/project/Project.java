@@ -137,12 +137,12 @@ public class Project {
     });
     buildTypes = ValueWithDefault.decideDefault(fields.isIncluded("buildTypes", false), new ValueWithDefault.Value<BuildTypes>() {
       public BuildTypes get() {
-        return new BuildTypes(BuildTypes.fromBuildTypes(project.getOwnBuildTypes()), fields.getNestedField("buildTypes", Fields.NONE, Fields.LONG), beanContext);
+        return new BuildTypes(BuildTypes.fromBuildTypes(project.getOwnBuildTypes()), null, fields.getNestedField("buildTypes", Fields.NONE, Fields.LONG), beanContext);
       }
     });
     templates = ValueWithDefault.decideDefault(fields.isIncluded("templates", false), new ValueWithDefault.Value<BuildTypes>() {
       public BuildTypes get() {
-        return new BuildTypes(BuildTypes.fromTemplates(project.getOwnBuildTypeTemplates()), fields.getNestedField("templates", Fields.NONE, Fields.LONG), beanContext);
+        return new BuildTypes(BuildTypes.fromTemplates(project.getOwnBuildTypeTemplates()), null, fields.getNestedField("templates", Fields.NONE, Fields.LONG), beanContext);
       }
     });
     parameters = ValueWithDefault.decideDefault(fields.isIncluded("parameters", false), new ValueWithDefault.Value<Properties>() {
@@ -159,7 +159,7 @@ public class Project {
 
     projects = ValueWithDefault.decideDefault(fields.isIncluded("projects", false), new ValueWithDefault.Value<Projects>() {
       public Projects get() {
-        return new Projects(project.getOwnProjects(), fields.getNestedField("projects", Fields.NONE, Fields.LONG), beanContext);
+        return new Projects(project.getOwnProjects(), null, fields.getNestedField("projects", Fields.NONE, Fields.LONG), beanContext);
       }
     });
 

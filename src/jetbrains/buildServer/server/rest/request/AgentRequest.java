@@ -50,6 +50,10 @@ public class AgentRequest {
 
   public static final String API_AGENTS_URL = Constants.API_URL + "/agents";
 
+  public static String getHref() {
+    return API_AGENTS_URL;
+  }
+
   public static String getAgentHref(@NotNull final SBuildAgent agent) {
     return API_AGENTS_URL + "/id:" + agent.getId();
   }

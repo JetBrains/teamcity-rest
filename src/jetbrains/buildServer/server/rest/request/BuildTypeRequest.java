@@ -35,10 +35,8 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
-import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.Href;
+import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.build.Branch;
 import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.buildType.*;
@@ -93,6 +91,11 @@ public class BuildTypeRequest {
   }
 
   @NotNull
+  public static String getHref() {
+    return API_BUILD_TYPES_URL;
+  }
+
+  @NotNull
   public static String getBuildTypeHref(@NotNull SBuildType buildType) {
     return API_BUILD_TYPES_URL + "/" + BuildTypeFinder.getLocator(buildType);
   }
@@ -125,14 +128,10 @@ public class BuildTypeRequest {
     final String actualLocator = Locator.setDimensionIfNotPresent(locator, BuildTypeFinder.TEMPLATE_FLAG_DIMENSION_NAME, "false");
     final PagedSearchResult<BuildTypeOrTemplate> result = myBuildTypeFinder.getItems(actualLocator);
 
-    /*
-    // will need this when pager support is implemented in BuildTypes
     final PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
                                           result.myCount, result.myEntries.size(),
-                                          locator,
-                                          "locator");
-    */
-    return new BuildTypes(result.myEntries,  new Fields(fields), myBeanContext);
+                                          locator, "locator");
+    return new BuildTypes(result.myEntries, pager, new Fields(fields), myBeanContext);
   }
 
   @POST

@@ -98,6 +98,10 @@ public class BuildRequest {
   @Context @NotNull private BeanContext myBeanContext;
   @Context @NotNull private DataProvider myDataProvider;
 
+  public static String getHref() {
+    return API_BUILDS_URL;
+  }
+
   public static String getBuildHref(SBuild build) {
     return API_BUILDS_URL + "/" + getBuildLocator(build);
   }

@@ -60,6 +60,10 @@ public class VcsRootInstanceRequest {
   public static final String API_VCS_ROOT_INSTANCES_URL = Constants.API_URL + "/vcs-root-instances";
   public static final String FILES_LATEST = "/files/latest";
 
+  public static String getHref() {
+    return API_VCS_ROOT_INSTANCES_URL;
+  }
+
   public static String getVcsRootInstanceHref(final jetbrains.buildServer.vcs.VcsRootInstance vcsRootInstance) {
     return API_VCS_ROOT_INSTANCES_URL + "/id:" + vcsRootInstance.getId();
   }

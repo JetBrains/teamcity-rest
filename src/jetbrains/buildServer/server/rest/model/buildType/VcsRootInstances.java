@@ -43,6 +43,9 @@ public class VcsRootInstances {
   @XmlAttribute
   public long count;
 
+  @XmlAttribute
+  public String href;
+
   @XmlAttribute(required = false)
   @Nullable
   public String nextHref;
@@ -64,6 +67,7 @@ public class VcsRootInstances {
     if (pagerData != null) {
       nextHref = pagerData.getNextHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;
       prevHref = pagerData.getPrevHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getPrevHref()) : null;
+      href = apiUrlBuilder.transformRelativePath(pagerData.getHref());
     }
     count = vcsRoots.size();
   }

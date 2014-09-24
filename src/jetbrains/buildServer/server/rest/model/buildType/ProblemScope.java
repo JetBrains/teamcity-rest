@@ -63,7 +63,7 @@ public class ProblemScope {
         public BuildTypes get() {
           final BuildTypeOrTemplate buildType = new BuildTypeOrTemplate((SBuildType)investigation.getBuildTypeRE().getBuildType());
           return new BuildTypes(Collections.singletonList(buildType),
-                                fields.getNestedField("buildTypes", Fields.NONE, Fields.LONG), beanContext);  //TeamCity open API issue: cast;
+                                null, fields.getNestedField("buildTypes", Fields.NONE, Fields.LONG), beanContext);  //TeamCity open API issue: cast;
         }
       });
       //support for pre-8.1
@@ -94,7 +94,7 @@ public class ProblemScope {
             final Collection<String> buildTypeIds = scope.getBuildTypeIds();
             final ProjectManager projectManager = beanContext.getSingletonService(ProjectManager.class);
             return buildTypeIds == null ? null : new BuildTypes(BuildTypes.fromBuildTypes(BuildTypeFinder.getBuildTypesByInternalIds(buildTypeIds, projectManager)),
-                                                                fields.getNestedField("buildTypes", Fields.NONE, Fields.LONG), beanContext);
+                                                                null, fields.getNestedField("buildTypes", Fields.NONE, Fields.LONG), beanContext);
           }
         });
         break;

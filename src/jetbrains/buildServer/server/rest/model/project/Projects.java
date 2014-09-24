@@ -25,10 +25,12 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * User: Yegor Yarko
@@ -40,13 +42,25 @@ public class Projects {
   @XmlAttribute
   public Integer count;
 
+  @XmlAttribute
+  @Nullable
+  public String href;
+
+  @XmlAttribute(required = false)
+  @Nullable
+  public String nextHref;
+
+  @XmlAttribute(required = false)
+  @Nullable
+  public String prevHref;
+
   @XmlElement(name = "project")
   public List<Project> projects;
 
   public Projects() {
   }
 
-  public Projects(@NotNull final List<SProject> projectObjects, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+  public Projects(@NotNull final List<SProject> projectObjects, @Nullable final PagerData pagerData, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     if (fields.isIncluded("project", false, true)){
       projects = ValueWithDefault.decideDefault(fields.isIncluded("project"), new ValueWithDefault.Value<List<Project>>() {
         public List<Project> get() {
@@ -60,6 +74,13 @@ public class Projects {
       });
     }else{
       projects = null;
+    }
+    if (pagerData != null) {
+      href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getHref()));
+      nextHref = ValueWithDefault
+        .decideDefault(fields.isIncluded("nextHref"), pagerData.getNextHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null);
+      prevHref = ValueWithDefault
+        .decideDefault(fields.isIncluded("prevHref"), pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null);
     }
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), projectObjects.size());
   }

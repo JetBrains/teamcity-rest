@@ -53,7 +53,7 @@ public class AgentPool {
     id = agentPool.getAgentPoolId();
     name = agentPool.getName();
     AgentPoolsFinder agentPoolsFinder = beanContext.getSingletonService(AgentPoolsFinder.class);
-    projects = new Projects(agentPoolsFinder.getPoolProjects(agentPool), fields.getNestedField("projects", Fields.NONE, Fields.LONG), beanContext);
+    projects = new Projects(agentPoolsFinder.getPoolProjects(agentPool), null, fields.getNestedField("projects", Fields.NONE, Fields.LONG), beanContext);
     //todo: support agent types
     agents = new Agents(agentPoolsFinder.getPoolAgents(agentPool), null, fields.getNestedField("agents", Fields.NONE, Fields.LONG), beanContext);
   }
