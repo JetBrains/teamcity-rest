@@ -51,6 +51,7 @@ import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.impl.VcsLabelingBuildFeature;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
@@ -1452,13 +1453,14 @@ public class BuildTypeRequest {
   /**
    * Gets VCS labeling settings
    * Experimental support only
+   * @deprecated VCS labeling configuration is moved to build features settings.
    */
   @GET
   @Path("/{btLocator}/vcsLabeling")
   @Produces({"application/xml", "application/json"})
   public VCSLabelingOptions getVCSLabelingOptions(@PathParam("btLocator") String buildTypeLocator) {
-    final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    return new VCSLabelingOptions(buildType, myApiUrlBuilder);
+    throw new BadRequestException("VCS labeling configuration is moved to build features settings." +
+                                  " List build features of type '" + VcsLabelingBuildFeature.VCS_LABELING_TYPE + "' to get VCS labeling settings.");
   }
 
   public static final String WHERE_NOTE = "current sources of the build configuration";
@@ -1534,6 +1536,7 @@ public class BuildTypeRequest {
   /**
    * Sets VCS labeling settings
    * Experimental support only
+   * @deprecated VCS labeling configuration is moved to build features settings.
    */
   @PUT
   @Path("/{btLocator}/vcsLabeling")
