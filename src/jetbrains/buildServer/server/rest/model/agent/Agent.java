@@ -19,12 +19,14 @@ package jetbrains.buildServer.server.rest.model.agent;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.StringUtil;
@@ -43,13 +45,13 @@ public class Agent {
   @XmlAttribute public Integer id;
   @XmlAttribute public String name;
   @XmlAttribute public Integer typeId;
-  @XmlAttribute public boolean connected;
-  @XmlAttribute public boolean enabled;
-  @XmlAttribute public boolean authorized;
-  @XmlAttribute public boolean uptodate;
+  @XmlAttribute public Boolean connected;
+  @XmlAttribute public Boolean enabled;
+  @XmlAttribute public Boolean authorized;
+  @XmlAttribute public Boolean uptodate;
   @XmlAttribute public String ip;
   @XmlElement public Properties properties;
-  @XmlElement public AgentPoolRef pool;
+  @XmlElement public AgentPool pool;
 
   /**
    * This is used only when posting a link to an agent.
@@ -59,19 +61,29 @@ public class Agent {
   public Agent() {
   }
 
-  public Agent(@NotNull final SBuildAgent agent, @NotNull final AgentPoolsFinder agentPoolsFinder, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    id = agent.getId();
-    name = agent.getName();
-    typeId = agent.getAgentTypeId();
-    connected = agent.isRegistered();
-    enabled = agent.isEnabled();
-    authorized = agent.isAuthorized();
-    uptodate = !agent.isOutdated() && !agent.isPluginsOutdated();
-    ip = agent.getHostAddress();
+  public Agent(@NotNull final SBuildAgent agent, @NotNull final AgentPoolsFinder agentPoolsFinder, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+    id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), agent.getId());
+    name = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), agent.getName());
+    typeId = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("typeId"), agent.getAgentTypeId());
+    href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(agent));
+    connected = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("connected", false), agent.isRegistered());
+    enabled = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("enabled", false), agent.isEnabled());
+    authorized = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("authorized", false), agent.isAuthorized());
+    uptodate = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("uptodate", false), !agent.isOutdated() && !agent.isPluginsOutdated());
+    ip = ValueWithDefault.decideDefault(fields.isIncluded("ip", false), agent.getHostAddress());
     //TODO: review, if it should return all parameters on agent, use #getDefinedParameters()
-    properties = new Properties(agent.getAvailableParameters());
-    pool = new AgentPoolRef(agentPoolsFinder.getAgentPool(agent), apiUrlBuilder);
-    href = apiUrlBuilder.getHref(agent);
+    properties = ValueWithDefault.decideDefault(fields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
+      @Nullable
+      public Properties get() {
+        return new Properties(agent.getAvailableParameters(), null, fields.getNestedField("properties", Fields.NONE, Fields.LONG));
+      }
+    });
+    pool = ValueWithDefault.decideDefault(fields.isIncluded("pool", false), new ValueWithDefault.Value<AgentPool>() {
+      @Nullable
+      public AgentPool get() {
+        return new AgentPool(agentPoolsFinder.getAgentPool(agent), fields.getNestedField("pool"), beanContext);
+      }
+    });
   }
 
   public static String getFieldValue(@NotNull final SBuildAgent agent, @Nullable final String name) {
@@ -114,11 +126,18 @@ public class Agent {
 
   @NotNull
   public SBuildAgent getAgentFromPosted(@NotNull final AgentFinder agentFinder) {
-    final AgentRef agentRef = new AgentRef();
-    agentRef.id = id;
-    agentRef.locator = locator;
-    agentRef.name = name;
-    agentRef.href = href;
-    return agentRef.getAgentFromPosted(agentFinder);
+    String locatorText = "";
+    if (id != null) locatorText += (!locatorText.isEmpty() ? "," : "") + AgentFinder.DIMENSION_ID + ":" + id;
+    if (locatorText.isEmpty()) {
+      locatorText = locator;
+    } else {
+      if (locator != null) {
+        throw new BadRequestException("Both 'locator' and 'id' attributes are specified. Only one should be present.");
+      }
+    }
+    if (StringUtil.isEmpty(locatorText)){
+      throw new BadRequestException("No agent specified. Either 'id' or 'locator' attribute should be present.");
+    }
+    return agentFinder.getItem(locatorText);
   }
 }

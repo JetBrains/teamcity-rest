@@ -23,11 +23,14 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.serverSide.agentPools.AgentPool;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -38,30 +41,55 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 public class AgentPools {
   @XmlAttribute
-  public long count;
+  public Integer count;
+
+  @XmlAttribute
+  @Nullable
+  public String href;
+
+  @XmlAttribute(required = false)
+  @Nullable
+  public String nextHref;
+
+  @XmlAttribute(required = false)
+  @Nullable
+  public String prevHref;
 
   @XmlElement(name = "agentPool")
-  public List<AgentPoolRef> items;
+  public List<AgentPool> items;
 
   public AgentPools() {
   }
 
-  public AgentPools(Collection<AgentPool> items, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    this.items = new ArrayList<AgentPoolRef>(items.size());
-    for (AgentPool item : items) {
-      this.items.add(new AgentPoolRef(item, apiUrlBuilder));
+  public AgentPools(Collection<jetbrains.buildServer.serverSide.agentPools.AgentPool> items, final PagerData pagerData, final Fields fields, final BeanContext beanContext) {
+    if (items != null && fields.isIncluded("agentPool", false, true)) {
+      ArrayList<AgentPool> list = new ArrayList<AgentPool>(items.size());
+      for (jetbrains.buildServer.serverSide.agentPools.AgentPool item : items) {
+        list.add(new AgentPool(item, fields.getNestedField("agentPool"), beanContext));
+      }
+      this.items = ValueWithDefault.decideDefault(fields.isIncluded("agentPool"), list);
+    } else {
+      this.items = null;
     }
-    count = this.items.size();
+
+    if (pagerData != null) {
+      href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getHref()));
+      nextHref = ValueWithDefault
+        .decideDefault(fields.isIncluded("nextHref"), pagerData.getNextHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null);
+      prevHref = ValueWithDefault
+        .decideDefault(fields.isIncluded("prevHref"), pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null);
+    }
+    count = items == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), items.size());
   }
 
   @NotNull
-  public List<AgentPool> getPoolsFromPosted(@NotNull final AgentPoolsFinder agentPoolsFinder) {
+  public List<jetbrains.buildServer.serverSide.agentPools.AgentPool> getPoolsFromPosted(@NotNull final AgentPoolsFinder agentPoolsFinder) {
       if (items == null) {
         throw new BadRequestException("List of agent pools should be supplied");
       }
-      final ArrayList<AgentPool> result = new ArrayList<AgentPool>(items.size());
-      for (AgentPoolRef agentPoolRef : items) {
-        result.add(agentPoolRef.getAgentPoolFromPosted(agentPoolsFinder));
+      final ArrayList<jetbrains.buildServer.serverSide.agentPools.AgentPool> result = new ArrayList<jetbrains.buildServer.serverSide.agentPools.AgentPool>(items.size());
+      for (AgentPool agentPool : items) {
+        result.add(agentPool.getAgentPoolFromPosted(agentPoolsFinder));
       }
       return result;
     }

@@ -38,6 +38,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 07.11.13
  */
 public class AgentPoolsFinder {
+  public static final String DIMENSION_ID = "id";
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final AgentFinder myAgentFinder;
 
@@ -110,14 +111,14 @@ public class AgentPoolsFinder {
     if (StringUtil.isEmpty(locatorText)) {
       throw new BadRequestException("Empty agent pool locator is not supported.");
     }
-    final Locator locator = new Locator(locatorText, "id", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    final Locator locator = new Locator(locatorText, DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's an id
       locator.checkLocatorFullyProcessed();
       //noinspection ConstantConditions
       return getAgentPoolById(locator.getSingleValueAsLong());
     }
-    Long id = locator.getSingleDimensionValueAsLong("id");
+    Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (id != null) {
       locator.checkLocatorFullyProcessed();
       return getAgentPoolById(id);

@@ -103,8 +103,8 @@ public class AgentRequest {
   @GET
   @Path("/{agentLocator}")
   @Produces({"application/xml", "application/json"})
-  public Agent serveAgent(@PathParam("agentLocator") String agentLocator) {
-    return new Agent(myAgentFinder.getItem(agentLocator), myAgentPoolsFinder, myApiUrlBuilder);
+  public Agent serveAgent(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
+    return new Agent(myAgentFinder.getItem(agentLocator), myAgentPoolsFinder, new Fields(fields), myBeanContext);
   }
 
   @DELETE

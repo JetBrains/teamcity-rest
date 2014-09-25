@@ -30,6 +30,7 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.agent.AgentPools;
@@ -71,8 +72,8 @@ public class AgentPoolRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
-  public AgentPools getPools() {
-    return new AgentPools(myServiceLocator.getSingletonService(AgentPoolManager.class).getAllAgentPools(), myApiUrlBuilder);
+  public AgentPools getPools(@QueryParam("fields") String fields) {
+    return new AgentPools(myServiceLocator.getSingletonService(AgentPoolManager.class).getAllAgentPools(), new PagerData(getHref()), new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -201,7 +202,7 @@ public class AgentPoolRequest {
   @Produces({"application/xml", "application/json"})
   public Agents getPoolAgents(@PathParam("agentPoolLocator") String agentPoolLocator, @QueryParam("fields") String fields) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolsFinder.getAgentPool(agentPoolLocator);
-    return new Agents(myAgentPoolsFinder.getPoolAgents(agentPool), null,  new Fields(fields), myBeanContext);
+    return new Agents(myAgentPoolsFinder.getPoolAgents(agentPool), null, new Fields(fields), myBeanContext);
   }
 
   /**
@@ -214,11 +215,11 @@ public class AgentPoolRequest {
   @Path("/{agentPoolLocator}/agents")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Agent addAgent(@PathParam("agentPoolLocator") String agentPoolLocator, Agent agent) {
+  public Agent addAgent(@PathParam("agentPoolLocator") String agentPoolLocator, Agent agent, @QueryParam("fields") String fields) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolsFinder.getAgentPool(agentPoolLocator);
     SBuildAgent postedAgent = agent.getAgentFromPosted(myAgentFinder);
     myDataProvider.addAgentToPool(agentPool, postedAgent);
-    return new Agent(postedAgent, myAgentPoolsFinder, myApiUrlBuilder);
+    return new Agent(postedAgent, myAgentPoolsFinder, new Fields(fields), myBeanContext);
   }
 }
 

@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -43,30 +44,31 @@ public class Agents {
   public Integer count;
 
   @XmlElement(name = "agent")
-  public List<AgentRef> agents;
+  public List<Agent> agents;
 
   @XmlAttribute(required = false) @Nullable public String nextHref;
   @XmlAttribute(required = false) @Nullable public String prevHref;
-  @XmlAttribute(name = "href") public String href;
+  @XmlAttribute(required = false) @Nullable public String href;
 
   public Agents() {
   }
 
-  public Agents(@NotNull Collection<SBuildAgent> agentObjects, @Nullable final PagerData pagerData, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
-    href = pagerData == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href", true), beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getHref()));
-    if (fields.isIncluded("agent", false, true)) {
-      final ArrayList<AgentRef> agentList = new ArrayList<AgentRef>(agentObjects.size());
-      for (SBuildAgent agent : agentObjects) {
-        agentList.add(new AgentRef(agent, beanContext.getApiUrlBuilder()));
+  public Agents(@NotNull final Collection<SBuildAgent> agentObjects, @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    agents = ValueWithDefault.decideDefault(fields.isIncluded("agent", false, true), new ValueWithDefault.Value<List<Agent>>() {
+      @Nullable
+      public List<Agent> get() {
+        final ArrayList<Agent> items = new ArrayList<Agent>(agentObjects.size());
+        for (SBuildAgent item : agentObjects) {
+          items.add(new Agent(item, beanContext.getSingletonService(AgentPoolsFinder.class), fields.getNestedField("agent"), beanContext));
+        }
+        return items;
       }
-      agents = ValueWithDefault.decideDefault(fields.isIncluded("agent"), agentList);
-    } else {
-      agents = null;
-    }
+    });
 
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), agentObjects.size());
 
     if (pagerData != null) {
+      href = ValueWithDefault.decideDefault(fields.isIncluded("href", true), beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getHref()));
       nextHref = ValueWithDefault
         .decideDefault(fields.isIncluded("nextHref"), pagerData.getNextHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null);
       prevHref = ValueWithDefault

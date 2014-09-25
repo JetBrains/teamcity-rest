@@ -507,14 +507,14 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/agentPools")
   @Produces({"application/xml", "application/json"})
-  public AgentPools getProjectAgentPools(@PathParam("projectLocator") String projectLocator) {
+  public AgentPools getProjectAgentPools(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getProject(projectLocator);
-    return new AgentPools(myAgentPoolsFinder.getPoolsForProject(project), myApiUrlBuilder);
+    return new AgentPools(myAgentPoolsFinder.getPoolsForProject(project), null, new Fields(fields), myBeanContext);
   }
 
   @DELETE
   @Path("/{projectLocator}/agentPools/{agentPoolLocator}")
-  public void getProjectAgentPools(@PathParam("projectLocator") String projectLocator, @PathParam("agentPoolLocator") String agentPoolLocator) {
+  public void deleteProjectAgentPools(@PathParam("projectLocator") String projectLocator, @PathParam("agentPoolLocator") String agentPoolLocator) {
     SProject project = myProjectFinder.getProject(projectLocator);
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolsFinder.getAgentPool(agentPoolLocator);
     final AgentPoolManager agentPoolManager = myServiceLocator.getSingletonService(AgentPoolManager.class);
@@ -530,10 +530,10 @@ public class ProjectRequest {
   @Path("/{projectLocator}/agentPools")
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
-  public AgentPools setProjectAgentPools(@PathParam("projectLocator") String projectLocator, AgentPools pools) {
+  public AgentPools setProjectAgentPools(@PathParam("projectLocator") String projectLocator, AgentPools pools, @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getProject(projectLocator);
     myDataProvider.setProjectPools(project, pools.getPoolsFromPosted(myAgentPoolsFinder));
-    return new AgentPools(myAgentPoolsFinder.getPoolsForProject(project), myApiUrlBuilder);
+    return new AgentPools(myAgentPoolsFinder.getPoolsForProject(project), null, new Fields(fields), myBeanContext);
   }
 
   @POST

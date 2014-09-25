@@ -21,10 +21,14 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -34,9 +38,9 @@ import org.jetbrains.annotations.NotNull;
 @XmlType(name = "agentPool")
 @SuppressWarnings("PublicField")
 public class AgentPool {
-  @XmlAttribute public String href;
   @XmlAttribute public Integer id;
   @XmlAttribute public String name;
+  @XmlAttribute public String href;
   @XmlElement public Projects projects;
   @XmlElement public Agents agents;
   /**
@@ -49,21 +53,48 @@ public class AgentPool {
 
   public AgentPool(@NotNull final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
 
-    href = beanContext.getApiUrlBuilder().getHref(agentPool);
-    id = agentPool.getAgentPoolId();
-    name = agentPool.getName();
-    AgentPoolsFinder agentPoolsFinder = beanContext.getSingletonService(AgentPoolsFinder.class);
-    projects = new Projects(agentPoolsFinder.getPoolProjects(agentPool), null, fields.getNestedField("projects", Fields.NONE, Fields.LONG), beanContext);
+    id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), agentPool.getAgentPoolId());
+    name = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), agentPool.getName());
+    href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(agentPool));
+
+    final AgentPoolsFinder agentPoolsFinder = beanContext.getSingletonService(AgentPoolsFinder.class);
+
+    projects = ValueWithDefault.decideDefault(fields.isIncluded("projects", false), new ValueWithDefault.Value<Projects>() {
+      @Nullable
+      public Projects get() {
+        return new Projects(agentPoolsFinder.getPoolProjects(agentPool), null, fields.getNestedField("projects", Fields.NONE, Fields.LONG), beanContext);
+      }
+    });
     //todo: support agent types
-    agents = new Agents(agentPoolsFinder.getPoolAgents(agentPool), null, fields.getNestedField("agents", Fields.NONE, Fields.LONG), beanContext);
+    agents = ValueWithDefault.decideDefault(fields.isIncluded("agents", false), new ValueWithDefault.Value<Agents>() {
+      @Nullable
+      public Agents get() {
+        return new Agents(agentPoolsFinder.getPoolAgents(agentPool), null, fields.getNestedField("agents", Fields.NONE, Fields.LONG), beanContext);
+      }
+    });
   }
 
   @NotNull
   public jetbrains.buildServer.serverSide.agentPools.AgentPool getAgentPoolFromPosted(@NotNull final AgentPoolsFinder agentPoolsFinder) {
-    AgentPoolRef agentPoolRef = new AgentPoolRef();
-    agentPoolRef.id = id;
-    agentPoolRef.name = name;
-    agentPoolRef.locator = locator;
-    return agentPoolRef.getAgentPoolFromPosted(agentPoolsFinder);
+    Locator resultLocator = Locator.createEmptyLocator();
+    boolean otherDimensionsSet = false;
+    if (id != null) {
+      otherDimensionsSet = true;
+      resultLocator.setDimension(AgentPoolsFinder.DIMENSION_ID, String.valueOf(id));
+    }
+    /*
+    //todo: implement this in finder!
+    if (name != null) {
+      otherDimensionsSet = true;
+      resultLocator.setDimension("name", name);
+    }
+    */
+    if (locator != null) {
+      if (otherDimensionsSet) {
+        throw new BadRequestException("Either 'locator' or other attributes should be specified.");
+      }
+      resultLocator = new Locator(locator);
+    }
+    return agentPoolsFinder.getAgentPool(resultLocator.getStringRepresentation());
   }
 }

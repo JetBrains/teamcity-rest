@@ -31,7 +31,7 @@ import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.server.rest.model.agent.AgentRef;
+import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.PropEntitiesArtifactDep;
 import jetbrains.buildServer.server.rest.model.change.Changes;
@@ -261,16 +261,16 @@ public class Build {
   }
 
   @XmlElement(name = "agent")
-  public AgentRef getAgent() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("agent", false), new ValueWithDefault.Value<AgentRef>() {
-      public AgentRef get() {
+  public Agent getAgent() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("agent", false), new ValueWithDefault.Value<Agent>() {
+      public Agent get() {
         SBuildAgent agent = null;
         if (myBuild != null) {
           agent = myBuild.getAgent();
         } else if (myQueuedBuild != null) {
           agent = myQueuedBuild.getBuildAgent();
         }
-        return agent == null ? null : new AgentRef(agent, myApiUrlBuilder);
+        return agent == null ? null : new Agent(agent, myBeanContext.getSingletonService(AgentPoolsFinder.class), myFields.getNestedField("agent"), myBeanContext);
       }
     });
   }
@@ -874,7 +874,7 @@ public class Build {
   private Boolean submittedPersonal;
   private Changes submittedLastChanges;
   private Builds submittedBuildDependencies;
-  private AgentRef submittedAgent;
+  private Agent submittedAgent;
   private PropEntitiesArtifactDep submittedCustomBuildArtifactDependencies;
   private Entries submittedAttributes;
 
@@ -924,7 +924,7 @@ public class Build {
     this.submittedBuildDependencies = submittedBuildDependencies;
   }
 
-  public void setAgent(final AgentRef submittedAgent) {
+  public void setAgent(final Agent submittedAgent) {
     this.submittedAgent = submittedAgent;
   }
 
