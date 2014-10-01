@@ -155,7 +155,7 @@ public class PropEntitySnapshotDep extends PropEntity {
   }
 
   private void addOptionToProperty(final HashMap<String, String> properties, final Dependency dependency,
-                                   final Option<Boolean> option) {
+                                   final Option option) {
     properties.put(option.getKey(), dependency.getOption(option).toString());
   }
 
