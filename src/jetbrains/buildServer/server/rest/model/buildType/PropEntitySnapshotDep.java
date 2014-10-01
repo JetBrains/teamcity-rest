@@ -75,6 +75,7 @@ public class PropEntitySnapshotDep extends PropEntity {
     }
 
     addOptionToProperty(properties, dependency, DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED);
+    addOptionToProperty(properties, dependency, DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED_TO_START);
     addOptionToProperty(properties, dependency, DependencyOptions.RUN_BUILD_ON_THE_SAME_AGENT);
     addOptionToProperty(properties, dependency, DependencyOptions.TAKE_STARTED_BUILD_WITH_SAME_REVISIONS);
     addOptionToProperty(properties, dependency, DependencyOptions.TAKE_SUCCESSFUL_BUILDS_ONLY);
@@ -155,7 +156,7 @@ public class PropEntitySnapshotDep extends PropEntity {
   }
 
   private void addOptionToProperty(final HashMap<String, String> properties, final Dependency dependency,
-                                   final Option<Boolean> option) {
+                                   final Option option) {
     properties.put(option.getKey(), dependency.getOption(option).toString());
   }
 
