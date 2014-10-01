@@ -70,9 +70,14 @@ public class Agent {
     enabled = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("enabled", false), agent.isEnabled());
     authorized = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("authorized", false), agent.isAuthorized());
     uptodate = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("uptodate", false), !agent.isOutdated() && !agent.isPluginsOutdated());
-    ip = ValueWithDefault.decideDefault(fields.isIncluded("ip", false), agent.getHostAddress());
+    ip = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("ip", false), new ValueWithDefault.Value<String>() {
+      @Nullable
+      public String get() {
+        return agent.getHostAddress();
+      }
+    });
     //TODO: review, if it should return all parameters on agent, use #getDefinedParameters()
-    properties = ValueWithDefault.decideDefault(fields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
+    properties = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
       @Nullable
       public Properties get() {
         return new Properties(agent.getAvailableParameters(), null, fields.getNestedField("properties", Fields.NONE, Fields.LONG));
