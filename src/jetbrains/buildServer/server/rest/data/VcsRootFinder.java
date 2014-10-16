@@ -123,6 +123,11 @@ public class VcsRootFinder{
   }
 
   @NotNull
+  public static String getLocatorText(@NotNull final SVcsRoot vcsRoot) {
+    return VCS_ROOT_DIMENSION + ":(id:" + vcsRoot.getExternalId() + ")";
+  }
+
+  @NotNull
   public PagedSearchResult<SVcsRoot> getVcsRoots(@Nullable final Locator locator) {
     if (locator == null) {
       final List<SVcsRoot> allRegisteredVcsRoots = myVcsManager.getAllRegisteredVcsRoots();

@@ -18,12 +18,16 @@ package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -31,18 +35,29 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlRootElement(name = "vcs-root-entries")
 public class VcsRootEntries {
+  @XmlAttribute
+  public Integer count;
+
   @XmlElement(name = "vcs-root-entry")
   public List<VcsRootEntry> vcsRootAssignments;
 
   public VcsRootEntries() {
   }
 
-  public VcsRootEntries(@NotNull final BuildTypeOrTemplate buildType, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public VcsRootEntries(@NotNull final BuildTypeOrTemplate buildType, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     final List<jetbrains.buildServer.vcs.VcsRootEntry> vcsRootEntries = buildType.get().getVcsRootEntries();
-    vcsRootAssignments = new ArrayList<VcsRootEntry>(vcsRootEntries.size());
-    for (jetbrains.buildServer.vcs.VcsRootEntry entry : vcsRootEntries) {
-      vcsRootAssignments.add(new VcsRootEntry((SVcsRoot)entry.getVcsRoot(), buildType, apiUrlBuilder));
-    }
+    vcsRootAssignments = ValueWithDefault.decideDefault(fields.isIncluded("vcs-root-entry", true, true), new ValueWithDefault.Value<List<VcsRootEntry>>() {
+      @Nullable
+      public List<VcsRootEntry> get() {
+        ArrayList<VcsRootEntry> items = new ArrayList<VcsRootEntry>(vcsRootEntries.size());
+        for (jetbrains.buildServer.vcs.VcsRootEntry entry : vcsRootEntries) {
+          items.add(new VcsRootEntry((SVcsRoot)entry.getVcsRoot(), buildType, fields.getNestedField("vcs-root-entry", Fields.LONG, Fields.LONG), beanContext));
+        }
+        return items;
+      }
+    });
+
+    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), vcsRootEntries.size());
   }
 
 }

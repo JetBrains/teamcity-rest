@@ -16,13 +16,11 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -36,6 +34,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * @author Yegor.Yarko
  *         Date: 04.05.13
+ * @deprecated used only for deprecated VCS labeling options creation
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name="vcsLabeling")
@@ -53,13 +52,6 @@ public class VCSLabelingOptions {
   public VcsRoots vcsRoots;
 
   public VCSLabelingOptions() {
-  }
-
-  public VCSLabelingOptions(@NotNull final BuildTypeOrTemplate buildType, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    labelName = "";
-    type = "NONE";
-    branchFilter = "";
-    vcsRoots = new VcsRoots(Collections.<SVcsRoot>emptyList(), null, apiUrlBuilder);
   }
 
   public void applyTo(final BuildTypeOrTemplate buildType, @NotNull final BeanContext context) {

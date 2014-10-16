@@ -19,7 +19,9 @@ package jetbrains.buildServer.server.rest.model.change;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
@@ -28,6 +30,7 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 16.04.2009
  */
+@SuppressWarnings("PublicField")
 @XmlType(name = "revision")
 public class Revision {
   @XmlAttribute(name = "version")
@@ -36,14 +39,17 @@ public class Revision {
   public String internalRevision;
 
   @XmlElement(name = "vcs-root-instance")
-  public VcsRootInstanceRef vcsRoot;
+  public VcsRootInstance vcsRoot;
 
   public Revision() {
   }
 
-  public Revision(BuildRevision revision, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    displayRevision = revision.getRevisionDisplayName();
-    vcsRoot = new VcsRootInstanceRef(revision.getRoot(), apiUrlBuilder);
-    internalRevision = TeamCityProperties.getBoolean("rest.internalMode") ? revision.getRevision() : null;
+  public Revision(@NotNull final BuildRevision revision, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    displayRevision = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("version"), revision.getRevisionDisplayName());
+    final boolean internalMode = TeamCityProperties.getBoolean("rest.internalMode");
+    internalRevision = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("internalVersion", internalMode, internalMode), revision.getRevision());
+
+    vcsRoot = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("vcs-root-instance"),
+                                                      new VcsRootInstance(revision.getRoot(), fields.getNestedField("vcs-root-instance"), beanContext));
   }
 }

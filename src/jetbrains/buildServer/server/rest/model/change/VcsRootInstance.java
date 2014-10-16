@@ -21,12 +21,15 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.RepositoryVersion;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.vcs.SingleVersionRepositoryStateAdapter;
@@ -34,26 +37,35 @@ import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsRootInstanceEx;
 import jetbrains.buildServer.vcs.VcsRootStatus;
 import jetbrains.buildServer.vcs.impl.RepositoryStateManager;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
  *         Date: 16.04.2009
  */
 @XmlRootElement(name = "vcs-root-instance")
-@XmlType(name = "vcs-root-instance", propOrder = {"id", "name","vcsName", "status", "lastChecked", "lastVersion", "lastVersionInternal", "href",
+@XmlType(name = "vcs-root-instance", propOrder = {"id", "vcsRootId", "vcsRootInternalId", "name","vcsName", "status", "lastChecked", "lastVersion", "lastVersionInternal", "href",
   "parent", "properties"})
 @SuppressWarnings("PublicField")
 public class VcsRootInstance {
   public static final String LAST_VERSION_INTERNAL = "lastVersionInternal";
   public static final String LAST_VERSION = "lastVersion";
   private jetbrains.buildServer.vcs.VcsRootInstance myRoot;
-  private ApiUrlBuilder myApiUrlBuilder;
+  private Fields myFields;
+  private BeanContext myBeanContext;
 
   @XmlAttribute
   public String id;
 
   @XmlAttribute
   public String name;
+
+  @XmlAttribute(name = "vcs-root-id")
+  public String vcsRootId;
+
+  @XmlAttribute(name = "vcsRootInternalId")
+  public String vcsRootInternalId;
 
   @XmlAttribute
   public String vcsName;
@@ -79,45 +91,58 @@ public class VcsRootInstance {
   public VcsRootInstance() {
   }
 
-  public VcsRootInstance(final jetbrains.buildServer.vcs.VcsRootInstance root,
-                         final DataProvider dataProvider,
-                         final ApiUrlBuilder apiUrlBuilder) {
-    id = String.valueOf(root.getId());
+  public VcsRootInstance(final jetbrains.buildServer.vcs.VcsRootInstance root, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     myRoot = root;
-    myApiUrlBuilder = apiUrlBuilder;
 
-    name = root.getName();
-    vcsName = root.getVcsName();
+    myFields = fields;
+    myBeanContext = beanContext;
 
+    id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), String.valueOf(root.getId()));
+    name = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), root.getName());
+    href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(root));
+
+    vcsRootId = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("vcs-root-id", true, true), root.getParent().getExternalId());
+    final boolean includeInternalId = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME);
+    vcsRootInternalId = ValueWithDefault.decideIncludeByDefault(
+      fields.isIncluded("vcsRootInternalId", includeInternalId, includeInternalId), String.valueOf(root.getParentId()));
+
+    vcsName = ValueWithDefault.decideDefault(fields.isIncluded("vcsName", false), root.getVcsName());
     final VcsRootStatus vcsRootStatus = ((VcsRootInstanceEx)myRoot).getStatus();
-    status = vcsRootStatus.getType().toString();
-    lastChecked = Util.formatTime(vcsRootStatus.getTimestamp());
-    href = apiUrlBuilder.getHref(root);
+    status = ValueWithDefault.decideDefault(fields.isIncluded("status", false), vcsRootStatus.getType().toString());
+    lastChecked = ValueWithDefault.decideDefault(fields.isIncluded("lastChecked", false), Util.formatTime(vcsRootStatus.getTimestamp()));
   }
 
   @XmlAttribute
   public String getLastVersion() {
-    final RepositoryVersion currentRevision = myRoot.getLastUsedRevision();
-    return currentRevision != null ? currentRevision.getDisplayVersion() : null;
+    return ValueWithDefault.decideDefault(myFields.isIncluded("lastVersion", false), new ValueWithDefault.Value<String>() {
+      @Nullable
+      public String get() {
+        final RepositoryVersion currentRevision = myRoot.getLastUsedRevision();
+        return currentRevision != null ? currentRevision.getDisplayVersion() : null;
+      }
+    });
   }
 
   @XmlAttribute
   public String getLastVersionInternal() {
-    if (!TeamCityProperties.getBoolean("rest.internalMode")) {
-      return null;
-    }
-    final RepositoryVersion currentRevision = myRoot.getLastUsedRevision();
-    return currentRevision != null ? currentRevision.getVersion() : null;
+    return ValueWithDefault.decideDefault(myFields.isIncluded("lastVersionInternal", false, TeamCityProperties.getBoolean("rest.internalMode")),
+                                          new ValueWithDefault.Value<String>() {
+                                            @Nullable
+                                            public String get() {
+                                              final RepositoryVersion currentRevision = myRoot.getLastUsedRevision();
+                                              return currentRevision != null ? currentRevision.getVersion() : null;
+                                            }
+                                          });
   }
 
   @XmlElement(name = "vcs-root")
-  public VcsRootRef getParent() {
-    return new VcsRootRef(myRoot.getParent(), myApiUrlBuilder);
+  public VcsRoot getParent() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("vcs-root", false), new VcsRoot(myRoot.getParent(), myFields.getNestedField("vcs-root"), myBeanContext));
   }
 
   @XmlElement
   public Properties getProperties(){
-    return new Properties(myRoot.getProperties());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("properties", false), new Properties(myRoot.getProperties()));
   }
 
   public static String getFieldValue(final jetbrains.buildServer.vcs.VcsRootInstance rootInstance,

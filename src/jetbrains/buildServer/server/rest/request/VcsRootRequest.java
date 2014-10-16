@@ -30,6 +30,7 @@ import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
@@ -55,6 +56,7 @@ public class VcsRootRequest {
   @Context @NotNull private VcsRootFinder myVcsRootFinder;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private ServiceLocator myServiceLocator;
+  @Context @NotNull private BeanContext myBeanContext;
 
   public static final String API_VCS_ROOTS_URL = Constants.API_URL + "/vcs-roots";
 
@@ -67,19 +69,20 @@ public class VcsRootRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
-  public VcsRoots serveRoots(@QueryParam("locator") String locatorText, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+  public VcsRoots serveRoots(@QueryParam("locator") String locatorText, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final PagedSearchResult<SVcsRoot> vcsRoots = myVcsRootFinder.getVcsRoots(locatorText != null ? VcsRootFinder.createVcsRootLocator(locatorText) : null);
     return new VcsRoots(vcsRoots.myEntries,
                         new PagerData(uriInfo.getRequestUriBuilder(),
                                       request.getContextPath(), vcsRoots.myStart, vcsRoots.myCount, vcsRoots.myEntries.size(), locatorText,
                                       "locator"),
-                        myApiUrlBuilder);
+                        new Fields(fields),
+                        myBeanContext);
   }
 
   @POST
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public VcsRoot addRoot(VcsRoot vcsRootDescription) {
+  public VcsRoot addRoot(VcsRoot vcsRootDescription, @QueryParam("fields") String fields) {
     checkVcsRootDescription(vcsRootDescription);
     BeanContext ctx = new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder);
     //todo: TeamCity openAPI: not consistent methods for creating VCS root with/without id
@@ -94,7 +97,7 @@ public class VcsRootRequest {
       newVcsRoot.setModificationCheckInterval(vcsRootDescription.modificationCheckInterval);
     }
     newVcsRoot.persist();
-    return new VcsRoot(newVcsRoot, myDataProvider, myApiUrlBuilder);
+    return new VcsRoot(newVcsRoot, new Fields(fields), myBeanContext);
   }
 
   public static final String INSTANCES_PATH = "instances";
@@ -102,8 +105,8 @@ public class VcsRootRequest {
   @GET
   @Path("/{vcsRootLocator}")
   @Produces({"application/xml", "application/json"})
-  public VcsRoot serveRoot(@PathParam("vcsRootLocator") String vcsRootLocator) {
-    return new VcsRoot(myVcsRootFinder.getVcsRoot(vcsRootLocator), myDataProvider, myApiUrlBuilder);
+  public VcsRoot serveRoot(@PathParam("vcsRootLocator") String vcsRootLocator, @QueryParam("fields") String fields) {
+    return new VcsRoot(myVcsRootFinder.getVcsRoot(vcsRootLocator), new Fields(fields), myBeanContext);
   }
 
   @DELETE
@@ -120,7 +123,7 @@ public class VcsRootRequest {
   @GET
   @Path("/{vcsRootLocator}/" + INSTANCES_PATH)
   @Produces({"application/xml", "application/json"})
-  public VcsRootInstances serveRootInstances(@PathParam("vcsRootLocator") String vcsRootLocator) {
+  public VcsRootInstances serveRootInstances(@PathParam("vcsRootLocator") String vcsRootLocator, @QueryParam("fields") String fields) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
     final HashSet<jetbrains.buildServer.vcs.VcsRootInstance> result = new HashSet<jetbrains.buildServer.vcs.VcsRootInstance>();
     for (SBuildType buildType : vcsRoot.getUsages().keySet()) {
@@ -129,7 +132,7 @@ public class VcsRootRequest {
         result.add(rootInstance);
       }
     }
-    return new VcsRootInstances(result, null, myApiUrlBuilder);
+    return new VcsRootInstances(result, null, new Fields(fields), myBeanContext);
   }
 
   /**
@@ -141,8 +144,9 @@ public class VcsRootRequest {
   @Path("/{vcsRootLocator}/" + INSTANCES_PATH + "/{vcsRootInstanceLocator}")
   @Produces({"application/xml", "application/json"})
   public VcsRootInstance serveRootInstance(@PathParam("vcsRootLocator") String vcsRootLocator,
-                                           @PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator) {
-    return new VcsRootInstance(myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator), myDataProvider, myApiUrlBuilder);
+                                           @PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
+                                           @QueryParam("fields") String fields) {
+    return new VcsRootInstance(myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator),new Fields(fields), myBeanContext);
   }
 
   @GET

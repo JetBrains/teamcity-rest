@@ -16,25 +16,29 @@
 
 package jetbrains.buildServer.server.rest.model.change;
 
+import com.intellij.openapi.util.text.StringUtil;
 import java.util.*;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.APIController;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
+import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.Href;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.request.VcsRootInstanceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsException;
@@ -95,7 +99,13 @@ public class VcsRoot {
   public Project project;
 
   @XmlElement
-  public Href vcsRootInstances;
+  public VcsRootInstances vcsRootInstances;
+
+  /**
+   * This is used only when posting a link
+   */
+  @XmlAttribute public String locator;
+
 
   /*
   @XmlAttribute
@@ -105,30 +115,37 @@ public class VcsRoot {
   public VcsRoot() {
   }
 
-  public VcsRoot(final SVcsRoot root, final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
-    final Fields fields = Fields.LONG;
+  public VcsRoot(@NotNull final SVcsRoot root, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), root.getExternalId());
+    final boolean includeInternalId = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME);
+    internalId =  ValueWithDefault.decideDefault(fields.isIncluded("internalId", includeInternalId, includeInternalId), root.getId());
+    name = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), root.getName());
 
-    id = root.getExternalId();
-    internalId =  TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME) ? root.getId() : null;
-    name = root.getName();
-    vcsName = root.getVcsName();
+    href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(root));
 
+    vcsName = ValueWithDefault.decideDefault(fields.isIncluded("vcsName", false), root.getVcsName());
     final String ownerProjectId = root.getScope().getOwnerProjectId();
-    final SProject projectById = dataProvider.getServer().getProjectManager().findProjectById(ownerProjectId);
+    final SProject projectById = beanContext.getSingletonService(ProjectManager.class).findProjectById(ownerProjectId);
     if (projectById != null) {
-      project = new Project(projectById, fields.getNestedField("project"), new BeanContext(dataProvider.getBeanFactory(), dataProvider.getServer(), apiUrlBuilder));
+      project = ValueWithDefault.decideDefault(fields.isIncluded("project", false), new Project(projectById, fields.getNestedField("project"), beanContext));
     } else {
-      project = new Project(null, ownerProjectId, apiUrlBuilder);
+      project = ValueWithDefault.decideDefault(fields.isIncluded("project", false), new Project(null, ownerProjectId, beanContext.getApiUrlBuilder()));
     }
 
-    properties = new Properties(root.getProperties());
-    modificationCheckInterval = root.isUseDefaultModificationCheckInterval() ? null : root.getModificationCheckInterval();
-    final VcsRootStatus rootStatus = dataProvider.getVcsManager().getStatus(root);
-    status = rootStatus.getType().toString();
-    lastChecked = Util.formatTime(rootStatus.getTimestamp());
-    href = apiUrlBuilder.getHref(root);
+    properties = ValueWithDefault.decideDefault(fields.isIncluded("properties", false), new Properties(root.getProperties()));
+    modificationCheckInterval = ValueWithDefault.decideDefault(fields.isIncluded("modificationCheckInterval", false), root.isUseDefaultModificationCheckInterval() ? null : root.getModificationCheckInterval());
+    final VcsRootStatus rootStatus = beanContext.getSingletonService(VcsManager.class).getStatus(root);
 
-    vcsRootInstances = new Href(VcsRootInstanceRequest.getVcsRootInstancesHref(root), apiUrlBuilder);
+    status = ValueWithDefault.decideDefault(fields.isIncluded("status", false), rootStatus.getType().toString());
+    lastChecked = ValueWithDefault.decideDefault(fields.isIncluded("lastChecked", false), Util.formatTime(rootStatus.getTimestamp()));
+    vcsRootInstances = ValueWithDefault.decideDefault(fields.isIncluded("vcsRootInstances", false), new ValueWithDefault.Value<VcsRootInstances>() {
+      @Nullable
+      public VcsRootInstances get() {
+        final PagedSearchResult<jetbrains.buildServer.vcs.VcsRootInstance> result =
+          beanContext.getSingletonService(VcsRootFinder.class).getVcsRootInstances(VcsRootFinder.createVcsRootInstanceLocator(VcsRootFinder.getLocatorText(root)));
+        return new VcsRootInstances(result.myEntries, new PagerData(VcsRootInstanceRequest.getVcsRootInstancesHref(root)), fields.getNestedField("vcsRootInstances"), beanContext);
+      }
+    });
   }
 
   @NotNull
@@ -247,6 +264,24 @@ public class VcsRoot {
       return Collections.emptyList();
     }
     return mappingGenerator.generateMapping();
+  }
+
+  @NotNull
+  public SVcsRoot getVcsRoot(@NotNull VcsRootFinder vcsRootFinder) {
+    String locatorText = "";
+//    if (internalId != null) locatorText = "internalId:" + internalId;
+    if (id != null) locatorText += (!locatorText.isEmpty() ? "," : "") + "id:" + id; //todo: link to dimension in finder
+    if (locatorText.isEmpty()) {
+      locatorText = locator;
+    } else {
+      if (locator != null) {
+        throw new BadRequestException("Both 'locator' and 'id' attributes are specified. Only one should be present.");
+      }
+    }
+    if (StringUtil.isEmpty(locatorText)){
+      throw new BadRequestException("No VCS root specified. Either 'id' or 'locator' attribute should be present.");
+    }
+    return vcsRootFinder.getVcsRoot(locatorText);
   }
 }
 

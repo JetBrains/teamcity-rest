@@ -124,10 +124,11 @@ public class Change {
   }
 
   @XmlElement(name = "vcsRootInstance")
-  public VcsRootInstanceRef getVcsRootInstance() {
+  public VcsRootInstance getVcsRootInstance() {
     return myModification.isPersonal()
            ? null
-           : ValueWithDefault.decideDefault(myFields.isIncluded("vcsRootInstance", false), new VcsRootInstanceRef(myModification.getVcsRoot(), myApiUrlBuilder));
+           : ValueWithDefault.decideDefault(myFields.isIncluded("vcsRootInstance", false),
+                                            new VcsRootInstance(myModification.getVcsRoot(), myFields.getNestedField("vcsRootInstance"), myBeanContext));
   }
 
   /**

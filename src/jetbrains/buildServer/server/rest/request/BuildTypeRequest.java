@@ -395,16 +395,16 @@ public class BuildTypeRequest {
   @GET
   @Path("/{btLocator}/vcs-root-entries")
   @Produces({"application/xml", "application/json"})
-  public VcsRootEntries getVcsRootEntries(@PathParam("btLocator") String buildTypeLocator) {
+  public VcsRootEntries getVcsRootEntries(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    return new VcsRootEntries(buildType, myApiUrlBuilder);
+    return new VcsRootEntries(buildType, new Fields(fields), myBeanContext);
   }
 
   @PUT
   @Path("/{btLocator}/vcs-root-entries")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public VcsRootEntries replaceVcsRootEntries(@PathParam("btLocator") String buildTypeLocator, VcsRootEntries suppliedEntities) {
+  public VcsRootEntries replaceVcsRootEntries(@PathParam("btLocator") String buildTypeLocator, VcsRootEntries suppliedEntities, @QueryParam("fields") String fields) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     for (jetbrains.buildServer.vcs.VcsRootEntry entry : buildType.get().getVcsRootEntries()) {
       buildType.get().removeVcsRoot((SVcsRoot)entry.getVcsRoot());
@@ -416,26 +416,26 @@ public class BuildTypeRequest {
     }
     buildType.get().persist();
     // not handlingsetting errors... a bit complex here
-    return new VcsRootEntries(buildType, myApiUrlBuilder);
+    return new VcsRootEntries(buildType, new Fields(fields), myBeanContext);
   }
 
   @POST
   @Path("/{btLocator}/vcs-root-entries")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public VcsRootEntry addVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, VcsRootEntry description) {
+  public VcsRootEntry addVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, VcsRootEntry description, @QueryParam("fields") String fields) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     final SVcsRoot vcsRoot = addVcsRoot(buildType, description, myVcsRootFinder);
     buildType.get().persist();
 
-    return new VcsRootEntry(vcsRoot, buildType, myApiUrlBuilder);
+    return new VcsRootEntry(vcsRoot, buildType, new Fields(fields), myBeanContext);
   }
 
   public static SVcsRoot addVcsRoot(@NotNull final BuildTypeOrTemplate buildType, @NotNull final VcsRootEntry description, @NotNull final VcsRootFinder vcsRootFinder) {
-    if (description.vcsRootRef == null){
+    if (description.vcsRoot == null){
       throw new BadRequestException("Element vcs-root should be specified.");
     }
-    final SVcsRoot vcsRoot = description.vcsRootRef.getVcsRoot(vcsRootFinder);
+    final SVcsRoot vcsRoot = description.vcsRoot.getVcsRoot(vcsRootFinder);
 
     try {
       buildType.get().addVcsRoot(vcsRoot);
@@ -450,21 +450,22 @@ public class BuildTypeRequest {
   @GET
   @Path("/{btLocator}/vcs-root-entries/{id}")
   @Produces({"application/xml", "application/json"})
-  public VcsRootEntry getVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("id") String vcsRootLocator) {
+  public VcsRootEntry getVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("id") String vcsRootLocator, @QueryParam("fields") String fields) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
 
     if (!buildType.get().containsVcsRoot(vcsRoot.getId())) {
       throw new NotFoundException("VCS root with id '" + vcsRoot.getExternalId() + "' is not attached to the build type.");
     }
-    return new VcsRootEntry(vcsRoot, buildType, myApiUrlBuilder);
+    return new VcsRootEntry(vcsRoot, buildType, new Fields(fields), myBeanContext);
   }
 
   @PUT
   @Path("/{btLocator}/vcs-root-entries/{id}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public VcsRootEntry updateVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("id") String vcsRootLocator, VcsRootEntry entry) {
+  public VcsRootEntry updateVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("id") String vcsRootLocator, VcsRootEntry entry,
+                                         @QueryParam("fields") String fields) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
 
@@ -474,14 +475,14 @@ public class BuildTypeRequest {
     if (entry == null){
       throw new BadRequestException("No VCS root entry description is posted (Use GET request to get an example).");
     }
-    if (entry.vcsRootRef == null){
+    if (entry.vcsRoot == null){
       throw new BadRequestException("No VCS root is specified in the entry description.");
     }
     buildType.get().removeVcsRoot(vcsRoot);
     final SVcsRoot resultVcsRoot = addVcsRoot(buildType, entry, myVcsRootFinder);
     buildType.get().persist();
     //not handling setting errors...
-    return new VcsRootEntry(resultVcsRoot, buildType, myApiUrlBuilder);
+    return new VcsRootEntry(resultVcsRoot, buildType, new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -1335,9 +1336,9 @@ public class BuildTypeRequest {
   @GET
   @Path("/{btLocator}/vcs-root-instances")
   @Produces({"application/xml", "application/json"})
-  public VcsRootInstances getCurrentVcsInstances(@PathParam("btLocator") String buildTypeLocator) {
+  public VcsRootInstances getCurrentVcsInstances(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
       SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
-    return new VcsRootInstances(buildType.getVcsRootInstances(), null, myApiUrlBuilder);
+    return new VcsRootInstances(buildType.getVcsRootInstances(), null, new Fields(fields), myBeanContext);
     }
 
   /**
@@ -1546,7 +1547,7 @@ public class BuildTypeRequest {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     options.applyTo(buildType, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
     buildType.get().persist();
-    return new VCSLabelingOptions(buildType, myApiUrlBuilder);
+    return new VCSLabelingOptions();
   }
 
   /**

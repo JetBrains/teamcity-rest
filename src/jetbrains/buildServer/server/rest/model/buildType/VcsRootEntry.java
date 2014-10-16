@@ -20,9 +20,11 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.model.change.VcsRootRef;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.change.VcsRoot;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 
@@ -33,24 +35,24 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "vcs-root-entry")
 @XmlType(name = "vcs-root-entry", propOrder = {"id",
-  "vcsRootRef", "checkoutRules"})
+  "vcsRoot", "checkoutRules"})
 public class VcsRootEntry {
   public static final String CHECKOUT_RULES = "checkout-rules";
   @XmlAttribute(name = "id")
   public String id;
 
   @XmlElement(name = "vcs-root")
-  public VcsRootRef vcsRootRef;
+  public VcsRoot vcsRoot;
   @XmlElement(name = CHECKOUT_RULES)
   public String checkoutRules;
 
   public VcsRootEntry() {
   }
 
-  public VcsRootEntry(final @NotNull SVcsRoot vcsRootParam, @NotNull final BuildTypeOrTemplate buildType, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    id = vcsRootParam.getExternalId();
-    vcsRootRef = new VcsRootRef(vcsRootParam, apiUrlBuilder);
-    checkoutRules =  buildType.get().getCheckoutRules(vcsRootParam).getAsString();
+  public VcsRootEntry(final @NotNull SVcsRoot vcsRootParam, @NotNull final BuildTypeOrTemplate buildType, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id", true, true), vcsRootParam.getExternalId());
+    vcsRoot = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("vcs-root", true, true), new VcsRoot(vcsRootParam, fields.getNestedField("vcs-root"), beanContext));
+    checkoutRules =  ValueWithDefault.decideIncludeByDefault(fields.isIncluded(CHECKOUT_RULES, true, true), buildType.get().getCheckoutRules(vcsRootParam).getAsString());
   }
 }
 

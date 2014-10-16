@@ -38,7 +38,7 @@ import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.change.Change;
 import jetbrains.buildServer.server.rest.model.change.Changes;
-import jetbrains.buildServer.server.rest.model.change.VcsRootInstanceRef;
+import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
 import jetbrains.buildServer.server.rest.model.issue.Issues;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
@@ -182,11 +182,21 @@ public class ChangeRequest {
    * Experimental support only!
    */
   @GET
+  @Path("/{changeLocator}/vcsRootInstance")
+  @Produces({"application/xml", "application/json"})
+  public VcsRootInstance getChangeVCSRootInstance(@PathParam("changeLocator") String changeLocator, @QueryParam("fields") String fields) {
+    final SVcsModification change = myChangeFinder.getItem(changeLocator);
+    return new VcsRootInstance(change.getVcsRoot(), new Fields(fields), myBeanContext);
+  }
+
+  /**
+   * @deprecated see getChangeVCSRootInstance
+   */
+  @GET
   @Path("/{changeLocator}/vcsRoot")
   @Produces({"application/xml", "application/json"})
-  public VcsRootInstanceRef getChangeVCSRoot(@PathParam("changeLocator") String changeLocator) {
-    final SVcsModification change = myChangeFinder.getItem(changeLocator);
-    return new VcsRootInstanceRef(change.getVcsRoot(), myApiUrlBuilder);
+  public VcsRootInstance getChangeVCSRoot(@PathParam("changeLocator") String changeLocator, @QueryParam("fields") String fields) {
+    return getChangeVCSRootInstance(changeLocator, fields);
   }
 
   /**

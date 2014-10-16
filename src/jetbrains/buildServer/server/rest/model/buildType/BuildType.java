@@ -186,7 +186,7 @@ public class BuildType {
   public VcsRootEntries getVcsRootEntries() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("vcs-root-entries", false), new ValueWithDefault.Value<VcsRootEntries>() {
       public VcsRootEntries get() {
-        return myBuildType == null ? null : new VcsRootEntries(myBuildType, myBeanContext.getApiUrlBuilder());
+        return myBuildType == null ? null : new VcsRootEntries(myBuildType, myFields.getNestedField("vcs-root-entries"), myBeanContext);
       }
     });
   }

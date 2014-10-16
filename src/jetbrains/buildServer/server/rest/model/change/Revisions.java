@@ -16,30 +16,46 @@
 
 package jetbrains.buildServer.server.rest.model.change;
 
-import java.util.ArrayList;
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildRevision;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
  *         Date: 21.07.2009
  */
+@SuppressWarnings("PublicField")
 @XmlType(name = "revisions")
 public class Revisions {
+  @XmlAttribute
+  public Integer count;
+
   @XmlElement(name = "revision")
   public List<Revision> revisoins;
 
   public Revisions() {
   }
 
-  public Revisions(final List<BuildRevision> buildRevisions, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    revisoins = new ArrayList<Revision>(buildRevisions.size());
-    for (BuildRevision revision : buildRevisions) {
-      revisoins.add(new Revision(revision, apiUrlBuilder));
-    }
+  public Revisions(@NotNull final List<BuildRevision> items, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    revisoins = ValueWithDefault.decideDefault(fields.isIncluded("revision", true), new ValueWithDefault.Value<List<Revision>>() {
+      @Nullable
+      public List<Revision> get() {
+        return CollectionsUtil.convertCollection(items, new Converter<Revision, BuildRevision>() {
+          public Revision createFrom(@NotNull final BuildRevision source) {
+            return new Revision(source, fields.getNestedField("revision"), beanContext);
+          }
+        });
+      }
+    });
+    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), items.size());
   }
 }

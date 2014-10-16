@@ -24,10 +24,12 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.VcsRootFinder;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.server.rest.model.change.VcsRootRef;
+import jetbrains.buildServer.server.rest.model.change.VcsRoot;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -40,10 +42,10 @@ import org.jetbrains.annotations.Nullable;
 @XmlType(name = "vcs-roots")
 public class VcsRoots {
   @XmlElement(name = "vcs-root")
-  public List<VcsRootRef> vcsRoots;
+  public List<VcsRoot> vcsRoots;
 
   @XmlAttribute
-  public long count;
+  public Integer count;
 
   @XmlAttribute(required = false)
   @Nullable
@@ -62,17 +64,28 @@ public class VcsRoots {
 
   public VcsRoots(@NotNull final Collection<jetbrains.buildServer.vcs.SVcsRoot> serverVcsRoots,
                   @Nullable final PagerData pagerData,
-                  @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    vcsRoots = new ArrayList<VcsRootRef>(serverVcsRoots.size());
-    for (jetbrains.buildServer.vcs.SVcsRoot root : serverVcsRoots) {
-      vcsRoots.add(new VcsRootRef(root, apiUrlBuilder));
-    }
+                  @NotNull final Fields fields,
+                  @NotNull final BeanContext beanContext) {
+    vcsRoots = ValueWithDefault.decideDefault(fields.isIncluded("vcs-roots", false), new ValueWithDefault.Value<List<VcsRoot>>() {
+      @Nullable
+      public List<VcsRoot> get() {
+        final ArrayList<VcsRoot> items = new ArrayList<VcsRoot>(serverVcsRoots.size());
+        for (jetbrains.buildServer.vcs.SVcsRoot root : serverVcsRoots) {
+          items .add(new VcsRoot(root, fields.getNestedField("vcs-roots"), beanContext));
+        }
+        return items;
+      }
+    });
+    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), serverVcsRoots.size());
+
     if (pagerData != null) {
-      nextHref = pagerData.getNextHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getNextHref()) : null;
-      prevHref = pagerData.getPrevHref() != null ? apiUrlBuilder.transformRelativePath(pagerData.getPrevHref()) : null;
-      href = apiUrlBuilder.transformRelativePath(pagerData.getHref());
+      href = ValueWithDefault.decideDefault(fields.isIncluded("href", true), beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getHref()));
+      nextHref = ValueWithDefault
+        .decideDefault(fields.isIncluded("nextHref"), pagerData.getNextHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null);
+      prevHref = ValueWithDefault
+        .decideDefault(fields.isIncluded("prevHref"), pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null);
+
     }
-    count = vcsRoots.size();
   }
 
   public List<SVcsRoot> getVcsRoots(@NotNull VcsRootFinder vcsRootFinder){
@@ -80,7 +93,7 @@ public class VcsRoots {
       return Collections.emptyList();
     }
     final ArrayList<SVcsRoot> result = new ArrayList<SVcsRoot>(vcsRoots.size());
-    for (VcsRootRef vcsRoot : vcsRoots) {
+    for (VcsRoot vcsRoot : vcsRoots) {
       result.add(vcsRoot.getVcsRoot(vcsRootFinder));
     }
     return result;
