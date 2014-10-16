@@ -66,6 +66,7 @@
   <bean id="urlBuilderProvider" class="jetbrains.buildServer.server.rest.jersey.UrlBuilderProvider"/>
   <bean id="beanContextProvider" class="jetbrains.buildServer.server.rest.jersey.BeanContextProvider"/>
   <bean id="dataProviderContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataProviderContextProvider"/>
+  <bean id="permissionCheckerProvider" class="jetbrains.buildServer.server.rest.jersey.PermissionCheckerProvider"/>
   <bean id="buildFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.BuildFinderContextProvider"/>
   <bean id="buildPromotionFinderProvider" class="jetbrains.buildServer.server.rest.jersey.BuildPromotionFinderProvider"/>
   <bean id="buildQueuedBuildFinderProvider" class="jetbrains.buildServer.server.rest.jersey.QueuedBuildFinderProvider"/>

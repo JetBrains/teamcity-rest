@@ -37,6 +37,7 @@ import jetbrains.buildServer.server.rest.model.build.BuildCancelRequest;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.serverSide.BuildHistory;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SQueuedBuild;
@@ -138,7 +139,7 @@ public class BuildQueueRequest {
       if (associatedBuild == null) {
         errors.add(new OperationException("After canceling a build with promotion id '" + build.getBuildPromotion().getId() + "' , no canceled build found to delete."));
       } else{
-        myDataProvider.deleteBuild(associatedBuild);
+        DataProvider.deleteBuild(associatedBuild, myBeanContext.getSingletonService(BuildHistory.class));
       }
     }
     if (errors.size() >0){
@@ -181,7 +182,7 @@ public class BuildQueueRequest {
       if (associatedBuild == null){
         throw new OperationException("After canceling a build with promotion id '" + queuedBuildPromotion.getId() + "' , no canceled build found to delete.");
       }
-      myDataProvider.deleteBuild(associatedBuild);
+      DataProvider.deleteBuild(associatedBuild, myBeanContext.getSingletonService(BuildHistory.class));
     }
 
     // now queue
@@ -218,7 +219,7 @@ public class BuildQueueRequest {
     if (associatedBuild == null){
       throw new OperationException("After canceling a build with promotion id '" + build.getBuildPromotion().getId() + "' , no canceled build found to delete.");
     }
-    myDataProvider.deleteBuild(associatedBuild);
+    DataProvider.deleteBuild(associatedBuild, myBeanContext.getSingletonService(BuildHistory.class));
   }
 
   @GET

@@ -49,6 +49,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactsViewMode;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
+import jetbrains.buildServer.serverSide.auth.LoginConfiguration;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.users.SUser;
@@ -81,6 +82,7 @@ public class BuildRequest {
   @Context @NotNull private BuildFinder myBuildFinder;
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
   @Context @NotNull private BuildArtifactsFinder myBuildArtifactsFinder;
+  @Context @NotNull private PermissionChecker myPermissionChecker;
 
   public static final String BUILDS_ROOT_REQUEST_PATH = "/builds";
   public static final String API_BUILDS_URL = Constants.API_URL + BUILDS_ROOT_REQUEST_PATH;
@@ -96,7 +98,6 @@ public class BuildRequest {
   protected static final String REST_BUILD_REQUEST_DELETE_LIMIT = "rest.buildRequest.delete.limit";
 
   @Context @NotNull private BeanContext myBeanContext;
-  @Context @NotNull private DataProvider myDataProvider;
 
   public static String getHref() {
     return API_BUILDS_URL;
@@ -195,7 +196,7 @@ public class BuildRequest {
   @Produces({"application/xml", "application/json"})
   public Properties serveBuildActualParameters(@PathParam("buildLocator") String buildLocator) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    myDataProvider.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
+    myPermissionChecker.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
     return new Properties(build.getParametersProvider().getAll());
     /* alternative
     try {
@@ -211,7 +212,7 @@ public class BuildRequest {
   @Produces({"text/plain"})
   public String getParameter(@PathParam("buildLocator") String buildLocator, @PathParam("propertyName") String propertyName) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    myDataProvider.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
+    myPermissionChecker.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
     if (StringUtil.isEmpty(propertyName)) {
       throw new BadRequestException("Property name should not be empty");
     }
@@ -341,7 +342,7 @@ public class BuildRequest {
     if (resolveSupported == null || !resolveSupported || StringUtil.isEmpty(value)) {
       return value == null ? "" : value;
     }
-    myDataProvider.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
+    myPermissionChecker.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
     final ProcessingResult resolveResult = build.getValueResolver().resolve(value);
     return resolveResult.getResult();
   }
@@ -657,7 +658,7 @@ public class BuildRequest {
         }
       }
     }
-    myDataProvider.deleteBuild(buildToDelete);
+    DataProvider.deleteBuild(buildToDelete, myBeanContext.getSingletonService(BuildHistory.class));
   }
 
   private boolean isPersonalUserBuild(final SBuild build, @NotNull final SUser user) {
@@ -780,7 +781,7 @@ public class BuildRequest {
     }
 
     final SUser guestUser = myBeanContext.getSingletonService(UserModel.class).getGuestUser();
-    return myDataProvider.getServer().getLoginConfiguration().isGuestLoginAllowed() &&
+    return myBeanContext.getSingletonService(LoginConfiguration.class).isGuestLoginAllowed() &&
            guestUser.isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_PROJECT);
   }
 
@@ -792,7 +793,7 @@ public class BuildRequest {
       return true;
     }
     final SUser guestUser = myBeanContext.getSingletonService(UserModel.class).getGuestUser();
-    return myDataProvider.getServer().getLoginConfiguration().isGuestLoginAllowed() &&
+    return myBeanContext.getSingletonService(LoginConfiguration.class).isGuestLoginAllowed() &&
            guestUser.isPermissionGrantedGlobally(Permission.VIEW_PROJECT);
   }
 
