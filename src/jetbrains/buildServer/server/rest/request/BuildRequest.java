@@ -114,6 +114,10 @@ public class BuildRequest {
     return getBuildHref(build) + RELATED_ISSUES;
   }
 
+  public static String getBuildArtifactsHref(final SBuild build) {
+    return getBuildHref(build) + ARTIFACTS_CHILDREN;
+  }
+
   /**
    * Serves builds matching supplied condition.
    *
@@ -218,10 +222,14 @@ public class BuildRequest {
    * More user-friendly URL for "/{buildLocator}/artifacts/children" one.
    */
   @GET
-  @Path("/{buildLocator}" + ARTIFACTS)
+  @Path("/{buildLocator}" + ARTIFACTS + "{path:(/.*)?}")
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-  public Files getArtifacts(@PathParam("buildLocator") final String buildLocator, @Context UriInfo uriInfo) {
-    return getArtifactChildren(buildLocator, "", false, null);
+  public Files getArtifacts(@PathParam("buildLocator") final String buildLocator,
+                            @PathParam("path") final String path,
+                            @QueryParam("resolveParameters") final Boolean resolveParameters,
+                            @QueryParam("locator") final String locator,
+                            @QueryParam("fields") String fields) {
+    return getArtifactChildren(buildLocator, path, resolveParameters, locator, fields);
   }
 
   @GET
@@ -241,10 +249,11 @@ public class BuildRequest {
   public Files getArtifactChildren(@PathParam("buildLocator") final String buildLocator,
                                    @PathParam("path") @DefaultValue("") final String path,
                                    @QueryParam("resolveParameters") final Boolean resolveParameters,
-                                   @QueryParam("locator") final String locator) {
+                                   @QueryParam("locator") final String locator,
+                                   @QueryParam("fields") String fields) {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final String resolvedPath = getResolvedIfNecessary(build, path, resolveParameters);
-    return myBuildArtifactsFinder.getFiles(build, resolvedPath, locator, myBeanContext);
+    return new Files(null, myBuildArtifactsFinder.getFiles(build, resolvedPath, locator, myBeanContext), new Fields(fields), myBeanContext);
   }
 
   @GET

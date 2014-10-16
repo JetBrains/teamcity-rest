@@ -215,12 +215,13 @@ public class VcsRootInstanceRequest {
   @Path("/{vcsRootInstanceLocator}" + FILES_LATEST + BuildRequest.CHILDREN + "{path:(/.*)?}")
   @Produces({"application/xml", "application/json"})
   public Files getVcsFileListing(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
-                                     @PathParam("path") final String path,
-                                     @Context HttpServletRequest request) {
+                                 @PathParam("path") final String path,
+                                 @QueryParam("fields") String fields) {
     final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
     myVcsRootFinder.checkPermission(Permission.VIEW_FILE_CONTENT, rootInstance);
     return BuildArtifactsFinder.getChildren(getVcsWorkspaceAccess(rootInstance).getVcsFilesBrowser(), path, WHERE_NOTE,
-                                            BuildArtifactsFinder.getStandardFileApiUrlBuilder(myApiUrlBuilder.getHref(rootInstance) + FILES_LATEST));
+                                            BuildArtifactsFinder.getStandardFileApiUrlBuilder(myApiUrlBuilder.getHref(rootInstance) + FILES_LATEST),
+                                            new Fields(fields), myBeanContext);
   }
 
   /**

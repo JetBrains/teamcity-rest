@@ -1498,13 +1498,15 @@ public class BuildTypeRequest {
   public Files getVcsFileListing(@PathParam("btLocator") String buildTypeLocator,
                                      @PathParam("path") final String path,
                                      @QueryParam("resolveParameters") final Boolean resolveParameters,
+                                     @QueryParam("fields") String fields,
                                      @Context HttpServletRequest request) {
     final BuildTypeEx buildType = (BuildTypeEx)myBuildTypeFinder.getBuildType(null, buildTypeLocator);
     myDataProvider.checkProjectPermission(Permission.VIEW_FILE_CONTENT, buildType.getProjectId());
     final String resolvedPath = getResolvedIfNecessary(buildType, path, resolveParameters);
 
     return BuildArtifactsFinder.getChildren(buildType.getVcsFilesBrowser(), resolvedPath, WHERE_NOTE,
-                                            BuildArtifactsFinder.getStandardFileApiUrlBuilder(myApiUrlBuilder.getHref(new BuildTypeOrTemplate(buildType)) + VCS_FILES_LATEST));
+                                            BuildArtifactsFinder.getStandardFileApiUrlBuilder(myApiUrlBuilder.getHref(new BuildTypeOrTemplate(buildType)) + VCS_FILES_LATEST),
+                                            new Fields(fields), myBeanContext);
   }
 
   /**

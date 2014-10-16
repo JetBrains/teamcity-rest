@@ -17,32 +17,37 @@
 package jetbrains.buildServer.server.rest.model.files;
 
 import java.util.List;
-import javax.xml.bind.annotation.XmlElementRef;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Vladislav.Rassokhin
  * @since 8.0
  */
-@SuppressWarnings("UnusedDeclaration")
+@SuppressWarnings({"UnusedDeclaration", "PublicField"})
 @XmlRootElement(name = "files")
 @XmlType
 public class Files {
 
-  private List<File> myChildren;
+  @XmlAttribute(name = "href") public String href;
+
+  public static final String FILE = "file";
+  @Nullable
+  @XmlElement(name = FILE)
+  public List<File> files;
 
   public Files() {
   }
 
-  public Files(@NotNull final List<File> children) {
-    myChildren = children;
-  }
-
-  @NotNull
-  @XmlElementRef(name = "files", type = File.class)
-  public List<File> getFiles() {
-    return myChildren;
+  public Files(@Nullable final String shortHref, @Nullable final List<File> children, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+    href = shortHref == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href", true), beanContext.getApiUrlBuilder().transformRelativePath(shortHref));
+    files = ValueWithDefault.decideDefault(fields.isIncluded(FILE), children);
   }
 }

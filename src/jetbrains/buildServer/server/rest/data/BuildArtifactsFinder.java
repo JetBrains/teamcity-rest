@@ -37,6 +37,7 @@ import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.files.File;
 import jetbrains.buildServer.server.rest.model.files.FileApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.files.Files;
@@ -78,7 +79,9 @@ public class BuildArtifactsFinder {
     myPermissionChecker = permissionChecker;
   }
 
-  public static Files getChildren(@NotNull final Browser browser, @NotNull final String path, @NotNull final String where, @NotNull final FileApiUrlBuilder fileApiUrlBuilder) {
+  public static Files getChildren(@NotNull final Browser browser, @NotNull final String path, @NotNull final String where,
+                                  @NotNull final FileApiUrlBuilder fileApiUrlBuilder,
+                                  @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     Element element = getElement(browser, path, where);
     try {
       final Iterable<Element> children = element.getChildren();
@@ -90,7 +93,7 @@ public class BuildArtifactsFinder {
       for (Element child : children) {
         result.add(new File(child, null, null /*do not include parent as all children have it the same*/, fileApiUrlBuilder));
       }
-      return new Files(result);
+      return new Files(null, result, fields, beanContext);
     } catch (BrowserException e) {
       throw new OperationException("Error listing children for path '" + path + "'.", e);
     }
@@ -279,14 +282,14 @@ public class BuildArtifactsFinder {
     };
   }
 
-  public Files getFiles(final SBuild build, final String resolvedPath, final String locator, final BeanContext beanContext) {
+  public List<File> getFiles(final SBuild build, final String resolvedPath, final String locator, final BeanContext beanContext) {
     final List<ArtifactTreeElement> artifacts = getArtifacts(build, resolvedPath, locator, beanContext);
 
-    return new Files(CollectionsUtil.convertCollection(artifacts, new Converter<File, ArtifactTreeElement>() {
+    return CollectionsUtil.convertCollection(artifacts, new Converter<File, ArtifactTreeElement>() {
       public File createFrom(@NotNull final ArtifactTreeElement source) {
         return new File(source, null, fileApiUrlBuilderForBuild(beanContext.getContextService(ApiUrlBuilder.class), build, locator));
       }
-    }));
+    });
   }
 
   public List<ArtifactTreeElement> getArtifacts(@NotNull final SBuild build, @NotNull final String path, @Nullable final String filesLocator, @Nullable final BeanContext context) {

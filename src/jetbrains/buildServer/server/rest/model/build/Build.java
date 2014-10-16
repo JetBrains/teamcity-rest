@@ -37,6 +37,8 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.PropEntitiesArtifactDep;
 import jetbrains.buildServer.server.rest.model.change.Changes;
 import jetbrains.buildServer.server.rest.model.change.Revisions;
+import jetbrains.buildServer.server.rest.model.files.File;
+import jetbrains.buildServer.server.rest.model.files.Files;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
@@ -588,12 +590,19 @@ public class Build {
   }
 
   @XmlElement(name = "artifacts")
-  public Href getArtifacts() {
+  public Files getArtifacts() {
     if (myBuild == null) return null;
-    return ValueWithDefault.decideDefault(myFields.isIncluded("artifacts", false), new ValueWithDefault.Value<Href>() {
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("artifacts", false), new ValueWithDefault.Value<Files>() {
       @Nullable
-      public Href get() {
-        return new Href(BuildArtifactsFinder.fileApiUrlBuilderForBuild(myApiUrlBuilder, myBuild, null).getChildrenHref(null));
+      public Files get() {
+        final Fields nestedFields = myFields.getNestedField("artifacts");
+        final List<File> files = ValueWithDefault.decideDefault(nestedFields.isIncluded(Files.FILE, false, false), new ValueWithDefault.Value<List<File>>() {
+          @Nullable
+          public List<File> get() {
+            return myBeanContext.getSingletonService(BuildArtifactsFinder.class).getFiles(myBuild, "", nestedFields.getLocator(), myBeanContext);
+          }
+        });
+        return new Files(BuildRequest.getBuildArtifactsHref(myBuild), files, nestedFields, myBeanContext);
       }
     });
   }
