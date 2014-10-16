@@ -22,7 +22,6 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
@@ -53,8 +52,7 @@ public class Mutes implements DefaultValueAware{
   }
 
   public Mutes(@Nullable final Collection<MuteInfo> itemsP,
-               @Nullable final Href hrefP, //todo: not nulls are not yet implemented
-               @Nullable final PagerData pagerData,
+               @Nullable final PagerData pagerData, //todo: not nulls are not yet implemented
                @NotNull final Fields fields,
                @NotNull final BeanContext beanContext) {
     items = itemsP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("mute", false), new ValueWithDefault.Value<List<Mute>>() {
@@ -66,8 +64,8 @@ public class Mutes implements DefaultValueAware{
         });
       }
     });
-    href = hrefP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), hrefP.getHref());
     if (pagerData != null) {
+      href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getHref()));
       nextHref = pagerData.getNextHref() == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("nextHref"),
                                                                                          beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()));
       prevHref = pagerData.getPrevHref() == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("prevHref"),
@@ -78,7 +76,7 @@ public class Mutes implements DefaultValueAware{
     if (itemsP != null && itemsP.isEmpty()) {
       isDefault = true;
     } else {
-      isDefault = ValueWithDefault.isAllDefault(count, hrefP, itemsP);
+      isDefault = ValueWithDefault.isAllDefault(count, href, itemsP);
     }
   }
 

@@ -35,8 +35,10 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
-import jetbrains.buildServer.server.rest.model.*;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.build.Branch;
 import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.buildType.*;
@@ -1326,8 +1328,8 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public Investigations getInvestigations(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
-    return new Investigations(myInvestigationFinder.getInvestigationWrappersForBuildType(buildType), new Href(InvestigationRequest.getHref(buildType), myApiUrlBuilder),
-                               new Fields(fields), null, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new Investigations(myInvestigationFinder.getInvestigationWrappersForBuildType(buildType),
+                              new PagerData(InvestigationRequest.getHref(buildType)), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   /**

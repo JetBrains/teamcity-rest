@@ -92,7 +92,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     });
     final BeanFactory beanFactory = new BeanFactory(null);
 
-    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.ALL_NESTED, null, new BeanContext(beanFactory, myServer, apiUrlBuilder));
+    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.ALL_NESTED, new BeanContext(beanFactory, myServer, apiUrlBuilder));
 
     assertEquals(1, investigations.count.longValue());
     final Investigation investigation = investigations.items.get(0);
@@ -123,7 +123,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     });
     final BeanFactory beanFactory = new BeanFactory(null);
 
-    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.LONG, null, new BeanContext(beanFactory, myServer, apiUrlBuilder));
+    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.LONG, new BeanContext(beanFactory, myServer, apiUrlBuilder));
 
     assertEquals(1, investigations.count.longValue());
     final Investigation investigation = investigations.items.get(0);
@@ -157,7 +157,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     });
     final BeanFactory beanFactory = new BeanFactory(null);
 
-    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.LONG, null, new BeanContext(beanFactory, myServer, apiUrlBuilder));
+    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.LONG, new BeanContext(beanFactory, myServer, apiUrlBuilder));
 
     assertEquals(1, investigations.count.longValue());
     final Investigation investigation = investigations.items.get(0);

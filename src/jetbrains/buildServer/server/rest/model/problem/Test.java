@@ -25,7 +25,7 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.Href;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
@@ -72,16 +72,14 @@ public class Test {
           muteInfos.addAll(new LinkedHashSet<MuteInfo>(currentMuteInfo.getProjectsMuteInfo().values())); //add with deduplication
           muteInfos.addAll(new LinkedHashSet<MuteInfo>(currentMuteInfo.getBuildTypeMuteInfo().values())); //add with deduplication
         }
-        return new Mutes(muteInfos, null, null, fields.getNestedField("mutes", Fields.NONE, Fields.LONG), beanContext);
+        return new Mutes(muteInfos, null, fields.getNestedField("mutes", Fields.NONE, Fields.LONG), beanContext);
       }
     });
 
     investigations = ValueWithDefault.decideDefault(fields.isIncluded("investigations", false), new ValueWithDefault.Value<Investigations>() {
       public Investigations get() {
         return new Investigations(beanContext.getSingletonService(InvestigationFinder.class).getInvestigationWrappers(test),
-                                  new Href(InvestigationRequest.getHref(test), apiUrlBuilder),
-                                  fields.getNestedField("investigations"),
-                                  null,
+                                  new PagerData(InvestigationRequest.getHref(test)), fields.getNestedField("investigations"),
                                   beanContext);
       }
     });

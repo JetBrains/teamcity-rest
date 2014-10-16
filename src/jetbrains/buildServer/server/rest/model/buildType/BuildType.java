@@ -28,7 +28,10 @@ import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.model.*;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.request.BuildTypeRequest;
@@ -309,8 +312,7 @@ public class BuildType {
       final ResponsibilityEntry.State state = myBuildType.getBuildType().getResponsibilityInfo().getState();
       if (!state.equals(ResponsibilityEntry.State.NONE)) {
         //todo: include list by default, add support for locator + filter here, like for builds in BuildType
-        return new Investigations(null, new Href(InvestigationRequest.getHref(myBuildType.getBuildType()), myBeanContext.getApiUrlBuilder()),
-                                  myFields.getNestedField("investigations"), null, myBeanContext);
+        return new Investigations(null, new PagerData(InvestigationRequest.getHref(myBuildType.getBuildType())), myFields.getNestedField("investigations"), myBeanContext);
       }
     }
     return null;

@@ -24,7 +24,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
@@ -52,12 +51,8 @@ public class Investigations implements DefaultValueAware {
   }
 
   public Investigations(@Nullable final Collection<InvestigationWrapper> itemsP,
-                        @Nullable final Href hrefP,
-                        @NotNull final Fields fields,
-                        @Nullable final PagerData pagerData,
+                        @Nullable final PagerData pagerData, @NotNull final Fields fields,
                         @NotNull final BeanContext beanContext) {
-    this.href = hrefP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), hrefP.getHref());
-
     items = itemsP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("investigation", false), new ValueWithDefault.Value<List<Investigation>>() {
       public List<Investigation> get() {
         final ArrayList<Investigation> result = new ArrayList<Investigation>(itemsP.size());
@@ -71,6 +66,7 @@ public class Investigations implements DefaultValueAware {
     count = itemsP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("count", true), itemsP.size());
 
     if (pagerData != null) {
+      href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getHref()));
       nextHref = pagerData.getNextHref() == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("nextHref"),
                                                                                          beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()));
       prevHref = pagerData.getPrevHref() == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("prevHref"),
@@ -80,7 +76,7 @@ public class Investigations implements DefaultValueAware {
     if (itemsP != null && itemsP.isEmpty()) {
       isDefault = true;
     } else {
-      isDefault = ValueWithDefault.isAllDefault(count, hrefP, itemsP);
+      isDefault = ValueWithDefault.isAllDefault(count, href, itemsP);
     }
   }
 
