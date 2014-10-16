@@ -16,12 +16,11 @@
 
 package jetbrains.buildServer.server.rest.model.files;
 
-import org.jetbrains.annotations.NotNull;
-
+import java.util.List;
 import javax.xml.bind.annotation.XmlElementRef;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import java.util.List;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Vladislav.Rassokhin
