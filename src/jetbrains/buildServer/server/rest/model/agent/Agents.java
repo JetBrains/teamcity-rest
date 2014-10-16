@@ -40,10 +40,12 @@ import org.jetbrains.annotations.Nullable;
 @XmlType(name = "agents-ref")
 @SuppressWarnings("PublicField")
 public class Agents {
+  public static final String COUNT = "count";
   @XmlAttribute
   public Integer count;
 
-  @XmlElement(name = "agent")
+  public static final String AGENT = "agent";
+  @XmlElement(name = AGENT)
   public List<Agent> agents;
 
   @XmlAttribute(required = false) @Nullable public String nextHref;
@@ -53,19 +55,21 @@ public class Agents {
   public Agents() {
   }
 
-  public Agents(@NotNull final Collection<SBuildAgent> agentObjects, @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
-    agents = ValueWithDefault.decideDefault(fields.isIncluded("agent", false, true), new ValueWithDefault.Value<List<Agent>>() {
-      @Nullable
-      public List<Agent> get() {
-        final ArrayList<Agent> items = new ArrayList<Agent>(agentObjects.size());
-        for (SBuildAgent item : agentObjects) {
-          items.add(new Agent(item, beanContext.getSingletonService(AgentPoolsFinder.class), fields.getNestedField("agent"), beanContext));
+  public Agents(@Nullable final Collection<SBuildAgent> agentObjects, @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    if (agentObjects != null) {
+      agents = ValueWithDefault.decideDefault(fields.isIncluded(AGENT, false, true), new ValueWithDefault.Value<List<Agent>>() {
+        @Nullable
+        public List<Agent> get() {
+          final ArrayList<Agent> items = new ArrayList<Agent>(agentObjects.size());
+          for (SBuildAgent item : agentObjects) {
+            items.add(new Agent(item, beanContext.getSingletonService(AgentPoolsFinder.class), fields.getNestedField(AGENT), beanContext));
+          }
+          return items;
         }
-        return items;
-      }
-    });
+      });
 
-    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), agentObjects.size());
+      count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded(COUNT), agentObjects.size());
+    }
 
     if (pagerData != null) {
       href = ValueWithDefault.decideDefault(fields.isIncluded("href", true), beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getHref()));

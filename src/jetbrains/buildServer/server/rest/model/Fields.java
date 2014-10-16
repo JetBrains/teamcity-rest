@@ -113,6 +113,22 @@ public class Fields {
   }
 
   @Nullable
+  public Boolean isIncludedOr(@NotNull final String[] fieldNames, @Nullable final Boolean defaultForShort, @Nullable final Boolean defaultForLong) {
+    Boolean result = false;
+    for (String fieldName : fieldNames) {
+      final Boolean included = isIncluded(fieldName, defaultForShort, defaultForLong);
+      if (included != null) {
+        if (included) {
+          return true;
+        }
+      } else {
+        result = null;
+      }
+    }
+    return result;
+  }
+
+  @Nullable
   @Contract("_, !null, !null -> !null")
   public Boolean isIncluded(@NotNull final String fieldName, @Nullable final Boolean defaultForShort, @Nullable final Boolean defaultForLong) {
     final String fieldSpec = getCustomDimension(fieldName);

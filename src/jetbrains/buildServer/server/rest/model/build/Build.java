@@ -32,6 +32,7 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
+import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.PropEntitiesArtifactDep;
 import jetbrains.buildServer.server.rest.model.change.Changes;
@@ -734,10 +735,19 @@ public class Build {
   }
 
   @XmlElement(name = "compatibleAgents")
-  public Href getCompatibleAgents() {
-    return myQueuedBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("compatibleAgents", false), new ValueWithDefault.Value<Href>() {
-      public Href get() {
-        return new Href(BuildQueueRequest.getCompatibleAgentsHref(myQueuedBuild), myApiUrlBuilder);
+  public Agents getCompatibleAgents() {
+    return myQueuedBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("compatibleAgents", false), new ValueWithDefault.Value<Agents>() {
+      public Agents get() {
+        //do not calculate agents if not asked for
+        final Fields nestedFields = myFields.getNestedField("compatibleAgents");
+        final Collection<SBuildAgent> agentObjects = ValueWithDefault.decideDefault(nestedFields.isIncludedOr(new String[]{Agents.AGENT, Agents.COUNT}, false, false),
+                                                                                    new ValueWithDefault.Value<Collection<SBuildAgent>>() {
+          @Nullable
+          public Collection<SBuildAgent> get() {
+            return myQueuedBuild.getCompatibleAgents();
+          }
+        });
+        return new Agents(agentObjects, new PagerData(BuildQueueRequest.getCompatibleAgentsHref(myQueuedBuild)), nestedFields, myBeanContext);
       }
     });
   }
