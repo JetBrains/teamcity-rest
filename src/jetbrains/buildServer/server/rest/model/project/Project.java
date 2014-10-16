@@ -28,9 +28,10 @@ import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.Href;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
+import jetbrains.buildServer.server.rest.model.buildType.VcsRoots;
 import jetbrains.buildServer.server.rest.request.ProjectRequest;
 import jetbrains.buildServer.server.rest.request.VcsRootRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -103,7 +104,7 @@ public class Project {
   public Properties parameters;
 
   @XmlElement (name = "vcsRoots")
-  public Href vcsRoots;
+  public VcsRoots vcsRoots;
 
   @XmlElement (name = "projects")
   public Projects projects;
@@ -151,9 +152,9 @@ public class Project {
                               fields.getNestedField("parameters", Fields.NONE, Fields.LONG), beanContext.getServiceLocator());
       }
     });
-    vcsRoots = ValueWithDefault.decideDefault(fields.isIncluded("vcsRoots", false), new ValueWithDefault.Value<Href>() {
-      public Href get() {
-        return new Href(VcsRootRequest.API_VCS_ROOTS_URL + "?locator=project:(id:" + project.getExternalId() + ")", beanContext.getApiUrlBuilder());
+    vcsRoots = ValueWithDefault.decideDefault(fields.isIncluded("vcsRoots", false), new ValueWithDefault.Value<VcsRoots>() {
+      public VcsRoots get() {
+        return new VcsRoots(project.getOwnVcsRoots(), new PagerData(VcsRootRequest.getHref(project)), fields.getNestedField("vcsRoots"), beanContext);
       }
     });
 

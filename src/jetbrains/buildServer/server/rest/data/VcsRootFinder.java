@@ -128,6 +128,11 @@ public class VcsRootFinder{
   }
 
   @NotNull
+  public static String getLocatorText(@NotNull final SProject project) {
+    return Locator.createEmptyLocator().setDimension("project", ProjectFinder.getLocator(project)).getStringRepresentation();
+  }
+
+  @NotNull
   public PagedSearchResult<SVcsRoot> getVcsRoots(@Nullable final Locator locator) {
     if (locator == null) {
       final List<SVcsRoot> allRegisteredVcsRoots = myVcsManager.getAllRegisteredVcsRoots();
