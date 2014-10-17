@@ -122,11 +122,11 @@ public class BuildFinder {
     }
 
     final List<SBuild> buildsList = getBuilds(buildsFilter);
+    final PagedSearchResult pagedResult = new PagedSearchResult<SBuild>(buildsList, buildsFilter.getStart(), buildsFilter.getCount());
     return new Builds(getBuildPromotions(buildsList),
-                      new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), buildsFilter.getStart(),
-                                    buildsFilter.getCount(), buildsList.size(), (locatorText != null ? locatorText : null),
-                                    locatorParameterName),
-                      fields, beanContext);
+                      new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedResult, (locatorText != null ? locatorText : null), locatorParameterName),
+                      fields,
+                      beanContext);
   }
 
   @NotNull
