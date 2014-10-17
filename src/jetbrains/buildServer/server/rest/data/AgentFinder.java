@@ -23,6 +23,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.BuildAgentManager;
+import jetbrains.buildServer.serverSide.BuildAgentManagerEx;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -46,7 +47,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   @Override
   public List<SBuildAgent> getAllItems() {
     final List<SBuildAgent> result = myAgentManager.getRegisteredAgents(true);
-    result.addAll(myAgentManager.getUnregisteredAgents());
+    result.addAll(((BuildAgentManagerEx)myAgentManager).getUnregisteredAgents(true));
     return result;
   }
 
@@ -134,15 +135,15 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     List<SBuildAgent> result = new ArrayList<SBuildAgent>();
 
     final Boolean authorizedDimension = locator.getSingleDimensionValueAsBoolean(AUTHORIZED);
-    if (authorizedDimension == null || authorizedDimension){
-      result.addAll(myAgentManager.getRegisteredAgents(true));
-    } else{
-      result.addAll(myAgentManager.getRegisteredAgents(false));
-    }
+    final boolean includeUnauthorized = authorizedDimension == null || !authorizedDimension;
 
     final Boolean connectedDimension = locator.getSingleDimensionValueAsBoolean(CONNECTED);
-    if (connectedDimension == null || !connectedDimension){
-      result.addAll(myAgentManager.getUnregisteredAgents());
+    if (connectedDimension == null || connectedDimension) {
+      result.addAll(myAgentManager.getRegisteredAgents(includeUnauthorized));
+    }
+
+    if (connectedDimension == null || !connectedDimension) {
+      result.addAll(((BuildAgentManagerEx)myAgentManager).getUnregisteredAgents(includeUnauthorized));  //TeamCIty API issue: cast
     }
 
     return result;

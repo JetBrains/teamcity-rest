@@ -72,22 +72,25 @@ public class AgentRequest {
                             @QueryParam("locator") String locator,
                             @QueryParam("fields") String fields,
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
-    //pre-8.1 compatibility:
-    String locatorToUse = locator;
-    if (includeDisconnected != null && !includeDisconnected){
-      final Locator parsedLocator = StringUtil.isEmpty(locatorToUse) ? Locator.createEmptyLocator() : new Locator(locatorToUse);
-      final String dimension = parsedLocator.getSingleDimensionValue(AgentFinder.CONNECTED);
-      if (dimension != null && !"true".equals(dimension)){
-        throw new BadRequestException("Both 'includeDisconnected' URL parameter and '" + AgentFinder.CONNECTED + "' locator dimension are specified. Please use locator only.");
-      }
-      locatorToUse = parsedLocator.setDimensionIfNotPresent(AgentFinder.CONNECTED, "true").getStringRepresentation();
+    if (locator != null && includeDisconnected != null){
+      throw new BadRequestException("Both 'includeDisconnected' URL parameter and '" + AgentFinder.CONNECTED + "' locator dimension are specified. Please use locator only.");
     }
-    if (includeUnauthorized != null && !includeUnauthorized){
-      final Locator parsedLocator = StringUtil.isEmpty(locatorToUse) ? Locator.createEmptyLocator() : new Locator(locatorToUse);
-      final String dimension = parsedLocator.getSingleDimensionValue(AgentFinder.AUTHORIZED);
-      if (dimension != null && !"true".equals(dimension)){
-        throw new BadRequestException("Both 'includeUnauthorized' URL parameter and '" + AgentFinder.AUTHORIZED + "' locator dimension are specified. Please use locator only.");
-      }
+    if (locator != null && includeUnauthorized != null){
+      throw new BadRequestException("Both 'includeUnauthorized' URL parameter and '" + AgentFinder.AUTHORIZED + "' locator dimension are specified. Please use locator only.");
+    }
+
+    String locatorToUse = locator;
+    if (includeDisconnected != null) {
+      //pre-8.1 compatibility:
+      locatorToUse = Locator.createEmptyLocator().setDimensionIfNotPresent(AgentFinder.CONNECTED, String.valueOf(!includeDisconnected)).getStringRepresentation();
+    }
+
+    final Locator parsedLocator = StringUtil.isEmpty(locatorToUse) ? Locator.createEmptyLocator() : new Locator(locatorToUse);
+    if (includeUnauthorized != null) {
+      //pre-8.1 compatibility:
+      locatorToUse = parsedLocator.setDimensionIfNotPresent(AgentFinder.AUTHORIZED, String.valueOf(!includeUnauthorized)).getStringRepresentation();
+    } else {
+      //list only authorized agents by default
       locatorToUse = parsedLocator.setDimensionIfNotPresent(AgentFinder.AUTHORIZED, "true").getStringRepresentation();
     }
 
