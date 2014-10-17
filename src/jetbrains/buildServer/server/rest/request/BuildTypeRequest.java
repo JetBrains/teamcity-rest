@@ -131,9 +131,7 @@ public class BuildTypeRequest {
     final String actualLocator = Locator.setDimensionIfNotPresent(locator, BuildTypeFinder.TEMPLATE_FLAG_DIMENSION_NAME, "false");
     final PagedSearchResult<BuildTypeOrTemplate> result = myBuildTypeFinder.getItems(actualLocator);
 
-    final PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
-                                          result.myCount, result.myEntries.size(),
-                                          locator, "locator");
+    final PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
     return new BuildTypes(result.myEntries, pager, new Fields(fields), myBeanContext);
   }
 

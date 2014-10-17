@@ -99,11 +99,8 @@ public class BuildQueueRequest {
       }
     });
     return new Builds(builds,
-                      new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
-                                    result.myCount, builds.size(),
-                                    locator,
-                                    "locator"),
-                       new Fields(fields),
+                      new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator"),
+                      new Fields(fields),
                       myBeanContext);
   }
 

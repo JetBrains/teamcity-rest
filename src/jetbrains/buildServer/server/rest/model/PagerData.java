@@ -20,6 +20,7 @@ import com.intellij.openapi.util.text.StringUtil;
 import java.net.URI;
 import javax.ws.rs.core.UriBuilder;
 import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -62,10 +63,12 @@ public class PagerData {
    */
   public PagerData(@NotNull final UriBuilder uriBuilder,
                    @NotNull final String contextPath,
-                   @Nullable final Long start,
-                   @Nullable final Integer count,
-                   long currentPageRealCount,
+                   @NotNull final PagedSearchResult pagedResult,
                    @Nullable final String locatorText, @Nullable final String locatorQueryParameterName) {
+    final Long start = pagedResult.myStart;
+    final Integer count = pagedResult.myCount;
+    long currentPageRealCount = pagedResult.myActualCount;
+
     myHref = getRelativePath(uriBuilder.build(), contextPath); //todo: investigate a way to preserve order of the parameters
     URI nextHref;
     URI prevHref;

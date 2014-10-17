@@ -79,11 +79,9 @@ public class VcsRootInstanceRequest {
       myVcsRootFinder.getVcsRootInstances(vcsRootInstanceLocator != null ? VcsRootFinder.createVcsRootInstanceLocator(vcsRootInstanceLocator) : null);
 
     return new VcsRootInstances(vcsRootInstances.myEntries,
-                                new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), vcsRootInstances.myStart,
-                                              vcsRootInstances.myCount, vcsRootInstances.myEntries.size(),
-                                              vcsRootInstanceLocator,
-                                              "locator"),
-                                new Fields(fields), myBeanContext);
+                                new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), vcsRootInstances, vcsRootInstanceLocator, "locator"),
+                                new Fields(fields),
+                                myBeanContext);
   }
 
   @GET

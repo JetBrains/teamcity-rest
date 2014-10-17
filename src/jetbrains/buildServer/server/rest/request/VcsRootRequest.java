@@ -75,9 +75,7 @@ public class VcsRootRequest {
   public VcsRoots serveRoots(@QueryParam("locator") String locatorText, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final PagedSearchResult<SVcsRoot> vcsRoots = myVcsRootFinder.getVcsRoots(locatorText != null ? VcsRootFinder.createVcsRootLocator(locatorText) : null);
     return new VcsRoots(vcsRoots.myEntries,
-                        new PagerData(uriInfo.getRequestUriBuilder(),
-                                      request.getContextPath(), vcsRoots.myStart, vcsRoots.myCount, vcsRoots.myEntries.size(), locatorText,
-                                      "locator"),
+                        new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), vcsRoots, locatorText, "locator"),
                         new Fields(fields),
                         myBeanContext);
   }

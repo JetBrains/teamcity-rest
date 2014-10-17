@@ -68,12 +68,9 @@ public class TestRequest {
     final PagedSearchResult<STest> result = myTestFinder.getItems(locatorText);
 
     return new Tests(result.myEntries,
-                     new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
-                                   result.myCount, result.myEntries.size(),
-                                   locatorText,
-                                   "locator"),
+                     new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
                      new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder),
-                      new Fields(fields)
+                     new Fields(fields)
     );
   }
   

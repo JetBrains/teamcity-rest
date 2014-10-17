@@ -88,12 +88,9 @@ public class InvestigationRequest {
   public Investigations getInvestigations(@QueryParam("locator") String locatorText, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final PagedSearchResult<InvestigationWrapper> result = myInvestigationFinder.getItems(locatorText);
 
-    final PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
-                                            result.myCount, result.myEntries.size(),
-                                            locatorText,
-                                            "locator");
     return new Investigations(result.myEntries,
-                              pager, new Fields(fields),
+                              new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
+                              new Fields(fields),
                               new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder)
     );
   }

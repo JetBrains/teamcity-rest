@@ -93,10 +93,7 @@ public class AgentRequest {
 
     final PagedSearchResult<SBuildAgent> result = myAgentFinder.getItems(locatorToUse);
 
-    final PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
-                                          result.myCount, result.myEntries.size(),
-                                          locatorToUse,
-                                          "locator");
+    final PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorToUse, "locator");
     return new Agents(result.myEntries, pager,  new Fields(fields), myBeanContext);
   }
 

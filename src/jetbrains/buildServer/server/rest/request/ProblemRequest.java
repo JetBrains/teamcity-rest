@@ -67,11 +67,9 @@ public class ProblemRequest {
     final PagedSearchResult<ProblemWrapper> result = myProblemFinder.getItems(locatorText);
 
     return new Problems(result.myEntries,
-                        new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
-                                      result.myCount, result.myEntries.size(),
-                                      locatorText,
-                                      "locator"),
-                        new Fields(fields), myBeanContext);
+                        new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
+                        new Fields(fields),
+                        myBeanContext);
   }
 
   @GET

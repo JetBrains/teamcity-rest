@@ -82,10 +82,9 @@ public class ProblemOccurrenceRequest {
 
     return new ProblemOccurrences(result.myEntries,
                                   uriInfo.getRequestUri().toString(),
-                                  new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result.myStart,
-                                                result.myCount, result.myEntries.size(),
-                                                locatorText,
-                                                "locator"),  new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder)
+                                  new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
+                                  new Fields(fields),
+                                  new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder)
     );
   }
 

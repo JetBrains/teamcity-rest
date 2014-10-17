@@ -26,12 +26,14 @@ import org.jetbrains.annotations.Nullable;
  */
 public class PagedSearchResult<T> {
   @NotNull public final List<T> myEntries;
+  public final int myActualCount;
   @Nullable public final Long myStart;
   @Nullable public final Integer myCount;
 
-  public PagedSearchResult(@NotNull final List<T> entries, @Nullable final Long start, @Nullable final Integer count) {
+  public PagedSearchResult(@NotNull final List<T> entries, @Nullable final Long requestedStart, @Nullable final Integer requestedCount) {
     myEntries = entries;
-    myStart = start;
-    myCount = count;
+    myActualCount = entries.size();
+    myStart = requestedStart;
+    myCount = requestedCount;
   }
 }

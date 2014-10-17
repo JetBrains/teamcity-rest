@@ -123,11 +123,11 @@ public class ChangeRequest {
 
     final UriBuilder requestUriBuilder = uriInfo.getRequestUriBuilder();
     requestUriBuilder.replaceQueryParam("count" , null);
-    requestUriBuilder.replaceQueryParam("start" , null);
+    requestUriBuilder.replaceQueryParam("start", null);
     return new Changes(buildModifications.myEntries,
-                       new PagerData(requestUriBuilder, request.getContextPath(), buildModifications.myStart,
-                                     buildModifications.myCount, buildModifications.myEntries.size(), actualLocator.getStringRepresentation(), "locator"),
-                        new Fields(fields), myBeanContext);
+                       new PagerData(requestUriBuilder, request.getContextPath(), buildModifications, actualLocator.getStringRepresentation(), "locator"),
+                       new Fields(fields),
+                       myBeanContext);
   }
 
   private void updateLocatorDimension(@NotNull final Locator locator, @NotNull final String dimensionName, @Nullable final String value) {
