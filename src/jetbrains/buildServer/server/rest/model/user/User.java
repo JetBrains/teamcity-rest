@@ -31,8 +31,10 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.group.Groups;
+import jetbrains.buildServer.server.rest.request.UserRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.users.PropertyHolder;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
@@ -131,14 +133,14 @@ public class User {
   public Properties getProperties() {
     return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
-        return new Properties(getUserProperties(myUser));
+        return new Properties(getProperties(myUser), UserRequest.getPropertiesHref(myUser),myFields.getNestedField("properties"));
       }
     });
   }
 
-  public static Map<String, String> getUserProperties(final SUser user) {
+  public static Map<String, String> getProperties(final PropertyHolder holder) {
     Map<String, String> convertedProperties = new HashMap<String, String>();
-    for (Map.Entry<PropertyKey, String> prop : user.getProperties().entrySet()) {
+    for (Map.Entry<PropertyKey, String> prop : holder.getProperties().entrySet()) {
       convertedProperties.put(prop.getKey().getKey(), prop.getValue());
     }
     return convertedProperties;

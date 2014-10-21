@@ -64,6 +64,10 @@ public class UserRequest {
     return getUserHref(user) + "/roles/" + roleEntry.getRole().getId() + "/" + RoleAssignment.getScopeRepresentation(scopeParam);
   }
 
+  public static String getPropertiesHref(final SUser user) {
+    return getUserHref(user) + "/properties";
+  }
+
   @GET
   @Produces({"application/xml", "application/json"})
   public Users serveUsers(@QueryParam("fields") String fields) {
@@ -133,14 +137,14 @@ public class UserRequest {
   public Properties serveUserProperties(@PathParam("userLocator") String userLocator) {
     SUser user = myUserFinder.getUser(userLocator);
 
-    return new Properties(User.getUserProperties(user));
+    return new Properties(User.getProperties(user));
   }
 
   @GET
   @Path("/{userLocator}/properties/{name}")
   @Produces("text/plain")
   public String serveUserProperties(@PathParam("userLocator") String userLocator, @PathParam("name") String parameterName) {
-    return BuildTypeUtil.getParameter(parameterName, User.getUserProperties(myUserFinder.getUser(userLocator)), true, true);
+    return BuildTypeUtil.getParameter(parameterName, User.getProperties(myUserFinder.getUser(userLocator)), true, true);
   }
 
   @PUT
@@ -156,7 +160,7 @@ public class UserRequest {
     }
 
     user.setUserProperty(new SimplePropertyKey(name), newValue);
-    return BuildTypeUtil.getParameter(name, User.getUserProperties(myUserFinder.getUser(userLocator)), false, true);
+    return BuildTypeUtil.getParameter(name, User.getProperties(myUserFinder.getUser(userLocator)), false, true);
   }
 
   @DELETE

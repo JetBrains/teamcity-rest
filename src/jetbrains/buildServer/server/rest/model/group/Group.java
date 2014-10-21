@@ -17,6 +17,8 @@
 package jetbrains.buildServer.server.rest.model.group;
 
 import com.intellij.openapi.util.text.StringUtil;
+import java.util.HashMap;
+import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -28,10 +30,13 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.server.rest.model.user.Users;
+import jetbrains.buildServer.server.rest.request.GroupRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.users.PropertyKey;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -63,6 +68,9 @@ public class Group {
   @XmlElement(name = "roles")
   public RoleAssignments roleAssignments;
 
+  @XmlElement(name = "properties")
+  public Properties properties;
+
   public Group() {
   }
 
@@ -92,6 +100,11 @@ public class Group {
         return new RoleAssignments(userGroup.getRoles(), userGroup, context);
       }
     });
+    properties = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
+      public Properties get() {
+        return new Properties(getProperties(userGroup), GroupRequest.getPropertiesHref(userGroup), fields.getNestedField("properties"));
+      }
+    });
   }
 
   @NotNull
@@ -104,5 +117,13 @@ public class Group {
       throw new NotFoundException("No group is found by key '" + key + "'");
     }
     return userGroupByKey;
+  }
+
+  public static Map<String, String> getProperties(final SUserGroup user) {
+    Map<String, String> convertedProperties = new HashMap<String, String>();
+    for (Map.Entry<PropertyKey, String> prop : user.getProperties().entrySet()) {
+      convertedProperties.put(prop.getKey().getKey(), prop.getValue());
+    }
+    return convertedProperties;
   }
 }

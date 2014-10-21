@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import com.intellij.openapi.util.text.StringUtil;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.groups.SUserGroup;
@@ -24,14 +25,19 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
 import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.data.UserGroupFinder;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.group.Group;
 import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
+import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
+import jetbrains.buildServer.users.SimplePropertyKey;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -57,6 +63,10 @@ public class GroupRequest {
 
   public static String getRoleAssignmentHref(final UserGroup group, final RoleEntry roleEntry, @Nullable final String scopeParam) {
     return getGroupHref(group) + "/roles/" + roleEntry.getRole().getId() + "/" + RoleAssignment.getScopeRepresentation(scopeParam);
+  }
+
+  public static String getPropertiesHref(final UserGroup group) {
+    return getGroupHref(group) + "/properties";
   }
 
   @GET
@@ -161,5 +171,48 @@ public class GroupRequest {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
     group.addRole(RoleAssignment.getScope(scopeValue, myBeanContext), myDataProvider.getRoleById(roleId));
     return new RoleAssignment(DataProvider.getGroupRoleEntry(group, roleId, scopeValue, myBeanContext), group, myBeanContext);
+  }
+  
+  @GET
+  @Path("/{groupLocator}/properties")
+  @Produces({"application/xml", "application/json"})
+  public Properties getProperties(@PathParam("groupLocator") String groupLocator, @QueryParam("fields") String fields) {
+    SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
+    return new Properties(User.getProperties(group), null, new Fields(fields));
+  }
+
+  @GET
+  @Path("/{groupLocator}/properties/{name}")
+  @Produces("text/plain")
+  public String serveUserProperties(@PathParam("groupLocator") String groupLocator, @PathParam("name") String parameterName) {
+    return BuildTypeUtil.getParameter(parameterName, User.getProperties( myUserGroupFinder.getGroup(groupLocator)), true, true);
+  }
+
+  @PUT
+  @Path("/{groupLocator}/properties/{name}")
+  @Consumes("text/plain")
+  @Produces("text/plain")
+  public String putUserProperty(@PathParam("groupLocator") String groupLocator,
+                              @PathParam("name") String name,
+                              String newValue) {
+    SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
+    if (StringUtil.isEmpty(name)) {
+      throw new BadRequestException("Property name cannot be empty.");
+    }
+
+    group.setGroupProperty(new SimplePropertyKey(name), newValue);
+    return BuildTypeUtil.getParameter(name, User.getProperties(group), false, true);
+  }
+
+  @DELETE
+  @Path("/{groupLocator}/properties/{name}")
+  public void removeUserProperty(@PathParam("groupLocator") String groupLocator,
+                                 @PathParam("name") String name) {
+    SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
+    if (StringUtil.isEmpty(name)) {
+      throw new BadRequestException("Property name cannot be empty.");
+    }
+
+    group.deleteGroupProperty(new SimplePropertyKey(name));
   }
 }
