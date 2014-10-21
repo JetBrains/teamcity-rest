@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
@@ -45,6 +46,7 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -130,6 +132,24 @@ public class DebugRequest {
     myDataProvider.getVcsModificationChecker().forceCheckingFor(vcsRootInstances.myEntries);
     return new VcsRootInstances(vcsRootInstances.myEntries, null, new Fields(fields), beanContext);
   }
+
+  /**
+   * Experimental use only!
+   */
+  @GET
+  @Path("/requestDetails")
+  @Produces({"text/plain"})
+  public String getRequestDetails(@Context HttpServletRequest request) {
+    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    StringBuilder result = new StringBuilder();
+    result.append("Remote address: " ).append(request.getRemoteAddr()).append("\n");
+    result.append("Refined remote address: " ).append(WebUtil.getRemoteAddress(request)).append("\n");
+    return result.toString();
+  }
+
+
+
+
 
   private void checkQuery(final String query) {
     final String validQueryPrefixes = TeamCityProperties.getProperty(REST_VALID_QUERY_PROPERTY_NAME);
