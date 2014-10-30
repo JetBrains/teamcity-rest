@@ -26,6 +26,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
+import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.vcs.SVcsModification;
 import org.jetbrains.annotations.NotNull;
@@ -36,13 +37,14 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 16.04.2009
  */
 @XmlRootElement(name = "changes")
-public class Changes {
+public class Changes implements DefaultValueAware {
   @Nullable private CachingValue<List<SVcsModification>> myModifications;
   @Nullable private PagerData myPagerData;
   @NotNull private Fields myFields;
   @NotNull private BeanContext myBeanContext;
 
   public static final String CHANGE = "change";
+  public static final String COUNT = "count";
 
   public Changes() {
   }
@@ -90,11 +92,23 @@ public class Changes {
 
   @XmlAttribute
   public Integer getCount() {
-    return myModifications == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("count"), new ValueWithDefault.Value<Integer>() {
-      public Integer get() {
+    if (myModifications == null) return null;
+
+    final Boolean countRequested = myFields.isIncluded(COUNT);
+    if (countRequested != null) {
+      if (countRequested) {
         return myModifications.get().size();
+      } else {
+        return null;
       }
-    });
+    }
+
+    //for performance reasons: include count only when changes are to be calculated
+    final Boolean changesAreCalculated = myFields.isIncluded(CHANGE, false);
+    if (changesAreCalculated == null || changesAreCalculated) {
+      return myModifications.get().size();
+    }
+    return null;
   }
 
   @XmlAttribute(required = false)
@@ -131,5 +145,9 @@ public class Changes {
       }
     }
     return result;
+  }
+
+  public boolean isDefault() {
+    return ValueWithDefault.isAllDefault(myModifications == null ? null : myModifications.get().size(), myPagerData);
   }
 }

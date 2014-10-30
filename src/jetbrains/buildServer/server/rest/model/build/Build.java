@@ -504,7 +504,7 @@ public class Build {
     }
     return ValueWithDefault.decideDefault(myFields.isIncluded("lastChanges", false), new ValueWithDefault.Value<Changes>() {
       public Changes get() {
-        return new Changes(null, myFields.getNestedField("lastChanges", Fields.NONE, Fields.LONG), myBeanContext, new CachingValue<List<SVcsModification>>() {
+        final Changes result = new Changes(null, myFields.getNestedField("lastChanges", Fields.NONE, Fields.LONG), myBeanContext, new CachingValue<List<SVcsModification>>() {
           @NotNull
           @Override
           protected List<SVcsModification> doGet() {
@@ -524,6 +524,7 @@ public class Build {
             return result;
           }
         });
+        return result.isDefault() ? null : result;
       }
     });
   }
@@ -533,7 +534,7 @@ public class Build {
     if (!myFields.isIncluded("changes", false, true)) {
       return null;
     }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("changes", false), new ValueWithDefault.Value<Changes>() {
+    return ValueWithDefault.decide(myFields.isIncluded("changes", false), new ValueWithDefault.Value<Changes>() {
       public Changes get() {
         final String href;
         if (myBuild != null) {
@@ -543,13 +544,14 @@ public class Build {
         }
         final Fields changesFields = myFields.getNestedField("changes");
         return new Changes(new PagerData(href), changesFields, myBeanContext, new CachingValue<List<SVcsModification>>() {
+          @NotNull
           @Override
           protected List<SVcsModification> doGet() {
             return ChangeFinder.getBuildChanges(myBuildPromotion);
           }
         });
       }
-    });
+    }, null, true);
   }
 
   @XmlElement(name = "triggered")

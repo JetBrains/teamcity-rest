@@ -57,6 +57,22 @@ public class ValueWithDefault {
   }
 
   @Nullable
+  public static <T> T decide(@Nullable Boolean decision, @Nullable Value<T> trueValue, @Nullable Value<T> falseValue, boolean defaultDecision) {
+    boolean actualDecision;
+    if (decision == null) {
+      actualDecision = defaultDecision;
+    } else {
+      actualDecision = decision;
+    }
+
+    if (actualDecision) {
+      return trueValue == null ? null : trueValue.get();
+    } else {
+      return falseValue == null ? null : falseValue.get();
+    }
+  }
+
+  @Nullable
   public static <T> T decideDefault(@Nullable Boolean include, @NotNull Value<T> value) {
     if (include == null) {
       final T resultValue = value.get();
