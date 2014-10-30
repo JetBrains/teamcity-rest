@@ -487,7 +487,7 @@ public class Build {
   public Revisions getRevisions() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("revisions", false), new ValueWithDefault.Value<Revisions>() {
       public Revisions get() {
-        return new Revisions(myBuildPromotion.getRevisions(), myFields.getNestedField("revisions"), myBeanContext);
+        return new Revisions(myBuildPromotion.getRevisions(), myFields.getNestedField("revisions", Fields.NONE, Fields.LONG), myBeanContext);
       }
     });
   }

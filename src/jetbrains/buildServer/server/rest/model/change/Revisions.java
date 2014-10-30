@@ -40,18 +40,18 @@ public class Revisions {
   public Integer count;
 
   @XmlElement(name = "revision")
-  public List<Revision> revisoins;
+  public List<Revision> revisions;
 
   public Revisions() {
   }
 
   public Revisions(@NotNull final List<BuildRevision> items, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
-    revisoins = ValueWithDefault.decideDefault(fields.isIncluded("revision", true), new ValueWithDefault.Value<List<Revision>>() {
+    revisions = ValueWithDefault.decideDefault(fields.isIncluded("revision", true), new ValueWithDefault.Value<List<Revision>>() {
       @Nullable
       public List<Revision> get() {
         return CollectionsUtil.convertCollection(items, new Converter<Revision, BuildRevision>() {
           public Revision createFrom(@NotNull final BuildRevision source) {
-            return new Revision(source, fields.getNestedField("revision"), beanContext);
+            return new Revision(source, fields.getNestedField("revision", Fields.SHORT, Fields.LONG), beanContext);
           }
         });
       }
