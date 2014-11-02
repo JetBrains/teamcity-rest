@@ -394,7 +394,7 @@
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/log4j-1.2.12.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/spring-webmvc.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/spring.jar!/" />
-        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/commons-compress-1.5.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/commons-compress-1.9.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/UserAgentUtils-1.14-snapshot.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/guava-13.0.1.jar!/" />
       </CLASSES>

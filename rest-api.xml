@@ -92,7 +92,7 @@
   <path id="library.teamcity_third-party.classpath">
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/UserAgentUtils-1.14-snapshot.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/annotations.jar"/>
-    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/commons-compress-1.5.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/commons-compress-1.9.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/guava-13.0.1.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/log4j-1.2.12.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/openapi.jar"/>
