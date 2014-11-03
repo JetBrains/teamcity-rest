@@ -16,11 +16,13 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
@@ -77,7 +79,7 @@ public class ParameterCondition {
     });
   }
 
-  public boolean matches(final ParametersProvider parametersProvider) {
+  public boolean matches(@NotNull final ParametersProvider parametersProvider) {
     if (!StringUtil.isEmpty(myParameterName)) {
       final String value = parametersProvider.get(myParameterName);
       return matches(value);
@@ -86,6 +88,25 @@ public class ParameterCondition {
       if (matches(parameter.getValue())) return true;
     }
     return false;
+  }
+
+  public boolean matches(@NotNull final Collection<Parameter> parametersProvider) {
+    for (Parameter parameter : parametersProvider) {
+      if (parameterMatches(parameter)) return true;
+    }
+    return false;
+  }
+
+  public boolean parameterMatches(@NotNull final Parameter parameter) {
+    if (!StringUtil.isEmpty(myParameterName)) {
+      if (myParameterName.equals(parameter.getName())) {
+        return matches(parameter.getValue());
+      } else {
+        return false;
+      }
+    } else {
+      return matches(parameter.getValue());
+    }
   }
 
   public boolean matches(@Nullable final String value) {

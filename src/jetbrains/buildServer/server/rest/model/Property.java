@@ -57,10 +57,10 @@ public class Property {
   public Property() {
   }
 
-  public Property(String nameP, String valueP) {
-    name = nameP;
-    if (!isPropertyToExclude(name)) {
-      value = valueP;
+  public Property(String nameP, String valueP, @NotNull final Fields fields) {
+    name = !fields.isIncluded("name", true, true) ? null : nameP;
+    if (!isPropertyToExclude(nameP)) {
+      value = !fields.isIncluded("value", true, true) ? null : valueP;
     }
   }
 

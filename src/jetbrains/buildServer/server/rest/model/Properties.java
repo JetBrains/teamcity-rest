@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.FilterUtil;
+import jetbrains.buildServer.server.rest.data.ParameterCondition;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.Parameter;
@@ -39,6 +40,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "properties")
 public class Properties  implements DefaultValueAware {
+  protected static final String PROPERTY = "property";
   @XmlAttribute
   public Integer count;
 
@@ -46,7 +48,7 @@ public class Properties  implements DefaultValueAware {
   @Nullable
   public String href;
 
-  @XmlElement(name = "property")
+  @XmlElement(name = PROPERTY)
   public List<Property> properties = new SortedList<Property>(new Comparator<Property>() {
     private final CaseInsensitiveStringComparator comp = new CaseInsensitiveStringComparator();
 
@@ -61,7 +63,7 @@ public class Properties  implements DefaultValueAware {
   //todo: use another constructor
   public Properties(@NotNull final Map<String, String> propertiesP) {
     for (Map.Entry<String, String> prop : propertiesP.entrySet()) {
-        properties.add(new Property(prop.getKey(), prop.getValue()));
+        properties.add(new Property(prop.getKey(), prop.getValue(), Fields.LONG));
     }
   }
 
@@ -71,9 +73,13 @@ public class Properties  implements DefaultValueAware {
       this.properties = null;
     } else {
       this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), properties.size());
-      if (fields.isIncluded("property", false, true)){
+      if (fields.isIncluded(PROPERTY, false, true)){
+        final Fields propertyFields = fields.getNestedField(PROPERTY, Fields.NONE, Fields.LONG);
+        final ParameterCondition parameterCondition = getParameterCondition(fields);
         for (java.util.Map.Entry<String, String> prop : properties.entrySet()) {
-          this.properties.add(new Property(prop.getKey(), prop.getValue()));
+          if (parameterCondition == null || parameterCondition.parameterMatches(new SimpleParameter(prop.getKey(), prop.getValue()))) {
+            this.properties.add(new Property(prop.getKey(), prop.getValue(), propertyFields));
+          }
         }
       }
     }
@@ -90,14 +96,26 @@ public class Properties  implements DefaultValueAware {
       this.properties = null;
     } else {
       this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), parameters.size());
-      if (fields.isIncluded("property", false, true)) {
+      if (fields.isIncluded(PROPERTY, false, true)) {
+        final Fields propertyFields = fields.getNestedField(PROPERTY, Fields.NONE, Fields.LONG);
+        final ParameterCondition parameterCondition = getParameterCondition(fields);
         for (Parameter parameter : parameters) {
-          this.properties.add(
-            new Property(parameter, ownParameters != null && ownParameters.contains(parameter), fields.getNestedField("property", Fields.NONE, Fields.LONG), serviceLocator));
+          if (parameterCondition == null || parameterCondition.parameterMatches(parameter)) {
+            this.properties.add(new Property(parameter, ownParameters != null && ownParameters.contains(parameter), propertyFields, serviceLocator));
+          }
         }
       }
     }
     this.href = ValueWithDefault.decideDefault(fields.isIncluded("href"), href);
+  }
+
+  @Nullable
+  private ParameterCondition getParameterCondition(@NotNull final Fields propertyFields) {
+    final String propertiesLocator = propertyFields.getLocator();
+    if (propertiesLocator != null) {
+      return ParameterCondition.create(propertiesLocator);
+    }
+    return null;
   }
 
   public static List<Parameter> convertToSimpleParameters(final Map<String, String> parametersMap) {
