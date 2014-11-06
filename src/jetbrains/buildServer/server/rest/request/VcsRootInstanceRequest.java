@@ -96,10 +96,10 @@ public class VcsRootInstanceRequest {
   @GET
   @Path("/{vcsRootInstanceLocator}/properties")
   @Produces({"application/xml", "application/json"})
-  public Properties serveRootInstanceProperties(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator) {
+  public Properties serveRootInstanceProperties(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator, @QueryParam("fields") String fields) {
     final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
     myVcsRootFinder.checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance);
-    return new Properties(rootInstance.getProperties());
+    return new Properties(rootInstance.getProperties(), null, new Fields(fields));
   }
 
 

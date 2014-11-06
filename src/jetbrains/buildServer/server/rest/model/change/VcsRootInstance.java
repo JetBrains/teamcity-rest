@@ -142,7 +142,8 @@ public class VcsRootInstance {
 
   @XmlElement
   public Properties getProperties(){
-    return ValueWithDefault.decideDefault(myFields.isIncluded("properties", false), new Properties(myRoot.getProperties()));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("properties", false),
+                                          new Properties(myRoot.getProperties(), null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG)));
   }
 
   public static String getFieldValue(final jetbrains.buildServer.vcs.VcsRootInstance rootInstance,

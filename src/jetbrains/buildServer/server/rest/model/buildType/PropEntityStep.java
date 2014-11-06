@@ -20,6 +20,7 @@ import java.util.Collections;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.serverSide.BuildRunnerDescriptor;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.SBuildRunnerDescriptor;
@@ -35,9 +36,8 @@ public class PropEntityStep extends PropEntity {
   public PropEntityStep() {
   }
 
-  public PropEntityStep(SBuildRunnerDescriptor descriptor, final BuildTypeSettings buildType) {
-    super(descriptor.getId(), descriptor.getName(), descriptor.getType(), buildType.isEnabled(descriptor.getId()),
-          descriptor.getParameters());
+  public PropEntityStep(@NotNull SBuildRunnerDescriptor descriptor, @NotNull final BuildTypeSettings buildType, @NotNull final Fields fields) {
+    super(descriptor.getId(), descriptor.getName(), descriptor.getType(), buildType.isEnabled(descriptor.getId()), descriptor.getParameters(), fields);
   }
 
   public SBuildRunnerDescriptor addStep(final BuildTypeSettings buildType) {

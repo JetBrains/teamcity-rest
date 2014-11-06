@@ -38,9 +38,9 @@ public class CopyOptionsDescription {
                                 @Nullable final Map<String, String> buildTypesIdsMap,
                                 @Nullable final Map<String, String> vcsRootsIdsMap) {
     this.copyAllAssociatedSettings = copyAllAssociatedSettings;
-    if (projectsIdsMap!= null) this.projectsIdsMap = new Properties(projectsIdsMap);
-    if (buildTypesIdsMap!= null) this.buildTypesIdsMap = new Properties(buildTypesIdsMap);
-    if (vcsRootsIdsMap!= null) this.vcsRootsIdsMap = new Properties(vcsRootsIdsMap);
+    if (projectsIdsMap!= null) this.projectsIdsMap = new Properties(projectsIdsMap, null, Fields.LONG);
+    if (buildTypesIdsMap!= null) this.buildTypesIdsMap = new Properties(buildTypesIdsMap, null, Fields.LONG);
+    if (vcsRootsIdsMap!= null) this.vcsRootsIdsMap = new Properties(vcsRootsIdsMap, null, Fields.LONG);
   }
 
   public CopyOptions getCopyOptions() {

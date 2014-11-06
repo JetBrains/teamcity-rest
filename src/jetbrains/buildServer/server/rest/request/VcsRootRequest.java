@@ -154,8 +154,9 @@ public class VcsRootRequest {
   @Path("/{vcsRootLocator}/" + INSTANCES_PATH + "/{vcsRootInstanceLocator}/properties")
   @Produces({"application/xml", "application/json"})
   public Properties serveRootInstanceProperties(@PathParam("vcsRootLocator") String vcsRootLocator,
-                                           @PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator) {
-    return new Properties(myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator).getProperties());
+                                           @PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
+                                           @QueryParam("fields") String fields) {
+    return new Properties(myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator).getProperties(), null, new Fields(fields));
   }
 
 
@@ -186,20 +187,20 @@ public class VcsRootRequest {
   @GET
   @Path("/{vcsRootLocator}/properties")
   @Produces({"application/xml", "application/json"})
-  public Properties serveProperties(@PathParam("vcsRootLocator") String vcsRootLocator) {
+  public Properties serveProperties(@PathParam("vcsRootLocator") String vcsRootLocator, @QueryParam("fields") String fields) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
-    return new Properties(vcsRoot.getProperties());
+    return new Properties(vcsRoot.getProperties(), null, new Fields(fields));
   }
 
   @PUT
   @Path("/{vcsRootLocator}/properties")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Properties changProperties(@PathParam("vcsRootLocator") String vcsRootLocator, Properties properties) {
+  public Properties changProperties(@PathParam("vcsRootLocator") String vcsRootLocator, Properties properties, @QueryParam("fields") String fields) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
     vcsRoot.setProperties(properties.getMap());
     vcsRoot.persist();
-    return new Properties(vcsRoot.getProperties());
+    return new Properties(vcsRoot.getProperties(), null, new Fields(fields));
   }
 
   @DELETE

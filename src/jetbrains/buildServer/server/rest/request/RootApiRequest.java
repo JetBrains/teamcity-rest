@@ -16,16 +16,14 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildFinder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.plugin.PluginInfo;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -74,8 +72,8 @@ public class RootApiRequest {
   @GET
   @Path("/info")
   @Produces("application/xml")
-  public PluginInfo servePluginInfo() {
-    return new PluginInfo(myDataProvider.getPluginInfo());
+  public PluginInfo servePluginInfo(@QueryParam("fields") String fields) {
+    return new PluginInfo(myDataProvider.getPluginInfo(), new Fields(fields));
   }
 
   @GET

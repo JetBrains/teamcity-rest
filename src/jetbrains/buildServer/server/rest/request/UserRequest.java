@@ -134,16 +134,16 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/properties")
   @Produces({"application/xml", "application/json"})
-  public Properties serveUserProperties(@PathParam("userLocator") String userLocator) {
+  public Properties serveUserProperties(@PathParam("userLocator") String userLocator, @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getUser(userLocator);
 
-    return new Properties(User.getProperties(user));
+    return new Properties(User.getProperties(user), null, new Fields(fields));
   }
 
   @GET
   @Path("/{userLocator}/properties/{name}")
   @Produces("text/plain")
-  public String serveUserProperties(@PathParam("userLocator") String userLocator, @PathParam("name") String parameterName) {
+  public String serveUserProperty(@PathParam("userLocator") String userLocator, @PathParam("name") String parameterName) {
     return BuildTypeUtil.getParameter(parameterName, User.getProperties(myUserFinder.getUser(userLocator)), true, true);
   }
 

@@ -16,13 +16,15 @@
 
 package jetbrains.buildServer.server.rest.model.plugin;
 
-import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
@@ -32,42 +34,42 @@ import jetbrains.buildServer.server.rest.model.Properties;
 @XmlType(propOrder = {"name", "displayName", "version", "loadPath",
   "parameters"})
 public class PluginInfo {
-  ServerPluginInfo myPluginInfo;
+  private ServerPluginInfo myPluginInfo;
+  private Fields myFields;
 
   public PluginInfo() {
   }
 
-  public PluginInfo(final ServerPluginInfo pluginInfo) {
+  public PluginInfo(final ServerPluginInfo pluginInfo, @NotNull Fields fields) {
     myPluginInfo = pluginInfo;
+    myFields = fields;
   }
 
   @XmlAttribute
   public String getName() {
-    return myPluginInfo.getPluginName();
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("name"), myPluginInfo.getPluginName());
   }
 
   @XmlAttribute
   public String getDisplayName() {
-    return myPluginInfo.getPluginXml().getInfo().getDisplayName();
+    return ValueWithDefault.decideDefault(myFields.isIncluded("displayName"), myPluginInfo.getPluginXml().getInfo().getDisplayName());
   }
 
   @XmlAttribute
   public String getVersion() {
-    return myPluginInfo.getPluginVersion();
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("version"), myPluginInfo.getPluginVersion());
   }
 
   @XmlAttribute
   public String getLoadPath() {
-    return myPluginInfo.getPluginRoot().getAbsolutePath();
+    return ValueWithDefault.decideDefault(myFields.isIncluded("loadPath"), myPluginInfo.getPluginRoot().getAbsolutePath());
   }
 
   @XmlElement
   public Properties getParameters() {
-    final Map<String, String> params = myPluginInfo.getPluginXml().getInfo().getParameters();
-    if (params.size() > 0) {
-      return new Properties(params);
-    } else {
-      return null;
-    }
+    return ValueWithDefault.decideDefault(myFields.isIncluded("parameters"),
+                                          new Properties(myPluginInfo.getPluginXml().getInfo().getParameters(),
+                                                         null,
+                                                         myFields.getNestedField("parameters", Fields.NONE, Fields.LONG)));
   }
 }

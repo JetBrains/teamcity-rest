@@ -79,10 +79,10 @@ public class BuildRequest {
   public static final String TESTS = "testOccurrences";
   public static final String STATISTICS = "/statistics";
 
-  @Context @NotNull private BuildFinder myBuildFinder;
-  @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
-  @Context @NotNull private BuildArtifactsFinder myBuildArtifactsFinder;
-  @Context @NotNull private PermissionChecker myPermissionChecker;
+  @Context @NotNull public BuildFinder myBuildFinder;
+  @Context @NotNull public BuildTypeFinder myBuildTypeFinder;
+  @Context @NotNull public BuildArtifactsFinder myBuildArtifactsFinder;
+  @Context @NotNull public PermissionChecker myPermissionChecker;
 
   public static final String BUILDS_ROOT_REQUEST_PATH = "/builds";
   public static final String API_BUILDS_URL = Constants.API_URL + BUILDS_ROOT_REQUEST_PATH;
@@ -97,7 +97,7 @@ public class BuildRequest {
 
   protected static final String REST_BUILD_REQUEST_DELETE_LIMIT = "rest.buildRequest.delete.limit";
 
-  @Context @NotNull private BeanContext myBeanContext;
+  @Context @NotNull public BeanContext myBeanContext;
 
   public static String getHref() {
     return API_BUILDS_URL;
@@ -194,10 +194,10 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/resulting-properties/")
   @Produces({"application/xml", "application/json"})
-  public Properties serveBuildActualParameters(@PathParam("buildLocator") String buildLocator) {
+  public Properties serveBuildActualParameters(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     myPermissionChecker.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
-    return new Properties(build.getParametersProvider().getAll());
+    return new Properties(build.getParametersProvider().getAll(), null, new Fields(fields));
     /* alternative
     try {
       return new Properties(((FinishedBuildEx)build).getBuildFinishParameters());
@@ -395,9 +395,9 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}" + STATISTICS + "/")
   @Produces({"application/xml", "application/json"})
-  public Properties serveBuildStatisticValues(@PathParam("buildLocator") String buildLocator) {
+  public Properties serveBuildStatisticValues(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return new Properties(Build.getBuildStatisticsValues(build));
+    return new Properties(Build.getBuildStatisticsValues(build), null, new Fields(fields));
   }
 
   @GET

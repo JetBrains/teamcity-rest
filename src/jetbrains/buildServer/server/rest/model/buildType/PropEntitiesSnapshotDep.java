@@ -20,6 +20,7 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
@@ -27,6 +28,7 @@ import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -44,12 +46,18 @@ public class PropEntitiesSnapshotDep {
   public PropEntitiesSnapshotDep() {
   }
 
-  public PropEntitiesSnapshotDep(@NotNull final BuildTypeSettings buildType, @NotNull final BeanContext context) {
-    propEntities = CollectionsUtil.convertCollection(buildType.getDependencies(), new Converter<PropEntitySnapshotDep, Dependency>() {
-      public PropEntitySnapshotDep createFrom(@NotNull final Dependency source) {
-        return new PropEntitySnapshotDep(source, context);
+  public PropEntitiesSnapshotDep(@NotNull final BuildTypeSettings buildType, @NotNull final Fields fields, @NotNull final BeanContext context) {
+    final List<Dependency> dependencies = buildType.getDependencies();
+    propEntities = ValueWithDefault.decideDefault(fields.isIncluded("snapshot-dependency"), new ValueWithDefault.Value<List<PropEntitySnapshotDep>>() {
+      @Nullable
+      public List<PropEntitySnapshotDep> get() {
+        return CollectionsUtil.convertCollection(dependencies, new Converter<PropEntitySnapshotDep, Dependency>() {
+          public PropEntitySnapshotDep createFrom(@NotNull final Dependency source) {
+            return new PropEntitySnapshotDep(source, fields.getNestedField("snapshot-dependency", Fields.NONE, Fields.LONG), context);
+          }
+        });
       }
     });
-    count = ValueWithDefault.decideDefault(null, propEntities.size());
+    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), dependencies.size());
   }
 }

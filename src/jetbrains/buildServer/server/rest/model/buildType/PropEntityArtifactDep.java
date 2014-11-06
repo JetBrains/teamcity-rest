@@ -27,9 +27,9 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.ArtifactDependencyFactory;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -61,16 +61,12 @@ public class PropEntityArtifactDep extends PropEntity {
   public PropEntityArtifactDep() {
   }
 
-  public PropEntityArtifactDep(final SArtifactDependency dependency, final int orderNum, @NotNull final BeanContext context) {
-    init(dependency, orderNum, context);
+  public PropEntityArtifactDep(final SArtifactDependency dependency, final int orderNum, @NotNull final Fields fields, @NotNull final BeanContext context) {
+    init(dependency, orderNum, fields, context);
 
   }
 
-  private void init(final SArtifactDependency dependency, final int orderNum, @NotNull final BeanContext context) {
-    //todo: review id, type here
-    this.id = Integer.toString(orderNum);
-    this.type = ARTIFACT_DEPENDENCY_TYPE_NAME;
-
+  private void init(final SArtifactDependency dependency, final int orderNum, @NotNull final Fields fields, @NotNull final BeanContext context) {
     HashMap<String, String> properties = new HashMap<String, String>();
     if (TeamCityProperties.getBoolean(PropEntitySnapshotDep.REST_COMPATIBILITY_INCLUDE_BUILD_TYPE_IN_PROPERTIES)) {
       properties.put(NAME_SOURCE_BUILD_TYPE_ID, dependency.getSourceExternalId());
@@ -83,30 +79,39 @@ public class PropEntityArtifactDep extends PropEntity {
       properties.put(NAME_REVISION_BRANCH, branch);
     }
     properties.put(NAME_CLEAN_DESTINATION_DIRECTORY, Boolean.toString(dependency.isCleanDestinationFolder()));
-    this.properties = new Properties(properties);
 
-    @Nullable SBuildType dependOn = null;
-    try {
-      dependOn = dependency.getSourceBuildType();
-    } catch (AccessDeniedException e) {
-      //ignore, will use ids later
-    }
-    if (dependOn != null) {
-      sourceBuildType = new BuildType(new BuildTypeOrTemplate(dependOn), Fields.SHORT, context);
-    } else {
-      sourceBuildType = new BuildType(dependency.getSourceExternalId(), dependency.getSourceBuildTypeId(), Fields.SHORT, context);
-    }
+    //todo: review id, type here
+    init(Integer.toString(orderNum), null, ARTIFACT_DEPENDENCY_TYPE_NAME, null, properties, fields);
+
+    sourceBuildType = ValueWithDefault.decideDefault(fields.isIncluded(PropEntitySnapshotDep.SOURCE_BUILD_TYPE, false, true), new ValueWithDefault.Value<BuildType>() {
+      @Nullable
+      public BuildType get() {
+        @Nullable SBuildType dependOn = null;
+        try {
+          dependOn = dependency.getSourceBuildType();
+        } catch (AccessDeniedException e) {
+          //ignore, will use ids later
+        }
+        final Fields nestedField = fields.getNestedField(PropEntitySnapshotDep.SOURCE_BUILD_TYPE);
+        if (dependOn != null) {
+          return new BuildType(new BuildTypeOrTemplate(dependOn), nestedField, context);
+        } else {
+          return new BuildType(dependency.getSourceExternalId(), dependency.getSourceBuildTypeId(), nestedField, context);
+        }
+      }
+    });
   }
 
   public PropEntityArtifactDep(final SArtifactDependency artifactDependency,
                                final BuildTypeSettings buildType,
+                               @NotNull final Fields fields,
                                @NotNull final BeanContext context) {
     final List<SArtifactDependency> artifactDependencies = buildType.getArtifactDependencies();
 
     int orderNumber = 0;
     for (SArtifactDependency dependency : artifactDependencies) {
       if (dependency.equals(artifactDependency)) {
-        init(artifactDependency, orderNumber, context);
+        init(artifactDependency, orderNumber, fields, context);
         return;
       }
       orderNumber++;

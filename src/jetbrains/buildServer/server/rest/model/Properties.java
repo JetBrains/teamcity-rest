@@ -60,13 +60,7 @@ public class Properties  implements DefaultValueAware {
   public Properties() {
   }
 
-  //todo: use another constructor
-  public Properties(@NotNull final Map<String, String> propertiesP) {
-    for (Map.Entry<String, String> prop : propertiesP.entrySet()) {
-        properties.add(new Property(prop.getKey(), prop.getValue(), Fields.LONG));
-    }
-  }
-
+  //todo: review all null usages for href to include due URL
   public Properties(@Nullable final Map<String, String> properties, @Nullable String href, @NotNull final Fields fields) {
     if (properties == null) {
       this.count = null;

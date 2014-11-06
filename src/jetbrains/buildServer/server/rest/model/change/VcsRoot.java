@@ -132,8 +132,10 @@ public class VcsRoot {
       project = ValueWithDefault.decideDefault(fields.isIncluded("project", false), new Project(null, ownerProjectId, beanContext.getApiUrlBuilder()));
     }
 
-    properties = ValueWithDefault.decideDefault(fields.isIncluded("properties", false), new Properties(root.getProperties()));
-    modificationCheckInterval = ValueWithDefault.decideDefault(fields.isIncluded("modificationCheckInterval", false), root.isUseDefaultModificationCheckInterval() ? null : root.getModificationCheckInterval());
+    properties = ValueWithDefault.decideDefault(fields.isIncluded("properties", false),
+                                                new Properties(root.getProperties(), null, fields.getNestedField("properties", Fields.NONE, Fields.LONG)));
+    modificationCheckInterval = ValueWithDefault.decideDefault(fields.isIncluded("modificationCheckInterval", false),
+                                                               root.isUseDefaultModificationCheckInterval() ? null : root.getModificationCheckInterval());
     final VcsRootStatus rootStatus = beanContext.getSingletonService(VcsManager.class).getStatus(root);
 
     status = ValueWithDefault.decideDefault(fields.isIncluded("status", false), rootStatus.getType().toString());

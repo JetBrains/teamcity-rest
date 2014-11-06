@@ -23,10 +23,11 @@ import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.util.StringUtil;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
@@ -41,19 +42,16 @@ public class PropEntityAgentRequirement extends PropEntity {
   public PropEntityAgentRequirement() {
   }
 
-  public PropEntityAgentRequirement(final Requirement requirement) {
-    id = requirement.getPropertyName();
-    type = requirement.getType().getName();
-
-    HashMap<String, String> propertiesMap = new HashMap<String, String>();
+  public PropEntityAgentRequirement(final Requirement requirement, @NotNull final Fields fields) {
+    HashMap<String, String> propertiesMap = new HashMap<String, String>(2);
     propertiesMap.put(NAME_PROPERTY_NAME, requirement.getPropertyName());
     if (requirement.getPropertyValue() != null) {
       propertiesMap.put(NAME_PROPERTY_VALUE, requirement.getPropertyValue());
     }
-    properties = new Properties(propertiesMap);
+    init(requirement.getPropertyName(), null, requirement.getType().getName(), null, propertiesMap, fields);
   }
 
-  private String getId() {
+  private String getSubmittedId() {
     final String nameProperty = properties.getMap().get(NAME_PROPERTY_NAME);
     if (StringUtil.isEmpty(nameProperty)) {
       throw new BadRequestException("Prperty " + NAME_PROPERTY_NAME + " with the parameter name should be specified for a requirement.");
@@ -61,7 +59,7 @@ public class PropEntityAgentRequirement extends PropEntity {
     return nameProperty;
   }
 
-  private RequirementType getType() {
+  private RequirementType getSubmittedType() {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Type attribute should be specified for a requirement.");
     }
@@ -72,9 +70,9 @@ public class PropEntityAgentRequirement extends PropEntity {
     return foundType;
   }
 
-  public Requirement addRequirement(final BuildTypeOrTemplate buildType) {
+  public Requirement addRequirement(@NotNull final BuildTypeOrTemplate buildType) {
     final Map<String, String> propertiesMap = properties.getMap();
-    final Requirement requirementToAdd = new Requirement(getId(), propertiesMap.get(NAME_PROPERTY_VALUE), getType());
+    final Requirement requirementToAdd = new Requirement(getSubmittedId(), propertiesMap.get(NAME_PROPERTY_VALUE), getSubmittedType());
 
     //todo: (TeamCity) API allows to add several requirements, but we will limit it as it is not supported duly
     final String requirementPropertyName = requirementToAdd.getPropertyName();
@@ -82,11 +80,11 @@ public class PropEntityAgentRequirement extends PropEntity {
 
     final Requirement requirement = DataProvider.getAgentRequirementOrNull(buildTypeSettings, requirementPropertyName);
     if (requirement != null){
-      if (buildType.isBuildType() && buildType.getBuildType().getTemplate() != null &&
-          DataProvider.getAgentRequirementOrNull(buildType.getBuildType().getTemplate(), requirementPropertyName) != null) {
+      if (buildType.isBuildType() && buildTypeSettings.getTemplate() != null &&
+          DataProvider.getAgentRequirementOrNull(buildTypeSettings.getTemplate(), requirementPropertyName) != null) {
         buildTypeSettings.removeRequirement(requirementPropertyName); //todo (TeamCity) not clear how not present is handled
       }else{
-        throw new BadRequestException("Requirement for parameter with name '" + getId() + "' already exists.");
+        throw new BadRequestException("Requirement for parameter with name '" + getSubmittedId() + "' already exists.");
       }
     }
     buildTypeSettings.addRequirement(requirementToAdd);

@@ -21,7 +21,9 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.ParametersDescriptor;
 import org.jetbrains.annotations.NotNull;
@@ -36,7 +38,6 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("PublicField")
 public class PropEntity {
   @XmlAttribute
-  @NotNull
   public String id;
 
   @XmlAttribute
@@ -44,7 +45,6 @@ public class PropEntity {
   public String name;
 
   @XmlAttribute
-  @NotNull
   public String type;
 
   @XmlAttribute
@@ -52,34 +52,36 @@ public class PropEntity {
   public Boolean disabled;
 
   @XmlElement
-  @NotNull
   public Properties properties;
 
   public PropEntity() {
   }
 
-  public PropEntity(@NotNull ParametersDescriptor descriptor, @NotNull BuildTypeSettings buildType) {
-    init(descriptor.getId(), null, descriptor.getType(), buildType.isEnabled(descriptor.getId()), descriptor.getParameters());
+  public PropEntity(@NotNull ParametersDescriptor descriptor, @NotNull BuildTypeSettings buildType, @NotNull final Fields fields) {
+    init(descriptor.getId(), null, descriptor.getType(), buildType.isEnabled(descriptor.getId()), descriptor.getParameters(), fields);
   }
 
   public PropEntity(@NotNull final String id,
                     @Nullable final String name,
                     @NotNull final String type,
                     @Nullable final Boolean enabled,
-                    @NotNull final Map<String, String> properties) {
-    init(id, name, type, enabled, properties);
+                    @NotNull final Map<String, String> properties,
+                    @NotNull final Fields fields) {
+    init(id, name, type, enabled, properties, fields);
   }
 
-  private void init(@NotNull final String id,
+  protected void init(@NotNull final String id,
                     @Nullable final String name,
                     @NotNull final String type,
                     @Nullable final Boolean enabled,
-                    @NotNull final Map<String, String> properties) {
-    this.id = id;
-    this.name = name;
-    this.type = type;
-    this.properties = new Properties(properties);
-    disabled = enabled ? null : true;
+                    @NotNull final Map<String, String> properties,
+                    @NotNull final Fields fields) {
+    this.id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), id);
+    this.name = ValueWithDefault.decideDefault(fields.isIncluded("name"), name);
+    this.type = ValueWithDefault.decideDefault(fields.isIncluded("type"), type);
+    this.properties = ValueWithDefault.decideDefault(fields.isIncluded("properties"),
+                                                     new Properties(properties, null, fields.getNestedField("properties", Fields.NONE, Fields.LONG)));
+    disabled = enabled == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("disabled"), !enabled);
   }
 
   public static String getSetting(final BuildTypeSettings buildType, final ParametersDescriptor descriptor, final String name) {

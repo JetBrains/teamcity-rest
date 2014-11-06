@@ -27,9 +27,9 @@ import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
@@ -64,11 +64,7 @@ public class PropEntitySnapshotDep extends PropEntity {
   public PropEntitySnapshotDep() {
   }
 
-  public PropEntitySnapshotDep(@NotNull final Dependency dependency, @NotNull final BeanContext context) {
-    this.id = dependency.getDependOnExternalId();
-    this.type = SNAPSHOT_DEPENDENCY_TYPE_NAME;
-
-    //todo: review id, type here
+  public PropEntitySnapshotDep(@NotNull final Dependency dependency, @NotNull final Fields fields, @NotNull final BeanContext context) {
     HashMap<String, String> properties = new HashMap<String, String>();
     if (TeamCityProperties.getBoolean(REST_COMPATIBILITY_INCLUDE_BUILD_TYPE_IN_PROPERTIES)) {
       properties.put(NAME_SOURCE_BUILD_TYPE_ID, dependency.getDependOnExternalId());
@@ -80,19 +76,26 @@ public class PropEntitySnapshotDep extends PropEntity {
     addOptionToProperty(properties, dependency, DependencyOptions.TAKE_STARTED_BUILD_WITH_SAME_REVISIONS);
     addOptionToProperty(properties, dependency, DependencyOptions.TAKE_SUCCESSFUL_BUILDS_ONLY);
 
-    this.properties = new Properties(properties);
+    //todo: review id, type here
+    init(dependency.getDependOnExternalId(), null, SNAPSHOT_DEPENDENCY_TYPE_NAME, null, properties, fields);
 
-    @Nullable SBuildType dependOn = null;
-    try {
-      dependOn = dependency.getDependOn();
-    } catch (AccessDeniedException e) {
-      //ignrore, wil use ids later
-    }
-    if (dependOn != null) {
-      sourceBuildType = new BuildType(new BuildTypeOrTemplate(dependOn), Fields.SHORT, context);
-    } else {
-      sourceBuildType = new BuildType(dependency.getDependOnExternalId(), dependency.getDependOnId(), Fields.SHORT, context);
-    }
+    sourceBuildType = ValueWithDefault.decideDefault(fields.isIncluded(PropEntitySnapshotDep.SOURCE_BUILD_TYPE, false, true), new ValueWithDefault.Value<BuildType>() {
+      @Nullable
+      public BuildType get() {
+        @Nullable SBuildType dependOn = null;
+        try {
+          dependOn = dependency.getDependOn();
+        } catch (AccessDeniedException e) {
+          //ignore, will use ids later
+        }
+        final Fields nestedField = fields.getNestedField(PropEntitySnapshotDep.SOURCE_BUILD_TYPE);
+        if (dependOn != null) {
+          return new BuildType(new BuildTypeOrTemplate(dependOn), nestedField, context);
+        } else {
+          return new BuildType(dependency.getDependOnExternalId(), dependency.getDependOnId(), nestedField, context);
+        }
+      }
+    });
   }
 
   public Dependency addSnapshotDependency(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {

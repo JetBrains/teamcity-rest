@@ -21,6 +21,7 @@ import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptorFactory;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -35,8 +36,8 @@ public class PropEntityTrigger extends PropEntity {
   public PropEntityTrigger() {
   }
 
-  public PropEntityTrigger(final BuildTriggerDescriptor descriptor, final BuildTypeSettings buildTypeSettings) {
-    super(descriptor, buildTypeSettings);
+  public PropEntityTrigger(@NotNull final BuildTriggerDescriptor descriptor, @NotNull final BuildTypeSettings buildTypeSettings, @NotNull final Fields fields) {
+    super(descriptor, buildTypeSettings, fields);
   }
 
   public BuildTriggerDescriptor addTrigger(final BuildTypeSettings buildType, final BuildTriggerDescriptorFactory descriptorFactory) {

@@ -16,16 +16,19 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
+import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -42,12 +45,18 @@ public class PropEntitiesTrigger {
   public PropEntitiesTrigger() {
   }
 
-  public PropEntitiesTrigger(final BuildTypeSettings buildType) {
-    propEntities = CollectionsUtil.convertCollection(buildType.getBuildTriggersCollection(), new Converter<PropEntityTrigger, BuildTriggerDescriptor>() {
+  public PropEntitiesTrigger(final BuildTypeSettings buildType, @NotNull final Fields fields) {
+    final Collection<BuildTriggerDescriptor> buildTriggersCollection = buildType.getBuildTriggersCollection();
+    propEntities = ValueWithDefault.decideDefault(fields.isIncluded("trigger"), new ValueWithDefault.Value<List<PropEntityTrigger>>() {
+      @Nullable
+      public List<PropEntityTrigger> get() {
+        return CollectionsUtil.convertCollection(buildTriggersCollection, new Converter<PropEntityTrigger, BuildTriggerDescriptor>() {
           public PropEntityTrigger createFrom(@NotNull final BuildTriggerDescriptor source) {
-            return new PropEntityTrigger(source, buildType);
+            return new PropEntityTrigger(source, buildType, fields.getNestedField("trigger", Fields.NONE, Fields.LONG));
           }
         });
-    count = ValueWithDefault.decideDefault(null, propEntities.size());
+      }
+    });
+    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), buildTriggersCollection.size());
   }
 }

@@ -23,10 +23,13 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -34,7 +37,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlRootElement(name="artifact-dependencies")
 @SuppressWarnings("PublicField")
-public class PropEntitiesArtifactDep {
+public class PropEntitiesArtifactDep implements DefaultValueAware {
   @XmlAttribute
   public Integer count;
 
@@ -44,14 +47,21 @@ public class PropEntitiesArtifactDep {
   public PropEntitiesArtifactDep() {
   }
 
-  public PropEntitiesArtifactDep(@NotNull final List<SArtifactDependency> artifactDependencies, @NotNull final BeanContext context) {
-    propEntities = new ArrayList<PropEntityArtifactDep>(artifactDependencies.size());
-    int orderNumber = 0;
-    for (SArtifactDependency dependency : artifactDependencies) {
-      propEntities.add(new PropEntityArtifactDep(dependency, orderNumber, context));
-      orderNumber++;
-    }
-    count = ValueWithDefault.decideDefault(null, propEntities.size());
+  public PropEntitiesArtifactDep(@NotNull final List<SArtifactDependency> artifactDependencies, @NotNull final Fields fields, @NotNull final BeanContext context) {
+    propEntities = ValueWithDefault.decideDefault(fields.isIncluded("artifact-dependency", true), new ValueWithDefault.Value<List<PropEntityArtifactDep>>() {
+      @Nullable
+      public List<PropEntityArtifactDep> get() {
+        final ArrayList<PropEntityArtifactDep> result = new ArrayList<PropEntityArtifactDep>(artifactDependencies.size());
+        int orderNumber = 0;
+        for (SArtifactDependency dependency : artifactDependencies) {
+          propEntities.add(new PropEntityArtifactDep(dependency, orderNumber, fields.getNestedField("artifact-dependency", Fields.NONE, Fields.LONG), context));
+          orderNumber++;
+        }
+        ;
+        return result;
+      }
+    });
+    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), artifactDependencies.size());
   }
 
   @NotNull
@@ -64,5 +74,9 @@ public class PropEntitiesArtifactDep {
       result.add(entity.createDependency(serviceLocator));
     }
     return result;
+  }
+
+  public boolean isDefault() {
+    return ValueWithDefault.isAllDefault(count, propEntities);
   }
 }

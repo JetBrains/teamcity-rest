@@ -478,7 +478,9 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded("custom-artifact-dependencies", false), new ValueWithDefault.Value<PropEntitiesArtifactDep>() {
       public PropEntitiesArtifactDep get() {
         final List<SArtifactDependency> artifactDependencies = ((BuildPromotionEx)myBuildPromotion).getCustomArtifactDependencies(); //TeamCity API: cast
-        return new PropEntitiesArtifactDep(artifactDependencies, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+        return new PropEntitiesArtifactDep(artifactDependencies,
+                                           myFields.getNestedField("custom-artifact-dependencies"),
+                                           new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
       }
     });
   }

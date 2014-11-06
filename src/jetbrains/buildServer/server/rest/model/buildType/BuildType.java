@@ -187,7 +187,7 @@ public class BuildType {
 
   @XmlElement(name = "vcs-root-entries")
   public VcsRootEntries getVcsRootEntries() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("vcs-root-entries", false), new ValueWithDefault.Value<VcsRootEntries>() {
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("vcs-root-entries", false), new ValueWithDefault.Value<VcsRootEntries>() {
       public VcsRootEntries get() {
         return myBuildType == null ? null : new VcsRootEntries(myBuildType, myFields.getNestedField("vcs-root-entries"), myBeanContext);
       }
@@ -225,7 +225,7 @@ public class BuildType {
   @XmlElement
   public Properties getParameters() {
     return myBuildType == null ? null : ValueWithDefault
-      .decideDefault(myFields.isIncluded("parameters", false), new ValueWithDefault.Value<Properties>() {
+      .decideIncludeByDefault(myFields.isIncluded("parameters", false), new ValueWithDefault.Value<Properties>() {
         public Properties get() {
           return new Properties(myBuildType.get().getParametersCollection(), myBuildType.get().getOwnParametersCollection(), BuildTypeRequest.getParametersHref(myBuildType),
                                 myFields.getNestedField("parameters", Fields.NONE, Fields.LONG), myBeanContext.getServiceLocator());
@@ -235,27 +235,27 @@ public class BuildType {
 
   @XmlElement(name = "steps")
   public PropEntitiesStep getSteps() {
-    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("steps", false), new ValueWithDefault.Value<PropEntitiesStep>() {
+    return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("steps", false), new ValueWithDefault.Value<PropEntitiesStep>() {
       public PropEntitiesStep get() {
-        return new PropEntitiesStep(myBuildType.get());
+        return new PropEntitiesStep(myBuildType.get(), myFields.getNestedField("steps", Fields.NONE, Fields.LONG));
       }
     });
   }
 
   @XmlElement(name = "features")
   public PropEntitiesFeature getFeatures() {
-    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("features", false), new ValueWithDefault.Value<PropEntitiesFeature>() {
+    return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("features", false), new ValueWithDefault.Value<PropEntitiesFeature>() {
       public PropEntitiesFeature get() {
-        return new PropEntitiesFeature(myBuildType.get());
+        return new PropEntitiesFeature(myBuildType.get(), myFields.getNestedField("features", Fields.NONE, Fields.LONG));
       }
     });
   }
 
   @XmlElement(name = "triggers")
   public PropEntitiesTrigger getTriggers() {
-    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("triggers", false), new ValueWithDefault.Value<PropEntitiesTrigger>() {
+    return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("triggers", false), new ValueWithDefault.Value<PropEntitiesTrigger>() {
       public PropEntitiesTrigger get() {
-        return new PropEntitiesTrigger(myBuildType.get());
+        return new PropEntitiesTrigger(myBuildType.get(), myFields.getNestedField("triggers", Fields.NONE, Fields.LONG));
       }
     });
   }
@@ -263,28 +263,31 @@ public class BuildType {
 
   @XmlElement(name = "snapshot-dependencies")
   public PropEntitiesSnapshotDep getSnapshotDependencies() {
-    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("snapshot-dependencies", false), new ValueWithDefault.Value<PropEntitiesSnapshotDep>() {
-      public PropEntitiesSnapshotDep get() {
-        return new PropEntitiesSnapshotDep(myBuildType.get(), myBeanContext);
-      }
+    return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("snapshot-dependencies", false),
+                                                                                new ValueWithDefault.Value<PropEntitiesSnapshotDep>() {
+                                                                                  public PropEntitiesSnapshotDep get() {
+                                                                                    return new PropEntitiesSnapshotDep(myBuildType.get(), myFields
+                                                                                      .getNestedField("snapshot-dependencies", Fields.NONE, Fields.LONG), myBeanContext);
+                                                                                  }
     });
   }
 
   @XmlElement(name = "artifact-dependencies")
   public PropEntitiesArtifactDep getArtifactDependencies() {
     return myBuildType == null ? null : ValueWithDefault
-      .decideDefault(myFields.isIncluded("artifact-dependencies", false), new ValueWithDefault.Value<PropEntitiesArtifactDep>() {
+      .decideIncludeByDefault(myFields.isIncluded("artifact-dependencies", false), new ValueWithDefault.Value<PropEntitiesArtifactDep>() {
         public PropEntitiesArtifactDep get() {
-          return new PropEntitiesArtifactDep(myBuildType.get().getArtifactDependencies(), myBeanContext);
+          return new PropEntitiesArtifactDep(myBuildType.get().getArtifactDependencies(), myFields.getNestedField("artifact-dependencies", Fields.NONE, Fields.LONG),
+                                             myBeanContext);
         }
       });
   }
 
   @XmlElement(name = "agent-requirements")
   public PropEntitiesAgentRequirement getAgentRequirements() {
-    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("agent-requirements", false), new ValueWithDefault.Value<PropEntitiesAgentRequirement>() {
+    return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("agent-requirements", false), new ValueWithDefault.Value<PropEntitiesAgentRequirement>() {
       public PropEntitiesAgentRequirement get() {
-        return new PropEntitiesAgentRequirement(myBuildType.get());
+        return new PropEntitiesAgentRequirement(myBuildType.get(), myFields.getNestedField("agent-requirements", Fields.NONE, Fields.LONG));
       }
     });
   }

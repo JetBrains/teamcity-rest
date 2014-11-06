@@ -16,12 +16,18 @@
 
 package jetbrains.buildServer.server.rest.model.plugin;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Created by IntelliJ IDEA.
@@ -30,19 +36,29 @@ import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
  * Time: 21:00:13
  * To change this template use File | Settings | File Templates.
  */
+@SuppressWarnings("PublicField")
 @XmlRootElement(name = "plugins")
 public class PluginInfos {
+  @XmlAttribute
+  public Integer count;
+
   @XmlElement(name = "plugin")
   public List<jetbrains.buildServer.server.rest.model.plugin.PluginInfo> plugins;
 
   public PluginInfos() {
   }
 
-
-  public PluginInfos(final Collection<ServerPluginInfo> pluginInfos) {
-    plugins = new ArrayList<jetbrains.buildServer.server.rest.model.plugin.PluginInfo>(pluginInfos.size());
-    for (ServerPluginInfo plugin : pluginInfos) {
-      plugins.add(new jetbrains.buildServer.server.rest.model.plugin.PluginInfo(plugin));
-    }
+  public PluginInfos(final Collection<ServerPluginInfo> pluginInfos, @NotNull final Fields fields) {
+    plugins = ValueWithDefault.decideDefault(fields.isIncluded("plugin", true), new ValueWithDefault.Value<List<jetbrains.buildServer.server.rest.model.plugin.PluginInfo>>() {
+      @Nullable
+      public List<jetbrains.buildServer.server.rest.model.plugin.PluginInfo> get() {
+        return CollectionsUtil.convertCollection(pluginInfos, new Converter<PluginInfo, ServerPluginInfo>() {
+          public PluginInfo createFrom(@NotNull final ServerPluginInfo source) {
+            return new jetbrains.buildServer.server.rest.model.plugin.PluginInfo(source, fields.getNestedField("plugin", Fields.SHORT, Fields.LONG));
+          }
+        });
+      }
+    });
+    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), pluginInfos.size());
   }
 }

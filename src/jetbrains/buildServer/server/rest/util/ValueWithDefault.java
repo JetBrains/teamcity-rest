@@ -40,6 +40,10 @@ public class ValueWithDefault {
     return decide(include, value, null, true);
   }
 
+  public static <T> T decideIncludeByDefault(@Nullable Boolean include, @Nullable Value<T> value) {
+    return decide(include, value, null, true);
+  }
+
   @Nullable
   public static <T> T decide(@Nullable Boolean decision, @Nullable T trueValue, @Nullable T falseValue, boolean defaultDecision) {
     boolean actualDecision;
