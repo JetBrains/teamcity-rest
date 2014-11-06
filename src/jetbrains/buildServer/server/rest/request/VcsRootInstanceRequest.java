@@ -66,7 +66,7 @@ public class VcsRootInstanceRequest {
   }
 
   public static String getVcsRootInstancesHref(@NotNull final SVcsRoot vcsRoot) {
-    return API_VCS_ROOT_INSTANCES_URL + "?locator=" + VcsRootFinder.getLocatorText(vcsRoot);
+    return API_VCS_ROOT_INSTANCES_URL + "?locator=" + VcsRootFinder.getVcsRootInstancesLocatorText(vcsRoot);
   }
 
   @GET

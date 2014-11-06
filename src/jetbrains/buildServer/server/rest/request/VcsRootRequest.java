@@ -63,9 +63,11 @@ public class VcsRootRequest {
   public static String getHref() {
     return API_VCS_ROOTS_URL;
   }
+
   public static String getVcsRootHref(final jetbrains.buildServer.vcs.SVcsRoot root) {
-    return API_VCS_ROOTS_URL + "/" + VcsRootFinder.getLocatorText(root);
+    return API_VCS_ROOTS_URL + "/" + VcsRootFinder.getVcsRootLocatorText(root);
   }
+
   public static String getHref(@NotNull final SProject project) {
     return API_VCS_ROOTS_URL + "?locator=" + VcsRootFinder.getLocatorText(project);
   }

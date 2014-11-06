@@ -144,7 +144,7 @@ public class VcsRoot {
       @Nullable
       public VcsRootInstances get() {
         final PagedSearchResult<jetbrains.buildServer.vcs.VcsRootInstance> result =
-          beanContext.getSingletonService(VcsRootFinder.class).getVcsRootInstances(VcsRootFinder.createVcsRootInstanceLocator(VcsRootFinder.getLocatorText(root)));
+          beanContext.getSingletonService(VcsRootFinder.class).getVcsRootInstances(VcsRootFinder.createVcsRootInstanceLocator(VcsRootFinder.getVcsRootInstancesLocatorText(root)));
         return new VcsRootInstances(result.myEntries, new PagerData(VcsRootInstanceRequest.getVcsRootInstancesHref(root)), fields.getNestedField("vcsRootInstances"), beanContext);
       }
     });
