@@ -257,7 +257,7 @@ public class APIController extends BaseController implements ServletContextAware
         LOG.debug("Binding REST API " + getPluginIdentifyingText() + " to path '" + controllerBindPath + "'");
         webControllerManager.registerController(controllerBindPath + "/**", this);
         if (myInternalAuthProcessing &&
-            !controllerBindPath.equals("/app/rest")) {// this is a special case as it contains paths of other plugins under it. Thus, it cannot be registered as not requiring auth
+            !controllerBindPath.equals(Constants.API_URL)) {// this is a special case as it contains paths of other plugins under it. Thus, it cannot be registered as not requiring auth
           myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + "/**");
           for (String path : myPathsWithoutAuth) {
             myUnauthenticatedPathSet.addPath(controllerBindPath + path);
