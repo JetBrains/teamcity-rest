@@ -54,7 +54,7 @@ public class PropEntitiesArtifactDep implements DefaultValueAware {
         final ArrayList<PropEntityArtifactDep> result = new ArrayList<PropEntityArtifactDep>(artifactDependencies.size());
         int orderNumber = 0;
         for (SArtifactDependency dependency : artifactDependencies) {
-          propEntities.add(new PropEntityArtifactDep(dependency, orderNumber, fields.getNestedField("artifact-dependency", Fields.NONE, Fields.LONG), context));
+          result.add(new PropEntityArtifactDep(dependency, orderNumber, fields.getNestedField("artifact-dependency", Fields.NONE, Fields.LONG), context));
           orderNumber++;
         }
         ;
