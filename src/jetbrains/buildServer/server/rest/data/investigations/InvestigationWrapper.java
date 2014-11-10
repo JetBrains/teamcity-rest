@@ -83,6 +83,10 @@ public class InvestigationWrapper implements ResponsibilityEntry, Comparable<Inv
     return UNKNOWN_TYPE;
   }
 
+  @NotNull
+  public String getIdentityKey() {
+    return myRE.getIdentityKey();
+  }
 
   @NotNull
   public ResponsibilityEntry getRE() {
