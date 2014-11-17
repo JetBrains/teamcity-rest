@@ -298,7 +298,7 @@ public class BuildRequest {
     String resolvedPath = getResolvedIfNecessary(build, path, resolveParameters);
     String resolvedName = getResolvedIfNecessary(build, name, resolveParameters);
     if ("".equals(resolvedName)) {
-      resolvedName = WebUtil.getFilename(build) + "_artifacts.zip";
+      resolvedName = WebUtil.getFilename(build) + resolvedPath.replaceAll("[^a-zA-Z0-9-#.]+", "_") + "_artifacts.zip";
     }
 
     String actualLocator = Locator.setDimensionIfNotPresent(locator, BuildArtifactsFinder.DIMENSION_RECURSIVE, "true"); //include al files recursively by default
