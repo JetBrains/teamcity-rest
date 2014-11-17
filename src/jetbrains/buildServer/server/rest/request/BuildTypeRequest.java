@@ -84,6 +84,7 @@ public class BuildTypeRequest {
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private BeanFactory myFactory;
   @Context @NotNull private BeanContext myBeanContext;
+  @Context @NotNull public PermissionChecker myPermissionChecker;
 
   public static final String API_BUILD_TYPES_URL = Constants.API_URL + "/buildTypes";
   public static final String VCS_FILES_LATEST = "/vcs/files/latest";
@@ -1591,5 +1592,17 @@ public class BuildTypeRequest {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     final BuildType buildTypeRef = new BuildType(buildType, Fields.SHORT, myBeanContext);
     return new NewBuildTypeDescription(buildType.getName(), buildType.getId(), buildTypeRef, true);
+  }
+
+  /**
+   * Experimental support only
+   */
+  @GET
+  @Path("/{btLocator}/settingsFile")
+  @Produces({"text/plain"})
+  public String getSettingsFile(@PathParam("btLocator") String buildTypeLocator) {
+    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
+    return buildType.getIdentity().getConfigurationFile().getAbsolutePath();
   }
 }

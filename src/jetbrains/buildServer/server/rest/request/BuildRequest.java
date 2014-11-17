@@ -598,6 +598,18 @@ public class BuildRequest {
     return new TestOccurrences(allTests, TestOccurrenceRequest.getHref(build), null,  new Fields(fields), myBeanContext);
   }
 
+  /**
+   * Experimental support only
+   */
+  @GET
+  @Path("/{buildLocator}/artifactsDirectory")
+  @Produces({"text/plain"})
+  public String getArtifactsDirectory(@PathParam("buildLocator") String buildLocator) {
+    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
+    return build.getArtifactsDirectory().getAbsolutePath();
+  }
+
   @POST
   @Path("/{buildLocator}")
   @Consumes({"application/xml", "application/json"})
