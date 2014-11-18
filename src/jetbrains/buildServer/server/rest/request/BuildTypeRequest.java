@@ -255,6 +255,14 @@ public class BuildTypeRequest {
   }
 
   @GET
+  @Path("/{btLocator}" + PARAMETERS + "/{name}/value")
+  @Produces("text/plain")
+  public String getParameterValueLong(@PathParam("btLocator") String buildTypeLocator, @PathParam("name") String parameterName) {
+    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
+    return BuildTypeUtil.getParameter(parameterName, buildType.get(), true, false);
+  }
+
+  @GET
   @Path("/{btLocator}" + PARAMETERS + "/{name}")
   @Produces("text/plain")
   public String getParameterValue(@PathParam("btLocator") String buildTypeLocator, @PathParam("name") String parameterName) {

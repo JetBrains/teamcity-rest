@@ -381,6 +381,14 @@ public class ProjectRequest {
     return Property.createFrom(parameterName, project, Fields.LONG, myServiceLocator);
   }
 
+  @GET
+  @Path("/{projectLocator}" + PARAMETERS + "/{name}/value")
+  @Produces("text/plain")
+  public String getParameterValueLong(@PathParam("projectLocator") String projectLocator, @PathParam("name") String parameterName) {
+    SProject project = myProjectFinder.getProject(projectLocator);
+    return BuildTypeUtil.getParameter(parameterName, project, true, false);
+  }
+
   @PUT
   @Path("/{projectLocator}" + PARAMETERS + "/{name}")
   @Consumes("text/plain")
