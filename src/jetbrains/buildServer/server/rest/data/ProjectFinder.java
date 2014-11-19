@@ -117,6 +117,23 @@ public class ProjectFinder {
       return project;
     }
 
+    String uuid = locator.getSingleDimensionValue("uuid");
+    if (!StringUtil.isEmpty(uuid)) {
+
+      SProject project = myProjectManager.findProjectByConfigId(uuid);
+      if (project == null) {
+        //protecting against brute force uuid guessing
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+          //ignore
+        }
+        throw new NotFoundException("No project found by locator '" + projectLocator + "'. Project cannot be found by uuid '" + uuid + "'.");
+      }
+      locator.checkLocatorFullyProcessed();
+      return project;
+    }
+
     String name = locator.getSingleDimensionValue("name");
     if (name != null) {
       final String parentProjectLocator = locator.getSingleDimensionValue("parentProject");

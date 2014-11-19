@@ -27,9 +27,9 @@ import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
-import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
-import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.serverSide.identifiers.EntityId;
+import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManager;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsManager;
@@ -50,18 +50,21 @@ public class VcsRootFinder{
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
   @NotNull private final ProjectManager myProjectManager;
-  @NotNull private final SecurityContext mySecurityContext;
+  @NotNull private final VcsRootIdentifiersManager myVcsRootIdentifiersManager;
+  @NotNull private final PermissionChecker myPermissionChecker;
 
   public VcsRootFinder(@NotNull VcsManager vcsManager,
                        @NotNull ProjectFinder projectFinder,
                        @NotNull BuildTypeFinder buildTypeFinder,
                        @NotNull ProjectManager projectManager,
-                       final @NotNull SecurityContext securityContext) {
+                       @NotNull VcsRootIdentifiersManager vcsRootIdentifiersManager,
+                       final @NotNull PermissionChecker permissionChecker) {
     myVcsManager = vcsManager;
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;
     myProjectManager = projectManager;
-    mySecurityContext = securityContext;
+    myVcsRootIdentifiersManager = vcsRootIdentifiersManager;
+    myPermissionChecker = permissionChecker;
   }
 
   @NotNull
@@ -192,6 +195,26 @@ public class VcsRootFinder{
       return new PagedSearchResult<SVcsRoot>(Collections.singletonList(root), null, null);
     }
 
+    String uuid = locator.getSingleDimensionValue("uuid");
+    if (uuid != null) {
+      final EntityId<Long> internalVCSRootId = myVcsRootIdentifiersManager.findEntityIdByConfigId(uuid);
+      if (internalVCSRootId != null) {
+        SVcsRoot root = myVcsManager.findRootById(internalVCSRootId.getInternalId());
+        if (root != null) {
+          checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, root);
+          locator.checkLocatorFullyProcessed();
+          return new PagedSearchResult<SVcsRoot>(Collections.singletonList(root), null, null);
+        }
+      }
+      //protecting against brute force uuid guessing
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        //ignore
+      }
+      throw new NotFoundException("No VCS root can be found by uuid '" + uuid + "'.");
+    }
+
     String rootName = locator.getSingleDimensionValue("name");
     if (rootName != null) {
       SVcsRoot root = myVcsManager.findRootByName(rootName);
@@ -290,7 +313,7 @@ public class VcsRootFinder{
     //todo: (TeamCity) open API is there a better way to do this?
     final Set<VcsRootInstance> rootInstancesSet = new LinkedHashSet<VcsRootInstance>();
     for (SBuildType buildType : projectManager.getAllBuildTypes()) {
-      if (mySecurityContext.getAuthorityHolder().isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_BUILD_CONFIGURATION_SETTINGS))
+      if (myPermissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, buildType.getProjectId()))
         rootInstancesSet.addAll(buildType.getVcsRootInstances());
     }
     final List<VcsRootInstance> result = new ArrayList<VcsRootInstance>(rootInstancesSet.size());
@@ -378,11 +401,6 @@ public class VcsRootFinder{
   }
 
   public void checkPermission(@NotNull final Permission permission, @NotNull final SVcsRoot root) {
-    final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
-    if (!authorityHolder.isPermissionGrantedForProject(root.getProject().getProjectId(), permission)) {
-      throw new AuthorizationFailedException(
-        "User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission + " in the project with internal id '" + root.getProject().getProjectId() +
-        "' where VCS root with internal id '" + root.getId() + "' is defined");
-    }
+    myPermissionChecker.checkProjectPermission(permission, root.getProject().getProjectId(), " where VCS root with internal id '" + root.getId() + "' is defined");
   }
 }

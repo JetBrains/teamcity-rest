@@ -41,6 +41,7 @@ import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -53,7 +54,7 @@ import org.jetbrains.annotations.Nullable;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "buildType")
-@XmlType(name = "buildType", propOrder = { "id", "internalId", "name", "templateFlag", "paused", "description", "projectName", "projectId", "projectInternalId", "href", "webUrl",
+@XmlType(name = "buildType", propOrder = { "id", "internalId", "name", "templateFlag", "paused", "uuid", "description", "projectName", "projectId", "projectInternalId", "href", "webUrl",
   "project", "template", "vcsRootEntries", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
   "artifactDependencies", "agentRequirements", "builds", "investigations"})
 public class BuildType {
@@ -149,6 +150,20 @@ public class BuildType {
   @XmlAttribute
   public Boolean isPaused() {
     return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("paused"), myBuildType.isPaused());
+  }
+
+  @XmlAttribute
+  public String getUuid() {
+    if (myBuildType != null && myFields.isIncluded("uuid", false, false)) {
+      //do not expose uuid to usual users as uuid can be considered secure information, e.g. see https://youtrack.jetbrains.com/issue/TW-38605
+      if (myBeanContext.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.EDIT_PROJECT, myBuildType.getProject().getProjectId())) {
+        return ((BuildTypeIdentityEx)myBuildType.getIdentity()).getEntityId().getConfigId();
+      } else {
+        return null;
+      }
+    } else {
+      return null;
+    }
   }
 
   @XmlAttribute

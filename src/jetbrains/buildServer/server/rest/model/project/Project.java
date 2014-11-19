@@ -24,6 +24,7 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -39,6 +40,8 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -47,7 +50,7 @@ import org.jetbrains.annotations.Nullable;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "project")
-@XmlType(name = "project", propOrder = {"id", "internalId", "name", "parentProjectId", "parentProjectInternalId", "parentProjectName", "archived", "description", "href", "webUrl",
+@XmlType(name = "project", propOrder = {"id", "internalId", "uuid", "name", "parentProjectId", "parentProjectInternalId", "parentProjectName", "archived", "description", "href", "webUrl",
   "parentProject", "buildTypes", "templates", "parameters", "vcsRoots", "projects"})
 @SuppressWarnings("PublicField")
 public class Project {
@@ -56,6 +59,9 @@ public class Project {
 
   @XmlAttribute
   public String internalId;
+
+  @XmlAttribute
+  public String uuid;
 
   @XmlAttribute
   public String name;
@@ -121,6 +127,9 @@ public class Project {
     id = ValueWithDefault.decideDefault(fields.isIncluded("id"), project.getExternalId());
     final boolean includeInternal = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME);
     internalId = ValueWithDefault.decideDefault(fields.isIncluded("internalId", includeInternal, includeInternal), project.getProjectId());
+    if (beanContext.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.EDIT_PROJECT, project.getProjectId())) {
+      uuid = ValueWithDefault.decideDefault(fields.isIncluded("uuid", false, false), ((ProjectEx)project).getId().getConfigId());
+    }
     name = ValueWithDefault.decideDefault(fields.isIncluded("name"), project.getName());
 
     href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(project));

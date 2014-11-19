@@ -48,6 +48,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
   public static final String DIMENSION_ID = AbstractFinder.DIMENSION_ID;
   public static final String DIMENSION_INTERNAL_ID = "internalId";
+  public static final String DIMENSION_UUID = "uuid";
   public static final String DIMENSION_PROJECT = "project";
   private static final String AFFECTED_PROJECT = "affectedProject";
   public static final String DIMENSION_NAME = "name";
@@ -68,7 +69,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
                          @NotNull final ProjectFinder projectFinder,
                          @NotNull final AgentFinder agentFinder,
                          @NotNull final ServiceLocator serviceLocator) {
-    super(new String[]{DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_PROJECT, AFFECTED_PROJECT, DIMENSION_NAME, TEMPLATE_FLAG_DIMENSION_NAME, TEMPLATE_DIMENSION_NAME, PAUSED,
+    super(new String[]{DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, AFFECTED_PROJECT, DIMENSION_NAME, TEMPLATE_FLAG_DIMENSION_NAME, TEMPLATE_DIMENSION_NAME, PAUSED,
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME,
       PagerData.START,
       PagerData.COUNT
@@ -154,6 +155,22 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
         return buildType;
       }
       throw new NotFoundException("No " + getName(template) + " is found by internal id '" + internalId + "'.");
+    }
+
+    String uuid = locator.getSingleDimensionValue(DIMENSION_UUID);
+    if (!StringUtil.isEmpty(uuid)) {
+      Boolean template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_FLAG_DIMENSION_NAME);
+      BuildTypeOrTemplate buildType = findBuildTypeOrTemplateByUuid(uuid, template);
+      if (buildType != null) {
+        return buildType;
+      }
+      //protecting against brute force uuid guessing
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        //ignore
+      }
+      throw new NotFoundException("No " + getName(template) + " is found by uuid '" + uuid + "'.");
     }
 
     String id = locator.getSingleDimensionValue(DIMENSION_ID);
@@ -525,6 +542,23 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     }
     if (isTemplate == null || isTemplate) {
       final BuildTypeTemplate buildTypeTemplate = myProjectManager.findBuildTypeTemplateById(internalId);
+      if (buildTypeTemplate != null) {
+        return new BuildTypeOrTemplate(buildTypeTemplate);
+      }
+    }
+    return null;
+  }
+
+  @Nullable
+  private BuildTypeOrTemplate findBuildTypeOrTemplateByUuid(@NotNull final String uuid, @Nullable final Boolean isTemplate) {
+    if (isTemplate == null || !isTemplate) {
+      SBuildType buildType = myProjectManager.findBuildTypeByConfigId(uuid);
+      if (buildType != null) {
+        return new BuildTypeOrTemplate(buildType);
+      }
+    }
+    if (isTemplate == null || isTemplate) {
+      final BuildTypeTemplate buildTypeTemplate = myProjectManager.findBuildTypeTemplateByConfigId(uuid);
       if (buildTypeTemplate != null) {
         return new BuildTypeOrTemplate(buildTypeTemplate);
       }

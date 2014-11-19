@@ -1,6 +1,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectManagerImpl;
@@ -29,7 +30,10 @@ public class VcsRootFinderTest extends BaseServerTestCase {
     final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
     final AgentFinder agentFinder = new AgentFinder(myAgentManager);
     final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, myServer);
-    myVcsRootFinder = new VcsRootFinder(vcsManager, projectFinder, buildTypeFinder, myProjectManager, myFixture.getSecurityContext());
+    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
+    myVcsRootFinder = new VcsRootFinder(vcsManager, projectFinder, buildTypeFinder, myProjectManager,
+                                        myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class),
+                                        permissionChecker);
   }
 
   private SVcsRoot createRoots() {

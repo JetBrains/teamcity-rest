@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import com.intellij.openapi.util.text.StringUtil;
 import java.util.Arrays;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
@@ -28,8 +29,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 18.09.2014
  */
-public class PermissionChecker {
-  @NotNull private final SecurityContext mySecurityContext;
+public class PermissionChecker {@NotNull private final SecurityContext mySecurityContext;
 
   public PermissionChecker(@NotNull final SecurityContext securityContext) {
     mySecurityContext = securityContext;
@@ -56,6 +56,12 @@ public class PermissionChecker {
   }
 
   public void checkProjectPermission(@NotNull final Permission permission, @Nullable final String internalProjectId) throws AuthorizationFailedException{
+    checkProjectPermission(permission, internalProjectId, null);
+  }
+
+  public void checkProjectPermission(@NotNull final Permission permission,
+                                     @Nullable final String internalProjectId,
+                                     @Nullable final String additionalMessage) throws AuthorizationFailedException{
     final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
     if (internalProjectId == null){
       if (authorityHolder.isPermissionGrantedGlobally(permission)){
@@ -65,8 +71,16 @@ public class PermissionChecker {
     }
     if (!authorityHolder.isPermissionGrantedForProject(internalProjectId, permission)) {
       throw new AuthorizationFailedException("User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission +
-                                             " in project with internal id: '" + internalProjectId + "'");
+                                             " in project with internal id: '" + internalProjectId + "'" + (!StringUtil.isEmpty(additionalMessage) ? additionalMessage : ""));
     }
+  }
+
+  public boolean isPermissionGranted(@NotNull final Permission permission, @Nullable final String internalProjectId) {
+    final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
+    if (internalProjectId == null){
+      return authorityHolder.isPermissionGrantedGlobally(permission);
+    }
+    return authorityHolder.isPermissionGrantedForProject(internalProjectId, permission);
   }
 
 }

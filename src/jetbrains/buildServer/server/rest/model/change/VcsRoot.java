@@ -23,10 +23,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.APIController;
-import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.data.PagedSearchResult;
-import jetbrains.buildServer.server.rest.data.ProjectFinder;
-import jetbrains.buildServer.server.rest.data.VcsRootFinder;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -40,10 +37,8 @@ import jetbrains.buildServer.server.rest.request.VcsRootInstanceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.vcs.SVcsRoot;
-import jetbrains.buildServer.vcs.VcsException;
-import jetbrains.buildServer.vcs.VcsManager;
-import jetbrains.buildServer.vcs.VcsRootStatus;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.vcs.*;
 import jetbrains.vcs.api.VcsSettings;
 import jetbrains.vcs.api.services.tc.MappingGeneratorService;
 import jetbrains.vcs.api.services.tc.VcsMappingElement;
@@ -55,7 +50,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 16.04.2009
  */
 @XmlRootElement(name = "vcs-root")
-@XmlType(name = "vcs-root", propOrder = { "id", "internalId", "name","vcsName", "modificationCheckInterval", "status", "lastChecked", "href",
+@XmlType(name = "vcs-root", propOrder = { "id", "internalId", "uuid", "name","vcsName", "modificationCheckInterval", "status", "lastChecked", "href",
   "project", "properties", "vcsRootInstances"})
 @SuppressWarnings("PublicField")
 public class VcsRoot {
@@ -64,6 +59,9 @@ public class VcsRoot {
 
   @XmlAttribute
   public Long internalId;
+
+  @XmlAttribute
+  public String uuid;
 
   @XmlAttribute
   public String name;
@@ -119,6 +117,9 @@ public class VcsRoot {
     id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), root.getExternalId());
     final boolean includeInternalId = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME);
     internalId =  ValueWithDefault.decideDefault(fields.isIncluded("internalId", includeInternalId, includeInternalId), root.getId());
+    if (beanContext.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.EDIT_PROJECT, root.getProject().getProjectId())) {
+      uuid = ValueWithDefault.decideDefault(fields.isIncluded("uuid", false, false), ((SVcsRootEx)root).getEntityId().getConfigId());
+    }
     name = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), root.getName());
 
     href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(root));
