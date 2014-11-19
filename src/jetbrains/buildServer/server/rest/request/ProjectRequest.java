@@ -49,6 +49,7 @@ import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.identifiers.DuplicateExternalIdException;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -72,6 +73,7 @@ public class ProjectRequest {
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private BeanContext myBeanContext;
+  @Context @NotNull public PermissionChecker myPermissionChecker;
 
   public static final String API_PROJECTS_URL = Constants.API_URL + "/projects";
   protected static final String PARAMETERS = "/parameters";
@@ -596,6 +598,19 @@ public class ProjectRequest {
                                      getNullOrCollection(projectIdsMap),
                                      getNullOrCollection(idsMaps.getBuildTypeIdsMap()),
                                      getNullOrCollection(idsMaps.getVcsRootIdsMap()));
+  }
+
+
+  /**
+   * Experimental support only
+   */
+  @GET
+  @Path("/{projectLocator}/settingsFile")
+  @Produces({"text/plain"})
+  public String getSettingsFile(@PathParam("projectLocator") String projectLocator) {
+    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    final SProject project = myProjectFinder.getProject(projectLocator);
+    return project.getConfigurationFile().getAbsolutePath();
   }
 
   @Nullable

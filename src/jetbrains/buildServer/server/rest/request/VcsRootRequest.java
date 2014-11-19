@@ -24,10 +24,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.data.PagedSearchResult;
-import jetbrains.buildServer.server.rest.data.ProjectFinder;
-import jetbrains.buildServer.server.rest.data.VcsRootFinder;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -40,6 +37,7 @@ import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
@@ -57,6 +55,7 @@ public class VcsRootRequest {
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private BeanContext myBeanContext;
+  @Context @NotNull public PermissionChecker myPermissionChecker;
 
   public static final String API_VCS_ROOTS_URL = Constants.API_URL + "/vcs-roots";
 
@@ -262,6 +261,19 @@ public class VcsRootRequest {
     vcsRoot.persist();
     return VcsRoot.getFieldValue(vcsRoot, fieldName, myDataProvider);
   }
+
+  /**
+   * Experimental support only
+   */
+  @GET
+  @Path("/{vcsRootLocator}/settingsFile")
+  @Produces({"text/plain"})
+  public String getSettingsFile(@PathParam("vcsRootLocator") String vcsRootLocator) {
+    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    @NotNull final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
+    return vcsRoot.getConfigurationFile().getAbsolutePath();
+  }
+
 
   private void checkVcsRootDescription(final VcsRoot description) {
     //might need to check for validity: not specified id, status, lastChecked attributes, etc.
