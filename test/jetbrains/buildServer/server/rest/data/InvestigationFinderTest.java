@@ -54,6 +54,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     final TestFinder testFinder = new TestFinder(projectFinder, myFixture.getTestManager(), myTestName2Index,
                                                  myFixture.getCurrentProblemsManager(), myFixture.getSingletonService(ProblemMutingService.class));
     myFixture.addService(testFinder);
+    myFixture.addService(new PermissionChecker(myServer.getSecurityContext()));
     myInvestigationFinder = new InvestigationFinder(projectFinder, null, null, testFinder, userFinder, myFixture.getResponsibilityFacadeEx(), myFixture.getResponsibilityFacadeEx(),
                                                     myFixture.getResponsibilityFacadeEx());
   }
