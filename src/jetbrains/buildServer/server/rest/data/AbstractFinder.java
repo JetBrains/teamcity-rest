@@ -43,6 +43,9 @@ public abstract class AbstractFinder<ITEM> {
     System.arraycopy(knownDimensions, 0, myKnownDimensions, 0, knownDimensions.length);
   }
 
+  /**
+   * Note: Do not override this method without overriding createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults)
+   */
   @NotNull
   public Locator createLocator(@Nullable final String locatorText) {
     return createLocator(locatorText, null);

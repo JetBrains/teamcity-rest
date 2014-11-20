@@ -95,8 +95,8 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
   @NotNull
   @Override
-  public Locator createLocator(@Nullable final String locatorText) {
-    final Locator result = super.createLocator(locatorText);
+  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
+    final Locator result = super.createLocator(locatorText, locatorDefaults);
     result.addHiddenDimensions(BRANCH, PERSONAL, DIMENSION_LOOKUP_LIMIT, CHILD_CHANGE, PARENT_CHANGE, PROMOTION); //hide these for now
     return result;
   }
