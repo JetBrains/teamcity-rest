@@ -155,7 +155,15 @@ public class Locator {
     if (defaults != null && !result.isSingleValue()) {
       for (String dimensionName : defaults.myDimensions.keySet()) {
         final String value = defaults.getSingleDimensionValue(dimensionName);
-        if (value != null) result.setDimensionIfNotPresent(dimensionName, value);
+        if (value != null) {
+          result.setDimensionIfNotPresent(dimensionName, value);
+          if (defaults.myHddenSupportedDimensions.contains(dimensionName)){
+            result.myHddenSupportedDimensions.add(dimensionName);
+          }
+          if (defaults.myIgnoreUnusedDimensions.contains(dimensionName)){
+            result.myIgnoreUnusedDimensions.add(dimensionName);
+          }
+        }
       }
     }
 

@@ -18,7 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import jetbrains.buildServer.server.rest.data.build.GenericBuildsFilter;
 import jetbrains.buildServer.serverSide.Branch;
-import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -43,7 +43,7 @@ public class BranchMatcher {
     return myLocator != null;
   }
 
-  public boolean matches(@NotNull final SBuild build){
+  public boolean matches(@NotNull final BuildPromotion build){
     @Nullable final Branch buildBranch = build.getBranch();
     if (myLocator == null){
       return buildBranch == null || buildBranch.isDefaultBranch();

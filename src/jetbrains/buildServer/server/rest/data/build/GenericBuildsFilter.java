@@ -260,7 +260,7 @@ public class GenericBuildsFilter implements BuildsFilter {
     }else if (myTags != null && myTags.size() > 0 && !build.getTags().containsAll(myTags)) {
       return false;
     }
-    if (!myBranchMatcher.matches(build)) {
+    if (!myBranchMatcher.matches(build.getBuildPromotion())) {
       return false;
     }
     if (myUser != null) {

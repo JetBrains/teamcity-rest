@@ -16,9 +16,12 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.intellij.openapi.util.text.StringUtil;
+import java.util.*;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.*;
@@ -37,15 +40,24 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
   public static final String PROMOTION_ID = BuildFinder.PROMOTION_ID;
   public static final String BUILD_TYPE = "buildType";
   public static final String PROJECT = "project";
+  private static final String AFFECTED_PROJECT = "affectedProject";
   public static final String AGENT = "agent";
+  public static final String AGENT_NAME = "agentName";
   public static final String PERSONAL = "personal";
   public static final String USER = "user";
-  protected static final String NUMBER = "number";
+  protected static final String BRANCH = "branch";
+  protected static final String PROPERTY = "property";
 
   public static final String STATE = "state";
   public static final String STATE_QUEUED = "queued";
   public static final String STATE_RUNNING = "running";
   public static final String STATE_FINISHED = "finished";
+
+  protected static final String NUMBER = "number";
+  protected static final String STATUS = "status";
+  protected static final String CANCELED = "canceled";
+  protected static final String PINNED = "pinned";
+  protected static final String RUNNING = "running";
 
   private final BuildPromotionManager myBuildPromotionManager;
   private final BuildQueue myBuildQueue;
@@ -73,7 +85,9 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
                               final BuildTypeFinder buildTypeFinder,
                               final UserFinder userFinder,
                               final AgentFinder agentFinder) {
-    super(new String[]{DIMENSION_ID, PROMOTION_ID, PROJECT, BUILD_TYPE, AGENT, USER, PERSONAL, STATE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
+    super(new String[]{DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, USER, PERSONAL, STATE, PROPERTY,
+      NUMBER, STATUS, CANCELED, PINNED,
+      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
     myBuildPromotionManager = buildPromotionManager;
     myBuildQueue = buildQueue;
     myBuildsManager = buildsManager;
@@ -82,6 +96,14 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
     myBuildTypeFinder = buildTypeFinder;
     myUserFinder = userFinder;
     myAgentFinder = agentFinder;
+  }
+
+  @NotNull
+  @Override
+  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
+    final Locator result = super.createLocator(locatorText, locatorDefaults);
+    result.addHiddenDimensions(AGENT_NAME, RUNNING);
+    return result;
   }
 
   @NotNull
@@ -109,6 +131,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
   @Nullable
   @Override
   protected BuildPromotion findSingleItem(@NotNull final Locator locator) {
+    //see also getBuildId method
     if (locator.isSingleValue()) {
      // try build id first for compatibility reasons
       @SuppressWarnings("ConstantConditions") @NotNull final Long singleValueAsLong = locator.getSingleValueAsLong();
@@ -154,6 +177,18 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
     return null;
   }
 
+  /**
+   * Utility method to get id from the locator even if there is no such build
+   * Should match findSingleItem method logic
+   */
+  @Nullable
+  private Long getBuildId(@NotNull final Locator locator) {
+    if (locator.isSingleValue()) {
+      return locator.getSingleValueAsLong();
+    }
+    return locator.getSingleDimensionValueAsLong(DIMENSION_ID);
+  }
+
   @NotNull
   @Override
   protected AbstractFilter<BuildPromotion> getFilter(final Locator locator) {
@@ -178,9 +213,22 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
       });
     }
 
+    final String affectedProjectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT);
+    SProject affectedProject = null;
+    if (affectedProjectLocator != null) {
+      affectedProject = myProjectFinder.getProject(affectedProjectLocator);
+      final SProject internalProject = affectedProject;
+      result.add(new FilterConditionChecker<BuildPromotion>() {
+        public boolean isIncluded(@NotNull final BuildPromotion item) {
+          final SBuildType buildType = item.getBuildType();
+          return buildType != null && ProjectFinder.isSameOrParent(internalProject, buildType.getProject());
+        }
+      });
+    }
+
     final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
     if (buildTypeLocator != null) {
-      final SBuildType buildType = myBuildTypeFinder.getBuildType(project, buildTypeLocator);
+      final SBuildType buildType = myBuildTypeFinder.getBuildType(affectedProject, buildTypeLocator);
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
           return buildType.equals(item.getParentBuildType());
@@ -188,33 +236,83 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
       });
     }
 
-    final String buildNumber = locator.getSingleDimensionValue(NUMBER);
-    if (buildNumber != null) {
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
-          final SBuild associatedBuild = item.getAssociatedBuild();
-          return associatedBuild != null && buildNumber.equals(associatedBuild.getBuildNumber());
-        }
-      });
-    }
-
     final String agentLocator = locator.getSingleDimensionValue(AGENT);
     if (agentLocator != null) {
-      final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
+      final List<SBuildAgent> agents = myAgentFinder.getItems(agentLocator).myEntries;
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
           final SBuild build = item.getAssociatedBuild();
           if (build != null) {
-            return agent.equals(build.getAgent());
+            return agents.contains(build.getAgent());
           }
 
           final SQueuedBuild queuedBuild = item.getQueuedBuild(); //for queued build using compatible agents
           if (queuedBuild != null) {
-            return queuedBuild.getCompatibleAgents().contains(agent);
+            return !CollectionsUtil.intersect(queuedBuild.getCompatibleAgents(), agents).isEmpty();
           }
           return false;
         }
       });
+    }
+
+    final String branchLocatorValue = locator.getSingleDimensionValue(BRANCH);
+    if (branchLocatorValue != null) {
+      final BranchMatcher branchMatcher;
+      try {
+        branchMatcher = new BranchMatcher(branchLocatorValue);
+      } catch (LocatorProcessException e) {
+        throw new LocatorProcessException("Invalid sub-locator '" + BRANCH + "': " + e.getMessage());
+      }
+      result.add(new FilterConditionChecker<BuildPromotion>() {
+        public boolean isIncluded(@NotNull final BuildPromotion item) {
+          return branchMatcher.matches(item);
+        }
+      });
+    }
+
+    //compatibility support
+    final String tags = locator.getSingleDimensionValue("tags");
+    if (tags != null) {
+      final List<String> tagsList = Arrays.asList(tags.split(","));
+      if (tagsList.size() > 0) {
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            return item.getTags().containsAll(tagsList);
+          }
+        });
+      }
+    }
+
+    final String tag = locator.getSingleDimensionValue("tag");
+    if (tag != null) {
+      if (!tag.startsWith("format:extended")) {
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            return item.getTags().contains(tag);
+          }
+        });
+      } else {
+        //unofficial experimental support for "tag:(format:regexp,value:.*)" tag specification
+        //todo: locator parsing logic should be moved to build locator parsing
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            try {
+              final Locator tagsLocator = new Locator(tag);
+
+              if (!isTagsMatchLocator(item.getTags(), tagsLocator)) {
+                return false;
+              }
+              final Set<String> unusedDimensions = tagsLocator.getUnusedDimensions();
+              if (unusedDimensions.size() > 0) {
+                throw new BadRequestException("Unknown dimensions in locator 'tag': " + unusedDimensions);
+              }
+            } catch (LocatorProcessException e) {
+              throw new BadRequestException("Invalid locator 'tag': " + e.getMessage(), e);
+            }
+            return true;
+          }
+        });
+      }
     }
 
     final String compatibleAagentLocator = locator.getSingleDimensionValue("compatibleAgent"); //experimental, only for queued builds
@@ -272,8 +370,195 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
       });
     }
 
+    final String property = locator.getSingleDimensionValue(PROPERTY);
+    if (property != null) {
+      final ParameterCondition parameterCondition = ParameterCondition.create(property);
+      result.add(new FilterConditionChecker<BuildPromotion>() {
+        public boolean isIncluded(@NotNull final BuildPromotion item) {
+          return parameterCondition.matches(((BuildPromotionEx)item).getParametersProvider()); //TeamCity open API issue
+        }
+      });
+    }
+
+    final MultiCheckerFilter<SBuild> buildFilter = getBuildFilter(locator);
+    if (buildFilter.getSubFiltersCount() > 0) {
+      result.add(new FilterConditionChecker<BuildPromotion>() {
+        public boolean isIncluded(@NotNull final BuildPromotion item) {
+          final SBuild build = item.getAssociatedBuild();
+          if (build == null) {
+            return false;
+          }
+          return buildFilter.isIncluded(build);
+        }
+      });
+    }
+
     return result;
   }
+
+  @NotNull
+  private MultiCheckerFilter<SBuild> getBuildFilter(@NotNull final Locator locator) {
+    final MultiCheckerFilter<SBuild> result = new MultiCheckerFilter<SBuild>(null, null, null);
+
+    final String buildNumber = locator.getSingleDimensionValue(NUMBER);
+    if (buildNumber != null) {
+      result.add(new FilterConditionChecker<SBuild>() {
+        public boolean isIncluded(@NotNull final SBuild item) {
+          return buildNumber.equals(item.getBuildNumber());
+        }
+      });
+    }
+
+    final String status = locator.getSingleDimensionValue(STATUS);
+    if (status != null) {
+      result.add(new FilterConditionChecker<SBuild>() {
+        public boolean isIncluded(@NotNull final SBuild item) {
+          return status.equalsIgnoreCase(item.getStatusDescriptor().getStatus().getText());
+        }
+      });
+    }
+
+    final Boolean canceled = locator.getSingleDimensionValueAsBoolean(CANCELED);
+    if (canceled != null) {
+      result.add(new FilterConditionChecker<SBuild>() {
+        public boolean isIncluded(@NotNull final SBuild item) {
+          return FilterUtil.isIncludedByBooleanFilter(canceled, item.getCanceledInfo() != null);
+        }
+      });
+    }
+
+    //for compatibility, use "state:running" instead
+    final Boolean running = locator.getSingleDimensionValueAsBoolean(RUNNING);
+    ;
+    if (running != null) {
+      result.add(new FilterConditionChecker<SBuild>() {
+        public boolean isIncluded(@NotNull final SBuild item) {
+          return FilterUtil.isIncludedByBooleanFilter(running, !item.isFinished());
+        }
+      });
+    }
+
+    final Boolean pinned = locator.getSingleDimensionValueAsBoolean(PINNED);
+    if (pinned != null) {
+      result.add(new FilterConditionChecker<SBuild>() {
+        public boolean isIncluded(@NotNull final SBuild item) {
+          return FilterUtil.isIncludedByBooleanFilter(pinned, !item.isPinned());
+        }
+      });
+    }
+
+    //compatibility, use "agent" locator instead
+    final String agentName = locator.getSingleDimensionValue(AGENT_NAME);
+    if (agentName != null) {
+      result.add(new FilterConditionChecker<SBuild>() {
+        public boolean isIncluded(@NotNull final SBuild item) {
+          return agentName.equals(item.getAgent().getName());
+        }
+      });
+    }
+
+    //todo: filter on gettings builds; more options (all times); also for buildPromotion
+    final String sinceBuild = locator.getSingleDimensionValue("sinceBuild");
+    final Date sinceDate = DataProvider.parseDate(locator.getSingleDimensionValue("sinceDate"));
+    if (sinceBuild != null || sinceDate != null) {
+      final RangeLimit rangeLimit = new RangeLimit(getBuildId(sinceBuild), sinceDate);
+      result.add(new FilterConditionChecker<SBuild>() {
+        public boolean isIncluded(@NotNull final SBuild item) {
+          return rangeLimit.before(item);
+        }
+      });
+    }
+
+    final String untilBuild = locator.getSingleDimensionValue("untilBuild");
+    final Date untilDate = DataProvider.parseDate(locator.getSingleDimensionValue("untilDate"));
+    if (untilBuild != null || untilDate != null) {
+      final RangeLimit rangeLimit = new RangeLimit(getBuildId(untilBuild), untilDate);
+      result.add(new FilterConditionChecker<SBuild>() {
+        public boolean isIncluded(@NotNull final SBuild item) {
+          return !rangeLimit.before(item);
+        }
+      });
+    }
+
+    return result;
+  }
+
+  @Nullable
+  private Long getBuildId(@Nullable final String buildLocator) {
+    if (buildLocator == null) {
+      return null;
+    }
+    final Long buildId = getBuildId(new Locator(buildLocator));
+    if (buildId != null) {
+      return buildId;
+    }
+    return getItem(buildLocator).getId();
+  }
+
+  public class RangeLimit {
+    @Nullable private final Long myBuildId;
+    @Nullable private final Date myStartDate;
+
+    public RangeLimit(@Nullable final Long buildId, @Nullable final Date startDate) {
+      myBuildId = buildId;
+      myStartDate = startDate;
+    }
+
+    public boolean before(@NotNull SBuild build) {
+      if (myBuildId != null) {
+        return myBuildId < build.getBuildId();
+      }
+      if (myStartDate != null) {
+        return myStartDate.before(build.getStartDate());
+      }
+      return false;
+    }
+  }
+
+  private boolean isTagsMatchLocator(final List<String> buildTags, final Locator tagsLocator) {
+    if (!"extended".equals(tagsLocator.getSingleDimensionValue("format"))) {
+      throw new BadRequestException("Only 'extended' value is supported for 'format' dimension of 'tag' dimension");
+    }
+    final Boolean present = tagsLocator.getSingleDimensionValueAsBoolean("present", true);
+    final String patternString = tagsLocator.getSingleDimensionValue("regexp");
+    if (present == null) {
+      return true;
+    }
+    Boolean tagsMatchPattern = null;
+    if (patternString != null) {
+      if (StringUtil.isEmpty(patternString)) {
+        throw new BadRequestException("'regexp' sub-dimension should not be empty for 'tag' dimension");
+      }
+      try {
+        tagsMatchPattern = tagsMatchPattern(buildTags, patternString);
+      } catch (PatternSyntaxException e) {
+        throw new BadRequestException(
+          "Bad syntax for Java regular expression in 'regexp' sub-dimension of 'tag' dimension: " + e.getMessage(), e);
+      }
+    }
+    if (tagsMatchPattern == null) {
+      if ((present && buildTags.size() != 0) || (!present && (buildTags.size() == 0))) {
+        return true;
+      }
+    } else {
+      if (present && tagsMatchPattern) {
+        return true;
+      } else if (!present && !tagsMatchPattern) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private Boolean tagsMatchPattern(@NotNull final List<String> tags, @NotNull final String patternString) throws PatternSyntaxException {
+    final Pattern pattern = Pattern.compile(patternString);
+    boolean atLestOneMatches = false;
+    for (String tag : tags) {
+      atLestOneMatches = atLestOneMatches || pattern.matcher(tag).matches();
+    }
+    return atLestOneMatches;
+  }
+
 
   @Override
   protected List<BuildPromotion> getPrefilteredItems(@NotNull Locator locator) { //todo: highly ineffective when finished builds are included

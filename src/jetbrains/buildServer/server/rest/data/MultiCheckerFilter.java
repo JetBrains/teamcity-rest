@@ -38,6 +38,10 @@ public class MultiCheckerFilter<T> extends AbstractFilter<T> {
     return this;
   }
 
+  public int getSubFiltersCount(){
+    return myCheckers.size();
+  }
+
   @Override
   protected boolean isIncluded(@NotNull T item) {
     for (FilterConditionChecker<T> checker : myCheckers) {

@@ -341,6 +341,7 @@ public class BuildQueueRequest {
   private Locator getBuildPromotionLocatorDefaults() {
     Locator defaultLocator = Locator.createEmptyLocator();
     defaultLocator.setDimension(BuildPromotionFinder.STATE, BuildPromotionFinder.STATE_QUEUED);
+    defaultLocator.addIgnoreUnusedDimensions(BuildPromotionFinder.STATE);
     return defaultLocator;
   }
 
