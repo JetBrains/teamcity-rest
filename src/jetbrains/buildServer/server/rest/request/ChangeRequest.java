@@ -43,7 +43,6 @@ import jetbrains.buildServer.server.rest.model.issue.Issues;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModification;
 import org.jetbrains.annotations.NotNull;
@@ -60,10 +59,6 @@ public class ChangeRequest {
 
   public static String getChangeHref(VcsModification modification) {
     return API_CHANGES_URL + "/id:" + modification.getId() + (modification.isPersonal() ? ",personal:true" : "");
-  }
-
-  public static String getBuildChangesHref(@NotNull final SBuild build) {
-    return API_CHANGES_URL + "?locator=" + ChangeFinder.getLocator(build); //todo: need to URL-escape the value returned or not?
   }
 
   public static String getChangesHref(@NotNull final BuildPromotion item) {
@@ -221,6 +216,7 @@ public class ChangeRequest {
     return new Changes(new ArrayList<SVcsModification>(change.getDuplicates()), null,  new Fields(fields), myBeanContext);
   }
 
+  //todo: add support for fields, add "issues" element to change bean
   /**
    * Experimental support only!
    */

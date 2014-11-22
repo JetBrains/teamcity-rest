@@ -64,6 +64,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   @NotNull private final DataProvider myDataProvider;
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final BuildFinder myBuildFinder;
+  @NotNull private final BuildPromotionFinder myBuildPromotionFinder;
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
   @NotNull private final VcsRootFinder myVcsRootFinder;
   @NotNull private final UserFinder myUserFinder;
@@ -74,6 +75,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   public ChangeFinder(@NotNull final DataProvider dataProvider,
                       @NotNull final ProjectFinder projectFinder,
                       @NotNull final BuildFinder buildFinder,
+                      @NotNull final BuildPromotionFinder buildPromotionFinder,
                       @NotNull final BuildTypeFinder buildTypeFinder,
                       @NotNull final VcsRootFinder vcsRootFinder,
                       @NotNull final UserFinder userFinder,
@@ -85,6 +87,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     myDataProvider = dataProvider;
     myProjectFinder = projectFinder;
     myBuildFinder = buildFinder;
+    myBuildPromotionFinder = buildPromotionFinder;
     myBuildTypeFinder = buildTypeFinder;
     myVcsRootFinder = vcsRootFinder;
     myUserFinder = userFinder;
@@ -102,13 +105,8 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   }
 
   @NotNull
-  public static String getLocator(@NotNull final SBuild build) {
-    return Locator.getStringLocator(BUILD, BuildFinder.getLocator(build));
-  }
-
-  @NotNull
   public static String getLocator(@NotNull final BuildPromotion item) {
-    return Locator.getStringLocator(PROMOTION, String.valueOf(item.getId()));
+    return Locator.getStringLocator(BUILD, BuildPromotionFinder.getLocator(item));
   }
 
   @NotNull
@@ -255,6 +253,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       }
     }
 
+    //pre-9.0 dimension compatibility
     if (locator.getUnusedDimensions().contains(PROMOTION)) {
       final Long promotionLocator = locator.getSingleDimensionValueAsLong(PROMOTION);
       if (promotionLocator != null) {
@@ -410,9 +409,18 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
     final String buildLocator = locator.getSingleDimensionValue(BUILD);
     if (buildLocator != null) {
-      return getBuildChanges(myBuildFinder.getBuild(null, buildLocator).getBuildPromotion());
+      BuildPromotion buildFromBuildFinder;
+      try {
+        buildFromBuildFinder = myBuildPromotionFinder.getItem(buildLocator);
+      } catch (Exception e) {
+        //support for finished builds
+        //todo: use buildPromotionFinder here (ensure it also supports finished builds)
+        buildFromBuildFinder = myBuildFinder.getBuild(null, buildLocator).getBuildPromotion();
+      }
+      return getBuildChanges(buildFromBuildFinder);
     }
 
+    //pre-9.0 compatibility
     final Long promotionLocator = locator.getSingleDimensionValueAsLong(PROMOTION);
     if (promotionLocator != null) {
       //noinspection ConstantConditions

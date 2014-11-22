@@ -540,12 +540,7 @@ public class Build {
     }
     return ValueWithDefault.decide(myFields.isIncluded("changes", false), new ValueWithDefault.Value<Changes>() {
       public Changes get() {
-        final String href;
-        if (myBuild != null) {
-          href = ChangeRequest.getBuildChangesHref(myBuild);
-        } else {
-          href = ChangeRequest.getChangesHref(myBuildPromotion);
-        }
+        final String href = ChangeRequest.getChangesHref(myBuildPromotion);
         final Fields changesFields = myFields.getNestedField("changes");
         return new Changes(new PagerData(href), changesFields, myBeanContext, new CachingValue<List<SVcsModification>>() {
           @NotNull

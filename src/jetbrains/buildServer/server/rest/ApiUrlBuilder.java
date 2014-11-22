@@ -70,10 +70,6 @@ public class ApiUrlBuilder {
     return myPathTransformer.transform(ChangeRequest.getChangeHref(modification));
   }
 
-  public String getBuildChangesHref(final SBuild build) {
-    return myPathTransformer.transform(ChangeRequest.getBuildChangesHref(build));
-  }
-
   public String getBuildIssuesHref(final SBuild build) {
     return myPathTransformer.transform(BuildRequest.getBuildIssuesHref(build));
   }
