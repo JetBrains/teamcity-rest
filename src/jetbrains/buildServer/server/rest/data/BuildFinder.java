@@ -346,7 +346,7 @@ public class BuildFinder {
    * @param buildsFilter the filter for the builds to find
    * @return the builds found
    */
-  private List<SBuild> getBuilds(@NotNull final BuildsFilter buildsFilter) {
+  List<SBuild> getBuilds(@NotNull final BuildsFilter buildsFilter) {
     final ArrayList<SBuild> result = new ArrayList<SBuild>();
     //todo: sort and ensure there are no duplicates
     result.addAll(BuildsFilterProcessor.getMatchingRunningBuilds(buildsFilter, myServiceLocator.getSingletonService(BuildsManager.class)));
@@ -365,7 +365,7 @@ public class BuildFinder {
   public static BuildPromotion getBuildPromotion(final long promotionId, @NotNull final BuildPromotionManager promotionManager) {
     final BuildPromotion buildPromotion = promotionManager.findPromotionById(promotionId);
     if (buildPromotion == null) {
-      throw new NotFoundException("No build can be found by " + PROMOTION_ID + " '" + promotionId + "'.");
+      throw new NotFoundException("No build can be found by promotion id " + promotionId);
     }
     return buildPromotion;
   }
@@ -375,7 +375,7 @@ public class BuildFinder {
     final BuildPromotion promotion = getBuildPromotion(promotionId, myServiceLocator.getSingletonService(BuildPromotionManager.class));
     SBuild build = promotion.getAssociatedBuild();
     if (build == null) {
-      throw new NotFoundException("No associated build can be found for " + PROMOTION_ID + " (build promotion id) '" + promotionId + "'.");
+      throw new NotFoundException("No associated build can be found for build promotion id " + promotionId);
     }
     return build;
   }

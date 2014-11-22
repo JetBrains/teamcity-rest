@@ -271,4 +271,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
     return result;
   }
 
+  public static boolean buildIdDiffersFromPromotionId(@NotNull final BuildPromotion buildPromotion) {
+    return buildPromotion.getAssociatedBuildId() != null && buildPromotion.getId() != buildPromotion.getAssociatedBuildId();
+  }
 }

@@ -51,7 +51,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
                            final UserFinder userFinder,
                            final AgentFinder agentFinder,
                            final DataProvider dataProvider) {
-    super(new String[]{PROMOTION_ID, PROJECT, BUILD_TYPE, AGENT, USER, PERSONAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
+    super(new String[]{DIMENSION_ID, PROMOTION_ID, PROJECT, BUILD_TYPE, AGENT, USER, PERSONAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
     myBuildQueue = buildQueue;
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;
@@ -62,7 +62,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
 
   @NotNull
   public static String getLocator(@NotNull final SQueuedBuild build) {
-    return Locator.getStringLocator(PROMOTION_ID, String.valueOf(build.getBuildPromotion().getId()));
+    return Locator.getStringLocator(DIMENSION_ID, String.valueOf(build.getBuildPromotion().getId()));
   }
 
   @NotNull
@@ -77,14 +77,15 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
     if (locator.isSingleValue()) {
      // assume it's promotion id
       @SuppressWarnings("ConstantConditions") @NotNull final Long singleValueAsLong = locator.getSingleValueAsLong();
-      locator.checkLocatorFullyProcessed();
       return getQueuedBuildByPromotionId(singleValueAsLong);
     }
 
-    Long id = locator.getSingleDimensionValueAsLong(PROMOTION_ID);
-    if (id != null) {
-      locator.checkLocatorFullyProcessed();
-      return getQueuedBuildByPromotionId(id);
+    Long promotionId = locator.getSingleDimensionValueAsLong(PROMOTION_ID); //handling pre-9.0 URLs
+    if (promotionId == null) {
+      promotionId = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
+    }
+    if (promotionId != null) {
+      return getQueuedBuildByPromotionId(promotionId);
     }
 
    return null;
@@ -94,11 +95,12 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
     final BuildPromotion buildPromotion = BuildFinder.getBuildPromotion(id, myDataProvider.getPromotionManager());
     final SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
     if (queuedBuild == null){
-      throw new NotFoundException("No queued build can be found by " + PROMOTION_ID + " '" + buildPromotion.getId() + "' (while promotion exists).");
+      throw new NotFoundException("No queued build with id '" + buildPromotion.getId() + "' can be found (build already started or finished?).");
     }
     return queuedBuild;
   }
 
+  @NotNull
   @Override
   protected AbstractFilter<SQueuedBuild> getFilter(final Locator locator) {
     if (locator.isSingleValue()) {
@@ -203,13 +205,28 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
       return promotionById;
     }
 
-    Long id = locator.getSingleDimensionValueAsLong(PROMOTION_ID);
-    if (id != null) {
-      final BuildPromotion promotionById = myDataProvider.getPromotionManager().findPromotionById(id);
+    Long promotionId = locator.getSingleDimensionValueAsLong(PROMOTION_ID);
+    if (promotionId != null) {
+      final BuildPromotion promotionById = myDataProvider.getPromotionManager().findPromotionById(promotionId);
       if (promotionById == null) {
-        throw new NotFoundException("No promotion object can be found by id '" + id + "'.");
+        throw new NotFoundException("No promotion object can be found by id '" + promotionId + "'.");
       }
       return promotionById;
+    }
+
+    Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
+    if (id != null) {
+      final BuildPromotion promotionById = myDataProvider.getPromotionManager().findPromotionById(id);
+      if (promotionById != null && !BuildPromotionFinder.buildIdDiffersFromPromotionId(promotionById)) {
+        return promotionById;
+      }
+
+      SBuild build = myDataProvider.getServer().getSingletonService(BuildsManager.class).findBuildInstanceById(id);
+      if (build != null){
+        return build.getBuildPromotion();
+      }
+
+      throw new NotFoundException("Cannot find build by id " + id);
     }
 
     return getItem(buildQueueLocator).getBuildPromotion();

@@ -188,8 +188,8 @@ public class BuildQueueRequest {
     final Map<Long, Long> buildPromotionIdReplacements = new HashMap<Long, Long>();
     for (Build build : builds.builds) {
       final SQueuedBuild queuedBuild = build.triggerBuild(user, myServiceLocator, buildPromotionIdReplacements);
-      if (build.getSubmittedPromotionId() != null){
-        buildPromotionIdReplacements.put(build.getSubmittedPromotionId(), queuedBuild.getBuildPromotion().getId());
+      if (build.getPromotionIdOfSubmittedBuild() != null){
+        buildPromotionIdReplacements.put(build.getPromotionIdOfSubmittedBuild(), queuedBuild.getBuildPromotion().getId());
       }
     }
     return getBuilds(null, fields, uriInfo, request);

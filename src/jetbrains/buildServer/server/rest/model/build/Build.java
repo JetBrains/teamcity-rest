@@ -88,7 +88,7 @@ import org.springframework.beans.factory.annotation.Autowired;
            "triggeringOptions"/*only when triggering*/})
 public class Build {
   public static final String CANCELED_INFO = "canceledInfo";
-  public static final String PROMOTION_ID = "taskId";  //todo: rename this ???
+  public static final String PROMOTION_ID = "taskId";
   public static final String REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES = "rest.beans.build.includeAllAttributes";
 
   @NotNull final protected BuildPromotion myBuildPromotion;
@@ -140,16 +140,18 @@ public class Build {
 
   @XmlAttribute
   public Long getId() {
-    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("id", true), myBuild.getBuildId());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("id", true), new ValueWithDefault.Value<Long>() {
+      @Nullable
+      public Long get() {
+        // since 9.0 promotionId == buildId (apart from https://youtrack.jetbrains.com/issue/TW-38777), so assume so for queued builds
+        return myBuild != null ? myBuild.getBuildId() : myBuildPromotion.getId();
+      }
+    });
   }
 
   @XmlAttribute (name = PROMOTION_ID)
   public Long getPromotionId() {
-    if (myBuild != null) {
-      return ValueWithDefault.decideDefault(myFields.isIncluded(PROMOTION_ID, false, false), myBuildPromotion.getId());
-    } else {
-      return ValueWithDefault.decideDefault(myFields.isIncluded(PROMOTION_ID, true), myBuildPromotion.getId());
-    }
+    return ValueWithDefault.decideDefault(myFields.isIncluded(PROMOTION_ID, false, false), myBuildPromotion.getId());
   }
 
   @XmlAttribute
@@ -830,8 +832,10 @@ public class Build {
   public void setPromotionId(Long id) {
     submittedPromotionId = id;
   }
-  public Long getSubmittedPromotionId() {
-    return submittedPromotionId;
+
+  @Nullable
+  public Long getPromotionIdOfSubmittedBuild() {
+    return submittedPromotionId != null ? submittedPromotionId : submittedId;
   }
 
   /**
@@ -849,7 +853,7 @@ public class Build {
   @NotNull
   public BuildPromotion getFromPosted(@NotNull final BuildFinder buildFinder,
                                       @NotNull final QueuedBuildFinder queuedBuildFinder,
-                                      @NotNull final Map<Long, Long> buildPromotionIdReplacements) {
+                                      @NotNull final Map<Long, Long> buildPromotionIdQueuedBuildsReplacements) {
     String locatorText;
     if (submittedLocator != null) {
       if (submittedPromotionId != null) {
@@ -862,7 +866,7 @@ public class Build {
     } else {
       final Locator locator = Locator.createEmptyLocator();
       if (submittedPromotionId != null) {
-        final Long replacementPromotionId = buildPromotionIdReplacements.get(submittedPromotionId);
+        final Long replacementPromotionId = buildPromotionIdQueuedBuildsReplacements.get(submittedPromotionId);
         if (replacementPromotionId != null){
           locator.setDimension(QueuedBuildFinder.PROMOTION_ID, String.valueOf(replacementPromotionId));
         } else{
@@ -870,10 +874,16 @@ public class Build {
         }
       }
       if (submittedId != null) {
-        locator.setDimension(BuildFinder.DIMENSION_ID, String.valueOf(submittedId));
+        //assuming https://youtrack.jetbrains.com/issue/TW-38777 never takes place
+        final Long replacementPromotionId = buildPromotionIdQueuedBuildsReplacements.get(submittedId);
+        if (replacementPromotionId != null){
+          locator.setDimension(QueuedBuildFinder.PROMOTION_ID, String.valueOf(replacementPromotionId));
+        } else{
+          locator.setDimension(QueuedBuildFinder.DIMENSION_ID, String.valueOf(submittedId));
+        }
       }
       if (locator.isEmpty()) {
-        throw new BadRequestException("No build specified. Either '" + PROMOTION_ID + "', '" + BuildFinder.DIMENSION_ID + "' or 'locator' attributes should be present.");
+        throw new BadRequestException("No build specified. Either '" + BuildFinder.DIMENSION_ID + "' or 'locator' attributes should be present.");
       }
 
       locatorText = locator.getStringRepresentation();
@@ -898,6 +908,7 @@ public class Build {
   private Changes submittedLastChanges;
   private Builds submittedBuildDependencies;
   private Agent submittedAgent;
+  //todo: add support for snapshot dependency options, probably with: private PropEntitiesSnapshotDep submittedCustomBuildSnapshotDependencies;
   private PropEntitiesArtifactDep submittedCustomBuildArtifactDependencies;
   private Entries submittedAttributes;
 
