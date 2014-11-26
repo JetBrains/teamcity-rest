@@ -17,33 +17,34 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.sun.jersey.spi.resource.Singleton;
+import java.io.File;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.diagnostic.web.ThreadDumpsController;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.BuildServerEx;
+import jetbrains.buildServer.serverSide.ServerPaths;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.db.*;
 import jetbrains.buildServer.serverSide.db.queries.GenericQuery;
 import jetbrains.buildServer.serverSide.db.queries.QueryOptions;
-import jetbrains.buildServer.util.CaseInsensitiveStringComparator;
-import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.web.util.WebUtil;
@@ -148,7 +149,68 @@ public class DebugRequest {
   }
 
 
+  /**
+   * Experimental use only!
+   */
+  @POST
+  @Path("/diagnostics/memory/dumps")
+  @Produces({"text/plain"})
+  public String saveMemoryDump(@QueryParam("archived") Boolean archived, @Context HttpServletRequest request) {
+    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    final File logsPath = myServiceLocator.getSingletonService(ServerPaths.class).getLogsPath();
+    try {
+      final File memoryDumpFile;
+      if (archived == null || archived){
+        memoryDumpFile = DiagnosticUtil.memoryDumpZipped(new File(logsPath, "memoryDumps"));
+      }else{
+        memoryDumpFile = DiagnosticUtil.memoryDump(new File(logsPath, "memoryDumps"));
+      }
+      return memoryDumpFile.getAbsolutePath();
+    } catch (Exception e) {
+      throw new OperationException("Error saving memory dump", e);
+    }
+  }
 
+
+  /**
+   * Experimental use only!
+   */
+  @GET
+  @Path("/threadDump")
+  @Produces({"text/plain"})
+  public String scheduleCheckingForChanges(@QueryParam("lockedMonitors") String lockedMonitors, @QueryParam("lockedSynchronizers") String lockedSynchronizers) {
+    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    final Date startTime = Dates.now();
+    ThreadInfo[] infos = ManagementFactory.getThreadMXBean().dumpAllThreads(Boolean.getBoolean(lockedMonitors), Boolean.getBoolean(lockedSynchronizers));
+    final StringBuilder result = new StringBuilder();
+    result.append(ThreadDumpsController.makeServerInfoSummary(myDataProvider.getServer()));
+    result.append("\n");
+    for (ThreadInfo threadInfo : infos) {
+      // see also jetbrains.buildServer.util.DiagnosticUtil.threadDumpInternal()
+      result.append(threadInfo.toString());
+    }
+    result.append("\n");
+    final DiagnosticUtil.Printer printer = new DiagnosticUtil.Printer() {
+      public void println(@NotNull final String text) {
+        result.append(text).append("\n");
+      }
+
+      public void println() {
+        result.append("\n");
+      }
+
+      public void print(@NotNull final String text) {
+        result.append(text);
+      }
+    };
+    DiagnosticUtil.printMemoryUsage(printer);
+    result.append("\n");
+    DiagnosticUtil.printCpuUsage(printer, new DiagnosticUtil.ThreadDumpData());
+    result.append("\n");
+    result.append("Dump taken in ").append(TimePrinter.createMillisecondsFormatter().formatTime(Dates.now().getTime() - startTime.getTime()));
+
+    return result.toString();
+  }
 
 
   private void checkQuery(final String query) {
