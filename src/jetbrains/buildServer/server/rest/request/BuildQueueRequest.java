@@ -37,15 +37,11 @@ import jetbrains.buildServer.server.rest.model.build.BuildCancelRequest;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.BuildHistory;
-import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SQueuedBuild;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -290,7 +286,11 @@ public class BuildQueueRequest {
       tagsToSet = tags.tags;
     }
 
-    buildPromotion.setTags(tagsToSet, SessionUser.getUser(request), false);
+    Set<TagData> tagDatas = new HashSet<TagData>();
+    for (String s : tagsToSet) {
+      tagDatas.add(TagData.createPublicTag(s));
+    }
+    buildPromotion.setTagDatas(tagDatas);
     return new Tags(buildPromotion.getTags());
   }
 
@@ -304,18 +304,21 @@ public class BuildQueueRequest {
   @Consumes({"application/xml", "application/json"})
   public void addTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
     BuildPromotion buildPromotion = myBuildPromotionFinder.getItem(buildLocator, getBuildPromotionLocatorDefaults());
-    if (tags.tags == null || tags.tags.isEmpty()) {
+    List<String> labels = tags.tags;
+    if (labels == null || labels.isEmpty()) {
       // Nothing to add
       return;
     }
-    for (String tag : tags.tags) { //check for empty tags: http://youtrack.jetbrains.com/issue/TW-34426
+    Collection<TagData> newTags = buildPromotion.getTagDatas();
+    for (String tag : labels) { //check for empty tags: http://youtrack.jetbrains.com/issue/TW-34426
       if (StringUtil.isEmpty(tag)) {
         throw new BadRequestException("One of the submitted tags is empty. Cannot apply empty tag.");
       }
+      newTags.add(TagData.createPublicTag(tag));
     }
-    final List<String> resultingTags = new ArrayList<String>(buildPromotion.getTags());
-    resultingTags.addAll(tags.tags);
-    buildPromotion.setTags(resultingTags, SessionUser.getUser(request), false);
+    newTags.addAll(buildPromotion.getTagDatas());
+
+    buildPromotion.setTagDatas(newTags);
   }
 
   /**
