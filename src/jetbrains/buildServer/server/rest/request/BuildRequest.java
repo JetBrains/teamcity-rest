@@ -285,7 +285,7 @@ public class BuildRequest {
    * @param name name of the file to pack the artifacts into
    */
   @GET
-  @Path("/{buildLocator}" + ARTIFACTS + "/packed" + "{path:(/.*)?}")
+  @Path("/{buildLocator}" + ARTIFACTS + "/archived" + "{path:(/.*)?}")
   @Produces({MediaType.WILDCARD})
   public Response getZippedArtifacts(@PathParam("buildLocator") final String buildLocator,
                                      @PathParam("path") final String path,
