@@ -35,10 +35,8 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
-import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.build.Branch;
 import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.buildType.*;
@@ -51,6 +49,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
+import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.VcsLabelingBuildFeature;
@@ -187,6 +186,17 @@ public class BuildTypeRequest {
   public Tags serveBuildTypeBuildsTags(@PathParam("btLocator") String buildTypeLocator) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
     return new Tags(buildType.getTags());
+  }
+
+  /**
+   * Experimental support only
+   */
+  @GET
+  @Path("/{btLocator}/aliases")
+  @Produces({"application/xml", "application/json"})
+  public Items getAliases(@PathParam("btLocator") String buildTypeLocator, @PathParam("field") String field) {
+    SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
+    return new Items(myBeanContext.getSingletonService(BuildTypeIdentifiersManager.class).getAllExternalIds(buildType.getInternalId()));
   }
 
   @GET
