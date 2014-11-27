@@ -25,6 +25,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -56,7 +57,7 @@ public class User {
   public User() {
   }
 
-  public User(jetbrains.buildServer.users.User user, @NotNull final Fields fields, @NotNull final BeanContext context) {
+  public User(@NotNull jetbrains.buildServer.users.User user, @NotNull final Fields fields, @NotNull final BeanContext context) {
     this.myUser = (SUser)user;
     myFields = fields;
     myContext = context;
@@ -192,6 +193,7 @@ public class User {
   }
 
   // These are necessary for allowing to submit the same class
+  private Long id;
   private String name;
   private String username;
   private String email;
@@ -199,6 +201,10 @@ public class User {
   private RoleAssignments roles;
   private Groups groups;
   private Properties properties;
+
+  public void setId(final Long id) {
+    this.id = id;
+  }
 
   public void setName(final String name) {
     this.name = name;
@@ -254,6 +260,18 @@ public class User {
 
   public Properties getSubmittedProperties() {
     return properties;
+  }
+
+  @NotNull
+  public jetbrains.buildServer.users.SUser getFromPosted(final UserFinder userFinder) {
+    if (id != null){
+      return userFinder.getUser(Locator.getStringLocator(UserFinder.ID, String.valueOf(id)));
+    }
+    if (username != null){
+      return userFinder.getUser(Locator.getStringLocator(UserFinder.USERNAME, username));
+    }
+
+    throw new BadRequestException("Submitted user should have wither 'id; or 'username' attributes");
   }
 }
 

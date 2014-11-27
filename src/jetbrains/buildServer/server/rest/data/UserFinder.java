@@ -33,6 +33,8 @@ import org.jetbrains.annotations.Nullable;
  */
 public class UserFinder {
   private static final Logger LOG = Logger.getInstance(UserFinder.class.getName());
+  public static final String ID = "id";
+  public static final String USERNAME = "username";
   @NotNull private final ServiceLocator myServiceLocator;
 
   public UserFinder(final @NotNull ServiceLocator serviceLocator) {
@@ -60,7 +62,7 @@ public class UserFinder {
           throw new NotFoundException("No user can be found by username '" + userLocator + "'.");
         }
         // support for predefined "current" keyword to get current user
-        final SUser currentUser = DataProvider.getCurrentUser(myServiceLocator);
+        final SUser currentUser = getCurrentUser();
         if (currentUser == null) {
           throw new NotFoundException("No current user.");
         } else {
@@ -70,19 +72,19 @@ public class UserFinder {
       return user;
     }
 
-    Long id = locator.getSingleDimensionValueAsLong("id");
+    Long id = locator.getSingleDimensionValueAsLong(ID);
     if (id != null) {
       SUser user = userModel.findUserById(id);
       if (user == null) {
         throw new NotFoundException("No user can be found by id '" + id + "'.");
       }
       if (locator.getDimensionsCount() > 1) {
-        LOG.info("User locator '" + userLocator + "' has 'id' dimension and others. Others are ignored.");
+        LOG.info("User locator '" + userLocator + "' has '" + ID + "' dimension and others. Others are ignored.");
       }
       return user;
     }
 
-    String username = locator.getSingleDimensionValue("username");
+    String username = locator.getSingleDimensionValue(USERNAME);
     if (username != null) {
       SUser user = userModel.findUserAccount(null, username);
       if (user == null) {
@@ -91,6 +93,11 @@ public class UserFinder {
       return user;
     }
     throw new NotFoundException("User locator '" + userLocator + "' is not supported.");
+  }
+
+  @Nullable
+  public SUser getCurrentUser() {
+    return DataProvider.getCurrentUser(myServiceLocator);
   }
 
   public void checkViewUserPermission(String userLocator) {
