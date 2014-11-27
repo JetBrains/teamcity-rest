@@ -94,7 +94,7 @@ public class ChangeRequest {
                               @QueryParam("locator") String locator,
                               @QueryParam("fields") String fields,
                               @Context UriInfo uriInfo, @Context HttpServletRequest request) {
-    Locator actualLocator = locator == null ? Locator.createEmptyLocator(myChangeFinder.getKnownDimensions()) : myChangeFinder.createLocator(locator);
+    Locator actualLocator = locator == null ? Locator.createEmptyLocator(myChangeFinder.getKnownDimensions()) : myChangeFinder.createLocator(locator, null);
     if (!actualLocator.isSingleValue()) {
       updateLocatorDimension(actualLocator, "project", projectLocator);
       updateLocatorDimension(actualLocator, "buildType", buildTypeLocator);
@@ -113,7 +113,7 @@ public class ChangeRequest {
       throw new BadRequestException("No 'locator' or other parameters are specified.");
     }
 
-    PagedSearchResult <SVcsModification> buildModifications = myChangeFinder.getItems(actualLocator);
+    PagedSearchResult <SVcsModification> buildModifications = myChangeFinder.getItemsByLocator(actualLocator);
     actualLocator.checkLocatorFullyProcessed();
 
     final UriBuilder requestUriBuilder = uriInfo.getRequestUriBuilder();

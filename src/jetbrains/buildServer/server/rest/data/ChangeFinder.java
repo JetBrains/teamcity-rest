@@ -367,7 +367,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     try {
       return Long.parseLong(sinceChangeDimension);
     } catch (NumberFormatException e) {
-      final Locator locator = createLocator(sinceChangeDimension);
+      final Locator locator = createLocator(sinceChangeDimension, null);
       Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
       if (id != null && locator.getDimensionsCount() == 1) {
         return id;
