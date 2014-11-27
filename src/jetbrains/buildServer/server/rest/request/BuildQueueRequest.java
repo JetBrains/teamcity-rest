@@ -25,6 +25,7 @@ import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
@@ -38,6 +39,7 @@ import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.tags.TagsManager;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -257,9 +259,10 @@ public class BuildQueueRequest {
   @GET
   @Path("/{buildLocator}/tags/")
   @Produces({"application/xml", "application/json"})
-  public Tags serveTags(@PathParam("buildLocator") String buildLocator) {
+  public Tags serveTags(@PathParam("buildLocator") String buildLocator, @QueryParam("locator") String tagLocator, @QueryParam("fields") String fields) {
     BuildPromotion buildPromotion = myBuildPromotionFinder.getItem(buildLocator, getBuildPromotionLocatorDefaults());
-    return new Tags(buildPromotion.getTags());
+    return new Tags(new TagFinder(myBeanContext.getSingletonService(UserFinder.class), buildPromotion).getItems(tagLocator, TagFinder.getDefaultLocator()).myEntries,
+                    new Fields(fields), myBeanContext);
   }
 
   /**
@@ -271,27 +274,16 @@ public class BuildQueueRequest {
   @Path("/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Tags replaceTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
+  public Tags replaceTags(@PathParam("buildLocator") String buildLocator, @QueryParam("locator") String tagLocator, Tags tags,
+                          @QueryParam("fields") String fields, @Context HttpServletRequest request) {
     BuildPromotion buildPromotion = myBuildPromotionFinder.getItem(buildLocator, getBuildPromotionLocatorDefaults());
+    final TagFinder tagFinder = new TagFinder(myBeanContext.getSingletonService(UserFinder.class), buildPromotion);
+    final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
 
-    List<String> tagsToSet;
-    if (tags.tags == null || tags.tags.isEmpty()) {
-      tagsToSet = Collections.<String>emptyList();
-    } else {
-      for (String tag : tags.tags) { //check for empty tags: http://youtrack.jetbrains.com/issue/TW-34426
-        if (StringUtil.isEmpty(tag)) {
-          throw new BadRequestException("One of the submitted tags is empty. Cannot apply empty tag.");
-        }
-      }
-      tagsToSet = tags.tags;
-    }
+    tagsManager.removeTagDatas(buildPromotion, tagFinder.getItems(tagLocator, TagFinder.getDefaultLocator()).myEntries);
+    tagsManager.addTagDatas(buildPromotion, tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class)));
 
-    Set<TagData> tagDatas = new HashSet<TagData>();
-    for (String s : tagsToSet) {
-      tagDatas.add(TagData.createPublicTag(s));
-    }
-    buildPromotion.setTagDatas(tagDatas);
-    return new Tags(buildPromotion.getTags());
+    return new Tags(tagFinder.getItems(null, TagFinder.getDefaultLocator()).myEntries, new Fields(fields), myBeanContext);
   }
 
   /**
@@ -304,21 +296,9 @@ public class BuildQueueRequest {
   @Consumes({"application/xml", "application/json"})
   public void addTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
     BuildPromotion buildPromotion = myBuildPromotionFinder.getItem(buildLocator, getBuildPromotionLocatorDefaults());
-    List<String> labels = tags.tags;
-    if (labels == null || labels.isEmpty()) {
-      // Nothing to add
-      return;
-    }
-    Collection<TagData> newTags = buildPromotion.getTagDatas();
-    for (String tag : labels) { //check for empty tags: http://youtrack.jetbrains.com/issue/TW-34426
-      if (StringUtil.isEmpty(tag)) {
-        throw new BadRequestException("One of the submitted tags is empty. Cannot apply empty tag.");
-      }
-      newTags.add(TagData.createPublicTag(tag));
-    }
-    newTags.addAll(buildPromotion.getTagDatas());
+    final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
 
-    buildPromotion.setTagDatas(newTags);
+    tagsManager.addTagDatas(buildPromotion, tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class)));
   }
 
   /**
@@ -335,10 +315,12 @@ public class BuildQueueRequest {
     if (StringUtil.isEmpty(tagName)) { //check for empty tags: http://youtrack.jetbrains.com/issue/TW-34426
       throw new BadRequestException("Cannot apply empty tag, should have non empty request body");
     }
-    this.addTags(buildLocator, new Tags(Arrays.asList(tagName)), request);
+    BuildPromotion buildPromotion = myBuildPromotionFinder.getItem(buildLocator, getBuildPromotionLocatorDefaults());
+    final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
+
+    tagsManager.addTagDatas(buildPromotion, Collections.singleton(TagData.createPublicTag(tagName)));
     return tagName;
   }
-//todo: add GET (true/false) and DELETE, may be PUT (true/false) for a single tag
 
   @NotNull
   private Locator getBuildPromotionLocatorDefaults() {

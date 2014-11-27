@@ -18,29 +18,63 @@ package jetbrains.buildServer.server.rest.model.build;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.data.UserFinder;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.TagData;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
  *         Date: 13.07.2009
  */
+@SuppressWarnings("PublicField")
 @XmlRootElement(name = "tags")
 public class Tags implements DefaultValueAware {
+  @XmlAttribute public Integer count;
+
   @XmlElement(name = "tag")
-  public List<String> tags;
+  public List<Tag> tags;
 
   public Tags() {
   }
 
-  public Tags(final List<String> tagsP) {
-    tags = new ArrayList<String>(tagsP);
+  public Tags(final @NotNull List <TagData> tagData, final @NotNull Fields fields, final @NotNull BeanContext beanContext) {
+    tags = ValueWithDefault.decideDefault(fields.isIncluded("tag", false), new ValueWithDefault.Value<List<Tag>>() {
+      @Nullable
+      public List<Tag> get() {
+        return CollectionsUtil.convertCollection(tagData, new Converter<Tag, TagData>() {
+              public Tag createFrom(@NotNull final TagData source) {
+                return new Tag(source.getLabel(), source.getOwner(), fields.getNestedField("tag"), beanContext);
+              }
+            });
+      }
+    });
+
+    count = ValueWithDefault.decideDefault(fields.isIncluded("count", true), tagData.size());
   }
 
   public boolean isDefault() {
-    //noinspection unchecked
-    return ValueWithDefault.isAllDefault(tags);
+    return ValueWithDefault.isAllDefault(count, tags);
+  }
+
+  @NotNull
+  public List<TagData> getFromPosted(final @NotNull UserFinder userFinder) {
+    if (tags == null) {
+      return new ArrayList<TagData>();
+    }
+    final ArrayList<TagData> result = new ArrayList<TagData>(tags.size());
+    for (Tag item : tags) {
+      result.add(item.getFromPosted(userFinder));
+    }
+    return result;
   }
 }

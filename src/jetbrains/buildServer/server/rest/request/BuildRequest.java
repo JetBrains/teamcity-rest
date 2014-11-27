@@ -18,8 +18,6 @@ package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import javax.servlet.ServletContext;
@@ -29,6 +27,7 @@ import javax.ws.rs.core.*;
 import jetbrains.buildServer.controllers.artifacts.RepositoryUtil;
 import jetbrains.buildServer.parameters.ProcessingResult;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
@@ -52,6 +51,7 @@ import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.LoginConfiguration;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
+import jetbrains.buildServer.tags.TagsManager;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
@@ -423,12 +423,15 @@ public class BuildRequest {
   }
   */
 
+
+  // see also corresponding methods in BuildQueueRequest
   @GET
   @Path("/{buildLocator}/tags/")
   @Produces({"application/xml", "application/json"})
-  public Tags serveTags(@PathParam("buildLocator") String buildLocator) {
+  public Tags serveTags(@PathParam("buildLocator") String buildLocator, @QueryParam("locator") String tagLocator, @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return new Tags(build.getTags());
+    return new Tags(new TagFinder(myBeanContext.getSingletonService(UserFinder.class), build.getBuildPromotion()).getItems(tagLocator, TagFinder.getDefaultLocator()).myEntries,
+                    new Fields(fields), myBeanContext);
   }
 
   /**
@@ -440,22 +443,16 @@ public class BuildRequest {
   @Path("/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Tags replaceTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
+  public Tags replaceTags(@PathParam("buildLocator") String buildLocator, @QueryParam("locator") String tagLocator, Tags tags,
+                          @QueryParam("fields") String fields, @Context HttpServletRequest request) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    List<String> tagsToSet;
-    if (tags.tags == null || tags.tags.isEmpty()) {
-      tagsToSet = Collections.<String>emptyList();
-    }else{
-      for (String tag : tags.tags) { //check for empty tags: http://youtrack.jetbrains.com/issue/TW-34426
-        if (StringUtil.isEmpty(tag)){
-          throw new BadRequestException("One of the submitted tags is empty. Cannot apply empty tag.");
-        }
-      }
-      tagsToSet = tags.tags;
-    }
+    final TagFinder tagFinder = new TagFinder(myBeanContext.getSingletonService(UserFinder.class), build.getBuildPromotion());
+    final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
 
-    build.setTags(SessionUser.getUser(request), tagsToSet);
-    return new Tags(build.getTags());
+    tagsManager.removeTagDatas(build.getBuildPromotion(), tagFinder.getItems(tagLocator, TagFinder.getDefaultLocator()).myEntries);
+    tagsManager.addTagDatas(build.getBuildPromotion(), tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class)));
+
+    return new Tags(tagFinder.getItems(null, TagFinder.getDefaultLocator()).myEntries, new Fields(fields), myBeanContext);
   }
 
   /**
@@ -468,18 +465,9 @@ public class BuildRequest {
   @Consumes({"application/xml", "application/json"})
   public void addTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    if (tags.tags == null || tags.tags.isEmpty()) {
-      // Nothing to add
-      return;
-    }
-    for (String tag : tags.tags) { //check for empty tags: http://youtrack.jetbrains.com/issue/TW-34426
-      if (StringUtil.isEmpty(tag)){
-        throw new BadRequestException("One of the submitted tags is empty. Cannot apply empty tag.");
-      }
-    }
-    final List<String> resultingTags = new ArrayList<String>(build.getTags());
-    resultingTags.addAll(tags.tags);
-    build.setTags(SessionUser.getUser(request), resultingTags);
+    final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
+
+    tagsManager.addTagDatas(build.getBuildPromotion(), tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class)));
   }
 
   /**
@@ -493,10 +481,13 @@ public class BuildRequest {
   @Consumes({"text/plain"})
   @Produces({"text/plain"})
   public String addTag(@PathParam("buildLocator") String buildLocator, String tagName, @Context HttpServletRequest request) {
-    if (StringUtil.isEmpty(tagName)){ //check for empty tags: http://youtrack.jetbrains.com/issue/TW-34426
+    if (StringUtil.isEmpty(tagName)) { //check for empty tags: http://youtrack.jetbrains.com/issue/TW-34426
       throw new BadRequestException("Cannot apply empty tag, should have non empty request body");
     }
-    this.addTags(buildLocator, new Tags(Arrays.asList(tagName)), request);
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
+    final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
+
+    tagsManager.addTagDatas(build.getBuildPromotion(), Collections.singleton(TagData.createPublicTag(tagName)));
     return tagName;
   }
 //todo: add GET (true/false) and DELETE, amy be PUT (true/false) for a single tag

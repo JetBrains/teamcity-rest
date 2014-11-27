@@ -25,6 +25,7 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
@@ -314,7 +315,9 @@ public class Build {
   public Tags getTags() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("tags", false), new ValueWithDefault.Value<Tags>() {
       public Tags get() {
-        return new Tags(myBuildPromotion.getTags());
+        final Fields fields = myFields.getNestedField("tags", Fields.NONE, Fields.LONG);
+        final TagFinder tagFinder = new TagFinder(myBeanContext.getSingletonService(UserFinder.class), myBuildPromotion);
+        return new Tags(tagFinder.getItems(fields.getLocator(), TagFinder.getDefaultLocator()).myEntries, fields, myBeanContext);
       }
     });
   }

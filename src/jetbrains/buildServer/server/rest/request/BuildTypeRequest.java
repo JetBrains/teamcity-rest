@@ -183,9 +183,14 @@ public class BuildTypeRequest {
   @GET
   @Path("/{btLocator}/buildTags")
   @Produces({"application/xml", "application/json"})
-  public Tags serveBuildTypeBuildsTags(@PathParam("btLocator") String buildTypeLocator) {
+  public Tags serveBuildTypeBuildsTags(@PathParam("btLocator") String buildTypeLocator, @PathParam("field") String field) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
-    return new Tags(buildType.getTags());
+
+    return new Tags(CollectionsUtil.convertCollection(buildType.getTags(), new Converter<TagData, String>() {
+      public TagData createFrom(@NotNull final String source) {
+        return TagData.createPublicTag(source);
+      }
+    }), new Fields(field), myBeanContext);
   }
 
   /**
