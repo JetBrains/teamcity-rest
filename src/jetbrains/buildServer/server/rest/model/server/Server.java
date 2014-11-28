@@ -52,12 +52,14 @@ public class Server {
   @Autowired
   private DataProvider myDataProvider;
 
+  private BeanContext myBeanContext;
   private ApiUrlBuilder myApiUrlBuilder;
 
   public Server() {
   }
 
   public Server(final BeanContext beanContext) {
+    myBeanContext = beanContext;
     beanContext.autowire(this);
     myApiUrlBuilder = beanContext.getContextService(ApiUrlBuilder.class);
   }
@@ -84,7 +86,12 @@ public class Server {
 
   @XmlAttribute
   public String getStartTime() {
-    return Util.formatTime(myDataProvider.getServerStartTime());
+    try {
+      //workaround for https://youtrack.jetbrains.com/issue/TW-25260
+      return Util.formatTime(myBeanContext.getSingletonService(DataProvider.class).getBean(StartupContext.class).getServerStartupTimestamp());
+    } catch (Exception e) {
+      return null;
+    }
   }
 
   @XmlAttribute

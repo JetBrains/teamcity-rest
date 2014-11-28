@@ -24,6 +24,7 @@ import jetbrains.buildServer.RootUrlHolder;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.groups.SUserGroup;
+import jetbrains.buildServer.maintenance.StartupContext;
 import jetbrains.buildServer.plugins.PluginManager;
 import jetbrains.buildServer.plugins.bean.PluginInfo;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
@@ -81,6 +82,7 @@ public class DataProvider {
   @NotNull private final BeanFactory myBeanFactory;
   @NotNull private final ConfigurableApplicationContext myApplicationContext;
   @NotNull private final DBFunctionsProvider myDbFunctionsProvider;
+  @NotNull private final StartupContext myStartupContext;
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final RootUrlHolder myRootUrlHolder;
   @NotNull private final PermissionChecker myPermissionChecker;
@@ -103,6 +105,7 @@ public class DataProvider {
                       @NotNull final BeanFactory beanFactory,
                       @NotNull final ConfigurableApplicationContext applicationContext,
                       @NotNull final DBFunctionsProvider dbFunctionsProvider,
+                      @NotNull final StartupContext startupContext,
                       @NotNull final ServiceLocator serviceLocator,
                       @NotNull final RootUrlHolder rootUrlHolder,
                       @NotNull final PermissionChecker permissionChecker) {
@@ -124,6 +127,7 @@ public class DataProvider {
     myBeanFactory = beanFactory;
     myApplicationContext = applicationContext;
     myDbFunctionsProvider = dbFunctionsProvider;
+    myStartupContext = startupContext;
     myServiceLocator = serviceLocator;
     myRootUrlHolder = rootUrlHolder;
     myPermissionChecker = permissionChecker;
@@ -448,6 +452,7 @@ public class DataProvider {
   // Workaround for http://youtrack.jetbrains.com/issue/TW-25260
   public <T> T getBean(Class<T> type){
     if (type.equals(DBFunctionsProvider.class)) return (T)myDbFunctionsProvider;
+    if (type.equals(StartupContext.class)) return (T)myStartupContext;
     return myApplicationContext.getBean(type);
   }
 
