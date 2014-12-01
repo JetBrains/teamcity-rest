@@ -396,7 +396,7 @@ public class Build {
       if (entry.getValue() == null) {
         continue;
       }
-      result.put(entry.getKey(), entry.getValue().toPlainString());
+      result.put(entry.getKey(), entry.getValue().stripTrailingZeros().toPlainString());
     }
 
     return result;
