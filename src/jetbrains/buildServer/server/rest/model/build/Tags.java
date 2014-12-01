@@ -53,13 +53,13 @@ public class Tags implements DefaultValueAware {
       public List<Tag> get() {
         return CollectionsUtil.convertCollection(tagData, new Converter<Tag, TagData>() {
               public Tag createFrom(@NotNull final TagData source) {
-                return new Tag(source.getLabel(), source.getOwner(), fields.getNestedField("tag"), beanContext);
+                return new Tag(source.getLabel(), source.getOwner(), fields.getNestedField("tag", Fields.NONE, Fields.LONG), beanContext);
               }
             });
       }
     });
 
-    count = ValueWithDefault.decideDefault(fields.isIncluded("count", true), tagData.size());
+    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), tagData.size());
   }
 
   public boolean isDefault() {

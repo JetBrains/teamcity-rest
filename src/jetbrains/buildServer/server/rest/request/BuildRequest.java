@@ -435,9 +435,7 @@ public class BuildRequest {
   }
 
   /**
-   * Replaces build's tags.
-   *
-   * @param buildLocator build locator
+   * Replaces the build's tags designated by the tags 'locator' to the set of tags passed.
    */
   @PUT
   @Path("/{buildLocator}/tags/")
