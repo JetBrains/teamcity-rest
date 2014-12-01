@@ -908,6 +908,7 @@ public class Build {
   private Agent submittedAgent;
   //todo: add support for snapshot dependency options, probably with: private PropEntitiesSnapshotDep submittedCustomBuildSnapshotDependencies;
   private PropEntitiesArtifactDep submittedCustomBuildArtifactDependencies;
+  private Tags submittedTags;
   private Entries submittedAttributes;
 
   /**
@@ -966,6 +967,9 @@ public class Build {
 
   public void setAttributes(final Entries submittedAttributes) {
     this.submittedAttributes = submittedAttributes;
+  }
+  public void setTags(final Tags tags) {
+    this.submittedTags = tags;
   }
 
   private BuildPromotion getBuildToTrigger(@Nullable final SUser user, @NotNull final ServiceLocator serviceLocator, @NotNull final Map<Long, Long> buildPromotionIdReplacements) {
@@ -1042,6 +1046,9 @@ public class Build {
       if (!artifactDependencies.isEmpty()) { //TeamCity API does not allow to set empty depenedencies list
         customizer.setArtifactDependencies(artifactDependencies); //todo: merge with build type dependencies
       }
+    }
+    if (submittedTags != null){
+        customizer.setTagDatas(new HashSet<TagData>(submittedTags.getFromPosted(serviceLocator.getSingletonService(UserFinder.class))));
     }
     if (submittedAttributes != null){
       if (TeamCityProperties.getBoolean(REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES)) {
