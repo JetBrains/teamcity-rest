@@ -16,6 +16,8 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.util.Function;
 import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -53,6 +55,8 @@ import org.jetbrains.annotations.Nullable;
  */
 @Path(BuildQueueRequest.API_BUILD_QUEUE_URL)
 public class BuildQueueRequest {
+  private static final Logger LOG = Logger.getInstance(BuildRequest.class.getName());
+
   public static final String API_BUILD_QUEUE_URL = Constants.API_URL + "/buildQueue";
   public static final String COMPATIBLE_AGENTS = "/compatibleAgents";
   @Context @NotNull private DataProvider myDataProvider;
@@ -184,13 +188,61 @@ public class BuildQueueRequest {
 
     final SUser user = myDataProvider.getCurrentUser();
     final Map<Long, Long> buildPromotionIdReplacements = new HashMap<Long, Long>();
-    for (Build build : builds.builds) {
-      final SQueuedBuild queuedBuild = build.triggerBuild(user, myServiceLocator, buildPromotionIdReplacements);
-      if (build.getPromotionIdOfSubmittedBuild() != null){
-        buildPromotionIdReplacements.put(build.getPromotionIdOfSubmittedBuild(), queuedBuild.getBuildPromotion().getId());
+    List<Build> buildsToTrigger = builds.builds;
+    Map<Build, Exception> buildsWithErrors;
+    while (true) {
+      buildsWithErrors = triggerBuilds(buildsToTrigger, user, buildPromotionIdReplacements);
+      if (buildsWithErrors.isEmpty() || buildsToTrigger.size() <= buildsWithErrors.size()) {
+        //no errors or no builds triggered
+        break;
       }
+      buildsToTrigger = new ArrayList<Build>(buildsWithErrors.keySet());
+      LOG.info("There was an error triggering " + buildsToTrigger.size() + " builds, will try again." + " Affected build ids: " + listBuildIds(buildsToTrigger));
+      //repeat (dependnecies order might be relevant)
+    }
+
+    if (buildsWithErrors.size() != 0) {
+      final StringBuilder buildListDetails = new StringBuilder();
+      for (Map.Entry<Build, Exception> buildExceptionEntry : buildsWithErrors.entrySet()) {
+        final Build build = buildExceptionEntry.getKey();
+        //noinspection ThrowableResultOfMethodCallIgnored
+        buildListDetails.append("Not able to add build").append(build.getPromotionIdOfSubmittedBuild() != null ? " with id '" + build.getPromotionIdOfSubmittedBuild() + "'" : "")
+                        .append(" to the build queue due to error: ").append(buildExceptionEntry.getValue().toString());
+        buildListDetails.append("\n");
+      }
+
+      throw new BadRequestException("Error triggering " + buildsWithErrors.size() + " out of " + builds.builds.size() + " builds: \n" +
+                                    buildListDetails.substring(0, buildListDetails.length() - "\n".length()));
     }
     return getBuilds(null, fields, uriInfo, request);
+  }
+
+  @NotNull
+  private String listBuildIds(@NotNull final Collection<Build> buildsToTrigger) {
+    return StringUtil.join(buildsToTrigger, new Function<Build, String>() {
+      public String fun(final Build build) {
+        return String.valueOf(build.getPromotionIdOfSubmittedBuild());
+      }
+    }, ", ");
+  }
+
+  @NotNull
+  private Map<Build, Exception> triggerBuilds(@NotNull final List<Build> builds, @Nullable final SUser user, @NotNull final Map<Long, Long> buildPromotionIdReplacements) {
+    final Map<Build, Exception> buildsWithErrors = new LinkedHashMap<Build, Exception>();
+    for (Build build : builds) {
+      try {
+        final SQueuedBuild queuedBuild = build.triggerBuild(user, myServiceLocator, buildPromotionIdReplacements);
+        if (build.getPromotionIdOfSubmittedBuild() != null) {
+          buildPromotionIdReplacements.put(build.getPromotionIdOfSubmittedBuild(), queuedBuild.getBuildPromotion().getId());
+        }
+      } catch (Exception e) {
+        //noinspection ThrowableResultOfMethodCallIgnored
+        buildsWithErrors.put(build, e);
+        LOG.debug("Got error trying to add build" + (build.getPromotionIdOfSubmittedBuild() != null ? " with id '" + build.getPromotionIdOfSubmittedBuild() + "'" : "") +
+                  " to the build queue. Details: " + e.toString(), e);
+      }
+    }
+    return buildsWithErrors;
   }
 
   @GET

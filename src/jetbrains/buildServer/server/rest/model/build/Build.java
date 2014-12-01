@@ -1026,7 +1026,10 @@ public class Build {
       try {
         customizer.setSnapshotDependencyNodes(submittedBuildDependencies.getFromPosted(serviceLocator, buildPromotionIdReplacements));
       } catch (IllegalArgumentException e) {
-        throw new BadRequestException("Error trying to use specified snapshot dependencies: " + e.getMessage());
+        throw new BadRequestException(
+          "Error trying to use specified snapshot dependencies for the submitted build with id '" + getPromotionIdOfSubmittedBuild() + "':" + e.getMessage());
+      } catch (NotFoundException e) {
+        throw new NotFoundException("Error searching for snapshot dependency of submitted build with id '" + getPromotionIdOfSubmittedBuild() + "': " + e.getMessage(), e);
       }
     }
     if (submittedTriggeringOptions != null && submittedTriggeringOptions.rebuildDependencies != null) {
