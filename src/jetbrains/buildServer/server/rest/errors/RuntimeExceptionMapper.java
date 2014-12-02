@@ -21,6 +21,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
+import jetbrains.buildServer.serverSide.*;
 
 /**
  * User: Yegor Yarko
@@ -31,6 +32,17 @@ public class RuntimeExceptionMapper extends ExceptionMapperUtil implements Excep
   protected static final Logger LOG = Logger.getInstance(RuntimeExceptionMapper.class.getName());
 
   public Response toResponse(RuntimeException exception) {
+    // process known errors
+    if (exception instanceof DuplicateProjectNameException ||
+        exception instanceof InvalidIdentifierException ||
+        exception instanceof DuplicateBuildTypeIdException ||
+        exception instanceof DuplicateBuildTypeNameException ||
+        exception instanceof DuplicateIdException ||
+        exception instanceof DuplicateTemplateNameException ||
+        exception instanceof InvalidNameException){
+      return reportError(Response.Status.BAD_REQUEST.getStatusCode(), exception, "Error occurred while processing this request.", false);
+    }
+
     return reportError(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), exception, "Error occurred while processing this request.", true);
   }
 }
