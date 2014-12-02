@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.request.*;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SBuildServer;
+import jetbrains.buildServer.serverSide.ServerPaths;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.ServerSettings;
 import org.jetbrains.annotations.NotNull;
@@ -169,6 +170,9 @@ public class Server {
     } else if ("superUserToken".equals(field)) {
       serviceLocator.getSingletonService(DataProvider.class).checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
       return serviceLocator.getSingletonService(DataProvider.class).getBean(StartupContext.class).getMaintenanceAuthenticationToken();
+    } else if ("dataDirectoryPath".equals(field)) { //experimental
+      serviceLocator.getSingletonService(DataProvider.class).checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+      return serviceLocator.getSingletonService(DataProvider.class).getBean(ServerPaths.class).getDataDirectory().getAbsolutePath();
     }
     throw new NotFoundException("Field '" + field + "' is not supported. Supported are: version, versionMajor, versionMinor, buildNumber, startTime, currentTime, internalId.");
   }
