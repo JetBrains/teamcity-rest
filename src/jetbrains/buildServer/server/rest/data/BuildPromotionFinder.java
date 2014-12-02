@@ -25,6 +25,7 @@ import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -58,6 +59,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
   protected static final String CANCELED = "canceled";
   protected static final String PINNED = "pinned";
   protected static final String RUNNING = "running";
+  protected static final String SNAPSHOT_DEP = "snapshotDependency";
 
   private final BuildPromotionManager myBuildPromotionManager;
   private final BuildQueue myBuildQueue;
@@ -102,7 +104,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
   @Override
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(AGENT_NAME, RUNNING);
+    result.addHiddenDimensions(AGENT_NAME, RUNNING, SNAPSHOT_DEP);
     return result;
   }
 
@@ -199,6 +201,37 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
     final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
     final MultiCheckerFilter<BuildPromotion> result =
       new MultiCheckerFilter<BuildPromotion>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
+
+    final String stateDimension = locator.getSingleDimensionValue(STATE);
+    if (stateDimension != null) {
+      final Locator stateLocator = createStateLocator(stateDimension);
+
+      if (!isStateIncluded(stateLocator, STATE_QUEUED)) {
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            return item.getQueuedBuild() == null;
+          }
+        });
+      }
+
+      if (!isStateIncluded(stateLocator, STATE_RUNNING)) {
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            final SBuild associatedBuild = item.getAssociatedBuild();
+            return associatedBuild == null || associatedBuild.isFinished();
+          }
+        });
+      }
+
+      if (!isStateIncluded(stateLocator, STATE_FINISHED)) {
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            final SBuild associatedBuild = item.getAssociatedBuild();
+            return associatedBuild == null || !associatedBuild.isFinished();
+          }
+        });
+      }
+    }
 
     final String projectLocator = locator.getSingleDimensionValue(PROJECT);
     SProject project = null;
@@ -561,18 +594,61 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
 
 
   @Override
-  protected List<BuildPromotion> getPrefilteredItems(@NotNull Locator locator) { //todo: highly ineffective when finished builds are included
-    final ArrayList<BuildPromotion> result = new ArrayList<BuildPromotion>();
+  protected List<BuildPromotion> getPrefilteredItems(@NotNull Locator locator) {
+    final String snapshotDepDimension = locator.getSingleDimensionValue(SNAPSHOT_DEP);
+    if (snapshotDepDimension != null) {
+      ArrayList<BuildPromotion> result = new ArrayList<BuildPromotion>();
+
+      Locator snapshotDepLocator = new Locator(snapshotDepDimension, "to", "from", "recursive");  //todo: also use the locator in Build's nodes
+      Boolean recursive = snapshotDepLocator.getSingleDimensionValueAsBoolean("recursive", false);
+      if (recursive == null) recursive = false;
+
+      final String toBuildDimension = snapshotDepLocator.getSingleDimensionValue("to");
+      if (toBuildDimension != null) {
+        final List<BuildPromotion> toBuilds = getItems(toBuildDimension).myEntries;
+        if (recursive) {
+          for (BuildPromotion toBuild : toBuilds) {
+            result.addAll(toBuild.getAllDependencies());
+          }
+        } else {
+          final Set<BuildPromotion> alldependencyBuilds = new TreeSet<BuildPromotion>();
+          for (BuildPromotion toBuild : toBuilds) {
+            alldependencyBuilds.addAll(CollectionsUtil.convertCollection(toBuild.getDependencies(), new Converter<BuildPromotion, BuildDependency>() {
+              public BuildPromotion createFrom(@NotNull final BuildDependency source) {
+                return source.getDependOn();
+              }
+            }));
+          }
+          result.addAll(alldependencyBuilds); //todo: sort
+        }
+      }
+
+      final String fromBuildDimension = snapshotDepLocator.getSingleDimensionValue("from");
+      if (fromBuildDimension != null) {
+        final Collection<BuildPromotion> allDependingOn = getAllDependOn(getItems(fromBuildDimension).myEntries, recursive); //todo: sort!
+        if (result.isEmpty()) {
+          result.addAll(allDependingOn);
+        } else {
+          result = new ArrayList<BuildPromotion>(CollectionsUtil.intersect(result, allDependingOn));
+        }
+      }
+
+      snapshotDepLocator.checkLocatorFullyProcessed();
+      return result;
+    }
+
 
     final String stateDimension = locator.getSingleDimensionValue(STATE);
     if (stateDimension == null) {
-      throw new BadRequestException("Only single item locators or locators with '" + STATE + "' dimension are supported for build promotions");
+      throw new BadRequestException(
+        "Only single item locators or locators with '" + STATE + "' dimension are supported for build promotions");  //or experimental locators with snapshot dep
     }
 
-    final Locator stateLocator = new Locator(stateDimension, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, STATE_QUEUED, STATE_RUNNING, STATE_FINISHED);
+    final ArrayList<BuildPromotion> result = new ArrayList<BuildPromotion>();
 
-    if ("any".equals(stateLocator.getSingleValue()) || STATE_QUEUED.equals(stateDimension) ||
-        (!stateLocator.isSingleValue() && FilterUtil.isIncludedByBooleanFilter(stateLocator.getSingleDimensionValueAsBoolean(STATE_QUEUED), true))) {
+    final Locator stateLocator = createStateLocator(stateDimension);
+
+    if (isStateIncluded(stateLocator, STATE_QUEUED)) {
       result.addAll(CollectionsUtil.convertCollection(myBuildQueue.getItems(), new Converter<BuildPromotion, SQueuedBuild>() {
         public BuildPromotion createFrom(@NotNull final SQueuedBuild source) {
           return source.getBuildPromotion();
@@ -580,8 +656,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
       }));
     }
 
-    if ("any".equals(stateLocator.getSingleValue()) || STATE_RUNNING.equals(stateDimension) ||
-        (!stateLocator.isSingleValue() && FilterUtil.isIncludedByBooleanFilter(stateLocator.getSingleDimensionValueAsBoolean(STATE_RUNNING), true))) {
+    if (isStateIncluded(stateLocator, STATE_RUNNING)) {
       result.addAll(CollectionsUtil.convertCollection(myBuildsManager.getRunningBuilds(), new Converter<BuildPromotion, SRunningBuild>() {
         public BuildPromotion createFrom(@NotNull final SRunningBuild source) {
           return source.getBuildPromotion();
@@ -589,8 +664,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
       }));
     }
 
-    if ("any".equals(stateLocator.getSingleValue()) || STATE_FINISHED.equals(stateDimension) ||
-        (!stateLocator.isSingleValue() && FilterUtil.isIncludedByBooleanFilter(stateLocator.getSingleDimensionValueAsBoolean(STATE_FINISHED), true))) {
+    if (isStateIncluded(stateLocator, STATE_FINISHED)) {
+      //todo: would be highly ineffective when finished builds are included, should return iterator/visitor
       throw new BadRequestException("Getting finished builds is not supported for build promotions locator");
       /*
       result.addAll(CollectionsUtil.convertCollection(myBuildHistory.getEntries(true), new Converter<BuildPromotion, SFinishedBuild>() {
@@ -600,9 +675,56 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
       }));
       */
     }
+
     stateLocator.checkLocatorFullyProcessed();
 
     return result;
+  }
+
+  private Collection<BuildPromotion> getAllDependOn(final List<BuildPromotion> items, boolean recursive) {
+    final Set<BuildPromotion> processed = new TreeSet<BuildPromotion>();
+    final List<BuildPromotion> toProcess = new ArrayList<BuildPromotion>();
+    for (BuildPromotion item : items) {
+      toProcess.addAll(getDependingPromotions(item));
+    }
+    while (!toProcess.isEmpty()) {
+      final List<BuildPromotion> currentBatch = new ArrayList<BuildPromotion>(toProcess);
+      toProcess.clear();
+      for (BuildPromotion item : currentBatch) {
+        if (!processed.contains(item)) {
+          processed.add(item);
+          if (recursive) {
+            toProcess.addAll(getDependingPromotions(item));
+          }
+        }
+      }
+    }
+    return processed;
+  }
+
+  @NotNull
+  private List<BuildPromotion> getDependingPromotions(@NotNull final BuildPromotion fromBuild) {
+    return CollectionsUtil.convertCollection(fromBuild.getDependedOnMe(), new Converter<BuildPromotion, BuildDependency>() {
+      public BuildPromotion createFrom(@NotNull final BuildDependency source) {
+        return source.getDependent();
+      }
+    });
+  }
+
+  private Locator createStateLocator(final String stateDimension) {
+    return new Locator(stateDimension, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, STATE_QUEUED, STATE_RUNNING, STATE_FINISHED);
+  }
+
+  private boolean isStateIncluded(@NotNull final Locator stateLocator, @NotNull final String state) {
+    final String singleValue = stateLocator.getSingleValue();
+    if (singleValue != null && ("any".equals(singleValue) || state.equals(singleValue))) {
+      return true;
+    }
+    //noinspection RedundantIfStatement
+    if (!stateLocator.isSingleValue() && FilterUtil.isIncludedByBooleanFilter(stateLocator.getSingleDimensionValueAsBoolean(state), true)) {
+      return true;
+    }
+    return false;
   }
 
   public static boolean buildIdDiffersFromPromotionId(@NotNull final BuildPromotion buildPromotion) {
