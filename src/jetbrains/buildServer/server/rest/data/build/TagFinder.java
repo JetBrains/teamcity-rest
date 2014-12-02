@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import jetbrains.buildServer.server.rest.data.*;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.TagData;
@@ -38,12 +37,13 @@ public class TagFinder extends AbstractFinder<TagData> {
   public static final String NAME = "name";
   public static final String PRIVATE = "private";
   public static final String OWNER = "owner";
+  protected static final String CONDITION = "condition";
 
   @NotNull private final UserFinder myUserFinder;
   @NotNull private final BuildPromotion myBuildPromotion;
 
   public TagFinder(final @NotNull UserFinder userFinder, final @NotNull BuildPromotion buildPromotion) {
-    super(new String[]{DIMENSION_ID, NAME, PRIVATE, OWNER});
+    super(new String[]{NAME, PRIVATE, OWNER});
     myUserFinder = userFinder;
     myBuildPromotion = buildPromotion;
   }
@@ -58,6 +58,7 @@ public class TagFinder extends AbstractFinder<TagData> {
   @NotNull
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator locator = super.createLocator(locatorText, locatorDefaults);
+    locator.addHiddenDimensions(CONDITION); //experimental
     locator.addHiddenDimensions(PagerData.START, PagerData.COUNT);
     return locator;
   }
@@ -94,7 +95,14 @@ public class TagFinder extends AbstractFinder<TagData> {
   @Override
   protected AbstractFilter<TagData> getFilter(final Locator locator) {
     if (locator.isSingleValue()) {
-      throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
+      final String singleValue = locator.getSingleValue();
+      final MultiCheckerFilter<TagData> result = new MultiCheckerFilter<TagData>(null, null, null);
+      result.add(new FilterConditionChecker<TagData>() {
+        public boolean isIncluded(@NotNull final TagData item) {
+          return item.isPublic() && item.getLabel().equals(singleValue);
+        }
+      });
+      return result;
     }
 
     final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
@@ -130,6 +138,16 @@ public class TagFinder extends AbstractFinder<TagData> {
             return true;
           }
           return user.equals(owner);
+        }
+      });
+    }
+
+    final String condition = locator.getSingleDimensionValue(CONDITION);
+    if (condition != null) {
+      final ParameterCondition parameterCondition = ParameterCondition.create(condition);
+      result.add(new FilterConditionChecker<TagData>() {
+        public boolean isIncluded(@NotNull final TagData item) {
+          return parameterCondition.matches(item.getLabel());
         }
       });
     }

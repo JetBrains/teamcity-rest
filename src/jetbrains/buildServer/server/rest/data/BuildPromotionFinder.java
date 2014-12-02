@@ -20,6 +20,7 @@ import com.intellij.openapi.util.text.StringUtil;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -318,34 +319,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
 
     final String tag = locator.getSingleDimensionValue("tag");
     if (tag != null) {
-      if (!tag.startsWith("format:extended")) {
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
-            return item.getTags().contains(tag);
-          }
-        });
-      } else {
-        //unofficial experimental support for "tag:(format:regexp,value:.*)" tag specification
-        //todo: locator parsing logic should be moved to build locator parsing
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
-            try {
-              final Locator tagsLocator = new Locator(tag);
-
-              if (!isTagsMatchLocator(item.getTags(), tagsLocator)) {
-                return false;
-              }
-              final Set<String> unusedDimensions = tagsLocator.getUnusedDimensions();
-              if (unusedDimensions.size() > 0) {
-                throw new BadRequestException("Unknown dimensions in locator 'tag': " + unusedDimensions);
-              }
-            } catch (LocatorProcessException e) {
-              throw new BadRequestException("Invalid locator 'tag': " + e.getMessage(), e);
-            }
-            return true;
-          }
-        });
-      }
+      result.add(new FilterConditionChecker<BuildPromotion>() {
+        public boolean isIncluded(@NotNull final BuildPromotion item) {
+          return new TagFinder(myUserFinder, item).getItems(tag, TagFinder.getDefaultLocator()).myEntries.size() > 0;
+        }
+      });
     }
 
     final String compatibleAagentLocator = locator.getSingleDimensionValue("compatibleAgent"); //experimental, only for queued builds
@@ -647,6 +625,16 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
     final ArrayList<BuildPromotion> result = new ArrayList<BuildPromotion>();
 
     final Locator stateLocator = createStateLocator(stateDimension);
+
+    if (stateLocator.isSingleValue()) {
+      //check validity
+      if (!stateDimension.equals(STATE_QUEUED) &&
+          !stateDimension.equals(STATE_RUNNING) &&
+          !stateDimension.equals(STATE_FINISHED) &&
+          !stateDimension.equals("any")) {
+        throw new BadRequestException("Unsupported value of '" + STATE + "' dimension: '" + stateDimension + "'. Should be one of the build states of 'any'");
+      }
+    }
 
     if (isStateIncluded(stateLocator, STATE_QUEUED)) {
       result.addAll(CollectionsUtil.convertCollection(myBuildQueue.getItems(), new Converter<BuildPromotion, SQueuedBuild>() {
