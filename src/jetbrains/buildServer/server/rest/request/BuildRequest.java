@@ -33,7 +33,6 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.BuildCancelRequest;
@@ -154,15 +153,8 @@ public class BuildRequest {
                                @QueryParam("start") Long start,
                                @QueryParam("count") Integer count,
                                @QueryParam("locator") String locator,
-                               @QueryParam("buildPromotionLocator") String buildPromotionLocator, //experimental
                                @QueryParam("fields") String fields,
                                @Context UriInfo uriInfo, @Context HttpServletRequest request) {
-    if (buildPromotionLocator != null) {
-      final PagedSearchResult<BuildPromotion> result = myBuildPromotionFinder.getItems(buildPromotionLocator);
-      return new Builds(result.myEntries,
-                        new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, buildPromotionLocator, "buildPromotionLocator"),
-                        new Fields(fields), myBeanContext);
-    }
     return myBuildFinder.getBuildsForRequest(myBuildTypeFinder.getBuildTypeIfNotNull(buildTypeLocator), status, userLocator, includePersonal,
                                            includeCanceled, onlyPinned, tags, agentName, sinceBuildLocator, sinceDate, start, count,
                                            locator, "locator", uriInfo, request,   new Fields(fields), myBeanContext

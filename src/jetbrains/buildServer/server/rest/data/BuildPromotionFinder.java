@@ -71,6 +71,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
   protected static final String SINCE_DATE = "sinceDate";
   protected static final String UNTIL_BUILD = "untilBuild";
   protected static final String UNTIL_DATE = "untilDate";
+  public static final String BY_PROMOTION = "byPromotion";  //used in BuildFinder
 
   private final BuildPromotionManager myBuildPromotionManager;
   private final BuildQueue myBuildQueue;
@@ -116,6 +117,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator result = super.createLocator(locatorText, locatorDefaults);
     result.addHiddenDimensions(AGENT_NAME, RUNNING, COMPATIBLE_AGENTS_COUNT, SNAPSHOT_DEP, TAGS, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE);
+    result.addIgnoreUnusedDimensions(BY_PROMOTION);
     return result;
   }
 
