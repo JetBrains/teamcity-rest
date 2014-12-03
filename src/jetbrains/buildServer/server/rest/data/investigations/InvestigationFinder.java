@@ -130,8 +130,8 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
   @Override
   @NotNull
-  public List<InvestigationWrapper> getAllItems() {
-    return getInvestigationWrappersForProjectWithSubprojects(myProjectFinder.getRootProject(), null);
+  public ItemHolder<InvestigationWrapper> getAllItems() {
+    return getItemHolder(getInvestigationWrappersForProjectWithSubprojects(myProjectFinder.getRootProject(), null));
   }
 
   @Override
@@ -223,23 +223,23 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   }
 
   @Override
-  protected List<InvestigationWrapper> getPrefilteredItems(@NotNull final Locator locator) {
+  protected ItemHolder<InvestigationWrapper> getPrefilteredItems(@NotNull final Locator locator) {
     final String problemDimension = locator.getSingleDimensionValue(PROBLEM_DIMENSION);
     if (problemDimension != null){
       final ProblemWrapper problem = myProblemFinder.getItem(problemDimension);
-      return problem.getInvestigations();
+      return getItemHolder(problem.getInvestigations());
     }
 
     final String testDimension = locator.getSingleDimensionValue(TEST_DIMENSION);
     if (testDimension != null){
       final STest test = myTestFinder.getItem(testDimension);
-      return getInvestigationWrappers(test);
+      return getItemHolder(getInvestigationWrappers(test));
     }
 
     final String buildTypeDimension = locator.getSingleDimensionValue(BUILD_TYPE);
     if (buildTypeDimension != null){
       final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension);
-      return getInvestigationWrappersForBuildType(buildType);
+      return getItemHolder(getInvestigationWrappersForBuildType(buildType));
     }
 
     @Nullable User user = null;
@@ -251,17 +251,17 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     final String assignmentProjectDimension = locator.getSingleDimensionValue(ASSIGNMENT_PROJECT);
     if (assignmentProjectDimension != null){
       @NotNull final SProject project = myProjectFinder.getProject(assignmentProjectDimension);
-      return getInvestigationWrappersForProject(project, user);
+      return getItemHolder(getInvestigationWrappersForProject(project, user));
     }
 
     final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null){
       @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
-      return getInvestigationWrappersForProjectWithSubprojects(project, user);
+      return getItemHolder(getInvestigationWrappersForProjectWithSubprojects(project, user));
     }
 
     if (user != null){
-      return getInvestigationWrappersForProjectWithSubprojects(myProjectFinder.getRootProject(), user);
+      return getItemHolder(getInvestigationWrappersForProjectWithSubprojects(myProjectFinder.getRootProject(), user));
     }
     locator.markUnused(ASSIGNEE);
     return super.getPrefilteredItems(locator);

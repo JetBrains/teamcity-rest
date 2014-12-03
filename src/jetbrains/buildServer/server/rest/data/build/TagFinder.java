@@ -19,7 +19,6 @@ package jetbrains.buildServer.server.rest.data.build;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.List;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.BuildPromotion;
@@ -58,14 +57,14 @@ public class TagFinder extends AbstractFinder<TagData> {
   @NotNull
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator locator = super.createLocator(locatorText, locatorDefaults);
-    locator.addHiddenDimensions(CONDITION); //experimental
+    locator.addHiddenDimensions(Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, CONDITION); //experimental
     locator.addHiddenDimensions(PagerData.START, PagerData.COUNT);
     return locator;
   }
 
   @NotNull
   @Override
-  public List<TagData> getAllItems() {
+  public ItemHolder<TagData> getAllItems() {
     final ArrayList<TagData> result = new ArrayList<TagData>(myBuildPromotion.getTagDatas());
     Collections.sort(result, new Comparator<TagData>() {
       public int compare(final TagData o1, final TagData o2) {
@@ -88,7 +87,7 @@ public class TagFinder extends AbstractFinder<TagData> {
         return user1.getUsername().compareToIgnoreCase(user2.getUsername());
       }
     });
-    return result;
+    return getItemHolder(result);
   }
 
   @NotNull

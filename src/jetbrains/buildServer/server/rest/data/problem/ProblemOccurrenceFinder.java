@@ -136,7 +136,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
   @NotNull
   @Override
-  public List<BuildProblem> getAllItems() {
+  public ItemHolder<BuildProblem> getAllItems() {
     ArrayList<String> exampleLocators = new ArrayList<String>();
 //    exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "XXX"));
     exampleLocators.add(Locator.getStringLocator(BUILD, "XXX"));
@@ -147,16 +147,16 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   }
 
   @Override
-  protected List<BuildProblem> getPrefilteredItems(@NotNull final Locator locator) {
+  protected ItemHolder<BuildProblem> getPrefilteredItems(@NotNull final Locator locator) {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
       SBuild build = myBuildFinder.getBuild(null, buildDimension);
-      return getProblemOccurrences(build);
+      return getItemHolder(getProblemOccurrences(build));
     }
 
     Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
     if (currentDimension != null && currentDimension) {
-      return getCurrentProblemOccurences(getAffectedProject(locator));
+      return getItemHolder(getCurrentProblemOccurences(getAffectedProject(locator)));
     }
 
     String problemDimension = locator.getSingleDimensionValue(PROBLEM);
@@ -166,7 +166,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       for (ProblemWrapper problem : problems.myEntries) {
         result.addAll(getProblemOccurrences(problem));
       }
-      return result;
+      return getItemHolder(result);
     }
 
     Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
@@ -177,7 +177,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       for (ProblemWrapper problem : currentlyMutedProblems) {
         result.addAll(getProblemOccurrences(Long.valueOf(problem.getId()), myServiceLocator, myBuildFinder));
       }
-      return result;
+      return getItemHolder(result);
     }
 
     return super.getPrefilteredItems(locator);

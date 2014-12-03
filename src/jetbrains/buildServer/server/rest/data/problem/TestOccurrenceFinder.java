@@ -151,7 +151,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   @Override
   @NotNull
-  public List<STestRun> getAllItems() {
+  public ItemHolder<STestRun> getAllItems() {
     ArrayList<String> exampleLocators = new ArrayList<String>();
     exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "XXX"));
     exampleLocators.add(Locator.getStringLocator(BUILD, "XXX"));
@@ -162,11 +162,11 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   @Override
-  protected List<STestRun> getPrefilteredItems(@NotNull final Locator locator) {
+  protected ItemHolder<STestRun> getPrefilteredItems(@NotNull final Locator locator) {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
       SBuild build = myBuildFinder.getBuild(null, buildDimension);
-      return build.getFullStatistics().getAllTests();
+      return getItemHolder(build.getFullStatistics().getAllTests());
     }
 
     String testDimension = locator.getSingleDimensionValue(TEST);
@@ -180,7 +180,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         for (STest test : tests.myEntries) {
           result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), 0, getBranch(locator))); //no personal builds
         }
-        return result;
+        return getItemHolder(result);
       }
 
       final ArrayList<STestRun> result = new ArrayList<STestRun>();
@@ -188,12 +188,12 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       for (STest test : tests.myEntries) {
         result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), affectedProject, 0, getBranch(locator))); //no personal builds
       }
-      return result;
+      return getItemHolder(result);
     }
 
     Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
     if (currentDimension != null && currentDimension) {
-      return getCurrentOccurences(getAffectedProject(locator), myCurrentProblemsManager);
+      return getItemHolder(getCurrentOccurences(getAffectedProject(locator), myCurrentProblemsManager));
     }
 
     Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
@@ -204,7 +204,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       for (STest test : currentlyMutedTests) {
         result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), affectedProject, 0, getBranch(locator)));  //no personal builds
       }
-      return result;
+      return getItemHolder(result);
     }
 
     return super.getPrefilteredItems(locator);

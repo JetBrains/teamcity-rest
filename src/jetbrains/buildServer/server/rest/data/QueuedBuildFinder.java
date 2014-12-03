@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import java.util.List;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -67,8 +66,8 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
 
   @NotNull
   @Override
-  public List<SQueuedBuild> getAllItems() {
-    return myBuildQueue.getItems();
+  public ItemHolder<SQueuedBuild> getAllItems() {
+    return getItemHolder(myBuildQueue.getItems());
   }
 
   @Override

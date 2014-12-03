@@ -17,11 +17,13 @@
 package jetbrains.buildServer.server.rest.data;
 
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.util.ItemProcessor;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -75,7 +77,7 @@ public abstract class AbstractFinder<ITEM> {
   @NotNull
   public PagedSearchResult<ITEM> getItemsByLocator(@Nullable final Locator locator) {
     if (locator == null) {
-      return new PagedSearchResult<ITEM>(getAllItems(), null, null);
+      return new PagedSearchResult<ITEM>(toList(getAllItems()), null, null);
     }
 
     ITEM singleItem = findSingleItem(locator);
@@ -104,16 +106,16 @@ public abstract class AbstractFinder<ITEM> {
     locator.markAllUnused(); // nothing found - no dimensions should be marked as used then
 
     //it is important to call "getPrefilteredItems" first as that process some of the dimensions which  "getFilter" can then ignore for performance reasons
-    final List<ITEM> unfilteredItems = getPrefilteredItems(locator);
+    final ItemHolder<ITEM> unfilteredItems = getPrefilteredItems(locator);
     AbstractFilter<ITEM> filter = getFilter(locator);
     locator.checkLocatorFullyProcessed();
     return new PagedSearchResult<ITEM>(getItems(filter, unfilteredItems), filter.getStart(), filter.getCount());
   }
 
   @NotNull
-  protected List<ITEM> getItems(final @NotNull AbstractFilter<ITEM> filter, final @NotNull List<ITEM> unfilteredItems) {
+  protected List<ITEM> getItems(final @NotNull AbstractFilter<ITEM> filter, final @NotNull ItemHolder<ITEM> unfilteredItems) {
     final FilterItemProcessor<ITEM> filterItemProcessor = new FilterItemProcessor<ITEM>(filter);
-    AbstractFilter.processList(unfilteredItems, filterItemProcessor);
+    unfilteredItems.process(filterItemProcessor);
     return filterItemProcessor.getResult();
   }
 
@@ -141,7 +143,7 @@ public abstract class AbstractFinder<ITEM> {
     return items.myEntries.get(0);
   }
 
-  protected List<ITEM> getPrefilteredItems(@NotNull Locator locator) {
+  protected ItemHolder<ITEM> getPrefilteredItems(@NotNull Locator locator) {
     return getAllItems();
   }
 
@@ -151,12 +153,50 @@ public abstract class AbstractFinder<ITEM> {
   }
 
   @NotNull
-  public abstract List<ITEM> getAllItems();
+  public abstract ItemHolder<ITEM> getAllItems();
 
   @NotNull
   protected abstract AbstractFilter<ITEM> getFilter(final Locator locator);
 
   public String[] getKnownDimensions() {
     return myKnownDimensions;
+  }
+
+  public interface ItemHolder<P> {
+    boolean process(@NotNull final ItemProcessor<P> processor);
+  }
+
+  @NotNull
+  public static <P> ItemHolder<P> getItemHolder(@NotNull Iterable<P> items){
+    return new CollectionItemHolder<P>(items);
+  }
+
+  public static class CollectionItemHolder<P> implements ItemHolder<P> {
+    @NotNull final private Iterable<P> myEntries;
+
+    public CollectionItemHolder(@NotNull final Iterable<P> entries) {
+      myEntries = entries;
+    }
+
+    public boolean process(@NotNull final ItemProcessor<P> processor) {
+      for (P entry : myEntries) {
+        if (!processor.processItem(entry)) {
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+
+  @NotNull
+  public List<ITEM> toList(@NotNull final ItemHolder<ITEM> items) {
+    final ArrayList<ITEM> result = new ArrayList<ITEM>();
+    items.process(new ItemProcessor<ITEM>() {
+      public boolean processItem(final ITEM item) {
+        result.add(item);
+        return true;
+      }
+    });
+    return result;
   }
 }

@@ -100,11 +100,11 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
   @NotNull
   @Override
-  public List<BuildTypeOrTemplate> getAllItems() {
+  public ItemHolder<BuildTypeOrTemplate> getAllItems() {
     final List<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
     result.addAll(BuildTypes.fromBuildTypes(myProjectManager.getAllBuildTypes()));
     result.addAll(BuildTypes.fromTemplates(myProjectManager.getAllTemplates()));
-    return result;
+    return getItemHolder(result);
   }
 
   @Override
@@ -344,7 +344,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   }
 
   @Override
-  protected List<BuildTypeOrTemplate> getPrefilteredItems(@NotNull final Locator locator) {
+  protected ItemHolder<BuildTypeOrTemplate> getPrefilteredItems(@NotNull final Locator locator) {
     List<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
 
     SProject project = null;
@@ -370,7 +370,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
         throw new BadRequestException(
           "Error while searching for templates by locator '" + templateLocator + "' specified in '" + TEMPLATE_DIMENSION_NAME + "' dimension : " + e.getMessage(), e);
       }
-      return BuildTypes.fromBuildTypes(buildTemplate.getUsages());
+      return getItemHolder(BuildTypes.fromBuildTypes(buildTemplate.getUsages()));
     }
 
     Boolean template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_FLAG_DIMENSION_NAME);
@@ -393,7 +393,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       }
     }
 
-    return result;
+    return getItemHolder(result);
   }
 
 

@@ -112,7 +112,7 @@ public class TestFinder extends AbstractFinder<STest> {
 
   @Override
   @NotNull
-  public List<STest> getAllItems() {
+  public ItemHolder<STest> getAllItems() {
     //todo: TeamCity API: find a way to do this
     ArrayList<String> exampleLocators = new ArrayList<String>();
     exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "XXX"));
@@ -123,7 +123,7 @@ public class TestFinder extends AbstractFinder<STest> {
   }
 
   @Override
-  protected List<STest> getPrefilteredItems(@NotNull final Locator locator) {
+  protected ItemHolder<STest> getPrefilteredItems(@NotNull final Locator locator) {
     final SProject affectedProject;
     String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null) {
@@ -134,12 +134,12 @@ public class TestFinder extends AbstractFinder<STest> {
 
     Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
     if (currentDimension != null && currentDimension) {
-      return getCurrentlyFailingTests(affectedProject);
+      return getItemHolder(getCurrentlyFailingTests(affectedProject));
     }
 
     Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
     if (currentlyMutedDimension != null && currentlyMutedDimension) {
-      return getCurrentlyMutedTests(affectedProject);
+      return getItemHolder(getCurrentlyMutedTests(affectedProject));
     }
 
     return super.getPrefilteredItems(locator);

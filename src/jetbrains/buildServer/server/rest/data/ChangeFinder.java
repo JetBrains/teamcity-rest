@@ -111,9 +111,9 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
   @NotNull
   @Override
-  public List<SVcsModification> getAllItems() {
+  public ItemHolder<SVcsModification> getAllItems() {
     //todo: highly inefficient!
-    return myVcsModificationHistory.getAllModifications();
+    return getItemHolder(myVcsModificationHistory.getAllModifications());
   }
 
   @Override
@@ -378,7 +378,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   }
 
   @Override
-  protected List<SVcsModification> getPrefilteredItems(@NotNull final Locator locator) {
+  protected ItemHolder<SVcsModification> getPrefilteredItems(@NotNull final Locator locator) {
 
     String branchName = getBranchName(locator.getSingleDimensionValue(BRANCH));
 
@@ -392,13 +392,13 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       if (buildType == null) {
         throw new BadRequestException("Filtering changes by branch is only supported when buildType is specified.");
       }
-      return getBranchChanges(buildType, branchName);
+      return getItemHolder(getBranchChanges(buildType, branchName));
     }
 
     final String userLocator = locator.getSingleDimensionValue(USER);
     if (userLocator != null) {
       final SUser user = myUserFinder.getUser(userLocator);
-      return myServiceLocator.getSingletonService(UserChangesFacade.class).getAllVcsModifications(user);
+      return getItemHolder(myServiceLocator.getSingletonService(UserChangesFacade.class).getAllVcsModifications(user));
     }
 
     final Boolean personal = locator.getSingleDimensionValueAsBoolean(PERSONAL);
@@ -417,18 +417,18 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
         //todo: use buildPromotionFinder here (ensure it also supports finished builds)
         buildFromBuildFinder = myBuildFinder.getBuild(null, buildLocator).getBuildPromotion();
       }
-      return getBuildChanges(buildFromBuildFinder);
+      return getItemHolder(getBuildChanges(buildFromBuildFinder));
     }
 
     //pre-9.0 compatibility
     final Long promotionLocator = locator.getSingleDimensionValueAsLong(PROMOTION);
     if (promotionLocator != null) {
       //noinspection ConstantConditions
-      return getBuildChanges(BuildFinder.getBuildPromotion(promotionLocator, myServiceLocator.findSingletonService(BuildPromotionManager.class)));
+      return getItemHolder(getBuildChanges(BuildFinder.getBuildPromotion(promotionLocator, myServiceLocator.findSingletonService(BuildPromotionManager.class))));
     }
 
     if (buildType != null) {
-      return getBuildTypeChanges(buildType);
+      return getItemHolder(getBuildTypeChanges(buildType));
     }
 
     Long sinceChangeId = null;
@@ -441,36 +441,36 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     if (vcsRootInstanceLocator != null) {
       final VcsRootInstance vcsRootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
       if (sinceChangeId != null) {
-        return myVcsModificationHistory.getModificationsInRange(vcsRootInstance, sinceChangeId, null);
+        return getItemHolder(myVcsModificationHistory.getModificationsInRange(vcsRootInstance, sinceChangeId, null));
       } else {
         //todo: highly inefficient!
-        return myVcsModificationHistory.getAllModifications(vcsRootInstance);
+        return getItemHolder(myVcsModificationHistory.getAllModifications(vcsRootInstance));
       }
     }
 
     final String projectLocator = locator.getSingleDimensionValue(PROJECT);
     if (projectLocator != null) {
-      return getProjectChanges(myVcsModificationHistory, myProjectFinder.getProject(projectLocator), sinceChangeId);
+      return getItemHolder(getProjectChanges(myVcsModificationHistory, myProjectFinder.getProject(projectLocator), sinceChangeId));
     }
 
     if (sinceChangeId != null) {
-      return myVcsModificationHistory.getModificationsInRange(null, sinceChangeId, null);
+      return getItemHolder(myVcsModificationHistory.getModificationsInRange(null, sinceChangeId, null));
     }
 
     final String parentChangeLocator = locator.getSingleDimensionValue(CHILD_CHANGE);
     if (parentChangeLocator != null) {
       final SVcsModification parentChange = getItem(parentChangeLocator);
-      return getChangesWhichHasChild(parentChange, locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT)); //todo: return iterator instead of processing lookup limit here
+      return getItemHolder(getChangesWhichHasChild(parentChange, locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT))); //todo: return iterator instead of processing lookup limit here
     }
 
     final String childChangeLocator = locator.getSingleDimensionValue(PARENT_CHANGE);
     if (childChangeLocator != null) {
       final SVcsModification parentChange = getItem(childChangeLocator);
-      return getChangesWhichHasParent(parentChange, locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT));
+      return getItemHolder(getChangesWhichHasParent(parentChange, locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT)));
     }
 
     //todo: highly inefficient!
-    return myVcsModificationHistory.getAllModifications();
+    return getItemHolder(myVcsModificationHistory.getAllModifications());
   }
 
   @NotNull

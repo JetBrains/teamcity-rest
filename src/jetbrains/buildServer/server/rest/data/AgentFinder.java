@@ -45,10 +45,10 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
 
   @NotNull
   @Override
-  public List<SBuildAgent> getAllItems() {
+  public ItemHolder<SBuildAgent> getAllItems() {
     final List<SBuildAgent> result = myAgentManager.getRegisteredAgents(true);
     result.addAll(((BuildAgentManagerEx)myAgentManager).getUnregisteredAgents(true));
-    return result;
+    return getItemHolder(result);
   }
 
   @Override
@@ -131,7 +131,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   }
 
   @Override
-  protected List<SBuildAgent> getPrefilteredItems(@NotNull final Locator locator) {
+  protected ItemHolder<SBuildAgent> getPrefilteredItems(@NotNull final Locator locator) {
     List<SBuildAgent> result = new ArrayList<SBuildAgent>();
 
     final Boolean authorizedDimension = locator.getSingleDimensionValueAsBoolean(AUTHORIZED);
@@ -145,7 +145,6 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     if (connectedDimension == null || !connectedDimension) {
       result.addAll(((BuildAgentManagerEx)myAgentManager).getUnregisteredAgents(includeUnauthorized));  //TeamCIty API issue: cast
     }
-
-    return result;
+    return getItemHolder(result);
   }
 }

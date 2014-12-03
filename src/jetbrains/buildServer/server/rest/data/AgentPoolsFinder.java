@@ -30,6 +30,7 @@ import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentTypes.AgentType;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeStorage;
+import jetbrains.buildServer.util.ItemProcessor;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -58,12 +59,15 @@ public class AgentPoolsFinder {
     final ArrayList<SBuildAgent> result = new ArrayList<SBuildAgent>(agentTypeIds.size());
 
     //todo: support cloud agents here
-    final Collection<SBuildAgent> allAgents = myAgentFinder.getAllItems();
-    for (SBuildAgent agent : allAgents) {
-      if (agentTypeIds.contains(agent.getAgentTypeId())) {
-        result.add(agent);
+    final AbstractFinder.ItemHolder<SBuildAgent> allAgents = myAgentFinder.getAllItems();
+    allAgents.process(new ItemProcessor<SBuildAgent>() {
+      public boolean processItem(final SBuildAgent agent) {
+        if (agentTypeIds.contains(agent.getAgentTypeId())) {
+          result.add(agent);
+        }
+        return true;
       }
-    }
+    });
     return result;
   }
 
