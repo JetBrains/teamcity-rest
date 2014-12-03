@@ -18,11 +18,14 @@ package jetbrains.buildServer.server.rest.request;
 
 import com.sun.jersey.spi.resource.Singleton;
 import java.io.File;
+import java.lang.management.LockInfo;
 import java.lang.management.ManagementFactory;
+import java.lang.management.MonitorInfo;
 import java.lang.management.ThreadInfo;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
@@ -153,7 +156,7 @@ public class DebugRequest {
    * Experimental use only!
    */
   @POST
-  @Path("/diagnostics/memory/dumps")
+  @Path("/memory/dumps")
   @Produces({"text/plain"})
   public String saveMemoryDump(@QueryParam("archived") Boolean archived, @Context HttpServletRequest request) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
@@ -185,9 +188,12 @@ public class DebugRequest {
     final StringBuilder result = new StringBuilder();
     result.append(ThreadDumpsController.makeServerInfoSummary(myDataProvider.getServer()));
     result.append("\n");
+    result.append(new SimpleDateFormat(DiagnosticUtil.THREAD_DUMP_DATE_PATTERN).format(startTime)).append("\n");
+    result.append("Full thread dump ").append(System.getProperty("java.vm.name"));
+    result.append(" (").append(System.getProperty("java.vm.version")).append(" ").append(System.getProperty("java.vm.info")).append("):").append("\n");
+    result.append("\n");
     for (ThreadInfo threadInfo : infos) {
-      // see also jetbrains.buildServer.util.DiagnosticUtil.threadDumpInternal()
-      result.append(threadInfo.toString());
+      appendThreadEntry(result, threadInfo);
     }
     result.append("\n");
     final DiagnosticUtil.Printer printer = new DiagnosticUtil.Printer() {
@@ -210,6 +216,70 @@ public class DebugRequest {
     result.append("Dump taken in ").append(TimePrinter.createMillisecondsFormatter().formatTime(Dates.now().getTime() - startTime.getTime()));
 
     return result.toString();
+  }
+
+  /**
+   * Tries to provide output consistent with java.lang.management.ThreadInfo#toString() (which cuts frames)
+   * See also jetbrains.buildServer.util.DiagnosticUtil.threadDumpInternal()
+   */
+  static StringBuilder appendThreadEntry(final StringBuilder buf, final ThreadInfo threadInfo) {
+    buf.append("\"").append(threadInfo.getThreadName()).append("\"");
+    buf.append(" Id=").append(threadInfo.getThreadId()).append(" ").append(threadInfo.getThreadState());
+    if (threadInfo.getLockName() != null) {
+      buf.append(" on ").append(threadInfo.getLockName());
+    }
+    if (threadInfo.getLockOwnerName() != null) {
+      buf.append(" owned by \"").append(threadInfo.getLockOwnerName()).append("\" Id=").append(threadInfo.getLockOwnerId());
+    }
+    if (threadInfo.isSuspended()) {
+      buf.append(" (suspended)");
+    }
+    if (threadInfo.isInNative()) {
+      buf.append(" (in native)");
+    }
+    buf.append('\n');
+    int i = 0;
+    for (; i < threadInfo.getStackTrace().length; i++) {
+      StackTraceElement ste = threadInfo.getStackTrace()[i];
+      buf.append("    at ").append(ste.toString());
+      buf.append('\n');
+      if (i == 0 && threadInfo.getLockInfo() != null) {
+        Thread.State ts = threadInfo.getThreadState();
+        buf.append("    -  ");
+        switch (ts) {
+          case BLOCKED:
+            buf.append("blocked on ");
+            break;
+          case WAITING:
+            buf.append("waiting on ");
+            break;
+          case TIMED_WAITING:
+            buf.append("waiting on ");
+            break;
+          default:
+        }
+        buf.append(threadInfo.getLockInfo()).append('\n');
+      }
+
+      for (MonitorInfo mi : threadInfo.getLockedMonitors()) {
+        if (mi.getLockedStackDepth() == i) {
+          buf.append("    -  locked ").append(mi);
+          buf.append('\n');
+        }
+      }
+    }
+
+    LockInfo[] locks = threadInfo.getLockedSynchronizers();
+    if (locks.length > 0) {
+      buf.append("\n    Number of locked synchronizers = ").append(locks.length);
+      buf.append('\n');
+      for (LockInfo lockInfo : locks) {
+        buf.append("    - ").append(lockInfo);
+        buf.append('\n');
+      }
+    }
+    buf.append('\n');
+    return buf;
   }
 
 
