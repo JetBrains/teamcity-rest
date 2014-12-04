@@ -80,6 +80,9 @@ public class ParameterCondition {
   }
 
   public boolean matches(@NotNull final ParametersProvider parametersProvider) {
+    if (myRequirementType.isParameterRequired() && myParameterValue == null) {
+      return false;
+    }
     if (!StringUtil.isEmpty(myParameterName)) {
       final String value = parametersProvider.get(myParameterName);
       return matches(value);
@@ -98,6 +101,9 @@ public class ParameterCondition {
   }
 
   public boolean parameterMatches(@NotNull final Parameter parameter) {
+    if (myRequirementType.isParameterRequired() && myParameterValue == null) {
+      return false;
+    }
     if (!StringUtil.isEmpty(myParameterName)) {
       if (myParameterName.equals(parameter.getName())) {
         return matches(parameter.getValue());
@@ -110,6 +116,9 @@ public class ParameterCondition {
   }
 
   public boolean matches(@Nullable final String value) {
+    if (myRequirementType.isParameterRequired() && myParameterValue == null) {
+      return false;
+    }
     if (myRequirementType.isActualValueRequired() && value == null) {
       return false;
     }
