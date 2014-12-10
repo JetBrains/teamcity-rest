@@ -106,6 +106,7 @@ public class PropEntitySnapshotDep extends PropEntity {
     final Map<String, String> propertiesMap = properties.getMap();
     final String buildTypeIdFromProperty = propertiesMap.get(NAME_SOURCE_BUILD_TYPE_ID); //compatibility mode with pre-8.0
     String buildTypeIdDependOn = getBuildTypeExternalIdForDependency(sourceBuildType, buildTypeIdFromProperty, serviceLocator);
+    BuildTypeUtil.checkCanUseBuildTypeAsDependency(buildTypeIdDependOn, serviceLocator);
 
     //todo: (TeamCity) for some reason API does not report adding dependency with same id. Seems like it just ignores the call
     if (getSnapshotDepOrNull(buildType, buildTypeIdDependOn) != null) {

@@ -78,6 +78,7 @@ public class PropEntityArtifactDep extends PropEntity {
     if (!StringUtil.isEmpty(branch)){
       properties.put(NAME_REVISION_BRANCH, branch);
     }
+    //todo: add support for "Clean destination paths after build finishes"
     properties.put(NAME_CLEAN_DESTINATION_DIRECTORY, Boolean.toString(dependency.isCleanDestinationFolder()));
 
     //todo: review id, type here
@@ -127,7 +128,7 @@ public class PropEntityArtifactDep extends PropEntity {
     final Map<String,String> propertiesMap = properties.getMap();
     final String buildTypeIdFromProperty = propertiesMap.get(NAME_SOURCE_BUILD_TYPE_ID); //compatibility mode with pre-8.0
     String buildTypeIdDependOn = PropEntitySnapshotDep.getBuildTypeExternalIdForDependency(sourceBuildType, buildTypeIdFromProperty, serviceLocator);
-
+    BuildTypeUtil.checkCanUseBuildTypeAsDependency(buildTypeIdDependOn, serviceLocator);
     final String revisionName = propertiesMap.get(NAME_REVISION_NAME);
     if (StringUtil.isEmpty(revisionName)){
       throw new BadRequestException("Missing or empty artifact dependency property '" + NAME_REVISION_NAME + "'. Should contain one of supported values.");

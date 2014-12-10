@@ -22,11 +22,13 @@ import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.BuildTypeDescriptor;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Option;
@@ -179,5 +181,24 @@ public class BuildTypeUtil {
     for (String p: holder.getParameters().keySet()) {
       holder.removeParameter(p);
     }
+  }
+
+  public static void checkCanUseBuildTypeAsDependency(final String buildTypeExternalId, final ServiceLocator serviceLocator) {
+    // see also TW-39209
+    if(!TeamCityProperties.getBooleanOrTrue("rest.dependency.checkPermissionsOnChange")){
+      return;
+    }
+    final PermissionChecker permissionChecker = serviceLocator.getSingletonService(PermissionChecker.class);
+    if (permissionChecker.isPermissionGranted(Permission.VIEW_PROJECT, null)){
+      return;
+    }
+    final SBuildType buildType = serviceLocator.getSingletonService(ProjectManager.class).findBuildTypeByExternalId(buildTypeExternalId);
+    if (buildType == null){
+      if(TeamCityProperties.getBoolean("rest.dependency.allowMissingBuildTypeDependency")){
+        return;
+      }
+      throw new BadRequestException("Cannot find build type with id '" + buildTypeExternalId +"'");
+    }
+    permissionChecker.checkProjectPermission(Permission.VIEW_PROJECT, buildType.getProjectId());
   }
 }
