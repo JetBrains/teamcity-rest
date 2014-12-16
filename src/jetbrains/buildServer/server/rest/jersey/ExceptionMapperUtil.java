@@ -71,13 +71,18 @@ public class ExceptionMapperUtil {
                                                                   final boolean isInternalError,
                                                                   final Level level,
                                                                   @NotNull final HttpServletRequest request) {
-    Response.Status status = Response.Status.fromStatusCode(statusCode);
+    Response.Status status = null;
+    try {
+      status = Response.Status.fromStatusCode(statusCode);
+    } catch (Error error) {
+      LOG.warn("Critical error encountered while reporting an error", error);
+    }
     final String statusDescription = (status != null) ? status.toString() : Integer.toString(statusCode);
     StringBuffer responseText = new StringBuffer();
     responseText.append("Error has occurred during request processing (").append(statusDescription).append(").");
 
     //provide user-friendly message on missing or wrong Content-Type header
-    if (statusCode == Response.Status.UNSUPPORTED_MEDIA_TYPE.getStatusCode()){
+    if (statusCode == 415) { //Response.Status.UNSUPPORTED_MEDIA_TYPE.getStatusCode()
       //todo: response with supported content-types instead
       responseText.append("\nMake sure you have supplied correct Content-Type header.");
     }else{
