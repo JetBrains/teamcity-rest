@@ -73,7 +73,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @XmlRootElement(name = "build")
 /*Commens inside propOrder: q = queued, r = running, f = finished*/
 @XmlType(name = "build",
-         propOrder = {"id"/*rf*/, "promotionId"/*q*/, "buildTypeId", "number"/*rf*/, "status"/*rf*/, "state", "running"/*r*/, //"queued"/*q*/, "finished"/*f*/,
+         propOrder = {"id"/*rf*/, "promotionId"/*q*/, "buildTypeId", "buildTypeInternalId", "number"/*rf*/, "status"/*rf*/, "state", "running"/*r*/, //"queued"/*q*/, "finished"/*f*/,
            "personal", "percentageComplete"/*r*/, "branchName", "defaultBranch", "unspecifiedBranch", "history", "pinned"/*rf*/, "href", "webUrl",
            "statusText"/*rf*/,
            "buildType", "comment", "tags", "pinInfo"/*f*/, "personalBuildUser",
@@ -254,7 +254,22 @@ public class Build {
 
   @XmlAttribute
   public String getBuildTypeId() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("buildTypeId", true), myBuildPromotion.getBuildTypeExternalId());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("buildTypeId", true), new ValueWithDefault.Value<String>() {
+      @Nullable
+      public String get() {
+        final String buildTypeExternalId = myBuildPromotion.getBuildTypeExternalId();
+        if (!BuildPromotion.NOT_EXISTING_BUILD_TYPE_ID.equals(buildTypeExternalId)) {
+          return buildTypeExternalId;
+        } else {
+          return null;
+        }
+      }
+    });
+  }
+
+  @XmlAttribute
+  public String getBuildTypeInternalId() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("buildTypeInternalId", false, false), myBuildPromotion.getBuildTypeId());
   }
 
   @XmlElement
