@@ -18,10 +18,12 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.util.text.StringUtil;
 import java.util.Arrays;
+import jetbrains.buildServer.controllers.interceptors.auth.impl.BuildAuthorityHolder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -51,8 +53,16 @@ public class PermissionChecker {@NotNull private final SecurityContext mySecurit
       }
     }
 
-    throw new AuthorizationFailedException(
-      "User " + authorityHolder.getAssociatedUser() + " does not have any of the permissions granted globally: " + Arrays.toString(permissions));
+    final User user = authorityHolder.getAssociatedUser();
+    if (user != null){
+      throw new AuthorizationFailedException("User " + user.describe(false) + " does not have any of the permissions granted globally: " + Arrays.toString(permissions));
+    }
+    if (authorityHolder instanceof BuildAuthorityHolder){
+      final long associatedBuildId = ((BuildAuthorityHolder)authorityHolder).getAssociatedBuildId();
+      throw new AuthorizationFailedException("Built-in user for build with id " + associatedBuildId +
+                                             " does not have any of the permissions granted globally: " + Arrays.toString(permissions));
+    }
+    throw new AuthorizationFailedException("Athority holder does not have any of the permissions granted globally: " + Arrays.toString(permissions));
   }
 
   public void checkProjectPermission(@NotNull final Permission permission, @Nullable final String internalProjectId) throws AuthorizationFailedException{
