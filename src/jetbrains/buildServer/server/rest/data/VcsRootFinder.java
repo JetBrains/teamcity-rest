@@ -23,6 +23,7 @@ import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
@@ -360,7 +361,8 @@ public class VcsRootFinder{
       final SProject internalProject = project;
       result.add(new FilterConditionChecker<VcsRootInstance>() {
         public boolean isIncluded(@NotNull final VcsRootInstance item) {
-          return internalProject.equals(item.getParent().getProject());
+          final SProject projectOfTheRoot = VcsRoot.getProjectByRoot(item.getParent());
+          return projectOfTheRoot != null && internalProject.equals(projectOfTheRoot);
         }
       });
     }
@@ -401,6 +403,11 @@ public class VcsRootFinder{
   }
 
   public void checkPermission(@NotNull final Permission permission, @NotNull final SVcsRoot root) {
-    myPermissionChecker.checkProjectPermission(permission, root.getProject().getProjectId(), " where VCS root with internal id '" + root.getId() + "' is defined");
+    final SProject project = VcsRoot.getProjectByRoot(root);
+    if (project == null){
+      myPermissionChecker.checkGlobalPermission(permission);
+    } else {
+      myPermissionChecker.checkProjectPermission(permission, project.getProjectId(), " where VCS root with internal id '" + root.getId() + "' is defined");
+    }
   }
 }

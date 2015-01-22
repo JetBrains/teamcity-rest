@@ -67,7 +67,7 @@ public class VcsRootsFilter extends AbstractFilter<SVcsRoot> {
       return false;
     }
     return (myVcsType == null || myVcsType.equals(root.getVcsName())) &&
-           (myProject == null || myProject.equals(root.getProject())) &&
+           (myProject == null || myProject.equals(VcsRoot.getProjectByRoot(root))) &&
            (myRepositoryIdString == null || repositoryIdStringMatches(root, myRepositoryIdString, myVcsManager));
   }
 

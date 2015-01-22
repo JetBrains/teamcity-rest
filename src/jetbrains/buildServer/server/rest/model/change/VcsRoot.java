@@ -117,9 +117,18 @@ public class VcsRoot {
     id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), root.getExternalId());
     final boolean includeInternalId = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME);
     internalId =  ValueWithDefault.decideDefault(fields.isIncluded("internalId", includeInternalId, includeInternalId), root.getId());
-    if (beanContext.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.EDIT_PROJECT, root.getProject().getProjectId())) {
-      uuid = ValueWithDefault.decideDefault(fields.isIncluded("uuid", false, false), ((SVcsRootEx)root).getEntityId().getConfigId());
-    }
+
+    uuid = ValueWithDefault.decideDefault(fields.isIncluded("uuid", false, false), new ValueWithDefault.Value<String>() {
+      @Nullable
+      public String get() {
+        final SProject projectOfTheRoot = getProjectByRoot(root);
+        if (projectOfTheRoot != null && beanContext.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.EDIT_PROJECT, projectOfTheRoot.getProjectId())) {
+          return ((SVcsRootEx)root).getEntityId().getConfigId();
+        }
+        return null;
+      }
+    });
+
     name = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), root.getName());
 
     href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(root));
@@ -149,6 +158,16 @@ public class VcsRoot {
         return new VcsRootInstances(result.myEntries, new PagerData(VcsRootInstanceRequest.getVcsRootInstancesHref(root)), fields.getNestedField("vcsRootInstances"), beanContext);
       }
     });
+  }
+
+  @Nullable
+  public static SProject getProjectByRoot(@NotNull final SVcsRoot root) {
+    try {
+      return root.getProject();
+    } catch (UnsupportedOperationException e) {
+      //TeamCity API issue: NotNull method can throw UnsupportedOperationException if the VCS root is deleted
+      return null;
+    }
   }
 
   @NotNull

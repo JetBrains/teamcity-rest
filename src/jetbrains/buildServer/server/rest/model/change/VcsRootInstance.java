@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.RepositoryVersion;
+import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.vcs.SingleVersionRepositoryStateAdapter;
 import jetbrains.buildServer.vcs.VcsException;
@@ -158,7 +159,8 @@ public class VcsRootInstance {
      } else if ("projectInternalId".equals(field)) { //Not documented, do we actually need this?
        return rootInstance.getParent().getScope().getOwnerProjectId();
      } else if ("projectId".equals(field)) { //Not documented
-       return rootInstance.getParent().getProject().getExternalId();
+       final SProject projectOfTheRoot = VcsRoot.getProjectByRoot(rootInstance.getParent());
+       return projectOfTheRoot != null ? projectOfTheRoot.getExternalId() : "";
      } else if ("repositoryMappings".equals(field)) { //Not documented
        try {
          return String.valueOf(VcsRoot.getRepositoryMappings(rootInstance, dataProvider.getVcsManager()));  //todo: fix presentation. Curently this returns "[MappingElement{..."
