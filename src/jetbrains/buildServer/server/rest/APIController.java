@@ -42,8 +42,8 @@ import jetbrains.buildServer.controllers.interceptors.auth.HttpAuthenticationRes
 import jetbrains.buildServer.plugins.PluginManager;
 import jetbrains.buildServer.plugins.bean.PluginInfo;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
-import jetbrains.buildServer.server.rest.jersey.ExtensionsAwareResourceConfig;
 import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
+import jetbrains.buildServer.server.rest.jersey.ExtensionsAwareResourceConfig;
 import jetbrains.buildServer.server.rest.jersey.JerseyWebComponent;
 import jetbrains.buildServer.server.rest.jersey.WadlGenerator;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
@@ -350,16 +350,16 @@ public class APIController extends BaseController implements ServletContextAware
 
   protected ModelAndView doHandle(@NotNull final HttpServletRequest request, @NotNull final HttpServletResponse response) throws Exception {
     if (TeamCityProperties.getBoolean("rest.disable")) {
-      reportRestErrorResponse(response, HttpServletResponse.SC_NOT_IMPLEMENTED, null,
-                              "REST API is disabled on this TeamCity server with 'rest.disable' internal property.",
-                              Level.INFO, request);
+      final String message = TeamCityProperties.getProperty("rest.disable.message", "REST API is disabled on this TeamCity server with 'rest.disable' internal property.");
+      reportRestErrorResponse(response, HttpServletResponse.SC_NOT_IMPLEMENTED, null, message, Level.INFO, request);
       return null;
     }
 
     if (matches(WebUtil.getRequestUrl(request), myDisabledRequests.getParsedValues(TeamCityProperties.getProperty("rest.disable.requests")))) {
-      reportRestErrorResponse(response, HttpServletResponse.SC_NOT_IMPLEMENTED, null,
-                              "Requests for URL \"" + WebUtil.getRequestUrl(request) + "\" are disabled in REST API on this server with 'rest.disable.requests' internal property.",
-                              Level.INFO, request);
+      final String defaultMessage = "Requests for URL \"" + WebUtil.getRequestUrl(request) +
+                                    "\" are disabled in REST API on this server with 'rest.disable.requests' internal property.";
+      final String message = TeamCityProperties.getProperty("rest.disable.message", defaultMessage);
+      reportRestErrorResponse(response, HttpServletResponse.SC_NOT_IMPLEMENTED, null, message, Level.INFO, request);
       return null;
     }
 
@@ -437,6 +437,7 @@ public class APIController extends BaseController implements ServletContextAware
       // Sometimes Jersey throws IllegalArgumentException and probably other without utilizing ExceptionMappers
       // forcing plain text error reporting
       reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, Level.WARN, request);
+      //todo: process exception mappers here to use correct error presentation in the log
     } finally{
       if (LOG.isDebugEnabled()) {
         final long requestFinishProcessing = System.nanoTime();
