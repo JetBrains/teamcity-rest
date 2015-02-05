@@ -108,17 +108,21 @@ public class DebugRequest {
     }
     //final SQLRunner sqlRunner = myServiceLocator.getSingletonService(SQLRunner.class);
     //workaround for http://youtrack.jetbrains.com/issue/TW-25260
-    final SQLRunnerEx sqlRunner = myServiceLocator.getSingletonService(BuildServerEx.class).getSQLRunner();
-    if (selectQuery) {
-      final List<String> result = genericQuery.execute(sqlRunner);
-      if (result == null) {
-        return "";
+    try {
+      final SQLRunnerEx sqlRunner = myServiceLocator.getSingletonService(BuildServerEx.class).getSQLRunner();
+      if (selectQuery) {
+        final List<String> result = genericQuery.execute(sqlRunner);
+        if (result == null) {
+          return "";
+        }
+        String comment = (maxRows >= 0 && result.size() >= maxRows) ? "# First " + maxRows + " rows are served. Add '?count=N' parameter to change the number of rows to return.\n" : "";
+        return comment + StringUtil.join(result, "\n");
+      }else{
+        final int result = genericQuery.executeUpdate(sqlRunner);
+        return String.valueOf(result);
       }
-      String comment = (maxRows >= 0 && result.size() >= maxRows) ? "# First " + maxRows + " rows are served. Add '?count=N' parameter to change the number of rows to return.\n" : "";
-      return comment + StringUtil.join(result, "\n");
-    }else{
-      final int result = genericQuery.executeUpdate(sqlRunner);
-      return String.valueOf(result);
+    } catch (UnexpectedDBException e) {
+      throw new BadRequestException("Error while executing SQL query: " + e.getMessage(), e);
     }
   }
 
