@@ -74,22 +74,25 @@ public class VcsRootsFilter extends AbstractFilter<SVcsRoot> {
   static boolean repositoryIdStringMatches(@NotNull final jetbrains.buildServer.vcs.VcsRoot root,
                                            @NotNull final String repositoryIdString,
                                            final VcsManager vcsManager) {
-    //todo: handle errors
-    final VcsSupportCore vcsSupport = vcsManager.findVcsByName(root.getVcsName());
-    if (vcsSupport != null) {
-      final VcsPersonalSupport personalSupport = ((ServerVcsSupport)vcsSupport).getPersonalSupport();
-      if (personalSupport != null) {
-        final Collection<String> mapped = personalSupport.mapFullPath(new VcsRootEntry(root, CheckoutRules.DEFAULT), repositoryIdString);
-        if (mapped.size() != 0) {
-          return true;
+    try {
+      final VcsSupportCore vcsSupport = vcsManager.findVcsByName(root.getVcsName());
+      if (vcsSupport != null) {
+        final VcsPersonalSupport personalSupport = ((ServerVcsSupport)vcsSupport).getPersonalSupport();
+        if (personalSupport != null) {
+          final Collection<String> mapped = personalSupport.mapFullPath(new VcsRootEntry(root, CheckoutRules.DEFAULT), repositoryIdString);
+          if (mapped.size() != 0) {
+            return true;
+          }
+        } else {
+          LOG.debug("No personal support for VCS root " + LogUtil.describe(root) + " found, ignoring root in search");
+          return false;
         }
       } else {
-        LOG.debug("No personal support for VCS root " + LogUtil.describe(root) + " found, ignoring root in search");
+        LOG.debug("No VCS support for VCS root " + LogUtil.describe(root) + " found, ignoring root in search");
         return false;
       }
-    } else {
-      LOG.debug("No VCS support for VCS root " + LogUtil.describe(root) + " found, ignoring root in search");
-      return false;
+    } catch (Exception e) {
+      LOG.debug("Error while retrieving mapping for VCS root " + LogUtil.describe(root) + " via mapFullPath, ignoring", e);
     }
 
     try {
@@ -100,7 +103,7 @@ public class VcsRootsFilter extends AbstractFilter<SVcsRoot> {
         }
       }
     } catch (Exception e) {
-      LOG.debug("Error while retrieving mapping for VCS root " + LogUtil.describe(root) + ". ignoring root in search", e);
+      LOG.debug("Error while retrieving mapping for VCS root " + LogUtil.describe(root) + ", ignoring root in search", e);
     }
     return false;
   }
