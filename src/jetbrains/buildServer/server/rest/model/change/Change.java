@@ -120,7 +120,12 @@ public class Change {
 
   @XmlElement(name = "files")
   public FileChanges getFileChanges() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("files", false), new FileChanges(myModification.getChanges()));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("files", false), new ValueWithDefault.Value<FileChanges>() {
+      @Nullable
+      public FileChanges get() {
+        return new FileChanges(myModification.getChanges());
+      }
+    });
   }
 
   @XmlElement(name = "vcsRootInstance")
