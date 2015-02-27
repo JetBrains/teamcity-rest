@@ -177,7 +177,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       final VcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
       result.add(new FilterConditionChecker<SVcsModification>() {
         public boolean isIncluded(@NotNull final SVcsModification item) {
-          return !item.isPersonal() && vcsRoot.getId() == item.getVcsRoot().getId(); //todo: check personal change applicability to the root
+          return !item.isPersonal() && vcsRoot.getId() == item.getVcsRoot().getParent().getId(); //todo: check personal change applicability to the root
         }
       });
     }
@@ -441,7 +441,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     if (vcsRootInstanceLocator != null) {
       final VcsRootInstance vcsRootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
       if (sinceChangeId != null) {
-        return getItemHolder(myVcsModificationHistory.getModificationsInRange(vcsRootInstance, sinceChangeId, null));
+        return getItemHolder(myVcsModificationHistory.getModificationsInRange(vcsRootInstance, sinceChangeId, null)); //todo: use lookupLimit here or othervise limit processing
       } else {
         //todo: highly inefficient!
         return getItemHolder(myVcsModificationHistory.getAllModifications(vcsRootInstance));
@@ -454,7 +454,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     }
 
     if (sinceChangeId != null) {
-      return getItemHolder(myVcsModificationHistory.getModificationsInRange(null, sinceChangeId, null));
+      return getItemHolder(myVcsModificationHistory.getModificationsInRange(null, sinceChangeId, null));  //todo: use lookupLimit here or othervise limit processing
     }
 
     final String parentChangeLocator = locator.getSingleDimensionValue(CHILD_CHANGE);
@@ -568,7 +568,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
   private List<SVcsModification> getBuildTypeChanges(@NotNull final SBuildType buildType) {
     if (TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) || !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES)) {
-      return myVcsModificationHistory.getAllModifications(buildType);
+      return myVcsModificationHistory.getAllModifications(buildType); // this can be more efficient than buildType.getDetectedChanges below, but returns all branches
     }
     final List<ChangeDescriptor> changes = ((BuildTypeEx)buildType).getDetectedChanges(SelectPrevBuildPolicy.SINCE_FIRST_BUILD);
 
