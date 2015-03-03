@@ -154,6 +154,7 @@ public class BuildTypeOrTemplate implements Loggable {
     }
     if (myBuildType!=null){
       if ("paused".equals(field)){
+        //TeamCity API: why not use current user by default?
         myBuildType.setPaused(Boolean.valueOf(value), dataProvider.getCurrentUser(), TeamCityProperties.getProperty("rest.defaultActionComment"));
         myBuildType.persist();
         return;
