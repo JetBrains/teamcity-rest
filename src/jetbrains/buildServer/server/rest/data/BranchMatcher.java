@@ -44,11 +44,24 @@ public class BranchMatcher {
   }
 
   public boolean matches(@NotNull final BuildPromotion build){
+    if (matchesAnyBranch()){
+      return true;
+    }
     @Nullable final Branch buildBranch = build.getBranch();
     if (myLocator == null){
       return buildBranch == null || buildBranch.isDefaultBranch();
     }
     return BranchMatcher.matchesBranchLocator(myLocator, buildBranch);
+  }
+
+  public boolean matchesAnyBranch() {
+    if (myLocator == null || myLocator.getDimensionsCount() == 0) {
+      return false;
+    }
+    final Boolean defaultBranch = myLocator.getSingleDimensionValueAsBoolean("default");
+    final Boolean unspecifiedBranch = myLocator.getSingleDimensionValueAsBoolean("unspecified");
+    final Boolean branched = myLocator.getSingleDimensionValueAsBoolean("branched");
+    return defaultBranch == null && unspecifiedBranch == null && branched == null;
   }
 
   private static boolean matchesBranchLocator(@NotNull final Locator locator, @Nullable final Branch buildBranch) {
@@ -89,6 +102,7 @@ public class BranchMatcher {
       }
     }
     //todo: provide a way to get only builds without a branch
+    //todo: add fully used locator check: locator.checkLocatorFullyProcessed(); (parse locator on creation?)
     return true;
   }
 
