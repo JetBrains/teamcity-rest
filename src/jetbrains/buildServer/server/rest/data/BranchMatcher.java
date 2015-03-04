@@ -58,10 +58,11 @@ public class BranchMatcher {
     if (myLocator == null || myLocator.getDimensionsCount() == 0) {
       return false;
     }
+    final String branchName = myLocator.getSingleDimensionValue("name");
     final Boolean defaultBranch = myLocator.getSingleDimensionValueAsBoolean("default");
     final Boolean unspecifiedBranch = myLocator.getSingleDimensionValueAsBoolean("unspecified");
     final Boolean branched = myLocator.getSingleDimensionValueAsBoolean("branched");
-    return defaultBranch == null && unspecifiedBranch == null && branched == null;
+    return branchName == null && defaultBranch == null && unspecifiedBranch == null && branched == null;
   }
 
   private static boolean matchesBranchLocator(@NotNull final Locator locator, @Nullable final Branch buildBranch) {
