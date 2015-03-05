@@ -16,7 +16,9 @@
 
 package jetbrains.buildServer.server.rest.data.investigations;
 
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.responsibility.BuildProblemResponsibilityEntry;
@@ -25,6 +27,8 @@ import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -77,10 +81,15 @@ public class InvestigationWrapper implements ResponsibilityEntry, Comparable<Inv
   }
 
   public String getType() {
+    //make sure getKnownTypes corresponds to these values
     if (isBuildType()) return ANY_PROBLEM_TYPE;
     if (isTest()) return TEST_TYPE;
     if (isProblem()) return PROBLEM_TYPE;
     return UNKNOWN_TYPE;
+  }
+
+  public static List<String> getKnownTypes() {
+    return Arrays.asList(ANY_PROBLEM_TYPE, TEST_TYPE, PROBLEM_TYPE, UNKNOWN_TYPE);
   }
 
   @NotNull
@@ -114,6 +123,14 @@ public class InvestigationWrapper implements ResponsibilityEntry, Comparable<Inv
   @NotNull
   public State getState() {
     return myRE.getState();
+  }
+
+  public static List<String> getKnownStates() {
+    return CollectionsUtil.convertCollection(Arrays.asList(State.values()), new Converter<String, State>() {
+      public String createFrom(@NotNull final State source) {
+        return source.name().toLowerCase();
+      }
+    });
   }
 
   @NotNull

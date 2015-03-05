@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data.investigations;
 
+import com.intellij.openapi.util.text.StringUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -167,18 +168,26 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
     final String typeDimension = locator.getSingleDimensionValue(TYPE);
     if (typeDimension != null) {
+      if (!InvestigationWrapper.getKnownTypes().contains(typeDimension)) {
+        throw new BadRequestException("Error in dimension '" + TYPE + "': unknown value '" + typeDimension + "'. Known values: " +
+                                      StringUtil.join(InvestigationWrapper.getKnownTypes(), ", "));
+      }
       result.add(new FilterConditionChecker<InvestigationWrapper>() {
         public boolean isIncluded(@NotNull final InvestigationWrapper item) {
-          return typeDimension.equals(item.getType());
+          return typeDimension.equalsIgnoreCase(item.getType());
         }
       });
     }
 
     final String stateDimension = locator.getSingleDimensionValue(STATE);
     if (stateDimension != null) {
+      if (!InvestigationWrapper.getKnownStates().contains(stateDimension)) {
+        throw new BadRequestException("Error in dimension '" + STATE + "': unknown value '" + stateDimension + "'. Known values: " +
+                                      StringUtil.join(InvestigationWrapper.getKnownStates(), ", "));
+      }
       result.add(new FilterConditionChecker<InvestigationWrapper>() {
         public boolean isIncluded(@NotNull final InvestigationWrapper item) {
-          return stateDimension.equals(item.getState().name());
+          return stateDimension.equalsIgnoreCase(item.getState().name());
         }
       });
     }
