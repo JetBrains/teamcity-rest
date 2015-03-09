@@ -355,7 +355,8 @@ public class APIController extends BaseController implements ServletContextAware
       return null;
     }
 
-    if (matches(WebUtil.getRequestUrl(request), myDisabledRequests.getParsedValues(TeamCityProperties.getProperty("rest.disable.requests")))) {
+    if (matches(WebUtil.getRequestUrl(request),
+                myDisabledRequests.getParsedValues(TeamCityProperties.getProperty("rest.disable.requests"), TeamCityProperties.getProperty("rest.disable.requests.delimiter")))) {
       final String defaultMessage = "Requests for URL \"" + WebUtil.getRequestUrl(request) +
                                     "\" are disabled in REST API on this server with 'rest.disable.requests' internal property.";
       final String message = TeamCityProperties.getProperty("rest.disable.message", defaultMessage);
@@ -491,7 +492,7 @@ public class APIController extends BaseController implements ServletContextAware
   private boolean processCorsRequest(final HttpServletRequest request, final HttpServletResponse response) {
     final String origin = request.getHeader("Origin");
     if (StringUtil.isNotEmpty(origin)) {
-      final String[] originsArray = myAllowedOrigins.getParsedValues(TeamCityProperties.getProperty(REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME));
+      final String[] originsArray = myAllowedOrigins.getParsedValues(TeamCityProperties.getProperty(REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME), ",");
       if (ArrayUtil.contains(origin, originsArray)) {
         addOriginHeaderToResponse(response, origin);
         addOtherHeadersToResponse(request, response);
@@ -540,10 +541,10 @@ public class APIController extends BaseController implements ServletContextAware
     private String[] myParsedValues;
 
     @NotNull
-    private synchronized String[] getParsedValues(@NotNull final String currentValue) {
+    private synchronized String[] getParsedValues(@NotNull final String currentValue, @Nullable final String delimiter) {
       if (myCachedValue == null || !myCachedValue.equals(currentValue)) {
         myCachedValue = currentValue;
-        myParsedValues = currentValue.split(",");
+        myParsedValues = currentValue.split(StringUtil.isEmpty(delimiter) ? "," : delimiter);
         for (int i = 0; i < myParsedValues.length; i++) {
           myParsedValues[i] = myParsedValues[i].trim();
         }
