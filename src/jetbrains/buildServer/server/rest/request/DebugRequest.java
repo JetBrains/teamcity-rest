@@ -40,10 +40,11 @@ import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.BuildServerEx;
-import jetbrains.buildServer.serverSide.ServerPaths;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.auth.Permissions;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.db.*;
 import jetbrains.buildServer.serverSide.db.queries.GenericQuery;
 import jetbrains.buildServer.serverSide.db.queries.QueryOptions;
@@ -151,10 +152,49 @@ public class DebugRequest {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     StringBuilder result = new StringBuilder();
     result.append("Remote address: " ).append(request.getRemoteAddr()).append("\n");
-    result.append("Refined remote address: " ).append(WebUtil.getRemoteAddress(request)).append("\n");
+    result.append("Refined remote address: " ).append(WebUtil.getRemoteAddress(request) + ":" + request.getRemotePort()).append("\n");
     return result.toString();
   }
 
+  /**
+   * Experimental use only!
+   */
+  @GET
+  @Path("/currentUserPermissions")
+  @Produces({"text/plain"})
+  public String getCurrentUserPermissions(@Context HttpServletRequest request) {
+    if (!TeamCityProperties.getBoolean("rest.debug.currentUserPermissions.enable")) {
+      throw new BadRequestException("Request is not enabled. Set \"rest.debug.currentUserPermissions.enable\" internal property to enable.");
+    }
+    StringBuilder result = new StringBuilder();
+
+    final AuthorityHolder authorityHolder = myServiceLocator.getSingletonService(SecurityContext.class).getAuthorityHolder();
+    final Permission[] globalPermissions = authorityHolder.getGlobalPermissions().toArray();
+    if (globalPermissions.length > 0) {
+      result.append("Global:\n");
+      for (Permission p : globalPermissions) {
+        result.append("\t").append(p.getName()).append("\n");
+      }
+    }
+    final ProjectManager projectManager = myServiceLocator.getSingletonService(ProjectManager.class);
+    for (Map.Entry<String, Permissions> permissionsEntry : authorityHolder.getProjectsPermissions().entrySet()) {
+      SProject projectById = null;
+      try {
+        projectById = projectManager.findProjectById(permissionsEntry.getKey());
+      } catch (Exception e) {
+        //ignore
+      }
+      if (projectById != null){
+        result.append("Project ").append(projectById.describe(false)).append("\n");
+      } else{
+        result.append("Project internal id: ").append(permissionsEntry.getKey()).append("\n");
+      }
+      for (Permission p : permissionsEntry.getValue().toArray()) {
+        result.append("\t").append(p.getName()).append("\n");
+      }
+    }
+    return result.toString();
+  }
 
   /**
    * Experimental use only!
