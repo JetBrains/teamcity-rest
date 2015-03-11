@@ -219,7 +219,7 @@ public class BuildFinder {
         @SuppressWarnings("ConstantConditions") SBuild build =
           myServiceLocator.getSingletonService(BuildsManager.class).findBuildInstanceById(locator.getSingleValueAsLong()); //todo: report non-number more user-friendly
         if (build == null) {
-          throw new BadRequestException("Cannot find build by id '" + locator.getSingleValue() + "'.");
+          throw new NotFoundException("Cannot find build by id '" + locator.getSingleValue() + "'.");
         }
         return build;
       }
