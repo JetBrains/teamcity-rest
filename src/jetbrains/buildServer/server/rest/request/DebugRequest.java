@@ -159,6 +159,38 @@ public class DebugRequest {
   /**
    * Experimental use only!
    */
+  @POST
+  @Path("/emptyTask")
+  @Produces({"text/plain"})
+  public String emptyTask(@QueryParam("time") Integer totalTime, @QueryParam("load") Integer load) {
+    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    if (totalTime == null) totalTime = 0;
+    if (load == null) load = 0;
+    long loadMsInSecond = Math.round((Math.max(Math.min(load, 100),0)/100.0)*1000);
+
+    final long startTime = System.currentTimeMillis();
+    try {
+      while(System.currentTimeMillis() - startTime < totalTime){
+        if (loadMsInSecond > 0){
+          final long secondPeriodStart = System.currentTimeMillis();
+          int i=0;
+          while(System.currentTimeMillis() - secondPeriodStart < loadMsInSecond){
+            i++;//just load CPU
+          }
+          Thread.sleep(1000 - loadMsInSecond);
+        } else{
+          Thread.sleep(totalTime);
+        }
+      }
+      return "Request time: " + (System.currentTimeMillis() - startTime) + "ms";
+    } catch (InterruptedException e) {
+      return "Interrupted. Request time: " + (System.currentTimeMillis() - startTime) + "ms";
+    }
+  }
+
+  /**
+   * Experimental use only!
+   */
   @GET
   @Path("/currentUserPermissions")
   @Produces({"text/plain"})
