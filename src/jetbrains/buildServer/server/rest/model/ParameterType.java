@@ -28,7 +28,7 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 24.01.14
  */
-@XmlRootElement(name = "parameterType")
+@XmlRootElement(name = "type")
 @XmlType(name = "parameterType", propOrder = {"rawValue"})
 public class ParameterType {
   @XmlAttribute

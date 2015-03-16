@@ -155,6 +155,22 @@ public class BuildTypeUtil {
     }
   }
 
+  public static void changeParameterType(final String parameterName,
+                                         @Nullable final String newRawTypeValue,
+                                         @NotNull final UserParametersHolder parametrizedEntity,
+                                         @NotNull final ServiceLocator serviceLocator) {
+    if (StringUtil.isEmpty(parameterName)) {
+      throw new BadRequestException("Parameter name cannot be empty.");
+    }
+
+    final String existingValue = parametrizedEntity.getParameters().get(parameterName);
+    if (newRawTypeValue != null) {
+      parametrizedEntity.addParameter(getParameterFactory(serviceLocator).createTypedParameter(parameterName, existingValue, newRawTypeValue));
+    } else {
+      parametrizedEntity.addParameter(getParameterFactory(serviceLocator).createSimpleParameter(parameterName, existingValue));
+    }
+  }
+
   @Nullable
   private static ControlDescription getExistingParameterTypeSpec(@NotNull final UserParametersHolder parametrizedEntity, @NotNull final String parameterName) {
     for (Parameter parameter : parametrizedEntity.getParametersCollection()) {
