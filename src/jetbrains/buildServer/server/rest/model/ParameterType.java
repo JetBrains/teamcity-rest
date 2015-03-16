@@ -29,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 24.01.14
  */
 @XmlRootElement(name = "parameterType")
-@XmlType(name="parameterType", propOrder = {"rawValue"})
+@XmlType(name = "parameterType", propOrder = {"rawValue"})
 public class ParameterType {
   @XmlAttribute
   public String rawValue;
@@ -39,6 +39,6 @@ public class ParameterType {
 
   public ParameterType(@NotNull ControlDescription typeSpec, @NotNull final Fields fields, @NotNull final ServiceLocator serviceLocator) {
     final String specString = serviceLocator.getSingletonService(ParameterDescriptionFactory.class).serializeSpec(typeSpec);
-    rawValue = !fields.isIncluded("spec", true, true) ? null : specString;
-    }
+    rawValue = !fields.isIncluded("rawValue", true, true) ? null : specString;
   }
+}
