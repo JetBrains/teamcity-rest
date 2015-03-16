@@ -87,7 +87,7 @@ public class BuildTypeRequest {
 
   public static final String API_BUILD_TYPES_URL = Constants.API_URL + "/buildTypes";
   public static final String VCS_FILES_LATEST = "/vcs/files/latest";
-  protected static final String PARAMETERS = "/parameters";
+  public static final String PARAMETERS = "/parameters";
 
   public static String getBuildTypeHref(@NotNull final BuildTypeOrTemplate buildType) {
     return buildType.isBuildType() ? getBuildTypeHref(buildType.getBuildType()) : getBuildTypeHref(buildType.getTemplate());
@@ -204,181 +204,11 @@ public class BuildTypeRequest {
     return new Items(myBeanContext.getSingletonService(BuildTypeIdentifiersManager.class).getAllExternalIds(buildType.getInternalId()));
   }
 
-  @GET
   @Path("/{btLocator}" + PARAMETERS)
-  @Produces({"application/xml", "application/json"})
-  public Properties serveBuildTypeParameters(@PathParam("btLocator") String buildTypeLocator, @QueryParam("locator") Locator locator, @QueryParam("fields") String fields) {
-    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    if (locator == null){
-      return new Properties(buildType.get().getParametersCollection(), buildType.get().getOwnParametersCollection(), getParametersHref(buildType),
-                             new Fields(fields), myServiceLocator);
-    }
-    final Boolean own = locator.getSingleDimensionValueAsBoolean("own");
-    if (own == null){
-      locator.checkLocatorFullyProcessed();
-      return new Properties(buildType.get().getBuildParametersCollection(), buildType.get().getOwnParametersCollection(), getParametersHref(buildType),
-                             new Fields(fields), myServiceLocator);
-    }
-    if (own){
-      return new Properties(buildType.get().getOwnParametersCollection(), buildType.get().getOwnParametersCollection(), getParametersHref(buildType),
-                             new Fields(fields), myServiceLocator);
-    }else{
-      throw new BadRequestException("Sorry, getting only not own parameters is not supported at the moment");
-    }
+  public ParametersSubResource getParametersSubResource(@PathParam("btLocator") String buildTypeLocator){
+    final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
+    return new ParametersSubResource(myServiceLocator, new ParametersSubResource.BuildTypeEntityWithParameters(buildType), getParametersHref(buildType));
   }
-
-  @POST
-  @Path("/{btLocator}" + PARAMETERS)
-  @Consumes({"application/xml", "application/json"})
-  @Produces({"application/xml", "application/json"})
-  public Property setParameter(@PathParam("btLocator") String buildTypeLocator, Property parameter, @QueryParam("fields") String fields) {
-    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    buildType.get().addParameter(parameter.getFromPosted(myServiceLocator));
-    buildType.get().persist();
-    return Property.createFrom(parameter.name, buildType.get(),  new Fields(fields), myServiceLocator);
-  }
-
-  @PUT
-  @Path("/{btLocator}" + PARAMETERS)
-  @Consumes({"application/xml", "application/json"})
-  @Produces({"application/xml", "application/json"})
-  public Properties changeBuildTypeParameters(@PathParam("btLocator") String buildTypeLocator, Properties properties, @QueryParam("fields") String fields) {
-    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    BuildTypeUtil.removeAllParameters(buildType.get());
-    for (Parameter p : properties.getFromPosted(myServiceLocator)) {
-      buildType.get().addParameter(p);
-    }
-    buildType.get().persist();
-    return new Properties(buildType.get().getBuildParametersCollection(), buildType.get().getOwnParametersCollection(), getParametersHref(buildType),
-                           new Fields(fields), myServiceLocator);
-  }
-
-  @DELETE
-  @Path("/{btLocator}" + PARAMETERS)
-  public void deleteAllBuildTypeParameters(@PathParam("btLocator") String buildTypeLocator) {
-    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    BuildTypeUtil.removeAllParameters(buildType.get());
-    buildType.get().persist();
-  }
-
-  @GET
-  @Path("/{btLocator}" + PARAMETERS + "/{name}")
-  @Produces({"application/xml", "application/json"})
-  public Property getParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("name") String parameterName, @QueryParam("fields") String fields) {
-    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    return Property.createFrom(parameterName, buildType.get(), new Fields(fields), myServiceLocator);
-  }
-
-  @GET
-  @Path("/{btLocator}" + PARAMETERS + "/{name}/value")
-  @Produces("text/plain")
-  public String getParameterValueLong(@PathParam("btLocator") String buildTypeLocator, @PathParam("name") String parameterName) {
-    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    return BuildTypeUtil.getParameter(parameterName, buildType.get(), true, false);
-  }
-
-  @PUT
-  @Path("/{btLocator}" + PARAMETERS + "/{name}/value")
-  @Consumes("text/plain")
-  @Produces("text/plain")
-  public String setParameterValueLong(@PathParam("btLocator") String buildTypeLocator, @PathParam("name") String parameterName, String newValue) {
-      BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-      BuildTypeUtil.changeParameter(parameterName, newValue, buildType.get(), myServiceLocator);
-      buildType.get().persist();
-      return BuildTypeUtil.getParameter(parameterName, buildType.get(), false, false);
-  }
-
-  @GET
-  @Path("/{btLocator}" + PARAMETERS + "/{name}/type")
-  @Produces({"application/xml", "application/json"})
-  public ParameterType getParameterType(@PathParam("btLocator") String buildTypeLocator, @PathParam("name") String parameterName) {
-    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    return Property.createFrom(parameterName, buildType.get(), Fields.LONG, myServiceLocator).type;
-  }
-
-  @PUT
-  @Path("/{btLocator}" + PARAMETERS + "/{name}/type")
-  @Consumes({"application/xml", "application/json"})
-  @Produces({"application/xml", "application/json"})
-  public ParameterType setParameterType(@PathParam("btLocator") String buildTypeLocator, @PathParam("name") String parameterName, ParameterType parameterType) {
-    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    BuildTypeUtil.changeParameterType(parameterName, parameterType.rawValue, buildType.get(), myServiceLocator);
-    buildType.get().persist();
-    return Property.createFrom(parameterName, buildType.get(), Fields.LONG, myServiceLocator).type;
-  }
-
-  @GET
-  @Path("/{btLocator}" + PARAMETERS + "/{name}/type/rawValue")
-  @Consumes("text/plain")
-  @Produces("text/plain")
-  public String getParameterTypeRawValue(@PathParam("btLocator") String buildTypeLocator, @PathParam("name") String parameterName) {
-    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    final ParameterType type = Property.createFrom(parameterName, buildType.get(), Fields.LONG, myServiceLocator).type;
-    return type == null ? null : type.rawValue;
-  }
-
-  @PUT
-  @Path("/{btLocator}" + PARAMETERS + "/{name}/type/rawValue")
-  @Consumes("text/plain")
-  @Produces("text/plain")
-  public String setParameterTypeRawValue(@PathParam("btLocator") String buildTypeLocator, @PathParam("name") String parameterName, String parameterTypeRawValue) {
-    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    BuildTypeUtil.changeParameterType(parameterName, parameterTypeRawValue, buildType.get(), myServiceLocator);
-    buildType.get().persist();
-    final ParameterType type = Property.createFrom(parameterName, buildType.get(), Fields.LONG, myServiceLocator).type;
-    return type == null ? null : type.rawValue;
-  }
-
-  /**
-   * Plain text support for pre-8.1 compatibility
-   */
-  @GET
-  @Path("/{btLocator}" + PARAMETERS + "/{name}")
-  @Produces("text/plain")
-  public String getParameterValue(@PathParam("btLocator") String buildTypeLocator, @PathParam("name") String parameterName) {
-    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    return BuildTypeUtil.getParameter(parameterName, buildType.get(), true, false);
-  }
-
-  /**
-   * Plain text support for pre-8.1 compatibility
-   */
-  @PUT
-  @Path("/{btLocator}" + PARAMETERS + "/{name}")
-  @Consumes("text/plain")
-  @Produces("text/plain")
-  public String setParameterValue(@PathParam("btLocator") String buildTypeLocator,
-                                    @PathParam("name") String parameterName,
-                                    String newValue) {
-    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    BuildTypeUtil.changeParameter(parameterName, newValue, buildType.get(), myServiceLocator);
-    buildType.get().persist();
-    return BuildTypeUtil.getParameter(parameterName, buildType.get(), false, false);
-  }
-
-  @PUT
-  @Path("/{btLocator}" + PARAMETERS + "/{name}")
-  @Consumes({"application/xml", "application/json"})
-  @Produces({"application/xml", "application/json"})
-  public Property setParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("name") String parameterName, Property parameter, @QueryParam("fields") String fields) {
-    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    parameter.name = parameterName; //overriding name int he entity with the value from URL
-    final Parameter fromPosted = parameter.getFromPosted(myServiceLocator);
-    //buildType.get().removeParameter(fromPosted.getName());
-    buildType.get().addParameter(fromPosted); //when such parameter already exists, the method replaces it
-    buildType.get().persist();
-    return Property.createFrom(parameter.name, buildType.get(), new Fields(fields), myServiceLocator);
-  }
-
-  @DELETE
-  @Path("/{btLocator}" + PARAMETERS + "/{name}")
-  public void deleteBuildTypeParameter(@PathParam("btLocator") String buildTypeLocator,
-                                       @PathParam("name") String parameterName) {
-    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
-    BuildTypeUtil.deleteParameter(parameterName, buildType.get());
-    buildType.get().persist();
-  }
-
 
   @GET
   @Path("/{btLocator}/settings")

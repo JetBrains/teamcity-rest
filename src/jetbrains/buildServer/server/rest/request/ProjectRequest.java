@@ -31,14 +31,11 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.agent.AgentPools;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
-import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.buildType.NewBuildTypeDescription;
 import jetbrains.buildServer.server.rest.model.project.NewProjectDescription;
@@ -76,7 +73,7 @@ public class ProjectRequest {
   @Context @NotNull public PermissionChecker myPermissionChecker;
 
   public static final String API_PROJECTS_URL = Constants.API_URL + "/projects";
-  protected static final String PARAMETERS = "/parameters";
+  protected static final String PARAMETERS = BuildTypeRequest.PARAMETERS;
 
   @NotNull
   public static String getHref() {
@@ -324,92 +321,11 @@ public class ProjectRequest {
     return new BuildType(new BuildTypeOrTemplate(buildType),  new Fields(fields), myBeanContext);
   }
 
-  @GET
   @Path("/{projectLocator}" + PARAMETERS)
-  @Produces({"application/xml", "application/json"})
-  public Properties serveParameters(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
+  public ParametersSubResource getParametersSubResource(@PathParam("projectLocator") String projectLocator){
     SProject project = myProjectFinder.getProject(projectLocator);
-    return new Properties(project.getParametersCollection(), project.getOwnParametersCollection(), getParametersHref(project),
-                           new Fields(fields), myServiceLocator);
+    return new ParametersSubResource(myServiceLocator, new ParametersSubResource.ProjectEntityWithParameters(project), getParametersHref(project));
   }
-
-  @PUT
-  @Path("/{projectLocator}" + PARAMETERS)
-  @Consumes({"application/xml", "application/json"})
-  @Produces({"application/xml", "application/json"})
-  public Properties changeAllParameters(@PathParam("projectLocator") String projectLocator, Properties properties, @QueryParam("fields") String fields) {
-    SProject project = myProjectFinder.getProject(projectLocator);
-    BuildTypeUtil.removeAllParameters(project);
-    for (Parameter p : properties.getFromPosted(myServiceLocator)) {
-      project.addParameter(p);
-    }
-    project.persist();
-    return new Properties(project.getParametersCollection(), project.getOwnParametersCollection(), getParametersHref(project),
-                           new Fields(fields), myServiceLocator);
-  }
-
-  @POST
-  @Path("/{projectLocator}" + PARAMETERS)
-  @Consumes({"application/xml", "application/json"})
-  @Produces({"application/xml", "application/json"})
-  public Property setParameter(@PathParam("projectLocator") String projectLocator, Property parameter) {
-    SProject project = myProjectFinder.getProject(projectLocator);
-    project.addParameter(parameter.getFromPosted(myServiceLocator));
-    project.persist();
-    return Property.createFrom(parameter.name, project, Fields.LONG, myServiceLocator);
-  }
-
-  @DELETE
-  @Path("/{projectLocator}" + PARAMETERS)
-  public void deleteAllParameters(@PathParam("projectLocator") String projectLocator) {
-    SProject project = myProjectFinder.getProject(projectLocator);
-    BuildTypeUtil.removeAllParameters(project);
-    project.persist();
-  }
-
-  @GET
-  @Path("/{projectLocator}" + PARAMETERS + "/{name}")
-  @Produces("text/plain")
-  public String getParameterValue(@PathParam("projectLocator") String projectLocator, @PathParam("name") String parameterName) {
-    SProject project = myProjectFinder.getProject(projectLocator);
-    return BuildTypeUtil.getParameter(parameterName, project, true, false);
-  }
-
-  @GET
-  @Path("/{projectLocator}" + PARAMETERS + "/{name}")
-  @Produces({"application/xml", "application/json"})
-  public Property getParameter(@PathParam("projectLocator") String projectLocator, @PathParam("name") String parameterName) {
-    SProject project = myProjectFinder.getProject(projectLocator);
-    return Property.createFrom(parameterName, project, Fields.LONG, myServiceLocator);
-  }
-
-  @GET
-  @Path("/{projectLocator}" + PARAMETERS + "/{name}/value")
-  @Produces("text/plain")
-  public String getParameterValueLong(@PathParam("projectLocator") String projectLocator, @PathParam("name") String parameterName) {
-    SProject project = myProjectFinder.getProject(projectLocator);
-    return BuildTypeUtil.getParameter(parameterName, project, true, false);
-  }
-
-  @PUT
-  @Path("/{projectLocator}" + PARAMETERS + "/{name}")
-  @Consumes("text/plain")
-  @Produces("text/plain")
-  public String putParameter(@PathParam("projectLocator") String projectLocator, @PathParam("name") String parameterName, String newValue) {
-    SProject project = myProjectFinder.getProject(projectLocator);
-    BuildTypeUtil.changeParameter(parameterName, newValue, project, myServiceLocator);
-    project.persist();
-    return BuildTypeUtil.getParameter(parameterName, project, false, false);
-  }
-
-  @DELETE
-  @Path("/{projectLocator}" + PARAMETERS + "/{name}")
-  public void deleteParameter(@PathParam("projectLocator") String projectLocator, @PathParam("name") String parameterName) {
-    SProject project = myProjectFinder.getProject(projectLocator);
-    BuildTypeUtil.deleteParameter(parameterName, project);
-    project.persist();
-  }
-
 
   @GET
   @Path("/{projectLocator}/buildTypes/{btLocator}/{field}")

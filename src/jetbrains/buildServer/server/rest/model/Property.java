@@ -95,7 +95,7 @@ public class Property {
       throw new BadRequestException("Parameter name cannot be empty.");
     }
     if (value == null) {
-      throw new BadRequestException("Parameter value should be specified (can be \"\").");
+      throw new BadRequestException("Parameter value for the parameter '" + name + "' should be specified (can be \"\").");
     }
     final ParameterFactory parameterFactory = serviceLocator.getSingletonService(ParameterFactory.class);
     if (type == null || type.rawValue == null) {
