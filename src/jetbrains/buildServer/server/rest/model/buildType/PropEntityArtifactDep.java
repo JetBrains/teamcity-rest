@@ -24,6 +24,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.artifacts.RevisionRule;
 import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -72,8 +73,21 @@ public class PropEntityArtifactDep extends PropEntity {
       properties.put(NAME_SOURCE_BUILD_TYPE_ID, dependency.getSourceExternalId());
     }
     properties.put(NAME_PATH_RULES, dependency.getSourcePaths());
-    properties.put(NAME_REVISION_NAME, dependency.getRevisionRule().getName());
-    properties.put(NAME_REVISION_VALUE, dependency.getRevisionRule().getRevision());
+    final String revisionName = dependency.getRevisionRule().getName();
+    properties.put(NAME_REVISION_NAME, revisionName);
+    final String revisionValue = dependency.getRevisionRule().getRevision();
+    if (revisionValue != null) {
+      if (!RevisionRules.BUILD_ID_NAME.equals(revisionName)) {
+        properties.put(NAME_REVISION_VALUE, revisionValue);
+      } else {
+        final int lastIndex = revisionValue.lastIndexOf(RevisionRules.BUILD_ID_SUFFIX);
+        if (lastIndex == -1) {
+          properties.put(NAME_REVISION_VALUE, revisionValue);
+        } else {
+          properties.put(NAME_REVISION_VALUE, revisionValue.substring(0, lastIndex));
+        }
+      }
+    }
     final String branch = dependency.getRevisionRule().getBranch();
     if (!StringUtil.isEmpty(branch)){
       properties.put(NAME_REVISION_BRANCH, branch);
@@ -137,11 +151,28 @@ public class PropEntityArtifactDep extends PropEntity {
     final SArtifactDependency artifactDependency = serviceLocator.getSingletonService(ArtifactDependencyFactory.class).
       createArtifactDependency(buildTypeIdDependOn,
                                propertiesMap.get(NAME_PATH_RULES),
-                               RevisionRules.newBranchRevisionRule(revisionName, propertiesMap.get(NAME_REVISION_VALUE), propertiesMap.get(NAME_REVISION_BRANCH)));
+                               getRevisionRule(revisionName, propertiesMap.get(NAME_REVISION_VALUE), propertiesMap.get(NAME_REVISION_BRANCH)));
     final String cleanDir = propertiesMap.get(NAME_CLEAN_DESTINATION_DIRECTORY);
     if (cleanDir != null) {
       artifactDependency.setCleanDestinationFolder(Boolean.parseBoolean(cleanDir));
     }
     return artifactDependency;
+  }
+
+  @NotNull
+  private RevisionRule getRevisionRule(@NotNull final String revisionName, @Nullable final String revisionValue, @Nullable final String revisionBranch) {
+    try {
+      return RevisionRules.newBranchRevisionRule(revisionName, revisionValue, revisionBranch);
+    } catch (UnsupportedOperationException e) {
+      //support revisions like "67999.tcbuildid" for compatibility, see https://youtrack.jetbrains.com/issue/TW-38876
+      if (revisionValue == null) {
+        throw new BadRequestException("Cannot create revision for name '" + name + "' and empty revision value: " + e.getMessage());
+      }
+      final RevisionRule result = RevisionRules.newBranchRevisionRule(revisionValue, revisionBranch);
+      if (result == null) {
+        throw new BadRequestException("Cannot create revision for name '" + name + "' and value '" + revisionValue + "'");
+      }
+      return result;
+    }
   }
 }
