@@ -415,7 +415,7 @@ public class BuildFinder {
 
   @NotNull
   public static BuildPromotion getBuildPromotion(final long promotionId, @NotNull final BuildPromotionManager promotionManager) {
-    final BuildPromotion buildPromotion = promotionManager.findPromotionById(promotionId);
+    final BuildPromotion buildPromotion = promotionManager.findPromotionOrReplacement(promotionId);
     if (buildPromotion == null) {
       throw new NotFoundException("No build can be found by promotion id " + promotionId);
     }

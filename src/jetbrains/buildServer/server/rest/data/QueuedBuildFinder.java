@@ -42,21 +42,24 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
   private final BuildTypeFinder myBuildTypeFinder;
   private final UserFinder myUserFinder;
   private final AgentFinder myAgentFinder;
-  private final DataProvider myDataProvider;
+  private final BuildPromotionManager myBuildPromotionManager;
+  private final BuildsManager myBuildsManager;
 
   public QueuedBuildFinder(final BuildQueue buildQueue,
                            final ProjectFinder projectFinder,
                            final BuildTypeFinder buildTypeFinder,
                            final UserFinder userFinder,
                            final AgentFinder agentFinder,
-                           final DataProvider dataProvider) {
+                           final BuildPromotionManager buildPromotionManager,
+                           final BuildsManager buildsManager) {
     super(new String[]{DIMENSION_ID, PROMOTION_ID, PROJECT, BUILD_TYPE, AGENT, USER, PERSONAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
     myBuildQueue = buildQueue;
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;
     myUserFinder = userFinder;
     myAgentFinder = agentFinder;
-    myDataProvider = dataProvider;
+    myBuildPromotionManager = buildPromotionManager;
+    myBuildsManager = buildsManager;
   }
 
   @NotNull
@@ -91,7 +94,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
   }
 
   private SQueuedBuild getQueuedBuildByPromotionId(final Long id) {
-    final BuildPromotion buildPromotion = BuildFinder.getBuildPromotion(id, myDataProvider.getPromotionManager());
+    final BuildPromotion buildPromotion = BuildFinder.getBuildPromotion(id, myBuildPromotionManager);
     final SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
     if (queuedBuild == null){
       throw new NotFoundException("No queued build with id '" + buildPromotion.getId() + "' can be found (build already started or finished?).");
@@ -197,30 +200,22 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
 
     if (locator.isSingleValue()) { // assume it's promotion id
       @SuppressWarnings("ConstantConditions") @NotNull final Long singleValueAsLong = locator.getSingleValueAsLong();
-      final BuildPromotion promotionById = myDataProvider.getPromotionManager().findPromotionById(singleValueAsLong);
-      if (promotionById == null) {
-        throw new NotFoundException("No promotion object can be found by id '" + singleValueAsLong + "'.");
-      }
-      return promotionById;
+      return BuildFinder.getBuildPromotion(singleValueAsLong, myBuildPromotionManager);
     }
 
     Long promotionId = locator.getSingleDimensionValueAsLong(PROMOTION_ID);
     if (promotionId != null) {
-      final BuildPromotion promotionById = myDataProvider.getPromotionManager().findPromotionById(promotionId);
-      if (promotionById == null) {
-        throw new NotFoundException("No promotion object can be found by id '" + promotionId + "'.");
-      }
-      return promotionById;
+      return BuildFinder.getBuildPromotion(promotionId, myBuildPromotionManager);
     }
 
     Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (id != null) {
-      final BuildPromotion promotionById = myDataProvider.getPromotionManager().findPromotionById(id);
+      final BuildPromotion promotionById = myBuildPromotionManager.findPromotionOrReplacement(id);
       if (promotionById != null && !BuildPromotionFinder.buildIdDiffersFromPromotionId(promotionById)) {
         return promotionById;
       }
 
-      SBuild build = myDataProvider.getServer().getSingletonService(BuildsManager.class).findBuildInstanceById(id);
+      SBuild build = myBuildsManager.findBuildInstanceById(id);
       if (build != null){
         return build.getBuildPromotion();
       }
