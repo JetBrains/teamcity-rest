@@ -38,11 +38,11 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 20.08.2014
  */
-public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //todo: rework AbstractFinder to work with streamable collection of items, not serialized collections
+public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   //DIMENSION_ID - id of a build or id of build promotion which will get associated build with the id
   public static final String PROMOTION_ID = BuildFinder.PROMOTION_ID;
   public static final String BUILD_TYPE = "buildType";
-  public static final String PROJECT = "project";
+  public static final String PROJECT = "project"; //todo: BuildFinder treats "project" as "affectedProject" thus this behavior is differet from BuildFinder
   private static final String AFFECTED_PROJECT = "affectedProject";
   public static final String AGENT = "agent";
   public static final String AGENT_NAME = "agentName";
@@ -314,11 +314,13 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
       } catch (LocatorProcessException e) {
         throw new LocatorProcessException("Invalid sub-locator '" + BRANCH + "': " + e.getMessage());
       }
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
-          return branchMatcher.matches(item);
-        }
-      });
+      if (!branchMatcher.matchesAnyBranch()){
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            return branchMatcher.matches(item);
+          }
+        });
+      }
     }
 
     //compatibility support
@@ -370,7 +372,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
       });
     }
 
-    final Boolean personal = locator.getSingleDimensionValueAsBoolean(PERSONAL);
+    final Boolean personal = locator.getSingleDimensionValueAsBoolean(PERSONAL);  //todo: exclude by default to make compatible with BuildFinder?
     if (personal != null) {
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
@@ -446,7 +448,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
       });
     }
 
-    final Boolean canceled = locator.getSingleDimensionValueAsBoolean(CANCELED);
+    final Boolean canceled = locator.getSingleDimensionValueAsBoolean(CANCELED);  //todo: exclude by default to make compatible with BuildFinder?
     if (canceled != null) {
       result.add(new FilterConditionChecker<SBuild>() {
         public boolean isIncluded(@NotNull final SBuild item) {
@@ -640,7 +642,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
       stateLocator = createStateLocator(stateDimension);
     } else {
       //default to finished builds, todo: review this
-      stateLocator = createStateLocator(Locator.getStringLocator(STATE_FINISHED, "true"));
+      stateLocator = createStateLocator(STATE_FINISHED);
     }
 
     if (isStateIncluded(stateLocator, STATE_QUEUED)) {
@@ -775,12 +777,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {  //to
   private Locator createStateLocator(@NotNull final String stateDimension) {
     final Locator locator = new Locator(stateDimension, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, STATE_QUEUED, STATE_RUNNING, STATE_FINISHED);
     if (locator.isSingleValue()) {
-      //check singla value validity
+      //check single value validity
       if (!stateDimension.equals(STATE_QUEUED) &&
           !stateDimension.equals(STATE_RUNNING) &&
           !stateDimension.equals(STATE_FINISHED) &&
           !stateDimension.equals(STATE_ANY)) {
-        throw new BadRequestException("Unsupported value of '" + STATE + "' dimension: '" + stateDimension + "'. Should be one of the build states of '" + STATE_ANY + "'");
+        throw new BadRequestException("Unsupported value of '" + STATE + "' dimension: '" + stateDimension + "'. Should be one of the build states or '" + STATE_ANY + "'");
       }
     }
 
