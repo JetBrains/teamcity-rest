@@ -26,7 +26,7 @@ import java.util.List;
 import jetbrains.BuildServerCreator;
 import jetbrains.buildServer.BaseTestCase;
 import jetbrains.buildServer.TempFiles;
-import jetbrains.buildServer.TestLogger;
+import jetbrains.buildServer.TestInternalProperties;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SRunningBuild;
 import jetbrains.buildServer.serverSide.db.TestDB;
@@ -91,7 +91,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
 
   @BeforeClass
   protected void suiteSetUp() throws IOException {
-    TestLogger.initInternalProperties();
+    TestInternalProperties.init();
 
     TestDB.createSchemaIfNotCreated();
     myFixture = new BuildServerCreator(BuildArtifactsFinderTest.class, myTempFiles.createTempDir());
