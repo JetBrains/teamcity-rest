@@ -458,7 +458,7 @@ public class Build {
       return null;
     }
     return ValueWithDefault.decideDefault(myFields.isIncluded("snapshot-dependencies", false),
-                                          new Builds(getBuildPromotions(myBuildPromotion.getDependencies()),
+                                          Builds.createFromBuildPromotions(getBuildPromotions(myBuildPromotion.getDependencies()),
                                                      null,
                                                      myFields.getNestedField("snapshot-dependencies", Fields.NONE, Fields.LONG),
                                                      myBeanContext));
@@ -479,7 +479,7 @@ public class Build {
           builds.add(((SBuild)sourceBuild).getBuildPromotion());
         }
         Collections.sort(builds, new BuildPromotionDependenciesComparator());
-        return new Builds(builds, null,
+        return Builds.createFromBuildPromotions(builds, null,
                           myFields.getNestedField("artifact-dependencies", Fields.NONE, Fields.LONG),
                           myBeanContext);
       }

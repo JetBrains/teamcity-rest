@@ -100,7 +100,7 @@ public class BuildQueueRequest {
         return source.getBuildPromotion();
       }
     });
-    return new Builds(builds,
+    return Builds.createFromBuildPromotions(builds,
                       new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator"),
                       new Fields(fields),
                       myBeanContext);

@@ -232,7 +232,7 @@ public class BuildType {
         }else{
           buildsHref = BuildTypeRequest.getBuildsHref(myBuildType.getBuildType());
         }
-        return new Builds(builds, new PagerData(buildsHref), buildsFields, myBeanContext);
+        return Builds.createFromBuildPromotions(builds, new PagerData(buildsHref), buildsFields, myBeanContext);
       }
     });
   }

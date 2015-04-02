@@ -33,6 +33,7 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildPromotion;
+import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
@@ -75,7 +76,31 @@ public class Builds implements DefaultValueAware {
       for (BuildPromotion build : buildObjects) {
         buildsList.add(new Build(build, fields.getNestedField("build"), beanContext));
       }
-      builds = ValueWithDefault.decideDefault(fields.isIncluded("build"), buildsList);
+      init(buildsList, pagerData, fields, beanContext);
+    } else {
+      init(null, pagerData, fields, beanContext);
+    }
+  }
+
+  private Builds(@Nullable final PagerData pagerData,
+                @NotNull final Fields fields,
+                @NotNull final BeanContext beanContext,
+                @Nullable final List<SBuild> buildObjects                ) {
+    if (buildObjects != null && fields.isIncluded("build", false, true)) {
+      final List<Build> buildsList = new ArrayList<Build>(buildObjects.size());
+      for (SBuild build : buildObjects) {
+        buildsList.add(new Build(build, fields.getNestedField("build"), beanContext));
+      }
+
+      init(buildsList, pagerData, fields, beanContext);
+    } else {
+      init(null, pagerData, fields, beanContext);
+    }
+  }
+
+  private void init(@Nullable final List<Build> buildObjects, @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    if (buildObjects != null && fields.isIncluded("build", false, true)) {
+      builds = ValueWithDefault.decideDefault(fields.isIncluded("build"), buildObjects);
     } else {
       builds = null;
     }
@@ -105,5 +130,15 @@ public class Builds implements DefaultValueAware {
         return source.getFromPosted(buildFinder, queuedBuildFinder, buildPromotionIdReplacements);
       }
     });
+  }
+
+  @NotNull
+  public static Builds createFromBuildPromotions(@Nullable final List<BuildPromotion> buildObjects, @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    return new Builds(buildObjects, pagerData, fields, beanContext);
+  }
+
+  @NotNull
+  public static Builds createFromBuilds(@Nullable final List<SBuild> buildObjects, @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    return new Builds(pagerData, fields, beanContext, buildObjects);
   }
 }

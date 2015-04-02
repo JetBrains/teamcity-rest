@@ -98,9 +98,9 @@ public class BuildFinder {
       final Boolean byPromotion = locator.getSingleDimensionValueAsBoolean(BuildPromotionFinder.BY_PROMOTION, false);
       if (byPromotion != null && byPromotion) {
         final PagedSearchResult<BuildPromotion> result = myBuildPromotionFinder.getItems(locatorText);
-        return new Builds(result.myEntries,
-                          new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, locatorParameterName),
-                          fields, beanContext);
+        return Builds.createFromBuildPromotions(result.myEntries,
+                                                new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, locatorParameterName),
+                                                fields, beanContext);
       }
       buildsFilter = getBuildsFilter(locator, buildType);
       locator.checkLocatorFullyProcessed();
@@ -133,8 +133,7 @@ public class BuildFinder {
 
     final List<SBuild> buildsList = getBuilds(buildsFilter);
     final PagedSearchResult pagedResult = new PagedSearchResult<SBuild>(buildsList, buildsFilter.getStart(), buildsFilter.getCount());
-    return new Builds(getBuildPromotions(buildsList),
-                      new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedResult, (locatorText != null ? locatorText : null), locatorParameterName),
+    return Builds.createFromBuilds(buildsList, new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedResult, (locatorText != null ? locatorText : null), locatorParameterName),
                       fields,
                       beanContext);
   }
