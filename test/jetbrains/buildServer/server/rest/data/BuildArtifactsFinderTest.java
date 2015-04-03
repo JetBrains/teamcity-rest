@@ -91,8 +91,6 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
 
   @BeforeClass
   protected void suiteSetUp() throws IOException {
-    TestInternalProperties.init();
-
     TestDB.createSchemaIfNotCreated();
     myFixture = new BuildServerCreator(BuildArtifactsFinderTest.class, myTempFiles.createTempDir());
     myFixture.createNewServer();
