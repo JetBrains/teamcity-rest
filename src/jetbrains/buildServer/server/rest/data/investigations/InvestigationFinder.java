@@ -168,7 +168,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
     final String typeDimension = locator.getSingleDimensionValue(TYPE);
     if (typeDimension != null) {
-      if (!InvestigationWrapper.getKnownTypes().contains(typeDimension)) {
+      if (!InvestigationWrapper.getKnownTypes().contains(typeDimension.toLowerCase())) {
         throw new BadRequestException("Error in dimension '" + TYPE + "': unknown value '" + typeDimension + "'. Known values: " +
                                       StringUtil.join(InvestigationWrapper.getKnownTypes(), ", "));
       }
@@ -181,7 +181,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
     final String stateDimension = locator.getSingleDimensionValue(STATE);
     if (stateDimension != null) {
-      if (!InvestigationWrapper.getKnownStates().contains(stateDimension)) {
+      if (!InvestigationWrapper.getKnownStates().contains(stateDimension.toLowerCase())) {
         throw new BadRequestException("Error in dimension '" + STATE + "': unknown value '" + stateDimension + "'. Known values: " +
                                       StringUtil.join(InvestigationWrapper.getKnownStates(), ", "));
       }
