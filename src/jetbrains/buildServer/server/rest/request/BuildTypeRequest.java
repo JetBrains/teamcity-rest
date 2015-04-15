@@ -45,6 +45,7 @@ import jetbrains.buildServer.server.rest.model.files.Files;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.Permission;
@@ -58,6 +59,7 @@ import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.CheckoutRules;
 import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -1278,10 +1280,15 @@ public class BuildTypeRequest {
   @GET
   @Path("/{btLocator}/vcs-root-instances")
   @Produces({"application/xml", "application/json"})
-  public VcsRootInstances getCurrentVcsInstances(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
-      SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
-    return new VcsRootInstances(buildType.getVcsRootInstances(), null, new Fields(fields), myBeanContext);
-    }
+  public VcsRootInstances getCurrentVcsInstances(@PathParam("btLocator") final String buildTypeLocator, @QueryParam("fields") final String fields) {
+    return new VcsRootInstances(new CachingValue<Collection<VcsRootInstance>>() {
+      @NotNull
+      @Override
+      protected Collection<VcsRootInstance> doGet() {
+        return myBuildTypeFinder.getBuildType(null, buildTypeLocator).getVcsRootInstances();
+      }
+    }, null, new Fields(fields), myBeanContext);
+  }
 
   /**
    * Serves builds matching supplied condition.

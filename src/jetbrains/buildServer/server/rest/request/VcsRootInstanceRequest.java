@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import java.util.Collection;
 import java.util.Collections;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
@@ -35,6 +36,7 @@ import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
 import jetbrains.buildServer.server.rest.model.files.File;
 import jetbrains.buildServer.server.rest.model.files.Files;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.serverSide.VcsAccessFactory;
 import jetbrains.buildServer.serverSide.VcsWorkspaceAccess;
 import jetbrains.buildServer.serverSide.auth.Permission;
@@ -78,7 +80,7 @@ public class VcsRootInstanceRequest {
     final PagedSearchResult<jetbrains.buildServer.vcs.VcsRootInstance> vcsRootInstances =
       myVcsRootFinder.getVcsRootInstances(vcsRootInstanceLocator != null ? VcsRootFinder.createVcsRootInstanceLocator(vcsRootInstanceLocator) : null);
 
-    return new VcsRootInstances(vcsRootInstances.myEntries,
+    return new VcsRootInstances(CachingValue.simple(((Collection<jetbrains.buildServer.vcs.VcsRootInstance>)vcsRootInstances.myEntries)),
                                 new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), vcsRootInstances, vcsRootInstanceLocator, "locator"),
                                 new Fields(fields),
                                 myBeanContext);

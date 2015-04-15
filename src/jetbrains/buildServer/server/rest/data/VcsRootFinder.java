@@ -299,14 +299,41 @@ public class VcsRootFinder{
     AbstractFilter<VcsRootInstance> filter = getVcsRootInstancesFilter(locator);
     locator.checkLocatorFullyProcessed();
 
-    return new PagedSearchResult<VcsRootInstance>(getVcsRootInstances(filter), filter.getStart(), filter.getCount());
+    return new PagedSearchResult<VcsRootInstance>(getVcsRootInstances(filter, locator), filter.getStart(), filter.getCount());
   }
 
+  private List<VcsRootInstance> getVcsRootInstances(final AbstractFilter<VcsRootInstance> filter, @NotNull final Locator locator) {
+    List<VcsRootInstance> vcsRootInstances;
+    final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION); //this locator usage is not cnsidered as usage, need to fix
+    if (vcsRootLocator != null) {
+      final SVcsRoot vcsRoot = getVcsRoot(vcsRootLocator);
+      final HashSet<jetbrains.buildServer.vcs.VcsRootInstance> result = new HashSet<jetbrains.buildServer.vcs.VcsRootInstance>();
+      for (SBuildType buildType : vcsRoot.getUsages().keySet()) {
+        final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = buildType.getVcsRootInstanceForParent(vcsRoot);
+        if (rootInstance != null) {
+          result.add(rootInstance);
+        }
+      }
+      vcsRootInstances = new ArrayList<VcsRootInstance>(result);
+    } else {
+      final String projectLocator = locator.getSingleDimensionValue("project"); //uses project as "defined in", but might also need "accessible from" operation
+      SProject project = null;
+      if (projectLocator != null) {
+        project = myProjectFinder.getProject(projectLocator);
+      }
 
-  private List<VcsRootInstance> getVcsRootInstances(final AbstractFilter<VcsRootInstance> filter) {
-    //todo: current implementation is not effective: consider pre-filtering by vcs root, project, type, if specified
+      final String buildTypeLocator = locator.getSingleDimensionValue("buildType"); //uses buildType as "used in", but might also need "accessible from" operation
+      if (buildTypeLocator != null) {
+        final SBuildType buildType = myBuildTypeFinder.getBuildType(project, buildTypeLocator);
+        vcsRootInstances = buildType.getVcsRootInstances();
+      } else {
+        //todo: current implementation is not effective: consider pre-filtering by vcs root, project, type, if specified
+        vcsRootInstances = getAllVcsRootInstances(myProjectManager);
+      }
+    }
+
     final FilterItemProcessor<VcsRootInstance> filterItemProcessor = new FilterItemProcessor<VcsRootInstance>(filter);
-    AbstractFilter.processList(getAllVcsRootInstances(myProjectManager), filterItemProcessor);
+    AbstractFilter.processList(vcsRootInstances, filterItemProcessor);
     return filterItemProcessor.getResult();
   }
 

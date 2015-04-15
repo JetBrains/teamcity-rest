@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import javax.servlet.http.HttpServletRequest;
@@ -36,6 +37,7 @@ import jetbrains.buildServer.server.rest.model.buildType.VcsRoots;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.util.StringUtil;
@@ -125,16 +127,23 @@ public class VcsRootRequest {
   @GET
   @Path("/{vcsRootLocator}/" + INSTANCES_PATH)
   @Produces({"application/xml", "application/json"})
-  public VcsRootInstances serveRootInstances(@PathParam("vcsRootLocator") String vcsRootLocator, @QueryParam("fields") String fields) {
-    final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
-    final HashSet<jetbrains.buildServer.vcs.VcsRootInstance> result = new HashSet<jetbrains.buildServer.vcs.VcsRootInstance>();
-    for (SBuildType buildType : vcsRoot.getUsages().keySet()) {
-      final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = buildType.getVcsRootInstanceForParent(vcsRoot);
-      if (rootInstance!=null){
-        result.add(rootInstance);
+  public VcsRootInstances serveRootInstances(@PathParam("vcsRootLocator") final String vcsRootLocator, @QueryParam("fields") final String fields) {
+    //todo: use VcsRootFinder here
+    return new VcsRootInstances(new CachingValue<Collection<jetbrains.buildServer.vcs.VcsRootInstance>>() {
+      @NotNull
+      @Override
+      protected Collection<jetbrains.buildServer.vcs.VcsRootInstance> doGet() {
+        final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
+        final HashSet<jetbrains.buildServer.vcs.VcsRootInstance> result = new HashSet<jetbrains.buildServer.vcs.VcsRootInstance>();
+        for (SBuildType buildType : vcsRoot.getUsages().keySet()) {
+          final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = buildType.getVcsRootInstanceForParent(vcsRoot);
+          if (rootInstance != null) {
+            result.add(rootInstance);
+          }
+        }
+        return result;
       }
-    }
-    return new VcsRootInstances(result, null, new Fields(fields), myBeanContext);
+    }, null, new Fields(fields), myBeanContext);
   }
 
   /**

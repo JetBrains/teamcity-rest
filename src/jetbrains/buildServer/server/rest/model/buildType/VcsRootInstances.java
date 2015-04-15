@@ -27,6 +27,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -58,21 +59,27 @@ public class VcsRootInstances {
   public VcsRootInstances() {
   }
 
-  public VcsRootInstances(@NotNull final Collection<jetbrains.buildServer.vcs.VcsRootInstance> serverVcsRoots,
+  public VcsRootInstances(@NotNull final CachingValue<Collection<jetbrains.buildServer.vcs.VcsRootInstance>> serverVcsRoots,
                           @Nullable final PagerData pagerData,
                           @NotNull final Fields fields,
                           @NotNull final BeanContext beanContext) {
     vcsRoots = ValueWithDefault.decideDefault(fields.isIncluded("vcs-root-instance", false), new ValueWithDefault.Value<List<VcsRootInstance>>() {
       @Nullable
       public List<VcsRootInstance> get() {
-        final ArrayList<VcsRootInstance> items = new ArrayList<VcsRootInstance>(serverVcsRoots.size());
-        for (jetbrains.buildServer.vcs.VcsRootInstance root : serverVcsRoots) {
+        final Collection<jetbrains.buildServer.vcs.VcsRootInstance> value = serverVcsRoots.get();
+        final ArrayList<VcsRootInstance> items = new ArrayList<VcsRootInstance>(value.size());
+        for (jetbrains.buildServer.vcs.VcsRootInstance root : value) {
           items.add(new VcsRootInstance(root, fields.getNestedField("vcs-root-instance"), beanContext));
         }
         return items;
       }
     });
-    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", false), serverVcsRoots.size());
+    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", false), new ValueWithDefault.Value<Integer>() {
+      @Nullable
+      public Integer get() {
+        return serverVcsRoots.get().size();
+      }
+    });
 
     if (pagerData != null) {
       href = ValueWithDefault.decideDefault(fields.isIncluded("href", true), beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getHref()));

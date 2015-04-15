@@ -23,7 +23,10 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.APIController;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
+import jetbrains.buildServer.server.rest.data.ProjectFinder;
+import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -35,10 +38,12 @@ import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.request.VcsRootInstanceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.vcs.*;
+import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.vcs.api.VcsSettings;
 import jetbrains.vcs.api.services.tc.MappingGeneratorService;
 import jetbrains.vcs.api.services.tc.VcsMappingElement;
@@ -51,7 +56,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "vcs-root")
 @XmlType(name = "vcs-root", propOrder = { "id", "internalId", "uuid", "name","vcsName", "modificationCheckInterval", "status", "lastChecked", "href",
-  "project", "properties", "vcsRootInstances"})
+  "project", "properties", "vcsRootInstances"})  //todo: add webUrl
 @SuppressWarnings("PublicField")
 public class VcsRoot {
   @XmlAttribute
@@ -153,9 +158,13 @@ public class VcsRoot {
     vcsRootInstances = ValueWithDefault.decideDefault(fields.isIncluded("vcsRootInstances", false), new ValueWithDefault.Value<VcsRootInstances>() {
       @Nullable
       public VcsRootInstances get() {
-        final PagedSearchResult<jetbrains.buildServer.vcs.VcsRootInstance> result =
-          beanContext.getSingletonService(VcsRootFinder.class).getVcsRootInstances(VcsRootFinder.createVcsRootInstanceLocator(VcsRootFinder.getVcsRootInstancesLocatorText(root)));
-        return new VcsRootInstances(result.myEntries, new PagerData(VcsRootInstanceRequest.getVcsRootInstancesHref(root)), fields.getNestedField("vcsRootInstances"), beanContext);
+        return new VcsRootInstances(new CachingValue<Collection<VcsRootInstance>>() {
+          @NotNull
+          @Override
+          protected Collection<VcsRootInstance> doGet() {
+            return beanContext.getSingletonService(VcsRootFinder.class).getVcsRootInstances(VcsRootFinder.createVcsRootInstanceLocator(VcsRootFinder.getVcsRootInstancesLocatorText(root))).myEntries;
+          }
+        }, new PagerData(VcsRootInstanceRequest.getVcsRootInstancesHref(root)), fields.getNestedField("vcsRootInstances"), beanContext);
       }
     });
   }

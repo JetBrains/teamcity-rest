@@ -40,6 +40,7 @@ import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
@@ -133,13 +134,13 @@ public class DebugRequest {
   @POST
   @Path("/vcsCheckingForChangesQueue")
   @Produces({"application/xml", "application/json"})
-  public VcsRootInstances scheduleCheckingForChanges(@QueryParam("locator") String vcsRootInstancesLocator,
-                                                     @QueryParam("fields") String fields,
-                                                     @Context @NotNull BeanContext beanContext) {
+  public VcsRootInstances scheduleCheckingForChanges(@QueryParam("locator") final String vcsRootInstancesLocator,
+                                                     @QueryParam("fields") final String fields,
+                                                     @Context @NotNull final BeanContext beanContext) {
     //todo: check whether permission checks are necessary
     final PagedSearchResult<VcsRootInstance> vcsRootInstances = myVcsRootFinder.getVcsRootInstances(VcsRootFinder.createVcsRootInstanceLocator(vcsRootInstancesLocator));
     myDataProvider.getVcsModificationChecker().forceCheckingFor(vcsRootInstances.myEntries);
-    return new VcsRootInstances(vcsRootInstances.myEntries, null, new Fields(fields), beanContext);
+    return new VcsRootInstances(CachingValue.simple(((Collection<VcsRootInstance>)vcsRootInstances.myEntries)), null, new Fields(fields), beanContext);
   }
 
   /**

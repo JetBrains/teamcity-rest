@@ -38,5 +38,16 @@ public abstract class CachingValue<S> {
    */
   @NotNull
   protected abstract S doGet();
+
+  @NotNull
+  public static <S>CachingValue<S> simple(@NotNull final S value) {
+    return new CachingValue<S>() {
+      @NotNull
+      @Override
+      protected S doGet() {
+        return value;
+      }
+    };
+  }
 }
 
