@@ -8,6 +8,8 @@
       <class name="jetbrains.buildServer.server.rest.data.BuildTypeFinderTest"/>
       <class name="jetbrains.buildServer.server.rest.data.BuildArtifactsFinderTest"/>
       <class name="jetbrains.buildServer.server.rest.data.AgentFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.BuildFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.BuildFinderFixedBuildSequenceTest"/>
     </classes>
   </test>
 </suite>
