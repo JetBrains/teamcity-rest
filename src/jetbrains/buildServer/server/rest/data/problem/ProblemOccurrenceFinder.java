@@ -97,7 +97,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   public Locator getLocatorOrNull(@Nullable final String locatorText) {
     final Locator locator = super.getLocatorOrNull(locatorText);
     if (locator != null && !locator.isSingleValue()){
-      locator.setDimensionIfNotPresent(PagerData.COUNT, String.valueOf(Constants.DEFAULT_PAGE_ITEMS_COUNT));
+      locator.setDimensionIfNotPresent(PagerData.COUNT, String.valueOf(Constants.getDefaultPageItemsCount()));
       locator.addIgnoreUnusedDimensions(PagerData.COUNT);
     }
     return locator;

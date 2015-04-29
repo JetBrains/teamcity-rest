@@ -128,7 +128,7 @@ public class BuildFinder {
     if (c != null) {
       buildsFilter.setCount(c != -1 ? c : null);
     } else {
-      buildsFilter.setCount(jetbrains.buildServer.server.rest.request.Constants.DEFAULT_PAGE_ITEMS_COUNT_INT);
+      buildsFilter.setCount(jetbrains.buildServer.server.rest.request.Constants.getDefaultPageItemsCount());
     }
 
     final List<SBuild> buildsList = getBuilds(buildsFilter);
@@ -158,7 +158,7 @@ public class BuildFinder {
     if (c != null) {
       buildsFilter.setCount(c != -1 ? c : null);
     } else {
-      buildsFilter.setCount(jetbrains.buildServer.server.rest.request.Constants.DEFAULT_PAGE_ITEMS_COUNT_INT);
+      buildsFilter.setCount(jetbrains.buildServer.server.rest.request.Constants.getDefaultPageItemsCount());
     }
     return buildsFilter;
   }

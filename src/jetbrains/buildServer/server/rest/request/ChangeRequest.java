@@ -104,7 +104,7 @@ public class ChangeRequest {
       updateLocatorDimension(actualLocator, "start", start != null ? String.valueOf(start) : null);
       updateLocatorDimension(actualLocator, "count", count != null ? String.valueOf(count) : null);
       actualLocator.setDimensionIfNotPresent(PagerData.START, String.valueOf(0));
-      actualLocator.setDimensionIfNotPresent(PagerData.COUNT, String.valueOf(Constants.DEFAULT_PAGE_ITEMS_COUNT));
+      actualLocator.setDimensionIfNotPresent(PagerData.COUNT, String.valueOf(Constants.getDefaultPageItemsCount()));
       actualLocator.addIgnoreUnusedDimensions(PagerData.START);
       actualLocator.addIgnoreUnusedDimensions(PagerData.COUNT);
     }

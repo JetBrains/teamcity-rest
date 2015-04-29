@@ -16,13 +16,14 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import jetbrains.buildServer.serverSide.TeamCityProperties;
+
 /**
  * @author Yegor.Yarko
  *         Date: 04.08.2009
  */
 public class Constants {
-  public static final String DEFAULT_PAGE_ITEMS_COUNT = "100";
-  public static final int DEFAULT_PAGE_ITEMS_COUNT_INT = 100;
+  public static final int DEFAULT_PAGE_ITEMS_COUNT = 100;
 
   public static final String API_URL = "/app/rest";
 
@@ -31,4 +32,8 @@ public class Constants {
 
   public static final String EXTERNAL_APPLICATION_WADL_NAME = "/application.wadl"; //name that user requests will use
   public static final String JERSEY_APPLICATION_WADL_NAME = "/application.wadl";
+
+  public static int getDefaultPageItemsCount(){
+    return TeamCityProperties.getInteger("rest.defaultPageSize", DEFAULT_PAGE_ITEMS_COUNT);
+  }
 }
