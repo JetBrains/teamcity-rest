@@ -174,6 +174,22 @@ public class AgentPoolRequest {
     return new Project(postedProject, Fields.LONG, myBeanContext);
   }
 
+  /**
+   * Removed all the projects from the pool
+   */
+  @DELETE
+  @Path("/{agentPoolLocator}/projects")
+  public void deleteProjects(@PathParam("agentPoolLocator") String agentPoolLocator) {
+    final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolsFinder.getAgentPool(agentPoolLocator);
+    final AgentPoolManager agentPoolManager = myServiceLocator.getSingletonService(AgentPoolManager.class);
+    final int agentPoolId = agentPool.getAgentPoolId();
+    try {
+      agentPoolManager.dissociateProjectsFromPool(agentPoolId, agentPoolManager.getPoolProjects(agentPoolId));
+    } catch (NoSuchAgentPoolException e) {
+      throw new IllegalStateException("Agent pool with id \'" + agentPoolId + "' is not found.");
+    }
+  }
+
   @GET
   @Path("/{agentPoolLocator}/projects/{projectLocator}")
   @Produces({"application/xml", "application/json"})
