@@ -103,7 +103,7 @@ public class AgentPoolsFinder {
   @NotNull
   public AgentPool getAgentPool(final SBuildAgent agent) {
     final int agentTypeId = agent.getAgentTypeId();
-    final AgentType agentType = myServiceLocator.getSingletonService(AgentTypeStorage.class).getAgentType(agentTypeId);
+    final AgentType agentType = myServiceLocator.getSingletonService(AgentTypeStorage.class).findAgentTypeById(agentTypeId);
     if (agentType == null){
       throw new NotFoundException("No agent type is found by id '" + agentTypeId + "'.");
     }
