@@ -23,12 +23,12 @@ import java.util.Set;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.serverSide.BuildAgentEx;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
-import jetbrains.buildServer.serverSide.agentTypes.AgentType;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeStorage;
 import jetbrains.buildServer.util.ItemProcessor;
 import jetbrains.buildServer.util.StringUtil;
@@ -102,12 +102,8 @@ public class AgentPoolsFinder {
 
   @NotNull
   public AgentPool getAgentPool(final SBuildAgent agent) {
-    final int agentTypeId = agent.getAgentTypeId();
-    final AgentType agentType = myServiceLocator.getSingletonService(AgentTypeStorage.class).findAgentTypeById(agentTypeId);
-    if (agentType == null){
-      throw new NotFoundException("No agent type is found by id '" + agentTypeId + "'.");
-    }
-    return getAgentPoolById((long)agentType.getAgentPoolId());
+    BuildAgentEx agentEx = (BuildAgentEx)agent;
+    return agentEx.getAgentType().getAgentPool();
   }
 
   @NotNull
