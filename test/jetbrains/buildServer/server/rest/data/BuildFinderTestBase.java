@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 import jetbrains.buildServer.log.Loggable;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -35,6 +36,7 @@ import org.testng.annotations.BeforeMethod;
 public class BuildFinderTestBase extends BaseServerTestCase {
   protected BuildFinder myBuildFinder;
   protected QueuedBuildFinder myQueuedBuildFinder;
+  private BuildPromotionFinder myBuildPromotionFinder;
 
   @Override
   @BeforeMethod
@@ -44,31 +46,25 @@ public class BuildFinderTestBase extends BaseServerTestCase {
     final AgentFinder agentFinder = new AgentFinder(myAgentManager);
     final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, myServer);
     final UserFinder userFinder = new UserFinder(myFixture);
-    final BuildPromotionFinder buildPromotionFinder = new BuildPromotionFinder(myFixture.getBuildPromotionManager(), myFixture.getBuildQueue(), myServer, myFixture.getHistory(),
+    myBuildPromotionFinder = new BuildPromotionFinder(myFixture.getBuildPromotionManager(), myFixture.getBuildQueue(), myServer, myFixture.getHistory(),
                                                                                projectFinder, buildTypeFinder, userFinder, agentFinder);
-    myBuildFinder = new BuildFinder(myServer, buildTypeFinder, projectFinder, userFinder, buildPromotionFinder, agentFinder);
+    myBuildFinder = new BuildFinder(myServer, buildTypeFinder, projectFinder, userFinder, myBuildPromotionFinder, agentFinder);
     myQueuedBuildFinder = new QueuedBuildFinder(myServer.getQueue(), projectFinder, buildTypeFinder, userFinder, agentFinder, myFixture.getBuildPromotionManager(), myServer);
   }
 
   public void checkBuilds(final String locator, SBuild... builds) {
-    final List<SBuild> result = myBuildFinder.getBuilds(myBuildFinder.getBuildsFilter(null, locator));
-//    checkOrderedCollection(result, builds);
+    final List<SBuild> result = myBuildFinder.getBuildsSimplified(null, locator);//+ ",byPromotion:true"
+    final String expected = getPromotionsDescription(getPromotions(builds));
+    final String actual = getPromotionsDescription(getPromotions(result));
     assertEquals("For locator \"" + locator + "\"\n" +
-                 "Expected:\n" + getBuildsList(Arrays.asList(builds)) + "\n\n" +
-                 "Actual:\n" + getBuildsList(result), builds.length, result.size());
+                 "Expected:\n" + expected + "\n\n" +
+                 "Actual:\n" + actual, builds.length, result.size());
     for (int i = 0; i < builds.length; i++) {
       if (!builds[i].equals(result.get(i))) {
         fail("Wrong build found for locator \"" + locator + "\" at position " + (i + 1) + "/" + builds.length + "\n" +
-             "Expected:\n" + getBuildsList(Arrays.asList(builds)) + "\n" +
-             "\nActual:\n" + getBuildsList(result));
+             "Expected:\n" + expected + "\n" +
+             "\nActual:\n" + actual);
       }
-    }
-  }
-
-  protected void checkNoBuildsFound(final String locator) {
-    final List<SBuild> result = myBuildFinder.getBuilds(myBuildFinder.getBuildsFilter(null, locator));
-    if (!result.isEmpty()){
-      fail("For locator \"" + locator + "\" expected NotFoundException but found " + LogUtil.describe(result) + "");
     }
   }
 
@@ -78,19 +74,37 @@ public class BuildFinderTestBase extends BaseServerTestCase {
     assertEquals("For locator \"" + locator + "\"", build, result);
   }
 
-  protected void checkBuildNotFound(final String locator) {
-    SBuild result = null;
-    try {
-      result = myBuildFinder.getBuild(null, locator);
-    } catch (NotFoundException e) {
-      return;
-    }
-    fail("For locator \"" + locator + "\" expected NotFoundException but found " + LogUtil.describe(result) + "");
+  private List<BuildPromotion> getPromotions(final SBuild[] builds) {
+    return CollectionsUtil.convertCollection(Arrays.asList(builds), new Converter<BuildPromotion, SBuild>() {
+      public BuildPromotion createFrom(@NotNull final SBuild source) {
+        return source.getBuildPromotion();
+      }
+    });
   }
 
-  public static String getBuildsList(final List<SBuild> result) {
-    return LogUtil.describe(CollectionsUtil.convertCollection(result, new Converter<Loggable, SBuild>() {
-      public Loggable createFrom(@NotNull final SBuild source) {
+  private List<BuildPromotion> getPromotions(final Iterable<SBuild> builds) {
+    return CollectionsUtil.convertCollection(builds, new Converter<BuildPromotion, SBuild>() {
+      public BuildPromotion createFrom(@NotNull final SBuild source) {
+        return source.getBuildPromotion();
+      }
+    });
+  }
+
+  protected void checkNoBuildsFound(final String locator) {
+    final List<SBuild> result = myBuildFinder.getBuilds(myBuildFinder.getBuildsFilter(null, locator));
+//    final List<BuildPromotion> result = myBuildPromotionFinder.getItems(locator).myEntries;
+    if (!result.isEmpty()) {
+      fail("For locator \"" + locator + "\" expected NotFoundException but found " + LogUtil.describe(result) + "");
+    }
+  }
+
+  protected void checkNoBuildFound(final String singleBuildLocator) {
+    checkExceptionOnBuildSearch(NotFoundException.class, singleBuildLocator);
+  }
+
+  public static String getPromotionsDescription(final List<BuildPromotion> result) {
+    return LogUtil.describe(CollectionsUtil.convertCollection(result, new Converter<Loggable, BuildPromotion>() {
+      public Loggable createFrom(@NotNull final BuildPromotion source) {
         return new Loggable() {
           @NotNull
           public String describe(final boolean verbose) {
@@ -101,17 +115,35 @@ public class BuildFinderTestBase extends BaseServerTestCase {
     }), false, "\n", "", "");
   }
 
-  public static <E extends Throwable> void checkException(final Class<E> exception, final Runnable runnnable) {
+  public static <E extends Throwable> void checkException(final Class<E> exception, final Runnable runnnable, final String operationDescription) {
+    final String details = operationDescription != null ? " while " + operationDescription : "";
     try {
       runnnable.run();
     } catch (Throwable e) {
       if (exception.isAssignableFrom(e.getClass())) {
         return;
       }
-      fail("Wrong exception is thrown.\n" +
+      fail("Wrong exception is thrown" + details + ".\n" +
            "Expected: " + exception.getName() + "\n" +
            "Actual  : " + e.getClass().getName());
     }
-    fail("No exception is thrown. Expected: " + exception.getName());
+    fail("No exception is thrown" + details +
+         ". Expected: " + exception.getName());
+  }
+
+  public <E extends Throwable> void checkExceptionOnBuildSearch(final Class<E> exception, final String singleBuildLocator) {
+    checkException(exception, new Runnable() {
+      public void run() {
+        myBuildFinder.getBuild(null, singleBuildLocator);
+      }
+    }, "searching single build with locator \"" + singleBuildLocator + "\"");
+  }
+
+  public <E extends Throwable> void checkExceptionOnBuildsSearch(final Class<E> exception, final String multipleBuildsLocator) {
+    checkException(exception, new Runnable() {
+      public void run() {
+        myBuildFinder.getBuildsSimplified(null, multipleBuildsLocator);
+      }
+    }, "searching builds with locator \"" + multipleBuildsLocator + "\"");
   }
 }

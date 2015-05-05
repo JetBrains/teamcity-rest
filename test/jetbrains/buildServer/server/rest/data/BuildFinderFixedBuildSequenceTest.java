@@ -164,6 +164,54 @@ public class BuildFinderFixedBuildSequenceTest extends BuildFinderTestBase {
     checkBuilds("untilDate:" + new SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH).format(myBuild4conf2FailedPinned.getStartDate()) + ")",
                 myBuild3tagged, myBuild2failed, myBuild1);
   }
+  
+  @Test
+  public void testSingleBuildSearch() {
+    checkBuild("buildType:(id:" + myBuildConf2.getExternalId() + ")", myBuild4conf2FailedPinned);
+    checkBuild("project:(id:" + myBuildConf.getProjectExternalId() + ")", myBuild12);
+
+    checkBuild("user:(username:" + myUser.getUsername() + ")", myBuild10byUser);
+    checkBuild("tags:tag1", myBuild3tagged);
+    checkBuild("tag:tag1", myBuild3tagged);
+    checkNoBuildFound("tag:bla");
+
+    checkBuild("status:failure", myBuild9failedToStart);   //build9failedToStart should probbaly not be here
+    checkBuild("status:SUCCESS", myBuild12);
+
+    checkBuild("buildType:(id:" + myBuildConf2.getExternalId() + "),number:" + myBuild4conf2FailedPinned.getBuildNumber(), myBuild4conf2FailedPinned);
+
+    checkBuild("personal:true", myBuild6personalFailed);
+    checkBuild("personal:false", myBuild12);
+    checkBuild("personal:any", myBuild12); //todo: check what if the first one if failed to start, etc.
+
+    checkBuild("canceled:true", myBuild8canceledFailed);
+    checkBuild("canceled:false", myBuild12);  //todo: failed to start
+    checkBuild("canceled:any", myBuild12);
+
+    checkBuild("running:true", myBuild13running);
+    checkBuild("running:false", myBuild12);
+    checkBuild("running:any", myBuild13running);
+
+    checkBuild("pinned:true", myBuild4conf2FailedPinned);
+    checkBuild("pinned:false", myBuild12);
+    checkBuild("pinned:any", myBuild12);
+
+    checkBuild("branch:branch", myBuild11inBranch);
+    checkBuild("branch:(default:true)", myBuild12);
+    checkBuild("branch:(default:false)", myBuild11inBranch);
+    checkBuild("branch:(default:any)", myBuild12);
+
+    checkBuild("sinceBuild:(id:" + myBuild3tagged.getBuildId() + ")",
+               myBuild12);
+
+    checkBuild("untilBuild:(id:" + myBuild10byUser.getBuildId() + ")",
+               myBuild10byUser);
+
+    checkBuild("sinceDate:" + new SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH).format(myBuild4conf2FailedPinned.getStartDate()) + ")",
+               myBuild12);
+    checkBuild("untilDate:" + new SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH).format(myBuild4conf2FailedPinned.getStartDate()) + ")",
+               myBuild3tagged);
+  }
 
   @Test
   public void testMultipleDimensions1() {
@@ -172,15 +220,15 @@ public class BuildFinderFixedBuildSequenceTest extends BuildFinderTestBase {
     final long b9id = myBuild9failedToStart.getBuildId();
     checkBuilds("buildType:(id:" + btId + "),sinceBuild:(id:" + b2Id + "),untilBuild:(id:" + b9id + "),status:SUCCESS",
                 myBuild3tagged);
+    //checkBuilds("buildType:(id:"+myBuildConf2.getExternalId()+"),user:(id:"+myUser.getId() +"),status:FAILURE,personal:true",
+    //            myBuild6personalFailed);
+    checkBuilds("buildType:(id:"+myBuildConf.getExternalId()+"),branch:(name:branch),status:SUCCESS,personal:false",
+                myBuild11inBranch);
   }
 
   @Test
   public void testEmptyLocator() {
-    checkException(LocatorProcessException.class, new Runnable() {
-      public void run() {
-        checkBuilds("", myBuild12, myBuild10byUser, myBuild9failedToStart, myBuild4conf2FailedPinned, myBuild3tagged, myBuild2failed, myBuild1); //should probably be reworked
-      }
-    });
+    checkExceptionOnBuildsSearch(LocatorProcessException.class, "");
   }
 
 /*  @Test
