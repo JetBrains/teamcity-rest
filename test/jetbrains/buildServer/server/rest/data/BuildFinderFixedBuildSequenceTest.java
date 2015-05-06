@@ -20,6 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Locale;
 import jetbrains.buildServer.MockTimeService;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.serverSide.RunningBuildEx;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -159,10 +160,12 @@ public class BuildFinderFixedBuildSequenceTest extends BuildFinderTestBase {
                 myBuild10byUser, myBuild9failedToStart, myBuild4conf2FailedPinned, myBuild3tagged, myBuild2failed, myBuild1);
 //    checkBuilds("untilBuild:(id:" + deleted.getBuildId() + ")", build2failed, build1); //todo: should handle this
 
-    checkBuilds("sinceDate:" + new SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH).format(myBuild4conf2FailedPinned.getStartDate()) + ")",
+    final String startDate = new SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH).format(myBuild4conf2FailedPinned.getStartDate());
+    checkBuilds("sinceDate:" + startDate + ")",
                 myBuild12, myBuild10byUser, myBuild9failedToStart, myBuild4conf2FailedPinned);    //build9failedToStart should probbaly not be here
-    checkBuilds("untilDate:" + new SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH).format(myBuild4conf2FailedPinned.getStartDate()) + ")",
+    checkBuilds("untilDate:" + startDate + ")",
                 myBuild3tagged, myBuild2failed, myBuild1);
+    checkExceptionOnBuildsSearch(BadRequestException.class, "sinceBuild:(id:" + myBuild3tagged.getBuildId() + "),sinceDate:" + startDate);
   }
   
   @Test

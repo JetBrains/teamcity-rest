@@ -22,6 +22,7 @@ import jetbrains.buildServer.log.Loggable;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -66,12 +67,27 @@ public class BuildFinderTestBase extends BaseServerTestCase {
              "\nActual:\n" + actual);
       }
     }
+
+    //check single build retrieve
+    if (builds.length == 0) {
+      checkNoBuildFound(locator);
+    } else {
+      checkBuild(locator, builds[0]);
+    }
   }
 
-  protected void checkBuild(final String locator, Object build) {
-    SBuild result = myBuildFinder.getBuild(null, locator);
+  protected void checkBuild(final String locator, @NotNull SBuild build) {
+    checkBuild(null, locator, build);
+  }
 
-    assertEquals("For locator \"" + locator + "\"", build, result);
+  protected void checkBuild(final SBuildType buildType, final String locator, @NotNull SBuild build) {
+    SBuild result = myBuildFinder.getBuild(buildType, locator); //+ ",byPromotion:true"
+
+    if (!build.equals(result)) {
+      fail("For single build locator \"" + locator + "\"\n" +
+           "Expected: " + LogUtil.describeInDetail(build) + "\n" +
+           "Actual: " + LogUtil.describeInDetail(result));
+    }
   }
 
   private List<BuildPromotion> getPromotions(final SBuild[] builds) {
@@ -91,7 +107,7 @@ public class BuildFinderTestBase extends BaseServerTestCase {
   }
 
   protected void checkNoBuildsFound(final String locator) {
-    final List<SBuild> result = myBuildFinder.getBuilds(myBuildFinder.getBuildsFilter(null, locator));
+    final List<SBuild> result = myBuildFinder.getBuildsSimplified(null, locator);
 //    final List<BuildPromotion> result = myBuildPromotionFinder.getItems(locator).myEntries;
     if (!result.isEmpty()) {
       fail("For locator \"" + locator + "\" expected NotFoundException but found " + LogUtil.describe(result) + "");
@@ -123,18 +139,22 @@ public class BuildFinderTestBase extends BaseServerTestCase {
       if (exception.isAssignableFrom(e.getClass())) {
         return;
       }
-      fail("Wrong exception is thrown" + details + ".\n" +
+      fail("Wrong exception type is thrown" + details + ".\n" +
            "Expected: " + exception.getName() + "\n" +
-           "Actual  : " + e.getClass().getName());
+           "Actual  : " + e.toString());
     }
     fail("No exception is thrown" + details +
          ". Expected: " + exception.getName());
   }
 
   public <E extends Throwable> void checkExceptionOnBuildSearch(final Class<E> exception, final String singleBuildLocator) {
+    checkExceptionOnBuildSearch(exception, null, singleBuildLocator);
+  }
+
+  public <E extends Throwable> void checkExceptionOnBuildSearch(final Class<E> exception, final SBuildType buildType, final String singleBuildLocator) {
     checkException(exception, new Runnable() {
       public void run() {
-        myBuildFinder.getBuild(null, singleBuildLocator);
+        myBuildFinder.getBuild(buildType, singleBuildLocator);
       }
     }, "searching single build with locator \"" + singleBuildLocator + "\"");
   }

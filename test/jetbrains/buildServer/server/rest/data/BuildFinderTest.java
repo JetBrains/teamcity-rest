@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.*;
@@ -41,23 +42,31 @@ public class BuildFinderTest extends BuildFinderTestBase {
     final SFinishedBuild build0 = build().in(buildConf).finish();
     final SFinishedBuild build1 = build().in(buildConf).number("unique42").finish();
     final SFinishedBuild build2 = build().in(buildConf).failed().finish();
-    final SFinishedBuild build3 = build().in(buildConf).finish();
+    final SFinishedBuild build3 = build().in(buildConf).number(String.valueOf(build2.getBuildId() + 1000)).finish(); //setting numeric number not clashing with any build id
     final SFinishedBuild build4 = build().in(buildConf2).finish();
 
-    final RunningBuildEx runningBuild5 = startBuild(buildConf);
+    final RunningBuildEx runningBuild5 = build().in(buildConf).run();
+    final SQueuedBuild queuedBuild = build().in(buildConf).addToQueue();
 
     checkBuild(String.valueOf(build1.getBuildId()), build1);
     checkBuild("id:" + build1.getBuildId(), build1);
     checkBuild("id:" + build2.getBuildId(), build2);
     checkBuild("id:" + runningBuild5.getBuildId(), runningBuild5);
-    checkExceptionOnBuildSearch(NotFoundException.class, "id:" + (runningBuild5.getBuildId() + 10));
-//fix    checkExceptionOnBuildSearch(LocatorProcessException.class, "id:" + build1.getBuildId() + ",number:" + build1.getBuildNumber());
+    final long notExistingBuildId = runningBuild5.getBuildId() + 10;
+    checkExceptionOnBuildSearch(NotFoundException.class, "id:" + notExistingBuildId);
+    checkExceptionOnBuildSearch(NotFoundException.class, String.valueOf(notExistingBuildId));
     checkBuild("number:" + build1.getBuildNumber(), build1);
+//might need to fix    checkBuild(build1.getBuildNumber(), build1);
+    checkExceptionOnBuildSearch(LocatorProcessException.class, build1.getBuildNumber());
+//fix    checkExceptionOnBuildSearch(LocatorProcessException.class, "id:" + build1.getBuildId() + ",number:" + build1.getBuildNumber());
+    checkBuild("id:" + build1.getBuildId() + ",number:" + build1.getBuildNumber(), build1);
 
     checkBuild("buildType:(id:" + buildConf.getExternalId() + "),number:" + build1.getBuildNumber(), build1);
     checkBuild("buildType:(id:" + buildConf.getExternalId() + "),id:" + build1.getBuildId(), build1);
 
     checkBuild("taskId:" + build1.getBuildPromotion().getId(), build1);
+    checkBuild("taskId:" + runningBuild5.getBuildPromotion().getId(), runningBuild5);
+    checkExceptionOnBuildSearch(NotFoundException.class, "taskId:" + queuedBuild.getBuildPromotion().getId());
     checkBuild("promotionId:" + build1.getBuildPromotion().getId(), build1);
     checkBuild("buildType:(id:" + buildConf.getExternalId() + "),promotionId:" + build1.getBuildPromotion().getId(), build1);
 
@@ -79,6 +88,25 @@ public class BuildFinderTest extends BuildFinderTestBase {
     checkNoBuildFound("promotionId:" + notExistentBuildPromotionId);
     checkNoBuildFound("buildType:(id:" + buildConf.getExternalId() + "),promotionId:" + notExistentBuildPromotionId);
     checkNoBuildFound("buildType:(id:" + buildConf2.getExternalId() + "),promotionId:" + build2.getBuildPromotion().getId());
+  }
+
+  @Test
+  public void testForcedBuildType() throws Exception {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
+
+    final SFinishedBuild build0 = build().in(buildConf).finish();
+    final SFinishedBuild build1 = build().in(buildConf).number("unique42").finish();
+    final SFinishedBuild build2 = build().in(buildConf).number(String.valueOf(build0.getBuildId())).failed().finish();
+    final SFinishedBuild build3 = build().in(buildConf).number(String.valueOf(build2.getBuildId() + 1000)).finish(); //setting numeric number not clashing with any build id
+    final SFinishedBuild build4 = build().in(buildConf2).number(String.valueOf(build0.getBuildId())).finish();
+
+    checkBuild(buildConf, "unique42", build1);
+    checkBuild(buildConf, build3.getBuildNumber(), build3);
+    checkBuild(buildConf, build2.getBuildNumber(), build2);
+    checkBuild(buildConf2, build4.getBuildNumber(), build4);
+    checkExceptionOnBuildSearch(NotFoundException.class, buildConf, "id:" + build4.getBuildId());
+    checkExceptionOnBuildSearch(NotFoundException.class, buildConf, "10000");
   }
 
   @Test
@@ -105,8 +133,10 @@ public class BuildFinderTest extends BuildFinderTestBase {
 
   @Test
   public void testWrongLocator() throws Exception {
+    checkExceptionOnBuildSearch(BadRequestException.class, "");
     checkExceptionOnBuildSearch(LocatorProcessException.class, "xxx");
     checkExceptionOnBuildSearch(LocatorProcessException.class, "xxx:yyy");
+    checkExceptionOnBuildSearch(LocatorProcessException.class, "pinned:any,xxx:yyy");
     /*
     checkExceptionOnBuildSearch(LocatorProcessException.class, "status:");
     checkExceptionOnBuildSearch(LocatorProcessException.class, "status:WRONG");
@@ -124,11 +154,13 @@ public class BuildFinderTest extends BuildFinderTestBase {
     final RunningBuildEx runningBuild = startBuild(buildConf);
     final SQueuedBuild queuedBuild = addToQueue(buildConf);
 
+    checkBuilds("buildType:(id:" + buildConf.getExternalId() + ")", build3, build2, build1);
+    checkBuilds("pinned:any", build4, build3, build2, build1);
+
     checkBuilds("start:0", build4, build3, build2, build1);
     checkBuilds("start:1", build3, build2, build1);
     checkBuilds("count:3", build4, build3, build2);
     checkBuilds("start:1,count:1", build3);
-
   }
 
   @Test
@@ -141,6 +173,8 @@ public class BuildFinderTest extends BuildFinderTestBase {
     final SFinishedBuild build1 = build().in(buildConf1).finish();
     final SFinishedBuild build2 = build().in(buildConf2).finish();
 
+    checkBuilds("pinned:any", build2, build1);
+
     checkBuilds("project:(id:" + parent.getExternalId() + ")", build2, build1);
     checkBuilds("project:(id:" + nested.getExternalId() + ")", build2);
   }
@@ -152,11 +186,18 @@ public class BuildFinderTest extends BuildFinderTestBase {
     final SFinishedBuild build2 = build().in(buildConf).withBranch("branchName").finish();
 
 //    checkBuilds("", build1);
+    //by default no branched builds should be listed
+    checkBuilds("buildType:(id:" + buildConf.getExternalId() + ")", build1);
+    checkBuilds("pinned:any", build1);
+
     checkBuilds("branch:<default>", build1);
     checkBuilds("branch:(default:true)", build1);
     checkBuilds("branch:(default:any)", build2, build1);
     checkBuilds("branch:(branchName)", build2);
     checkBuilds("branch:(name:branchName)", build2);
+    checkExceptionOnBuildSearch(LocatorProcessException.class, "branch:(::)"); //invalid branch locator
+//fix    checkExceptionOnBuildSearch(LocatorProcessException.calss, "branch:(name:branchName,aaa:bbb)");  //unused/unknown dimension
+//fix    checkExceptionOnBuildSearch(LocatorProcessException.class, "branch:(aaa:bbb)");
   }
 
   @Test
@@ -169,10 +210,45 @@ public class BuildFinderTest extends BuildFinderTestBase {
 
     final SFinishedBuild build2 = build().in(buildConf).on(agent).failed().finish();
 
+    checkBuilds("buildType:(id:" + buildConf.getExternalId() + ")", build2, build1);
+    checkBuilds("pinned:any", build2, build1);
+
     checkBuilds("agent:(name:" + build1.getAgent().getName() + ")", build1);
     checkBuilds("agentName:" + build1.getAgent().getName(), build1);
     checkBuilds("agent:(name:" + agent.getName() + ")", build2);
     checkBuilds("agentName:" + agent.getName(), build2);
+  }
+
+
+  @Test
+  public void testTagDimension() throws Exception {
+    final SFinishedBuild build10 = build().in(myBuildType).finish();
+    final SFinishedBuild build20 = build().in(myBuildType).tag("a").failed().finish();
+    final SFinishedBuild build25 = build().in(myBuildType).tag("a").failedToStart().finish();
+    final SFinishedBuild build30 = build().in(myBuildType).tag("a").tag("b").finish();
+    final SFinishedBuild build40 = build().in(registerBuildType("buildConf1", "project")).tag("a").tag("b").tag("a:b").finish();
+    final SFinishedBuild build50 = build().in(myBuildType).tag("aa").finish();
+    final SFinishedBuild build60 = build().in(myBuildType).finish();
+    final SRunningBuild build70 = build().in(myBuildType).tag("a").run();
+    final SQueuedBuild build80 = build().in(myBuildType).tag("a").addToQueue();
+
+    checkBuilds("buildType:(id:" + myBuildType.getExternalId() + ")", build60, build50, build30, build20, build10);
+    checkBuilds("pinned:any", build60, build50, build40, build30, build25, build20, build10); //fix: failed to start
+
+    checkBuilds("tag:a,buildType:(id:" + myBuildType.getExternalId() + ")", build30, build20);
+    checkBuilds("tag:a", build40, build30, build25, build20);
+    checkBuilds("tag:aa", build50);
+    checkBuilds("tag:(a:b)", build40);
+    checkExceptionOnBuildsSearch(LocatorProcessException.class, "tag:a,tag:b");
+
+    checkBuilds("tags:a,buildType:(id:" + myBuildType.getExternalId() + ")", build30, build20);
+    checkBuilds("tags:a", build40, build30, build25, build20);
+    checkBuilds("tags:aa", build50);
+    checkBuilds("tags:(a,b)", build40, build30); //???
+    checkBuilds("tags:(a:b)", build40);
+    checkBuilds("tags:(b,a:b)", build40);
+    checkExceptionOnBuildsSearch(LocatorProcessException.class, "tags:a,tags:b"); //"documenting" existing exception types
+    checkExceptionOnBuildsSearch(BadRequestException.class, "tag:a,tags:b"); //"documenting" existing exception types
   }
 
   @Test
@@ -182,6 +258,9 @@ public class BuildFinderTest extends BuildFinderTestBase {
     final SFinishedBuild build2 = build().in(buildConf).failed().finish();
     final SFinishedBuild build3 = build().in(buildConf).parameter("a", "y").finish();
     final SFinishedBuild build4 = build().in(buildConf).parameter("b", "x").finish();
+
+    checkBuilds("buildType:(id:" + buildConf.getExternalId() + ")", build4, build3, build2, build1);
+    checkBuilds("pinned:any", build4, build3, build2, build1);
 
     checkBuilds("property:(name:a)", build3, build1);
     checkBuilds("property:(name:a,value:y)", build3);
@@ -217,7 +296,7 @@ public class BuildFinderTest extends BuildFinderTestBase {
     for (int i = 0; i < 100; i++) {
       builds[99 - i] = build().in(buildConf).finish();
     }
-    checkBuilds("personal:false", builds); //by default should return only 100 builds
+    checkBuilds("pinned:any", builds); //by default should return only 100 builds
     checkBuilds("count:100", builds);
     checkBuilds("count:2,start:99", builds[99], otherBuilds[0]);
   }
@@ -274,6 +353,10 @@ public class BuildFinderTest extends BuildFinderTestBase {
     final SFinishedBuild b4 = build().in(myBuildType).failed().finish();
     final SFinishedBuild b5_failedToStart = build().in(myBuildType).failedToStart().finish();
 
+    //by default no canceled builds should be listed
+    checkBuilds("buildType:(id:" + myBuildType.getExternalId() + ")", b4, b1);
+    checkBuilds("pinned:any", b5_failedToStart, b4, b1); //b5_failedToStart should not be here
+
     checkBuilds("canceled:true", b3canceledFailed, b2canceled);
     checkBuilds("canceled:true,status:UNKNOWN", b3canceledFailed, b2canceled);
     checkBuilds("canceled:false", b5_failedToStart, b4, b1); //b5_failedToStart should not be here
@@ -320,6 +403,10 @@ public class BuildFinderTest extends BuildFinderTestBase {
     final SFinishedBuild b80personal = build().in(buildType2).personalForUser(user1.getUsername()).failed().finish();
     final SFinishedBuild b90FailedToStart = build().in(myBuildType).failedToStart().finish();
     final SFinishedBuild b100personalFailedToStart = build().in(myBuildType).personalForUser(user2.getUsername()).failedToStart().finish();
+
+     //by default no personal builds should be listed
+    checkBuilds("buildType:(id:" + myBuildType.getExternalId() + ")", b10);
+    checkBuilds("pinned:any", b90FailedToStart, b70, b10);
 
     checkBuilds("personal:true", b100personalFailedToStart, b80personal, b20personal);
 //    checkBuilds("personal:true,status:UNKNOWN", b60personalCanceledFailed, b40personalCanceled);
