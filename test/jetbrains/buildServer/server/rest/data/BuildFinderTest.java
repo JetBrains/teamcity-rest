@@ -56,6 +56,8 @@ public class BuildFinderTest extends BuildFinderTestBase {
     checkExceptionOnBuildSearch(NotFoundException.class, "id:" + notExistingBuildId);
     checkExceptionOnBuildSearch(NotFoundException.class, String.valueOf(notExistingBuildId));
     checkBuild("number:" + build1.getBuildNumber(), build1);
+//might need to fix    checkBuild("number:" + runningBuild5.getBuildNumber(), runningBuild5);
+    checkExceptionOnBuildSearch(NotFoundException.class, "number:" + runningBuild5.getBuildNumber());
 //might need to fix    checkBuild(build1.getBuildNumber(), build1);
     checkExceptionOnBuildSearch(LocatorProcessException.class, build1.getBuildNumber());
 //fix    checkExceptionOnBuildSearch(LocatorProcessException.class, "id:" + build1.getBuildId() + ",number:" + build1.getBuildNumber());
@@ -66,7 +68,7 @@ public class BuildFinderTest extends BuildFinderTestBase {
 
     checkBuild("taskId:" + build1.getBuildPromotion().getId(), build1);
     checkBuild("taskId:" + runningBuild5.getBuildPromotion().getId(), runningBuild5);
-    checkExceptionOnBuildSearch(NotFoundException.class, "taskId:" + queuedBuild.getBuildPromotion().getId());
+    checkExceptionOnBuildSearch(NotFoundException.class, "taskId:" + queuedBuild.getBuildPromotion().getId()); //fix, consider finding the build
     checkBuild("promotionId:" + build1.getBuildPromotion().getId(), build1);
     checkBuild("buildType:(id:" + buildConf.getExternalId() + "),promotionId:" + build1.getBuildPromotion().getId(), build1);
 

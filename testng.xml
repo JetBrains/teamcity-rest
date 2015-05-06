@@ -10,6 +10,7 @@
       <class name="jetbrains.buildServer.server.rest.data.AgentFinderTest"/>
       <class name="jetbrains.buildServer.server.rest.data.BuildFinderTest"/>
       <class name="jetbrains.buildServer.server.rest.data.BuildFinderFixedBuildSequenceTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.BuildPromotionFinderTest"/>
     </classes>
   </test>
 </suite>
