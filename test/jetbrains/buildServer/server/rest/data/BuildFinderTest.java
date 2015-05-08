@@ -209,16 +209,25 @@ public class BuildFinderTest extends BuildFinderTestBase {
 
     final MockBuildAgent agent = myFixture.createEnabledAgent("smth");
     registerAndEnableAgent(agent);
-
     final SFinishedBuild build2 = build().in(buildConf).on(agent).failed().finish();
 
-    checkBuilds("buildType:(id:" + buildConf.getExternalId() + ")", build2, build1);
-    checkBuilds("pinned:any", build2, build1);
+    final MockBuildAgent agent2 = myFixture.createEnabledAgent("smth2");
+    registerAndEnableAgent(agent2);
+    final SFinishedBuild build3 = build().in(buildConf).on(agent2).failed().finish();
+
+
+    checkBuilds("buildType:(id:" + buildConf.getExternalId() + ")", build3, build2, build1);
+    checkBuilds("pinned:any", build3, build2, build1);
 
     checkBuilds("agent:(name:" + build1.getAgent().getName() + ")", build1);
     checkBuilds("agentName:" + build1.getAgent().getName(), build1);
     checkBuilds("agent:(name:" + agent.getName() + ")", build2);
     checkBuilds("agentName:" + agent.getName(), build2);
+
+    checkBuilds("agent:(connected:true)", build3, build2, build1);
+
+    unregisterAgent(build1.getAgent().getId());
+    checkBuilds("agent:(connected:true)", build3, build2);
   }
 
 
@@ -251,6 +260,18 @@ public class BuildFinderTest extends BuildFinderTestBase {
     checkBuilds("tags:(b,a:b)", build40);
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "tags:a,tags:b"); //"documenting" existing exception types
     checkExceptionOnBuildsSearch(BadRequestException.class, "tag:a,tags:b"); //"documenting" existing exception types
+
+    checkBuilds("tag:(format:extended,present:any,regexp:aaa)", build60, build50, build40, build30, build25, build20, build10);
+    checkBuilds("tag:(format:extended,present:true)", build50, build40, build30, build25, build20);
+    checkBuilds("tag:(format:extended,present:false)", build60, build10);
+    checkBuilds("tag:(format:extended,present:true,regexp:a.)", build50);
+//fix    checkBuilds("tag:(present:true,regexp:a.,format:extended)", build50);
+    checkBuilds("tag:(format:extended,present:false,regexp:a.)", build60, build40, build30, build25, build20, build10);
+//fix    checkExceptionOnBuildsSearch(BadRequestException.class, "tag:(format:notExtended,present:true)");
+    checkExceptionOnBuildsSearch(BadRequestException.class, "tag:(format:extended,present:true,regexp:)");
+    checkExceptionOnBuildsSearch(BadRequestException.class, "tag:(format:extended,present:true,regexp:*)");
+    checkExceptionOnBuildsSearch(BadRequestException.class, "tag:(format:extended,present:true,regexp:*,a:b)");
+    checkExceptionOnBuildsSearch(BadRequestException.class, "tag:(format:extended,present:true,regexp:())");
   }
 
   @Test
@@ -380,6 +401,10 @@ public class BuildFinderTest extends BuildFinderTestBase {
     final SUser user1 = createUser("uuser1");
     final SFinishedBuild b10 = build().in(myBuildType).finish();
     final SFinishedBuild b20personal = build().in(myBuildType).personalForUser(user1.getUsername()).finish();
+
+    //TW-23299
+    checkBuilds("pinned:any", b10);
+    checkBuilds("status:SUCCESS", b10);
 
     final RunningBuildEx running30 = build().in(myBuildType).run();
     running30.stop(user1, "cancel comment");
