@@ -2,10 +2,10 @@
 <teamcity-plugin xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                  xsi:noNamespaceSchemaLocation="urn:shemas-jetbrains-com:teamcity-plugin-v1-xml">
   <info>
-    <name>rest-api</name>
-    <display-name>REST API</display-name>
+    <name>rest-api-9.0</name>
+    <display-name>REST API v9.0</display-name>
     <version>@Plugin_Version@</version>
-    <description>Exposes TeamCity API via REST-like protocol</description>
+    <description>TeamCity REST API version 9.0 available as /app/rest/9.0</description>
 
     <vendor>
       <name>JetBrains, s.r.o.</name>
@@ -14,7 +14,7 @@
   </info>
   <deployment use-separate-classloader="true"/>
   <parameters>
-    <parameter name="api.path">/app/rest,/app/rest/latest,/app/rest/9.0,/api</parameter>
+    <parameter name="api.path">/app/rest/9.0</parameter>
     <parameter name="api.version">9.0</parameter>
   </parameters>
 </teamcity-plugin>
