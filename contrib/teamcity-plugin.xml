@@ -3,9 +3,9 @@
                  xsi:noNamespaceSchemaLocation="urn:schemas-jetbrains-com:teamcity-plugin-v1-xml">
   <info>
     <name>rest-api-contrib</name>
-    <display-name>REST API Contrib</display-name>
+    <display-name>REST API 9.0 Contrib</display-name>
     <version>@Plugin_Version@</version>
-    <description>Additionals for TeamCity API REST-like protocol</description>
+    <description>Additionals for TeamCity REST API version 9.0</description>
 
     <vendor>
       <name>JetBrains, s.r.o.</name>
@@ -14,6 +14,6 @@
   </info>
   <deployment use-separate-classloader="true"/>
   <dependencies>
-    <plugin name="rest-api"/>
+    <plugin name="rest-api-9.0"/>
   </dependencies>
 </teamcity-plugin>
