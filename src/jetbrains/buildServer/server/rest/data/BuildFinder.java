@@ -55,6 +55,9 @@ public class BuildFinder {
   @NotNull private final BuildPromotionFinder myBuildPromotionFinder;
   @NotNull private final AgentFinder myAgentFinder;
 
+  protected static final String LEGACY_BUILDS_FILTERING = "rest.useLegacyBuildsFiltering";
+  protected static final String SUPPORT_NON_LOCATOR_FILTERS = "rest.request.builds.supportNonLocatorFilters";
+
   public BuildFinder(final @NotNull ServiceLocator serviceLocator,
                      final @NotNull BuildTypeFinder buildTypeFinder,
                      final @NotNull ProjectFinder projectFinder,
@@ -92,37 +95,71 @@ public class BuildFinder {
                                     final HttpServletRequest request,
                                     @NotNull final Fields fields,
                                     @NotNull final BeanContext beanContext) {
-    BuildsFilter buildsFilter;
-    if (locatorText != null) {
-      Locator locator = new Locator(locatorText);
-      final Boolean byPromotion = locator.getSingleDimensionValueAsBoolean(BuildPromotionFinder.BY_PROMOTION, false);
-      if (byPromotion != null && byPromotion) {
-        final PagedSearchResult<BuildPromotion> result = myBuildPromotionFinder.getItems(locatorText);
-        return Builds.createFromBuildPromotions(result.myEntries,
-                                                new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, locatorParameterName),
-                                                fields, beanContext);
-      }
-      buildsFilter = getBuildsFilter(locator, buildType);
-      locator.checkLocatorFullyProcessed();
-      // override start and count only if set in URL query parameters and not set in locator
-      if (start != null && buildsFilter.getStart() == null) {
-        buildsFilter.setStart(start);
-      }
-      if (count != null && buildsFilter.getCount() == null) {
-        buildsFilter.setCount(count);
-      }
+
+    boolean legacyFieldsPresent = status != null ||
+                                  userLocator != null ||
+                                  includePersonal ||
+                                  includeCanceled ||
+                                  onlyPinned ||
+                                  (tags != null && !tags.isEmpty()) ||
+                                  agentName != null ||
+                                  sinceBuildLocator != null ||
+                                  sinceDate != null ||
+                                  start != null ||
+                                  count != null; //so far buildType is not included here as it can come from context, not query
+    String resultingLocatorText;
+    Locator locator;
+
+    if (locatorText != null || !legacyFieldsPresent) {
+      resultingLocatorText = locatorText;
+      // legacy: override start and count only if set in URL query parameters and not set in locator
+      if (start != null) resultingLocatorText = Locator.setDimensionIfNotPresent(resultingLocatorText, PagerData.START, String.valueOf(start));
+      if (count != null) resultingLocatorText = Locator.setDimensionIfNotPresent(resultingLocatorText, PagerData.COUNT, String.valueOf(count));
     } else {
-      // preserve 5.0 logic for personal/canceled/pinned builds
-      //todo: this also changes defaults for request without locator, see http://youtrack.jetbrains.com/issue/TW-25778
-      buildsFilter = new GenericBuildsFilter(buildType,
-                                             null, status, null,
-                                             myUserFinder.getUserIfNotNull(userLocator),
-                                             includePersonal ? null : false, includeCanceled ? null : false,
-                                             false, onlyPinned ? true : null, tags, new BranchMatcher(null), agentName,
-                                             null, null, getRangeLimit(buildType, sinceBuildLocator, DataProvider.parseDate(sinceDate)),
-                                             null,
-                                             start, count, null);
+      locator = Locator.createEmptyLocator();
+      if (buildType != null) locator.setDimension("buildType", BuildTypeFinder.getLocator(buildType));
+      if (status != null) locator.setDimension("status", status);
+      if (userLocator != null) locator.setDimension("user", userLocator);
+
+      // preserve 5.0 logic for personal/canceled/pinned builds; see also http://youtrack.jetbrains.com/issue/TW-25778
+      if (includePersonal) locator.setDimension("personal", "any");
+      if (includeCanceled) locator.setDimension("canceled", "any");
+
+      locator.setDimension("running", "false");
+      if (onlyPinned) locator.setDimension("pinned", "true");
+
+      if (tags != null && !tags.isEmpty()) locator.setDimension("tags", StringUtil.join(",", tags)); //behavior changed comparing to 9.0: not supporting tags with comma here
+      if (agentName != null) locator.setDimension("agentName", agentName);
+      if (sinceBuildLocator != null) locator.setDimension("sinceBuild", sinceBuildLocator);
+      if (sinceDate != null) locator.setDimension("sinceDate", sinceDate);
+      if (start != null) locator.setDimension(PagerData.START, String.valueOf(start));
+      if (count != null) locator.setDimension(PagerData.COUNT, String.valueOf(count));
+
+      resultingLocatorText = locator.getStringRepresentation();
     }
+
+    if (legacyFieldsPresent && !TeamCityProperties.getBoolean(SUPPORT_NON_LOCATOR_FILTERS)) {
+      throw new BadRequestException("Legacy query syntax supplied. Try URL parameter instead: " + locatorParameterName + "=" + resultingLocatorText + "\n" +
+                                    "Set \"" + SUPPORT_NON_LOCATOR_FILTERS + "=true\" server internal property to allow such legacy queries until next TeamCity upgrade.");
+    }
+
+    final PagedSearchResult<SBuild> pagedResult = getBuilds(buildType, resultingLocatorText);
+    final PagerData pagerData = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedResult,
+                                              locatorText == null ? null : resultingLocatorText,
+                                              locatorParameterName);
+    return Builds.createFromBuilds(pagedResult.myEntries, pagerData, fields, beanContext);
+  }
+
+  @NotNull
+  public PagedSearchResult<SBuild> getBuilds(@Nullable final SBuildType buildType, @Nullable final String locatorText) {
+    Locator locator = locatorText != null ? new Locator(locatorText) : Locator.createEmptyLocator();
+    if (useByPromotionFiltering(locator)) {
+      final PagedSearchResult<BuildPromotion> promotions = myBuildPromotionFinder.getItems(patchLocatorWithBuildType(buildType, locator));
+      return new PagedSearchResult<SBuild>(toBuilds(promotions.myEntries), promotions.myStart, promotions.myCount);
+    }
+
+    BuildsFilter buildsFilter = getBuildsFilter(locator, buildType);
+    locator.checkLocatorFullyProcessed();
 
     final Integer c = buildsFilter.getCount();
     if (c != null) {
@@ -131,21 +168,17 @@ public class BuildFinder {
       buildsFilter.setCount(jetbrains.buildServer.server.rest.request.Constants.getDefaultPageItemsCount());
     }
 
-    final List<SBuild> buildsList = getBuilds(buildsFilter);
-    final PagedSearchResult pagedResult = new PagedSearchResult<SBuild>(buildsList, buildsFilter.getStart(), buildsFilter.getCount());
-    return Builds.createFromBuilds(buildsList, new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedResult, (locatorText != null ? locatorText : null), locatorParameterName),
-                      fields,
-                      beanContext);
+    return new PagedSearchResult<SBuild>(getBuilds(buildsFilter), buildsFilter.getStart(), buildsFilter.getCount());
+  }
+
+  private boolean useByPromotionFiltering(@NotNull final Locator locator) {
+    final Boolean byPromotion = locator.getSingleDimensionValueAsBoolean(BuildPromotionFinder.BY_PROMOTION, !TeamCityProperties.getBooleanOrTrue(LEGACY_BUILDS_FILTERING));
+    return byPromotion != null && byPromotion;
   }
 
   @NotNull
-  public List<SBuild> getBuildsSimplified(@Nullable final SBuildType buildType, @NotNull final String locatorText) {
-    final Boolean byPromotion = new Locator(locatorText).getSingleDimensionValueAsBoolean("byPromotion", false);
-    if (byPromotion != null && byPromotion) {
-      final PagedSearchResult<BuildPromotion> promotions = myBuildPromotionFinder.getItems(patchLocatorWithBuildType(buildType, locatorText));
-      return toBuilds(promotions.myEntries);
-    }
-    return getBuilds(getBuildsFilter(buildType, locatorText));
+  public List<SBuild> getBuildsSimplified(@Nullable final SBuildType buildType, @Nullable final String locatorText) {
+    return getBuilds(buildType, locatorText).myEntries;
   }
 
   @NotNull
@@ -195,12 +228,12 @@ public class BuildFinder {
   @NotNull
   public SBuild getBuild(@Nullable SBuildType buildType, @Nullable final String buildLocator) {
     if (StringUtil.isEmpty(buildLocator)) {
-      throw new BadRequestException("Empty build locator is not supported.");
+      throw new BadRequestException("Empty single build locator is not supported.");
     }
 
-    final Boolean byPromotion = new Locator(buildLocator).getSingleDimensionValueAsBoolean("byPromotion", false);
-    if (byPromotion != null && byPromotion) {
-      final BuildPromotion promotion = myBuildPromotionFinder.getItem(patchLocatorWithBuildType(buildType, buildLocator));
+    final Locator locator = new Locator(buildLocator);
+    if (useByPromotionFiltering(locator)) {
+      final BuildPromotion promotion = myBuildPromotionFinder.getItem(patchLocatorWithBuildType(buildType, locator));
       final SBuild associatedBuild = promotion.getAssociatedBuild();
       if (associatedBuild != null){
         return associatedBuild;
@@ -208,8 +241,6 @@ public class BuildFinder {
         throw new BadRequestException("No associated build for found build promotion with id " + promotion.getId());
       }
     }
-
-    final Locator locator = new Locator(buildLocator);
 
     if (locator.isSingleValue()) {
       if (buildType == null) {
@@ -294,18 +325,18 @@ public class BuildFinder {
     throw new BadRequestException("Build locator '" + buildLocator + "' is not supported (" + filteredBuilds.size() + " builds found)");
   }
 
-  private String patchLocatorWithBuildType(@Nullable final SBuildType buildType, @NotNull final String locatorText) {
+  private String patchLocatorWithBuildType(@Nullable final SBuildType buildType, @NotNull final Locator locator) {
     if (buildType != null) {
-      final String buildTypeDimension = new Locator(locatorText).getSingleDimensionValue(BuildPromotionFinder.BUILD_TYPE);
+      final String buildTypeDimension = locator.getSingleDimensionValue(BuildPromotionFinder.BUILD_TYPE);
       if (buildTypeDimension != null) {
         if (!buildType.getInternalId().equals(myBuildTypeFinder.getItem(buildTypeDimension).getInternalId())){
           throw new BadRequestException("Context build type is not the same as build type in '" + BuildPromotionFinder.BUILD_TYPE + "' dimention");
         }
       } else{
-        return Locator.setDimension(locatorText, BuildPromotionFinder.BUILD_TYPE, BuildTypeFinder.getLocator(buildType));
+        return locator.setDimensionIfNotPresent(BuildPromotionFinder.BUILD_TYPE, BuildTypeFinder.getLocator(buildType)).getStringRepresentation();
       }
     }
-    return locatorText;
+    return locator.getStringRepresentation();
   }
 
   @Nullable
@@ -315,7 +346,7 @@ public class BuildFinder {
 
 
   @NotNull
-  private BuildsFilter getBuildsFilter(final Locator buildLocator, @Nullable final SBuildType buildType) {
+  private BuildsFilter getBuildsFilter(@NotNull final Locator buildLocator, @Nullable final SBuildType buildType) {
     //todo: report unknown locator dimensions
     final SBuildType actualBuildType = myBuildTypeFinder.deriveBuildTypeFromLocator(buildType, buildLocator.getSingleDimensionValue("buildType"));
     final String projectFromLocator = buildLocator.getSingleDimensionValue("project");
@@ -397,7 +428,7 @@ public class BuildFinder {
    * @param buildsFilter the filter for the builds to find
    * @return the builds found
    */
-  List<SBuild> getBuilds(@NotNull final BuildsFilter buildsFilter) {
+  private List<SBuild> getBuilds(@NotNull final BuildsFilter buildsFilter) {
     final ArrayList<SBuild> result = new ArrayList<SBuild>();
     //todo: sort and ensure there are no duplicates
     result.addAll(BuildsFilterProcessor.getMatchingRunningBuilds(buildsFilter, myServiceLocator.getSingletonService(BuildsManager.class)));

@@ -28,6 +28,7 @@ import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
 
 /**
@@ -53,7 +54,18 @@ public class BuildFinderTestBase extends BaseServerTestCase {
     myQueuedBuildFinder = new QueuedBuildFinder(myServer.getQueue(), projectFinder, buildTypeFinder, userFinder, agentFinder, myFixture.getBuildPromotionManager(), myServer);
   }
 
-  public void checkBuilds(final String locator, SBuild... builds) {
+  public void checkBuilds(@Nullable final String locator, SBuild... builds) {
+    checkMultipleBuilds(locator, builds);
+
+    //check single build retrieve
+    if (builds.length == 0) {
+      checkNoBuildFound(locator);
+    } else {
+      checkBuild(locator, builds[0]);
+    }
+  }
+
+  public void checkMultipleBuilds(final @Nullable String locator, final SBuild... builds) {
     final List<SBuild> result = myBuildFinder.getBuildsSimplified(null, locator);//+ ",byPromotion:true"
     final String expected = getPromotionsDescription(getPromotions(builds));
     final String actual = getPromotionsDescription(getPromotions(result));
@@ -66,13 +78,6 @@ public class BuildFinderTestBase extends BaseServerTestCase {
              "Expected:\n" + expected + "\n" +
              "\nActual:\n" + actual);
       }
-    }
-
-    //check single build retrieve
-    if (builds.length == 0) {
-      checkNoBuildFound(locator);
-    } else {
-      checkBuild(locator, builds[0]);
     }
   }
 
@@ -106,7 +111,7 @@ public class BuildFinderTestBase extends BaseServerTestCase {
     });
   }
 
-  protected void checkNoBuildsFound(final String locator) {
+  protected void checkNoBuildsFound(@Nullable final String locator) {
     final List<SBuild> result = myBuildFinder.getBuildsSimplified(null, locator);
 //    final List<BuildPromotion> result = myBuildPromotionFinder.getItems(locator).myEntries;
     if (!result.isEmpty()) {
@@ -159,7 +164,7 @@ public class BuildFinderTestBase extends BaseServerTestCase {
     }, "searching single build with locator \"" + singleBuildLocator + "\"");
   }
 
-  public <E extends Throwable> void checkExceptionOnBuildsSearch(final Class<E> exception, final String multipleBuildsLocator) {
+  public <E extends Throwable> void checkExceptionOnBuildsSearch(final Class<E> exception, @Nullable final String multipleBuildsLocator) {
     checkException(exception, new Runnable() {
       public void run() {
         myBuildFinder.getBuildsSimplified(null, multipleBuildsLocator);

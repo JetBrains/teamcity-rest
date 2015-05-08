@@ -232,6 +232,7 @@ public class BuildFinderFixedBuildSequenceTest extends BuildFinderTestBase {
   @Test
   public void testEmptyLocator() {
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "");
+    checkMultipleBuilds(null, myBuild12, myBuild10byUser, myBuild9failedToStart, myBuild4conf2FailedPinned, myBuild3tagged, myBuild2failed, myBuild1);
   }
 
 /*  @Test
