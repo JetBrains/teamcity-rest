@@ -27,6 +27,7 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
+import jetbrains.buildServer.serverSide.impl.BuildPromotionManagerEx;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -72,6 +73,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected static final String UNTIL_BUILD = "untilBuild";
   protected static final String UNTIL_DATE = "untilDate";
   public static final String BY_PROMOTION = "byPromotion";  //used in BuildFinder
+  public static final String EQUIVALENT = "equivalent"; /*experimental*/
 
   private final BuildPromotionManager myBuildPromotionManager;
   private final BuildQueue myBuildQueue;
@@ -120,6 +122,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                                STATE_RUNNING //compatibility with pre-9.1
     );
     result.addIgnoreUnusedDimensions(BY_PROMOTION);
+    result.addIgnoreUnusedDimensions(EQUIVALENT);
     return result;
   }
 
@@ -518,6 +521,18 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
+    if (locator.getUnusedDimensions().contains(SNAPSHOT_DEP)){ //performance optimization: do not filter if already processed
+      final String snapshotDepDimension = locator.getSingleDimensionValue(SNAPSHOT_DEP);
+      if (snapshotDepDimension != null) {
+        final List<BuildPromotion> snapshotRelatedBuilds = getSnapshotRelatedBuilds(snapshotDepDimension);
+        result.add(new FilterConditionChecker<SBuild>() {
+          public boolean isIncluded(@NotNull final SBuild item) {
+            return snapshotRelatedBuilds.contains(item);
+          }
+        });
+      }
+    }
+
     return result;
   }
 
@@ -600,46 +615,20 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   @Override
   protected ItemHolder<BuildPromotion> getPrefilteredItems(@NotNull Locator locator) {
+    final String equivalent = locator.getSingleDimensionValue(EQUIVALENT);
+    if (equivalent != null) {
+      final BuildPromotion build = getItem(equivalent);
+      final List<BuildPromotionEx> result = ((BuildPromotionManagerEx)myBuildPromotionManager).getStartedEquivalentPromotions(build);
+      return getItemHolder(CollectionsUtil.convertCollection(result, new Converter<BuildPromotion, BuildPromotionEx>() {
+        public BuildPromotion createFrom(@NotNull final BuildPromotionEx source) {
+          return source;
+        }
+      }));
+    }
+
     final String snapshotDepDimension = locator.getSingleDimensionValue(SNAPSHOT_DEP);
     if (snapshotDepDimension != null) {
-      ArrayList<BuildPromotion> result = new ArrayList<BuildPromotion>();
-
-      Locator snapshotDepLocator = new Locator(snapshotDepDimension, "to", "from", "recursive");  //todo: also use the locator in Build's nodes
-      Boolean recursive = snapshotDepLocator.getSingleDimensionValueAsBoolean("recursive", false);
-      if (recursive == null) recursive = false;
-
-      final String toBuildDimension = snapshotDepLocator.getSingleDimensionValue("to");
-      if (toBuildDimension != null) {
-        final List<BuildPromotion> toBuilds = getItems(toBuildDimension).myEntries;
-        if (recursive) {
-          for (BuildPromotion toBuild : toBuilds) {
-            result.addAll(toBuild.getAllDependencies());
-          }
-        } else {
-          final Set<BuildPromotion> alldependencyBuilds = new TreeSet<BuildPromotion>();
-          for (BuildPromotion toBuild : toBuilds) {
-            alldependencyBuilds.addAll(CollectionsUtil.convertCollection(toBuild.getDependencies(), new Converter<BuildPromotion, BuildDependency>() {
-              public BuildPromotion createFrom(@NotNull final BuildDependency source) {
-                return source.getDependOn();
-              }
-            }));
-          }
-          result.addAll(alldependencyBuilds); //todo: sort
-        }
-      }
-
-      final String fromBuildDimension = snapshotDepLocator.getSingleDimensionValue("from");
-      if (fromBuildDimension != null) {
-        final Collection<BuildPromotion> allDependingOn = getAllDependOn(getItems(fromBuildDimension).myEntries, recursive); //todo: sort!
-        if (result.isEmpty()) {
-          result.addAll(allDependingOn);
-        } else {
-          result = new ArrayList<BuildPromotion>(CollectionsUtil.intersect(result, allDependingOn));
-        }
-      }
-
-      snapshotDepLocator.checkLocatorFullyProcessed();
-      return getItemHolder(result);
+      return getItemHolder(getSnapshotRelatedBuilds(snapshotDepDimension));
     }
 
     final ArrayList<BuildPromotion> result = new ArrayList<BuildPromotion>();
@@ -770,6 +759,48 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         return false;
       }
     };
+  }
+
+  @NotNull
+  private List<BuildPromotion> getSnapshotRelatedBuilds(@NotNull final String snapshotDepDimension) {
+    ArrayList<BuildPromotion> result = new ArrayList<BuildPromotion>();
+
+    Locator snapshotDepLocator = new Locator(snapshotDepDimension, "to", "from", "recursive");  //todo: also use the locator in Build's nodes
+    Boolean recursive = snapshotDepLocator.getSingleDimensionValueAsBoolean("recursive", false);
+    if (recursive == null) recursive = false;
+
+    final String toBuildDimension = snapshotDepLocator.getSingleDimensionValue("to");
+    if (toBuildDimension != null) {
+      final List<BuildPromotion> toBuilds = getItems(toBuildDimension).myEntries;
+      if (recursive) {
+        for (BuildPromotion toBuild : toBuilds) {
+          result.addAll(toBuild.getAllDependencies());
+        }
+      } else {
+        final Set<BuildPromotion> alldependencyBuilds = new TreeSet<BuildPromotion>();
+        for (BuildPromotion toBuild : toBuilds) {
+          alldependencyBuilds.addAll(CollectionsUtil.convertCollection(toBuild.getDependencies(), new Converter<BuildPromotion, BuildDependency>() {
+            public BuildPromotion createFrom(@NotNull final BuildDependency source) {
+              return source.getDependOn();
+            }
+          }));
+        }
+        result.addAll(alldependencyBuilds); //todo: sort
+      }
+    }
+
+    final String fromBuildDimension = snapshotDepLocator.getSingleDimensionValue("from");
+    if (fromBuildDimension != null) {
+      final Collection<BuildPromotion> allDependingOn = getAllDependOn(getItems(fromBuildDimension).myEntries, recursive); //todo: sort!
+      if (result.isEmpty()) {
+        result.addAll(allDependingOn);
+      } else {
+        result = new ArrayList<BuildPromotion>(CollectionsUtil.intersect(result, allDependingOn));
+      }
+    }
+
+    snapshotDepLocator.checkLocatorFullyProcessed();
+    return result;
   }
 
   private Collection<BuildPromotion> getAllDependOn(final List<BuildPromotion> items, boolean recursive) {

@@ -67,6 +67,18 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
 //    checkBuilds("buildType:(id:" + buildConf.getExternalId() + "),promotionId:" + queuedBuild.getItemId(), queuedBuild.getBuildPromotion());
   }
 
+  @Test
+  public void testEquivalentBuildFinding() throws Exception {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    final SFinishedBuild build0 = build().in(buildConf).finish();
+    final SFinishedBuild build1 = build().in(buildConf).finish();
+
+    checkBuilds("equivalent:(id:" + build0.getBuildId() + ")", build1.getBuildPromotion());
+
+    //todo: add test for snapshot +  equivalent filtering
+  }
+
 //==================================================
 
   public void checkBuilds(final String locator, BuildPromotion... builds) {
