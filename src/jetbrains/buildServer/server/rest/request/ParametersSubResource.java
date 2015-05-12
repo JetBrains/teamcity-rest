@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import javax.ws.rs.*;
 import jetbrains.buildServer.ServiceLocator;
@@ -84,8 +85,9 @@ public class ParametersSubResource {
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Properties setParameters(Properties properties, @QueryParam("fields") String fields) {
+    final List<Parameter> fromPosted = properties.getFromPosted(myServiceLocator); //get them first so that no modifications are made if there are parsing errors
     BuildTypeUtil.removeAllParameters(myEntityWithParameters);
-    for (Parameter p : properties.getFromPosted(myServiceLocator)) {
+    for (Parameter p : fromPosted) {
       myEntityWithParameters.addParameter(p);
     }
     myEntityWithParameters.persist();
