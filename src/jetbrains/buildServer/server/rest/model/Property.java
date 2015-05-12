@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model;
 
+import java.text.ParseException;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -28,6 +29,7 @@ import jetbrains.buildServer.serverSide.ControlDescription;
 import jetbrains.buildServer.serverSide.InheritableUserParametersHolder;
 import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.parameters.ParameterDescriptionFactory;
 import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
 import jetbrains.buildServer.serverSide.parameters.types.PasswordType;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -101,6 +103,15 @@ public class Property {
     if (type == null || type.rawValue == null) {
       return parameterFactory.createSimpleParameter(name, value);
     }
+    //workaround for https://youtrack.jetbrains.com/issue/TW-41041
+    final ParameterDescriptionFactory parameterDescriptionFactory =
+      serviceLocator.getSingletonService(jetbrains.buildServer.serverSide.parameters.ParameterDescriptionFactory.class);
+    try {
+      parameterDescriptionFactory.parseDescription(type.rawValue);
+    } catch (ParseException e) {
+      throw new BadRequestException("Wrong parameter type \"" + type.rawValue + "\" provided: " + e.getMessage());
+    }
+
     return parameterFactory.createTypedParameter(name, value, type.rawValue);
   }
 
