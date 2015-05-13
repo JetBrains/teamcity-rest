@@ -87,6 +87,8 @@ public class BuildFinderFixedBuildSequenceTest extends BuildFinderTestBase {
     myBuild4conf2FailedPinned = build().in(myBuildConf2).failed().finish();
     myBuild4conf2FailedPinned.setPinned(true, myUser, "pin comment");
 
+    myTimeService.jumpTo(10);
+
     myBuild5personal = build().in(myBuildConf).personalForUser(myUser.getUsername()).finish();
     myBuild6personalFailed = build().in(myBuildConf2).personalForUser(myUser.getUsername()).failed().finish();
 

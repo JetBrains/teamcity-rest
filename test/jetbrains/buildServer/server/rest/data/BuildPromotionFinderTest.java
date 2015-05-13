@@ -19,8 +19,10 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.Arrays;
 import java.util.List;
 import jetbrains.buildServer.log.Loggable;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.BuildPromotion;
+import jetbrains.buildServer.serverSide.RunningBuildEx;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SQueuedBuild;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
@@ -51,6 +53,30 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
                                                                                projectFinder, buildTypeFinder, userFinder, agentFinder);
   }
 
+
+  @Test
+  public void testBasic2() throws Exception {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build1 = build().in(buildConf).finish();
+    final SFinishedBuild build2 = build().in(buildConf).failed().finish();
+    final RunningBuildEx runningBuild = build().in(buildConf).run();
+    final SQueuedBuild queuedBuild = build().in(buildConf).addToQueue();
+
+    checkBuilds("id:" + runningBuild.getBuildId(), runningBuild.getBuildPromotion());
+    checkBuilds("id:" + queuedBuild.getItemId(), queuedBuild.getBuildPromotion());
+    checkExceptionOnBuildsSearch(LocatorProcessException.class, "id:" + runningBuild.getBuildId() + ",running:true");
+//consider fixing    checkBuilds("id:" + runningBuild.getBuildId() + ",running:true", runningBuild.getBuildPromotion());
+//consider fixing    checkExceptionOnBuildsSearch(NotFoundException.class, "id:" + runningBuild.getBuildId() + ",running:false");
+//todo: add tests for state:xxx
+  }
+
+
+  /*
+  @Test
+  public void testSnapshotDependencies() throws Exception {
+    //todo , with running/finished
+  }
+  */
 
   @Test
   public void testQueuedBuildFinding() throws Exception {

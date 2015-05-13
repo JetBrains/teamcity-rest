@@ -154,7 +154,22 @@ public class BuildFinder {
   public PagedSearchResult<SBuild> getBuilds(@Nullable final SBuildType buildType, @Nullable final String locatorText) {
     Locator locator = locatorText != null ? new Locator(locatorText) : Locator.createEmptyLocator();
     if (useByPromotionFiltering(locator)) {
-      final PagedSearchResult<BuildPromotion> promotions = myBuildPromotionFinder.getItems(patchLocatorWithBuildType(buildType, locator));
+      String stringLocator;
+      if (!locator.isSingleValue() && buildType != null) {
+        stringLocator = patchLocatorWithBuildType(buildType, locator);
+      } else {
+        stringLocator = locatorText == null ? null : locator.getStringRepresentation();
+      }
+
+      final PagedSearchResult<BuildPromotion> promotions = myBuildPromotionFinder.getItems(stringLocator);
+
+      if (locator.isSingleValue() && buildType != null && !promotions.myEntries.isEmpty()) {
+        for (BuildPromotion promotion : promotions.myEntries) {
+          if (!buildType.equals(promotion.getBuildType()))
+            throw new NotFoundException("Found build with id " + promotion.getId() + " does not belong to the build type with id " +buildType.getExternalId());
+        }
+      }
+
       return new PagedSearchResult<SBuild>(toBuilds(promotions.myEntries), promotions.myStart, promotions.myCount);
     }
 
@@ -233,7 +248,16 @@ public class BuildFinder {
 
     final Locator locator = new Locator(buildLocator);
     if (useByPromotionFiltering(locator)) {
-      final BuildPromotion promotion = myBuildPromotionFinder.getItem(patchLocatorWithBuildType(buildType, locator));
+      String stringLocator;
+      if (!locator.isSingleValue() && buildType != null) {
+        stringLocator = patchLocatorWithBuildType(buildType, locator);
+      } else {
+        stringLocator = locator.getStringRepresentation();
+      }
+      final BuildPromotion promotion = myBuildPromotionFinder.getItem(stringLocator);
+      if (buildType != null && !buildType.equals(promotion.getBuildType())) {
+        throw new NotFoundException("Found build with id " + promotion.getId() + " does not belong to the build type with id " +buildType.getExternalId());
+      }
       final SBuild associatedBuild = promotion.getAssociatedBuild();
       if (associatedBuild != null){
         return associatedBuild;

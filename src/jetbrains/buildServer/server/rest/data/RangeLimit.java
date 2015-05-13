@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.Date;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -55,5 +56,10 @@ public class RangeLimit {
       return myBuild.getBuildId() < build.getBuildId();
     }
     return myDate.before(build.getStartDate());
+  }
+
+  @Override
+  public String toString() {
+    return "(date: " + myDate + (myBuild == null ? "" : LogUtil.describe(myBuild)) + ")";
   }
 }

@@ -35,7 +35,7 @@ public class BranchMatcher {
     if (StringUtil.isEmpty(locatorText)){
       myLocator = null;
     }else{
-      myLocator = new Locator(locatorText);
+      myLocator = new Locator(locatorText);  //todo add known dimensions, check for them
     }
   }
 
@@ -55,9 +55,13 @@ public class BranchMatcher {
   }
 
   public boolean matchesAnyBranch() {
-    if (myLocator == null || myLocator.getDimensionsCount() == 0) {
+    if (myLocator == null) { //only default branch
       return false;
     }
+    if (myLocator.isSingleValue()) {
+      return GenericBuildsFilter.BRANCH_NAME_ANY.equals(myLocator.getSingleValue());
+    }
+
     final String branchName = myLocator.getSingleDimensionValue("name");
     final Boolean defaultBranch = myLocator.getSingleDimensionValueAsBoolean("default");
     final Boolean unspecifiedBranch = myLocator.getSingleDimensionValueAsBoolean("unspecified");
@@ -121,5 +125,29 @@ public class BranchMatcher {
   @Override
   public String toString() {
     return (myLocator == null ? "<empty>" : myLocator.toString());
+  }
+
+  @Nullable
+  public String getSingleBranchIfNotDefault() {
+    //refactor and reuse code
+    if (myLocator == null) {
+      return null;
+    }
+    if (myLocator.isSingleValue() && !GenericBuildsFilter.BRANCH_NAME_ANY.equals(myLocator.getSingleValue())) {
+      return myLocator.getSingleValue();
+    }
+
+    final String branchName = myLocator.getSingleDimensionValue("name");
+    final Boolean defaultBranch = myLocator.getSingleDimensionValueAsBoolean("default");
+    final Boolean unspecifiedBranch = myLocator.getSingleDimensionValueAsBoolean("unspecified");
+    final Boolean branched = myLocator.getSingleDimensionValueAsBoolean("branched");
+    if (branchName != null &&
+        (defaultBranch == null || !defaultBranch) &&
+        unspecifiedBranch == null &&
+        (branched == null || branched)){
+      return branchName;
+    }
+
+    return null;
   }
 }

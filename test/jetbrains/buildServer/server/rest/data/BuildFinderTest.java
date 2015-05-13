@@ -232,6 +232,18 @@ public class BuildFinderTest extends BuildFinderTestBase {
 
 
   @Test
+  public void testNumberDimension() throws Exception {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
+
+    final SFinishedBuild build0 = build().in(buildConf).number("42").finish();
+    final SFinishedBuild build1 = build().in(buildConf).number("42").finish();
+    final SFinishedBuild build2 = build().in(buildConf).failed().finish();
+
+    checkBuilds("number:" + build0.getBuildNumber(), build1, build0);
+  }
+
+  @Test
   public void testTagDimension() throws Exception {
     final SFinishedBuild build10 = build().in(myBuildType).finish();
     final SFinishedBuild build20 = build().in(myBuildType).tag("a").failed().finish();
