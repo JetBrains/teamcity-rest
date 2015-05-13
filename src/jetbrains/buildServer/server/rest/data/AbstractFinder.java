@@ -75,9 +75,16 @@ public abstract class AbstractFinder<ITEM> {
   }
 
   @NotNull
-  public PagedSearchResult<ITEM> getItemsByLocator(@Nullable final Locator locator) {
-    if (locator == null) {
-      return new PagedSearchResult<ITEM>(toList(getAllItems()), null, null);
+  public PagedSearchResult<ITEM> getItemsByLocator(@Nullable final Locator originalLocator) {
+    Locator locator;
+    if (originalLocator == null) {
+      final ItemHolder<ITEM> allItems = getAllItems();
+      if (allItems != null){
+        return new PagedSearchResult<ITEM>(toList(allItems), null, null);
+      }
+      locator = Locator.createEmptyLocator(null, null);
+    } else{
+      locator = originalLocator;
     }
 
     ITEM singleItem = findSingleItem(locator);
@@ -143,6 +150,7 @@ public abstract class AbstractFinder<ITEM> {
     return items.myEntries.get(0);
   }
 
+  @NotNull   //todo: change overrides
   protected ItemHolder<ITEM> getPrefilteredItems(@NotNull Locator locator) {
     return getAllItems();
   }
@@ -152,7 +160,11 @@ public abstract class AbstractFinder<ITEM> {
     return null;
   }
 
-  @NotNull
+  /**
+   *
+   * @return null if all items are not supported and usual scheme (get prefiltered + filtering) should be applied
+   */
+  @Nullable  //todo: change overrides
   public abstract ItemHolder<ITEM> getAllItems();
 
   @NotNull
@@ -189,7 +201,7 @@ public abstract class AbstractFinder<ITEM> {
   }
 
   @NotNull
-  public List<ITEM> toList(@NotNull final ItemHolder<ITEM> items) {
+  public List<ITEM> toList(@NotNull final ItemHolder<ITEM> items) {//todo support lookuplimit here?
     final ArrayList<ITEM> result = new ArrayList<ITEM>();
     items.process(new ItemProcessor<ITEM>() {
       public boolean processItem(final ITEM item) {
