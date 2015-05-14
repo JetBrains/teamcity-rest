@@ -16,9 +16,12 @@
 
 package jetbrains.buildServer.server.rest.model.agent;
 
+import java.util.ArrayList;
+import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.controllers.agent.AgentDetailsFormFactory;
 import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -27,6 +30,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.AgentCompatibility;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.StringUtil;
@@ -52,6 +56,7 @@ public class Agent {
   @XmlAttribute public String ip;
   @XmlElement public Properties properties;
   @XmlElement public AgentPool pool;
+  @XmlElement public Compatibilities compatibilities;
 
   /**
    * This is used only when posting a link to an agent.
@@ -89,6 +94,33 @@ public class Agent {
         return new AgentPool(agentPoolsFinder.getAgentPool(agent), fields.getNestedField("pool"), beanContext);
       }
     });
+    compatibilities =
+      ValueWithDefault.decideDefault(fields.isIncluded("compatibilities", false), getCompatibilitiesValue(agent, fields.getNestedField("compatibilities"), beanContext));
+  }
+
+  @NotNull
+  public static ValueWithDefault.Value<Compatibilities> getCompatibilitiesValue(final @NotNull SBuildAgent agent,
+                                                                                final @NotNull Fields fields,
+                                                                                final @NotNull BeanContext beanContext) {
+    return new ValueWithDefault.Value<Compatibilities>() {
+      @Nullable
+      public Compatibilities get() {
+        final AgentDetailsFormFactory factory = beanContext.getServiceLocator().getSingletonService(AgentDetailsFormFactory.class);
+        final List<AgentCompatibility> compatibilities = factory.createAgentDetailsForm(agent).getActiveCompatibilities().getCompatibilities();
+        final List<Compatibility> compatible = new ArrayList<Compatibility>();
+        final List<Compatibility> incompatible = new ArrayList<Compatibility>();
+        for (AgentCompatibility compatibility : compatibilities) {
+          if (!compatibility.isActive()) continue; // inactive == filtered out by pool
+          final Compatibility c = new Compatibility(agent, compatibility, fields.getNestedField("compatibility"), beanContext);
+          if (!compatibility.isCompatible()) {
+            incompatible.add(c);
+          } else {
+            compatible.add(c);
+          }
+        }
+        return new Compatibilities(compatible, incompatible, fields);
+      }
+    };
   }
 
   public static String getFieldValue(@NotNull final SBuildAgent agent, @Nullable final String name) {

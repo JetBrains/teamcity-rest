@@ -30,6 +30,7 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
+import jetbrains.buildServer.server.rest.model.agent.Compatibilities;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.BuildAgentManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
@@ -137,6 +138,14 @@ public class AgentRequest {
   @Produces("text/plain")
   public String serveAgentField(@PathParam("agentLocator") String agentLocator, @PathParam("field") String fieldName) {
     return Agent.getFieldValue(myAgentFinder.getItem(agentLocator), fieldName);
+  }
+
+  @GET
+  @Path("/{agentLocator}/compatibilities")
+  @Produces({"application/xml", "application/json"})
+  public Compatibilities getAgentCompatibilities(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
+    final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
+    return Agent.getCompatibilitiesValue(agent, new Fields(fields), myBeanContext).get();
   }
 
   @PUT
