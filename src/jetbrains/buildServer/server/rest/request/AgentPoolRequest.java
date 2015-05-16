@@ -16,7 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import com.intellij.util.containers.HashSet;
+import java.util.HashSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
