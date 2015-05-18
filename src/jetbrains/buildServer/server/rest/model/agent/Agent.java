@@ -95,7 +95,7 @@ public class Agent {
       }
     });
     compatibilities =
-      ValueWithDefault.decideDefault(fields.isIncluded("compatibilities", false), getCompatibilitiesValue(agent, fields.getNestedField("compatibilities"), beanContext));
+      ValueWithDefault.decideDefault(fields.isIncluded("compatibilities", false, false), getCompatibilitiesValue(agent, fields.getNestedField("compatibilities"), beanContext));
   }
 
   @NotNull
