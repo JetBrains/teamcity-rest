@@ -75,6 +75,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected static final String UNTIL_DATE = "untilDate";
   public static final String BY_PROMOTION = "byPromotion";  //used in BuildFinder
   public static final String EQUIVALENT = "equivalent"; /*experimental*/
+  public static final BuildPromotionComparator BUILD_PROMOTIONS_COMPARATOR = new BuildPromotionComparator();
 
   private final BuildPromotionManager myBuildPromotionManager;
   private final BuildQueue myBuildQueue;
@@ -440,6 +441,18 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
+    if (locator.getUnusedDimensions().contains(SNAPSHOT_DEP)) { //performance optimization: do not filter if already processed
+      final String snapshotDepDimension = locator.getSingleDimensionValue(SNAPSHOT_DEP);
+      if (snapshotDepDimension != null) {
+        final List<BuildPromotion> snapshotRelatedBuilds = getSnapshotRelatedBuilds(snapshotDepDimension);
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            return snapshotRelatedBuilds.contains(item);
+          }
+        });
+      }
+    }
+
     final MultiCheckerFilter<SBuild> buildFilter = getBuildFilter(locator);
     if (buildFilter.getSubFiltersCount() > 0) {
       result.add(new FilterConditionChecker<BuildPromotion>() {
@@ -449,6 +462,16 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
             return false;
           }
           return buildFilter.isIncluded(build);
+        }
+      });
+    }
+
+    final Boolean canceled = locator.getSingleDimensionValueAsBoolean(CANCELED, false);
+    if (canceled != null) {
+      result.add(new FilterConditionChecker<BuildPromotion>() {
+        public boolean isIncluded(@NotNull final BuildPromotion item) {
+          final SBuild build = item.getAssociatedBuild();
+          return build == null || FilterUtil.isIncludedByBooleanFilter(canceled, build.getCanceledInfo() != null);
         }
       });
     }
@@ -467,7 +490,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     if (stateRunningDimension != null) {
       final Boolean legacyRunning = locator.getSingleDimensionValueAsBoolean(RUNNING);
       if (legacyRunning == null) {
-        return createStateLocator(Locator.getStringLocator(STATE_QUEUED, "false"));
+        return createStateLocator(Locator.getStringLocator(STATE_FINISHED, "true", STATE_RUNNING, "true", STATE_QUEUED, "false"));
       }
       if (legacyRunning) {
         return createStateLocator(STATE_RUNNING);
@@ -497,15 +520,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       result.add(new FilterConditionChecker<SBuild>() {
         public boolean isIncluded(@NotNull final SBuild item) {
           return status.equalsIgnoreCase(item.getStatusDescriptor().getStatus().getText());
-        }
-      });
-    }
-
-    final Boolean canceled = locator.getSingleDimensionValueAsBoolean(CANCELED, false);
-    if (canceled != null) {
-      result.add(new FilterConditionChecker<SBuild>() {
-        public boolean isIncluded(@NotNull final SBuild item) {
-          return FilterUtil.isIncludedByBooleanFilter(canceled, item.getCanceledInfo() != null);
         }
       });
     }
@@ -551,19 +565,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         }
       });
     }
-
-    if (locator.getUnusedDimensions().contains(SNAPSHOT_DEP)){ //performance optimization: do not filter if already processed
-      final String snapshotDepDimension = locator.getSingleDimensionValue(SNAPSHOT_DEP);
-      if (snapshotDepDimension != null) {
-        final List<BuildPromotion> snapshotRelatedBuilds = getSnapshotRelatedBuilds(snapshotDepDimension);
-        result.add(new FilterConditionChecker<SBuild>() {
-          public boolean isIncluded(@NotNull final SBuild item) {
-            return snapshotRelatedBuilds.contains(item);
-          }
-        });
-      }
-    }
-
     return result;
   }
 
@@ -650,11 +651,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     if (equivalent != null) {
       final BuildPromotion build = getItem(equivalent);
       final List<BuildPromotionEx> result = ((BuildPromotionManagerEx)myBuildPromotionManager).getStartedEquivalentPromotions(build);
-      return getItemHolder(CollectionsUtil.convertCollection(result, new Converter<BuildPromotion, BuildPromotionEx>() {
-        public BuildPromotion createFrom(@NotNull final BuildPromotionEx source) {
-          return source;
-        }
-      }));
+      final List<BuildPromotion> convertedResult = new ArrayList<BuildPromotion>(result.size());
+      for (BuildPromotionEx item : result) {
+        convertedResult.add(item);
+      }
+      Collections.sort(convertedResult, BUILD_PROMOTIONS_COMPARATOR);
+      return getItemHolder(convertedResult);
     }
 
     final String snapshotDepDimension = locator.getSingleDimensionValue(SNAPSHOT_DEP);
@@ -819,7 +821,9 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     }
 
     snapshotDepLocator.checkLocatorFullyProcessed();
-    return result;
+
+    Collections.sort(result, BUILD_PROMOTIONS_COMPARATOR);
+    return result; //todo: patch branch locator, personal, etc.???
   }
 
   private Collection<BuildPromotion> getAllDependOn(final List<BuildPromotion> items, boolean recursive) {
@@ -874,7 +878,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       return true;
     }
     //noinspection RedundantIfStatement
-    if (!stateLocator.isSingleValue() && FilterUtil.isIncludedByBooleanFilter(stateLocator.getSingleDimensionValueAsBoolean(state), true)) {
+    if (!stateLocator.isSingleValue() && FilterUtil.isIncludedByBooleanFilter(stateLocator.getSingleDimensionValueAsBoolean(state, false), true)) {
       return true;
     }
     return false;
@@ -882,5 +886,40 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   public static boolean buildIdDiffersFromPromotionId(@NotNull final BuildPromotion buildPromotion) {
     return buildPromotion.getAssociatedBuildId() != null && buildPromotion.getId() != buildPromotion.getAssociatedBuildId();
+  }
+
+  private static class BuildPromotionComparator implements Comparator<BuildPromotion> {
+    public int compare(final BuildPromotion o1, final BuildPromotion o2) {
+      final SQueuedBuild qb1 = o1.getQueuedBuild();
+      final SQueuedBuild qb2 = o2.getQueuedBuild();
+      if (qb1 != null) {
+        if (qb2 != null) {
+          return -qb1.getItemId().compareTo(qb2.getItemId());
+        }
+        return -1;
+      }
+      if (qb2 != null) {
+        return 1;
+      }
+
+      final SBuild b1 = o1.getAssociatedBuild();
+      final SBuild b2 = o2.getAssociatedBuild();
+      if (b1 != null) {
+        if (b2 != null) {
+          if (b1.isFinished()) {
+            if (b2.isFinished()) {
+              return -Long.valueOf(b1.getBuildId()).compareTo(b2.getBuildId());
+            }
+            return 1;
+          }
+          if (b2.isFinished()) {
+            return -1;
+          }
+          return -Long.valueOf(b1.getBuildId()).compareTo(b2.getBuildId());
+        }
+        return 1;
+      }
+      return -1;
+    }
   }
 }

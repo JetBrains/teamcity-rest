@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.Arrays;
 import java.util.List;
+import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.log.Loggable;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -67,16 +68,58 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "id:" + runningBuild.getBuildId() + ",running:true");
 //consider fixing    checkBuilds("id:" + runningBuild.getBuildId() + ",running:true", runningBuild.getBuildPromotion());
 //consider fixing    checkExceptionOnBuildsSearch(NotFoundException.class, "id:" + runningBuild.getBuildId() + ",running:false");
-//todo: add tests for state:xxx
   }
 
+  @Test
+  public void testSateFiltering() throws Exception {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build1 = build().in(buildConf).finish();
+    final SFinishedBuild build2 = build().in(buildConf).failed().finish();
+    final RunningBuildEx runningBuild = build().in(buildConf).run();
+    final SQueuedBuild queuedBuild = build().in(buildConf).addToQueue();
 
-  /*
+    checkBuilds(null, build2.getBuildPromotion(), build1.getBuildPromotion());
+    checkBuilds("running:true", runningBuild.getBuildPromotion());
+    checkBuilds("running:false", build2.getBuildPromotion(), build1.getBuildPromotion());
+    checkBuilds("running:any", runningBuild.getBuildPromotion(), build2.getBuildPromotion(), build1.getBuildPromotion());
+
+    checkBuilds("state:any", queuedBuild.getBuildPromotion(), runningBuild.getBuildPromotion(), build2.getBuildPromotion(), build1.getBuildPromotion());
+    checkBuilds("state:queued", queuedBuild.getBuildPromotion());
+    checkBuilds("state:running", runningBuild.getBuildPromotion());
+    checkBuilds("state:finished", build2.getBuildPromotion(), build1.getBuildPromotion());
+
+    checkBuilds("state:(queued:true,running:true,finished:true)", queuedBuild.getBuildPromotion(), runningBuild.getBuildPromotion(), build2.getBuildPromotion(), build1.getBuildPromotion());
+    checkBuilds("state:(queued:true)", queuedBuild.getBuildPromotion());
+    checkBuilds("state:(queued:true,running:false)", queuedBuild.getBuildPromotion());
+    checkBuilds("state:(running:true)", runningBuild.getBuildPromotion());
+    checkBuilds("state:(finished:true)",build2.getBuildPromotion(), build1.getBuildPromotion());
+    checkBuilds("state:(queued:true,running:true,finished:false)", queuedBuild.getBuildPromotion(), runningBuild.getBuildPromotion());
+  }
+
   @Test
   public void testSnapshotDependencies() throws Exception {
-    //todo , with running/finished
+    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
+    final BuildTypeImpl buildConf3 = registerBuildType("buildConf3", "project");
+    final BuildTypeImpl buildConf4 = registerBuildType("buildConf4", "project");
+    addDependency(buildConf4, buildConf3);
+    addDependency(buildConf3, buildConf2);
+    addDependency(buildConf2, buildConf1);
+    final SQueuedBuild queuedBuild4 = build().in(buildConf4).addToQueue();
+    final BuildPromotion build3 = queuedBuild4.getBuildPromotion().getDependencies().iterator().next().getDependOn();
+    final BuildPromotion build2 = build3.getDependencies().iterator().next().getDependOn();
+    final BuildPromotion build1 = build2.getDependencies().iterator().next().getDependOn();
+    finishBuild(BuildBuilder.run(build1.getQueuedBuild(), myFixture), false);
+    BuildBuilder.run(build2.getQueuedBuild(), myFixture);
+
+    final String baseLocator = "snapshotDependency:(to:(id:" + queuedBuild4.getItemId() + "),recursive:true)";
+    checkBuilds(baseLocator, build1); //by default only finished builds
+    checkBuilds(baseLocator+ ",state:any", build3, build2, build1);
+    checkBuilds(baseLocator + ",state:running", build2);
+    checkBuilds(baseLocator+ ",state:queued", build3);
+    checkBuilds(baseLocator+ ",state:(queued:true)", build3);
+    checkBuilds(baseLocator + ",state:(running:true,queued:true)", build3, build2);
   }
-  */
 
   @Test
   public void testQueuedBuildFinding() throws Exception {
@@ -123,10 +166,12 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
     }
 
     //check single build retrieve
-    if (builds.length == 0) {
-      checkNoBuildFound(locator);
-    } else {
-      checkBuild(locator, builds[0]);
+    if (locator != null) {
+      if (builds.length == 0) {
+        checkNoBuildFound(locator);
+      } else {
+        checkBuild(locator, builds[0]);
+      }
     }
   }
 
