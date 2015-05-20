@@ -543,28 +543,49 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
-    //todo: filter on gettings builds; more options (all times); also for buildPromotion
+    //todo: filter on gettings builds; more options (all times); also for buildPromotion, use "since:(build:(),start:(build:(),date:()),queued:(build:(),date:()),finish:(build:(),date:()))"
     final String sinceBuild = locator.getSingleDimensionValue(SINCE_BUILD);
+    if (sinceBuild != null) {
+      final Long buildId = getBuildId(sinceBuild);
+      if (buildId != null) {
+        result.add(new FilterConditionChecker<SBuild>() {
+          public boolean isIncluded(@NotNull final SBuild item) {
+            return buildId < item.getBuildId();
+          }
+        });
+      }
+    }
+
     final Date sinceDate = DataProvider.parseDate(locator.getSingleDimensionValue(SINCE_DATE));
-    if (sinceBuild != null || sinceDate != null) {
-      final RangeLimit rangeLimit = new RangeLimit(getBuildId(sinceBuild), sinceDate);
+    if (sinceDate != null) {
       result.add(new FilterConditionChecker<SBuild>() {
         public boolean isIncluded(@NotNull final SBuild item) {
-          return rangeLimit.before(item);
+          return sinceDate.before(item.getStartDate());
         }
       });
     }
 
     final String untilBuild = locator.getSingleDimensionValue(UNTIL_BUILD);
+    if (untilBuild != null) {
+      final Long buildId = getBuildId(untilBuild);
+      if (buildId != null) {
+        result.add(new FilterConditionChecker<SBuild>() {
+          public boolean isIncluded(@NotNull final SBuild item) {
+            return !(buildId < item.getBuildId());
+          }
+        });
+      }
+    }
+
     final Date untilDate = DataProvider.parseDate(locator.getSingleDimensionValue(UNTIL_DATE));
-    if (untilBuild != null || untilDate != null) {
-      final RangeLimit rangeLimit = new RangeLimit(getBuildId(untilBuild), untilDate);
+    if (untilDate != null) {
       result.add(new FilterConditionChecker<SBuild>() {
         public boolean isIncluded(@NotNull final SBuild item) {
-          return !rangeLimit.before(item);
+          return !(untilDate.before(item.getStartDate()));
         }
       });
     }
+
     return result;
   }
 

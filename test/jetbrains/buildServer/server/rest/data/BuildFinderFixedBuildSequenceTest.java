@@ -16,9 +16,8 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Locale;
+import java.util.Date;
 import jetbrains.buildServer.MockTimeService;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -58,6 +57,7 @@ public class BuildFinderFixedBuildSequenceTest extends BuildFinderTestBase {
   private SFinishedBuild myBuild12;
   private RunningBuildEx myBuild13running;
   private SQueuedBuild myBuild14queued;
+  private Date myTimeAfterBuild4;
 
   @Override
   @BeforeMethod
@@ -86,7 +86,8 @@ public class BuildFinderFixedBuildSequenceTest extends BuildFinderTestBase {
 
     myBuild4conf2FailedPinned = build().in(myBuildConf2).failed().finish();
     myBuild4conf2FailedPinned.setPinned(true, myUser, "pin comment");
-
+    myTimeService.jumpTo(10);
+    myTimeAfterBuild4 = myTimeService.getNow();
     myTimeService.jumpTo(10);
 
     myBuild5personal = build().in(myBuildConf).personalForUser(myUser.getUsername()).finish();
@@ -102,8 +103,11 @@ public class BuildFinderFixedBuildSequenceTest extends BuildFinderTestBase {
     myBuild8canceledFailed = finishBuild(build8running, true);
 
     myBuild9failedToStart = build().in(myBuildConf).failedToStart().finish();
+    myTimeService.jumpTo(10);
     myBuild10byUser = build().in(myBuildConf).by(myUser).finish();
+    myTimeService.jumpTo(10);
     myBuild11inBranch = build().in(myBuildConf).withBranch("branch").finish();
+    myTimeService.jumpTo(10);
     myBuild12 = build().in(myBuildConf).finish();
 
     myBuild13running = startBuild(myBuildConf);
@@ -153,7 +157,10 @@ public class BuildFinderFixedBuildSequenceTest extends BuildFinderTestBase {
     checkBuilds("branch:(default:true)", myBuild12, myBuild10byUser, myBuild9failedToStart, myBuild4conf2FailedPinned, myBuild3tagged, myBuild2failed, myBuild1);
     checkBuilds("branch:(default:false)", myBuild11inBranch);
     checkBuilds("branch:(default:any)", myBuild12, myBuild11inBranch, myBuild10byUser, myBuild9failedToStart, myBuild4conf2FailedPinned, myBuild3tagged, myBuild2failed, myBuild1);
+  }
 
+  @Test
+  public void testSinceUntilBuildSearch() {
     checkBuilds("sinceBuild:(id:" + myBuild3tagged.getBuildId() + ")",
                 myBuild12, myBuild10byUser, myBuild9failedToStart, myBuild4conf2FailedPinned);   //build9failedToStart should probbaly not be here
 //    checkBuilds("sinceBuild:(id:" + deleted.getBuildId() + ")", build12, build10byUser, build4conf2FailedPinned, build3tagged); //todo: should handle this
@@ -162,14 +169,20 @@ public class BuildFinderFixedBuildSequenceTest extends BuildFinderTestBase {
                 myBuild10byUser, myBuild9failedToStart, myBuild4conf2FailedPinned, myBuild3tagged, myBuild2failed, myBuild1);
 //    checkBuilds("untilBuild:(id:" + deleted.getBuildId() + ")", build2failed, build1); //todo: should handle this
 
-    final String startDate = new SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH).format(myBuild4conf2FailedPinned.getStartDate());
-    checkBuilds("sinceDate:" + startDate + ")",
-                myBuild12, myBuild10byUser, myBuild9failedToStart, myBuild4conf2FailedPinned);    //build9failedToStart should probbaly not be here
-    checkBuilds("untilDate:" + startDate + ")",
-                myBuild3tagged, myBuild2failed, myBuild1);
-    checkExceptionOnBuildsSearch(BadRequestException.class, "sinceBuild:(id:" + myBuild3tagged.getBuildId() + "),sinceDate:" + startDate);
+    final String startDate = fDate(myBuild4conf2FailedPinned.getStartDate());
+    checkBuilds("sinceDate:" + startDate + ")", myBuild12, myBuild10byUser, myBuild9failedToStart, myBuild4conf2FailedPinned);    //build9failedToStart should probbaly not be here
+    checkBuilds("sinceDate:" + fDate(myTimeAfterBuild4), myBuild12, myBuild10byUser, myBuild9failedToStart);
+    checkBuilds("untilDate:" + startDate + ")", myBuild3tagged, myBuild2failed, myBuild1);
+    checkBuilds("untilDate:" + fDate(myTimeAfterBuild4) + ")", myBuild4conf2FailedPinned, myBuild3tagged, myBuild2failed, myBuild1);
+    checkExceptionOnBuildsSearch(BadRequestException.class,
+                                 "sinceBuild:(id:" + myBuild3tagged.getBuildId() + "),sinceDate:" + startDate + ",byPromotion:false"); //this is for buildFinder
+
+    //todo: these are for buildPromotionFinder
+//    checkBuilds("sinceBuild:(id:" + myBuild3tagged.getBuildId() + "),sinceDate:" + startDate, myBuild12, myBuild10byUser, myBuild9failedToStart, myBuild4conf2FailedPinned);
+//    checkBuilds("sinceBuild:(id:" + myBuild3tagged.getBuildId() + "),sinceDate:" + fDate(myTimeAfterBuild4), myBuild12, myBuild10byUser, myBuild9failedToStart);
+    checkBuilds("sinceBuild:(id:" + myBuild3tagged.getBuildId() + "),untilDate:" + fDate(myTimeAfterBuild4), myBuild4conf2FailedPinned);
   }
-  
+
   @Test
   public void testSingleBuildSearch() {
     checkBuild("buildType:(id:" + myBuildConf2.getExternalId() + ")", myBuild4conf2FailedPinned);
@@ -212,10 +225,8 @@ public class BuildFinderFixedBuildSequenceTest extends BuildFinderTestBase {
     checkBuild("untilBuild:(id:" + myBuild10byUser.getBuildId() + ")",
                myBuild10byUser);
 
-    checkBuild("sinceDate:" + new SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH).format(myBuild4conf2FailedPinned.getStartDate()) + ")",
-               myBuild12);
-    checkBuild("untilDate:" + new SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH).format(myBuild4conf2FailedPinned.getStartDate()) + ")",
-               myBuild3tagged);
+    checkBuild("sinceDate:" + fDate(myBuild4conf2FailedPinned.getStartDate()) + ")", myBuild12);
+    checkBuild("untilDate:" + fDate(myBuild4conf2FailedPinned.getStartDate()) + ")", myBuild3tagged);
   }
 
   @Test

@@ -16,6 +16,8 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import java.util.Date;
+import jetbrains.buildServer.MockTimeService;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -26,6 +28,7 @@ import jetbrains.buildServer.serverSide.impl.CancelableTaskHolder;
 import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.Dates;
 import org.testng.annotations.Test;
 
 /**
@@ -464,4 +467,69 @@ public class BuildFinderTest extends BuildFinderTestBase {
     checkBuild("personal:any,status:FAILURE", b100personalFailedToStart);
     checkBuild("personal:any,status:SUCCESS", b20personal);
    }
+
+  @Test
+  public void testSinceUntil() {
+    final MockTimeService time = new MockTimeService(Dates.now().getTime());
+    myServer.setTimeService(time);
+
+    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
+
+    final SFinishedBuild build10 = build().in(buildConf1).finish();
+    time.jumpTo(10);
+    final Date afterBuild10 = time.getNow();
+    time.jumpTo(10);
+    final SFinishedBuild build20 = build().in(buildConf2).failed().finish();
+    time.jumpTo(10);
+
+    final SFinishedBuild build25Deleted = build().in(buildConf2).failed().finish();
+    final long build25DeletedId = build25Deleted.getBuildId();
+    myFixture.getSingletonService(BuildHistory.class).removeEntry(build25Deleted);
+
+    final SFinishedBuild build30 = build().in(buildConf2).failedToStart().finish();
+    time.jumpTo(10);
+    final Date afterBuild30 = time.getNow();
+    time.jumpTo(10);
+
+    final SFinishedBuild build40 = build().in(buildConf1).finish();
+    time.jumpTo(10);
+
+    final SFinishedBuild build50Deleted = build().in(buildConf2).failed().finish();
+    final long build50DeletedId = build50Deleted.getBuildId();
+    myFixture.getSingletonService(BuildHistory.class).removeEntry(build50Deleted);
+
+    final SFinishedBuild build60 = build().in(buildConf2).finish();
+    time.jumpTo(10);
+    final Date afterBuild60 = time.getNow();
+
+    final SFinishedBuild build70 = build().in(buildConf1).finish();
+
+    time.jumpTo(10);
+    final SRunningBuild build80 = build().in(buildConf1).run();
+    time.jumpTo(10);
+    final SQueuedBuild build90 = build().in(buildConf1).addToQueue();
+
+    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + ")", build70, build60, build40, build30, build20);
+//    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),state:any", build90, build80, build70, build60, build40, build30, build20);
+//    checkBuilds("sinceBuild:(id:" + build25DeletedId + ")", build70, build60, build40,build30);
+
+    checkBuilds("untilBuild:(id:" + build60.getBuildId() + ")", build60, build40, build30, build20, build10);
+//    checkBuilds("untilBuild:(id:" + build50DeletedId + "),state:any", build40, build30, build20, build10);
+
+    checkBuilds("sinceDate:" + fDate(build20.getStartDate()) + ")", build70, build60, build40, build30, build20);
+    checkBuilds("sinceDate:" + fDate(afterBuild30) + ")", build70, build60, build40);
+    checkBuilds("untilDate:" + fDate(build60.getStartDate()) + ")", build40, build30, build20, build10);
+    checkBuilds("untilDate:" + fDate(afterBuild30) + ")", build30, build20, build10);
+
+//    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),sinceDate:" + fDate(build10.getStartDate()), build70, build60, build40, build30, build20);
+//    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),sinceDate:" + fDate(afterBuild30), build70, build60, build40);
+//    checkBuilds("untilBuild:(id:" + build60.getBuildId() + "),untilDate:" + fDate(build60.getStartDate()), build60, build40, build30, build20, build10);
+//    checkBuilds("untilBuild:(id:" + build60.getBuildId() + "),untilDate:" + fDate(afterBuild30), build10, build20, build30);
+
+    checkBuilds("sinceBuild:(id:" + build20.getBuildId() + "),untilBuild:" + build60.getBuildId(), build60, build40, build30);
+    checkBuilds("sinceBuild:(id:" + build20.getBuildId() + "),untilDate:" + fDate(afterBuild30), build30);
+    checkBuilds("sinceDate:(" + fDate(afterBuild10) + "),untilDate:" + fDate(afterBuild30), build30, build20);
+  }
+
 }

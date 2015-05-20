@@ -16,8 +16,11 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import jetbrains.buildServer.log.Loggable;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.BuildPromotion;
@@ -171,4 +174,10 @@ public class BuildFinderTestBase extends BaseServerTestCase {
       }
     }, "searching builds with locator \"" + multipleBuildsLocator + "\"");
   }
+
+  @NotNull
+  public static String fDate(final Date date) {
+    return new SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH).format(date);
+  }
+
 }
