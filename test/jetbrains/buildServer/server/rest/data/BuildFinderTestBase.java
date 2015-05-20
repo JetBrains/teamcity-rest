@@ -47,6 +47,8 @@ public class BuildFinderTestBase extends BaseServerTestCase {
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
+    setInternalProperty(BuildFinder.LEGACY_BUILDS_FILTERING, "true"); //testing BuildFinder
+
     final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
     final AgentFinder agentFinder = new AgentFinder(myAgentManager);
     final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, myServer);
@@ -92,7 +94,7 @@ public class BuildFinderTestBase extends BaseServerTestCase {
     SBuild result = myBuildFinder.getBuild(buildType, locator); //+ ",byPromotion:true"
 
     if (!build.equals(result)) {
-      fail("For single build locator \"" + locator + "\"\n" +
+      fail("While searching for single build with locator \"" + locator + "\"\n" +
            "Expected: " + LogUtil.describeInDetail(build) + "\n" +
            "Actual: " + LogUtil.describeInDetail(result));
     }

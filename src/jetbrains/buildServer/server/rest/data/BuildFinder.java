@@ -154,22 +154,7 @@ public class BuildFinder {
   public PagedSearchResult<SBuild> getBuilds(@Nullable final SBuildType buildType, @Nullable final String locatorText) {
     Locator locator = locatorText != null ? new Locator(locatorText) : Locator.createEmptyLocator();
     if (useByPromotionFiltering(locator)) {
-      String stringLocator;
-      if (!locator.isSingleValue() && buildType != null) {
-        stringLocator = patchLocatorWithBuildType(buildType, locator);
-      } else {
-        stringLocator = locatorText == null ? null : locator.getStringRepresentation();
-      }
-
-      final PagedSearchResult<BuildPromotion> promotions = myBuildPromotionFinder.getItems(stringLocator);
-
-      if (locator.isSingleValue() && buildType != null && !promotions.myEntries.isEmpty()) {
-        for (BuildPromotion promotion : promotions.myEntries) {
-          if (!buildType.equals(promotion.getBuildType()))
-            throw new NotFoundException("Found build with id " + promotion.getId() + " does not belong to the build type with id " +buildType.getExternalId());
-        }
-      }
-
+      final PagedSearchResult<BuildPromotion> promotions = myBuildPromotionFinder.getBuildPromotions(buildType, locatorText);
       return new PagedSearchResult<SBuild>(toBuilds(promotions.myEntries), promotions.myStart, promotions.myCount);
     }
 
@@ -248,16 +233,7 @@ public class BuildFinder {
 
     final Locator locator = new Locator(buildLocator);
     if (useByPromotionFiltering(locator)) {
-      String stringLocator;
-      if (!locator.isSingleValue() && buildType != null) {
-        stringLocator = patchLocatorWithBuildType(buildType, locator);
-      } else {
-        stringLocator = locator.getStringRepresentation();
-      }
-      final BuildPromotion promotion = myBuildPromotionFinder.getItem(stringLocator);
-      if (buildType != null && !buildType.equals(promotion.getBuildType())) {
-        throw new NotFoundException("Found build with id " + promotion.getId() + " does not belong to the build type with id " +buildType.getExternalId());
-      }
+      final BuildPromotion promotion = myBuildPromotionFinder.getBuildPromotion(buildType, buildLocator);
       final SBuild associatedBuild = promotion.getAssociatedBuild();
       if (associatedBuild != null){
         return associatedBuild;
@@ -347,20 +323,6 @@ public class BuildFinder {
     //todo: check for unknown dimension names in all the returns
 
     throw new BadRequestException("Build locator '" + buildLocator + "' is not supported (" + filteredBuilds.size() + " builds found)");
-  }
-
-  private String patchLocatorWithBuildType(@Nullable final SBuildType buildType, @NotNull final Locator locator) {
-    if (buildType != null) {
-      final String buildTypeDimension = locator.getSingleDimensionValue(BuildPromotionFinder.BUILD_TYPE);
-      if (buildTypeDimension != null) {
-        if (!buildType.getInternalId().equals(myBuildTypeFinder.getItem(buildTypeDimension).getInternalId())){
-          throw new BadRequestException("Context build type is not the same as build type in '" + BuildPromotionFinder.BUILD_TYPE + "' dimention");
-        }
-      } else{
-        return locator.setDimensionIfNotPresent(BuildPromotionFinder.BUILD_TYPE, BuildTypeFinder.getLocator(buildType)).getStringRepresentation();
-      }
-    }
-    return locator.getStringRepresentation();
   }
 
   @Nullable

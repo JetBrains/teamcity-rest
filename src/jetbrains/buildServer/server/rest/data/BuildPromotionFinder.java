@@ -183,18 +183,18 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       promotionId = locator.getSingleDimensionValueAsLong("promotionId"); //support TeamCity 8.0 dimension
     }
     if (promotionId != null) {
-      return BuildFinder.getBuildPromotion(promotionId, myBuildPromotionManager);
+      return checkBuildType(BuildFinder.getBuildPromotion(promotionId, myBuildPromotionManager), locator);
     }
 
     final Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (id != null) {
       final BuildPromotion buildPromotion = BuildFinder.getBuildPromotion(id, myBuildPromotionManager);
       if (!buildIdDiffersFromPromotionId(buildPromotion)){
-        return buildPromotion;
+        return checkBuildType(buildPromotion, locator);
       }
       final SBuild build = myBuildsManager.findBuildInstanceById(id);
       if (build != null){
-        return build.getBuildPromotion();
+        return checkBuildType(build.getBuildPromotion(), locator);
       }
     }
 
@@ -801,6 +801,75 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         return false;
       }
     };
+  }
+
+  @NotNull
+  public BuildPromotion getBuildPromotion(final @Nullable SBuildType buildType, @Nullable final String locatorText) {
+    if (buildType == null) {
+      return getItem(locatorText);
+    }
+
+    final Locator locator = locatorText != null ? new Locator(locatorText) : Locator.createEmptyLocator();
+    if (locator.isEmpty() || !locator.isSingleValue()) {
+      return getItem(patchLocatorWithBuildType(buildType, locator));
+    }
+    //single value locator
+    //use logic like BuildFinder: if there is build type and single value, assume it's build number
+    final String buildNumber = locator.getSingleValue();
+    assert buildNumber != null;
+    SBuild build = myBuildsManager.findBuildInstanceByBuildNumber(buildType.getInternalId(), buildNumber);
+    if (build != null) return build.getBuildPromotion();
+
+    throw new NotFoundException("No build can be found by number '" + buildNumber + "' in the build type with id '" + buildType.getExternalId() + "'");
+
+    /*
+    final BuildPromotion singleItem = findSingleItem(locator);
+    if (singleItem != null) { //will find it the regular way, go for it with all due checks
+      return getItem(locator.getStringRepresentation());
+    }
+    */
+  }
+
+  @NotNull
+  public PagedSearchResult<BuildPromotion> getBuildPromotions(final @Nullable SBuildType buildType, final @Nullable String locatorText) {
+    if (buildType == null) {
+      return getItems(locatorText);
+    }
+
+    final Locator locator = locatorText != null ? new Locator(locatorText) : Locator.createEmptyLocator();
+    if (locator.isEmpty() || !locator.isSingleValue()) {
+      return getItems(patchLocatorWithBuildType(buildType, locator));  //todo: test empty locator with not empty build type
+    }
+
+    //single value
+    return new PagedSearchResult<BuildPromotion>(Collections.singletonList(getBuildPromotion(buildType, locatorText)), null, null);
+  }
+
+  @NotNull
+  private String patchLocatorWithBuildType(@Nullable final SBuildType buildType, @NotNull final Locator locator) {
+    if (buildType != null) {
+      final String buildTypeDimension = locator.getSingleDimensionValue(BuildPromotionFinder.BUILD_TYPE);
+      if (buildTypeDimension != null) {
+        if (!buildType.getInternalId().equals(myBuildTypeFinder.getItem(buildTypeDimension).getInternalId())) {
+          throw new BadRequestException("Context build type is not the same as build type in '" + BuildPromotionFinder.BUILD_TYPE + "' dimention");
+        }
+      } else {
+        return locator.setDimensionIfNotPresent(BuildPromotionFinder.BUILD_TYPE, BuildTypeFinder.getLocator(buildType)).getStringRepresentation();
+      }
+    }
+    return locator.getStringRepresentation();
+  }
+
+  @NotNull
+  private BuildPromotion checkBuildType(@NotNull final BuildPromotion buildPromotion, @NotNull final Locator locator) {
+    final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
+    if (buildTypeLocator == null) return buildPromotion;
+
+    final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
+
+    if (buildType.equals(buildPromotion.getParentBuildType())) return buildPromotion;
+
+    throw new NotFoundException("Found build with id " + buildPromotion.getId() + " does not belong to the build type with id '" + buildType.getExternalId() +"'");
   }
 
   @NotNull
