@@ -2,7 +2,7 @@
 <teamcity-plugin xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                  xsi:noNamespaceSchemaLocation="urn:schemas-jetbrains-com:teamcity-plugin-v1-xml">
   <info>
-    <name>rest-api-contrib</name>
+    <name>rest-api-contrib-9.0</name>
     <display-name>REST API 9.0 Contrib</display-name>
     <version>@Plugin_Version@</version>
     <description>Additionals for TeamCity REST API version 9.0</description>
