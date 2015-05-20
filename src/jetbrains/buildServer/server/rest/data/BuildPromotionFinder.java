@@ -784,18 +784,23 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   @NotNull
   private List<BuildPromotion> getSnapshotRelatedBuilds(@NotNull final String snapshotDepDimension) {
-    ArrayList<BuildPromotion> result = new ArrayList<BuildPromotion>();
+    Locator snapshotDepLocator = new Locator(snapshotDepDimension, "from", "to", "recursive", "includeInitial");
+    Boolean recursive = snapshotDepLocator.getSingleDimensionValueAsBoolean("recursive", true);
+    if (recursive == null) recursive = true;
 
-    Locator snapshotDepLocator = new Locator(snapshotDepDimension, "to", "from", "recursive");  //todo: also use the locator in Build's nodes
-    Boolean recursive = snapshotDepLocator.getSingleDimensionValueAsBoolean("recursive", false);
-    if (recursive == null) recursive = false;
+    Boolean includeOriginal = snapshotDepLocator.getSingleDimensionValueAsBoolean("includeInitial", false);
+    if (includeOriginal == null) includeOriginal = false;
 
+    ArrayList<BuildPromotion> resultTo = new ArrayList<BuildPromotion>();
     final String toBuildDimension = snapshotDepLocator.getSingleDimensionValue("to");
     if (toBuildDimension != null) {
       final List<BuildPromotion> toBuilds = getItems(toBuildDimension).myEntries;
+      if (includeOriginal) {
+        resultTo.addAll(toBuilds);
+      }
       if (recursive) {
         for (BuildPromotion toBuild : toBuilds) {
-          result.addAll(toBuild.getAllDependencies());
+          resultTo.addAll(toBuild.getAllDependencies());
         }
       } else {
         final Set<BuildPromotion> alldependencyBuilds = new TreeSet<BuildPromotion>();
@@ -806,22 +811,29 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
             }
           }));
         }
-        result.addAll(alldependencyBuilds); //todo: sort
+        resultTo.addAll(alldependencyBuilds);
       }
     }
 
+    ArrayList<BuildPromotion> resultFrom = new ArrayList<BuildPromotion>();
     final String fromBuildDimension = snapshotDepLocator.getSingleDimensionValue("from");
     if (fromBuildDimension != null) {
-      final Collection<BuildPromotion> allDependingOn = getAllDependOn(getItems(fromBuildDimension).myEntries, recursive); //todo: sort!
-      if (result.isEmpty()) {
-        result.addAll(allDependingOn);
-      } else {
-        result = new ArrayList<BuildPromotion>(CollectionsUtil.intersect(result, allDependingOn));
+      final List<BuildPromotion> fromBuilds = getItems(fromBuildDimension).myEntries;
+      if (includeOriginal) {
+        resultFrom.addAll(fromBuilds);
       }
+      final Collection<BuildPromotion> allDependingOn = getAllDependOn(fromBuilds, recursive);
+      resultFrom.addAll(allDependingOn);
     }
 
     snapshotDepLocator.checkLocatorFullyProcessed();
 
+    ArrayList<BuildPromotion> result = resultTo;
+    if (!result.isEmpty() && !resultFrom.isEmpty()) {
+      result = new ArrayList<BuildPromotion>(CollectionsUtil.intersect(result, resultFrom));
+    } else {
+      result = !result.isEmpty() ? result : resultFrom;
+    }
     Collections.sort(result, BUILD_PROMOTIONS_COMPARATOR);
     return result; //todo: patch branch locator, personal, etc.???
   }

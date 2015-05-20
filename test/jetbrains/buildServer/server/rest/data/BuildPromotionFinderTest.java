@@ -98,6 +98,7 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
 
   @Test
   public void testSnapshotDependencies() throws Exception {
+    final BuildTypeImpl buildConf0 = registerBuildType("buildConf0", "project");
     final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
     final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
     final BuildTypeImpl buildConf3 = registerBuildType("buildConf3", "project");
@@ -105,20 +106,68 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
     addDependency(buildConf4, buildConf3);
     addDependency(buildConf3, buildConf2);
     addDependency(buildConf2, buildConf1);
-    final SQueuedBuild queuedBuild4 = build().in(buildConf4).addToQueue();
-    final BuildPromotion build3 = queuedBuild4.getBuildPromotion().getDependencies().iterator().next().getDependOn();
+    addDependency(buildConf1, buildConf0);
+    final BuildPromotion build4 = build().in(buildConf4).addToQueue().getBuildPromotion();
+    final BuildPromotion build3 = build4.getDependencies().iterator().next().getDependOn();
     final BuildPromotion build2 = build3.getDependencies().iterator().next().getDependOn();
     final BuildPromotion build1 = build2.getDependencies().iterator().next().getDependOn();
+    final BuildPromotion build0 = build1.getDependencies().iterator().next().getDependOn();
     finishBuild(BuildBuilder.run(build1.getQueuedBuild(), myFixture), false);
     BuildBuilder.run(build2.getQueuedBuild(), myFixture);
 
-    final String baseLocator = "snapshotDependency:(to:(id:" + queuedBuild4.getItemId() + "),recursive:true)";
-    checkBuilds(baseLocator, build1); //by default only finished builds
-    checkBuilds(baseLocator+ ",state:any", build3, build2, build1);
-    checkBuilds(baseLocator + ",state:running", build2);
-    checkBuilds(baseLocator+ ",state:queued", build3);
-    checkBuilds(baseLocator+ ",state:(queued:true)", build3);
-    checkBuilds(baseLocator + ",state:(running:true,queued:true)", build3, build2);
+    final String baseToLocatorStart = "snapshotDependency:(to:(id:" + build4.getId() + ")";
+    checkBuilds(baseToLocatorStart + ")", build1, build0); //by default only finished builds
+    checkBuilds(baseToLocatorStart + "),state:any", build3, build2, build1, build0);
+    checkBuilds(baseToLocatorStart + "),state:running", build2);
+    checkBuilds(baseToLocatorStart + "),state:queued", build3);
+    checkBuilds(baseToLocatorStart + "),state:(queued:true)", build3);
+    checkBuilds(baseToLocatorStart + "),state:(running:true,queued:true)", build3, build2);
+
+    checkBuilds(baseToLocatorStart + ",includeInitial:true)", build1, build0); //by default only finished builds
+    checkBuilds(baseToLocatorStart + ",includeInitial:true),state:any", build4, build3, build2, build1, build0);
+    checkBuilds(baseToLocatorStart + ",includeInitial:true),state:running", build2);
+    checkBuilds(baseToLocatorStart + ",includeInitial:true),state:queued", build4, build3);
+    checkBuilds(baseToLocatorStart + ",includeInitial:true),state:(queued:true)", build4, build3);
+    checkBuilds(baseToLocatorStart + ",includeInitial:true),state:(running:true,queued:true)", build4, build3, build2);
+
+    checkBuilds(baseToLocatorStart + ",includeInitial:false)", build1, build0);
+    checkBuilds(baseToLocatorStart + ",includeInitial:false),state:any", build3, build2, build1, build0);
+    checkBuilds(baseToLocatorStart + ",includeInitial:false),state:running", build2);
+    checkBuilds(baseToLocatorStart + ",includeInitial:false),state:queued", build3);
+    checkBuilds(baseToLocatorStart + ",includeInitial:false),state:(queued:true)", build3);
+    checkBuilds(baseToLocatorStart + ",includeInitial:false),state:(running:true,queued:true)", build3, build2);
+
+    checkBuilds(baseToLocatorStart + ",recursive:true)", build1, build0);
+    checkBuilds(baseToLocatorStart + ",recursive:true),state:any", build3, build2, build1, build0);
+    checkBuilds(baseToLocatorStart + ",recursive:false)");
+    checkBuilds(baseToLocatorStart + ",recursive:false),state:any", build3);
+
+    checkBuilds("snapshotDependency:(to:(id:" + build3.getId() + "))", build1, build0);
+    checkBuilds("snapshotDependency:(to:(id:" + build3.getId() + ")),state:any", build2, build1, build0);
+    checkBuilds("snapshotDependency:(to:(id:" + build3.getId() + "),includeInitial:true),state:any", build3, build2, build1, build0);
+    checkBuilds("snapshotDependency:(to:(id:" + build2.getId() + "))", build1, build0);
+    checkBuilds("snapshotDependency:(to:(id:" + build2.getId() + "),recursive:false)", build1);
+    checkBuilds("snapshotDependency:(to:(id:" + build2.getId() + ")),state:any", build1, build0);
+    checkBuilds("snapshotDependency:(to:(id:" + build1.getId() + "))", build0);
+    checkBuilds("snapshotDependency:(to:(id:" + build1.getId() + ")),state:any", build0);
+    checkBuilds("snapshotDependency:(to:(id:" + build1.getId() + "),includeInitial:true),state:any", build1, build0);
+    checkBuilds("snapshotDependency:(to:(id:" + build0.getId() + "),includeInitial:true)", build0);
+    checkBuilds("snapshotDependency:(to:(id:" + build0.getId() + ")),state:any");
+
+    final String baseFromLocatorStart = "snapshotDependency:(from:(id:" + build0.getId() + ")";
+    checkBuilds(baseFromLocatorStart + ")", build1); //by default only finished builds
+    checkBuilds(baseFromLocatorStart + "),state:any", build4, build3, build2, build1);
+    checkBuilds(baseFromLocatorStart + ",includeInitial:true),state:any", build4, build3, build2, build1, build0);
+    checkBuilds(baseFromLocatorStart + ",includeInitial:true,recursive:false),state:any", build1, build0);
+    checkBuilds(baseFromLocatorStart + "),state:running", build2);
+    checkBuilds(baseFromLocatorStart + "),state:queued", build4, build3);
+    checkBuilds(baseFromLocatorStart + "),state:(running:true,queued:true)", build4, build3, build2);
+    checkBuilds(baseFromLocatorStart + ",includeInitial:true),state:(running:true,queued:true)", build4, build3, build2);
+
+    checkBuilds("snapshotDependency:(from:(id:" + build1.getId() + "),to:(id:" + build3.getId() + "),includeInitial:true),state:any", build3, build2, build1);
+    checkBuilds("snapshotDependency:(from:(id:" + build1.getId() + "),to:(id:" + build3.getId() + ")),state:any", build2);
+
+    checkExceptionOnBuildsSearch(NotFoundException.class, "snapshotDependency:(to:(id:" + (build4.getId() + 10) + ")),state:any");
   }
 
   @Test
