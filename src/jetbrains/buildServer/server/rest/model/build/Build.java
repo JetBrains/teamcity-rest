@@ -1187,6 +1187,8 @@ public class Build {
       return ((BuildPromotionEx)buildPromotion).getCollectChangesError();
     } else if ("changesCollectingInProgress".equals(field)) { //Experimental support only
       return String.valueOf(((BuildPromotionEx)buildPromotion).isChangesCollectingInProgress());
+    } else if ("changeCollectingNeeded".equals(field)) { //Experimental support only
+      return String.valueOf(((BuildPromotionEx)buildPromotion).isChangeCollectingNeeded());
     }
 
     final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
