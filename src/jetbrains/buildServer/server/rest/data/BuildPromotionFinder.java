@@ -369,11 +369,24 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final String tag = locator.getSingleDimensionValue(TAG);
     if (tag != null) {
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
-          return new TagFinder(myUserFinder, item).getItems(tag, TagFinder.getDefaultLocator()).myEntries.size() > 0;
-        }
-      });
+      if (tag.startsWith("format:extended")) { //pre-9.1 compatibility
+        //todo: log this?
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            try {
+              return isTagsMatchLocator(item.getTags(), new Locator(tag));
+            } catch (LocatorProcessException e) {
+              throw new BadRequestException("Invalid locator 'tag' (legacy format is used): " + e.getMessage(), e);
+            }
+          }
+        });
+      } else {
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            return new TagFinder(myUserFinder, item).getItems(tag, TagFinder.getDefaultLocator()).myEntries.size() > 0;
+          }
+        });
+      }
     }
 
     final String compatibleAagentLocator = locator.getSingleDimensionValue(COMPATIBLE_AGENT); //experimental, only for queued builds
@@ -599,26 +612,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       return buildId;
     }
     return getItem(buildLocator).getId();
-  }
-
-  public class RangeLimit {
-    @Nullable private final Long myBuildId;
-    @Nullable private final Date myStartDate;
-
-    public RangeLimit(@Nullable final Long buildId, @Nullable final Date startDate) {
-      myBuildId = buildId;
-      myStartDate = startDate;
-    }
-
-    public boolean before(@NotNull SBuild build) {
-      if (myBuildId != null) {
-        return myBuildId < build.getBuildId();
-      }
-      if (myStartDate != null) {
-        return myStartDate.before(build.getStartDate());
-      }
-      return false;
-    }
   }
 
   private boolean isTagsMatchLocator(final List<String> buildTags, final Locator tagsLocator) {

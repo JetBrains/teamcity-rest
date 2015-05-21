@@ -238,7 +238,7 @@ public class BuildFinder {
       if (associatedBuild != null){
         return associatedBuild;
       } else{
-        throw new BadRequestException("No associated build for found build promotion with id " + promotion.getId());
+        throw new NotFoundException("No associated build (a queued build?) for found build promotion with id " + promotion.getId());
       }
     }
 

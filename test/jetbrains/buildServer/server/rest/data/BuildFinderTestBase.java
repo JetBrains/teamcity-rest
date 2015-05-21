@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import com.intellij.openapi.diagnostic.Logger;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
@@ -39,6 +40,8 @@ import org.testng.annotations.BeforeMethod;
  *         Date: 16.04.2015
  */
 public class BuildFinderTestBase extends BaseServerTestCase {
+  private static Logger LOG = Logger.getInstance(BuildFinderTestBase.class.getName());
+
   protected BuildFinder myBuildFinder;
   protected QueuedBuildFinder myQueuedBuildFinder;
   private BuildPromotionFinder myBuildPromotionFinder;
@@ -149,6 +152,7 @@ public class BuildFinderTestBase extends BaseServerTestCase {
       if (exception.isAssignableFrom(e.getClass())) {
         return;
       }
+      LOG.debug(e);
       fail("Wrong exception type is thrown" + details + ".\n" +
            "Expected: " + exception.getName() + "\n" +
            "Actual  : " + e.toString());
