@@ -69,9 +69,8 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
 //might need to fix    checkBuild("number:" + runningBuild5.getBuildNumber(), runningBuild5);
     checkExceptionOnBuildSearch(NotFoundException.class, "number:" + runningBuild5.getBuildNumber());
 //might need to fix    checkBuild(build1.getBuildNumber(), build1);
-    checkExceptionOnBuildSearch(LocatorProcessException.class, build1.getBuildNumber());
-//fix    checkExceptionOnBuildSearch(LocatorProcessException.class, "id:" + build1.getBuildId() + ",number:" + build1.getBuildNumber());
-    checkBuild("id:" + build1.getBuildId() + ",number:" + build1.getBuildNumber(), build1);
+    checkBuild(build1.getBuildNumber(), build1);
+    checkExceptionOnBuildSearch(LocatorProcessException.class, "id:" + build1.getBuildId() + ",number:" + build1.getBuildNumber());
 
     checkBuild("buildType:(id:" + buildConf.getExternalId() + "),number:" + build1.getBuildNumber(), build1);
     checkBuild("buildType:(id:" + buildConf.getExternalId() + "),id:" + build1.getBuildId(), build1);
@@ -147,7 +146,7 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
   public void testWrongLocator() throws Exception {
     checkExceptionOnBuildSearch(BadRequestException.class, "");
     checkExceptionOnBuildSearch(LocatorProcessException.class, ",:,");
-    checkExceptionOnBuildSearch(LocatorProcessException.class, "xxx");
+    checkExceptionOnBuildSearch(NotFoundException.class, "xxx"); //is treated as build number
     checkExceptionOnBuildSearch(LocatorProcessException.class, "xxx:yyy");
     checkExceptionOnBuildSearch(LocatorProcessException.class, "pinned:any,xxx:yyy");
     /*
@@ -188,7 +187,8 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
 
     checkBuilds("pinned:any", build2, build1);
 
-    checkBuilds("project:(id:" + parent.getExternalId() + ")", build2, build1);
+    checkBuilds("project:(id:" + parent.getExternalId() + ")", build1);
+    checkBuilds("affectedProject:(id:" + parent.getExternalId() + ")", build2, build1);
     checkBuilds("project:(id:" + nested.getExternalId() + ")", build2);
   }
 
@@ -272,7 +272,8 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     checkBuilds("tag:a,buildType:(id:" + myBuildType.getExternalId() + ")", build30, build20);
     checkBuilds("tag:a", build40, build30, build25, build20);
     checkBuilds("tag:aa", build50);
-    checkBuilds("tag:(a:b)", build40);
+    checkExceptionOnBuildsSearch(LocatorProcessException.class, "tag:(a:b)");
+    checkBuilds("tag:(name:(a:b))", build40);
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "tag:a,tag:b");
 
     checkBuilds("tags:a,buildType:(id:" + myBuildType.getExternalId() + ")", build30, build20);
@@ -282,7 +283,7 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     checkBuilds("tags:(a:b)", build40);
     checkBuilds("tags:(b,a:b)", build40);
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "tags:a,tags:b"); //"documenting" existing exception types
-    checkExceptionOnBuildsSearch(BadRequestException.class, "tag:a,tags:b"); //"documenting" existing exception types
+    checkBuilds("tag:a,tags:b", build40, build30);
 
     checkBuilds("tag:(format:extended,present:any,regexp:aaa)", build60, build50, build40, build30, build25, build20, build10);
     checkBuilds("tag:(format:extended,present:true)", build50, build40, build30, build25, build20);
