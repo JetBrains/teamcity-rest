@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
+import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +49,7 @@ import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.identifiers.DuplicateExternalIdException;
+import jetbrains.buildServer.serverSide.impl.projects.ProjectsLoader;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -527,6 +529,21 @@ public class ProjectRequest {
     myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     final SProject project = myProjectFinder.getProject(projectLocator);
     return project.getConfigurationFile().getAbsolutePath();
+  }
+
+  /**
+   * Experimental use only!
+   */
+  //until @Path("/{projectLocator}/loadingErrors") is implemented
+  @GET
+  @Path("/{projectLocator}/latest")
+  public Project reloadSettingsFile (@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
+    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    final SProject project = myProjectFinder.getProject(projectLocator);
+    final String projectConfigFile = project.getConfigurationFile().getAbsolutePath();
+    final List<File> emptyList = Collections.<File>emptyList();
+    myBeanContext.getSingletonService(ProjectsLoader.class).reloadProjects(emptyList, Collections.singleton(new File(projectConfigFile)), emptyList);
+    return new Project(myProjectFinder.getProject(projectLocator), new Fields(fields), myBeanContext);
   }
 
   @Nullable
