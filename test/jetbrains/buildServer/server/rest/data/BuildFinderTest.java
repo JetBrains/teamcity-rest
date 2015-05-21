@@ -29,6 +29,7 @@ import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.Dates;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 /**
@@ -36,6 +37,13 @@ import org.testng.annotations.Test;
  *         Date: 09.09.2014
  */
 public class BuildFinderTest extends BuildFinderTestBase {
+
+  @Override
+  @BeforeMethod
+  public void setUp() throws Exception {
+    super.setUp();
+    setInternalProperty(BuildFinder.LEGACY_BUILDS_FILTERING, "true"); //testing BuildFinder
+  }
 
   @Test
   public void testSingleLocators() throws Exception {
@@ -139,6 +147,7 @@ public class BuildFinderTest extends BuildFinderTestBase {
   @Test
   public void testWrongLocator() throws Exception {
     checkExceptionOnBuildSearch(BadRequestException.class, "");
+    checkExceptionOnBuildSearch(LocatorProcessException.class, ",:,");
     checkExceptionOnBuildSearch(LocatorProcessException.class, "xxx");
     checkExceptionOnBuildSearch(LocatorProcessException.class, "xxx:yyy");
     checkExceptionOnBuildSearch(LocatorProcessException.class, "pinned:any,xxx:yyy");

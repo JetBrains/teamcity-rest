@@ -50,7 +50,6 @@ public class BuildFinderTestBase extends BaseServerTestCase {
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    setInternalProperty(BuildFinder.LEGACY_BUILDS_FILTERING, "true"); //testing BuildFinder
 
     final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
     final AgentFinder agentFinder = new AgentFinder(myAgentManager);
