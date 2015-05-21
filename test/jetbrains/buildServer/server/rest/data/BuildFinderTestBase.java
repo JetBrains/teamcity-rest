@@ -65,10 +65,12 @@ public class BuildFinderTestBase extends BaseServerTestCase {
     checkMultipleBuilds(locator, builds);
 
     //check single build retrieve
-    if (builds.length == 0) {
-      checkNoBuildFound(locator);
-    } else {
-      checkBuild(locator, builds[0]);
+    if (locator != null) {
+      if (builds.length == 0) {
+        checkNoBuildFound(locator);
+      } else {
+        checkBuild(locator, builds[0]);
+      }
     }
   }
 

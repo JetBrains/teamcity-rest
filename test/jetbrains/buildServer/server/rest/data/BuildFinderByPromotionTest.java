@@ -68,7 +68,6 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     checkBuild("number:" + build1.getBuildNumber(), build1);
 //might need to fix    checkBuild("number:" + runningBuild5.getBuildNumber(), runningBuild5);
     checkExceptionOnBuildSearch(NotFoundException.class, "number:" + runningBuild5.getBuildNumber());
-//might need to fix    checkBuild(build1.getBuildNumber(), build1);
     checkBuild(build1.getBuildNumber(), build1);
     checkExceptionOnBuildSearch(LocatorProcessException.class, "id:" + build1.getBuildId() + ",number:" + build1.getBuildNumber());
 
@@ -149,10 +148,16 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     checkExceptionOnBuildSearch(NotFoundException.class, "xxx"); //is treated as build number
     checkExceptionOnBuildSearch(LocatorProcessException.class, "xxx:yyy");
     checkExceptionOnBuildSearch(LocatorProcessException.class, "pinned:any,xxx:yyy");
-    /*
-    checkExceptionOnBuildSearch(LocatorProcessException.class, "status:");
-    checkExceptionOnBuildSearch(LocatorProcessException.class, "status:WRONG");
-    */
+    //checkExceptionOnBuildSearch(LocatorProcessException.class, "status:");
+    //checkExceptionOnBuildSearch(LocatorProcessException.class, "status:WRONG");
+
+    checkExceptionOnBuildsSearch(LocatorProcessException.class, "");
+    checkExceptionOnBuildsSearch(LocatorProcessException.class, ",:,");
+    checkBuilds("xxx"); //is treated as build number
+    checkExceptionOnBuildsSearch(LocatorProcessException.class, "xxx:yyy");
+    checkExceptionOnBuildsSearch(LocatorProcessException.class, "pinned:any,xxx:yyy");
+    //checkExceptionOnBuildsSearch(LocatorProcessException.class, "status:");
+    //checkExceptionOnBuildsSearch(LocatorProcessException.class, "status:WRONG");
   }
 
   @Test
@@ -198,7 +203,7 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     final SFinishedBuild build1 = build().in(buildConf).finish();
     final SFinishedBuild build2 = build().in(buildConf).withBranch("branchName").finish();
 
-//    checkBuilds("", build1);
+    checkBuilds(null, build1);
     //by default no branched builds should be listed
     checkBuilds("buildType:(id:" + buildConf.getExternalId() + ")", build1);
     checkBuilds("pinned:any", build1);
@@ -209,8 +214,8 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     checkBuilds("branch:(branchName)", build2);
     checkBuilds("branch:(name:branchName)", build2);
     checkExceptionOnBuildSearch(LocatorProcessException.class, "branch:(::)"); //invalid branch locator
-//fix    checkExceptionOnBuildSearch(LocatorProcessException.calss, "branch:(name:branchName,aaa:bbb)");  //unused/unknown dimension
-//fix    checkExceptionOnBuildSearch(LocatorProcessException.class, "branch:(aaa:bbb)");
+    //checkExceptionOnBuildSearch(LocatorProcessException.class, "branch:(name:branchName,aaa:bbb)");  //unused/unknown dimension
+    //checkExceptionOnBuildSearch(LocatorProcessException.class, "branch:(aaa:bbb)");
   }
 
   @Test
@@ -289,9 +294,9 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     checkBuilds("tag:(format:extended,present:true)", build50, build40, build30, build25, build20);
     checkBuilds("tag:(format:extended,present:false)", build60, build10);
     checkBuilds("tag:(format:extended,present:true,regexp:a.)", build50);
-//fix    checkBuilds("tag:(present:true,regexp:a.,format:extended)", build50);
+    //checkBuilds("tag:(present:true,regexp:a.,format:extended)", build50);
     checkBuilds("tag:(format:extended,present:false,regexp:a.)", build60, build40, build30, build25, build20, build10);
-//fix    checkExceptionOnBuildsSearch(BadRequestException.class, "tag:(format:notExtended,present:true)");
+    //checkExceptionOnBuildsSearch(BadRequestException.class, "tag:(format:notExtended,present:true)");
     checkExceptionOnBuildsSearch(BadRequestException.class, "tag:(format:extended,present:true,regexp:)");
     checkExceptionOnBuildsSearch(BadRequestException.class, "tag:(format:extended,present:true,regexp:*)");
     checkExceptionOnBuildsSearch(BadRequestException.class, "tag:(format:extended,present:true,regexp:*,a:b)");
@@ -460,13 +465,13 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     checkBuilds("pinned:any", b90FailedToStart, b70, b10);
 
     checkBuilds("personal:true", b100personalFailedToStart, b80personal, b20personal);
-//    checkBuilds("personal:true,status:UNKNOWN", b60personalCanceledFailed, b40personalCanceled);
+    //checkBuilds("personal:true,status:UNKNOWN", b60personalCanceledFailed, b40personalCanceled);
     checkBuilds("personal:true,canceled:true", b60personalCanceledFailed, b40personalCanceled);
     checkBuilds("personal:false", b90FailedToStart, b70, b10); //b90FailedToStart should not be here
     checkBuilds("personal:any,status:FAILURE", b100personalFailedToStart, b90FailedToStart, b80personal, b70);
     checkBuilds("personal:any,status:SUCCESS", b20personal, b10);
     checkBuilds("personal:true,status:SUCCESS", b20personal);
-//    checkBuilds("buildType:(id:" + myBuildType.getExternalId() + "),personal:any,status:FAILURE", b100personalFailedToStart, b90FailedToStart);
+    //checkBuilds("buildType:(id:" + myBuildType.getExternalId() + "),personal:any,status:FAILURE", b100personalFailedToStart, b90FailedToStart);
     checkNoBuildsFound("user:(id:" + user1.getId() + ")");
     checkNoBuildsFound("user:(id:" + user1.getId() + "),personal:true");
     checkNoBuildsFound("user:(id:" + user1.getId() + "),personal:any");
@@ -521,20 +526,20 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
 
     checkBuilds("sinceBuild:(id:" + build10.getBuildId() + ")", build70, build60, build40, build30, build20);
 //    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),state:any", build90, build80, build70, build60, build40, build30, build20);
-//    checkBuilds("sinceBuild:(id:" + build25DeletedId + ")", build70, build60, build40,build30);
+    checkBuilds("sinceBuild:(id:" + build25DeletedId + ")", build70, build60, build40,build30);
 
     checkBuilds("untilBuild:(id:" + build60.getBuildId() + ")", build60, build40, build30, build20, build10);
-//    checkBuilds("untilBuild:(id:" + build50DeletedId + "),state:any", build40, build30, build20, build10);
+    checkBuilds("untilBuild:(id:" + build50DeletedId + "),state:any", build40, build30, build20, build10);
 
     checkBuilds("sinceDate:" + fDate(build20.getStartDate()) + ")", build70, build60, build40, build30, build20);
     checkBuilds("sinceDate:" + fDate(afterBuild30) + ")", build70, build60, build40);
     checkBuilds("untilDate:" + fDate(build60.getStartDate()) + ")", build40, build30, build20, build10);
     checkBuilds("untilDate:" + fDate(afterBuild30) + ")", build30, build20, build10);
 
-//    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),sinceDate:" + fDate(build10.getStartDate()), build70, build60, build40, build30, build20);
-//    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),sinceDate:" + fDate(afterBuild30), build70, build60, build40);
-//    checkBuilds("untilBuild:(id:" + build60.getBuildId() + "),untilDate:" + fDate(build60.getStartDate()), build60, build40, build30, build20, build10);
-//    checkBuilds("untilBuild:(id:" + build60.getBuildId() + "),untilDate:" + fDate(afterBuild30), build10, build20, build30);
+    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),sinceDate:" + fDate(build10.getStartDate()), build70, build60, build40, build30, build20);
+    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),sinceDate:" + fDate(afterBuild30), build70, build60, build40);
+    checkBuilds("untilBuild:(id:" + build60.getBuildId() + "),untilDate:" + fDate(build60.getStartDate()), build40, build30, build20, build10);
+    checkBuilds("untilBuild:(id:" + build60.getBuildId() + "),untilDate:" + fDate(afterBuild30), build30, build20, build10);
 
     checkBuilds("sinceBuild:(id:" + build20.getBuildId() + "),untilBuild:" + build60.getBuildId(), build60, build40, build30);
     checkBuilds("sinceBuild:(id:" + build20.getBuildId() + "),untilDate:" + fDate(afterBuild30), build30);
