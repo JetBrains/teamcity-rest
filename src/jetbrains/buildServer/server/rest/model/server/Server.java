@@ -21,6 +21,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.RootUrlHolder;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.maintenance.StartupContext;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -32,8 +33,8 @@ import jetbrains.buildServer.server.rest.request.*;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.ServerPaths;
-import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.ServerSettings;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,7 +44,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  *         Date: 17.11.2009
  */
 @XmlRootElement(name = "server")
-@XmlType(name = "server", propOrder={"version", "versionMajor", "versionMinor", "startTime", "currentTime", "buildNumber", "buildDate", "internalId",
+@XmlType(name = "server", propOrder={"version", "versionMajor", "versionMinor", "startTime", "currentTime", "buildNumber", "buildDate", "internalId", "webUrl",
 "projects", "vcsRoots", "builds", "users", "userGroups", "agents", "buildQueue", "agentPools"})
 public class Server {
   @Autowired
@@ -110,6 +111,11 @@ public class Server {
     return myServerSettings.getServerUUID();
   }
 
+  @XmlAttribute
+  public String getWebUrl() {
+    return myServer.getRootUrl();
+  }
+
   @XmlElement
   public Href getProjects() {
     return new Href(ProjectRequest.API_PROJECTS_URL,myApiUrlBuilder);
@@ -173,6 +179,8 @@ public class Server {
     } else if ("dataDirectoryPath".equals(field)) { //experimental
       serviceLocator.getSingletonService(DataProvider.class).checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
       return serviceLocator.getSingletonService(DataProvider.class).getBean(ServerPaths.class).getDataDirectory().getAbsolutePath();
+    } else if ("webUrl".equals(field) || "url".equals(field)) {
+      return serviceLocator.getSingletonService(RootUrlHolder.class).getRootUrl();
     }
     throw new NotFoundException("Field '" + field + "' is not supported. Supported are: version, versionMajor, versionMinor, buildNumber, startTime, currentTime, internalId.");
   }
