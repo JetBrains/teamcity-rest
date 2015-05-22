@@ -75,14 +75,15 @@ public class BuildFinderTestBase extends BaseServerTestCase {
   }
 
   public void checkMultipleBuilds(final @Nullable String locator, final SBuild... builds) {
-    final List<SBuild> result = myBuildFinder.getBuildsSimplified(null, locator);//+ ",byPromotion:true"
+    final List<BuildPromotion> result = myBuildFinder.getBuilds(null, locator).myEntries;
     final String expected = getPromotionsDescription(getPromotions(builds));
-    final String actual = getPromotionsDescription(getPromotions(result));
-    assertEquals("For locator \"" + locator + "\"\n" +
+    final String actual = getPromotionsDescription(result);
+    assertEquals("For builds locator \"" + locator + "\"\n" +
                  "Expected:\n" + expected + "\n\n" +
                  "Actual:\n" + actual, builds.length, result.size());
+
     for (int i = 0; i < builds.length; i++) {
-      if (!builds[i].equals(result.get(i))) {
+      if (!builds[i].getBuildPromotion().equals(result.get(i))) {
         fail("Wrong build found for locator \"" + locator + "\" at position " + (i + 1) + "/" + builds.length + "\n" +
              "Expected:\n" + expected + "\n" +
              "\nActual:\n" + actual);
@@ -91,16 +92,33 @@ public class BuildFinderTestBase extends BaseServerTestCase {
   }
 
   protected void checkBuild(final String locator, @NotNull SBuild build) {
-    checkBuild(null, locator, build);
+    checkBuild(null, locator, build.getBuildPromotion());
   }
 
-  protected void checkBuild(final SBuildType buildType, final String locator, @NotNull SBuild build) {
-    SBuild result = myBuildFinder.getBuild(buildType, locator); //+ ",byPromotion:true"
+  protected void checkBuild(final String locator, @NotNull BuildPromotion buildPromotion) {
+    checkBuild(null, locator, buildPromotion);
+  }
 
-    if (!build.equals(result)) {
-      fail("While searching for single build with locator \"" + locator + "\"\n" +
-           "Expected: " + LogUtil.describeInDetail(build) + "\n" +
-           "Actual: " + LogUtil.describeInDetail(result));
+  protected void checkBuild(final SBuildType buildType, final String locator, @NotNull BuildPromotion buildPromotion) {
+    SBuild build = buildPromotion.getAssociatedBuild();
+    if (build != null) {
+      //checking for build
+      SBuild result = myBuildFinder.getBuild(buildType, locator);
+
+      if (!build.equals(result)) {
+        fail("While searching for single build with locator \"" + locator + "\"\n" +
+             "Expected: " + LogUtil.describeInDetail(build) + "\n" +
+             "Actual: " + LogUtil.describeInDetail(result));
+      }
+    }
+
+    //checking for build promotion
+    BuildPromotion result1 = myBuildFinder.getBuildPromotion(buildType, locator);
+
+    if (!buildPromotion.equals(result1)) {
+      fail("While searching for single build promotion with locator \"" + locator + "\"\n" +
+           "Expected: " + LogUtil.describeInDetail(buildPromotion) + "\n" +
+           "Actual: " + LogUtil.describeInDetail(result1));
     }
   }
 
@@ -121,10 +139,9 @@ public class BuildFinderTestBase extends BaseServerTestCase {
   }
 
   protected void checkNoBuildsFound(@Nullable final String locator) {
-    final List<SBuild> result = myBuildFinder.getBuildsSimplified(null, locator);
-//    final List<BuildPromotion> result = myBuildPromotionFinder.getItems(locator).myEntries;
+    final List<BuildPromotion> result = myBuildFinder.getBuilds(null, locator).myEntries;
     if (!result.isEmpty()) {
-      fail("For locator \"" + locator + "\" expected NotFoundException but found " + LogUtil.describe(result) + "");
+      fail("For builds locator \"" + locator + "\" expected NotFoundException but found " + LogUtil.describe(result) + "");
     }
   }
 
@@ -172,12 +189,18 @@ public class BuildFinderTestBase extends BaseServerTestCase {
         myBuildFinder.getBuild(buildType, singleBuildLocator);
       }
     }, "searching single build with locator \"" + singleBuildLocator + "\"");
+
+    checkException(exception, new Runnable() {
+      public void run() {
+        myBuildFinder.getBuildPromotion(buildType, singleBuildLocator);
+      }
+    }, "searching single build promotion with locator \"" + singleBuildLocator + "\"");
   }
 
   public <E extends Throwable> void checkExceptionOnBuildsSearch(final Class<E> exception, @Nullable final String multipleBuildsLocator) {
     checkException(exception, new Runnable() {
       public void run() {
-        myBuildFinder.getBuildsSimplified(null, multipleBuildsLocator);
+        myBuildFinder.getBuilds(null, multipleBuildsLocator);
       }
     }, "searching builds with locator \"" + multipleBuildsLocator + "\"");
   }

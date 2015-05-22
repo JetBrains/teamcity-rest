@@ -22,12 +22,11 @@ import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.log.Loggable;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.RunningBuildEx;
-import jetbrains.buildServer.serverSide.SFinishedBuild;
-import jetbrains.buildServer.serverSide.SQueuedBuild;
+import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
+import jetbrains.buildServer.serverSide.impl.CancelableTaskHolder;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -179,10 +178,41 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
 
     checkBuilds(String.valueOf(queuedBuild.getItemId()), queuedBuild.getBuildPromotion());
     checkBuilds("id:" + queuedBuild.getItemId(), queuedBuild.getBuildPromotion());
-//fix    checkBuilds("buildType:(id:" + buildConf.getExternalId() + "),id:" + queuedBuild.getItemId(), queuedBuild.getBuildPromotion());
+    checkBuilds("buildType:(id:" + buildConf.getExternalId() + "),id:" + queuedBuild.getItemId(), queuedBuild.getBuildPromotion());
     checkBuilds("taskId:" + queuedBuild.getItemId(), queuedBuild.getBuildPromotion());
     checkBuilds("promotionId:" + queuedBuild.getItemId(), queuedBuild.getBuildPromotion());
-//    checkBuilds("buildType:(id:" + buildConf.getExternalId() + "),promotionId:" + queuedBuild.getItemId(), queuedBuild.getBuildPromotion());
+    checkBuilds("buildType:(id:" + buildConf.getExternalId() + "),promotionId:" + queuedBuild.getItemId(), queuedBuild.getBuildPromotion());
+  }
+
+  @Test
+  public void testReplacementBuildFindingByMergedPromotion() throws Exception { //see also jetbrains.buildServer.server.rest.data.BuildFinderTest.testQueuedBuildByMergedPromotion()
+    final BuildTypeImpl buildConf = registerBuildType("buildConf", "project");
+    myFixture.registerVcsSupport("vcsSuport");
+    buildConf.addVcsRoot(buildConf.getProject().createVcsRoot("vcsSuport", "extId", "name"));
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
+    buildConf2.addDependency(myFixture.getSingletonService(DependencyFactory.class).createDependency(buildConf));
+
+    final SQueuedBuild queuedBuild1 = build().in(buildConf).addToQueue();
+    final long id1 = queuedBuild1.getBuildPromotion().getId();
+
+    final SQueuedBuild queuedBuild2 = build().in(buildConf2).addToQueue();
+    final BuildPromotion queuedDependency = queuedBuild2.getBuildPromotion().getDependencies().iterator().next().getDependOn();
+    final long id2 = queuedDependency.getId();
+
+    assertEquals(3, myFixture.getBuildQueue().getNumberOfItems());
+    assertNotSame(id1, id2);
+
+    assertTrue(((BuildPromotionEx)queuedBuild1.getBuildPromotion()).getTopDependencyGraph().collectChangesForGraph(new CancelableTaskHolder()));
+    assertTrue(((BuildPromotionEx)queuedBuild2.getBuildPromotion()).getTopDependencyGraph().collectChangesForGraph(new CancelableTaskHolder()));
+
+    myFixture.getBuildQueue().setMergeBuildsInQueue(true);
+    myFixture.getBuildQueue().mergeBuilds();
+
+    assertEquals(2, myFixture.getBuildQueue().getNumberOfItems());
+
+
+    checkBuilds("id:" + id2, queuedDependency);
+    checkBuilds("id:" + id1, queuedDependency);
   }
 
   @Test

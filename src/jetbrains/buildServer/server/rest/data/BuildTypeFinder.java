@@ -322,7 +322,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
           public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
             if (item.getBuildType() == null) return false;
             final BuildFinder buildFinder = myServiceLocator.getSingletonService(BuildFinder.class);
-            final List<BuildPromotion> buildPromotions = BuildFinder.getBuildPromotions(buildFinder.getBuildsSimplified(item.getBuildType(), search));
+            final List<BuildPromotion> buildPromotions = buildFinder.getBuilds(item.getBuildType(), search).myEntries;
             if (buildPromotions.isEmpty()) {
               return false;
             }

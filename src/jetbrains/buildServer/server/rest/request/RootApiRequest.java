@@ -27,7 +27,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.plugin.PluginInfo;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
@@ -85,8 +85,8 @@ public class RootApiRequest {
                                      @PathParam("field") String field) {
     SProject project = myProjectFinder.getProject(projectLocator);
     SBuildType buildType = myBuildTypeFinder.getBuildType(project, buildTypeLocator);
-    SBuild build = myBuildFinder.getBuild(buildType, buildLocator);
+    final BuildPromotion buildPromotion = myBuildFinder.getBuildPromotion(buildType, buildLocator);
 
-    return Build.getFieldValue(build.getBuildPromotion(), field, new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
+    return Build.getFieldValue(buildPromotion, field, new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
   }
 }

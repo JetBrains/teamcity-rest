@@ -57,6 +57,7 @@ public class BuildFinder {
 
   protected static final String LEGACY_BUILDS_FILTERING = "rest.useLegacyBuildsFiltering";
   protected static final String SUPPORT_NON_LOCATOR_FILTERS = "rest.request.builds.supportNonLocatorFilters";
+  protected static final String REST_RETURN_ONLY_STARTED_BUILDS = "rest.returnOnlyStartedBuilds";
 
   public BuildFinder(final @NotNull ServiceLocator serviceLocator,
                      final @NotNull BuildTypeFinder buildTypeFinder,
@@ -143,7 +144,7 @@ public class BuildFinder {
                                     "Set \"" + SUPPORT_NON_LOCATOR_FILTERS + "=true\" server internal property to allow such legacy queries until next TeamCity upgrade.");
     }
 
-    final PagedSearchResult<SBuild> pagedResult = getBuilds(buildType, resultingLocatorText);
+    final PagedSearchResult<BuildPromotion> pagedResult = getBuilds(buildType, resultingLocatorText);
     final PagerData pagerData = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedResult,
                                               locatorText == null ? null : resultingLocatorText,
                                               locatorParameterName);
@@ -151,11 +152,11 @@ public class BuildFinder {
   }
 
   @NotNull
-  public PagedSearchResult<SBuild> getBuilds(@Nullable final SBuildType buildType, @Nullable final String locatorText) {
+  public PagedSearchResult<BuildPromotion> getBuilds(@Nullable final SBuildType buildType, @Nullable final String locatorText) {
     Locator locator = locatorText != null ? new Locator(locatorText) : Locator.createEmptyLocator();
     if (useByPromotionFiltering(locator)) {
       final PagedSearchResult<BuildPromotion> promotions = myBuildPromotionFinder.getBuildPromotions(buildType, locatorText);
-      return new PagedSearchResult<SBuild>(toBuilds(promotions.myEntries), promotions.myStart, promotions.myCount);
+      return new PagedSearchResult<BuildPromotion>(promotions.myEntries, promotions.myStart, promotions.myCount);
     }
 
     BuildsFilter buildsFilter = getBuildsFilter(locator, buildType);
@@ -168,17 +169,12 @@ public class BuildFinder {
       buildsFilter.setCount(jetbrains.buildServer.server.rest.request.Constants.getDefaultPageItemsCount());
     }
 
-    return new PagedSearchResult<SBuild>(getBuilds(buildsFilter), buildsFilter.getStart(), buildsFilter.getCount());
+    return new PagedSearchResult<BuildPromotion>(toBuildPromotions(getBuilds(buildsFilter)), buildsFilter.getStart(), buildsFilter.getCount());
   }
 
   private boolean useByPromotionFiltering(@NotNull final Locator locator) {
     final Boolean byPromotion = locator.getSingleDimensionValueAsBoolean(BuildPromotionFinder.BY_PROMOTION, !TeamCityProperties.getBooleanOrTrue(LEGACY_BUILDS_FILTERING));
     return byPromotion != null && byPromotion;
-  }
-
-  @NotNull
-  public List<SBuild> getBuildsSimplified(@Nullable final SBuildType buildType, @Nullable final String locatorText) {
-    return getBuilds(buildType, locatorText).myEntries;
   }
 
   @NotNull
@@ -196,7 +192,7 @@ public class BuildFinder {
     return buildsFilter;
   }
 
-  public static List<BuildPromotion> getBuildPromotions(final Collection<SBuild> buildsList) {
+  public static List<BuildPromotion> toBuildPromotions(final Collection<SBuild> buildsList) {
     return CollectionsUtil.convertCollection(buildsList, new Converter<BuildPromotion, SBuild>() {
       public BuildPromotion createFrom(@NotNull final SBuild source) {
         return source.getBuildPromotion();
@@ -226,7 +222,7 @@ public class BuildFinder {
    *  status:SUCCESS when buildType is specified - last build with the specified status in the specified buildType
    */
   @NotNull
-  public SBuild getBuild(@Nullable SBuildType buildType, @Nullable final String buildLocator) {
+  public BuildPromotion getBuildPromotion(@Nullable SBuildType buildType, @Nullable final String buildLocator) {
     if (StringUtil.isEmpty(buildLocator)) {
       throw new BadRequestException("Empty single build locator is not supported.");
     }
@@ -234,11 +230,15 @@ public class BuildFinder {
     final Locator locator = new Locator(buildLocator);
     if (useByPromotionFiltering(locator)) {
       final BuildPromotion promotion = myBuildPromotionFinder.getBuildPromotion(buildType, buildLocator);
+      if (!TeamCityProperties.getBoolean(REST_RETURN_ONLY_STARTED_BUILDS)) {
+        return promotion;
+      }
       final SBuild associatedBuild = promotion.getAssociatedBuild();
       if (associatedBuild != null){
-        return associatedBuild;
+        return promotion;
       } else{
-        throw new NotFoundException("No associated build (a queued build?) for found build promotion with id " + promotion.getId());
+        throw new NotFoundException("No associated build for found build promotion with id " + promotion.getId() + "(a queued build?)." +
+                                    " Check performed as '" + REST_RETURN_ONLY_STARTED_BUILDS + "' internal property is set");
       }
     }
 
@@ -251,7 +251,7 @@ public class BuildFinder {
         if (build == null) {
           throw new NotFoundException("Cannot find build by id '" + locator.getSingleValue() + "'.");
         }
-        return build;
+        return build.getBuildPromotion();
       }
       // no dimensions found and build type is specified, assume it's build number
       @SuppressWarnings("ConstantConditions") SBuild build = myServiceLocator.getSingletonService(BuildsManager.class).findBuildInstanceByBuildNumber(buildType.getBuildTypeId(),
@@ -259,7 +259,7 @@ public class BuildFinder {
       if (build == null) {
         throw new NotFoundException("No build can be found by number '" + buildLocator + "' in build configuration " + buildType + ".");
       }
-      return build;
+      return build.getBuildPromotion();
     }
 
     String buildTypeLocator = locator.getSingleDimensionValue("buildType");
@@ -277,7 +277,7 @@ public class BuildFinder {
       if (locator.getDimensionsCount() > 1) {
         LOG.info("Build locator '" + buildLocator + "' has '" + DIMENSION_ID + "' dimension and others. Others are ignored.");
       }
-      return build;
+      return build.getBuildPromotion();
     }
 
     String number = locator.getSingleDimensionValue("number");
@@ -289,7 +289,7 @@ public class BuildFinder {
       if (locator.getDimensionsCount() > 1) {
         LOG.info("Build locator '" + buildLocator + "' has 'number' dimension and others. Others are ignored.");
       }
-      return build;
+      return build.getBuildPromotion();
     }
 
     Long promotionId = locator.getSingleDimensionValueAsLong(PROMOTION_ID);
@@ -297,7 +297,7 @@ public class BuildFinder {
       promotionId = locator.getSingleDimensionValueAsLong("promotionId"); //support TeamCity 8.0 dimension
     }
     if (promotionId != null) {
-      SBuild build = getBuildByPromotionId(promotionId);
+      BuildPromotion build = getBuildByPromotionId(promotionId);
       if (buildType != null && !buildType.getBuildTypeId().equals(build.getBuildTypeId())) {
         throw new NotFoundException("No build can be found by " + PROMOTION_ID + " '" + promotionId + "' in build type '" + buildType + "'.");
       }
@@ -318,18 +318,23 @@ public class BuildFinder {
     }
 
     if (filteredBuilds.size() == 1){
-      return filteredBuilds.get(0);
+      return filteredBuilds.get(0).getBuildPromotion();
     }
     //todo: check for unknown dimension names in all the returns
 
     throw new BadRequestException("Build locator '" + buildLocator + "' is not supported (" + filteredBuilds.size() + " builds found)");
   }
 
-  @Nullable
-  public SBuild getBuildIfNotNull(@Nullable final SBuildType buildType, @Nullable final String buildLocator) {
-    return buildLocator == null ? null : getBuild(buildType, buildLocator);
-  }
 
+  @NotNull
+  public SBuild getBuild(final @Nullable SBuildType buildType, final @Nullable String buildLocator) {
+    final BuildPromotion promotion = getBuildPromotion(buildType, buildLocator);
+    final SBuild associatedBuild = promotion.getAssociatedBuild();
+    if (associatedBuild == null){
+      throw new NotFoundException("No started build found for id " + promotion.getId());
+    }
+    return associatedBuild;
+  }
 
   @NotNull
   private BuildsFilter getBuildsFilter(@NotNull final Locator buildLocator, @Nullable final SBuildType buildType) {
@@ -439,12 +444,7 @@ public class BuildFinder {
   }
 
   @NotNull
-  public SBuild getBuildByPromotionId(@NotNull final Long promotionId) {
-    final BuildPromotion promotion = getBuildPromotion(promotionId, myServiceLocator.getSingletonService(BuildPromotionManager.class));
-    SBuild build = promotion.getAssociatedBuild();
-    if (build == null) {
-      throw new NotFoundException("No associated build can be found for build promotion id " + promotionId);
-    }
-    return build;
+  public BuildPromotion getBuildByPromotionId(@NotNull final Long promotionId) {
+    return getBuildPromotion(promotionId, myServiceLocator.getSingletonService(BuildPromotionManager.class));
   }
 }

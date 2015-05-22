@@ -138,7 +138,7 @@ public class Builds implements DefaultValueAware {
   }
 
   @NotNull
-  public static Builds createFromBuilds(@Nullable final List<SBuild> buildObjects, @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
-    return new Builds(pagerData, fields, beanContext, buildObjects);
+  public static Builds createFromBuilds(@Nullable final List<BuildPromotion> buildObjects, @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    return new Builds(buildObjects, pagerData, fields, beanContext);
   }
 }

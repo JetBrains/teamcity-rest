@@ -79,7 +79,8 @@ public class BuildFinderTest extends BuildFinderTestBase {
 
     checkBuild("taskId:" + build1.getBuildPromotion().getId(), build1);
     checkBuild("taskId:" + runningBuild5.getBuildPromotion().getId(), runningBuild5);
-    checkExceptionOnBuildSearch(NotFoundException.class, "taskId:" + queuedBuild.getBuildPromotion().getId()); //fix, consider finding the build
+    checkBuild("taskId:" + queuedBuild.getBuildPromotion().getId(), queuedBuild.getBuildPromotion());  //change of behavior comparing to 9.0 (used to get NotFoundException)
+    checkExceptionOnBuildSearch(NotFoundException.class, "id:" + queuedBuild.getItemId());
     checkBuild("promotionId:" + build1.getBuildPromotion().getId(), build1);
     checkBuild("buildType:(id:" + buildConf.getExternalId() + "),promotionId:" + build1.getBuildPromotion().getId(), build1);
 
@@ -114,10 +115,10 @@ public class BuildFinderTest extends BuildFinderTestBase {
     final SFinishedBuild build3 = build().in(buildConf).number(String.valueOf(build2.getBuildId() + 1000)).finish(); //setting numeric number not clashing with any build id
     final SFinishedBuild build4 = build().in(buildConf2).number(String.valueOf(build0.getBuildId())).finish();
 
-    checkBuild(buildConf, "unique42", build1);
-    checkBuild(buildConf, build3.getBuildNumber(), build3);
-    checkBuild(buildConf, build2.getBuildNumber(), build2);
-    checkBuild(buildConf2, build4.getBuildNumber(), build4);
+    checkBuild(buildConf, "unique42", build1.getBuildPromotion());
+    checkBuild(buildConf, build3.getBuildNumber(), build3.getBuildPromotion());
+    checkBuild(buildConf, build2.getBuildNumber(), build2.getBuildPromotion());
+    checkBuild(buildConf2, build4.getBuildNumber(), build4.getBuildPromotion());
     checkExceptionOnBuildSearch(NotFoundException.class, buildConf, "id:" + build4.getBuildId());
     checkExceptionOnBuildSearch(NotFoundException.class, buildConf, "10000");
   }
@@ -134,6 +135,7 @@ public class BuildFinderTest extends BuildFinderTestBase {
 
     final String numberLocator = "number:" + build1.getBuildNumber();
     assertEquals("For locator \"" + numberLocator + "\"", build1, myBuildFinder.getBuild(build1.getBuildType(), numberLocator));
+    assertEquals("For locator \"" + numberLocator + "\"", build1.getBuildPromotion(), myBuildFinder.getBuildPromotion(build1.getBuildType(), numberLocator));
 
     final String notExistingNumberLocator = "number:" + "notExisting";
     checkExceptionOnBuildSearch(NotFoundException.class, notExistingNumberLocator);
@@ -142,6 +144,12 @@ public class BuildFinderTest extends BuildFinderTestBase {
         myBuildFinder.getBuild(build1.getBuildType(), notExistingNumberLocator);
       }
     }, "searching single build with locator \"" + notExistingNumberLocator + "\"");
+
+    checkException(NotFoundException.class, new Runnable() {
+      public void run() {
+        myBuildFinder.getBuildPromotion(build1.getBuildType(), notExistingNumberLocator);
+      }
+    }, "searching single build promotion with locator \"" + notExistingNumberLocator + "\"");
   }
 
   @Test

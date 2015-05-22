@@ -1340,7 +1340,7 @@ public class BuildTypeRequest {
                                      @PathParam("buildLocator") String buildLocator,
                                      @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
-    SBuild build = myBuildFinder.getBuild(buildType, buildLocator);
+    BuildPromotion build = myBuildFinder.getBuildPromotion(buildType, buildLocator);
     return new Build(build,  new Fields(fields), myBeanContext);
   }
 
@@ -1352,9 +1352,9 @@ public class BuildTypeRequest {
                                 @PathParam("buildLocator") String buildLocator,
                                 @PathParam("field") String field) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
-    SBuild build = myBuildFinder.getBuild(buildType, buildLocator);
+    BuildPromotion build = myBuildFinder.getBuildPromotion(buildType, buildLocator);
 
-    return Build.getFieldValue(build.getBuildPromotion(), field, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return Build.getFieldValue(build, field, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   /**

@@ -392,9 +392,8 @@ public class ProjectRequest {
                                      @PathParam("buildLocator") String buildLocator,
                                      @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(myProjectFinder.getProject(projectLocator), buildTypeLocator);
-    SBuild build = myBuildFinder.getBuild(buildType, buildLocator);
 
-    return new Build(build,  new Fields(fields), myBeanContext);
+    return new Build(myBuildFinder.getBuildPromotion(buildType, buildLocator),  new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -405,9 +404,8 @@ public class ProjectRequest {
                                            @PathParam("buildLocator") String buildLocator,
                                            @PathParam("field") String field) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(myProjectFinder.getProject(projectLocator), buildTypeLocator);
-    SBuild build = myBuildFinder.getBuild(buildType, buildLocator);
 
-    return Build.getFieldValue(build.getBuildPromotion(), field, myBeanContext);
+    return Build.getFieldValue(myBuildFinder.getBuildPromotion(buildType, buildLocator), field, myBeanContext);
   }
 
   @GET

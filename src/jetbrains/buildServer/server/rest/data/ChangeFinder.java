@@ -244,7 +244,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     if (locator.getUnusedDimensions().contains(BUILD)) {
       final String buildLocator = locator.getSingleDimensionValue(BUILD);
       if (buildLocator != null) {
-        final List<SVcsModification> buildChanges = getBuildChanges(myBuildFinder.getBuild(null, buildLocator).getBuildPromotion());
+        final List<SVcsModification> buildChanges = getBuildChanges(myBuildFinder.getBuildPromotion(null, buildLocator));
         result.add(new FilterConditionChecker<SVcsModification>() {
           public boolean isIncluded(@NotNull final SVcsModification item) {
             return buildChanges.contains(item);
@@ -415,7 +415,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       } catch (Exception e) {
         //support for finished builds
         //todo: use buildPromotionFinder here (ensure it also supports finished builds)
-        buildFromBuildFinder = myBuildFinder.getBuild(null, buildLocator).getBuildPromotion();
+        buildFromBuildFinder = myBuildFinder.getBuildPromotion(null, buildLocator);
       }
       return getItemHolder(getBuildChanges(buildFromBuildFinder));
     }

@@ -88,6 +88,10 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     return Locator.createEmptyLocator().setDimension(BUILD, BuildRequest.getBuildLocator(build)).getStringRepresentation();
   }
 
+  public static String getProblemOccurrenceLocator(final @NotNull BuildPromotion buildPromotion) {
+    return Locator.createEmptyLocator().setDimension(BUILD, BuildRequest.getBuildLocator(buildPromotion)).getStringRepresentation();
+  }
+
   public static String getProblemOccurrenceLocator(final @NotNull ProblemWrapper problem) {
     return Locator.createEmptyLocator().setDimension(PROBLEM, ProblemFinder.getLocator(problem)).getStringRepresentation();
   }
@@ -114,7 +118,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
-      @NotNull SBuild build = myBuildFinder.getBuild(null, buildDimension);
+      @NotNull BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildDimension);
 
       String problemDimension = locator.getSingleDimensionValue(PROBLEM);
       if (problemDimension != null) {
@@ -126,7 +130,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
         if (item != null) {
           return item;
         }
-        throw new NotFoundException("No problem with id '" + problemId + "' found in build with id " + build.getBuildId());
+        throw new NotFoundException("No problem with id '" + problemId + "' found in build with id " + build.getId());  //message might be incorrect: uses promotion id
       } else{
         locator.markUnused(BUILD, PROBLEM);
       }
@@ -150,7 +154,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   protected ItemHolder<BuildProblem> getPrefilteredItems(@NotNull final Locator locator) {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
-      SBuild build = myBuildFinder.getBuild(null, buildDimension);
+      BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildDimension);
       return getItemHolder(getProblemOccurrences(build));
     }
 
@@ -228,10 +232,10 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
     final String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
-      final SBuild build = myBuildFinder.getBuild(null, buildDimension);
+      final BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildDimension);
       result.add(new FilterConditionChecker<BuildProblem>() {
         public boolean isIncluded(@NotNull final BuildProblem item) {
-          return build.getBuildPromotion().equals(item.getBuildPromotion());
+          return build.getId() == item.getBuildPromotion().getId();
         }
       });
     }
@@ -312,7 +316,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   }
 
   @Nullable
-  private static BuildProblem findProblem(@NotNull final SBuild build, @NotNull final Long problemId) {
+  private static BuildProblem findProblem(@NotNull final BuildPromotion build, @NotNull final Long problemId) {
     final List<BuildProblem> buildProblems = getProblemOccurrences(build);
     for (BuildProblem buildProblem : buildProblems) {
       if (buildProblem.getId() == problemId.intValue()) {
@@ -339,7 +343,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
         public void run(final DBFunctions dbf) throws DBException {
           dbf.queryForTuples(new Object() {
             public void getBuildProblem(String build_state_id) throws IOException {
-              final SBuild buildByPromotionId = buildFinder.getBuildByPromotionId(Long.valueOf(build_state_id));
+              final BuildPromotion buildByPromotionId = buildFinder.getBuildByPromotionId(Long.valueOf(build_state_id));
               if (buildByPromotionId.getBuildType() == null ){
                 //missing build type, skip. Workaround for http://youtrack.jetbrains.com/issue/TW-34733
               } else{
@@ -360,8 +364,8 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   }
 
   @NotNull
-  public static List<BuildProblem> getProblemOccurrences(@NotNull final SBuild build) {
-    return ((BuildPromotionEx)build.getBuildPromotion()).getBuildProblems();
+  public static List<BuildProblem> getProblemOccurrences(@NotNull final BuildPromotion buildPromotion) {
+    return ((BuildPromotionEx)buildPromotion).getBuildProblems();
   }
 
   @NotNull

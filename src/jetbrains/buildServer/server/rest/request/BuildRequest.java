@@ -104,12 +104,16 @@ public class BuildRequest {
     return API_BUILDS_URL;
   }
 
-  public static String getBuildHref(SBuild build) {
+  public static String getBuildHref(@NotNull SBuild build) {
     return API_BUILDS_URL + "/" + getBuildLocator(build);
   }
 
-  public static String getBuildLocator(final SBuild build) {
+  public static String getBuildLocator(@NotNull final SBuild build) {
     return "id:" + build.getBuildId();  //todo: use locator rendering here
+  }
+
+  public static String getBuildLocator(@NotNull final BuildPromotion buildPromotion) {
+    return "id:" + buildPromotion.getId();  //todo: use locator rendering here
   }
 
   public static String getBuildIssuesHref(final SBuild build) {
@@ -167,13 +171,13 @@ public class BuildRequest {
     if (locator == null){
       throw new BadRequestException("Empty 'locator' parameter specified.");
     }
-    final List<SBuild> builds = myBuildFinder.getBuildsSimplified(null, locator);
+    final List<BuildPromotion> builds = myBuildFinder.getBuilds(null, locator).myEntries;
     final int deleteLimit = TeamCityProperties.getInteger(REST_BUILD_REQUEST_DELETE_LIMIT, 10);
     if (builds.size() > deleteLimit){
       throw new BadRequestException("Refusing to delete more than " + deleteLimit + " builds as a precaution measure." +
                                     " The limit is set via '" + REST_BUILD_REQUEST_DELETE_LIMIT + "' internal property on the server.");
     }
-    for (SBuild build : builds) {
+    for (BuildPromotion build : builds) {
       deleteBuild(request, build);
     }
   }
@@ -189,7 +193,7 @@ public class BuildRequest {
   @Path("/{buildLocator}")
   @Produces({"application/xml", "application/json"})
   public Build serveBuild(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
-    return new Build(myBuildFinder.getBuild(null, buildLocator),  new Fields(fields), myBeanContext);
+    return new Build(myBuildFinder.getBuildPromotion(null, buildLocator),  new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -388,9 +392,8 @@ public class BuildRequest {
   @Produces("text/plain")
   public String serveBuildFieldByBuildOnly(@PathParam("buildLocator") String buildLocator,
                                            @PathParam("field") String field) {
-    SBuild build = myBuildFinder.getBuild(null, buildLocator);
 
-    return Build.getFieldValue(build.getBuildPromotion(), field, myBeanContext);
+    return Build.getFieldValue(myBuildFinder.getBuildPromotion(null, buildLocator), field, myBeanContext);
   }
 
   @GET
@@ -430,8 +433,8 @@ public class BuildRequest {
   @Path("/{buildLocator}/tags/")
   @Produces({"application/xml", "application/json"})
   public Tags serveTags(@PathParam("buildLocator") String buildLocator, @QueryParam("locator") String tagLocator, @QueryParam("fields") String fields) {
-    SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return new Tags(new TagFinder(myBeanContext.getSingletonService(UserFinder.class), build.getBuildPromotion()).getItems(tagLocator, TagFinder.getDefaultLocator()).myEntries,
+    BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
+    return new Tags(new TagFinder(myBeanContext.getSingletonService(UserFinder.class), build).getItems(tagLocator, TagFinder.getDefaultLocator()).myEntries,
                     new Fields(fields), myBeanContext);
   }
 
@@ -444,12 +447,12 @@ public class BuildRequest {
   @Produces({"application/xml", "application/json"})
   public Tags replaceTags(@PathParam("buildLocator") String buildLocator, @QueryParam("locator") String tagLocator, Tags tags,
                           @QueryParam("fields") String fields, @Context HttpServletRequest request) {
-    SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    final TagFinder tagFinder = new TagFinder(myBeanContext.getSingletonService(UserFinder.class), build.getBuildPromotion());
+    BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
+    final TagFinder tagFinder = new TagFinder(myBeanContext.getSingletonService(UserFinder.class), build);
     final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
 
-    tagsManager.removeTagDatas(build.getBuildPromotion(), tagFinder.getItems(tagLocator, TagFinder.getDefaultLocator()).myEntries);
-    tagsManager.addTagDatas(build.getBuildPromotion(), tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class)));
+    tagsManager.removeTagDatas(build, tagFinder.getItems(tagLocator, TagFinder.getDefaultLocator()).myEntries);
+    tagsManager.addTagDatas(build, tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class)));
 
     return new Tags(tagFinder.getItems(null, TagFinder.getDefaultLocator()).myEntries, new Fields(fields), myBeanContext);
   }
@@ -463,10 +466,10 @@ public class BuildRequest {
   @Path("/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
   public void addTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
-    SBuild build = myBuildFinder.getBuild(null, buildLocator);
+    BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
     final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
 
-    tagsManager.addTagDatas(build.getBuildPromotion(), tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class)));
+    tagsManager.addTagDatas(build, tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class)));
   }
 
   /**
@@ -483,10 +486,10 @@ public class BuildRequest {
     if (StringUtil.isEmpty(tagName)) { //check for empty tags: http://youtrack.jetbrains.com/issue/TW-34426
       throw new BadRequestException("Cannot apply empty tag, should have non empty request body");
     }
-    SBuild build = myBuildFinder.getBuild(null, buildLocator);
+    BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
     final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
 
-    tagsManager.addTagDatas(build.getBuildPromotion(), Collections.singleton(TagData.createPublicTag(tagName)));
+    tagsManager.addTagDatas(build, Collections.singleton(TagData.createPublicTag(tagName)));
     return tagName;
   }
 //todo: add GET (true/false) and DELETE, amy be PUT (true/false) for a single tag
@@ -543,15 +546,23 @@ public class BuildRequest {
   @Path("/{buildLocator}/comment")
   @Consumes({"text/plain"})
   public void replaceComment(@PathParam("buildLocator") String buildLocator, String text, @Context HttpServletRequest request) {
-    SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    build.setBuildComment(SessionUser.getUser(request), text);
+    BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
+    final SUser user = SessionUser.getUser(request);
+    if (user == null){ //TeamCity API issue: SBuild and BuildPromotion has different behavior here
+      throw new BadRequestException("Cannot add coment when there is no current user");
+    }
+    build.setBuildComment(user, text);
   }
 
   @DELETE
   @Path("/{buildLocator}/comment")
   public void deleteComment(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
-    SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    build.setBuildComment(SessionUser.getUser(request), null);
+    BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
+    final SUser user = SessionUser.getUser(request);
+    if (user == null){
+      throw new BadRequestException("Cannot add coment when there is no current user");
+    }
+    build.setBuildComment(user, null);
   }
 
   @GET
@@ -573,8 +584,8 @@ public class BuildRequest {
   @Path("/{buildLocator}/problemOccurrences")
   @Produces({"application/xml", "application/json"})
   public ProblemOccurrences getProblems(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
-    SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    final List<BuildProblem> buildProblems = ((BuildPromotionEx)build.getBuildPromotion()).getBuildProblems();//todo: (TeamCity) is this OK to use?
+    BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
+    final List<BuildProblem> buildProblems = ((BuildPromotionEx)build).getBuildProblems();//todo: (TeamCity) is this OK to use?
     return new ProblemOccurrences(buildProblems, ProblemOccurrenceRequest.getHref(build), null,  new Fields(fields), myBeanContext);
   }
 
@@ -596,7 +607,7 @@ public class BuildRequest {
   @Produces({"text/plain"})
   public String getArtifactsDirectory(@PathParam("buildLocator") String buildLocator) {
     myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
-    SBuild build = myBuildFinder.getBuild(null, buildLocator);
+    BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
     return build.getArtifactsDirectory().getAbsolutePath();
   }
 
@@ -607,7 +618,7 @@ public class BuildRequest {
                            BuildCancelRequest cancelRequest,
                            @QueryParam("fields") String fields,
                            @Context HttpServletRequest request) {
-    SBuild build = myBuildFinder.getBuild(null, buildLocator);
+    BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
     final SRunningBuild runningBuild = Build.getRunningBuild(build, myBeanContext.getServiceLocator());
     if (runningBuild == null){
       throw new BadRequestException("Cannot cancel not running build.");
@@ -620,7 +631,7 @@ public class BuildRequest {
       }
       restoreInQueue(runningBuild, currentUser);
     }
-    final SBuild associatedBuild = build.getBuildPromotion().getAssociatedBuild();
+    final SBuild associatedBuild = build.getAssociatedBuild();
     if (associatedBuild == null){
       return null;
     }
@@ -643,24 +654,31 @@ public class BuildRequest {
   @DELETE
   @Path("/{buildLocator}")
   public void deleteBuild(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
-    SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    deleteBuild(request, build);
+    deleteBuild(request, myBuildFinder.getBuildPromotion(null, buildLocator));
   }
 
-  private void deleteBuild(@NotNull final HttpServletRequest request, @NotNull final SBuild build) {
-    SBuild buildToDelete = build;
-    if (!buildToDelete.isFinished()) {
-      final SRunningBuild runningBuild = Build.getRunningBuild(buildToDelete, myBeanContext.getServiceLocator());
-      if (runningBuild != null) {
-        final SUser currentUser = SessionUser.getUser(request);
-        runningBuild.stop(currentUser, null);
-        buildToDelete = runningBuild.getBuildPromotion().getAssociatedBuild();
-        if (buildToDelete == null) {
-          throw new OperationException("Cannot find associated build for promotion '" + runningBuild.getBuildPromotion().getId() + "'.");
+  private void deleteBuild(@NotNull final HttpServletRequest request, @NotNull final BuildPromotion build) {
+    final SQueuedBuild queuedBuild = build.getQueuedBuild();
+    final SUser currentUser = SessionUser.getUser(request);
+    if (queuedBuild != null){
+      final jetbrains.buildServer.serverSide.BuildQueue buildQueue = myBeanContext.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class);
+      buildQueue.removeItems(Collections.singleton(queuedBuild.getItemId()), currentUser, null);
+    }
+
+    SBuild finishedBuild = build.getAssociatedBuild();
+    if (finishedBuild != null) {
+      if (!finishedBuild.isFinished()) {
+        final SRunningBuild runningBuild = Build.getRunningBuild(build, myBeanContext.getServiceLocator());
+        if (runningBuild != null) {
+          runningBuild.stop(currentUser, null);
+          finishedBuild = build.getAssociatedBuild();
+          if (finishedBuild == null) {
+            throw new OperationException("Cannot find associated build for promotion '" + runningBuild.getBuildPromotion().getId() + "'.");
+          }
         }
       }
+      DataProvider.deleteBuild(finishedBuild, myBeanContext.getSingletonService(BuildHistory.class));
     }
-    DataProvider.deleteBuild(buildToDelete, myBeanContext.getSingletonService(BuildHistory.class));
   }
 
   private boolean isPersonalUserBuild(final SBuild build, @NotNull final SUser user) {
@@ -718,12 +736,13 @@ public class BuildRequest {
       try {
         securityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
           public void run() throws Throwable {
-            SBuild build = myBuildFinder.getBuild(null, buildLocator);
-            holderHasPermission[0] = hasPermissionsToViewStatus(build, currentUserAuthorityHolder);
-            holderFinished[0] = build.isFinished();
-            holderSuccessful[0] = build.getStatusDescriptor().isSuccessful();
-            holderInternalError[0] = build.isInternalError();
-            holderCanceled[0] = build.getCanceledInfo() != null;
+            BuildPromotion buildPromotion = myBuildFinder.getBuildPromotion(null, buildLocator);
+            holderHasPermission[0] = hasPermissionsToViewStatus(buildPromotion, currentUserAuthorityHolder);
+            final SBuild build = buildPromotion.getAssociatedBuild();
+            holderFinished[0] = build != null && build.isFinished();
+            holderSuccessful[0] = build != null && build.getStatusDescriptor().isSuccessful();
+            holderInternalError[0] = build != null && build.isInternalError();
+            holderCanceled[0] = build != null && build.getCanceledInfo() != null;
           }
         });
       } catch (NotFoundException e) {
@@ -747,6 +766,7 @@ public class BuildRequest {
         return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/permission.png";
       }
 
+      //todo: support queued builds
       if (!holderFinished[0]) {
         return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/running.png";  //todo: support running/failing and may be running/last failed
       }
@@ -766,7 +786,7 @@ public class BuildRequest {
     }
   }
 
-  private boolean hasPermissionsToViewStatus(@NotNull final SBuild build, @NotNull final AuthorityHolder authorityHolder) {
+  private boolean hasPermissionsToViewStatus(@NotNull final BuildPromotion build, @NotNull final AuthorityHolder authorityHolder) {
     final SBuildType buildType = build.getBuildType();
     if (buildType == null) {
       throw new OperationException("No build type found for build.");

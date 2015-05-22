@@ -438,15 +438,15 @@ public class Build {
 
   @XmlElement(name = "running-info")
   public RunningBuildInfo getRunningBuildInfo() {
-    if (myBuild == null) return null;
-    SRunningBuild runningBuild = getRunningBuild(myBuild, myServiceLocator);
+    SRunningBuild runningBuild = getRunningBuild(myBuildPromotion, myServiceLocator);
     if (runningBuild == null) return null;
     return ValueWithDefault.decideDefault(myFields.isIncluded("running-info", false), new RunningBuildInfo(runningBuild));
   }
 
   @Nullable
-  public static SRunningBuild getRunningBuild(@NotNull final SBuild build, final ServiceLocator serviceLocator) {
-    if (build.isFinished()) {
+  public static SRunningBuild getRunningBuild(@NotNull final BuildPromotion buildPromotion, final ServiceLocator serviceLocator) {
+    final SBuild build = buildPromotion.getAssociatedBuild();
+    if (build == null || build.isFinished()) {
       return null;
     }
     return serviceLocator.getSingletonService(RunningBuildsManager.class).findRunningBuildById(build.getBuildId());
@@ -672,12 +672,11 @@ public class Build {
 
   @XmlElement(name = "problemOccurrences")
   public ProblemOccurrences getProblemOccurrences() {
-    if (myBuild == null) return null;
     return ValueWithDefault.decideDefault(myFields.isIncluded("problemOccurrences", false),
                                           new ValueWithDefault.Value<ProblemOccurrences>() {
                                             @Nullable
                                             public ProblemOccurrences get() {
-                                              final List<BuildProblem> problemOccurrences = ProblemOccurrenceFinder.getProblemOccurrences(myBuild);
+                                              final List<BuildProblem> problemOccurrences = ProblemOccurrenceFinder.getProblemOccurrences(myBuildPromotion);
                                               if (problemOccurrences.size() == 0) return null;
 
                                               int newProblemsCount = 0;
@@ -690,7 +689,7 @@ public class Build {
                                               final Fields problemOccurrencesFields = myFields.getNestedField("problemOccurrences");
                                               final List<BuildProblem> problems = ValueWithDefault
                                                 .decideDefault(problemOccurrencesFields.isIncluded("problemOccurrence", false), ProblemOccurrenceFinder.getProblemOccurrences(
-                                                  myBuild));
+                                                  myBuildPromotion));
                                               return new ProblemOccurrences(problems,
                                                                             problemOccurrences.size(),
                                                                             null,
@@ -698,7 +697,7 @@ public class Build {
                                                                             newProblemsCount,
                                                                             null,
                                                                             mutedProblemsCount,
-                                                                            ProblemOccurrenceRequest.getHref(myBuild),
+                                                                            ProblemOccurrenceRequest.getHref(myBuildPromotion),
                                                                             null,
                                                                             problemOccurrencesFields, myBeanContext
                                               );
@@ -906,7 +905,7 @@ public class Build {
     try {
       result = queuedBuildFinder.getItem(locatorText).getBuildPromotion();
     } catch (Exception e) {
-      result = buildFinder.getBuild(null, locatorText).getBuildPromotion();
+      result = buildFinder.getBuildPromotion(null, locatorText);
     }
     return result;
   }

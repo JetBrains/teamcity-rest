@@ -227,7 +227,7 @@ public class BuildType {
         final Fields buildsFields = myFields.getNestedField("builds");
         final String buildsLocator = buildsFields.getLocator();
         if (buildsLocator != null){
-          builds = BuildFinder.getBuildPromotions(myBeanContext.getSingletonService(BuildFinder.class).getBuildsSimplified(myBuildType.getBuildType(), buildsLocator));
+          builds = myBeanContext.getSingletonService(BuildFinder.class).getBuilds(myBuildType.getBuildType(), buildsLocator).myEntries;
           buildsHref = BuildTypeRequest.getBuildsHref(myBuildType.getBuildType(), buildsLocator);
         }else{
           buildsHref = BuildTypeRequest.getBuildsHref(myBuildType.getBuildType());
