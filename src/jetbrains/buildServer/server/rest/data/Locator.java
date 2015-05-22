@@ -23,6 +23,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -323,12 +324,16 @@ public class Locator {
       final Set<String> unusedDimensions = getUnusedDimensions();
       unusedDimensions.removeAll(myIgnoreUnusedDimensions);
       if (unusedDimensions.size() > 0) {
+        Set<String> ignoredDimensions =
+          mySupportedDimensions == null ? Collections.<String>emptySet() : CollectionsUtil.intersect(unusedDimensions, Arrays.asList(mySupportedDimensions));
+        Set<String> unknownDimensions = CollectionsUtil.minus(unusedDimensions, ignoredDimensions);
         String message;
         if (unusedDimensions.size() > 1) {
-          message = "Locator dimensions " + unusedDimensions + " are ignored or unknown.";
+          message = "Locator dimensions " + (!ignoredDimensions.isEmpty() ? ignoredDimensions + " are ignored" : "") +
+                    (!unknownDimensions.isEmpty() ? (!ignoredDimensions.isEmpty() ? " and " : "") + unknownDimensions + " are unknown" : "") + ".";
         } else {
           if (!unusedDimensions.contains(LOCATOR_SINGLE_VALUE_UNUSED_NAME)) {
-            message = "Locator dimension " + unusedDimensions + " is ignored or unknown.";
+            message = "Locator dimension " + unusedDimensions + " is " + (Arrays.asList(mySupportedDimensions).contains(unusedDimensions.iterator().next()) ?"ignored." : "unknown.");
           } else {
             message = "Single value locator is not supported here.";
           }
