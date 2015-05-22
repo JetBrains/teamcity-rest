@@ -333,7 +333,12 @@ public class Locator {
                     (!unknownDimensions.isEmpty() ? (!ignoredDimensions.isEmpty() ? " and " : "") + unknownDimensions + " are unknown" : "") + ".";
         } else {
           if (!unusedDimensions.contains(LOCATOR_SINGLE_VALUE_UNUSED_NAME)) {
-            message = "Locator dimension " + unusedDimensions + " is " + (Arrays.asList(mySupportedDimensions).contains(unusedDimensions.iterator().next()) ?"ignored." : "unknown.");
+            if (mySupportedDimensions != null) {
+              message =
+                "Locator dimension " + unusedDimensions + " is " + (Arrays.asList(mySupportedDimensions).contains(unusedDimensions.iterator().next()) ? "ignored." : "unknown.");
+            } else {
+              message = "Locator dimension " + unusedDimensions + " is ignored or unknown.";
+            }
           } else {
             message = "Single value locator is not supported here.";
           }
