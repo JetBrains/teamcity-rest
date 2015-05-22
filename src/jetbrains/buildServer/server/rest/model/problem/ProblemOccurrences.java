@@ -87,7 +87,7 @@ public class ProblemOccurrences extends OccurrencesSummary {
           return result;
         }
       });
-      this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", true), items.size());
+      this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", true), itemsP.size());
     } else {
       this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), count);
     }
