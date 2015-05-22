@@ -326,6 +326,7 @@ public class BuildFinder {
   }
 
 
+  //todo: get rid of most usages of this, use getBuildPromotion instead (but there are some TeamCity API issue)
   @NotNull
   public SBuild getBuild(final @Nullable SBuildType buildType, final @Nullable String buildLocator) {
     final BuildPromotion promotion = getBuildPromotion(buildType, buildLocator);

@@ -360,7 +360,7 @@ public class BuildRequest {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     byte[] fileContent;
     try {
-      fileContent = myBeanContext.getSingletonService(VcsManager.class).getFileContent(build, fileName);
+      fileContent = myBeanContext.getSingletonService(VcsManager.class).getFileContent(build, fileName); //TeamCity API issue: allow that by BuildPromotion
     } catch (VcsException e) {
       throw new OperationException("Error while retrieving file content from VCS", e);
     }
