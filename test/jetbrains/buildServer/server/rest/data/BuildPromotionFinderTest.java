@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.List;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.log.Loggable;
-import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
@@ -64,9 +63,8 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
 
     checkBuilds("id:" + runningBuild.getBuildId(), runningBuild.getBuildPromotion());
     checkBuilds("id:" + queuedBuild.getItemId(), queuedBuild.getBuildPromotion());
-    checkExceptionOnBuildsSearch(LocatorProcessException.class, "id:" + runningBuild.getBuildId() + ",running:true");
-//consider fixing    checkBuilds("id:" + runningBuild.getBuildId() + ",running:true", runningBuild.getBuildPromotion());
-//consider fixing    checkExceptionOnBuildsSearch(NotFoundException.class, "id:" + runningBuild.getBuildId() + ",running:false");
+    checkBuilds("id:" + runningBuild.getBuildId() + ",running:true", runningBuild.getBuildPromotion());
+    checkExceptionOnBuildsSearch(NotFoundException.class, "id:" + runningBuild.getBuildId() + ",running:false");
   }
 
   @Test
@@ -266,7 +264,6 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
 
   protected void checkNoBuildsFound(final String locator) {
     final List<BuildPromotion> result = myBuildPromotionFinder.getItems(locator).myEntries;
-//    final List<BuildPromotion> result = myBuildPromotionFinder.getItems(locator).myEntries;
     if (!result.isEmpty()) {
       fail("For locator \"" + locator + "\" expected NotFoundException but found " + LogUtil.describe(result) + "");
     }

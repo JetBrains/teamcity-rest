@@ -49,56 +49,69 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
     final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
 
-    final SFinishedBuild build0 = build().in(buildConf).finish();
-    final SFinishedBuild build1 = build().in(buildConf).number("unique42").finish();
-    final SFinishedBuild build2 = build().in(buildConf).failed().finish();
-    final SFinishedBuild build3 = build().in(buildConf).number(String.valueOf(build2.getBuildId() + 1000)).finish(); //setting numeric number not clashing with any build id
-    final SFinishedBuild build4 = build().in(buildConf2).finish();
+    final BuildPromotion build0 = build().in(buildConf).finish().getBuildPromotion();
+    final BuildPromotion build1 = build().in(buildConf).number("unique42").finish().getBuildPromotion();
+    final BuildPromotion build2 = build().in(buildConf).failed().finish().getBuildPromotion();
+    final BuildPromotion build3 = build().in(buildConf).number(String.valueOf(build2.getId() + 1000)).finish().getBuildPromotion(); //setting numeric number not clashing with any build id
+    final BuildPromotion build4 = build().in(buildConf2).finish().getBuildPromotion();
 
-    final RunningBuildEx runningBuild5 = build().in(buildConf).run();
-    final SQueuedBuild queuedBuild = build().in(buildConf).addToQueue();
+    final BuildPromotion runningBuild5 = build().in(buildConf).run().getBuildPromotion();
+    final BuildPromotion queuedBuild = build().in(buildConf).addToQueue().getBuildPromotion();
 
-    checkBuild(String.valueOf(build1.getBuildId()), build1);
-    checkBuild("id:" + build1.getBuildId(), build1);
-    checkBuild("id:" + build2.getBuildId(), build2);
-    checkBuild("id:" + runningBuild5.getBuildId(), runningBuild5);
-    final long notExistingBuildId = runningBuild5.getBuildId() + 10;
+    @SuppressWarnings("ConstantConditions") final String build1Number = build1.getAssociatedBuild().getBuildNumber();
+    @SuppressWarnings("ConstantConditions") final String runningBuild5Number = runningBuild5.getAssociatedBuild().getBuildNumber();
+
+    checkBuild(String.valueOf(build1.getId()), build1);
+    checkBuild("id:" + build1.getId(), build1);
+    checkBuild("id:" + build1.getId() + ",personal:false", build1);
+    checkBuild("id:" + build1.getId() + ",personal:any", build1);
+
+    checkBuild("id:" + build2.getId(), build2);
+    checkBuild("id:" + runningBuild5.getId(), runningBuild5);
+    final long notExistingBuildId = runningBuild5.getId() + 10;
     checkExceptionOnBuildSearch(NotFoundException.class, "id:" + notExistingBuildId);
     checkExceptionOnBuildSearch(NotFoundException.class, String.valueOf(notExistingBuildId));
-    checkBuild("number:" + build1.getBuildNumber(), build1);
-//might need to fix    checkBuild("number:" + runningBuild5.getBuildNumber(), runningBuild5);
-    checkExceptionOnBuildSearch(NotFoundException.class, "number:" + runningBuild5.getBuildNumber());
-    checkBuild(build1.getBuildNumber(), build1);
-    checkExceptionOnBuildSearch(LocatorProcessException.class, "id:" + build1.getBuildId() + ",number:" + build1.getBuildNumber());
+    checkBuild("number:" + build1Number, build1);
+    checkExceptionOnBuildSearch(NotFoundException.class, "number:" + runningBuild5Number);
+    checkBuild("number:" + runningBuild5Number + ",state:any", runningBuild5);
 
-    checkBuild("buildType:(id:" + buildConf.getExternalId() + "),number:" + build1.getBuildNumber(), build1);
-    checkBuild("buildType:(id:" + buildConf.getExternalId() + "),id:" + build1.getBuildId(), build1);
+    checkBuild(build1Number, build1); // difference from BuildFinder
+    checkBuild("id:" + build1.getId() + ",number:" + build1Number, build1);
 
-    checkBuild("taskId:" + build1.getBuildPromotion().getId(), build1);
-    checkBuild("taskId:" + runningBuild5.getBuildPromotion().getId(), runningBuild5);
-    checkBuild("taskId:" + queuedBuild.getBuildPromotion().getId(), queuedBuild.getBuildPromotion()); // difference from 9.0 behavior in BuildFinder
-    checkBuild("id:" + queuedBuild.getItemId(), queuedBuild.getBuildPromotion()); // difference from BuildFinder
-    checkBuild("promotionId:" + build1.getBuildPromotion().getId(), build1);
-    checkBuild("buildType:(id:" + buildConf.getExternalId() + "),promotionId:" + build1.getBuildPromotion().getId(), build1);
+    checkBuild("buildType:(id:" + buildConf.getExternalId() + "),number:" + build1Number, build1);
+    checkBuild("buildType:(id:" + buildConf.getExternalId() + "),id:" + build1.getId(), build1);
+    checkBuild("buildType:(id:" + buildConf.getExternalId() + "),id:" + build1.getId() + ",status:SUCCESS", build1);
 
-    long notExistentBuildId = build4.getBuildId() + 1;
+    checkBuild("taskId:" + build1.getId(), build1);
+    checkBuild("taskId:" + runningBuild5.getId(), runningBuild5);
+    checkBuild("taskId:" + queuedBuild.getId(), queuedBuild); // difference from 9.0 behavior in BuildFinder
+    checkBuild("id:" + queuedBuild.getId(), queuedBuild); // difference from BuildFinder
+
+    checkBuild("id:" + queuedBuild.getId() + ",state:any", queuedBuild);
+    checkBuild("id:" + queuedBuild.getId() + ",state:queued", queuedBuild);
+    checkExceptionOnBuildsSearch(NotFoundException.class, "id:" + queuedBuild.getId() + ",state:running");
+
+    checkBuild("promotionId:" + build1.getId(), build1);
+    checkBuild("buildType:(id:" + buildConf.getExternalId() + "),promotionId:" + build1.getId(), build1);
+
+    long notExistentBuildId = build4.getId() + 1;
     final RunningBuildsManager runningBuildsManager = myFixture.getSingletonService(RunningBuildsManager.class);
     while (myFixture.getHistory().findEntry(notExistentBuildId) != null || runningBuildsManager.findRunningBuildById(notExistentBuildId) != null ||
            myFixture.getBuildQueue().findQueued(String.valueOf(notExistentBuildId)) != null) {
       notExistentBuildId++;
     }
 
-    long notExistentBuildPromotionId = build4.getBuildPromotion().getId() + 1;
+    long notExistentBuildPromotionId = build4.getId() + 1;
     while (myFixture.getBuildPromotionManager().findPromotionById(notExistentBuildPromotionId) != null) {
       notExistentBuildPromotionId++;
     }
 
     checkNoBuildFound("id:" + notExistentBuildId);
     checkNoBuildFound("buildType:(id:" + buildConf.getExternalId() + "),id:" + notExistentBuildId);
-    checkNoBuildFound("buildType:(id:" + buildConf2.getExternalId() + "),id:" + build2.getBuildId());
+    checkNoBuildFound("buildType:(id:" + buildConf2.getExternalId() + "),id:" + build2.getId());
     checkNoBuildFound("promotionId:" + notExistentBuildPromotionId);
     checkNoBuildFound("buildType:(id:" + buildConf.getExternalId() + "),promotionId:" + notExistentBuildPromotionId);
-    checkNoBuildFound("buildType:(id:" + buildConf2.getExternalId() + "),promotionId:" + build2.getBuildPromotion().getId());
+    checkNoBuildFound("buildType:(id:" + buildConf2.getExternalId() + "),promotionId:" + build2.getId());
   }
 
   @Test

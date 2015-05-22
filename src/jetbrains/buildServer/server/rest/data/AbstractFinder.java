@@ -20,6 +20,7 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -95,17 +96,18 @@ public abstract class AbstractFinder<ITEM> {
         locator.markUnused(PagerData.START);
       }
 
-      /*
       //todo: consider enabling this after check (report 404 instead of "locator is not fully processed"
       //and do not report "locator is not fully processed" if the single result complies)
-      if (!locator.isLocatorFullyProcessed()) {
+      final Set<String> unusedDimensions = locator.getUnusedDimensions();
+      if (!unusedDimensions.isEmpty()) {
         AbstractFilter<ITEM> filter = getFilter(locator);
+        locator.checkLocatorFullyProcessed();
         if (!filter.isIncluded(singleItem)) {
-          return new PagedSearchResult<ITEM>(new ArrayList<ITEM>(), null, null);
+          final Set<String> usedDimensions = locator.getUsedDimensions();
+          throw new NotFoundException("Found single item by " + StringUtil.pluralize("dimension", usedDimensions.size()) + " " + usedDimensions +
+                                      ", but that was filtered out using all dimensions");
         }
       }
-      */
-
 
       locator.checkLocatorFullyProcessed();
       return new PagedSearchResult<ITEM>(Collections.singletonList(singleItem), null, null);

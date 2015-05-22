@@ -322,7 +322,6 @@ public class Locator {
         reportKnownButNotReportedDimensions();
       }
       final Set<String> unusedDimensions = getUnusedDimensions();
-      unusedDimensions.removeAll(myIgnoreUnusedDimensions);
       if (unusedDimensions.size() > 0) {
         Set<String> ignoredDimensions =
           mySupportedDimensions == null ? Collections.<String>emptySet() : CollectionsUtil.intersect(unusedDimensions, Arrays.asList(mySupportedDimensions));
@@ -513,7 +512,7 @@ public class Locator {
   }
 
   /**
-   * Provides the names of dimensions whose values were never retrieved
+   * Provides the names of dimensions whose values were never retrieved and those not marked via addIgnoreUnusedDimensions
    *
    * @return names of the dimensions not yet queried
    */
@@ -526,7 +525,16 @@ public class Locator {
       result = new HashSet<String>(myDimensions.keySet());
     }
     result.removeAll(myUsedDimensions);
+    result.removeAll(myIgnoreUnusedDimensions);
     return result;
+  }
+
+  /**
+   * Provides the names of dimensions whose values were retrieved
+   */
+  @NotNull
+  public Set<String> getUsedDimensions() {
+    return new HashSet<String>(myUsedDimensions);
   }
 
   /**
