@@ -401,15 +401,19 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
   @NotNull
   public BuildTypeOrTemplate getBuildTypeOrTemplate(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
-    if (StringUtil.isEmpty(buildTypeLocator)) {
-      throw new BadRequestException("Empty build type locator is not supported.");
+    if (project == null){
+      return getItem(buildTypeLocator);
     }
-    String actualLocator = buildTypeLocator;
-    if (project != null) {
-      actualLocator = Locator.setDimensionIfNotPresent(buildTypeLocator, DIMENSION_PROJECT, ProjectFinder.getLocator(project));
+
+    final Locator locator = buildTypeLocator != null ? new Locator(buildTypeLocator) : null;
+    if (locator == null || !locator.isSingleValue()) {
+      return getItem(Locator.setDimensionIfNotPresent(buildTypeLocator, DIMENSION_PROJECT, ProjectFinder.getLocator(project)));
     }
-    final BuildTypeOrTemplate result = getItem(actualLocator);
-    if (project != null && !result.getProject().equals(project)) {
+
+    // single value locator
+
+    final BuildTypeOrTemplate result = getItem(buildTypeLocator);
+    if (!result.getProject().getProjectId().equals(project.getProjectId())) {
       throw new BadRequestException("Found " + LogUtil.describe(result) + " but it does not belong to project " + LogUtil.describe(project) + ".");
     }
     return result;
