@@ -28,7 +28,6 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
-import jetbrains.buildServer.serverSide.impl.BuildPromotionManagerEx;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -663,8 +662,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected ItemHolder<BuildPromotion> getPrefilteredItems(@NotNull Locator locator) {
     final String equivalent = locator.getSingleDimensionValue(EQUIVALENT);
     if (equivalent != null) {
-      final BuildPromotion build = getItem(equivalent);
-      final List<BuildPromotionEx> result = ((BuildPromotionManagerEx)myBuildPromotionManager).getStartedEquivalentPromotions(build);
+      final BuildPromotionEx build = (BuildPromotionEx)getItem(equivalent);
+      final List<BuildPromotionEx> result = build.getStartedEquivalentPromotions();
       final List<BuildPromotion> convertedResult = new ArrayList<BuildPromotion>(result.size());
       for (BuildPromotionEx item : result) {
         convertedResult.add(item);
