@@ -90,6 +90,7 @@ public abstract class AbstractFinder<ITEM> {
 
     ITEM singleItem = findSingleItem(locator);
     if (singleItem != null){
+      final Set<String> singleItemUsedDimensions = locator.getUsedDimensions();
       // ignore start:0 dimension
       final Long startDimension = locator.getSingleDimensionValueAsLong(PagerData.START);
       if (startDimension == null || startDimension != 0) {
@@ -103,9 +104,8 @@ public abstract class AbstractFinder<ITEM> {
         AbstractFilter<ITEM> filter = getFilter(locator);
         locator.checkLocatorFullyProcessed();
         if (!filter.isIncluded(singleItem)) {
-          final Set<String> usedDimensions = locator.getUsedDimensions();
-          throw new NotFoundException("Found single item by " + StringUtil.pluralize("dimension", usedDimensions.size()) + " " + usedDimensions +
-                                      ", but that was filtered out using all dimensions");
+          throw new NotFoundException("Found single item by " + StringUtil.pluralize("dimension", singleItemUsedDimensions.size()) + " " + singleItemUsedDimensions +
+                                      ", but that was filtered out using all the specified dimensions");
         }
       }
 
