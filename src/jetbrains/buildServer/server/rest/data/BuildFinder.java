@@ -173,7 +173,7 @@ public class BuildFinder {
   }
 
   private boolean useByPromotionFiltering(@NotNull final Locator locator) {
-    final Boolean byPromotion = locator.getSingleDimensionValueAsBoolean(BuildPromotionFinder.BY_PROMOTION, !TeamCityProperties.getBooleanOrTrue(LEGACY_BUILDS_FILTERING));
+    final Boolean byPromotion = locator.getSingleDimensionValueAsBoolean(BuildPromotionFinder.BY_PROMOTION, !TeamCityProperties.getBoolean(LEGACY_BUILDS_FILTERING));
     return byPromotion != null && byPromotion;
   }
 
