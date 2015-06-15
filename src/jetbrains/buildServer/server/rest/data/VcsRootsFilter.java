@@ -82,12 +82,8 @@ public class VcsRootsFilter extends AbstractFilter<SVcsRoot> {
           vcsManager.getVcsService(new VcsRootEntry(root, CheckoutRules.DEFAULT), PersonalSupportService.class);
 
         if (personalSupportService != null) {
-          try {
-            return null != personalSupportService.mapPath(repositoryIdString, true).getMappedPath();
-          } catch (VcsException e) {
-            LOG.info("Cannot map " + LogUtil.describe(root), e);
-            return false;
-          }
+          if (null != personalSupportService.mapPath(repositoryIdString, true).getMappedPath())
+            return true;
         } else {
           LOG.debug("No personal support for VCS root " + LogUtil.describe(root) + " found, ignoring root in search");
           return false;
