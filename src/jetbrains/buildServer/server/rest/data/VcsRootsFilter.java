@@ -25,6 +25,7 @@ import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.vcs.*;
+import jetbrains.vcs.api.services.tc.PersonalSupportService;
 import jetbrains.vcs.api.services.tc.VcsMappingElement;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -77,11 +78,15 @@ public class VcsRootsFilter extends AbstractFilter<SVcsRoot> {
     try {
       final VcsSupportCore vcsSupport = vcsManager.findVcsByName(root.getVcsName());
       if (vcsSupport != null) {
-        final VcsPersonalSupport personalSupport = ((ServerVcsSupport)vcsSupport).getPersonalSupport();
-        if (personalSupport != null) {
-          final Collection<String> mapped = personalSupport.mapFullPath(new VcsRootEntry(root, CheckoutRules.DEFAULT), repositoryIdString);
-          if (mapped.size() != 0) {
-            return true;
+        final PersonalSupportService personalSupportService =
+          vcsManager.getVcsService(new VcsRootEntry(root, CheckoutRules.DEFAULT), PersonalSupportService.class);
+
+        if (personalSupportService != null) {
+          try {
+            return null != personalSupportService.mapPath(repositoryIdString, true).getMappedPath();
+          } catch (VcsException e) {
+            LOG.info("Cannot map " + LogUtil.describe(root), e);
+            return false;
           }
         } else {
           LOG.debug("No personal support for VCS root " + LogUtil.describe(root) + " found, ignoring root in search");
