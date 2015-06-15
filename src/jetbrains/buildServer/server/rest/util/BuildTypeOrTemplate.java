@@ -194,5 +194,26 @@ public class BuildTypeOrTemplate implements Loggable {
   public String describe(final boolean verbose) {
       return isBuildType() ? LogUtil.describe(myBuildType) : LogUtil.describe(myTemplate);
   }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+
+    final BuildTypeOrTemplate that = (BuildTypeOrTemplate)o;
+
+    if (myBuildType != null ? !myBuildType.equals(that.myBuildType) : that.myBuildType != null) return false;
+    if (myTemplate != null ? !myTemplate.equals(that.myTemplate) : that.myTemplate != null) return false;
+    return myBuildTypeIdentity.equals(that.myBuildTypeIdentity);
+
+  }
+
+  @Override
+  public int hashCode() {
+    int result = myBuildType != null ? myBuildType.hashCode() : 0;
+    result = 31 * result + (myTemplate != null ? myTemplate.hashCode() : 0);
+    result = 31 * result + myBuildTypeIdentity.hashCode();
+    return result;
+  }
 }
 

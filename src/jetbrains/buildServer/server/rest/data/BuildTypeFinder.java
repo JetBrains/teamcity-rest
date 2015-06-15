@@ -63,7 +63,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   private final ProjectFinder myProjectFinder;
   @NotNull private final AgentFinder myAgentFinder;
   private final ProjectManager myProjectManager;
-  private ServiceLocator myServiceLocator;
+  private final ServiceLocator myServiceLocator;
 
   public BuildTypeFinder(@NotNull final ProjectManager projectManager,
                          @NotNull final ProjectFinder projectFinder,
@@ -125,17 +125,11 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       }
 
       // assume it's a name
-      final BuildTypeOrTemplate buildTypeByName = findBuildTypeByName(null, value, null);
+      final BuildTypeOrTemplate buildTypeByName = findBuildTypebyName(value, null, null);
       if (buildTypeByName != null) {
         return buildTypeByName;
       }
       throw new NotFoundException("No build type or template is found by id, internal id or name '" + value + "'.");
-    }
-
-    @Nullable SProject project = null;
-    String projectLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
-    if (projectLocator != null) {
-      project = myProjectFinder.getItem(projectLocator);
     }
 
     String internalId = locator.getSingleDimensionValue(DIMENSION_INTERNAL_ID);
@@ -207,26 +201,6 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       throw new NotFoundException("No " + getName(template) + " is found by id '" + id + "'.");
     }
 
-    String name = locator.getSingleDimensionValue(DIMENSION_NAME);
-    if (name != null) {
-      Boolean template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_FLAG_DIMENSION_NAME);
-      if (template == null) {
-        //legacy support for boolean value
-        try {
-          template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_DIMENSION_NAME);
-        } catch (LocatorProcessException e) {
-          //override default message as it might be confusing here due to legacy support
-          throw new BadRequestException("Try omitting dimension '" + TEMPLATE_DIMENSION_NAME + "' here");
-        }
-      }
-      final BuildTypeOrTemplate buildTypeByName = findBuildTypeByName(project, name, template);
-      if (buildTypeByName != null) {
-        return buildTypeByName;
-      }
-      throw new NotFoundException(
-        "No " + getName(template) + " is found by name '" + name + "'" + (project != null ? " in project '" + LogUtil.describe(project) + "'" : "") + ".");
-    }
-
     return null;
   }
 
@@ -242,6 +216,15 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     final MultiCheckerFilter<BuildTypeOrTemplate> result =
       new MultiCheckerFilter<BuildTypeOrTemplate>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
 
+    final String name = locator.getSingleDimensionValue(DIMENSION_NAME);
+    if (name != null) {
+      result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
+        public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+          return name.equalsIgnoreCase(item.getName());
+        }
+      });
+    }
+
     final String projectLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
     SProject project = null;
     if (projectLocator != null) {
@@ -249,7 +232,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       final SProject internalProject = project;
       result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
         public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
-          return internalProject.equals(item.getProject());
+          return internalProject.getProjectId().equals(item.getProject().getProjectId());
         }
       });
     }
@@ -331,7 +314,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
             }
             final BuildPromotion buildPromotion = buildPromotions.get(0);
             final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
-            if (associatedBuild == null){
+            if (associatedBuild == null) {
               return false; //queued builds are not yet supported
             }
             return buildFinder.getBuildsFilter(null, match).isIncluded(associatedBuild);
@@ -343,6 +326,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     return result;
   }
 
+  @NotNull
   @Override
   protected ItemHolder<BuildTypeOrTemplate> getPrefilteredItems(@NotNull final Locator locator) {
     List<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
@@ -499,36 +483,25 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     return null;
   }
 
-  /**
-   *
-   * @param project project to search build type in (subprojects are also searched). Can be 'null' to search in all the build types on the server.
-   * @param name    name of the build type to search for.
-   * @param isTemplate null to search for both build types and temapltes or true/false
-   * @return build type with the name 'name'. If 'project' is not null, the search is performed only within 'project'.
-   * @throws jetbrains.buildServer.server.rest.errors.BadRequestException if several build types with the same name are found
-   */
   @Nullable
-  private BuildTypeOrTemplate findBuildTypeByName(@Nullable final SProject project, @NotNull final String name, final Boolean isTemplate) {
-    if (project != null) {
-      BuildTypeOrTemplate result = getOwnBuildTypeOrTemplateByName(project, name, isTemplate);
-      if (result != null){
-        return result;
-      }
-      // try to find in subprojects if not found in the project directly
-      return findBuildTypeinProjects(name, project.getProjects(), isTemplate);
+  private BuildTypeOrTemplate findBuildTypebyName(@NotNull final String name, @Nullable List<SProject> projects, final Boolean isTemplate) {
+    if (projects == null) {
+      projects = myProjectManager.getProjects();
     }
-
-    return findBuildTypeinProjects(name, myProjectManager.getProjects(), isTemplate);
-  }
-
-  @Nullable
-  private static BuildTypeOrTemplate findBuildTypeinProjects(final String name, final List<SProject> projects, final Boolean isTemplate) {
     BuildTypeOrTemplate firstFound = null;
     for (SProject project : projects) {
       final BuildTypeOrTemplate found = getOwnBuildTypeOrTemplateByName(project, name, isTemplate);
       if (found != null) {
         if (firstFound != null) {
-          throw new BadRequestException("Several matching build types/templates found for name '" + name + "'.");
+          String message = "Several matching ";
+          if (isTemplate == null) {
+            message += "build types/templates";
+          } else if (isTemplate) {
+            message += "templates";
+          } else {
+            message += "build types";
+          }
+          throw new BadRequestException(message + " found for name '" + name + "'.");
         }
         firstFound = found;
       }
