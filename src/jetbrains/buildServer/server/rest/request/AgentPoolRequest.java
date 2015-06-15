@@ -16,8 +16,8 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import java.util.HashSet;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import javax.ws.rs.*;
@@ -195,7 +195,7 @@ public class AgentPoolRequest {
   @Produces({"application/xml", "application/json"})
   public Project getPoolProject(@PathParam("agentPoolLocator") String agentPoolLocator, @PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolsFinder.getAgentPool(agentPoolLocator);
-    final SProject project = myProjectFinder.getProject(projectLocator);
+    final SProject project = myProjectFinder.getItem(projectLocator);
     return new Project(project,  new Fields(fields), myBeanContext);
   }
 
@@ -203,7 +203,7 @@ public class AgentPoolRequest {
   @Path("/{agentPoolLocator}/projects/{projectLocator}")
   public void deletePoolProject(@PathParam("agentPoolLocator") String agentPoolLocator, @PathParam("projectLocator") String projectLocator) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolsFinder.getAgentPool(agentPoolLocator);
-    final SProject project = myProjectFinder.getProject(projectLocator);
+    final SProject project = myProjectFinder.getItem(projectLocator);
     final AgentPoolManager agentPoolManager = myServiceLocator.getSingletonService(AgentPoolManager.class);
     final int agentPoolId = agentPool.getAgentPoolId();
     try {

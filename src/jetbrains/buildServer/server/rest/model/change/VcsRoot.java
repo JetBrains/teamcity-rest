@@ -279,7 +279,7 @@ public class VcsRoot {
       }
       throw new BadRequestException("Setting field 'defaultModificationCheckIntervalInUse' to false is not supported, set modificationCheckInterval instead.");
     } else if ("projectId".equals(field) || "project".equals(field)) { //project locator is acually supported, "projectId" is preserved for compatibility with previous versions
-      SProject targetProject = projectFinder.getProject(newValue);
+      SProject targetProject = projectFinder.getItem(newValue);
       vcsRoot.moveToProject(targetProject);
       return;
     }

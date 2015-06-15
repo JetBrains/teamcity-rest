@@ -80,7 +80,7 @@ public class NewProjectDescription extends CopyOptionsDescription{
       if (StringUtil.isEmpty(sourceProjectLocator)) {
         return null;
       } else {
-        return serviceLocator.getSingletonService(ProjectFinder.class).getProject(sourceProjectLocator);
+        return serviceLocator.getSingletonService(ProjectFinder.class).getItem(sourceProjectLocator);
       }
     }
     if (!StringUtil.isEmpty(sourceProjectLocator)) {

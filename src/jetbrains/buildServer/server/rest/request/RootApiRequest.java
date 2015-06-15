@@ -83,7 +83,7 @@ public class RootApiRequest {
                                      @PathParam("btLocator") String buildTypeLocator,
                                      @PathParam("buildLocator") String buildLocator,
                                      @PathParam("field") String field) {
-    SProject project = myProjectFinder.getProject(projectLocator);
+    SProject project = myProjectFinder.getItem(projectLocator);
     SBuildType buildType = myBuildTypeFinder.getBuildType(project, buildTypeLocator);
     final BuildPromotion buildPromotion = myBuildFinder.getBuildPromotion(buildType, buildLocator);
 

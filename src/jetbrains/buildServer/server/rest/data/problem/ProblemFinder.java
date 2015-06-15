@@ -117,7 +117,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     final SProject affectedProject;
     String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null) {
-      affectedProject = myProjectFinder.getProject(affectedProjectDimension);
+      affectedProject = myProjectFinder.getItem(affectedProjectDimension);
     }else{
       affectedProject = myProjectFinder.getRootProject();
     }
@@ -167,7 +167,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
 
     final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null) {
-      @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
+      @NotNull final SProject project = myProjectFinder.getItem(affectedProjectDimension);
       final Set<ProblemWrapper> currentProjectProblems = new TreeSet<ProblemWrapper>(getCurrentProblemsList(project));
       //todo: bug: searches only inside current problems: non-current problems are not returned
       result.add(new FilterConditionChecker<ProblemWrapper>() {

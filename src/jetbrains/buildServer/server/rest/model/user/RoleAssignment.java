@@ -85,7 +85,7 @@ public class RoleAssignment {
     if (internalId == null){
       //throw new InvalidStateException("Could not find project internal id by external id '" + projectString + "'.");
       //support locator here just in case
-      final SProject project = context.getSingletonService(ProjectFinder.class).getProject(projectString);
+      final SProject project = context.getSingletonService(ProjectFinder.class).getItem(projectString);
       return RoleScope.projectScope(project.getProjectId());
     }
     return RoleScope.projectScope(internalId.getInternalId());

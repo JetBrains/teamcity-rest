@@ -194,7 +194,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
     final String assignmentProjectDimension = locator.getSingleDimensionValue(ASSIGNMENT_PROJECT);
     if (assignmentProjectDimension != null){
-      @NotNull final SProject project = myProjectFinder.getProject(assignmentProjectDimension);
+      @NotNull final SProject project = myProjectFinder.getItem(assignmentProjectDimension);
       result.add(new FilterConditionChecker<InvestigationWrapper>() {
         public boolean isIncluded(@NotNull final InvestigationWrapper item) {
           final BuildProject assignmentProject = item.getAssignmentProject();
@@ -205,7 +205,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
     final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null){
-      @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
+      @NotNull final SProject project = myProjectFinder.getItem(affectedProjectDimension);
       result.add(new FilterConditionChecker<InvestigationWrapper>() {
         public boolean isIncluded(@NotNull final InvestigationWrapper item) {
           final BuildProject assignmentProject = item.getAssignmentProject();
@@ -259,13 +259,13 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
     final String assignmentProjectDimension = locator.getSingleDimensionValue(ASSIGNMENT_PROJECT);
     if (assignmentProjectDimension != null){
-      @NotNull final SProject project = myProjectFinder.getProject(assignmentProjectDimension);
+      @NotNull final SProject project = myProjectFinder.getItem(assignmentProjectDimension);
       return getItemHolder(getInvestigationWrappersForProject(project, user));
     }
 
     final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null){
-      @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
+      @NotNull final SProject project = myProjectFinder.getItem(affectedProjectDimension);
       return getItemHolder(getInvestigationWrappersForProjectWithSubprojects(project, user));
     }
 

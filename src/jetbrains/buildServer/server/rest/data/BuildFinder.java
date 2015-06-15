@@ -342,7 +342,7 @@ public class BuildFinder {
     //todo: report unknown locator dimensions
     final SBuildType actualBuildType = myBuildTypeFinder.deriveBuildTypeFromLocator(buildType, buildLocator.getSingleDimensionValue("buildType"));
     final String projectFromLocator = buildLocator.getSingleDimensionValue("project");
-    final SProject project = StringUtil.isEmpty(projectFromLocator) ? null : myProjectFinder.getProject(projectFromLocator);
+    final SProject project = StringUtil.isEmpty(projectFromLocator) ? null : myProjectFinder.getItem(projectFromLocator);
 
     final String userLocator = buildLocator.getSingleDimensionValue("user");
     final String tagsString = buildLocator.getSingleDimensionValue("tags");

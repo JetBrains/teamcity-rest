@@ -127,7 +127,7 @@ public class TestFinder extends AbstractFinder<STest> {
     final SProject affectedProject;
     String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null) {
-      affectedProject = myProjectFinder.getProject(affectedProjectDimension);
+      affectedProject = myProjectFinder.getItem(affectedProjectDimension);
     }else{
       affectedProject = myProjectFinder.getRootProject();
     }

@@ -258,10 +258,10 @@ public class Project {
     if (jetbrains.buildServer.util.StringUtil.isEmpty(locatorText)){
       //find by href for compatibility with 7.0
       if (!jetbrains.buildServer.util.StringUtil.isEmpty(href)){
-        return projectFinder.getProject(jetbrains.buildServer.util.StringUtil.lastPartOf(href, '/'));
+        return projectFinder.getItem(jetbrains.buildServer.util.StringUtil.lastPartOf(href, '/'));
       }
       throw new BadRequestException("No project specified. Either 'id', 'internalId' or 'locator' attribute should be present.");
     }
-    return projectFinder.getProject(locatorText);
+    return projectFinder.getItem(locatorText);
   }
 }

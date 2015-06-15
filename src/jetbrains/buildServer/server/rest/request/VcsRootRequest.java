@@ -301,7 +301,7 @@ public class VcsRootRequest {
       if (description.project != null){
         throw new BadRequestException("Only one from 'projectLocator' attribute and 'project' element should be specified.");
       }
-      return myProjectFinder.getProject(description.projectLocator);
+      return myProjectFinder.getItem(description.projectLocator);
     }else{
       if (description.project == null){
         if (TeamCityProperties.getBoolean("rest.compatibility.allowNoProjectOnVcsRootCreation")){

@@ -269,7 +269,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
     final String projectLocator = locator.getSingleDimensionValue(PROJECT);
     if (projectLocator != null) {
-      final SProject project = myProjectFinder.getProject(projectLocator);
+      final SProject project = myProjectFinder.getItem(projectLocator);
       result.add(new FilterConditionChecker<SVcsModification>() {
         public boolean isIncluded(@NotNull final SVcsModification item) {
           return item.getRelatedProjects().contains(project);
@@ -450,7 +450,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
     final String projectLocator = locator.getSingleDimensionValue(PROJECT);
     if (projectLocator != null) {
-      return getItemHolder(getProjectChanges(myVcsModificationHistory, myProjectFinder.getProject(projectLocator), sinceChangeId));
+      return getItemHolder(getProjectChanges(myVcsModificationHistory, myProjectFinder.getItem(projectLocator), sinceChangeId));
     }
 
     if (sinceChangeId != null) {

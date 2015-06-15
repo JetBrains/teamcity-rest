@@ -52,7 +52,7 @@ public class VcsRootsFilter extends AbstractFilter<SVcsRoot> {
     myVcsType = locator.getSingleDimensionValue("type");
     final String projectLocator = locator.getSingleDimensionValue("project");
     if (projectLocator != null) {
-      myProject = projectFinder.getProject(projectLocator);
+      myProject = projectFinder.getItem(projectLocator);
     } else {
       myProject = null;
     }

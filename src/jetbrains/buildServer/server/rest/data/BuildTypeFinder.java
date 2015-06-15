@@ -135,7 +135,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     @Nullable SProject project = null;
     String projectLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
     if (projectLocator != null) {
-      project = myProjectFinder.getProject(projectLocator);
+      project = myProjectFinder.getItem(projectLocator);
     }
 
     String internalId = locator.getSingleDimensionValue(DIMENSION_INTERNAL_ID);
@@ -245,7 +245,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     final String projectLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
     SProject project = null;
     if (projectLocator != null) {
-      project = myProjectFinder.getProject(projectLocator);
+      project = myProjectFinder.getItem(projectLocator);
       final SProject internalProject = project;
       result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
         public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
@@ -256,7 +256,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
     final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null) {
-      @NotNull final SProject parentProject = myProjectFinder.getProject(affectedProjectDimension);
+      @NotNull final SProject parentProject = myProjectFinder.getItem(affectedProjectDimension);
       result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
         public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
           return ProjectFinder.isSameOrParent(parentProject, item.getProject());
@@ -298,7 +298,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       final ParameterCondition parameterCondition = ParameterCondition.create(parameterDimension);
       result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
         public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
-          return parameterCondition.matches(new MapParametersProviderImpl(item.get().getParameters()));
+          return parameterCondition.matches(new MapParametersProviderImpl(item.get().getParameters())); //includes project params? template params?
         }
       });
     }
@@ -350,13 +350,13 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     SProject project = null;
     final String projectLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
     if (projectLocator != null) {
-      project = myProjectFinder.getProject(projectLocator);
+      project = myProjectFinder.getItem(projectLocator);
     }
 
     SProject affectedProject = null;
     final String affectedProjectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectLocator != null) {
-      affectedProject = myProjectFinder.getProject(affectedProjectLocator);
+      affectedProject = myProjectFinder.getItem(affectedProjectLocator);
     }
 
     final String templateLocator = locator.getSingleDimensionValue(TEMPLATE_DIMENSION_NAME);

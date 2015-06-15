@@ -219,7 +219,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   private SProject getAffectedProject(@NotNull final Locator locator) {
     String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null) {
-      return myProjectFinder.getProject(affectedProjectDimension);
+      return myProjectFinder.getItem(affectedProjectDimension);
     }else{
       return myProjectFinder.getRootProject();
     }

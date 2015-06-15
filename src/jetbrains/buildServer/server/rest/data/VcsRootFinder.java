@@ -319,7 +319,7 @@ public class VcsRootFinder{
       final String projectLocator = locator.getSingleDimensionValue("project"); //uses project as "defined in", but might also need "accessible from" operation
       SProject project = null;
       if (projectLocator != null) {
-        project = myProjectFinder.getProject(projectLocator);
+        project = myProjectFinder.getItem(projectLocator);
       }
 
       final String buildTypeLocator = locator.getSingleDimensionValue("buildType"); //uses buildType as "used in", but might also need "accessible from" operation
@@ -384,7 +384,7 @@ public class VcsRootFinder{
     final String projectLocator = locator.getSingleDimensionValue("project"); //uses project as "defined in", but might also need "accessible from" operation
     SProject project = null;
     if (projectLocator != null) {
-      project = myProjectFinder.getProject(projectLocator);
+      project = myProjectFinder.getItem(projectLocator);
       final SProject internalProject = project;
       result.add(new FilterConditionChecker<VcsRootInstance>() {
         public boolean isIncluded(@NotNull final VcsRootInstance item) {

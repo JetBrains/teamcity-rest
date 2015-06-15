@@ -242,10 +242,10 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
     final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null) {
-      @NotNull final SProject project = myProjectFinder.getProject(affectedProjectDimension);
+      @NotNull final SProject project = myProjectFinder.getItem(affectedProjectDimension);
       result.add(new FilterConditionChecker<BuildProblem>() {
         public boolean isIncluded(@NotNull final BuildProblem item) {
-          return ProjectFinder.isSameOrParent(project, myProjectFinder.getProject(item.getProjectId()));
+          return ProjectFinder.isSameOrParent(project, myProjectFinder.getItem(item.getProjectId()));
         }
       });
     }
@@ -372,7 +372,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   private SProject getAffectedProject(@NotNull final Locator locator) {
     String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null) {
-      return myProjectFinder.getProject(affectedProjectDimension);
+      return myProjectFinder.getItem(affectedProjectDimension);
     }else{
       return myProjectFinder.getRootProject();
     }

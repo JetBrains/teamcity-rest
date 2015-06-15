@@ -20,9 +20,11 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.util.ArrayList;
 import java.util.List;
 import jetbrains.buildServer.BuildProject;
+import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
@@ -34,33 +36,46 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 23.03.13
  */
-public class ProjectFinder {
+public class ProjectFinder extends AbstractFinder<SProject> {
   private static final Logger LOG = Logger.getInstance(ProjectFinder.class.getName());
+
+  public static final String DIMENSION_ID = AbstractFinder.DIMENSION_ID;
+  public static final String DIMENSION_INTERNAL_ID = "internalId";
+  public static final String DIMENSION_UUID = "uuid";
+  public static final String DIMENSION_PROJECT = "project";
+  public static final String DIMENSION_PARENT_PROJECT = "parentProject";
+  private static final String DIMENSION_AFFECTED_PROJECT = "affectedProject";
+  public static final String DIMENSION_NAME = "name";
+  public static final String DIMENSION_ARCHIVED = "archived";
+  protected static final String DIMENSION_PARAMETER = "parameter";
 
   @NotNull private final ProjectManager myProjectManager;
 
   public ProjectFinder(@NotNull final ProjectManager projectManager){
+    super(new String[]{DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, DIMENSION_AFFECTED_PROJECT, DIMENSION_NAME, DIMENSION_ARCHIVED,
+      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME,
+      PagerData.START,
+      PagerData.COUNT
+    });
     myProjectManager = projectManager;
   }
 
-  public static boolean isSameOrParent(@NotNull final BuildProject parent, @NotNull final BuildProject project) {
-    if (parent.getProjectId().equals(project.getProjectId())) return true;
-    if (project.getParentProject() == null) return false;
-    return isSameOrParent(parent, project.getParentProject());
+  public static String getLocator(final BuildProject project) {
+    return Locator.getStringLocator(DIMENSION_ID, project.getExternalId());
   }
 
-  public static String getLocator(final BuildProject project) {
-    return Locator.createEmptyLocator().setDimension("id", project.getExternalId()).getStringRepresentation();
-  }
 
   @NotNull
-  public SProject getProject(@Nullable String projectLocator) {
-    if (StringUtil.isEmpty(projectLocator)) {
-      throw new BadRequestException("Empty project locator is not supported.");
-    }
+  @Override
+  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
+    final Locator result = super.createLocator(locatorText, locatorDefaults);
+    result.addHiddenDimensions(DIMENSION_PARAMETER, DIMENSION_PARENT_PROJECT); //hide these for now
+    return result;
+  }
 
-    final Locator locator = new Locator(projectLocator, "id", "name", "parentProject", "internalId", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-
+  @Nullable
+  @Override
+  protected SProject findSingleItem(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's a name or internal id or external id
       SProject project = null;
@@ -69,12 +84,9 @@ public class ProjectFinder {
       if (project != null) {
         return project;
       }
-      final List<SProject> projectsByName = findProjectsByName(null, singleValue);
+      final List<SProject> projectsByName = findProjectsByName(null, singleValue, true);
       if (projectsByName.size() == 1) {
-        project = projectsByName.get(0);
-        if (project != null) {
-          return project;
-        }
+        return projectsByName.get(0);
       }
       project = myProjectManager.findProjectById(singleValue);
       if (project != null) {
@@ -83,41 +95,33 @@ public class ProjectFinder {
       throw new NotFoundException("No project found by name or internal/external id '" + singleValue + "'.");
     }
 
-    String id = locator.getSingleDimensionValue("id");
+    String id = locator.getSingleDimensionValue(DIMENSION_ID);
     if (id != null) {
       SProject project = myProjectManager.findProjectByExternalId(id);
       if (project == null) {
-        if (TeamCityProperties.getBoolean(APIController.REST_COMPATIBILITY_ALLOW_EXTERNAL_ID_AS_INTERNAL)){
+        if (TeamCityProperties.getBoolean(APIController.REST_COMPATIBILITY_ALLOW_EXTERNAL_ID_AS_INTERNAL)) {
           project = myProjectManager.findProjectById(id);
           if (project == null) {
-            throw new NotFoundException("No project found by locator '" + projectLocator +
+            throw new NotFoundException("No project found by locator '" + locator.getStringRepresentation() +
                                         "' in compatibility mode. Project cannot be found by external or internal id '" + id + "'.");
           }
-        }else{
-          throw new NotFoundException("No project found by locator '" + projectLocator + "'. Project cannot be found by external id '" + id + "'.");
+        } else {
+          throw new NotFoundException("No project found by locator '" + locator.getStringRepresentation() + "'. Project cannot be found by external id '" + id + "'.");
         }
       }
-      if (locator.getDimensionsCount() > 1) {
-        LOG.info("Project locator '" + projectLocator + "' has 'id' dimension and others. Others are ignored.");
-      }
-      locator.checkLocatorFullyProcessed();
       return project;
     }
 
-    String internalId = locator.getSingleDimensionValue("internalId");
+    String internalId = locator.getSingleDimensionValue(DIMENSION_INTERNAL_ID);
     if (internalId != null) {
       SProject project = myProjectManager.findProjectById(internalId);
       if (project == null) {
-        throw new NotFoundException("No project found by locator '" + projectLocator + "'. Project cannot be found by internal id '" + internalId + "'.");
+        throw new NotFoundException("No project found by locator '" + locator.getStringRepresentation() + "'. Project cannot be found by internal id '" + internalId + "'.");
       }
-      if (locator.getDimensionsCount() > 1) {
-        LOG.info("Project locator '" + projectLocator + "' has 'internalId' dimension and others. Others are ignored.");
-      }
-      locator.checkLocatorFullyProcessed();
       return project;
     }
 
-    String uuid = locator.getSingleDimensionValue("uuid");
+    String uuid = locator.getSingleDimensionValue(DIMENSION_UUID);
     if (!StringUtil.isEmpty(uuid)) {
 
       SProject project = myProjectManager.findProjectByConfigId(uuid);
@@ -128,21 +132,95 @@ public class ProjectFinder {
         } catch (InterruptedException e) {
           //ignore
         }
-        throw new NotFoundException("No project found by locator '" + projectLocator + "'. Project cannot be found by uuid '" + uuid + "'.");
+        throw new NotFoundException("No project found by locator '" + locator.getStringRepresentation() + "'. Project cannot be found by uuid '" + uuid + "'.");
       }
-      locator.checkLocatorFullyProcessed();
       return project;
     }
 
-    String name = locator.getSingleDimensionValue("name");
-    if (name != null) {
-      final String parentProjectLocator = locator.getSingleDimensionValue("parentProject");
-      final SProject projectByName = getProjectByName(parentProjectLocator == null ? null : getProject(parentProjectLocator), name);
-      locator.checkLocatorFullyProcessed();
-      return projectByName;
+    return null;
+  }
+
+  @Nullable
+  private SProject getParentProject(final @NotNull Locator locator) {
+    String parentProjectLocator = locator.getSingleDimensionValue(DIMENSION_PARENT_PROJECT); //compatibility mode for versions <9.1
+    if (parentProjectLocator == null) parentProjectLocator = locator.getSingleDimensionValue(DIMENSION_AFFECTED_PROJECT);
+    return parentProjectLocator == null ? null : getItem(parentProjectLocator);
+  }
+
+  @Nullable
+  @Override
+  public ItemHolder<SProject> getAllItems() {
+    return getItemHolder(myProjectManager.getProjects());
+  }
+
+  @NotNull
+  @Override
+  protected AbstractFilter<SProject> getFilter(final Locator locator) {
+    if (locator.isSingleValue()) {
+      throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }
-    locator.checkLocatorFullyProcessed();
-    throw new BadRequestException("Project locator '" + projectLocator + "' is not supported.");
+
+    final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
+    final MultiCheckerFilter<SProject> result =
+      new MultiCheckerFilter<SProject>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
+
+    final String name = locator.getSingleDimensionValue(DIMENSION_NAME);
+    if (name != null) {
+      result.add(new FilterConditionChecker<SProject>() {
+        public boolean isIncluded(@NotNull final SProject item) {
+          return name.equals(item.getName());
+        }
+      });
+    }
+
+    final Boolean archived = locator.getSingleDimensionValueAsBoolean(DIMENSION_ARCHIVED);
+    if (archived != null) {
+      result.add(new FilterConditionChecker<SProject>() {
+        public boolean isIncluded(@NotNull final SProject item) {
+          return FilterUtil.isIncludedByBooleanFilter(archived, item.isArchived());
+        }
+      });
+    }
+
+    final String parameterDimension = locator.getSingleDimensionValue(DIMENSION_PARAMETER);
+    if (parameterDimension != null) {
+      final ParameterCondition parameterCondition = ParameterCondition.create(parameterDimension);
+      result.add(new FilterConditionChecker<SProject>() {
+        public boolean isIncluded(@NotNull final SProject item) {
+          return parameterCondition.matches(new MapParametersProviderImpl(item.getOwnParameters()));
+        }
+      });
+    }
+
+    return result;
+  }
+
+  @NotNull
+  @Override
+  protected ItemHolder<SProject> getPrefilteredItems(@NotNull final Locator locator) {
+
+    SProject parentProject = getParentProject(locator);
+
+    String name = locator.getSingleDimensionValue(DIMENSION_NAME);
+    if (name != null) {
+      if (parentProject != null) {
+        return getItemHolder(findProjectsByName(parentProject, name, true));
+      }
+      String directParent = locator.getSingleDimensionValue(DIMENSION_PROJECT);
+      if (directParent != null){
+        return getItemHolder(findProjectsByName(getItem(directParent), name, false));
+      }
+    }
+
+    if (parentProject != null) {
+      return getItemHolder(parentProject.getProjects());
+    }
+
+    String directParent = locator.getSingleDimensionValue(DIMENSION_PROJECT);
+    if (directParent != null){
+      return getItemHolder(getItem(directParent).getOwnProjects());
+    }
+    return super.getPrefilteredItems(locator);
   }
 
   @NotNull
@@ -150,46 +228,15 @@ public class ProjectFinder {
     return myProjectManager.getRootProject();
   }
 
-  @NotNull
-  private SProject getProjectByName(@Nullable final SProject parentProject, @NotNull final String name) {
-    final List<SProject> projectsByName = findProjectsByName(parentProject, name);
-    if (projectsByName.size() == 0) {
-      throw new NotFoundException("No project can be found by name '" + name + "'" + (parentProject == null ? "" : " in the project " + parentProject.getExtendedFullName()) + ".");
-    }
-    if (projectsByName.size() > 1) {
-      throw new NotFoundException(
-        "Several projects are found by name '" + name + "': " + getPresentable(projectsByName) + ", specify 'parentProject' or 'id' to match exactly one.");
-    }
-    return projectsByName.get(0);
-  }
-
-  private String getPresentable(final List<SProject> projects) {
-    final StringBuilder sb = new StringBuilder();
-    if (projects.size() > 0) {
-      sb.append("[");
-      boolean firstItem = true;
-      for (SProject project : projects) {
-        if (firstItem){
-          firstItem = false;
-        }else{
-          sb.append(", ");
-        }
-        sb.append(project.getExtendedFullName());
-      }
-      sb.append("]");
-      return sb.toString();
-    }
-    return "<empty>";
-  }
-
   /**
    * Finds projects with the given name under the project specified
    * @param parentProject Project under which to search. If 'null' - process all projects including root one.
    * @param name
+   * @param recursive
    * @return
    */
   @NotNull
-  private List<SProject> findProjectsByName(@Nullable SProject parentProject, @NotNull final String name) {
+  private List<SProject> findProjectsByName(@Nullable SProject parentProject, @NotNull final String name, final boolean recursive) {
     final ArrayList<SProject> result = new ArrayList<SProject>();
     if (parentProject == null) {
       parentProject = getRootProject();
@@ -197,17 +244,13 @@ public class ProjectFinder {
         result.add(parentProject);
       }
     }
-    for (SProject project : parentProject.getProjects()) {
+    final List<SProject> projects = recursive ? parentProject.getProjects() : parentProject.getOwnProjects();
+    for (SProject project : projects) {
       if (name.equals(project.getName())){
         result.add(project);
       }
     }
     return result;
-  }
-
-  @Nullable
-  public SProject getProjectIfNotNull(@Nullable final String projectLocator) {
-    return projectLocator == null ? null : getProject(projectLocator);
   }
 
   @Nullable
@@ -222,5 +265,11 @@ public class ProjectFinder {
       throw new NotFoundException("No project found by internal id '" + projectInternalId + "'.");
     }
     return project;
+  }
+
+  public static boolean isSameOrParent(@NotNull final BuildProject parent, @NotNull final BuildProject project) {
+    if (parent.getProjectId().equals(project.getProjectId())) return true;
+    if (project.getParentProject() == null) return false;
+    return isSameOrParent(parent, project.getParentProject());
   }
 }

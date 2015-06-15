@@ -116,7 +116,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
     final String projectLocator = locator.getSingleDimensionValue(PROJECT);
     SProject project = null;
     if (projectLocator != null) {
-      project = myProjectFinder.getProject(projectLocator);
+      project = myProjectFinder.getItem(projectLocator);
       final SProject internalProject = project;
       result.add(new FilterConditionChecker<SQueuedBuild>() {
         public boolean isIncluded(@NotNull final SQueuedBuild item) {

@@ -301,7 +301,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     final String projectLocator = locator.getSingleDimensionValue(PROJECT);
     SProject project = null;
     if (projectLocator != null) {
-      project = myProjectFinder.getProject(projectLocator); //todo: support multiple projects here
+      project = myProjectFinder.getItem(projectLocator); //todo: support multiple projects here
       final SProject internalProject = project;
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
@@ -314,7 +314,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     final String affectedProjectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     SProject affectedProject = null;
     if (affectedProjectLocator != null) {
-      affectedProject = myProjectFinder.getProject(affectedProjectLocator);
+      affectedProject = myProjectFinder.getItem(affectedProjectLocator);
       final SProject internalProject = affectedProject;
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
@@ -705,7 +705,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         final String affectedProjectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT);
         SProject affectedProject = null;
         if (affectedProjectLocator != null) {
-          affectedProject = myProjectFinder.getProject(affectedProjectLocator);
+          affectedProject = myProjectFinder.getItem(affectedProjectLocator);
         }
         buildType = myBuildTypeFinder.getBuildType(affectedProject, buildTypeLocator);
       }
