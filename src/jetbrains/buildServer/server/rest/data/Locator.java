@@ -333,8 +333,8 @@ public class Locator {
         } else {
           if (!unusedDimensions.contains(LOCATOR_SINGLE_VALUE_UNUSED_NAME)) {
             if (mySupportedDimensions != null) {
-              message =
-                "Locator dimension " + unusedDimensions + " is " + (Arrays.asList(mySupportedDimensions).contains(unusedDimensions.iterator().next()) ? "ignored." : "unknown.");
+              message = "Locator dimension " + unusedDimensions + " is " +
+                        (Arrays.asList(mySupportedDimensions).contains(unusedDimensions.iterator().next()) ? "known but was ignored during processing. Try omitting the dimension." : "unknown.");
             } else {
               message = "Locator dimension " + unusedDimensions + " is ignored or unknown.";
             }
