@@ -206,7 +206,7 @@ public class VcsRootRequest {
   @Path("/{vcsRootLocator}/properties")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Properties changProperties(@PathParam("vcsRootLocator") String vcsRootLocator, Properties properties, @QueryParam("fields") String fields) {
+  public Properties changeProperties(@PathParam("vcsRootLocator") String vcsRootLocator, Properties properties, @QueryParam("fields") String fields) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
     vcsRoot.setProperties(properties.getMap());
     vcsRoot.persist();
