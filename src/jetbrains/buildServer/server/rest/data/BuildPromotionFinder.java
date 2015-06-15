@@ -75,6 +75,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   public static final String BY_PROMOTION = "byPromotion";  //used in BuildFinder
   public static final String EQUIVALENT = "equivalent"; /*experimental*/
   public static final BuildPromotionComparator BUILD_PROMOTIONS_COMPARATOR = new BuildPromotionComparator();
+  public static final SnapshotDepsTraverser SNAPSHOT_DEPENDENCIES_TRAVERSER = new SnapshotDepsTraverser();
 
   private final BuildPromotionManager myBuildPromotionManager;
   private final BuildQueue myBuildQueue;
@@ -269,6 +270,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final String branchLocatorValue = locator.getSingleDimensionValue(BRANCH);
     // should filter by branch even if not specified in the locator
+    //todo: consider introducing default locator values instead. The actual locator can then be used in messges to the user like in AbstractFinder.getItemsByLocator, etc.
     final BranchMatcher branchMatcher;
     try {
       branchMatcher = new BranchMatcher(branchLocatorValue);
@@ -866,88 +868,10 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   @NotNull
   private List<BuildPromotion> getSnapshotRelatedBuilds(@NotNull final String snapshotDepDimension) {
-    Locator snapshotDepLocator = new Locator(snapshotDepDimension, "from", "to", "recursive", "includeInitial");
-    Boolean recursive = snapshotDepLocator.getSingleDimensionValueAsBoolean("recursive", true);
-    if (recursive == null) recursive = true;
-
-    Boolean includeOriginal = snapshotDepLocator.getSingleDimensionValueAsBoolean("includeInitial", false);
-    if (includeOriginal == null) includeOriginal = false;
-
-    ArrayList<BuildPromotion> resultTo = new ArrayList<BuildPromotion>();
-    final String toBuildDimension = snapshotDepLocator.getSingleDimensionValue("to");
-    if (toBuildDimension != null) {
-      final List<BuildPromotion> toBuilds = getItems(toBuildDimension).myEntries;
-      if (includeOriginal) {
-        resultTo.addAll(toBuilds);
-      }
-      if (recursive) {
-        for (BuildPromotion toBuild : toBuilds) {
-          resultTo.addAll(toBuild.getAllDependencies());
-        }
-      } else {
-        final Set<BuildPromotion> alldependencyBuilds = new TreeSet<BuildPromotion>();
-        for (BuildPromotion toBuild : toBuilds) {
-          alldependencyBuilds.addAll(CollectionsUtil.convertCollection(toBuild.getDependencies(), new Converter<BuildPromotion, BuildDependency>() {
-            public BuildPromotion createFrom(@NotNull final BuildDependency source) {
-              return source.getDependOn();
-            }
-          }));
-        }
-        resultTo.addAll(alldependencyBuilds);
-      }
-    }
-
-    ArrayList<BuildPromotion> resultFrom = new ArrayList<BuildPromotion>();
-    final String fromBuildDimension = snapshotDepLocator.getSingleDimensionValue("from");
-    if (fromBuildDimension != null) {
-      final List<BuildPromotion> fromBuilds = getItems(fromBuildDimension).myEntries;
-      if (includeOriginal) {
-        resultFrom.addAll(fromBuilds);
-      }
-      final Collection<BuildPromotion> allDependingOn = getAllDependOn(fromBuilds, recursive);
-      resultFrom.addAll(allDependingOn);
-    }
-
-    snapshotDepLocator.checkLocatorFullyProcessed();
-
-    ArrayList<BuildPromotion> result = resultTo;
-    if (!result.isEmpty() && !resultFrom.isEmpty()) {
-      result = new ArrayList<BuildPromotion>(CollectionsUtil.intersect(result, resultFrom));
-    } else {
-      result = !result.isEmpty() ? result : resultFrom;
-    }
+    final GraphFinder<BuildPromotion> graphFinder = new GraphFinder<BuildPromotion>(this, SNAPSHOT_DEPENDENCIES_TRAVERSER);
+    final List<BuildPromotion> result = graphFinder.getItems(snapshotDepDimension).myEntries;
     Collections.sort(result, BUILD_PROMOTIONS_COMPARATOR);
     return result; //todo: patch branch locator, personal, etc.???
-  }
-
-  private Collection<BuildPromotion> getAllDependOn(final List<BuildPromotion> items, boolean recursive) {
-    final Set<BuildPromotion> processed = new TreeSet<BuildPromotion>();
-    final List<BuildPromotion> toProcess = new ArrayList<BuildPromotion>();
-    for (BuildPromotion item : items) {
-      toProcess.addAll(getDependingPromotions(item));
-    }
-    while (!toProcess.isEmpty()) {
-      final List<BuildPromotion> currentBatch = new ArrayList<BuildPromotion>(toProcess);
-      toProcess.clear();
-      for (BuildPromotion item : currentBatch) {
-        if (!processed.contains(item)) {
-          processed.add(item);
-          if (recursive) {
-            toProcess.addAll(getDependingPromotions(item));
-          }
-        }
-      }
-    }
-    return processed;
-  }
-
-  @NotNull
-  private List<BuildPromotion> getDependingPromotions(@NotNull final BuildPromotion fromBuild) {
-    return CollectionsUtil.convertCollection(fromBuild.getDependedOnMe(), new Converter<BuildPromotion, BuildDependency>() {
-      public BuildPromotion createFrom(@NotNull final BuildDependency source) {
-        return source.getDependent();
-      }
-    });
   }
 
   @NotNull
@@ -1014,6 +938,36 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         return 1;
       }
       return -1;
+    }
+  }
+
+  private static class SnapshotDepsTraverser implements GraphFinder.Traverser<BuildPromotion> {
+    @NotNull
+    public GraphFinder.LinkRetriever<BuildPromotion> getChildren() {
+      return new GraphFinder.LinkRetriever<BuildPromotion>() {
+        @NotNull
+        public List<BuildPromotion> getLinked(@NotNull final BuildPromotion item) {
+          return CollectionsUtil.convertCollection(item.getDependencies(), new Converter<BuildPromotion, BuildDependency>() {
+                      public BuildPromotion createFrom(@NotNull final BuildDependency source) {
+                        return source.getDependOn();
+                      }
+                    });
+        }
+      };
+    }
+
+    @NotNull
+    public GraphFinder.LinkRetriever<BuildPromotion> getParents() {
+      return new GraphFinder.LinkRetriever<BuildPromotion>() {
+        @NotNull
+        public List<BuildPromotion> getLinked(@NotNull final BuildPromotion item) {
+          return CollectionsUtil.convertCollection(item.getDependedOnMe(), new Converter<BuildPromotion, BuildDependency>() {
+                public BuildPromotion createFrom(@NotNull final BuildDependency source) {
+                  return source.getDependent();
+                }
+              });
+        }
+      };
     }
   }
 }

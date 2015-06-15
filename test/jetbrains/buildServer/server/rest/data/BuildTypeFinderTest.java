@@ -103,4 +103,67 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     checkExceptionOnItemSearch(BadRequestException.class, "xxx");
     check("p10_10_10_bt20", p10_10_10_bt20);
   }
+  
+
+  @Test
+  public void testSnapshotDependencies() throws Exception {
+    final BuildTypeOrTemplate buildConf01 = new BuildTypeOrTemplate(registerBuildType("buildConf01", "project"));
+    final BuildTypeOrTemplate buildConf02 = new BuildTypeOrTemplate(registerBuildType("buildConf02", "project"));
+    final BuildTypeOrTemplate buildConf1 = new BuildTypeOrTemplate(registerBuildType("buildConf1", "project"));
+    final BuildTypeOrTemplate buildConf2 = new BuildTypeOrTemplate(registerBuildType("buildConf2", "project"));
+    final BuildTypeOrTemplate buildConf31 = new BuildTypeOrTemplate(registerBuildType("buildConf31", "project"));
+    final BuildTypeOrTemplate buildConf32 = new BuildTypeOrTemplate(registerBuildType("buildConf32", "project"));
+    final BuildTypeOrTemplate buildConf4 = new BuildTypeOrTemplate(registerBuildType("buildConf4", "project"));
+    final BuildTypeOrTemplate buildConf5 = new BuildTypeOrTemplate(registerBuildType("buildConf5", "project"));
+    final BuildTypeOrTemplate buildConf6 = new BuildTypeOrTemplate(registerBuildType("buildConf6", "project"));
+
+    addDependency(buildConf6.get() , buildConf5.getBuildType());
+    addDependency(buildConf5.get() , buildConf31.getBuildType());
+
+    addDependency(buildConf4.get() , buildConf31.getBuildType());
+    addDependency(buildConf4.get() , buildConf32.getBuildType());
+    addDependency(buildConf31.get() , buildConf2.getBuildType());
+    addDependency(buildConf32.get() , buildConf2.getBuildType());
+    addDependency(buildConf2.get() , buildConf1.getBuildType());
+    addDependency(buildConf2.get() , buildConf01.getBuildType());
+    addDependency(buildConf1.get() , buildConf01.getBuildType());
+    addDependency(buildConf1.get() , buildConf02.getBuildType());
+
+
+    final String baseToLocatorStart1 = "snapshotDependency:(from:(id:" + buildConf4.getId() + ")";
+    check(baseToLocatorStart1 + ")");
+    check(baseToLocatorStart1 + ",includeInitial:true)", buildConf4);
+    check(baseToLocatorStart1 + ",includeInitial:false)");
+    check(baseToLocatorStart1 + ",recursive:true)");
+    check(baseToLocatorStart1 + ",includeInitial:true,recursive:false)", buildConf4);
+
+    final String baseToLocatorStart2 = "snapshotDependency:(to:(id:" + buildConf4.getId() + ")";
+    check(baseToLocatorStart2 + ")", buildConf31, buildConf32, buildConf2, buildConf1, buildConf01, buildConf02);
+    check(baseToLocatorStart2 + ",includeInitial:true)", buildConf4, buildConf31, buildConf32, buildConf2, buildConf1, buildConf01, buildConf02);
+    check(baseToLocatorStart2 + ",includeInitial:false)", buildConf31, buildConf32, buildConf2, buildConf1, buildConf01, buildConf02);
+    check(baseToLocatorStart2 + ",recursive:true)", buildConf31, buildConf32, buildConf2, buildConf1, buildConf01, buildConf02);
+    check(baseToLocatorStart2 + ",recursive:false)", buildConf31, buildConf32);
+    check(baseToLocatorStart2 + ",includeInitial:true,recursive:true)", buildConf4, buildConf31, buildConf32, buildConf2, buildConf1, buildConf01, buildConf02);
+
+    final String baseToLocatorStart3 = "snapshotDependency:(to:(id:" + buildConf31.getId() + ")";
+    check(baseToLocatorStart3 + ")", buildConf2, buildConf1, buildConf01, buildConf02);
+    check(baseToLocatorStart3 + ",includeInitial:true)", buildConf31, buildConf2, buildConf1, buildConf01, buildConf02);
+    check(baseToLocatorStart3 + ",includeInitial:false)", buildConf2, buildConf1, buildConf01, buildConf02);
+    check(baseToLocatorStart3 + ",recursive:true)", buildConf2, buildConf1, buildConf01, buildConf02);
+    check(baseToLocatorStart3 + ",recursive:false)", buildConf2);
+    check(baseToLocatorStart3 + ",includeInitial:true,recursive:true)", buildConf31, buildConf2, buildConf1, buildConf01, buildConf02);
+
+    final String baseToLocatorStart4 = "snapshotDependency:(from:(id:" + buildConf31.getId() + ")";
+    check(baseToLocatorStart4 + ")", buildConf4, buildConf5, buildConf6);
+    check(baseToLocatorStart4 + ",includeInitial:true)", buildConf31, buildConf4, buildConf5, buildConf6);
+    check(baseToLocatorStart4 + ",includeInitial:false)", buildConf4, buildConf5, buildConf6);
+    check(baseToLocatorStart4 + ",recursive:true)", buildConf4, buildConf5, buildConf6);
+    check(baseToLocatorStart4 + ",recursive:false)", buildConf4, buildConf5);
+    check(baseToLocatorStart4 + ",includeInitial:true,recursive:true)", buildConf31, buildConf4, buildConf5, buildConf6);
+
+    check("snapshotDependency:(from:(id:" + buildConf2.getId() + "),to:(id:" + buildConf31.getId() + "),includeInitial:true)", buildConf31, buildConf2);
+    check("snapshotDependency:(from:(id:" + buildConf1.getId() + "),to:(id:" + buildConf4.getId() + "))", buildConf31, buildConf2, buildConf32);
+    check("snapshotDependency:(from:(id:" + buildConf1.getId() + "),to:(id:" + buildConf5.getId() + "))", buildConf31, buildConf2);
+    check("snapshotDependency:(from:(id:" + buildConf31.getId() + "),to:(id:" + buildConf32.getId() + "))");
+  }
 }

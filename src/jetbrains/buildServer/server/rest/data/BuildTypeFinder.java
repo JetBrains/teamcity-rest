@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.APIController;
@@ -30,6 +31,7 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -59,6 +61,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   protected static final String COMPATIBLE_AGENTS_COUNT = "compatibleAgentsCount";
   protected static final String PARAMETER = "parameter";
   protected static final String FILTER_BUILDS = "filterByBuilds";
+  protected static final String SNAPSHOT_DEPENDENCY = "snapshotDependency";
 
   private final ProjectFinder myProjectFinder;
   @NotNull private final AgentFinder myAgentFinder;
@@ -94,7 +97,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   @Override
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(COMPATIBLE_AGENT, COMPATIBLE_AGENTS_COUNT, PARAMETER, FILTER_BUILDS); //hide these for now
+    result.addHiddenDimensions(COMPATIBLE_AGENT, COMPATIBLE_AGENTS_COUNT, PARAMETER, FILTER_BUILDS, SNAPSHOT_DEPENDENCY); //hide these for now
     return result;
   }
 
@@ -297,7 +300,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
     final String filterBuilds = locator.getSingleDimensionValue(FILTER_BUILDS); //experimental
     if (filterBuilds != null) {
-      final Locator filterBuildsLocator = new Locator(filterBuilds, "search", "match");
+      final Locator filterBuildsLocator = new Locator(filterBuilds, "search", "match");  // support for conditions like "in which the last build is successful"
       final String search = filterBuildsLocator.getSingleDimensionValue("search");
       final String match = filterBuildsLocator.getSingleDimensionValue("match");
       if (search != null) {
@@ -330,6 +333,11 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   @Override
   protected ItemHolder<BuildTypeOrTemplate> getPrefilteredItems(@NotNull final Locator locator) {
     List<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
+    final String snapshotDependencies = locator.getSingleDimensionValue(SNAPSHOT_DEPENDENCY);
+    if (snapshotDependencies != null) {
+      final GraphFinder<BuildTypeOrTemplate> graphFinder = new GraphFinder<BuildTypeOrTemplate>(this, new SnapshotDepsTraverser());
+      return getItemHolder(graphFinder.getItems(snapshotDependencies).myEntries);
+    }
 
     SProject project = null;
     final String projectLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
@@ -379,9 +387,6 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
     return getItemHolder(result);
   }
-
-
-
 
   @NotNull
   public BuildTypeOrTemplate getBuildTypeOrTemplate(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
@@ -433,7 +438,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     String actualLocator = Locator.setDimension(buildTypeLocator, TEMPLATE_FLAG_DIMENSION_NAME, "false");
 
     if (project != null) {
-        actualLocator = Locator.setDimensionIfNotPresent(actualLocator, DIMENSION_PROJECT, ProjectFinder.getLocator(project));
+      actualLocator = Locator.setDimensionIfNotPresent(actualLocator, DIMENSION_PROJECT, ProjectFinder.getLocator(project));
     }
 
     final PagedSearchResult<BuildTypeOrTemplate> items = getItems(actualLocator);
@@ -590,6 +595,58 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     final SBuildType result = projectManager.findBuildTypeById(buildTypeInternalId);
     if (result == null) {
       throw new NotFoundException("No buildType found by internal id '" + buildTypeInternalId + "'.");
+    }
+    return result;
+  }
+
+  private class SnapshotDepsTraverser implements GraphFinder.Traverser<BuildTypeOrTemplate> {
+    @NotNull
+    public GraphFinder.LinkRetriever<BuildTypeOrTemplate> getChildren() {
+      return new GraphFinder.LinkRetriever<BuildTypeOrTemplate>() {
+        @NotNull
+        public List<BuildTypeOrTemplate> getLinked(@NotNull final BuildTypeOrTemplate item) {
+          return getNotNullBuildTypes(item.get().getDependencies());
+        }
+      };
+    }
+
+    @NotNull
+    public GraphFinder.LinkRetriever<BuildTypeOrTemplate> getParents() {
+      return new GraphFinder.LinkRetriever<BuildTypeOrTemplate>() {
+        @NotNull
+        public List<BuildTypeOrTemplate> getLinked(@NotNull final BuildTypeOrTemplate item) {
+          final SBuildType buildType = item.getBuildType();
+          if (buildType == null){
+            return new ArrayList<BuildTypeOrTemplate>(); //template should have no dependnecies on it
+          }
+          return getDependingOn(buildType);
+        }
+      };
+    }
+  }
+
+  @NotNull
+  private List<BuildTypeOrTemplate> getDependingOn(@NotNull final SBuildType buildType) {
+    final Set<String> internalIds = ((BuildTypeEx)buildType).getDependedOnMe().keySet(); //TeamCity open API issue
+    final ArrayList<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
+    for (String internalId : internalIds) {
+      final SBuildType buildTypeById = myProjectManager.findBuildTypeById(internalId);
+      if (buildTypeById != null){
+        result.add(new BuildTypeOrTemplate(buildTypeById));
+      }
+    }
+    return result;
+  }
+
+  @NotNull
+  private List<BuildTypeOrTemplate> getNotNullBuildTypes(@NotNull final List<Dependency> dependencies) {
+    final ArrayList<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
+    for (Dependency dependency : dependencies) {
+      final SBuildType dependOn = dependency.getDependOn();
+      if (dependOn != null) {
+        result.add(new BuildTypeOrTemplate(dependOn));
+      }
+      //todo: else expose this somehow
     }
     return result;
   }
