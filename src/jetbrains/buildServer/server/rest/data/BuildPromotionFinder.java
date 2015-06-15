@@ -926,14 +926,18 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         if (b2 != null) {
           if (b1.isFinished()) {
             if (b2.isFinished()) {
-              return -Long.valueOf(b1.getBuildId()).compareTo(b2.getBuildId());
+              final int resultByStartDate = b1.getStartDate().compareTo(b2.getStartDate());
+              if (resultByStartDate == 0) return -Long.valueOf(b1.getBuildId()).compareTo(b2.getBuildId());
+              return -resultByStartDate;
             }
             return 1;
           }
           if (b2.isFinished()) {
             return -1;
           }
-          return -Long.valueOf(b1.getBuildId()).compareTo(b2.getBuildId());
+          final int resultByStartDate = b1.getStartDate().compareTo(b2.getStartDate());
+          if (resultByStartDate == 0) return -Long.valueOf(b1.getBuildId()).compareTo(b2.getBuildId());
+          return -resultByStartDate;
         }
         return 1;
       }
