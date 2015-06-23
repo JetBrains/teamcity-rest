@@ -61,6 +61,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected static final String NUMBER = "number";
   protected static final String STATUS = "status";
   protected static final String CANCELED = "canceled";
+  protected static final String FAILED_TO_START = "failedToStart";
   protected static final String PINNED = "pinned";
   protected static final String RUNNING = "running";
   protected static final String SNAPSHOT_DEP = "snapshotDependency";
@@ -72,8 +73,10 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected static final String SINCE_DATE = "sinceDate";
   protected static final String UNTIL_BUILD = "untilBuild";
   protected static final String UNTIL_DATE = "untilDate";
+
   public static final String BY_PROMOTION = "byPromotion";  //used in BuildFinder
   public static final String EQUIVALENT = "equivalent"; /*experimental*/
+
   public static final BuildPromotionComparator BUILD_PROMOTIONS_COMPARATOR = new BuildPromotionComparator();
   public static final SnapshotDepsTraverser SNAPSHOT_DEPENDENCIES_TRAVERSER = new SnapshotDepsTraverser();
 
@@ -123,6 +126,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     result.addHiddenDimensions(AGENT_NAME, RUNNING, COMPATIBLE_AGENTS_COUNT, SNAPSHOT_DEP, TAGS, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE,
                                STATE_RUNNING //compatibility with pre-9.1
     );
+    result.addIgnoreUnusedDimensions(FAILED_TO_START); //hide this for now
     result.addIgnoreUnusedDimensions(BY_PROMOTION);
     result.addIgnoreUnusedDimensions(EQUIVALENT);
     return result;
@@ -486,6 +490,16 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
           final SBuild build = item.getAssociatedBuild();
           return build == null || FilterUtil.isIncludedByBooleanFilter(canceled, build.getCanceledInfo() != null);
+        }
+      });
+    }
+
+    final Boolean failedToStart = locator.getSingleDimensionValueAsBoolean(FAILED_TO_START, false);
+    if (failedToStart != null) {
+      result.add(new FilterConditionChecker<BuildPromotion>() {
+        public boolean isIncluded(@NotNull final BuildPromotion item) {
+          final SBuild build = item.getAssociatedBuild();
+          return build == null || FilterUtil.isIncludedByBooleanFilter(failedToStart, build.isInternalError());
         }
       });
     }

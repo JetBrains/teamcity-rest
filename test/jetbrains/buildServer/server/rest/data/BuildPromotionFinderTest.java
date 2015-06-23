@@ -225,6 +225,24 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
     //todo: add test for snapshot +  equivalent filtering
   }
 
+
+  @Test
+  public void testFailedToStart() throws Exception {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    final BuildPromotion build10 = build().in(buildConf).finish().getBuildPromotion();
+    final BuildPromotion build20 = build().in(buildConf).failedToStart().finish().getBuildPromotion();
+    final BuildPromotion build30 = build().in(buildConf).failed().finish().getBuildPromotion();
+
+    checkBuilds(null, build30, build10);
+    checkBuilds("status:SUCCESS", build10);
+    checkBuilds("status:FAILURE", build30);
+    checkBuilds("buildType:(id:" + buildConf.getExternalId() + ")", build30, build10);
+    checkBuilds("buildType:(id:" + buildConf.getExternalId() + "),state:any", build30, build10);
+    checkBuilds("buildType:(id:" + buildConf.getExternalId() + "),canceled:any,state:any", build30, build10);
+    //todo: there should be a way to get failed to start builds... including when filtering by buildType
+  }
+
 //==================================================
 
   public void checkBuilds(final String locator, BuildPromotion... builds) {
