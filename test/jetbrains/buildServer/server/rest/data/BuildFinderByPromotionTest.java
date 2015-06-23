@@ -293,30 +293,32 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     final SQueuedBuild build80 = build().in(myBuildType).tag("a").addToQueue();
 
     checkBuilds("buildType:(id:" + myBuildType.getExternalId() + ")", build60, build50, build30, build20, build10);
-    checkBuilds("pinned:any", build60, build50, build40, build30, build25, build20, build10); //fix: failed to start
+    checkBuilds("pinned:any", build60, build50, build40, build30, build20, build10); //fix: failed to start
+    checkBuilds("pinned:any,failedToStart:any", build60, build50, build40, build30, build25, build20, build10); //fix: failed to start
 
     checkBuilds("tag:a,buildType:(id:" + myBuildType.getExternalId() + ")", build30, build20);
-    checkBuilds("tag:a", build40, build30, build25, build20);
+    checkBuilds("tag:a", build40, build30, build20);
+    checkBuilds("tag:a,failedToStart:any", build40, build30, build25, build20);
     checkBuilds("tag:aa", build50);
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "tag:(a:b)");
     checkBuilds("tag:(name:(a:b))", build40);
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "tag:a,tag:b");
 
-    checkBuilds("tags:a,buildType:(id:" + myBuildType.getExternalId() + ")", build30, build20);
-    checkBuilds("tags:a", build40, build30, build25, build20);
-    checkBuilds("tags:aa", build50);
     checkBuilds("tags:(a,b)", build40, build30); //???
     checkBuilds("tags:(a:b)", build40);
     checkBuilds("tags:(b,a:b)", build40);
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "tags:a,tags:b"); //"documenting" existing exception types
     checkBuilds("tag:a,tags:b", build40, build30);
 
-    checkBuilds("tag:(format:extended,present:any,regexp:aaa)", build60, build50, build40, build30, build25, build20, build10);
-    checkBuilds("tag:(format:extended,present:true)", build50, build40, build30, build25, build20);
+    checkBuilds("tag:(format:extended,present:any,regexp:aaa)", build60, build50, build40, build30, build20, build10);
+    checkBuilds("tag:(format:extended,present:any,regexp:aaa),failedToStart:any", build60, build50, build40, build30, build25, build20, build10);
+    checkBuilds("tag:(format:extended,present:true)", build50, build40, build30, build20);
+    checkBuilds("tag:(format:extended,present:true),failedToStart:any", build50, build40, build30, build25, build20);
     checkBuilds("tag:(format:extended,present:false)", build60, build10);
     checkBuilds("tag:(format:extended,present:true,regexp:a.)", build50);
     //checkBuilds("tag:(present:true,regexp:a.,format:extended)", build50);
-    checkBuilds("tag:(format:extended,present:false,regexp:a.)", build60, build40, build30, build25, build20, build10);
+    checkBuilds("tag:(format:extended,present:false,regexp:a.)", build60, build40, build30, build20, build10);
+    checkBuilds("tag:(format:extended,present:false,regexp:a.),failedToStart:any", build60, build40, build30, build25, build20, build10);
     //checkExceptionOnBuildsSearch(BadRequestException.class, "tag:(format:notExtended,present:true)");
     checkExceptionOnBuildsSearch(BadRequestException.class, "tag:(format:extended,present:true,regexp:)");
     checkExceptionOnBuildsSearch(BadRequestException.class, "tag:(format:extended,present:true,regexp:*)");
@@ -428,22 +430,19 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
 
     //by default no canceled builds should be listed
     checkBuilds("buildType:(id:" + myBuildType.getExternalId() + ")", b4, b1);
-    checkBuilds("pinned:any", b5_failedToStart, b4, b1); //b5_failedToStart should not be here
+    checkBuilds("pinned:any", b4, b1);
+    checkBuilds("pinned:any,failedToStart:any", b5_failedToStart, b4, b1);
 
     checkBuilds("canceled:true", b3canceledFailed, b2canceled);
     checkBuilds("canceled:true,status:UNKNOWN", b3canceledFailed, b2canceled);
-    checkBuilds("canceled:false", b5_failedToStart, b4, b1); //b5_failedToStart should not be here
-    checkBuilds("canceled:any,status:FAILURE", b5_failedToStart, b4);
+    checkBuilds("canceled:false", b4, b1);
+    checkBuilds("canceled:false,failedToStart:any", b5_failedToStart, b4, b1);
+    checkBuilds("canceled:any,status:FAILURE", b4);
+    checkBuilds("canceled:any,status:FAILURE,failedToStart:any", b5_failedToStart, b4);
     checkBuilds("canceled:any,status:SUCCESS", b1);
     //due status processing?
     //checkBuilds("canceled:true,status:SUCCESS", b2canceled);
     //checkBuilds("buildType:(id:" + myBuildType.getExternalId() + "),canceled:any,status:FAILED", b3canceledFailed, b4);
-
-    checkBuild("canceled:true", b3canceledFailed);
-    checkBuild("canceled:true,status:UNKNOWN", b3canceledFailed);
-    checkBuild("canceled:false", b5_failedToStart);
-    checkBuild("canceled:any,status:FAILURE", b5_failedToStart);
-    checkBuild("canceled:any,status:SUCCESS", b1);
    }
 
   @Test
@@ -483,24 +482,23 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
 
      //by default no personal builds should be listed
     checkBuilds("buildType:(id:" + myBuildType.getExternalId() + ")", b10);
-    checkBuilds("pinned:any", b90FailedToStart, b70, b10);
+    checkBuilds("pinned:any", b70, b10);
+    checkBuilds("pinned:any,failedToStart:any", b90FailedToStart, b70, b10);
 
-    checkBuilds("personal:true", b100personalFailedToStart, b80personal, b20personal);
+    checkBuilds("personal:true", b80personal, b20personal);
+    checkBuilds("personal:true,failedToStart:any", b100personalFailedToStart, b80personal, b20personal);
     //checkBuilds("personal:true,status:UNKNOWN", b60personalCanceledFailed, b40personalCanceled);
     checkBuilds("personal:true,canceled:true", b60personalCanceledFailed, b40personalCanceled);
-    checkBuilds("personal:false", b90FailedToStart, b70, b10); //b90FailedToStart should not be here
-    checkBuilds("personal:any,status:FAILURE", b100personalFailedToStart, b90FailedToStart, b80personal, b70);
+    checkBuilds("personal:false", b70, b10);
+    checkBuilds("personal:false,failedToStart:any", b90FailedToStart, b70, b10);
+    checkBuilds("personal:any,status:FAILURE", b80personal, b70);
+    checkBuilds("personal:any,status:FAILURE,failedToStart:any", b100personalFailedToStart, b90FailedToStart, b80personal, b70);
     checkBuilds("personal:any,status:SUCCESS", b20personal, b10);
     checkBuilds("personal:true,status:SUCCESS", b20personal);
     //checkBuilds("buildType:(id:" + myBuildType.getExternalId() + "),personal:any,status:FAILURE", b100personalFailedToStart, b90FailedToStart);
     checkNoBuildsFound("user:(id:" + user1.getId() + ")");
     checkNoBuildsFound("user:(id:" + user1.getId() + "),personal:true");
     checkNoBuildsFound("user:(id:" + user1.getId() + "),personal:any");
-
-    checkBuild("personal:true", b100personalFailedToStart);
-    checkBuild("personal:false", b90FailedToStart);
-    checkBuild("personal:any,status:FAILURE", b100personalFailedToStart);
-    checkBuild("personal:any,status:SUCCESS", b20personal);
    }
 
   @Test
@@ -545,25 +543,38 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     time.jumpTo(10);
     final SQueuedBuild build90 = build().in(buildConf1).addToQueue();
 
-    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + ")", build70, build60, build40, build30, build20);
+    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + ")", build70, build60, build40, build20);
+    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),failedToStart:any", build70, build60, build40, build30, build20);
 //    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),state:any", build90, build80, build70, build60, build40, build30, build20);
-    checkBuilds("sinceBuild:(id:" + build25DeletedId + ")", build70, build60, build40,build30);
+    checkBuilds("sinceBuild:(id:" + build25DeletedId + ")", build70, build60, build40);
+    checkBuilds("sinceBuild:(id:" + build25DeletedId + "),failedToStart:any", build70, build60, build40, build30);
 
-    checkBuilds("untilBuild:(id:" + build60.getBuildId() + ")", build60, build40, build30, build20, build10);
-    checkBuilds("untilBuild:(id:" + build50DeletedId + "),state:any", build40, build30, build20, build10);
+    checkBuilds("untilBuild:(id:" + build60.getBuildId() + ")", build60, build40, build20, build10);
+    checkBuilds("untilBuild:(id:" + build60.getBuildId() + "),failedToStart:any", build60, build40, build30, build20, build10);
+    checkBuilds("untilBuild:(id:" + build50DeletedId + "),state:any", build40, build20, build10);
+    checkBuilds("untilBuild:(id:" + build50DeletedId + "),state:any,failedToStart:any", build40, build30, build20, build10);
 
-    checkBuilds("sinceDate:" + fDate(build20.getStartDate()) + ")", build70, build60, build40, build30, build20);
+    checkBuilds("sinceDate:" + fDate(build20.getStartDate()) + ")", build70, build60, build40, build20);
+    checkBuilds("sinceDate:" + fDate(build20.getStartDate()) + "),failedToStart:any", build70, build60, build40, build30, build20);
     checkBuilds("sinceDate:" + fDate(afterBuild30) + ")", build70, build60, build40);
-    checkBuilds("untilDate:" + fDate(build60.getStartDate()) + ")", build40, build30, build20, build10);
-    checkBuilds("untilDate:" + fDate(afterBuild30) + ")", build30, build20, build10);
+    checkBuilds("untilDate:" + fDate(build60.getStartDate()) + ")", build40, build20, build10);
+    checkBuilds("untilDate:" + fDate(build60.getStartDate()) + "),failedToStart:any", build40, build30, build20, build10);
+    checkBuilds("untilDate:" + fDate(afterBuild30) + ")", build20, build10);
+    checkBuilds("untilDate:" + fDate(afterBuild30) + "),failedToStart:any", build30, build20, build10);
 
-    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),sinceDate:" + fDate(build10.getStartDate()), build70, build60, build40, build30, build20);
+    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),sinceDate:" + fDate(build10.getStartDate()), build70, build60, build40, build20);
+    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),sinceDate:" + fDate(build10.getStartDate()) + ",failedToStart:any", build70, build60, build40, build30, build20);
     checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),sinceDate:" + fDate(afterBuild30), build70, build60, build40);
-    checkBuilds("untilBuild:(id:" + build60.getBuildId() + "),untilDate:" + fDate(build60.getStartDate()), build40, build30, build20, build10);
-    checkBuilds("untilBuild:(id:" + build60.getBuildId() + "),untilDate:" + fDate(afterBuild30), build30, build20, build10);
+    checkBuilds("untilBuild:(id:" + build60.getBuildId() + "),untilDate:" + fDate(build60.getStartDate()), build40, build20, build10);
+    checkBuilds("untilBuild:(id:" + build60.getBuildId() + "),untilDate:" + fDate(build60.getStartDate()) + ",failedToStart:any", build40, build30, build20, build10);
+    checkBuilds("untilBuild:(id:" + build60.getBuildId() + "),untilDate:" + fDate(afterBuild30), build20, build10);
+    checkBuilds("untilBuild:(id:" + build60.getBuildId() + "),untilDate:" + fDate(afterBuild30) + ",failedToStart:any", build30, build20, build10);
 
-    checkBuilds("sinceBuild:(id:" + build20.getBuildId() + "),untilBuild:" + build60.getBuildId(), build60, build40, build30);
-    checkBuilds("sinceBuild:(id:" + build20.getBuildId() + "),untilDate:" + fDate(afterBuild30), build30);
-    checkBuilds("sinceDate:(" + fDate(afterBuild10) + "),untilDate:" + fDate(afterBuild30), build30, build20);
+    checkBuilds("sinceBuild:(id:" + build20.getBuildId() + "),untilBuild:" + build60.getBuildId(), build60, build40);
+    checkBuilds("sinceBuild:(id:" + build20.getBuildId() + "),untilBuild:" + build60.getBuildId() + ",failedToStart:any", build60, build40, build30);
+    checkBuilds("sinceBuild:(id:" + build20.getBuildId() + "),untilDate:" + fDate(afterBuild30));
+    checkBuilds("sinceBuild:(id:" + build20.getBuildId() + "),untilDate:" + fDate(afterBuild30) + ",failedToStart:any", build30);
+    checkBuilds("sinceDate:(" + fDate(afterBuild10) + "),untilDate:" + fDate(afterBuild30), build20);
+    checkBuilds("sinceDate:(" + fDate(afterBuild10) + "),untilDate:" + fDate(afterBuild30) + ",failedToStart:any", build30, build20);
   }
 }
