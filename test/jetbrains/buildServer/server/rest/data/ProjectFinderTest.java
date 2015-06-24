@@ -101,12 +101,12 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
     check("name:(" + "xxx" + "),project:(id:" + project30.getExternalId() + ")");
     check("name:(" + "xxx" + "),project:(id:" + project10_10_10.getExternalId() + ")", project10_10_10_10);
 
-    check("affectedProject:(id:" + project10.getExternalId() + ")", project10_10, project10_20, project10_10_20, project10_10_10, project10_10_20_10, project10_10_10_10);
+    check("affectedProject:(id:" + project10.getExternalId() + ")", project10_10, project10_20, project10_10_10, project10_10_20, project10_10_10_10, project10_10_20_10);
     check("affectedProject:(id:" + project20.getExternalId() + ")", project20_10);
     check("affectedProject:(id:" + project40.getExternalId() + ")");
-    check("affectedProject:(id:" + project10_10.getExternalId() + ")", project10_10_20, project10_10_10, project10_10_20_10, project10_10_10_10);
+    check("affectedProject:(id:" + project10_10.getExternalId() + ")", project10_10_10, project10_10_20, project10_10_10_10, project10_10_20_10);
 
-    check("parentProject:(id:" + project10.getExternalId() + ")", project10_10, project10_20, project10_10_20, project10_10_10, project10_10_20_10, project10_10_10_10);
+    check("parentProject:(id:" + project10.getExternalId() + ")", project10_10, project10_20, project10_10_10, project10_10_20, project10_10_10_10, project10_10_20_10);
     check("parentProject:(id:" + project20.getExternalId() + ")", project20_10);
     check("parentProject:(id:" + project40.getExternalId() + ")");
 
@@ -114,10 +114,10 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
     check("project:(id:" + project20.getExternalId() + ")", project20_10);
     check("project:(id:" + project40.getExternalId() + ")");
 
-    check("affectedProject:(id:" + project10.getExternalId() + "),archived:false", project10_10, project10_10_10, project10_10_20_10, project10_10_10_10);
+    check("affectedProject:(id:" + project10.getExternalId() + "),archived:false", project10_10, project10_10_10, project10_10_10_10, project10_10_20_10);
     check("affectedProject:(id:" + project20.getExternalId() + "),archived:false", project20_10);
     check("affectedProject:(id:" + project40.getExternalId() + "),archived:false");
-    check("parentProject:(id:" + project10.getExternalId() + "),archived:false", project10_10, project10_10_10, project10_10_20_10, project10_10_10_10);
+    check("parentProject:(id:" + project10.getExternalId() + "),archived:false", project10_10, project10_10_10, project10_10_10_10, project10_10_20_10);
     check("parentProject:(id:" + project20.getExternalId() + "),archived:false", project20_10);
     check("parentProject:(id:" + project40.getExternalId() + "),archived:false");
     check("project:(id:" + project10.getExternalId() + "),archived:false", project10_10);
