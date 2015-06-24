@@ -435,13 +435,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
   @NotNull
   public List<SBuildType> getBuildTypes(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
-    String actualLocator = Locator.setDimension(buildTypeLocator, TEMPLATE_FLAG_DIMENSION_NAME, "false");
-
-    if (project != null) {
-      actualLocator = Locator.setDimensionIfNotPresent(actualLocator, DIMENSION_PROJECT, ProjectFinder.getLocator(project));
-    }
-
-    final PagedSearchResult<BuildTypeOrTemplate> items = getItems(actualLocator);
+    final PagedSearchResult<BuildTypeOrTemplate> items = getBuildTypesPaged(project, buildTypeLocator, true);
     return CollectionsUtil.convertCollection(items.myEntries, new Converter<SBuildType, BuildTypeOrTemplate>() {
       public SBuildType createFrom(@NotNull final BuildTypeOrTemplate source) {
         if (project != null && !source.getProject().equals(project)) {
@@ -450,6 +444,17 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
         return source.getBuildType();
       }
     });
+  }
+
+  @NotNull
+  public PagedSearchResult<BuildTypeOrTemplate> getBuildTypesPaged(final @Nullable SProject project, final @Nullable String buildTypeLocator, final boolean buildType) {
+    String actualLocator = Locator.setDimension(buildTypeLocator, TEMPLATE_FLAG_DIMENSION_NAME, String.valueOf(buildType));
+
+    if (project != null) {
+      actualLocator = Locator.setDimensionIfNotPresent(actualLocator, DIMENSION_PROJECT, ProjectFinder.getLocator(project));
+    }
+
+    return getItems(actualLocator);
   }
 
   @Nullable

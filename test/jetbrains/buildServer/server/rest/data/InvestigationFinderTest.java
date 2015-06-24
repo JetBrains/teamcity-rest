@@ -139,6 +139,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
       }
     });
     final BeanFactory beanFactory = new BeanFactory(null);
+    registerBuildTypeFinder();
 
     final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.LONG, new BeanContext(beanFactory, myServer, apiUrlBuilder));
 
@@ -173,6 +174,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
       }
     });
     final BeanFactory beanFactory = new BeanFactory(null);
+    registerBuildTypeFinder();
 
     final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.LONG, new BeanContext(beanFactory, myServer, apiUrlBuilder));
 
@@ -187,6 +189,12 @@ public class InvestigationFinderTest extends BaseServerTestCase {
 
     assertEquals(PROBLEM_IDENTITY, investigation.target.problems.items.get(0).identity);
     assertEquals(myProject.getExternalId(), investigation.scope.project.id);
+  }
+
+  private void registerBuildTypeFinder() {
+    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
+    final AgentFinder agentFinder = new AgentFinder(myAgentManager);
+    myFixture.addService(new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, myServer));
   }
 
   @Override

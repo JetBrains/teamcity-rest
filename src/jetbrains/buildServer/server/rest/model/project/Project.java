@@ -17,12 +17,14 @@
 package jetbrains.buildServer.server.rest.model.project;
 
 import com.intellij.openapi.util.text.StringUtil;
+import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
@@ -36,6 +38,7 @@ import jetbrains.buildServer.server.rest.model.buildType.VcsRoots;
 import jetbrains.buildServer.server.rest.request.ProjectRequest;
 import jetbrains.buildServer.server.rest.request.VcsRootRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
@@ -145,16 +148,25 @@ public class Project {
         return new Project(actulParentProject, fields.getNestedField("parentProject"), beanContext);
       }
     });
+
+    final BuildTypeFinder buildTypeFinder = beanContext.getSingletonService(BuildTypeFinder.class);
     buildTypes = ValueWithDefault.decideDefault(fields.isIncluded("buildTypes", false), new ValueWithDefault.Value<BuildTypes>() {
       public BuildTypes get() {
-        return new BuildTypes(BuildTypes.fromBuildTypes(project.getOwnBuildTypes()), null, fields.getNestedField("buildTypes", Fields.NONE, Fields.LONG), beanContext);
+        final Fields buildTypesFields = fields.getNestedField("buildTypes", Fields.NONE, Fields.LONG);
+        final String buildTypesLocator = buildTypesFields.getLocator();
+        final List<BuildTypeOrTemplate> buildTypes = buildTypeFinder.getBuildTypesPaged(project, buildTypesLocator, true).myEntries;
+        return new BuildTypes(buildTypes, null, buildTypesFields, beanContext);
       }
     });
     templates = ValueWithDefault.decideDefault(fields.isIncluded("templates", false), new ValueWithDefault.Value<BuildTypes>() {
       public BuildTypes get() {
-        return new BuildTypes(BuildTypes.fromTemplates(project.getOwnBuildTypeTemplates()), null, fields.getNestedField("templates", Fields.NONE, Fields.LONG), beanContext);
+        final Fields templateFields = fields.getNestedField("templates", Fields.NONE, Fields.LONG);
+        final String templatesLocator = templateFields.getLocator();
+        final List<BuildTypeOrTemplate> templates = buildTypeFinder.getBuildTypesPaged(project, templatesLocator, false).myEntries;
+        return new BuildTypes(templates, null, templateFields, beanContext);
       }
     });
+
     parameters = ValueWithDefault.decideDefault(fields.isIncluded("parameters", false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
         return new Properties(project.getParametersCollection(),project.getOwnParametersCollection(), ProjectRequest.getParametersHref(project),
