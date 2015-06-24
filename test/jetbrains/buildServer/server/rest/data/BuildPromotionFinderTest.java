@@ -17,7 +17,9 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
+import jetbrains.buildServer.MockTimeService;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.log.Loggable;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -29,6 +31,8 @@ import jetbrains.buildServer.serverSide.impl.CancelableTaskHolder;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
+import jetbrains.buildServer.util.Dates;
+import jetbrains.buildServer.util.TestFor;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -243,6 +247,80 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
     //todo: there should be a way to get failed to start builds... including when filtering by buildType
   }
 
+
+  @Test
+  @TestFor(issues = {"TW-21926"})
+  public void testMultipleBuildsWithIdLocator() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
+
+    final BuildPromotion build2 = build().in(buildConf).failed().finish().getBuildPromotion();
+
+    final RunningBuildEx running3 = startBuild(myBuildType);
+    running3.stop(createUser("uuser1"), "cancel comment");
+    SBuild b3canceled = finishBuild(running3, true);
+
+    final BuildPromotion build4 = build().in(buildConf2).failedToStart().finish().getBuildPromotion();
+    final BuildPromotion build5 = build().in(buildConf2).withBranch("branch").finish().getBuildPromotion();
+
+    final BuildPromotion runningBuild5 = build().in(buildConf).run().getBuildPromotion();
+    final BuildPromotion queuedBuild = build().in(buildConf).addToQueue().getBuildPromotion();
+
+    checkBuilds("taskId:" + queuedBuild.getId(), queuedBuild);
+    checkBuilds("promotionId:" + queuedBuild.getId(), queuedBuild);
+    checkBuilds("id:" + runningBuild5.getId(), runningBuild5);
+    checkBuilds("id:" + build2.getId(), build2);
+    checkBuilds("id:" + b3canceled.getBuildId(), b3canceled.getBuildPromotion());
+    checkBuilds("id:" + build4.getId(), build4);
+    checkBuilds("id:" + build5.getId(), build5);
+  }
+
+  @Test
+  public void testSinceUntil() {
+    final MockTimeService time = new MockTimeService(Dates.now().getTime());
+    myServer.setTimeService(time);
+
+    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
+
+    final SFinishedBuild build10 = build().in(buildConf1).finish();
+    time.jumpTo(10);
+    final Date afterBuild10 = time.getNow();
+    time.jumpTo(10);
+    final SFinishedBuild build20 = build().in(buildConf2).failed().finish();
+    time.jumpTo(10);
+
+    final SFinishedBuild build25Deleted = build().in(buildConf2).failed().finish();
+    final long build25DeletedId = build25Deleted.getBuildId();
+    myFixture.getSingletonService(BuildHistory.class).removeEntry(build25Deleted);
+
+    final SFinishedBuild build30 = build().in(buildConf2).failedToStart().finish();
+    time.jumpTo(10);
+    final Date afterBuild30 = time.getNow();
+    time.jumpTo(10);
+
+    final SFinishedBuild build40 = build().in(buildConf1).finish();
+    time.jumpTo(10);
+
+    final SFinishedBuild build50Deleted = build().in(buildConf2).failed().finish();
+    final long build50DeletedId = build50Deleted.getBuildId();
+    myFixture.getSingletonService(BuildHistory.class).removeEntry(build50Deleted);
+
+    final SFinishedBuild build60 = build().in(buildConf2).finish();
+    time.jumpTo(10);
+    final Date afterBuild60 = time.getNow();
+
+    final SFinishedBuild build70 = build().in(buildConf1).finish();
+
+    time.jumpTo(10);
+    final SRunningBuild build80 = build().in(buildConf1).run();
+    time.jumpTo(10);
+    final SQueuedBuild build90 = build().in(buildConf1).addToQueue();
+
+    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),state:any", getBuildPromotions(build90, build80, build70, build60, build40, build20));
+    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),state:any,failedToStart:any", getBuildPromotions(build90, build80, build70, build60, build40, build30, build20));
+  }
+
 //==================================================
 
   public void checkBuilds(final String locator, BuildPromotion... builds) {
@@ -335,4 +413,14 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
       }
     }, "searching builds with locator \"" + multipleBuildsLocator + "\"");
   }
+
+  @NotNull
+  public static BuildPromotion[] getBuildPromotions(final BuildPromotionOwner... builds) {
+    final BuildPromotion[] buildPromotions = new BuildPromotion[builds.length];
+    for (int i = 0; i < builds.length; i++) {
+      buildPromotions[i] = builds[i].getBuildPromotion();
+    }
+    return buildPromotions;
+  }
+
 }

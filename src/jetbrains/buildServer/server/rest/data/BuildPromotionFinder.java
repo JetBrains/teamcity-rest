@@ -471,6 +471,32 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     }
 
+    //todo: rework SINCE_ and UNTIL_ handling (see also getBuildFilter()):filter on getting builds; more options (all times); also for buildPromotion,
+    // use "since:(build:(),start:(build:(),date:()),queued:(build:(),date:()),finish:(build:(),date:()))"
+    final String sinceBuild = locator.getSingleDimensionValue(SINCE_BUILD);
+    if (sinceBuild != null) {
+      final Long buildId = getBuildId(sinceBuild);
+      if (buildId != null) {
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            return buildId < item.getId();
+          }
+        });
+      }
+    }
+
+    final String untilBuild = locator.getSingleDimensionValue(UNTIL_BUILD);
+    if (untilBuild != null) {
+      final Long buildId = getBuildId(untilBuild);
+      if (buildId != null) {
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            return !(buildId < item.getId());
+          }
+        });
+      }
+    }
+
     final MultiCheckerFilter<SBuild> buildFilter = getBuildFilter(locator);
     if (buildFilter.getSubFiltersCount() > 0) {
       result.add(new FilterConditionChecker<BuildPromotion>() {
@@ -571,19 +597,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
-    //todo: filter on gettings builds; more options (all times); also for buildPromotion, use "since:(build:(),start:(build:(),date:()),queued:(build:(),date:()),finish:(build:(),date:()))"
-    final String sinceBuild = locator.getSingleDimensionValue(SINCE_BUILD);
-    if (sinceBuild != null) {
-      final Long buildId = getBuildId(sinceBuild);
-      if (buildId != null) {
-        result.add(new FilterConditionChecker<SBuild>() {
-          public boolean isIncluded(@NotNull final SBuild item) {
-            return buildId < item.getBuildId();
-          }
-        });
-      }
-    }
-
     final Date sinceDate = DataProvider.parseDate(locator.getSingleDimensionValue(SINCE_DATE));
     if (sinceDate != null) {
       result.add(new FilterConditionChecker<SBuild>() {
@@ -591,18 +604,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
           return sinceDate.before(item.getStartDate());
         }
       });
-    }
-
-    final String untilBuild = locator.getSingleDimensionValue(UNTIL_BUILD);
-    if (untilBuild != null) {
-      final Long buildId = getBuildId(untilBuild);
-      if (buildId != null) {
-        result.add(new FilterConditionChecker<SBuild>() {
-          public boolean isIncluded(@NotNull final SBuild item) {
-            return !(buildId < item.getBuildId());
-          }
-        });
-      }
     }
 
     final Date untilDate = DataProvider.parseDate(locator.getSingleDimensionValue(UNTIL_DATE));

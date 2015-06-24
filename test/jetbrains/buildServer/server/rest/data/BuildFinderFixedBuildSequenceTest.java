@@ -248,16 +248,4 @@ public class BuildFinderFixedBuildSequenceTest extends BuildFinderTestBase {
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "");
     checkMultipleBuilds(null, myBuild12, myBuild10byUser, myBuild9failedToStart, myBuild4conf2FailedPinned, myBuild3tagged, myBuild2failed, myBuild1);
   }
-
-/*  @Test
-  @TestFor(issues = {"TW-21926"})
-  public void testMultipleBuildsWithIdLocator() {
-    checkBuilds("taskId:" + myBuild14queued.getBuildPromotion().getId(), myBuild14queued);
-    checkBuilds("promotionId:" + myBuild14queued.getBuildPromotion().getId(), myBuild14queued);
-    checkBuilds("id:" + myBuild13running.getBuildId(), myBuild13running);
-    checkBuilds("id:" + myBuild4conf2FailedPinned.getBuildId(), myBuild4conf2FailedPinned);
-    checkBuilds("id:" + myBuild7canceled.getBuildId(), myBuild7canceled);
-    checkBuilds("id:" + myBuild9failedToStart, myBuild9failedToStart);
-    checkBuilds("id:" + myBuild11inBranch.getBuildId(), myBuild11inBranch);
-  }*/
 }

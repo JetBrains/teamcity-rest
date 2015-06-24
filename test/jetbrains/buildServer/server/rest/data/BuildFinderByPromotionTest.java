@@ -545,7 +545,7 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
 
     checkBuilds("sinceBuild:(id:" + build10.getBuildId() + ")", build70, build60, build40, build20);
     checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),failedToStart:any", build70, build60, build40, build30, build20);
-//    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),state:any", build90, build80, build70, build60, build40, build30, build20);
+//    see also jetbrains.buildServer.server.rest.data.BuildPromotionFinderTest.testSinceUntil()
     checkBuilds("sinceBuild:(id:" + build25DeletedId + ")", build70, build60, build40);
     checkBuilds("sinceBuild:(id:" + build25DeletedId + "),failedToStart:any", build70, build60, build40, build30);
 
