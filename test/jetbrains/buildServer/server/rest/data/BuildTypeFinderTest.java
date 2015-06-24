@@ -166,4 +166,31 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     check("snapshotDependency:(from:(id:" + buildConf1.getId() + "),to:(id:" + buildConf5.getId() + "))", buildConf31, buildConf2);
     check("snapshotDependency:(from:(id:" + buildConf31.getId() + "),to:(id:" + buildConf32.getId() + "))");
   }
+
+  @Test
+  public void testProject() throws Exception {
+    myBuildType.remove();
+    final SProject project10 = createProject("p10");
+    final SProject project10_10 = project10.createProject("p10_10", "xxx");
+    final SProject project10_20 = project10.createProject("p10_20", "p10_20");
+    project10_20.setArchived(true, getOrCreateUser("user"));
+    final SProject project20 = createProject("xxx");
+
+    final BuildTypeOrTemplate p10_bt10 = new BuildTypeOrTemplate(project10.createBuildType("p10_bt10", "xxx"));
+    final BuildTypeOrTemplate p10_bt20 = new BuildTypeOrTemplate(project10.createBuildType("p10_bt20", "p10_bt20"));
+    final BuildTypeOrTemplate p10_10_bt10 = new BuildTypeOrTemplate(project10_10.createBuildType("p10_10_bt10", "xxx"));
+    final BuildTypeOrTemplate p10_10_bt20 = new BuildTypeOrTemplate(project10_10.createBuildType("p10_10_bt20", "p10_10_bt20"));
+    final BuildTypeOrTemplate p20_10_bt10 = new BuildTypeOrTemplate(project10_20.createBuildType("p20_10_bt10", "p20_10_bt10"));
+    final BuildTypeOrTemplate p20_10_bt20 = new BuildTypeOrTemplate(project10_20.createBuildType("p20_10_bt20", "p20_10_bt20"));
+
+    final BuildTypeOrTemplate p20_bt10 = new BuildTypeOrTemplate(project20.createBuildType("p20_bt10", "p20_bt10"));
+    final BuildTypeOrTemplate p20_bt20 = new BuildTypeOrTemplate(project20.createBuildType("p20_bt20", "p20_bt20"));
+
+    check("project:(id:" + project10.getExternalId() + ")", p10_bt20, p10_bt10);
+    check("project:(name:xxx)", p10_10_bt20, p10_10_bt10, p20_bt10, p20_bt20);
+    check("project:(name:xxx,count:1)", p10_10_bt20, p10_10_bt10);
+    check("project:(archived:false)", p10_bt20, p10_bt10, p10_10_bt20, p10_10_bt10, p20_bt10, p20_bt20);
+    check("project:(archived:true)", p20_10_bt10, p20_10_bt20);
+    check("project:(archived:any)", p10_bt20, p10_bt10, p10_10_bt20, p10_10_bt10, p20_bt10, p20_bt20, p20_10_bt10, p20_10_bt20);
+  }
 }

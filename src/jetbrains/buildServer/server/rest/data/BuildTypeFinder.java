@@ -229,15 +229,22 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     }
 
     final String projectLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
-    SProject project = null;
     if (projectLocator != null) {
-      project = myProjectFinder.getItem(projectLocator);
-      final SProject internalProject = project;
-      result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-        public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
-          return internalProject.getProjectId().equals(item.getProject().getProjectId());
-        }
-      });
+      final List<SProject> projects = myProjectFinder.getItems(projectLocator).myEntries;
+      if (projects.size() == 1) {
+        final SProject internalProject = projects.iterator().next();
+        result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
+          public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+            return internalProject.getProjectId().equals(item.getProject().getProjectId());
+          }
+        });
+      } else {
+        result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
+          public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+            return projects.contains(item.getProject());
+          }
+        });
+      }
     }
 
     final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
@@ -339,10 +346,10 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       return getItemHolder(graphFinder.getItems(snapshotDependencies).myEntries);
     }
 
-    SProject project = null;
+    List<SProject> projects = null;
     final String projectLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
     if (projectLocator != null) {
-      project = myProjectFinder.getItem(projectLocator);
+      projects = myProjectFinder.getItems(projectLocator).myEntries;
     }
 
     SProject affectedProject = null;
@@ -367,8 +374,8 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
     Boolean template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_FLAG_DIMENSION_NAME);
     if (template == null || !template) {
-      if (project != null) {
-        result.addAll(BuildTypes.fromBuildTypes(project.getOwnBuildTypes()));
+      if (projects != null) {
+        result.addAll(getBuildTypes(projects));
       } else if (affectedProject != null) {
         result.addAll(BuildTypes.fromBuildTypes(affectedProject.getBuildTypes()));
       } else {
@@ -376,8 +383,8 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       }
     }
     if (template == null || template) {
-      if (project != null) {
-        result.addAll(BuildTypes.fromTemplates(project.getOwnBuildTypeTemplates()));
+      if (projects != null) {
+        result.addAll(getTemplates(projects));
       } else if (affectedProject != null) {
         result.addAll(BuildTypes.fromTemplates(affectedProject.getBuildTypeTemplates()));
       } else {
@@ -386,6 +393,22 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     }
 
     return getItemHolder(result);
+  }
+
+  private Collection<BuildTypeOrTemplate> getBuildTypes(final List<SProject> projects) {
+    final ArrayList<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
+    for (SProject project : projects) {
+      result.addAll(BuildTypes.fromBuildTypes(project.getOwnBuildTypes()));
+    }
+    return result;
+  }
+
+  private Collection<BuildTypeOrTemplate> getTemplates(final List<SProject> projects) {
+    final ArrayList<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
+    for (SProject project : projects) {
+      result.addAll(BuildTypes.fromTemplates(project.getOwnBuildTypeTemplates()));
+    }
+    return result;
   }
 
   @NotNull
