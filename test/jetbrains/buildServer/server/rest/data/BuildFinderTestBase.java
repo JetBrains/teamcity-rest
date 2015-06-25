@@ -17,6 +17,8 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
@@ -177,9 +179,12 @@ public class BuildFinderTestBase extends BaseServerTestCase {
         return;
       }
       LOG.debug(e);
+      StringWriter stacktraceWriter = new StringWriter();
+      e.printStackTrace(new PrintWriter(stacktraceWriter));
       fail("Wrong exception type is thrown" + details + ".\n" +
            "Expected: " + exception.getName() + "\n" +
-           "Actual  : " + e.toString());
+           "Actual  : " + e.toString() + "\n" +
+           stacktraceWriter.toString());
     }
     fail("No exception is thrown" + details +
          ". Expected: " + exception.getName());

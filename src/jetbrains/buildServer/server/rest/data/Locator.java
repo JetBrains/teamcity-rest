@@ -145,7 +145,7 @@ public class Locator {
    * @param supportedDimensions
    * @return
    */
-  public static Locator createLocator(final String locator, final Locator defaults, final String[] supportedDimensions) {
+  public static Locator createLocator(@Nullable final String locator, @Nullable final Locator defaults, final String[] supportedDimensions) {
     Locator result;
     if (locator != null || defaults == null) {
       result = new Locator(locator, supportedDimensions);
@@ -476,7 +476,7 @@ public class Locator {
     }
     myDimensions.removeAll(name);
     myDimensions.put(name, value);
-    myUsedDimensions.remove(name);
+    markUnused(name);
     modified = true; // todo: use setDimension to replace the dimension in myRawValue
     return this;
   }
@@ -489,8 +489,13 @@ public class Locator {
    * @param value value of the dimension
    */
   public Locator setDimensionIfNotPresent(@NotNull final String name, @NotNull final String value) {
+    final boolean wasUsed = getUsedDimensions().contains(name);
     if (getSingleDimensionValue(name) == null) {
       setDimension(name, value);
+    } else {
+      if (!wasUsed) {
+        markUnused(name);
+      }
     }
     return this;
   }

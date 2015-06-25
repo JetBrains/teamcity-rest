@@ -76,6 +76,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected static final String UNTIL_BUILD = "untilBuild";
   protected static final String UNTIL_DATE = "untilDate";
 
+  protected static final String DEFAULT_FILTERING = "defaultFilter";
+
   public static final String BY_PROMOTION = "byPromotion";  //used in BuildFinder
   public static final String EQUIVALENT = "equivalent"; /*experimental*/
 
@@ -132,6 +134,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     result.addIgnoreUnusedDimensions(EQUIVALENT);
     result.addIgnoreUnusedDimensions(PROMOTION_ID_ALIAS);
     result.addIgnoreUnusedDimensions(BUILD_ID);
+    result.addIgnoreUnusedDimensions(DEFAULT_FILTERING);
     return result;
   }
 
@@ -283,20 +286,20 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     }
 
     final String branchLocatorValue = locator.getSingleDimensionValue(BRANCH);
-    // should filter by branch even if not specified in the locator
-    //todo: consider introducing default locator values instead. The actual locator can then be used in messges to the user like in AbstractFinder.getItemsByLocator, etc.
-    final BranchMatcher branchMatcher;
-    try {
-      branchMatcher = new BranchMatcher(branchLocatorValue);
-    } catch (LocatorProcessException e) {
-      throw new LocatorProcessException("Invalid sub-locator '" + BRANCH + "': " + e.getMessage());
-    }
-    if (!branchMatcher.matchesAnyBranch()) {
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
-          return branchMatcher.matches(item);
-        }
-      });
+    if (branchLocatorValue != null) {
+      final BranchMatcher branchMatcher;
+      try {
+        branchMatcher = new BranchMatcher(branchLocatorValue);
+      } catch (LocatorProcessException e) {
+        throw new LocatorProcessException("Invalid sub-locator '" + BRANCH + "': " + e.getMessage());
+      }
+      if (!branchMatcher.matchesAnyBranch()) {
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            return branchMatcher.matches(item);
+          }
+        });
+      }
     }
 
     if (locator.isSingleValue()) {
@@ -431,7 +434,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
-    final Boolean personal = locator.getSingleDimensionValueAsBoolean(PERSONAL, false);
+    final Boolean personal = locator.getSingleDimensionValueAsBoolean(PERSONAL);
     if (personal != null) {
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
@@ -520,7 +523,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
-    final Boolean canceled = locator.getSingleDimensionValueAsBoolean(CANCELED, false);
+    final Boolean canceled = locator.getSingleDimensionValueAsBoolean(CANCELED);
     if (canceled != null) {
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
@@ -530,7 +533,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
-    final Boolean failedToStart = locator.getSingleDimensionValueAsBoolean(FAILED_TO_START, false);
+    final Boolean failedToStart = locator.getSingleDimensionValueAsBoolean(FAILED_TO_START);
     if (failedToStart != null) {
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
@@ -563,7 +566,20 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     }
 
-    return createStateLocator(STATE_FINISHED); // default to only finished builds
+    return createStateLocator(STATE_ANY); // default to all the builds
+  }
+
+  private boolean isStateLocatorPresent(@NotNull final Locator locator) {
+    final Set<String> usedDimensions = locator.getUsedDimensions();
+    if (locator.getSingleDimensionValue(STATE) != null) {
+      if (!usedDimensions.contains(STATE)) locator.markUnused(STATE);
+      return true;
+    }
+    if (locator.getSingleDimensionValue(RUNNING) != null) {
+      if (!usedDimensions.contains(RUNNING)) locator.markUnused(RUNNING);
+      return true;
+    }
+    return false;
   }
 
   @NotNull
@@ -685,8 +701,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   }
 
 
+  @NotNull
   @Override
   protected ItemHolder<BuildPromotion> getPrefilteredItems(@NotNull Locator locator) {
+    setLocatorDefaults(locator);
+
     final String equivalent = locator.getSingleDimensionValue(EQUIVALENT);
     if (equivalent != null) {
       final BuildPromotionEx build = (BuildPromotionEx)getItem(equivalent);
@@ -742,9 +761,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         options.setBuildTypeId(buildType.getBuildTypeId());//todo add javadoc which id is this
 
         final Boolean personal = locator.getSingleDimensionValueAsBoolean(PERSONAL);
-        if ((personal == null && locator.getSingleDimensionValue(PERSONAL) != null) ||
-            (personal != null && personal)) {
-
+        if (personal == null || personal) {
           final String userDimension = locator.getSingleDimensionValue(USER);
           options.setIncludePersonal(true, userDimension == null ? null : myUserFinder.getUser(userDimension));
         } else {
@@ -752,30 +769,33 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         }
 
         final Boolean canceled = locator.getSingleDimensionValueAsBoolean(CANCELED);
-        if ((canceled == null && locator.getSingleDimensionValue(CANCELED) != null) ||
-            (canceled != null && canceled)) {
+        if (canceled == null || canceled) {
           options.setIncludeCanceled(true);
         } else {
           options.setIncludeCanceled(false);
         }
 
         final String branchLocatorValue = locator.getSingleDimensionValue(BRANCH);
-        final BranchMatcher branchMatcher;
-        try {
-          branchMatcher = new BranchMatcher(branchLocatorValue);
-        } catch (LocatorProcessException e) {
-          throw new LocatorProcessException("Invalid sub-locator '" + BRANCH + "': " + e.getMessage());
-        }
-
-        if (branchMatcher.matchesAnyBranch()) {
-          options.setMatchAllBranches(true);
-        } else {
-          final String singleBranch = branchMatcher.getSingleBranchIfNotDefault();
-          if (singleBranch != null) {
-            options.setBranch(singleBranch);
-          } else {
-            locator.markUnused(BRANCH);
+        if (branchLocatorValue != null) {
+          final BranchMatcher branchMatcher;
+          try {
+            branchMatcher = new BranchMatcher(branchLocatorValue);
+          } catch (LocatorProcessException e) {
+            throw new LocatorProcessException("Invalid sub-locator '" + BRANCH + "': " + e.getMessage());
           }
+
+          if (branchMatcher.matchesAnyBranch()) {
+            options.setMatchAllBranches(true);
+          } else {
+            final String singleBranch = branchMatcher.getSingleBranchIfNotDefault();
+            if (singleBranch != null) {
+              options.setBranch(singleBranch);
+            } else {
+              locator.markUnused(BRANCH);
+            }
+          }
+        } else {
+          options.setMatchAllBranches(true);
         }
 
         options.setIncludeRunning(false); //running builds are retrieved separately and appear before finished ones
@@ -820,6 +840,19 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         return false;
       }
     };
+  }
+
+  private void setLocatorDefaults(@NotNull final Locator locator) {
+    final Boolean defaultFiltering = locator.getSingleDimensionValueAsBoolean(DEFAULT_FILTERING, true);
+    if (!locator.isSingleValue() && (defaultFiltering == null || defaultFiltering)) {
+      locator.setDimensionIfNotPresent(PERSONAL, "false");
+      locator.setDimensionIfNotPresent(CANCELED, "false");
+      if (!isStateLocatorPresent(locator)) {
+        locator.setDimension(STATE, STATE_FINISHED);
+      }
+      locator.setDimensionIfNotPresent(FAILED_TO_START, "false");
+      locator.setDimensionIfNotPresent(BRANCH, BranchMatcher.getDefaultBranchLocator());
+    }
   }
 
   @NotNull

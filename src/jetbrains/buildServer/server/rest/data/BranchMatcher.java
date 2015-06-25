@@ -29,6 +29,10 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 18.01.12
  */
 public class BranchMatcher {
+  protected static final String NAME = "name";
+  protected static final String DEFAULT = "default";
+  protected static final String UNSPECIFIED = "unspecified";
+  protected static final String BRANCHED = "branched";
   @Nullable private final Locator myLocator;
 
   public BranchMatcher(@Nullable final String locatorText) {
@@ -37,6 +41,10 @@ public class BranchMatcher {
     }else{
       myLocator = new Locator(locatorText);  //todo add known dimensions, check for them
     }
+  }
+
+  public static String getDefaultBranchLocator(){
+    return Locator.getStringLocator(DEFAULT, "true");
   }
 
   public boolean isDefined(){
@@ -62,10 +70,10 @@ public class BranchMatcher {
       return GenericBuildsFilter.BRANCH_NAME_ANY.equals(myLocator.getSingleValue());
     }
 
-    final String branchName = myLocator.getSingleDimensionValue("name");
-    final Boolean defaultBranch = myLocator.getSingleDimensionValueAsBoolean("default");
-    final Boolean unspecifiedBranch = myLocator.getSingleDimensionValueAsBoolean("unspecified");
-    final Boolean branched = myLocator.getSingleDimensionValueAsBoolean("branched");
+    final String branchName = myLocator.getSingleDimensionValue(NAME);
+    final Boolean defaultBranch = myLocator.getSingleDimensionValueAsBoolean(DEFAULT);
+    final Boolean unspecifiedBranch = myLocator.getSingleDimensionValueAsBoolean(UNSPECIFIED);
+    final Boolean branched = myLocator.getSingleDimensionValueAsBoolean(BRANCHED);
     return branchName == null && defaultBranch == null && unspecifiedBranch == null && branched == null;
   }
 
@@ -78,10 +86,10 @@ public class BranchMatcher {
       return matchesBranchName(logicalBranchName, buildBranch);
     }
 
-    final String branchName = locator.getSingleDimensionValue("name");
-    final Boolean defaultBranch = locator.getSingleDimensionValueAsBoolean("default");
-    final Boolean unspecifiedBranch = locator.getSingleDimensionValueAsBoolean("unspecified");
-    final Boolean branched = locator.getSingleDimensionValueAsBoolean("branched");
+    final String branchName = locator.getSingleDimensionValue(NAME);
+    final Boolean defaultBranch = locator.getSingleDimensionValueAsBoolean(DEFAULT);
+    final Boolean unspecifiedBranch = locator.getSingleDimensionValueAsBoolean(UNSPECIFIED);
+    final Boolean branched = locator.getSingleDimensionValueAsBoolean(BRANCHED);
     if (defaultBranch != null) {
       if (buildBranch != null && !defaultBranch.equals(buildBranch.isDefaultBranch())) {
         return false;
@@ -137,10 +145,10 @@ public class BranchMatcher {
       return myLocator.getSingleValue();
     }
 
-    final String branchName = myLocator.getSingleDimensionValue("name");
-    final Boolean defaultBranch = myLocator.getSingleDimensionValueAsBoolean("default");
-    final Boolean unspecifiedBranch = myLocator.getSingleDimensionValueAsBoolean("unspecified");
-    final Boolean branched = myLocator.getSingleDimensionValueAsBoolean("branched");
+    final String branchName = myLocator.getSingleDimensionValue(NAME);
+    final Boolean defaultBranch = myLocator.getSingleDimensionValueAsBoolean(DEFAULT);
+    final Boolean unspecifiedBranch = myLocator.getSingleDimensionValueAsBoolean(UNSPECIFIED);
+    final Boolean branched = myLocator.getSingleDimensionValueAsBoolean(BRANCHED);
     if (branchName != null &&
         (defaultBranch == null || !defaultBranch) &&
         unspecifiedBranch == null &&

@@ -29,6 +29,7 @@ import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.CancelableTaskHolder;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.Dates;
@@ -144,6 +145,7 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
     checkBuilds(baseToLocatorStart + ",recursive:false),state:any", build3);
 
     checkBuilds("snapshotDependency:(to:(id:" + build3.getId() + "))", build1, build0);
+    checkBuilds("snapshotDependency:(to:(id:" + build3.getId() + ")),defaultFilter:false", build2, build1, build0);
     checkBuilds("snapshotDependency:(to:(id:" + build3.getId() + ")),state:any", build2, build1, build0);
     checkBuilds("snapshotDependency:(to:(id:" + build3.getId() + "),includeInitial:true),state:any", build3, build2, build1, build0);
     checkBuilds("snapshotDependency:(to:(id:" + build2.getId() + "))", build1, build0);
@@ -321,6 +323,43 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
 
     checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),state:any", getBuildPromotions(build90, build80, build70, build60, build40, build20));
     checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),state:any,failedToStart:any", getBuildPromotions(build90, build80, build70, build60, build40, build30, build20));
+  }
+
+  @Test
+  public void testDefaultFiltering() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+    final SUser user = createUser("uuser");
+
+    SBuild build1 = build().in(buildConf).finish();
+    SBuild build2failed = build().in(buildConf).failed().finish();
+
+    SBuild build5personal = build().in(buildConf).personalForUser(user.getUsername()).finish();
+
+    RunningBuildEx build7running = startBuild(buildConf);
+    build7running.stop(user, "cancel comment");
+    SBuild build7canceled = finishBuild(build7running, false);
+
+    final RunningBuildEx build8running = startBuild(buildConf);
+    build8running.addBuildProblem(createBuildProblem()); //make the build failed
+    build8running.stop(user, "cancel comment");
+    SBuild build8canceledFailed = finishBuild(build8running, true);
+
+    SBuild build9failedToStart = build().in(buildConf).failedToStart().finish();
+    SBuild build11inBranch = build().in(buildConf).withBranch("branch").finish();
+
+    SBuild build13running = startBuild(buildConf);
+    SQueuedBuild build14queued = addToQueue(buildConf);
+
+    checkBuilds(null, getBuildPromotions(build2failed, build1));
+    checkBuilds("defaultFilter:false", getBuildPromotions(build14queued, build13running, build11inBranch, build9failedToStart, build8canceledFailed, build7canceled, build5personal, build2failed, build1));
+    checkBuilds("defaultFilter:true", getBuildPromotions(build2failed, build1));
+    checkBuilds("canceled:true", getBuildPromotions(build8canceledFailed, build7canceled));
+    checkBuilds("canceled:false", getBuildPromotions(build2failed, build1));
+    checkBuilds("canceled:false,defaultFilter:false", getBuildPromotions(build14queued, build13running, build11inBranch, build9failedToStart, build5personal, build2failed, build1));
+    checkBuilds("canceled:any", getBuildPromotions(build8canceledFailed, build7canceled, build2failed, build1));
+    checkBuilds("personal:true", getBuildPromotions(build5personal));
+    checkBuilds("personal:any", getBuildPromotions(build5personal, build2failed, build1));
+    checkBuilds("state:any", getBuildPromotions(build14queued, build13running, build2failed, build1));
   }
 
 //==================================================
