@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import java.io.IOException;
 import java.util.Date;
 import jetbrains.buildServer.MockTimeService;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -112,6 +113,60 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     checkNoBuildFound("promotionId:" + notExistentBuildPromotionId);
     checkNoBuildFound("buildType:(id:" + buildConf.getExternalId() + "),promotionId:" + notExistentBuildPromotionId);
     checkNoBuildFound("buildType:(id:" + buildConf2.getExternalId() + "),promotionId:" + build2.getId());
+  }
+
+  @Test
+  public void testOldBuildId() throws IOException {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+    long build10id; //no build with such promotion exists
+    long build10PromotionId; //same as build20id
+    long build20id; //the same as build10PromotionId
+    long build20PromotionId;
+    {
+      final SFinishedBuild build10 = build().in(buildConf).finish();
+      build10id = build10.getBuildId() + 100;
+      build10PromotionId = build10.getBuildPromotion().getId();
+
+      final SFinishedBuild build20 = build().in(buildConf).finish();
+      build20id = build10PromotionId; //to be build id
+      build20PromotionId = build20.getBuildPromotion().getId();
+
+      prepareFinishedBuildIdChange(build10.getBuildId(), build10id);
+      prepareFinishedBuildIdChange(build20.getBuildId(), build20id);
+      recreateBuildServer();
+      init();
+    }
+
+    final SBuild build10 = myServer.findBuildInstanceById(build10id);
+    final SBuild build20 = myServer.findBuildInstanceById(build20id);
+    assertNotNull(build10);
+    assertEquals(build10id, build10.getBuildId());
+    assertEquals(build10PromotionId, build10.getBuildPromotion().getId());
+    assertNotNull(build20);
+    assertEquals(build20id, build20.getBuildId());
+    assertEquals(build20PromotionId, build20.getBuildPromotion().getId());
+
+    checkBuild(String.valueOf(build10id), build10);
+    checkBuild(String.valueOf(build10PromotionId), build20);
+    checkBuild("id:" + build10id, build10);
+    checkBuild("id:" + build10PromotionId, build20);
+    checkNoBuildFound("taskId:" + build10id);
+    checkBuild("taskId:" + build10PromotionId, build10);
+    checkNoBuildFound("promotionId:" + build10id);
+    checkBuild("promotionId:" + build10PromotionId, build10);
+
+    checkBuild("id:" + build10PromotionId + ",buildType:(" + build10.getBuildTypeId() + ")", build20);
+
+    checkBuild(String.valueOf(build20id), build20);
+//    checkNoBuildFound(String.valueOf(build20PromotionId));// difference form 9.0 behavior
+    checkBuild(String.valueOf(build20PromotionId), build20);
+    checkBuild("id:" + build20id, build20);
+    checkNoBuildFound("id:" + build20PromotionId);
+    checkBuild("taskId:" + build20id, build10);
+    checkBuild("taskId:" + build20PromotionId, build20);
+    checkBuild("promotionId:" + build20id, build10);
+    checkBuild("promotionId:" + build20PromotionId, build20);
+    checkBuild("buildId:" + build20id, build20);
   }
 
   @Test

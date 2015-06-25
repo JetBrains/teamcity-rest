@@ -215,6 +215,8 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
 
     checkBuilds("id:" + id2, queuedDependency);
     checkBuilds("id:" + id1, queuedDependency);
+    checkBuilds(String.valueOf(id1), queuedDependency);
+    checkBuilds("taskId:" + id1, queuedDependency);
   }
 
   @Test

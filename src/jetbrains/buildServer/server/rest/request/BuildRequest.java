@@ -109,11 +109,11 @@ public class BuildRequest {
   }
 
   public static String getBuildLocator(@NotNull final SBuild build) {
-    return "id:" + build.getBuildId();  //todo: use locator rendering here
+    return getBuildLocator(build.getBuildPromotion());
   }
 
   public static String getBuildLocator(@NotNull final BuildPromotion buildPromotion) {
-    return "id:" + buildPromotion.getId();  //todo: use locator rendering here
+    return BuildPromotionFinder.getLocator(buildPromotion);
   }
 
   public static String getBuildIssuesHref(final SBuild build) {

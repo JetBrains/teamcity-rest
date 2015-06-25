@@ -27,6 +27,9 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.db.DBActionNoResults;
+import jetbrains.buildServer.serverSide.db.DBException;
+import jetbrains.buildServer.serverSide.db.DBFunctions;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -50,7 +53,10 @@ public class BuildFinderTestBase extends BaseServerTestCase {
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
+    init();
+  }
 
+  protected void init() {
     final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
     final AgentFinder agentFinder = new AgentFinder(myAgentManager);
     final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, myServer);
@@ -208,6 +214,18 @@ public class BuildFinderTestBase extends BaseServerTestCase {
   @NotNull
   public static String fDate(final Date date) {
     return new SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.ENGLISH).format(date);
+  }
+
+  /**
+   * requires calling recreateBuildServer() and re-initializing all the beans
+   */
+  protected void prepareFinishedBuildIdChange(final long oldId, final long newId) {
+    withDBF(new DBActionNoResults() {
+      public void run(final DBFunctions dbf) throws DBException {
+        assertEquals(1, dbf.executeDml("update history set build_id = ? where build_id = ?", newId, oldId));
+        assertEquals(1, dbf.executeDml("update build_state set build_id = ? where build_id = ?", newId, oldId));
+      }
+    }, true);
   }
 
 }

@@ -439,7 +439,7 @@ public class BuildFinder {
   public static BuildPromotion getBuildPromotion(final long promotionId, @NotNull final BuildPromotionManager promotionManager) {
     final BuildPromotion buildPromotion = promotionManager.findPromotionOrReplacement(promotionId);
     if (buildPromotion == null) {
-      throw new NotFoundException("No build can be found by promotion id " + promotionId);
+      throw new NotFoundException("No build promotion can be found by promotion id " + promotionId);
     }
     return buildPromotion;
   }
