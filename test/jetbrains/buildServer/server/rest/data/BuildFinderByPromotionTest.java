@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data;
 import java.io.IOException;
 import java.util.Date;
 import jetbrains.buildServer.MockTimeService;
+import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -667,6 +668,23 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
 
     checkBuilds("sinceBuild:(id:" + (initialId + 2) +")", build40);
     checkBuilds("sinceBuild:(id:" + (initialId + 1) +")", build40, build30);
-
   }
+
+  @Test
+  public void testSinceWithReorderedBuilds() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+    final SQueuedBuild queuedBuild10 = build().in(buildConf).addToQueue();
+    final SQueuedBuild queuedBuild20 = build().in(buildConf).parameter("a", "x").addToQueue(); //preventing build from merging in the queue
+    final SQueuedBuild queuedBuild30 = build().in(buildConf).parameter("a", "y").addToQueue(); //preventing build from merging in the queue
+    myFixture.getBuildQueue().moveTop(queuedBuild30.getItemId());
+    final SFinishedBuild build30 = myFixture.finishBuild(BuildBuilder.run(queuedBuild30, myFixture), false);
+    final SFinishedBuild build10 = myFixture.finishBuild(BuildBuilder.run(queuedBuild10, myFixture), false);
+    final SFinishedBuild build20 = myFixture.finishBuild(BuildBuilder.run(queuedBuild20, myFixture), false);
+
+    checkBuilds(null, build20, build10, build30);
+    checkBuilds("sinceBuild:(id:" + build20.getBuildId() +")");
+    checkBuilds("sinceBuild:(id:" + build10.getBuildId() +")", build20);
+    checkBuilds("sinceBuild:(id:" + build30.getBuildId() +")", build20, build10);
+  }
+
 }

@@ -225,9 +225,9 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       //limiting to 100 builds by default
       countFromFilter = (long)Constants.getDefaultPageItemsCount();
     }
+    final Long lookupLimit = locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT);
     final MultiCheckerFilter<BuildPromotion> result =
-      new MultiCheckerFilter<BuildPromotion>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter.intValue(),
-                                             locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT));
+      new MultiCheckerFilter<BuildPromotion>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter.intValue(), lookupLimit);
 
     Locator stateLocator = getStateLocator(locator);
 
@@ -458,24 +458,81 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     //todo: rework SINCE_ and UNTIL_ handling (see also getBuildFilter()):filter on getting builds; more options (all times); also for buildPromotion,
     // use "since:(build:(),start:(build:(),date:()),queued:(build:(),date:()),finish:(build:(),date:()))"
-    final String sinceBuild = locator.getSingleDimensionValue(SINCE_BUILD);
-    if (sinceBuild != null) {
-      final Long buildId = getBuildId(sinceBuild);
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
-          return buildId < getBuildId(item);
+    final String sinceBuildDimension = locator.getSingleDimensionValue(SINCE_BUILD);
+    BuildPromotion sinceBuildPromotion = null;
+    Long sinceBuildId = null;
+    if (sinceBuildDimension != null) {
+      try {
+        sinceBuildPromotion = getItem(sinceBuildDimension);
+        final SQueuedBuild queuedBuild = sinceBuildPromotion.getQueuedBuild();
+        if (queuedBuild != null) {
+          //compare queued builds by id (triggering sequence)
+          final long buildPromotionId = getBuildId(sinceBuildPromotion);
+          result.add(new FilterConditionChecker<BuildPromotion>() {
+            public boolean isIncluded(@NotNull final BuildPromotion item) {
+              return buildPromotionId < getBuildId(item);
+            }
+          });
+        } else {
+          // for started build, compare by start time
+          final SBuild limitingBuild = sinceBuildPromotion.getAssociatedBuild();
+          if (limitingBuild != null) {
+            final Date startDate = limitingBuild.getStartDate();
+            result.add(new FilterConditionChecker<BuildPromotion>() {
+              public boolean isIncluded(@NotNull final BuildPromotion item) {
+                final SBuild build = item.getAssociatedBuild();
+                return build == null || startDate.before(build.getStartDate());
+              }
+            });
+          }
         }
-      });
+      } catch (NotFoundException e) {
+        //build not found by sinceBuild locator, extract id ad filter using it
+        sinceBuildId = getBuildId(sinceBuildDimension);
+        final long sinceBuildIdFinal = sinceBuildId;
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            return sinceBuildIdFinal < getBuildId(item);
+          }
+        });
+      }
     }
 
     final String untilBuild = locator.getSingleDimensionValue(UNTIL_BUILD);
     if (untilBuild != null) {
-      final Long buildId = getBuildId(untilBuild);
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
-          return !(buildId < getBuildId(item));
+      try {
+        final BuildPromotion untilBuildPromotion = getItem(untilBuild);
+        final SQueuedBuild queuedBuild = untilBuildPromotion.getQueuedBuild();
+        if (queuedBuild != null) {
+          //compare queued builds by id (triggering sequence)
+          final long buildPromotionId = getBuildId(untilBuildPromotion);
+          result.add(new FilterConditionChecker<BuildPromotion>() {
+            public boolean isIncluded(@NotNull final BuildPromotion item) {
+              return !(buildPromotionId < getBuildId(item));
+            }
+          });
+        } else {
+          // for started build, compare by start time
+          final SBuild limitingBuild = untilBuildPromotion.getAssociatedBuild();
+          if (limitingBuild != null) {
+            final Date startDate = limitingBuild.getStartDate();
+            result.add(new FilterConditionChecker<BuildPromotion>() {
+              public boolean isIncluded(@NotNull final BuildPromotion item) {
+                final SBuild build = item.getAssociatedBuild();
+                return build == null || !startDate.before(build.getStartDate());
+              }
+            });
+          }
         }
-      });
+      } catch (NotFoundException e) {
+        //build not found by sinceBuild locator, extract id ad filter using it
+        final long untilBuildId = getBuildId(untilBuild);
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            return !(untilBuildId < getBuildId(item));
+          }
+        });
+      }
     }
 
     final MultiCheckerFilter<SBuild> buildFilter = getBuildFilter(locator);
@@ -511,7 +568,44 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
-    return result;
+    if (sinceBuildPromotion == null && sinceBuildId == null) {
+      return result;
+    }
+
+    //cut off builds traversing
+    if (sinceBuildPromotion != null) {
+      final SBuild limitingBuild = sinceBuildPromotion.getAssociatedBuild();
+      if (limitingBuild != null) {
+        final Date startDate = limitingBuild.getStartDate();
+        return new ProxyFilter<BuildPromotion>(result) {
+          @Override
+          public boolean shouldStop(final BuildPromotion item) {
+            if (super.shouldStop(item)) return true;
+            final SBuild build = item.getAssociatedBuild();
+            if (build == null || !build.isFinished()) return false; //do not stop while processing queued and running builds
+            if (limitingBuild.getBuildId() == build.getBuildId()) return true; //found exactly the limiting build - stop here
+            return !startDate.before(build.getStartDate());
+          }
+        };
+      }
+      sinceBuildId = sinceBuildId != null ? Math.max(sinceBuildId, getBuildId(sinceBuildPromotion)) : getBuildId(sinceBuildPromotion);
+    }
+
+    final long lookAheadCount = lookupLimit != null ? lookupLimit : TeamCityProperties.getLong("rest.request.builds.sinceBuildIdLookAheadCount", 50);
+    final Long sinceBuildIdFinal = sinceBuildId;
+    return new ProxyFilter<BuildPromotion>(result) {
+      private long currentLookAheadCount = 0;
+
+      @Override
+      public boolean shouldStop(final BuildPromotion item) {
+        if (super.shouldStop(item)) return true;
+        final SBuild build = item.getAssociatedBuild();
+        if (build == null || !build.isFinished()) return false; //do not stop while processing queued and running builds
+        if (sinceBuildIdFinal.equals(getBuildId(item))) return true; //found exactly the limiting build - stop here
+        if (sinceBuildIdFinal > getBuildId(item)) currentLookAheadCount++;
+        return currentLookAheadCount > lookAheadCount; // stop only after finding more than lookAheadCount builds with lesser id (try to take into account builds reordering)
+      }
+    };
   }
 
   @NotNull
@@ -641,11 +735,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       return id;
     }
 
-    try {
-      return getBuildId(getItem(buildLocator));
-    } catch (NotFoundException e) {
-      //report the same below error
-    }
     throw new BadRequestException("Cannot find build or build id for locator '" + buildLocator + "'. Try specifying '" + DIMENSION_ID + "' locator dimension");
   }
 

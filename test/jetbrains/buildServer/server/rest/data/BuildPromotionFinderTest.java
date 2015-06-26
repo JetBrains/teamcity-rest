@@ -343,6 +343,21 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
   }
 
   @Test
+  public void testSinceWithQueuedBuilds() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+    final BuildPromotion queuedBuild10 = build().in(buildConf).addToQueue().getBuildPromotion();
+    final BuildPromotion queuedBuild20 = build().in(buildConf).parameter("a", "x").addToQueue().getBuildPromotion(); //preventing build from merging in the queue
+    final BuildPromotion queuedBuild30 = build().in(buildConf).parameter("a", "y").addToQueue().getBuildPromotion(); //preventing build from merging in the queue
+    //noinspection ConstantConditions
+    myFixture.getBuildQueue().moveTop(queuedBuild30.getQueuedBuild().getItemId());
+
+    checkBuilds("state:any", queuedBuild30, queuedBuild10, queuedBuild20);
+    checkBuilds("state:any,sinceBuild:(id:" + queuedBuild10.getId() +")", queuedBuild30, queuedBuild20);
+    checkBuilds("state:any,sinceBuild:(id:" + queuedBuild20.getId() +")", queuedBuild30);
+    checkBuilds("state:any,sinceBuild:(id:" + queuedBuild30.getId() +")");
+  }
+
+  @Test
   public void testDefaultFiltering() {
     final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
     final SUser user = createUser("uuser");
