@@ -210,17 +210,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
 
     Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (id != null) {
-      final BuildPromotion promotionById = myBuildPromotionManager.findPromotionOrReplacement(id);
-      if (promotionById != null && !BuildPromotionFinder.buildIdDiffersFromPromotionId(promotionById)) {
-        return promotionById;
-      }
-
-      SBuild build = myBuildsManager.findBuildInstanceById(id);
-      if (build != null){
-        return build.getBuildPromotion();
-      }
-
-      throw new NotFoundException("Cannot find build by id " + id);
+      return BuildPromotionFinder.getBuildPromotionById(id, myBuildPromotionManager, myBuildsManager);
     }
 
     return getItem(buildQueueLocator).getBuildPromotion();

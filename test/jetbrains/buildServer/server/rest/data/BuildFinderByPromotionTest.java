@@ -632,4 +632,41 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     checkBuilds("sinceDate:(" + fDate(afterBuild10) + "),untilDate:" + fDate(afterBuild30), build20);
     checkBuilds("sinceDate:(" + fDate(afterBuild10) + "),untilDate:" + fDate(afterBuild30) + ",failedToStart:any", build30, build20);
   }
+
+  @Test
+  public void testSinceWithOldBuildId() throws IOException {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+    long initialId;
+    long build40Id;
+    {
+      //increment promotion id and build id
+      final SFinishedBuild build = build().in(buildConf).finish();
+      initialId = build.getBuildId();
+      myFixture.getSingletonService(BuildHistory.class).removeEntry(build);
+      for (int i = 0; i < 10; i++) {
+        myFixture.getSingletonService(BuildHistory.class).removeEntry(build().in(buildConf).finish());
+      }
+
+      final SFinishedBuild build10 = build().in(buildConf).finish();
+      final SFinishedBuild build20 = build().in(buildConf).finish();
+      final SFinishedBuild build30 = build().in(buildConf).finish();
+      final SFinishedBuild build40 = build().in(buildConf).finish();
+      build40Id = build40.getBuildId();
+
+      prepareFinishedBuildIdChange(build10.getBuildId(), initialId);
+      prepareFinishedBuildIdChange(build20.getBuildId(), initialId + 1);
+      prepareFinishedBuildIdChange(build30.getBuildId(), initialId + 2);
+      recreateBuildServer();
+      init();
+    }
+
+    final SBuild build10 = myServer.findBuildInstanceById(initialId);
+    final SBuild build20 = myServer.findBuildInstanceById(initialId + 1);
+    final SBuild build30 = myServer.findBuildInstanceById(initialId + 2);
+    final SBuild build40 = myServer.findBuildInstanceById(build40Id);
+
+    checkBuilds("sinceBuild:(id:" + (initialId + 2) +")", build40);
+    checkBuilds("sinceBuild:(id:" + (initialId + 1) +")", build40, build30);
+
+  }
 }

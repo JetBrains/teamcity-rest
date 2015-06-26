@@ -22,6 +22,7 @@ import java.util.List;
 import jetbrains.buildServer.MockTimeService;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.log.Loggable;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
@@ -323,6 +324,9 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
 
     checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),state:any", getBuildPromotions(build90, build80, build70, build60, build40, build20));
     checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),state:any,failedToStart:any", getBuildPromotions(build90, build80, build70, build60, build40, build30, build20));
+
+    checkExceptionOnBuildsSearch(BadRequestException.class, "sinceBuild:(xxx)");
+    checkExceptionOnBuildsSearch(BadRequestException.class, "sinceBuild:(buildType:(" + buildConf1.getId() + "),status:FAILURE)");
   }
 
   @Test

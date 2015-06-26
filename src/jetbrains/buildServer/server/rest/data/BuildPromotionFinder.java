@@ -43,9 +43,9 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   //DIMENSION_ID - id of a build or id of build promotion which will get associated build with the id
   public static final String PROMOTION_ID = BuildFinder.PROMOTION_ID;
   protected static final String PROMOTION_ID_ALIAS = "promotionId";
-  protected static final String BUILD_ID = "buildId";
+  protected static final String BUILD_ID = "buildId"; //this is experimental, for debug purposes only
   public static final String BUILD_TYPE = "buildType";
-  public static final String PROJECT = "project"; //todo: BuildFinder treats "project" as "affectedProject" thus this behavior is differet from BuildFinder
+  public static final String PROJECT = "project"; // BuildFinder (used prior to 9.0) treats "project" as "affectedProject" and thus this behavior is different from BuildFinder
   private static final String AFFECTED_PROJECT = "affectedProject";
   public static final String AGENT = "agent";
   public static final String AGENT_NAME = "agentName";
@@ -95,10 +95,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   @NotNull
   public static String getLocator(@NotNull final BuildPromotion buildPromotion) {
-    if (!buildIdDiffersFromPromotionId(buildPromotion)) {
-      return Locator.getStringLocator(DIMENSION_ID, String.valueOf(buildPromotion.getId()));
-    }
-    return Locator.getStringLocator(PROMOTION_ID, String.valueOf(buildPromotion.getId()));
+    return Locator.getStringLocator(DIMENSION_ID, String.valueOf(getBuildId(buildPromotion)));
   }
 
   public BuildPromotionFinder(final BuildPromotionManager buildPromotionManager,
@@ -166,21 +163,16 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   @Nullable
   @Override
   protected BuildPromotion findSingleItem(@NotNull final Locator locator) {
-    //see also getBuildId method
     if (locator.isSingleValue()) {
       try {
-        // try build id first for compatibility reasons
         @SuppressWarnings("ConstantConditions") @NotNull final Long singleValueAsLong = locator.getSingleValueAsLong();
-        final SBuild build = myBuildsManager.findBuildInstanceById(singleValueAsLong);
-        if (build != null){
-          return build.getBuildPromotion();
-        }
-        // assume it's promotion id
-        // if promotion is not found, it might be a build number, so returning null to search builds one by one
-        // this is different from 9.0 behavior where we never searched by promotion id in case of single value locators
-        return myBuildPromotionManager.findPromotionOrReplacement(singleValueAsLong);
+        // difference from 9.0 behavior where we never searched by promotion id in case of single value locators
+        return getBuildPromotionById(singleValueAsLong, myBuildPromotionManager, myBuildsManager);
       } catch (LocatorProcessException e) {
         // got exception, probably not a parsable number, it can be a build number then. Cannot find a build by build number only, so delegate to scanning
+        return null;
+      } catch (NotFoundException e) {
+        // no build is found, probably not ID, it can be a build number then. Cannot find a build by build number only, so delegate to scanning
         return null;
       }
     }
@@ -190,29 +182,21 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       promotionId = locator.getSingleDimensionValueAsLong(PROMOTION_ID_ALIAS); //support TeamCity 8.0 dimension
     }
     if (promotionId != null) {
-      return checkBuildType(BuildFinder.getBuildPromotion(promotionId, myBuildPromotionManager), locator);
+      return BuildFinder.getBuildPromotion(promotionId, myBuildPromotionManager);
     }
 
     Long buildId = locator.getSingleDimensionValueAsLong(BUILD_ID);
     if (buildId != null) {
       final SBuild build = myBuildsManager.findBuildInstanceById(buildId);
       if (build != null) {
-        return checkBuildType(build.getBuildPromotion(), locator);
+        return build.getBuildPromotion();
       }
       throw new NotFoundException("No build found by build id '" + buildId + "'.");
     }
 
     final Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (id != null) {
-      final BuildPromotion buildPromotion = myBuildPromotionManager.findPromotionOrReplacement(id);
-      if (buildPromotion != null && !buildIdDiffersFromPromotionId(buildPromotion)) {
-        return checkBuildType(buildPromotion, locator);
-      }
-      final SBuild build = myBuildsManager.findBuildInstanceById(id);
-      if (build != null){
-        return checkBuildType(build.getBuildPromotion(), locator);
-      }
-      throw new NotFoundException("No build found by id '" + id + "'.");
+      return getBuildPromotionById(id, myBuildPromotionManager, myBuildsManager);
     }
 
     final String number = locator.getSingleDimensionValue(NUMBER);
@@ -230,18 +214,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     }
 
     return null;
-  }
-
-  /**
-   * Utility method to get id from the locator even if there is no such build
-   * Should match findSingleItem method logic
-   */
-  @Nullable
-  private Long getBuildId(@NotNull final Locator locator) {
-    if (locator.isSingleValue()) {
-      return locator.getSingleValueAsLong();
-    }
-    return locator.getSingleDimensionValueAsLong(DIMENSION_ID);
   }
 
   @NotNull
@@ -489,25 +461,21 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     final String sinceBuild = locator.getSingleDimensionValue(SINCE_BUILD);
     if (sinceBuild != null) {
       final Long buildId = getBuildId(sinceBuild);
-      if (buildId != null) {
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
-            return buildId < item.getId();
-          }
-        });
-      }
+      result.add(new FilterConditionChecker<BuildPromotion>() {
+        public boolean isIncluded(@NotNull final BuildPromotion item) {
+          return buildId < getBuildId(item);
+        }
+      });
     }
 
     final String untilBuild = locator.getSingleDimensionValue(UNTIL_BUILD);
     if (untilBuild != null) {
       final Long buildId = getBuildId(untilBuild);
-      if (buildId != null) {
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
-            return !(buildId < item.getId());
-          }
-        });
-      }
+      result.add(new FilterConditionChecker<BuildPromotion>() {
+        public boolean isIncluded(@NotNull final BuildPromotion item) {
+          return !(buildId < getBuildId(item));
+        }
+      });
     }
 
     final MultiCheckerFilter<SBuild> buildFilter = getBuildFilter(locator);
@@ -644,16 +612,47 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     return result;
   }
 
-  @Nullable
+  @NotNull
+  public static BuildPromotion getBuildPromotionById(@NotNull final Long id,
+                                                     @NotNull final BuildPromotionManager buildPromotionManager,
+                                                     @NotNull final BuildsManager buildsManager) {
+    //the logic should match that of getBuildId(String)
+    final BuildPromotion buildPromotion = buildPromotionManager.findPromotionOrReplacement(id);
+    if (buildPromotion != null && (getBuildId(buildPromotion) == buildPromotion.getId())) {
+      return buildPromotion;
+    }
+    final SBuild build = buildsManager.findBuildInstanceById(id);
+    if (build != null) {
+      return build.getBuildPromotion();
+    }
+    throw new NotFoundException("No build found by id '" + id + "'.");
+  }
+
+  @NotNull
   private Long getBuildId(@Nullable final String buildLocator) {
+    //the logic should match that of findSingleItem
     if (buildLocator == null) {
-      return null;
+      throw new BadRequestException("Cannot find build or build id for empty locator. Try specifying '" + DIMENSION_ID + "' locator dimension");
     }
-    final Long buildId = getBuildId(new Locator(buildLocator));
-    if (buildId != null) {
-      return buildId;
+
+    final Locator locator = new Locator(buildLocator);
+    final Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
+    if (id != null && locator.getUnusedDimensions().isEmpty()) {
+      return id;
     }
-    return getItem(buildLocator).getId();
+
+    try {
+      return getBuildId(getItem(buildLocator));
+    } catch (NotFoundException e) {
+      //report the same below error
+    }
+    throw new BadRequestException("Cannot find build or build id for locator '" + buildLocator + "'. Try specifying '" + DIMENSION_ID + "' locator dimension");
+  }
+
+  @NotNull
+  private static Long getBuildId(@NotNull final BuildPromotion buildPromotion) {
+    final Long buildId = buildPromotion.getAssociatedBuildId(); //it is important to get id from the build as that might be different from promotion id
+    return buildId != null ? buildId : buildPromotion.getId(); // there should be no queued builds with old ids (TW-38777)
   }
 
   private boolean isTagsMatchLocator(final List<String> buildTags, final Locator tagsLocator) {
@@ -910,18 +909,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     }
     return locator.getStringRepresentation();
-  }
-
-  @NotNull
-  private BuildPromotion checkBuildType(@NotNull final BuildPromotion buildPromotion, @NotNull final Locator locator) {
-    final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
-    if (buildTypeLocator == null) return buildPromotion;
-
-    final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
-
-    if (buildType.equals(buildPromotion.getParentBuildType())) return buildPromotion;
-
-    throw new NotFoundException("Found build with id " + buildPromotion.getId() + " does not belong to the build type with id '" + buildType.getExternalId() +"'");
   }
 
   @NotNull
