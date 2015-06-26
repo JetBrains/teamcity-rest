@@ -17,12 +17,14 @@
 package jetbrains.buildServer.server.rest.data;
 
 
+import com.intellij.openapi.diagnostic.Logger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.util.ItemProcessor;
 import jetbrains.buildServer.util.StringUtil;
@@ -36,6 +38,8 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 09.11.13
  */
 public abstract class AbstractFinder<ITEM> {
+  private static final Logger LOG = Logger.getInstance(AbstractFinder.class.getName());
+
   public static final String DIMENSION_ID = "id";
   public static final String DIMENSION_LOOKUP_LIMIT = "lookupLimit";
 
@@ -105,7 +109,7 @@ public abstract class AbstractFinder<ITEM> {
         locator.checkLocatorFullyProcessed();
         if (!filter.isIncluded(singleItem)) {
           throw new NotFoundException("Found single item by " + StringUtil.pluralize("dimension", singleItemUsedDimensions.size()) + " " + singleItemUsedDimensions +
-                                      ", but that was filtered out using all the specified dimensions");
+                                      ", but that was filtered out using the entire locator '" + locator + "'");
         }
       }
 
@@ -118,14 +122,17 @@ public abstract class AbstractFinder<ITEM> {
     final ItemHolder<ITEM> unfilteredItems = getPrefilteredItems(locator);
     AbstractFilter<ITEM> filter = getFilter(locator);
     locator.checkLocatorFullyProcessed();
-    return new PagedSearchResult<ITEM>(getItems(filter, unfilteredItems), filter.getStart(), filter.getCount());
+    return new PagedSearchResult<ITEM>(getItems(filter, unfilteredItems, locator), filter.getStart(), filter.getCount());
   }
 
   @NotNull
-  protected List<ITEM> getItems(final @NotNull AbstractFilter<ITEM> filter, final @NotNull ItemHolder<ITEM> unfilteredItems) {
+  protected List<ITEM> getItems(final @NotNull AbstractFilter<ITEM> filter, final @NotNull ItemHolder<ITEM> unfilteredItems, @NotNull final Locator locator) {
     final FilterItemProcessor<ITEM> filterItemProcessor = new FilterItemProcessor<ITEM>(filter);
     unfilteredItems.process(filterItemProcessor);
-    return filterItemProcessor.getResult();
+    final ArrayList<ITEM> result = filterItemProcessor.getResult();
+    LOG.debug("While processing locator '" + locator + "', " + result.size() + " items were matched by the filter from " +
+              filterItemProcessor.getTotalItemsProcessed() + " processed in total"); //todo make AbstractFilter loggable and add logging here
+    return result;
   }
 
   @NotNull
@@ -152,9 +159,13 @@ public abstract class AbstractFinder<ITEM> {
     return items.myEntries.get(0);
   }
 
-  @NotNull   //todo: change overrides
+  @NotNull   //todo: change overrides, drop getAllItems at all
   protected ItemHolder<ITEM> getPrefilteredItems(@NotNull Locator locator) {
-    return getAllItems();
+    final ItemHolder<ITEM> allItems = getAllItems();
+    if (allItems == null){
+      throw new OperationException("Incorrect implementation: nor all items nor prefiltered items are defined.");
+    }
+    return allItems;
   }
 
   @Nullable
