@@ -662,4 +662,9 @@ public class Locator {
     }
     return value;
   }
+
+  @Override
+  public String toString() {
+    return getStringRepresentation();
+  }
 }

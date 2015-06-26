@@ -126,12 +126,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     result.addHiddenDimensions(AGENT_NAME, RUNNING, COMPATIBLE_AGENTS_COUNT, SNAPSHOT_DEP, TAGS, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE,
                                STATE_RUNNING //compatibility with pre-9.1
     );
-    result.addIgnoreUnusedDimensions(FAILED_TO_START); //hide this for now
-    result.addIgnoreUnusedDimensions(BY_PROMOTION);
-    result.addIgnoreUnusedDimensions(EQUIVALENT);
-    result.addIgnoreUnusedDimensions(PROMOTION_ID_ALIAS);
-    result.addIgnoreUnusedDimensions(BUILD_ID);
-    result.addIgnoreUnusedDimensions(DEFAULT_FILTERING);
+    result.addHiddenDimensions(FAILED_TO_START); //hide this for now
+    result.addHiddenDimensions(BY_PROMOTION);
+    result.addHiddenDimensions(EQUIVALENT);
+    result.addHiddenDimensions(PROMOTION_ID_ALIAS);
+    result.addHiddenDimensions(BUILD_ID);
+    result.addHiddenDimensions(DEFAULT_FILTERING);
     return result;
   }
 
@@ -941,6 +941,10 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
       locator.setDimensionIfNotPresent(FAILED_TO_START, "false");
       locator.setDimensionIfNotPresent(BRANCH, BranchMatcher.getDefaultBranchLocator());
+    }
+    final long defaultLookupLimit = TeamCityProperties.getLong("rest.request.builds.defaultLookupLimit");
+    if (defaultLookupLimit != 0) {
+      locator.setDimensionIfNotPresent(DIMENSION_LOOKUP_LIMIT, String.valueOf(defaultLookupLimit));
     }
   }
 
