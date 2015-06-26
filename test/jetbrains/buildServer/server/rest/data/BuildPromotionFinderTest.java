@@ -242,14 +242,27 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
     final BuildPromotion build10 = build().in(buildConf).finish().getBuildPromotion();
     final BuildPromotion build20 = build().in(buildConf).failedToStart().finish().getBuildPromotion();
     final BuildPromotion build30 = build().in(buildConf).failed().finish().getBuildPromotion();
+    BuildPromotion build40 = build().in(buildConf).cancel(getOrCreateUser("user")).getBuildPromotion();
+    BuildPromotion build50 = build().in(buildConf).failedToStart().cancel(getOrCreateUser("user")).getBuildPromotion();
 
     checkBuilds(null, build30, build10);
     checkBuilds("status:SUCCESS", build10);
     checkBuilds("status:FAILURE", build30);
     checkBuilds("buildType:(id:" + buildConf.getExternalId() + ")", build30, build10);
     checkBuilds("buildType:(id:" + buildConf.getExternalId() + "),state:any", build30, build10);
-    checkBuilds("buildType:(id:" + buildConf.getExternalId() + "),canceled:any,state:any", build30, build10);
-    //todo: there should be a way to get failed to start builds... including when filtering by buildType
+    checkBuilds("buildType:(id:" + buildConf.getExternalId() + "),canceled:any,state:any", build50, build40, build30, build10); //TeamCity API: build50 should not be here
+
+    checkBuilds("failedToStart:true", build20);
+    checkBuilds("failedToStart:any", build30, build20, build10);
+    checkBuilds("failedToStart:any,canceled:true", build50, build40);
+//    checkBuilds("failedToStart:true,canceled:true", build50);   //TeamCity API: failed to start builds are reported to be not failed to start if canceled
+    checkBuilds("status:SUCCESS,failedToStart:any", build10);
+    checkBuilds("status:FAILURE,failedToStart:any", build30, build20);
+    checkBuilds("buildType:(id:" + buildConf.getExternalId() + "),failedToStart:any", build30, build20, build10);
+    checkBuilds("buildType:(id:" + buildConf.getExternalId() + "),failedToStart:true", build20);
+    checkBuilds("buildType:(id:" + buildConf.getExternalId() + "),state:any,failedToStart:any", build30, build20, build10);
+    checkBuilds("buildType:(id:" + buildConf.getExternalId() + "),canceled:any,state:any,failedToStart:any", build50, build40, build30, build20, build10);
+    checkBuilds("buildType:(id:" + buildConf.getExternalId() + "),canceled:false,failedToStart:any", build30, build20, build10);
   }
 
 

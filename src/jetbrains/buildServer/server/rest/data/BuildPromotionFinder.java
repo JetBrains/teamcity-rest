@@ -759,7 +759,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         final BuildQueryOptions options = new BuildQueryOptions();
         options.setBuildTypeId(buildType.getBuildTypeId());//todo add javadoc which id is this
 
-        final Boolean personal = locator.getSingleDimensionValueAsBoolean(PERSONAL);
+        final Boolean personal = locator.lookupSingleDimensionValueAsBoolean(PERSONAL);
         if (personal == null || personal) {
           final String userDimension = locator.getSingleDimensionValue(USER);
           options.setIncludePersonal(true, userDimension == null ? null : myUserFinder.getUser(userDimension));
@@ -767,9 +767,10 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
           options.setIncludePersonal(false, null);
         }
 
-        final Boolean canceled = locator.getSingleDimensionValueAsBoolean(CANCELED);
-        if (canceled == null || canceled) {
-          options.setIncludeCanceled(true);
+        final Boolean failedToStart = locator.lookupSingleDimensionValueAsBoolean(FAILED_TO_START);
+        final Boolean canceled = locator.lookupSingleDimensionValueAsBoolean(CANCELED);
+        if (canceled == null || canceled || failedToStart == null || failedToStart) {
+          options.setIncludeCanceled(true); //also includes failed to start builds
         } else {
           options.setIncludeCanceled(false);
         }

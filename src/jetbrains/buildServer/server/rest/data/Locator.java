@@ -412,7 +412,18 @@ public class Locator {
 
   @Nullable
   public Boolean getSingleDimensionValueAsBoolean(@NotNull final String dimensionName) {
-    final String value = getSingleDimensionValue(dimensionName);
+    return getBooleanByValue(dimensionName, getSingleDimensionValue(dimensionName));
+  }
+
+  /**
+   * Same as getSingleDimensionValueAsBoolean but does not mark the dimension as used
+   */
+  @Nullable
+  public Boolean lookupSingleDimensionValueAsBoolean(@NotNull final String dimensionName) {
+    return getBooleanByValue(dimensionName, lookupSingleDimensionValue(dimensionName));
+  }
+
+  private Boolean getBooleanByValue(final @NotNull String dimensionName, @Nullable final String value) {
     if (value == null || "all".equalsIgnoreCase(value) || "any".equalsIgnoreCase(value)) {
       return null;
     }
@@ -449,6 +460,14 @@ public class Locator {
   @Nullable
   public String getSingleDimensionValue(@NotNull final String dimensionName) {
     myUsedDimensions.add(dimensionName);
+    return lookupSingleDimensionValue(dimensionName);
+  }
+
+  /**
+   * Same as getSingleDimensionValue but does not mark the value as used
+   */
+  @Nullable
+  public String lookupSingleDimensionValue(@NotNull final String dimensionName) {
     Collection<String> idDimension = myDimensions.get(dimensionName);
     if (idDimension == null || idDimension.size() == 0) {
       return null;
@@ -489,13 +508,8 @@ public class Locator {
    * @param value value of the dimension
    */
   public Locator setDimensionIfNotPresent(@NotNull final String name, @NotNull final String value) {
-    final boolean wasUsed = getUsedDimensions().contains(name);
-    if (getSingleDimensionValue(name) == null) {
+    if (lookupSingleDimensionValue(name) == null) {
       setDimension(name, value);
-    } else {
-      if (!wasUsed) {
-        markUnused(name);
-      }
     }
     return this;
   }
