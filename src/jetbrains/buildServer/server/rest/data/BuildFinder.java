@@ -55,9 +55,9 @@ public class BuildFinder {
   @NotNull private final BuildPromotionFinder myBuildPromotionFinder;
   @NotNull private final AgentFinder myAgentFinder;
 
-  protected static final String LEGACY_BUILDS_FILTERING = "rest.useLegacyBuildsFiltering";
+  protected static final String LEGACY_BUILDS_FILTERING = "rest.request.builds.useLegacyBuildsFiltering";
   protected static final String SUPPORT_NON_LOCATOR_FILTERS = "rest.request.builds.supportNonLocatorFilters";
-  protected static final String REST_RETURN_ONLY_STARTED_BUILDS = "rest.returnOnlyStartedBuilds";
+  protected static final String REST_RETURN_ONLY_STARTED_BUILDS = "rest.request.builds.returnOnlyStartedBuilds";
 
   public BuildFinder(final @NotNull ServiceLocator serviceLocator,
                      final @NotNull BuildTypeFinder buildTypeFinder,
