@@ -58,4 +58,8 @@ public class FilterItemProcessor<T> implements ItemProcessor<T> {
   public long getProcessedItemsCount() {
     return myCurrentIndex;
   }
+
+  public long getTotalItemsProcessed() {
+    return myTotalItemsProcessed;
+  }
 }
