@@ -481,7 +481,9 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
             result.add(new FilterConditionChecker<BuildPromotion>() {
               public boolean isIncluded(@NotNull final BuildPromotion item) {
                 final SBuild build = item.getAssociatedBuild();
-                return build == null || startDate.before(build.getStartDate());
+                if (build == null) return true;
+                if (startDate.equals(build.getStartDate()) && limitingBuild.getBuildId() != build.getBuildId()) return true;
+                return startDate.before(build.getStartDate());
               }
             });
           }
@@ -602,7 +604,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         final SBuild build = item.getAssociatedBuild();
         if (build == null || !build.isFinished()) return false; //do not stop while processing queued and running builds
         if (sinceBuildIdFinal.equals(getBuildId(item))) return true; //found exactly the limiting build - stop here
-        if (sinceBuildIdFinal > getBuildId(item)) currentLookAheadCount++;
+        if (sinceBuildIdFinal > getBuildId(item)) {
+          currentLookAheadCount++;
+        } else {
+          currentLookAheadCount = 0; //reset the counter
+        }
         return currentLookAheadCount > lookAheadCount; // stop only after finding more than lookAheadCount builds with lesser id (try to take into account builds reordering)
       }
     };
