@@ -68,4 +68,9 @@ public abstract class ProxyFilter<T> extends AbstractFilter<T> {
   public Long getLookupLimit() {
     return myFilter.getLookupLimit();
   }
+
+  @Override
+  public boolean isLookupLimitReached() {
+    return myFilter.isLookupLimitReached();
+  }
 }

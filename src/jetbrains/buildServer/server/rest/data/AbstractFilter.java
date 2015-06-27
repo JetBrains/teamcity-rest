@@ -30,6 +30,7 @@ public abstract class AbstractFilter<T> {
   @Nullable protected final Integer myCount;
   @Nullable private final Long myLookupLimit;
   private final long myActualStart;
+  private boolean myLookupLimitReached = false;
 
   public AbstractFilter(@Nullable final Long start, @Nullable final Integer count, @Nullable final Long lookupLimit) {
     myStart = start;
@@ -44,7 +45,13 @@ public abstract class AbstractFilter<T> {
   }
 
   protected boolean isBelowUpperRangeLimit(final long matchedItemsIndex, final long processedItemsIndex) {
-    return  (myCount == null || matchedItemsIndex < myActualStart + myCount) && (myLookupLimit == null || processedItemsIndex < myLookupLimit);
+    if (myCount != null && matchedItemsIndex >= myActualStart + myCount) return false;
+    //noinspection RedundantIfStatement
+    if (myLookupLimit != null && processedItemsIndex >= myLookupLimit) {
+      myLookupLimitReached = true;
+      return false;
+    }
+    return true;
   }
 
 
@@ -75,5 +82,9 @@ public abstract class AbstractFilter<T> {
   @Nullable
   public Long getLookupLimit() {
     return myLookupLimit;
+  }
+
+  public boolean isLookupLimitReached() {
+    return myLookupLimitReached;
   }
 }

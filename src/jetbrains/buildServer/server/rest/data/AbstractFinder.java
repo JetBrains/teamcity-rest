@@ -26,6 +26,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.ItemProcessor;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.Contract;
@@ -131,7 +132,12 @@ public abstract class AbstractFinder<ITEM> {
     unfilteredItems.process(filterItemProcessor);
     final ArrayList<ITEM> result = filterItemProcessor.getResult();
     LOG.debug("While processing locator '" + locator + "', " + result.size() + " items were matched by the filter from " +
-              filterItemProcessor.getTotalItemsProcessed() + " processed in total"); //todo make AbstractFilter loggable and add logging here
+              filterItemProcessor.getTotalItemsProcessed() + " processed in total" +
+              (filter.isLookupLimitReached() ? " (lookup limit of " + filter.getLookupLimit() + " reached)" : "")); //todo make AbstractFilter loggable and add logging here
+    if (filterItemProcessor.getTotalItemsProcessed() > TeamCityProperties.getLong("rest.finder.processedItemsWarnLimit", 10000)) {
+      LOG.info("Server performance can be affected by REST request with locator '" + locator + "': " +
+               filterItemProcessor.getTotalItemsProcessed() + " items were processed in search for " + result.size() + " items");
+    }
     return result;
   }
 
