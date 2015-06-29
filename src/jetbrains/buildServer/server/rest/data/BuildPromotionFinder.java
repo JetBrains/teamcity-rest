@@ -164,17 +164,15 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   @Override
   protected BuildPromotion findSingleItem(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
+      @NotNull final Long singleValueAsLong;
       try {
-        @SuppressWarnings("ConstantConditions") @NotNull final Long singleValueAsLong = locator.getSingleValueAsLong();
-        // difference from 9.0 behavior where we never searched by promotion id in case of single value locators
-        return getBuildPromotionById(singleValueAsLong, myBuildPromotionManager, myBuildsManager);
+        //noinspection ConstantConditions
+        singleValueAsLong = locator.getSingleValueAsLong();
       } catch (LocatorProcessException e) {
-        // got exception, probably not a parsable number, it can be a build number then. Cannot find a build by build number only, so delegate to scanning
-        return null;
-      } catch (NotFoundException e) {
-        // no build is found, probably not ID, it can be a build number then. Cannot find a build by build number only, so delegate to scanning
-        return null;
+        throw new BadRequestException("Invalid single value: '" + locator.getSingleValue() + "'. Should be a numeric build id");
       }
+      // difference from 9.0 behavior where we never searched by promotion id in case of single value locators
+      return getBuildPromotionById(singleValueAsLong, myBuildPromotionManager, myBuildsManager);
     }
 
     Long promotionId = locator.getSingleDimensionValueAsLong(PROMOTION_ID);

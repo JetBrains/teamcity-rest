@@ -77,7 +77,8 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     checkExceptionOnBuildSearch(NotFoundException.class, "number:" + runningBuild5Number);
     checkBuild("number:" + runningBuild5Number + ",state:any", runningBuild5);
 
-    checkBuild(build1Number, build1); // difference from BuildFinder
+//    checkBuild(build1Number, build1); // difference from BuildFinder
+    checkExceptionOnBuildSearch(BadRequestException.class, build1Number);
     checkBuild("id:" + build1.getId() + ",number:" + build1Number, build1);
 
     checkBuild("buildType:(id:" + buildConf.getExternalId() + "),number:" + build1Number, build1);
@@ -159,8 +160,8 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     checkBuild("id:" + build10PromotionId + ",buildType:(" + build10.getBuildTypeId() + ")", build20);
 
     checkBuild(String.valueOf(build20id), build20);
-//    checkNoBuildFound(String.valueOf(build20PromotionId));// difference form 9.0 behavior
-    checkBuild(String.valueOf(build20PromotionId), build20);
+    checkNoBuildFound(String.valueOf(build20PromotionId));
+//    checkBuild(String.valueOf(build20PromotionId), build20); no search by number is performed
     checkBuild("id:" + build20id, build20);
     checkNoBuildFound("id:" + build20PromotionId);
     checkBuild("taskId:" + build20id, build10);
@@ -222,7 +223,8 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
   public void testWrongLocator() throws Exception {
     checkExceptionOnBuildSearch(BadRequestException.class, "");
     checkExceptionOnBuildSearch(LocatorProcessException.class, ",:,");
-    checkExceptionOnBuildSearch(NotFoundException.class, "xxx"); //is treated as build number
+    checkExceptionOnBuildSearch(BadRequestException.class, "xxx");
+//    checkExceptionOnBuildSearch(NotFoundException.class, "xxx"); //is not treated as build number for performance reasons
     checkExceptionOnBuildSearch(LocatorProcessException.class, "xxx:yyy");
     checkExceptionOnBuildSearch(LocatorProcessException.class, "pinned:any,xxx:yyy");
     //checkExceptionOnBuildSearch(LocatorProcessException.class, "status:");
@@ -230,7 +232,7 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
 
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "");
     checkExceptionOnBuildsSearch(LocatorProcessException.class, ",:,");
-    checkBuilds("xxx"); //is treated as build number
+//    checkBuilds("xxx"); //is treated as build number  //any search by number causes BadRequestException instead
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "xxx:yyy");
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "pinned:any,xxx:yyy");
     //checkExceptionOnBuildsSearch(LocatorProcessException.class, "status:");
@@ -334,6 +336,8 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     final SFinishedBuild build2 = build().in(buildConf).failed().finish();
 
     checkBuilds("number:" + build0.getBuildNumber(), build1, build0);
+//    checkBuilds("buildType:(" + buildConf.getExternalId() + "),number:" + build0.getBuildNumber(), build1, build0);
+    checkBuilds("buildType:(" + buildConf.getExternalId() + "),number:" + build0.getBuildNumber(), build1); //this finds only the most recent build for performance reasons
   }
 
   @Test
