@@ -272,21 +272,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     }
 
-    if (locator.isSingleValue()) {
-      //can only be a build number
-      final String buildNumber = locator.getSingleValue();
-      if (buildNumber != null) {
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
-            final SBuild associatedBuild = item.getAssociatedBuild();
-            return associatedBuild!= null && buildNumber.equals(associatedBuild.getBuildNumber());
-          }
-        });
-        return result;
-      }
-      throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
-    }
-
     final String projectLocator = locator.getSingleDimensionValue(PROJECT);
     SProject project = null;
     if (projectLocator != null) {
