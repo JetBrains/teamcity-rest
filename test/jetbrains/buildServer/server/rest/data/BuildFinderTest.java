@@ -251,6 +251,8 @@ public class BuildFinderTest extends BuildFinderTestBase {
 
     checkBuilds("project:(id:" + parent.getExternalId() + ")", build2, build1);
     checkBuilds("project:(id:" + nested.getExternalId() + ")", build2);
+    checkBuilds("project:(id:" + parent.getExternalId() + "),byPromotion:false", build2, build1);
+    checkBuilds("project:(id:" + parent.getExternalId() + "),byPromotion:true", build1);
   }
 
   @Test

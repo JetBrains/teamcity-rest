@@ -781,6 +781,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   @NotNull
   @Override
   protected ItemHolder<BuildPromotion> getPrefilteredItems(@NotNull Locator locator) {
+    final Boolean byPromotion = locator.getSingleDimensionValueAsBoolean(BY_PROMOTION);
+    if (byPromotion != null && !byPromotion) {
+      throw new BadRequestException("Found '" + BY_PROMOTION + "' locator set to 'false' which is not supported");
+    }
+
     setLocatorDefaults(locator);
 
     final String equivalent = locator.getSingleDimensionValue(EQUIVALENT);
