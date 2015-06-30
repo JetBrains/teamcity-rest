@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
@@ -128,15 +129,18 @@ public abstract class AbstractFinder<ITEM> {
 
   @NotNull
   protected List<ITEM> getItems(final @NotNull AbstractFilter<ITEM> filter, final @NotNull ItemHolder<ITEM> unfilteredItems, @NotNull final Locator locator) {
+    final long startTime = System.nanoTime();
     final FilterItemProcessor<ITEM> filterItemProcessor = new FilterItemProcessor<ITEM>(filter);
     unfilteredItems.process(filterItemProcessor);
     final ArrayList<ITEM> result = filterItemProcessor.getResult();
+    final long finishTime = System.nanoTime();
     LOG.debug("While processing locator '" + locator + "', " + result.size() + " items were matched by the filter from " +
               filterItemProcessor.getTotalItemsProcessed() + " processed in total" +
               (filter.isLookupLimitReached() ? " (lookup limit of " + filter.getLookupLimit() + " reached)" : "")); //todo make AbstractFilter loggable and add logging here
     if (filterItemProcessor.getTotalItemsProcessed() > TeamCityProperties.getLong("rest.finder.processedItemsWarnLimit", 10000)) {
+      final String time = TimeUnit.MILLISECONDS.convert(finishTime - startTime, TimeUnit.NANOSECONDS) + " ms";
       LOG.info("Server performance can be affected by REST request with locator '" + locator + "': " +
-               filterItemProcessor.getTotalItemsProcessed() + " items were processed in search for " + result.size() + " items");
+               filterItemProcessor.getTotalItemsProcessed() + " items were processed and " + result.size() + " items were returned, took " + time);
     }
     return result;
   }
