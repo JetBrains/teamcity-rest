@@ -86,6 +86,7 @@ public class BuildFinderFixedBuildSequenceTest extends BuildFinderTestBase {
 
     myBuild4conf2FailedPinned = build().in(myBuildConf2).failed().finish();
     myBuild4conf2FailedPinned.setPinned(true, myUser, "pin comment");
+    myTimeService.jumpTo(10);
 
     myBuild5personal = build().in(myBuildConf).personalForUser(myUser.getUsername()).finish();
     myBuild6personalFailed = build().in(myBuildConf2).personalForUser(myUser.getUsername()).failed().finish();
@@ -100,8 +101,11 @@ public class BuildFinderFixedBuildSequenceTest extends BuildFinderTestBase {
     myBuild8canceledFailed = finishBuild(build8running, true);
 
     myBuild9failedToStart = build().in(myBuildConf).failedToStart().finish();
+    myTimeService.jumpTo(10);
     myBuild10byUser = build().in(myBuildConf).by(myUser).finish();
+    myTimeService.jumpTo(10);
     myBuild11inBranch = build().in(myBuildConf).withBranch("branch").finish();
+    myTimeService.jumpTo(10);
     myBuild12 = build().in(myBuildConf).finish();
 
     myBuild13running = startBuild(myBuildConf);
