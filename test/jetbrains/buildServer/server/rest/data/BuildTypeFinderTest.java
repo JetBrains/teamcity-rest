@@ -193,4 +193,27 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     check("project:(archived:true)", p20_10_bt10, p20_10_bt20);
     check("project:(archived:any)", p10_bt20, p10_bt10, p10_10_bt20, p10_10_bt10, p20_bt10, p20_bt20, p20_10_bt10, p20_10_bt20);
   }
+
+  @Test
+  public void testProjectItem() throws Exception {
+    myBuildType.remove();
+    final SProject project10 = createProject("p10");
+    final SProject project10_10 = project10.createProject("p10_10", "xxx");
+
+    final BuildTypeOrTemplate p10_bt10 = new BuildTypeOrTemplate(project10.createBuildType("p10_bt10", "xxx"));
+    final BuildTypeOrTemplate p10_bt20 = new BuildTypeOrTemplate(project10.createBuildType("p10_bt20", "p10_bt20"));
+    final BuildTypeOrTemplate p10_bt30 = new BuildTypeOrTemplate(project10.createBuildTypeTemplate("p10_bt30", "p10_bt30"));
+
+    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
+    final AgentFinder agentFinder = new AgentFinder(myAgentManager);
+
+    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, myServer);
+
+    PagedSearchResult<BuildTypeOrTemplate> result = buildTypeFinder.getBuildTypesPaged(project10, null, true);
+
+    assertEquals(String.valueOf(result.myEntries), 2, result.myEntries.size());
+
+    result = buildTypeFinder.getBuildTypesPaged(project10, null, false);
+    assertEquals(String.valueOf(result.myEntries), 1, result.myEntries.size());
+  }
 }
