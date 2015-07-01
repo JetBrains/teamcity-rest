@@ -292,8 +292,8 @@ public class BuildArtifactsFinder {
     };
   }
 
-  public List<File> getFiles(final SBuild build, final String resolvedPath, final String locator, final BeanContext beanContext) {
-    final List<ArtifactTreeElement> artifacts = getArtifacts(build, resolvedPath, locator, beanContext);
+  public List<File> getFiles(final SBuild build, final String resolvedPath, @Nullable final String basePath, final String locator, final BeanContext beanContext) {
+    final List<ArtifactTreeElement> artifacts = getArtifacts(build, resolvedPath, basePath, locator, beanContext);
 
     return CollectionsUtil.convertCollection(artifacts, new Converter<File, ArtifactTreeElement>() {
       public File createFrom(@NotNull final ArtifactTreeElement source) {
@@ -302,7 +302,8 @@ public class BuildArtifactsFinder {
     });
   }
 
-  public List<ArtifactTreeElement> getArtifacts(@NotNull final SBuild build, @NotNull final String path, @Nullable final String filesLocator, @Nullable final BeanContext context) {
+  public List<ArtifactTreeElement> getArtifacts(@NotNull final SBuild build, @NotNull final String path, @Nullable final String basePath, @Nullable final String filesLocator,
+                                                @Nullable final BeanContext context) {
     @Nullable final Locator locator = getLocator(filesLocator);
     final ArtifactTreeElement initialElement = getArtifactElement(build, path, BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
 
@@ -392,7 +393,16 @@ public class BuildArtifactsFinder {
     final Collection<Node> rawResult = AntPatternTreeMatcher.scan(rootNode, rules, options);
     result.addAll(CollectionsUtil.filterAndConvertCollection(rawResult, new Converter<ArtifactTreeElement, Node>() {
       public ArtifactTreeElement createFrom(@NotNull final Node source) {
-        return source.getElement();
+        if (basePath == null) {
+          return source.getElement();
+        }
+        return new ArtifactTreeElementWrapper(source.getElement()) {
+          @NotNull
+          @Override
+          public String getFullName() {
+            return relativeToBase(super.getFullName(), basePath);
+          }
+        };
       }
     }, new Filter<Node>() {
       public boolean accept(@NotNull final Node data) {
@@ -402,6 +412,27 @@ public class BuildArtifactsFinder {
 
     Collections.sort(result, ARTIFACT_COMPARATOR);
     return result;
+  }
+
+  @NotNull
+  private String relativeToBase(@NotNull final String name, @Nullable final String basePath) {
+    if (basePath == null) return name;
+
+    final String normalizedName = removeLeadingDelimeters(name);
+    if (!normalizedName.startsWith(removeLeadingDelimeters(basePath))) {
+      return name;
+    }
+    return removeLeadingDelimeters(normalizedName.substring(basePath.length()));
+  }
+
+  @NotNull
+  private static String removeLeadingDelimeters(@NotNull String result) {
+    return removeLeading(removeLeading(result, "!"), "/");
+  }
+
+  @NotNull
+  private static String removeLeading(final @NotNull String result, final String prefix) {
+    return result.startsWith(prefix) ? result.substring(prefix.length()) : result;
   }
 
   @Nullable

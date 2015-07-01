@@ -618,7 +618,7 @@ public class Build {
         final List<File> files = ValueWithDefault.decideDefault(nestedFields.isIncluded(Files.FILE, false, false), new ValueWithDefault.Value<List<File>>() {
           @Nullable
           public List<File> get() {
-            return myBeanContext.getSingletonService(BuildArtifactsFinder.class).getFiles(myBuild, "", nestedFields.getLocator(), myBeanContext);
+            return myBeanContext.getSingletonService(BuildArtifactsFinder.class).getFiles(myBuild, "", null, nestedFields.getLocator(), myBeanContext);
           }
         });
         return new Files(BuildRequest.getBuildArtifactsHref(myBuild), files, nestedFields, myBeanContext);

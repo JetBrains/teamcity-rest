@@ -232,10 +232,11 @@ public class BuildRequest {
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
   public Files getArtifacts(@PathParam("buildLocator") final String buildLocator,
                             @PathParam("path") final String path,
+                            @QueryParam("basePath") final String basePath,
                             @QueryParam("resolveParameters") final Boolean resolveParameters,
                             @QueryParam("locator") final String locator,
                             @QueryParam("fields") String fields) {
-    return getArtifactChildren(buildLocator, path, resolveParameters, locator, fields);
+    return getArtifactChildren(buildLocator, path, basePath, resolveParameters, locator, fields);
   }
 
   @GET
@@ -254,12 +255,14 @@ public class BuildRequest {
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
   public Files getArtifactChildren(@PathParam("buildLocator") final String buildLocator,
                                    @PathParam("path") @DefaultValue("") final String path,
+                                   @QueryParam("basePath") final String basePath,
                                    @QueryParam("resolveParameters") final Boolean resolveParameters,
                                    @QueryParam("locator") final String locator,
                                    @QueryParam("fields") String fields) {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final String resolvedPath = getResolvedIfNecessary(build, path, resolveParameters);
-    return new Files(null, myBuildArtifactsFinder.getFiles(build, resolvedPath, locator, myBeanContext), new Fields(fields), myBeanContext);
+    String resolvedBasePath = getResolvedIfNecessary(build, basePath, resolveParameters);
+    return new Files(null, myBuildArtifactsFinder.getFiles(build, resolvedPath, resolvedBasePath, locator, myBeanContext), new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -294,6 +297,7 @@ public class BuildRequest {
   @Produces({MediaType.WILDCARD})
   public Response getZippedArtifacts(@PathParam("buildLocator") final String buildLocator,
                                      @PathParam("path") final String path,
+                                     @QueryParam("basePath") final String basePath,
                                      @QueryParam("locator") final String locator,
                                      @QueryParam("name") final String name,
                                      @QueryParam("resolveParameters") final Boolean resolveParameters,
@@ -302,13 +306,14 @@ public class BuildRequest {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
     String resolvedPath = getResolvedIfNecessary(build, path, resolveParameters);
     String resolvedName = getResolvedIfNecessary(build, name, resolveParameters);
+    String actualBasePath = basePath!= null ? getResolvedIfNecessary(build, basePath, resolveParameters) : resolvedPath;
     if ("".equals(resolvedName)) {
       resolvedName = WebUtil.getFilename(build) + resolvedPath.replaceAll("[^a-zA-Z0-9-#.]+", "_") + "_artifacts.zip";
     }
 
     String actualLocator = Locator.setDimensionIfNotPresent(locator, BuildArtifactsFinder.DIMENSION_RECURSIVE, "true"); //include al files recursively by default
     actualLocator = Locator.setDimensionIfNotPresent(actualLocator, BuildArtifactsFinder.ARCHIVES_DIMENSION_NAME, "false"); //do not expand archives by default
-    final List<ArtifactTreeElement> artifacts = myBuildArtifactsFinder.getArtifacts(build, resolvedPath, actualLocator, myBeanContext);
+    final List<ArtifactTreeElement> artifacts = myBuildArtifactsFinder.getArtifacts(build, resolvedPath, actualBasePath, actualLocator, myBeanContext);
 
     final ArchiveElement archiveElement = new ArchiveElement(artifacts, resolvedName);
     final Response.ResponseBuilder builder = BuildArtifactsFinder.getContentByStream(archiveElement, request, new BuildArtifactsFinder.StreamingOutputProvider() {

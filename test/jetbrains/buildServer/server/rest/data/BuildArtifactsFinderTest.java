@@ -129,7 +129,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   }
 
   public void testOrder() throws Exception {
-    List<ArtifactTreeElement> artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", null, null);
+    List<ArtifactTreeElement> artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", null, null, null);
     checkOrderedCollection(getNames(artifacts), "dir1", "archive.zip", "archive_nested.zip", "file.txt");
   }
 
@@ -142,7 +142,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   }
 
   public void testLocatorSet1() throws Exception {
-    List<ArtifactTreeElement> artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", null, null);
+    List<ArtifactTreeElement> artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", null, null, null);
 
     assertSize(4, artifacts);
     assertContainsByFullName(artifacts, "dir1");
@@ -155,13 +155,13 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   public void testLocatorHidden() throws Exception {
     List<ArtifactTreeElement> artifacts;
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", "hidden:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", null, "hidden:true", null);
 
     assertSize(1, artifacts);
     assertContainsByFullName(artifacts, ".teamcity");
 
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity", "hidden:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity", null, "hidden:true", null);
 
     assertSize(4, artifacts);
     assertContainsByFullName(artifacts, ".teamcity/logs");
@@ -170,7 +170,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertContainsByFullName(artifacts, ".teamcity/dirA");
 
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA", "hidden:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA", null, "hidden:true", null);
 
     assertSize(1, artifacts);
     assertContainsByFullName(artifacts, ".teamcity/dirA/archive1.zip");
@@ -178,14 +178,14 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
 
   @Test(expectedExceptions = jetbrains.buildServer.server.rest.errors.NotFoundException.class)
   public void testLocatorHiddenNotFound1() {
-    myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "dir_missing", null, null);
+    myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "dir_missing", null, null, null);
   }
 
   @Test
   public void testLocatorHiddenNotFound2() {
     List<ArtifactTreeElement> artifacts;
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity", null, null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity", null, null, null);
 
     assertSize(0, artifacts);
   }
@@ -194,7 +194,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   public void testLocatorHiddenNotFound3() {
     List<ArtifactTreeElement> artifacts;
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "dir1", "hidden:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "dir1", null, "hidden:true", null);
 
     assertSize(0, artifacts);
   }
@@ -202,7 +202,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   @Test
   public void testLocatorArchive1() throws Exception {
     ArtifactTreeElement element;
-    List<ArtifactTreeElement> artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", null, null);
+    List<ArtifactTreeElement> artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", null, null, null);
 
     assertSize(4, artifacts);
     assertContainsByFullName(artifacts, "dir1");
@@ -223,7 +223,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertNull(element.getChildren());  //as archives browsing not enabled
 
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", "browseArchives:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", null, "browseArchives:true", null);
 
     assertSize(4, artifacts);
     assertContainsByFullName(artifacts, "dir1");
@@ -237,7 +237,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertSize(2, Lists.newArrayList(element.getChildren()));
 
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", "browseArchives:false", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", null, "browseArchives:false", null);
 
     assertSize(4, artifacts);
     assertContainsByFullName(artifacts, "dir1");
@@ -251,13 +251,13 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertNull(element.getChildren());
 
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", "hidden:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", null, "hidden:true", null);
 
     assertSize(1, artifacts);
     assertContainsByFullName(artifacts, ".teamcity");
 
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity", "hidden:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity", null, "hidden:true", null);
 
     assertSize(4, artifacts);
     assertContainsByFullName(artifacts, ".teamcity/logs");
@@ -266,7 +266,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertContainsByFullName(artifacts, ".teamcity/dirA");
 
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA", "hidden:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA", null, "hidden:true", null);
 
     assertSize(1, artifacts);
     assertContainsByFullName(artifacts, ".teamcity/dirA/archive1.zip");
@@ -275,7 +275,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertTrue(element.isLeaf());
     assertTrue(element.isContentAvailable());
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA", "hidden:true,browseArchives:false", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA", null, "hidden:true,browseArchives:false", null);
 
     assertSize(1, artifacts);
     assertContainsByFullName(artifacts, ".teamcity/dirA/archive1.zip");
@@ -284,7 +284,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertTrue(element.isLeaf());
     assertTrue(element.isContentAvailable());
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA", "hidden:true,browseArchives:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA", null, "hidden:true,browseArchives:true", null);
 
     assertSize(1, artifacts);
     assertContainsByFullName(artifacts, ".teamcity/dirA/archive1.zip");
@@ -294,7 +294,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertTrue(element.isContentAvailable());
     assertSize(2, Lists.newArrayList(element.getChildren()));
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA", "hidden:true,browseArchives:true,recursive:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA", null, "hidden:true,browseArchives:true,recursive:true", null);
 
     assertSize(7, artifacts);
     assertContainsByFullName(artifacts, ".teamcity/dirA/archive1.zip");
@@ -309,8 +309,24 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertFalse(element.isLeaf());
     assertTrue(element.isContentAvailable());
     assertSize(2, Lists.newArrayList(element.getChildren()));
+    
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA", ".teamcity/dirA", "hidden:true,browseArchives:true,recursive:true", null);
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA", "hidden:true,browseArchives:true,recursive:true,directory:false", null);
+    assertSize(7, artifacts);
+    assertContainsByFullName(artifacts, "archive1.zip");
+    assertContainsByFullName(artifacts, "archive1.zip!/file4.txt");
+    assertContainsByFullName(artifacts, "archive1.zip!/a");
+    assertContainsByFullName(artifacts, "archive1.zip!/a/file1.txt");
+    assertContainsByFullName(artifacts, "archive1.zip!/a/file2.txt");
+    assertContainsByFullName(artifacts, "archive1.zip!/a/b");
+    assertContainsByFullName(artifacts, "archive1.zip!/a/b/file3.txt");
+    element = findElement(artifacts, "archive1.zip");
+    assertTrue(element.isArchive());
+    assertFalse(element.isLeaf());
+    assertTrue(element.isContentAvailable());
+    assertSize(2, Lists.newArrayList(element.getChildren()));
+
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA", null, "hidden:true,browseArchives:true,recursive:true,directory:false", null);
 
     assertSize(4, artifacts);
     assertContainsByFullName(artifacts, ".teamcity/dirA/archive1.zip!/file4.txt");
@@ -318,14 +334,14 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertContainsByFullName(artifacts, ".teamcity/dirA/archive1.zip!/a/file2.txt");
     assertContainsByFullName(artifacts, ".teamcity/dirA/archive1.zip!/a/b/file3.txt");
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "archive.zip", null, null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "archive.zip", null, null, null);
 
     assertSize(2, artifacts);
     assertContainsByFullName(artifacts, "archive.zip!/a");
     assertContainsByFullName(artifacts, "archive.zip!/file4.txt");
 
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "archive.zip", "browseArchives:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "archive.zip", null, "browseArchives:true", null);
 
     assertSize(2, artifacts);
     assertContainsByFullName(artifacts, "archive.zip!/a");
@@ -336,19 +352,19 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertFalse(element.isArchive());
 
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity", "hidden:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity", null, "hidden:true", null);
     assertSize(4, artifacts);
     assertContainsByFullName(artifacts, ".teamcity/dirA");
     assertContainsByFullName(artifacts, ".teamcity/logs");
     assertContainsByFullName(artifacts, ".teamcity/properties");
     assertContainsByFullName(artifacts, ".teamcity/settings");
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA", "hidden:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA", null, "hidden:true", null);
     assertSize(1, artifacts);
     assertContainsByFullName(artifacts, ".teamcity/dirA/archive1.zip");
 
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA", "hidden:true,browseArchives:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA", null, "hidden:true,browseArchives:true", null);
     assertSize(1, artifacts);
     element = findElement(artifacts, ".teamcity/dirA/archive1.zip");
     assertNotNull(element);
@@ -357,12 +373,12 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertTrue(element.isContentAvailable());
     assertSize(2, Lists.newArrayList(element.getChildren()));
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA/archive1.zip", "hidden:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA/archive1.zip", null, "hidden:true", null);
     assertSize(2, artifacts);
     assertContainsByFullName(artifacts, ".teamcity/dirA/archive1.zip!/a");
     assertContainsByFullName(artifacts, ".teamcity/dirA/archive1.zip!/file4.txt");
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA/archive1.zip", "hidden:true,browseArchives:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, ".teamcity/dirA/archive1.zip", null, "hidden:true,browseArchives:true", null);
     assertSize(2, artifacts);
     assertContainsByFullName(artifacts, ".teamcity/dirA/archive1.zip!/a");
     assertContainsByFullName(artifacts, ".teamcity/dirA/archive1.zip!/file4.txt");
@@ -371,7 +387,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   @Test
   public void testLocatorRecursive() throws Exception {
     ArtifactTreeElement element;
-    List<ArtifactTreeElement> artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", "recursive:true", null);
+    List<ArtifactTreeElement> artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", null, "recursive:true", null);
 
     assertSize(5, artifacts);
     assertContainsByFullName(artifacts, "dir1");
@@ -386,7 +402,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertTrue(element.isContentAvailable());
     assertNull(element.getChildren());
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", "recursive:true,browseArchives:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", null, "recursive:true,browseArchives:true", null);
 
     assertSize(13, artifacts);
     assertContainsByFullName(artifacts, "dir1");
@@ -409,7 +425,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertTrue(element.isContentAvailable());
     assertSize(2, Lists.newArrayList(element.getChildren()));
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", "recursive:2,browseArchives:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", null, "recursive:2,browseArchives:true", null);
 
     assertSize(9, artifacts);
     assertContainsByFullName(artifacts, "dir1");
@@ -428,7 +444,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertTrue(element.isContentAvailable());
     assertSize(2, Lists.newArrayList(element.getChildren()));
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", "recursive:true,browseArchives:false", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", null, "recursive:true,browseArchives:false", null);
 
     assertSize(5, artifacts);
     assertContainsByFullName(artifacts, "dir1");
@@ -441,7 +457,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   @Test
   public void testNestedArchives() throws Exception {
     ArtifactTreeElement element;
-    List<ArtifactTreeElement> artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "archive_nested.zip", null, null);
+    List<ArtifactTreeElement> artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "archive_nested.zip", null, null, null);
 
     assertSize(2, artifacts);
     element = findElement(artifacts, "archive_nested.zip!/archive.zip");
@@ -451,7 +467,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertTrue(element.isContentAvailable());
     assertNull(element.getChildren());
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "archive_nested.zip", "browseArchives:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "archive_nested.zip", null, "browseArchives:true", null);
 
     assertSize(2, artifacts);
     element = findElement(artifacts, "archive_nested.zip!/archive.zip");
@@ -461,7 +477,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertTrue(element.isContentAvailable());
     assertSize(2, Lists.newArrayList(element.getChildren()));
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "archive_nested.zip", "browseArchives:true,recursive:true", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "archive_nested.zip", null, "browseArchives:true,recursive:true", null);
 
     assertSize(8, artifacts);
     element = findElement(artifacts, "archive_nested.zip!/archive.zip");
@@ -475,11 +491,11 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   @Test
   public void testPatterns() throws Exception {
     ArtifactTreeElement element;
-    List<ArtifactTreeElement> artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", "patterns:*.txt", null);
+    List<ArtifactTreeElement> artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", null, "patterns:*.txt", null);
     assertSize(1, artifacts);
     assertContainsByFullName(artifacts, "file.txt");
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", "recursive:true,patterns:*.txt", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", null, "recursive:true,patterns:*.txt", null);
     assertSize(1, artifacts);
     assertContainsByFullName(artifacts, "file.txt");
 
@@ -499,18 +515,18 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertContainsByFullName(artifacts, "archive_nested.zip");
     */
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", "recursive:true,patterns:**/*.txt", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", null, "recursive:true,patterns:**/*.txt", null);
     assertSize(2, artifacts);
     assertContainsByFullName(artifacts, "file.txt");
     assertContainsByFullName(artifacts, "dir1/file.txt");
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", "recursive:true,patterns:(**/*.txt,d*)", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", null, "recursive:true,patterns:(**/*.txt,d*)", null);
     assertSize(3, artifacts);
     assertContainsByFullName(artifacts, "dir1");
     assertContainsByFullName(artifacts, "file.txt");
     assertContainsByFullName(artifacts, "dir1/file.txt");
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", "recursive:true,patterns:(file.txt,archive.zip)", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", null, "recursive:true,patterns:(file.txt,archive.zip)", null);
     assertSize(2, artifacts);
     assertContainsByFullName(artifacts, "file.txt");
     assertContainsByFullName(artifacts, "archive.zip");
