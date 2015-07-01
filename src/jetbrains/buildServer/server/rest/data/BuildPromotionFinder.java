@@ -817,7 +817,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }));
     }
 
-    if (isStateIncluded(stateLocator, STATE_RUNNING)) {
+    if (isStateIncluded(stateLocator, STATE_RUNNING)) {  //todo: address an issue when a build can appear twice in the output
       result.addAll(CollectionsUtil.convertCollection(myBuildsManager.getRunningBuilds(), new Converter<BuildPromotion, SRunningBuild>() {
         public BuildPromotion createFrom(@NotNull final SRunningBuild source) {
           return source.getBuildPromotion();
@@ -838,75 +838,70 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         buildType = myBuildTypeFinder.getBuildType(affectedProject, buildTypeLocator);
       }
 
+      final BuildQueryOptions options = new BuildQueryOptions();
       if (buildType != null) {
-        final BuildQueryOptions options = new BuildQueryOptions();
-        options.setBuildTypeId(buildType.getBuildTypeId());//todo add javadoc which id is this
-
-        final Boolean personal = locator.lookupSingleDimensionValueAsBoolean(PERSONAL);
-        if (personal == null || personal) {
-          final String userDimension = locator.getSingleDimensionValue(USER);
-          options.setIncludePersonal(true, userDimension == null ? null : myUserFinder.getUser(userDimension));
-        } else {
-          options.setIncludePersonal(false, null);
-        }
-
-        final Boolean failedToStart = locator.lookupSingleDimensionValueAsBoolean(FAILED_TO_START);
-        final Boolean canceled = locator.lookupSingleDimensionValueAsBoolean(CANCELED);
-        if (canceled == null || canceled || failedToStart == null || failedToStart) {
-          options.setIncludeCanceled(true); //also includes failed to start builds
-        } else {
-          options.setIncludeCanceled(false);
-        }
-
-        final String branchLocatorValue = locator.getSingleDimensionValue(BRANCH);
-        if (branchLocatorValue != null) {
-          final BranchMatcher branchMatcher;
-          try {
-            branchMatcher = new BranchMatcher(branchLocatorValue);
-          } catch (LocatorProcessException e) {
-            throw new LocatorProcessException("Invalid sub-locator '" + BRANCH + "': " + e.getMessage());
-          }
-
-          if (branchMatcher.matchesAnyBranch()) {
-            options.setMatchAllBranches(true);
-          } else {
-            final String singleBranch = branchMatcher.getSingleBranchIfNotDefault();
-            if (singleBranch != null) {
-              options.setBranch(singleBranch);
-            } else {
-              locator.markUnused(BRANCH);
-            }
-          }
-        } else {
-          options.setMatchAllBranches(true);
-        }
-
-        options.setIncludeRunning(false); //running builds are retrieved separately and appear before finished ones
-        //options.setOrderByChanges(true); //todo: add test, check with 9.0
-
-        finishedBuilds = new ItemHolder<BuildPromotion>() {
-          public boolean process(@NotNull final ItemProcessor<BuildPromotion> processor) {
-            myBuildsManager.processBuilds(options, new ItemProcessor<SBuild>() {
-              public boolean processItem(SBuild item) {
-                return processor.processItem(item.getBuildPromotion());
-              }
-            });
-            return false;
-          }
-        };
-      } else {
-        //TeamCity API: allow myBuildsManager.processBuilds work without build type, add more options
-        finishedBuilds = new ItemHolder<BuildPromotion>() {
-          public boolean process(@NotNull final ItemProcessor<BuildPromotion> processor) {
-            myBuildHistory.processEntries(new ItemProcessor<SFinishedBuild>() {
-              public boolean processItem(final SFinishedBuild item) {
-                return processor.processItem(item.getBuildPromotion());
-              }
-            });
-            return false;
-          }
-        };
+        options.setBuildTypeId(buildType.getBuildTypeId());
       }
+
+      final Boolean personal = locator.lookupSingleDimensionValueAsBoolean(PERSONAL);
+      if (personal == null || personal) {
+        final String userDimension = locator.getSingleDimensionValue(USER);
+        options.setIncludePersonal(true, userDimension == null ? null : myUserFinder.getUser(userDimension));
+      } else {
+        options.setIncludePersonal(false, null);
+      }
+
+      final Boolean failedToStart = locator.lookupSingleDimensionValueAsBoolean(FAILED_TO_START);
+      final Boolean canceled = locator.lookupSingleDimensionValueAsBoolean(CANCELED);
+      if (canceled == null || canceled || failedToStart == null || failedToStart) {
+        options.setIncludeCanceled(true); //also includes failed to start builds
+      } else {
+        options.setIncludeCanceled(false);
+      }
+
+      final String branchLocatorValue = locator.getSingleDimensionValue(BRANCH);
+      if (branchLocatorValue != null) {
+        final BranchMatcher branchMatcher;
+        try {
+          branchMatcher = new BranchMatcher(branchLocatorValue);
+        } catch (LocatorProcessException e) {
+          throw new LocatorProcessException("Invalid sub-locator '" + BRANCH + "': " + e.getMessage());
+        }
+
+        if (branchMatcher.matchesAnyBranch()) {
+          options.setMatchAllBranches(true);
+        } else {
+          if (branchMatcher.matchesDefaultBranchOrNotBranchedBuildsOnly()) {
+            options.setMatchAllBranches(false);
+            options.setBranch(Branch.DEFAULT_BRANCH_NAME);
+          }
+          final String singleBranch = branchMatcher.getSingleBranchIfNotDefault();
+          if (singleBranch != null) {
+            //ineffective, but otherwise cannot file a build by display name branch (need support in BuildQueryOptions to get default + named branch)
+            options.setMatchAllBranches(true);
+            //options.setMatchAllBranches(false);
+            //options.setBranch(singleBranch);
+          } else {
+            locator.markUnused(BRANCH);
+          }
+        }
+      } else {
+        options.setMatchAllBranches(true);
+      }
+
+      options.setIncludeRunning(false); //running builds are retrieved separately and appear before finished ones
+      options.setOrderByChanges(false);
+
+      finishedBuilds = new ItemHolder<BuildPromotion>() {
+        public boolean process(@NotNull final ItemProcessor<BuildPromotion> processor) {
+          myBuildsManager.processBuilds(options, new ItemProcessor<SBuild>() {
+            public boolean processItem(SBuild item) {
+              return processor.processItem(item.getBuildPromotion());
+            }
+          });
+          return false;
+        }
+      };
     }
 
     stateLocator.checkLocatorFullyProcessed();

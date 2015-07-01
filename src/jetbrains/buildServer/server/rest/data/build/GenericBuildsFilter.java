@@ -24,10 +24,7 @@ import java.util.regex.PatternSyntaxException;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SBuildAgent;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.filters.Filter;
@@ -262,7 +259,15 @@ public class GenericBuildsFilter implements BuildsFilter {
     }
     if (!myBranchMatcher.matches(build.getBuildPromotion())) {
       return false;
+    } else {
+      //default to only default branch
+      if (!myBranchMatcher.isDefined()) {
+        @Nullable final Branch buildBranch = build.getBuildPromotion().getBranch();
+        if (buildBranch != null && !buildBranch.isDefaultBranch())
+        return false;
+      }
     }
+
     if (myUser != null) {
       final SUser userWhoTriggered = build.getTriggeredBy().getUser();
       if (!build.getTriggeredBy().isTriggeredByUser() || (userWhoTriggered == null) || (myUser.getId() != userWhoTriggered.getId())) {

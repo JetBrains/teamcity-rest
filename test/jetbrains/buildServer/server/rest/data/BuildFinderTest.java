@@ -24,14 +24,20 @@ import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
-import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
-import jetbrains.buildServer.serverSide.impl.CancelableTaskHolder;
-import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
-import jetbrains.buildServer.serverSide.impl.ProjectEx;
+import jetbrains.buildServer.serverSide.impl.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.Dates;
+import jetbrains.buildServer.vcs.SVcsModification;
+import jetbrains.buildServer.vcs.SVcsRootEx;
+import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcs.VcsRootInstanceEx;
+import jetbrains.buildServer.vcs.impl.SVcsRootImpl;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import static jetbrains.buildServer.buildTriggers.vcs.ModificationDataBuilder.modification;
+import static jetbrains.buildServer.util.Util.map;
+import static jetbrains.buildServer.vcs.RepositoryStateData.createVersionState;
 
 /**
  * @author Yegor.Yarko
@@ -258,10 +264,10 @@ public class BuildFinderTest extends BuildFinderTestBase {
   @Test
   public void testBranchDimension() throws Exception {
     final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
-    final SFinishedBuild build1 = build().in(buildConf).finish();
+    final SFinishedBuild build1 = build().in(buildConf).withDefaultBranch().finish();
     final SFinishedBuild build2 = build().in(buildConf).withBranch("branchName").finish();
 
-//    checkBuilds("", build1);
+    checkBuilds(null, build1);
     //by default no branched builds should be listed
     checkBuilds("buildType:(id:" + buildConf.getExternalId() + ")", build1);
     checkBuilds("pinned:any", build1);
@@ -272,8 +278,81 @@ public class BuildFinderTest extends BuildFinderTestBase {
     checkBuilds("branch:(branchName)", build2);
     checkBuilds("branch:(name:branchName)", build2);
     checkExceptionOnBuildSearch(LocatorProcessException.class, "branch:(::)"); //invalid branch locator
-//fix    checkExceptionOnBuildSearch(LocatorProcessException.calss, "branch:(name:branchName,aaa:bbb)");  //unused/unknown dimension
-//fix    checkExceptionOnBuildSearch(LocatorProcessException.class, "branch:(aaa:bbb)");
+  }
+
+  @Test
+  public void testBranchDimension2() throws Exception {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    final SFinishedBuild build5 = build().in(buildConf).finish(); //not branched build
+
+    //settings to make display name for branch != branch name
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    vcs.setDAGBased(true);
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    SVcsRootEx parentRoot2 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    VcsRootInstanceEx root1 = (VcsRootInstanceEx)buildConf.getVcsRootInstanceForParent(parentRoot1);
+    VcsRootInstanceEx root2 = (VcsRootInstanceEx)buildConf.getVcsRootInstanceForParent(parentRoot2);
+    assert root1 != null;
+    assert root2 != null;
+    setBranchSpec(root1, "+:b1");
+    setBranchSpec(root2, "+:b2");
+
+    final MockCollectRepositoryChangesPolicy changesPolicy = new MockCollectRepositoryChangesPolicy();
+    vcs.setCollectChangesPolicy(changesPolicy);
+    changesPolicy.setCurrentState(root1, createVersionState("master", map("master", "rev1", "b1", "revB1")));
+    changesPolicy.setCurrentState(root2, createVersionState("master", map("master", "rev1", "b2", "revB2")));
+
+
+    final SFinishedBuild build10 = build().in(buildConf).finish();
+
+    final SFinishedBuild build20 = build().in(buildConf).withBranch(Branch.DEFAULT_BRANCH_NAME).finish();
+    final SFinishedBuild build30 = build().in(buildConf).withBranch("master").finish();
+    final SFinishedBuild build40 = build().in(buildConf).withBranch("b1").finish();
+
+    final Branch branch = build20.getBranch();
+    assert branch != null;
+    assertEquals("<default>", branch.getName());
+    assertEquals("master", branch.getDisplayName());
+
+    //by default no branched builds should be listed
+    checkBuilds(null, build20, build10, build5);
+    final String btLocator = "buildType:(id:" + buildConf.getExternalId() + ")";
+    checkBuilds(btLocator, build20, build10, build5);
+    checkBuilds("pinned:any", build20, build10, build5);
+
+    checkBuilds("branch:<default>", build20, build10);
+    checkBuilds("branch:(default:true)", build20, build10, build5);
+    checkBuilds("branch:(default:any)", build40, build30, build20, build10, build5);
+    checkBuilds("branch:<any>", build40, build30, build20, build10, build5);
+    checkBuilds("branch:(default:false)", build40, build30);
+    checkBuilds("branch:(b1)", build40);
+    checkBuilds("branch:(name:b1)", build40);
+    checkBuilds("branch:(name:branchName)");
+    checkBuilds("branch:(name:master)", build30, build20, build10);
+    checkBuilds("branch:(name:master,default:true)", build20, build10);
+    checkBuilds("branch:(branched:true)", build40, build30, build20, build10);
+    checkBuilds("branch:(branched:false)", build5);
+    checkBuilds("branch:(name:master,branched:true)", build30, build20, build10);
+
+    checkBuilds(btLocator + ",branch:<default>", build20, build10);
+    checkBuilds(btLocator + ",branch:(default:true)", build20, build10, build5);
+    checkBuilds(btLocator + ",branch:(default:any)", build40, build30, build20, build10, build5);
+    checkBuilds(btLocator + ",branch:<any>", build40, build30, build20, build10, build5);
+    checkBuilds(btLocator + ",branch:(default:false)", build40, build30);
+    checkBuilds(btLocator + ",branch:(b1)", build40);
+    checkBuilds(btLocator + ",branch:(name:b1)", build40);
+    checkBuilds(btLocator + ",branch:(name:branchName)");
+    checkBuilds(btLocator + ",branch:(name:master)", build30, build20, build10);
+    checkBuilds(btLocator + ",branch:(name:master,default:true)", build20, build10);
+    checkBuilds(btLocator + ",branch:(branched:true)", build40, build30, build20, build10);
+    checkBuilds(btLocator + ",branch:(branched:false)", build5);
+    checkBuilds(btLocator + ",branch:(name:master,branched:true)", build30, build20, build10);
+
+    checkExceptionOnBuildSearch(LocatorProcessException.class, "branch:(::)"); //invalid branch locator
+    checkExceptionOnBuildSearch(LocatorProcessException.class, "branch:(name:branchName,aaa:bbb)");  //unused/unknown dimension
+    checkExceptionOnBuildSearch(LocatorProcessException.class, "branch:(aaa:bbb)");
   }
 
   @Test
@@ -603,4 +682,27 @@ public class BuildFinderTest extends BuildFinderTestBase {
     checkBuilds("sinceDate:(" + fDate(afterBuild10) + "),untilDate:" + fDate(afterBuild30), build30, build20);
   }
 
+  @Test
+  public void testBuildsOrder() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    final SVcsRootImpl vcsRoot = myFixture.addVcsRoot("mock", "", buildConf);
+    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(vcsRoot);
+    assert root1 != null;
+
+    final SFinishedBuild build10 = build().in(buildConf).finish();
+
+    myFixture.addModification(modification().in(root1).version("1"));
+    final SVcsModification change20 = myFixture.addModification(modification().in(root1).version("2"));
+    myFixture.addModification(modification().in(root1).version("3"));
+    assertEquals(3, buildConf.getPendingChanges().size());
+
+    final SFinishedBuild build20 = build().in(buildConf).finish();
+    final SFinishedBuild build30 = build().in(buildConf).onModifications(change20).finish();
+
+
+    checkBuilds(null, build30, build20, build10);
+    checkBuilds("buildType:(id:" + buildConf.getExternalId() +")", build30, build20, build10);
+    checkBuilds("sinceBuild:(id:" + build20.getBuildId() +")", build30);
+  }
 }

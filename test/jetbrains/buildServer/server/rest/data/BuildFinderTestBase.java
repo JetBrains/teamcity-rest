@@ -17,13 +17,15 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.util.Pair;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicReference;
+import jetbrains.buildServer.buildTriggers.vcs.ModificationDataBuilder;
 import jetbrains.buildServer.log.Loggable;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.BuildPromotion;
@@ -36,6 +38,7 @@ import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
+import jetbrains.buildServer.vcs.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
@@ -233,4 +236,90 @@ public class BuildFinderTestBase extends BaseServerTestCase {
     }, true);
   }
 
+  public class MockCollectRepositoryChangesPolicy implements CollectChangesBetweenRepositories {
+
+    private final ConcurrentMap<Long, RepositoryStateData> myCurrentStates = new ConcurrentHashMap<Long, RepositoryStateData>();
+    private final ConcurrentMap<Long, RepositoryStateData> myLastToStates = new ConcurrentHashMap<Long, RepositoryStateData>();
+    private final ConcurrentMap<Long, RepositoryStateData> myLastFromStates = new ConcurrentHashMap<Long, RepositoryStateData>();
+    private final ConcurrentMap<Long, List<ModificationData>> myChangesPerRoot = new ConcurrentHashMap<Long, List<ModificationData>>();
+    private final ConcurrentMap<Pair<Long, Long>, List<ModificationData>> myChangesPerRootInterval = new ConcurrentHashMap<Pair<Long, Long>, List<ModificationData>>();
+    private final AtomicReference<RepositoryStateData> myLastToState = new AtomicReference<RepositoryStateData>();
+
+    @NotNull
+    public List<ModificationData> collectChanges(@NotNull final VcsRoot repository,
+                                                 @NotNull final RepositoryStateData fromState,
+                                                 @NotNull final RepositoryStateData toState,
+                                                 @NotNull final CheckoutRules checkoutRules) throws VcsException {
+      myLastToState.set(toState);
+      myLastToStates.put(repository.getId(), toState);
+      myLastFromStates.put(repository.getId(), fromState);
+      List<ModificationData> changes = myChangesPerRoot.put(repository.getId(), Collections.<ModificationData>emptyList());
+      if (changes != null)
+        return changes;
+      return Collections.emptyList();
+    }
+
+    @NotNull
+    public List<ModificationData> collectChanges(@NotNull final VcsRoot fromRepository,
+                                                 @NotNull final RepositoryStateData fromState,
+                                                 @NotNull final VcsRoot toRepository,
+                                                 @NotNull final RepositoryStateData toState,
+                                                 @NotNull final CheckoutRules checkoutRules) throws VcsException {
+      myLastToState.set(toState);
+      myLastToStates.put(toRepository.getId(), toState);
+      myLastFromStates.put(toRepository.getId(), fromState);
+      List<ModificationData> changes = myChangesPerRootInterval.put(Pair.create(fromRepository.getId(), toRepository.getId()), Collections.<ModificationData>emptyList());
+      if (changes != null)
+        return changes;
+      changes = myChangesPerRoot.put(toRepository.getId(), Collections.<ModificationData>emptyList());
+      if (changes != null)
+        return changes;
+      return Collections.emptyList();
+    }
+
+    @NotNull
+    public RepositoryStateData getCurrentState(@NotNull final VcsRoot repository) throws VcsException {
+      return myCurrentStates.get(repository.getId());
+    }
+
+    public void setCurrentState(@NotNull VcsRoot repository, @NotNull RepositoryStateData state) {
+      myCurrentStates.put(repository.getId(), state);
+    }
+
+    public RepositoryStateData getLastToState(@NotNull VcsRoot repository) {
+      return myLastToStates.get(repository.getId());
+    }
+
+    public RepositoryStateData getLastToState() {
+      return myLastToState.get();
+    }
+
+    public RepositoryStateData getLastFromState(@NotNull VcsRoot repository) {
+      return myLastFromStates.get(repository.getId());
+    }
+
+    public void setChanges(@NotNull VcsRoot repository, @NotNull ModificationDataBuilder... changes) {
+      List<ModificationData> newChanges = new ArrayList<ModificationData>();
+      for (ModificationDataBuilder change : changes) {
+        newChanges.add(change.build());
+      }
+      myChangesPerRoot.put(repository.getId(), newChanges);
+    }
+
+    public void setChanges(@NotNull VcsRoot fromRepository, @NotNull VcsRoot toRepository, @NotNull ModificationDataBuilder... changes) {
+      List<ModificationData> newChanges = new ArrayList<ModificationData>();
+      for (ModificationDataBuilder change : changes) {
+        newChanges.add(change.build());
+      }
+      myChangesPerRootInterval.put(Pair.create(fromRepository.getId(), toRepository.getId()), newChanges);
+    }
+
+    public void setChanges(@NotNull VcsRoot repository, @NotNull List<ModificationData> changes) {
+      List<ModificationData> newChanges = new ArrayList<ModificationData>();
+      for (ModificationData change : changes) {
+        newChanges.add(change);
+      }
+      myChangesPerRoot.put(repository.getId(), newChanges);
+    }
+  }
 }
