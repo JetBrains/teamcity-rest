@@ -33,7 +33,6 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.AgentCompatibility;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
-import jetbrains.buildServer.serverSide.impl.agent.PollingRemoteAgentConnection;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -46,6 +45,7 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("PublicField")
 public class Agent {
 
+  @XmlAttribute public String href;
   @XmlAttribute public Integer id;
   @XmlAttribute public String name;
   @XmlAttribute public Integer typeId;
@@ -54,8 +54,6 @@ public class Agent {
   @XmlAttribute public Boolean authorized;
   @XmlAttribute public Boolean uptodate;
   @XmlAttribute public String ip;
-  @XmlAttribute public String protocol;
-  @XmlAttribute public String href;
   @XmlElement public Properties properties;
   @XmlElement public AgentPool pool;
   @XmlElement public Compatibilities compatibilities;
@@ -83,12 +81,6 @@ public class Agent {
         return agent.getHostAddress();
       }
     });
-    protocol = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("protocol", false, false), new ValueWithDefault.Value<String>() {  //hide by default for now
-      @Nullable
-      public String get() {
-        return getAgentProtocol(agent);
-      }
-    });
     //TODO: review, if it should return all parameters on agent, use #getDefinedParameters()
     properties = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
       @Nullable
@@ -104,14 +96,6 @@ public class Agent {
     });
     compatibilities =
       ValueWithDefault.decideDefault(fields.isIncluded("compatibilities", false, false), getCompatibilitiesValue(agent, fields.getNestedField("compatibilities"), beanContext));
-  }
-
-  @NotNull
-  private static String getAgentProtocol(final @NotNull SBuildAgent agent) {
-    final String communicationProtocolDescription = agent.getCommunicationProtocolDescription();
-    if (PollingRemoteAgentConnection.DESCRIPTION.equals(communicationProtocolDescription)) return "unidirectional";
-    // would be better to check, but that is in another module: if (XmlRpcRemoteAgentConnection.DESCRIPTION.equals(communicationProtocolDescription)) return "bidirectional";
-    return communicationProtocolDescription;
   }
 
   @NotNull
@@ -157,8 +141,6 @@ public class Agent {
       return String.valueOf(agent.isAuthorized());
     } else if ("ip".equals(name)) {
       return agent.getHostAddress();
-    } else if ("protocol".equals(name)) {
-      return getAgentProtocol(agent);
     }
     throw new BadRequestException("Unknown field '" + name + "'. Supported fields are: id, name, connected, enabled, authorized, ip");
   }
