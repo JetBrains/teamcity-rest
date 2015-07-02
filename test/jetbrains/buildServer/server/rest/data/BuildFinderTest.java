@@ -184,7 +184,7 @@ public class BuildFinderTest extends BuildFinderTestBase {
   @Test
   public void testBranchDimension() throws Exception {
     final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
-    final SFinishedBuild build1 = build().in(buildConf).finish();
+    final SFinishedBuild build1 = build().in(buildConf).withDefaultBranch().finish();
     final SFinishedBuild build2 = build().in(buildConf).withBranch("branchName").finish();
 
 //    checkBuilds("", build1);
