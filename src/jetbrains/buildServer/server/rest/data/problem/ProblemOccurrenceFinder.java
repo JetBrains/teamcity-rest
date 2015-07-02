@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data.problem;
 
+import com.intellij.openapi.diagnostic.Logger;
 import java.io.IOException;
 import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
@@ -42,6 +43,8 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 18.11.13
  */
 public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
+  private static Logger LOG = Logger.getInstance(ProblemOccurrenceFinder.class.getName());
+
   private static final String BUILD = "build";
   private static final String IDENTITY = "identity";
   private static final String CURRENT = "currentlyFailing";
@@ -343,17 +346,21 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
         public void run(final DBFunctions dbf) throws DBException {
           dbf.queryForTuples(new Object() {
             public void getBuildProblem(String build_state_id) throws IOException {
-              final BuildPromotion buildByPromotionId = buildFinder.getBuildByPromotionId(Long.valueOf(build_state_id));
-              if (buildByPromotionId.getBuildType() == null ){
-                //missing build type, skip. Workaround for http://youtrack.jetbrains.com/issue/TW-34733
-              } else{
-                final BuildProblem problem = findProblem(buildByPromotionId, problemId);
-                if (problem != null) result.add(problem);
+              try {
+                final BuildPromotion buildByPromotionId = buildFinder.getBuildByPromotionId(Long.valueOf(build_state_id));
+                if (buildByPromotionId.getBuildType() == null) {
+                  //missing build type, skip. Workaround for http://youtrack.jetbrains.com/issue/TW-34733
+                } else {
+                  final BuildProblem problem = findProblem(buildByPromotionId, problemId);
+                  if (problem != null) result.add(problem);
+                }
+              } catch (RuntimeException e) {
+                //addressing TW-41636
+                LOG.infoAndDebugDetails(
+                  "Error getting problems for build promotion with id " + build_state_id + ", problemId: " + problemId + ", ignoring. Cause", e);
               }
             }
-          },
-                             "getBuildProblem",
-                             "select build_state_id from build_problem where problem_id = " + problemId);
+          }, "getBuildProblem", "select build_state_id from build_problem where problem_id = " + problemId);
         }
       });
     } catch (Exception e) {
