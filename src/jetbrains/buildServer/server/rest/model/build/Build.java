@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.build;
 
+import com.intellij.openapi.diagnostic.Logger;
 import java.math.BigDecimal;
 import java.util.*;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -89,6 +90,8 @@ import org.springframework.beans.factory.annotation.Autowired;
            "buildDependencies", "buildArtifactDependencies", "customBuildArtifactDependencies"/*q*/,
            "triggeringOptions"/*only when triggering*/})
 public class Build {
+  private static Logger LOG = Logger.getInstance(Build.class.getName());
+
   public static final String CANCELED_INFO = "canceledInfo";
   public static final String PROMOTION_ID = "taskId";
   public static final String REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES = "rest.beans.build.includeAllAttributes";
@@ -134,6 +137,16 @@ public class Build {
     myQueuedBuild = myBuildPromotion.getQueuedBuild();
     myBuild = myQueuedBuild != null ? null : myBuildPromotion.getAssociatedBuild();
 
+    if (myQueuedBuild == null && myBuild == null) { //diagnostics for TW-41263
+      final long currentId = myBuildPromotion.getId();
+      final BuildPromotion replacement = beanContext.getSingletonService(BuildPromotionManager.class).findPromotionOrReplacement(currentId);
+      if (replacement == null) {
+        LOG.info("Promotion with id " + currentId + " was removed during request processing");
+      } else if (replacement.getId() != currentId) {
+        LOG.info("Promotion with id " + currentId + " was replaced by promotion with id " + replacement.getId() + " during request processing");
+      }
+    }
+
     myBeanContext = beanContext;
     myApiUrlBuilder = beanContext.getApiUrlBuilder();
     beanContext.autowire(this);
@@ -163,7 +176,9 @@ public class Build {
     }
     if (myQueuedBuild != null) return "queued";
     if (myBuild != null && !myBuild.isFinished()) return "running";
+    //noinspection ConstantConditions
     if (myBuild != null && myBuild.isFinished()) return "finished";
+    if (((BuildPromotionEx)myBuildPromotion).isDeleted()) return "deleted";
     return "unknown";
   }
 
@@ -617,7 +632,7 @@ public class Build {
       public Files get() {
         final Fields nestedFields = myFields.getNestedField("artifacts");
         final List<ArtifactTreeElement> artifacts =
-          ValueWithDefault.decideDefault(nestedFields.isIncluded(Files.FILE, false, false), new ValueWithDefault.Value<List<ArtifactTreeElement>>() {
+          ValueWithDefault.decideDefault(nestedFields.isIncluded(Files.FILE, false, true), new ValueWithDefault.Value<List<ArtifactTreeElement>>() {
             @Nullable
             public List<ArtifactTreeElement> get() {
               return myBeanContext.getSingletonService(BuildArtifactsFinder.class).getArtifacts(myBuild, "", null, nestedFields.getLocator(), myBeanContext);
