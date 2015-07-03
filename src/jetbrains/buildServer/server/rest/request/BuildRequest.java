@@ -245,9 +245,10 @@ public class BuildRequest {
   public File getArtifactMetadata(@PathParam("buildLocator") final String buildLocator,
                                   @PathParam("path") final String path,
                                   @QueryParam("resolveParameters") final Boolean resolveParameters,
-                                  @QueryParam("locator") final String locator) {
+                                  @QueryParam("locator") final String locator,
+                                  @QueryParam("fields") String fields) {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return myBuildArtifactsFinder.getFile(build, getResolvedIfNecessary(build, path, resolveParameters), locator, myBeanContext);
+    return myBuildArtifactsFinder.getFile(build, getResolvedIfNecessary(build, path, resolveParameters), locator, new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -262,7 +263,8 @@ public class BuildRequest {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
     final String resolvedPath = getResolvedIfNecessary(build, path, resolveParameters);
     String resolvedBasePath = getResolvedIfNecessary(build, basePath, resolveParameters);
-    return new Files(null, myBuildArtifactsFinder.getFiles(build, resolvedPath, resolvedBasePath, locator, myBeanContext), new Fields(fields), myBeanContext);
+    final List<ArtifactTreeElement> artifacts = myBuildArtifactsFinder.getArtifacts(build, resolvedPath, resolvedBasePath, locator, null);
+    return new Files(null, artifacts, null, BuildArtifactsFinder.fileApiUrlBuilderForBuild(build, locator, myBeanContext), new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -278,7 +280,7 @@ public class BuildRequest {
     final ArtifactTreeElement artifactElement = BuildArtifactsFinder.getArtifactElement(build, resolvedPath, BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
     if (!artifactElement.isContentAvailable()) {
       throw new NotFoundException("Cannot provide content for '" + path + "'. To get children use '" +
-                                  BuildArtifactsFinder.fileApiUrlBuilderForBuild(myBeanContext.getApiUrlBuilder(), build, null).getChildrenHref(artifactElement) + "'.");
+                                  BuildArtifactsFinder.fileApiUrlBuilderForBuild(build, null, myBeanContext).getChildrenHref(artifactElement) + "'.");
     }
     final Response.ResponseBuilder builder = BuildArtifactsFinder.getContent(artifactElement, request);
     if (logBuildUsage){

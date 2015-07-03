@@ -38,7 +38,7 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.PropEntitiesArtifactDep;
 import jetbrains.buildServer.server.rest.model.change.Changes;
 import jetbrains.buildServer.server.rest.model.change.Revisions;
-import jetbrains.buildServer.server.rest.model.files.File;
+import jetbrains.buildServer.server.rest.model.files.FileApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.files.Files;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
@@ -62,6 +62,7 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
+import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -615,13 +616,15 @@ public class Build {
       @Nullable
       public Files get() {
         final Fields nestedFields = myFields.getNestedField("artifacts");
-        final List<File> files = ValueWithDefault.decideDefault(nestedFields.isIncluded(Files.FILE, false, false), new ValueWithDefault.Value<List<File>>() {
-          @Nullable
-          public List<File> get() {
-            return myBeanContext.getSingletonService(BuildArtifactsFinder.class).getFiles(myBuild, "", null, nestedFields.getLocator(), myBeanContext);
-          }
-        });
-        return new Files(BuildRequest.getBuildArtifactsHref(myBuild), files, nestedFields, myBeanContext);
+        final List<ArtifactTreeElement> artifacts =
+          ValueWithDefault.decideDefault(nestedFields.isIncluded(Files.FILE, false, false), new ValueWithDefault.Value<List<ArtifactTreeElement>>() {
+            @Nullable
+            public List<ArtifactTreeElement> get() {
+              return myBeanContext.getSingletonService(BuildArtifactsFinder.class).getArtifacts(myBuild, "", null, nestedFields.getLocator(), myBeanContext);
+            }
+          });
+        FileApiUrlBuilder builder = BuildArtifactsFinder.fileApiUrlBuilderForBuild(myBuild, nestedFields.getLocator(), myBeanContext);
+        return new Files(BuildRequest.getBuildArtifactsHref(myBuild), artifacts, null, builder, nestedFields, myBeanContext);
       }
     });
   }

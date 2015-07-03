@@ -24,6 +24,9 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
+import jetbrains.buildServer.util.browser.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,6 +39,7 @@ import org.jetbrains.annotations.Nullable;
 @XmlType
 public class Files {
 
+  @XmlAttribute public Integer count;
   @XmlAttribute(name = "href") public String href;
 
   public static final String FILE = "file";
@@ -46,8 +50,20 @@ public class Files {
   public Files() {
   }
 
-  public Files(@Nullable final String shortHref, @Nullable final List<File> children, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+  public Files(@Nullable final String shortHref, @Nullable final Iterable<? extends Element> children, @Nullable final Element parent, @NotNull final FileApiUrlBuilder builder,
+               @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     href = shortHref == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href", true), beanContext.getApiUrlBuilder().transformRelativePath(shortHref));
-    files = ValueWithDefault.decideDefault(fields.isIncluded(FILE), children);
+    files = ValueWithDefault.decideDefault(fields.isIncluded(FILE), new ValueWithDefault.Value<List<File>>() {
+      @Nullable
+      public List<File> get() {
+        return CollectionsUtil.convertCollection(children, new Converter<File, Element>() {
+          public File createFrom(@NotNull final Element source) {
+            return new File(source, parent, builder, fields.getNestedField("file", Fields.SHORT, Fields.LONG), beanContext);
+          }
+        });
+      }
+    });
+    count = children == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"),
+                                                                              files != null ? ((Integer)files.size()) : ((children instanceof List) ? ((List)children).size() : null));
   }
 }

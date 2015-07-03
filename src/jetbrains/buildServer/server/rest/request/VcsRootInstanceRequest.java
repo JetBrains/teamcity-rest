@@ -233,10 +233,12 @@ public class VcsRootInstanceRequest {
   @Produces({"application/xml", "application/json"})
   public File getVcsFile(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
                                      @PathParam("path") final String path,
+                                     @QueryParam("fields") String fields,
                                      @Context HttpServletRequest request) {
     final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
     myVcsRootFinder.checkPermission(Permission.VIEW_FILE_CONTENT, rootInstance);
     return BuildArtifactsFinder.getMetadata(getVcsWorkspaceAccess(rootInstance).getVcsFilesBrowser(), path, WHERE_NOTE,
-                                            BuildArtifactsFinder.getStandardFileApiUrlBuilder(myApiUrlBuilder.getHref(rootInstance) + FILES_LATEST));
+                                            BuildArtifactsFinder.getStandardFileApiUrlBuilder(myApiUrlBuilder.getHref(rootInstance) + FILES_LATEST), new Fields(fields),
+                                            myBeanContext);
   }
 }

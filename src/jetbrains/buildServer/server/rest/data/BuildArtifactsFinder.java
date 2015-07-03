@@ -30,7 +30,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import jetbrains.buildServer.ArtifactsConstants;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -99,17 +98,14 @@ public class BuildArtifactsFinder {
         throw new BadRequestException("Cannot provide children list for file '" + path + "'. To get content use '" + fileApiUrlBuilder.getContentHref(element) + "'.");
       }
 
-      final List<File> result = new ArrayList<File>();
-      for (Element child : children) {
-        result.add(new File(child, null, null /*do not include parent as all children have it the same*/, fileApiUrlBuilder));
-      }
-      return new Files(null, result, fields, beanContext);
+      return new Files(null, children, null /*do not include parent as all children have it the same*/, fileApiUrlBuilder, fields, beanContext);
     } catch (BrowserException e) {
       throw new OperationException("Error listing children for path '" + path + "'.", e);
     }
   }
 
-  public static File getMetadata(@NotNull final Browser browser, @NotNull final String path, @NotNull final String where, @NotNull final FileApiUrlBuilder fileApiUrlBuilder) {
+  public static File getMetadata(@NotNull final Browser browser, @NotNull final String path, @NotNull final String where,
+                                 @NotNull final FileApiUrlBuilder fileApiUrlBuilder, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     Element element = getElement(browser, path, where);
     Element parent = null;
     try {
@@ -117,7 +113,7 @@ public class BuildArtifactsFinder {
     } catch (NotFoundException e) {
       //ignore
     }
-    return new File(element, null, parent, fileApiUrlBuilder);
+    return new File(element, parent, fileApiUrlBuilder, fields, beanContext);
   }
 
   @NotNull
@@ -292,16 +288,6 @@ public class BuildArtifactsFinder {
     };
   }
 
-  public List<File> getFiles(final SBuild build, final String resolvedPath, @Nullable final String basePath, final String locator, final BeanContext beanContext) {
-    final List<ArtifactTreeElement> artifacts = getArtifacts(build, resolvedPath, basePath, locator, beanContext);
-
-    return CollectionsUtil.convertCollection(artifacts, new Converter<File, ArtifactTreeElement>() {
-      public File createFrom(@NotNull final ArtifactTreeElement source) {
-        return new File(source, null, fileApiUrlBuilderForBuild(beanContext.getContextService(ApiUrlBuilder.class), build, locator));
-      }
-    });
-  }
-
   public List<ArtifactTreeElement> getArtifacts(@NotNull final SBuild build, @NotNull final String path, @Nullable final String basePath, @Nullable final String filesLocator,
                                                 @Nullable final BeanContext context) {
     @Nullable final Locator locator = getLocator(filesLocator);
@@ -310,7 +296,7 @@ public class BuildArtifactsFinder {
     if (initialElement.isLeaf() || initialElement.getChildren() == null) {
       String additionalMessage = "";
       if (context != null) {
-        additionalMessage = " To get content use '" + fileApiUrlBuilderForBuild(context.getContextService(ApiUrlBuilder.class), build, null).getContentHref(initialElement) + "'.";
+        additionalMessage = " To get content use '" + fileApiUrlBuilderForBuild(build, null, context).getContentHref(initialElement) + "'.";
       }
       throw new BadRequestException("Cannot provide children list for file '" + path + "'." + additionalMessage);
     }
@@ -443,18 +429,18 @@ public class BuildArtifactsFinder {
     return Locator.createLocator(filesLocator, defaults, supportedDimensions);
   }
 
-  public File getFile(@NotNull final SBuild build, @NotNull final String path, @Nullable final String locatorText, @NotNull final BeanContext context) {
+  public File getFile(@NotNull final SBuild build, @NotNull final String path, @Nullable final String locatorText, @NotNull final Fields fields, @NotNull final BeanContext context) {
     @Nullable final Locator locator = getLocator(locatorText);
     final ArtifactTreeElement element = getArtifactElement(build, path, BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
     final String par = StringUtil.removeTailingSlash(StringUtil.convertAndCollapseSlashes(element.getFullName()));
     final ArtifactTreeElement parent = par.equals("") ? null : getArtifactElement(build, ArchiveUtil.getParentPath(par), BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
-    return new File(element, parent, fileApiUrlBuilderForBuild(context.getContextService(ApiUrlBuilder.class), build, locatorText));
+    return new File(element, parent, fileApiUrlBuilderForBuild(build, locatorText, context), fields, context);
   }
 
   @NotNull
-  public static FileApiUrlBuilder fileApiUrlBuilderForBuild(@NotNull final ApiUrlBuilder apiUrlBuilder, @NotNull final SBuild build, @Nullable final String locator) {
+  public static FileApiUrlBuilder fileApiUrlBuilderForBuild(@NotNull final SBuild build, @Nullable final String locator, @NotNull final BeanContext beanContext) {
     return new FileApiUrlBuilder() {
-      private final String myBuildHref = apiUrlBuilder.getHref(build);
+      private final String myBuildHref = beanContext.getApiUrlBuilder().getHref(build);
 
       public String getMetadataHref(@Nullable Element e) {
         return myBuildHref + BuildRequest.ARTIFACTS_METADATA + (e == null ? "" : "/" + e.getFullName());
@@ -603,7 +589,7 @@ public class BuildArtifactsFinder {
     }
   }
 
-  private class ArtifactTreeElementWrapper implements ArtifactTreeElement {
+  public static class ArtifactTreeElementWrapper implements ArtifactTreeElement {
 
     @NotNull private final Element myElement;
     @Nullable private final ZipElement myZipElement;
