@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model.build;
 
 import com.intellij.openapi.diagnostic.Logger;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -31,6 +32,7 @@ import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
@@ -1093,10 +1095,42 @@ public class Build {
         if (cleanSources != null) {
           customizer.setCleanSources(Boolean.valueOf(cleanSources));
         }
+        final String freezeSettings = submittedAttributes.getMap().get(BuildAttributes.FREEZE_SETTINGS);
+        if (freezeSettings != null) {
+          ((BuildCustomizerEx)customizer).setFreezeSettings(Boolean.valueOf(freezeSettings));
+        }
       }
     }
-    return customizer.createPromotion();
+    final BuildPromotion result = customizer.createPromotion();
+    BuildTypeEx modifiedBuildType = getCustomizedSubmittedBuildType(serviceLocator);
+    if (modifiedBuildType!= null) {
+      //it's core's responsibility to check permissions here
+      try {
+        ((BuildPromotionEx)result).freezeSettings(modifiedBuildType);
+      } catch (IOException e) {
+        throw new OperationException("Error while freezing promotion settings", e); //include nested erorr or it can expose too much data?
+      }
+    }
+    return result;
   }
+
+  /**
+   *
+   * @return null if the submitted build type does not contain any custom settings
+   */
+  @Nullable
+  private BuildTypeEx getCustomizedSubmittedBuildType(@NotNull ServiceLocator serviceLocator) {
+    if (submittedBuildType == null) {
+      return null;
+    }
+
+    final BuildTypeOrTemplate customizedBuildTypeFromPosted = submittedBuildType.getCustomizedBuildTypeFromPosted(serviceLocator.findSingletonService(BuildTypeFinder.class), serviceLocator);
+    if (customizedBuildTypeFromPosted == null) {
+      return null;
+    }
+
+    return (BuildTypeEx)customizedBuildTypeFromPosted.getBuildType();
+   }
 
   private SBuildType getSubmittedBuildType(@NotNull ServiceLocator serviceLocator, @Nullable final SVcsModification personalChange, @Nullable final SUser currentUser) {
     if (submittedBuildType == null) {
@@ -1111,11 +1145,11 @@ public class Build {
     }
 
     final BuildTypeOrTemplate buildTypeFromPosted = submittedBuildType.getBuildTypeFromPosted(serviceLocator.findSingletonService(BuildTypeFinder.class));
-    if (!buildTypeFromPosted.isBuildType()) {
+    final SBuildType regularBuildType = buildTypeFromPosted.getBuildType();
+    if (regularBuildType == null) {
       throw new BadRequestException("Found template instead on build type. Only build types can run builds.");
     }
 
-    final SBuildType regularBuildType = buildTypeFromPosted.getBuildType();
     if (personalChange == null) {
       return regularBuildType;
     }

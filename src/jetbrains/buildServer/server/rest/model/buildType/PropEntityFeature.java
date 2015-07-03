@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
+import java.util.HashMap;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
@@ -45,7 +46,7 @@ public class PropEntityFeature extends PropEntity {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Created build feature cannot have empty 'type'.");
     }
-    final SBuildFeatureDescriptor newBuildFeature = factory.createNewBuildFeature(type, properties.getMap());
+    final SBuildFeatureDescriptor newBuildFeature = factory.createNewBuildFeature(type, properties != null ? properties.getMap() : new HashMap<String, String>());
     try {
       buildType.addBuildFeature(newBuildFeature);
     } catch (DuplicateIdException e) {

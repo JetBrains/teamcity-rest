@@ -382,6 +382,36 @@ public class BuildType {
     throw new BadRequestException("Could not find build type by the data. Either 'id' or 'internalId' or 'locator' attributes should be specified.");
   }
 
+  /**
+   * @return null if nothing is customized
+   */
+  @Nullable
+  public BuildTypeOrTemplate getCustomizedBuildTypeFromPosted(@NotNull final BuildTypeFinder buildTypeFinder, @NotNull final ServiceLocator serviceLocator) {
+    final BuildTypeOrTemplate bt = getBuildTypeFromPosted(buildTypeFinder);
+
+    final BuildTypeEx buildType = (BuildTypeEx)bt.getBuildType();
+    if (buildType == null) {
+      throw new BadRequestException("Cannot change build type template, only build types are supported");
+    }
+
+    if (submittedTemplateFlag != null && submittedTemplateFlag) {
+      throw new BadRequestException("Cannot change build type to template, only build types are supported");
+    }
+
+    if (submittedName != null && !submittedName.equals(buildType.getName())) {
+      throw new BadRequestException("Cannot change build type name from '" + buildType.getName() + "' to '" + submittedName + "'. Remove the name from submitted build type.");
+    }
+
+    final BuildTypeEx editableCopy = buildType.createEditableCopy(false); //todo: support build type "patching"
+
+    final BuildTypeOrTemplate result = new BuildTypeOrTemplate(editableCopy);
+    if (fillBuildTypeOrTemplate(result, serviceLocator)) {
+      return result;
+    }
+
+    return null;
+  }
+
   @NotNull
   public BuildTypeOrTemplate getBuildTypeFromPosted(@NotNull final BuildTypeFinder buildTypeFinder) {
     String locatorText = "";
@@ -512,14 +542,25 @@ public class BuildType {
       resultingBuildType = new BuildTypeOrTemplate(project.createBuildTypeTemplate(getIdForBuildType(serviceLocator, project, submittedName), submittedName));
     }
 
+    fillBuildTypeOrTemplate(resultingBuildType, serviceLocator);
 
+    return resultingBuildType;
+  }
+
+  /**
+   * @return true if there were modification attempts
+   */
+  private boolean fillBuildTypeOrTemplate(@NotNull final BuildTypeOrTemplate resultingBuildType, final @NotNull ServiceLocator serviceLocator) {
+    boolean result = false;
     if (submittedDescription != null) {
+      result = true;
       resultingBuildType.setDescription(submittedDescription);
     }
     if (submittedPaused != null) {
       if (resultingBuildType.getBuildType() == null) {
         throw new BadRequestException("Cannot set paused state for a template");
       }
+      result = true;
       resultingBuildType.getBuildType().setPaused(Boolean.valueOf(submittedPaused), serviceLocator.getSingletonService(DataProvider.class).getCurrentUser(),
                                                   TeamCityProperties.getProperty("rest.defaultActionComment"));
     }
@@ -532,35 +573,42 @@ public class BuildType {
       if (templateFromPosted.getTemplate() == null) {
         throw new BadRequestException("emplate should reference a template, not build type");
       }
+      result = true;
       resultingBuildType.getBuildType().attachToTemplate(templateFromPosted.getTemplate());
     }
     if (submittedVcsRootEntries != null && submittedVcsRootEntries.vcsRootAssignments != null) {
       for (VcsRootEntry entity : submittedVcsRootEntries.vcsRootAssignments) {
+        result = true;
         BuildTypeRequest.addVcsRoot(resultingBuildType, entity, serviceLocator.getSingletonService(VcsRootFinder.class));
       }
     }
     if (submittedParameters != null && submittedParameters.properties != null) {
       for (Property p : submittedParameters.properties) {
+        result = true;
         BuildTypeUtil.changeParameter(p.name, p.value, resultingBuildType.get(), serviceLocator);
       }
     }
     if (submittedSteps != null && submittedSteps.propEntities != null) {
       for (PropEntityStep entity : submittedSteps.propEntities) {
+        result = true;
         entity.addStep(resultingBuildType.get());
       }
     }
     if (submittedFeatures != null && submittedFeatures.propEntities != null) {
       for (PropEntityFeature entity : submittedFeatures.propEntities) {
+        result = true;
         entity.addFeature(resultingBuildType.get(), serviceLocator.getSingletonService(BuildFeatureDescriptorFactory.class));
       }
     }
     if (submittedTriggers != null && submittedTriggers.propEntities != null) {
       for (PropEntityTrigger entity : submittedTriggers.propEntities) {
+        result = true;
         entity.addTrigger(resultingBuildType.get(), serviceLocator.getSingletonService(BuildTriggerDescriptorFactory.class));
       }
     }
     if (submittedSnapshotDependencies != null && submittedSnapshotDependencies.propEntities != null) {
       for (PropEntitySnapshotDep entity : submittedSnapshotDependencies.propEntities) {
+        result = true;
         entity.addSnapshotDependency(resultingBuildType.get(), serviceLocator);
       }
     }
@@ -571,20 +619,26 @@ public class BuildType {
             return source.createDependency(serviceLocator);
           }
         });
+      result = true;
       resultingBuildType.get().setArtifactDependencies(dependencyObjects);
     }
-    if (submittedAgentRequirements != null&& submittedAgentRequirements.propEntities != null) {
-          for (PropEntityAgentRequirement entity : submittedAgentRequirements.propEntities) {
-            entity.addRequirement(resultingBuildType);
-          }
-        }
-    if (submittedSettings != null && submittedSettings.properties != null) {
-        for (Property property : submittedSettings.properties) {
-          BuildTypeRequest.setSetting(resultingBuildType, property.name, property.value);
-        }
+    if (submittedAgentRequirements != null && submittedAgentRequirements.propEntities != null) {
+      for (PropEntityAgentRequirement entity : submittedAgentRequirements.propEntities) {
+        result = true;
+        entity.addRequirement(resultingBuildType);
+      }
     }
-
-    return resultingBuildType;
+    if (submittedSettings != null && submittedSettings.properties != null) {
+      for (Property property : submittedSettings.properties) {
+        try {
+          BuildTypeRequest.setSetting(resultingBuildType, property.name, property.value);
+          result = true;
+        } catch (java.lang.UnsupportedOperationException e) {  //can be thrown from EditableBuildTypeCopy
+          LOG.debug("Error setting property '" + property.name + "' to value '" + property.value + "': " + e.getMessage());
+        }
+      }
+    }
+    return result;
   }
 
   @NotNull
