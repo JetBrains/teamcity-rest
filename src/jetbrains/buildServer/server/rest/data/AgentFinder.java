@@ -34,9 +34,11 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 25.12.13
  */
 public class AgentFinder extends AbstractFinder<SBuildAgent> {
+  protected static final String NAME = "name";
   public static final String CONNECTED = "connected";
   public static final String AUTHORIZED = "authorized";
   public static final String PARAMETER = "parameter";
+  public static final String ENABLED = "enabled";
   protected static final String IP = "ip";
   protected static final String PROTOCOL = "protocol";
   protected static final String DEFAULT_FILTERING = "defaultFilter";
@@ -44,7 +46,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   @NotNull private final BuildAgentManager myAgentManager;
 
   public AgentFinder(final @NotNull BuildAgentManager agentManager) {
-    super(new String[]{DIMENSION_ID, CONNECTED, AUTHORIZED, PARAMETER, IP, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
+    super(new String[]{DIMENSION_ID, NAME, CONNECTED, AUTHORIZED, ENABLED, PARAMETER, IP, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
     myAgentManager = agentManager;
   }
 
@@ -57,12 +59,10 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     return result;
   }
 
-  @NotNull
+  @Nullable
   @Override
   public ItemHolder<SBuildAgent> getAllItems() {
-    final List<SBuildAgent> result = myAgentManager.getRegisteredAgents(true);
-    result.addAll(((BuildAgentManagerEx)myAgentManager).getUnregisteredAgents(true));
-    return getItemHolder(result);
+    return null;
   }
 
   @Override
@@ -78,16 +78,16 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       return agent;
     }
 
-    Long id = locator.getSingleDimensionValueAsLong("id");
+    Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (id != null) {
       final SBuildAgent agent = myAgentManager.findAgentById(id.intValue(), true);
       if (agent == null) {
-        throw new NotFoundException("No agent can be found by id '" + locator.getSingleDimensionValue("id") + "'.");
+        throw new NotFoundException("No agent can be found by id '" + locator.getSingleDimensionValue(DIMENSION_ID) + "'.");
       }
       return agent;
     }
 
-    String name = locator.getSingleDimensionValue("name");
+    String name = locator.getSingleDimensionValue(NAME);
     if (name != null) {
       final SBuildAgent agent =  myAgentManager.findAgentByName(name, true);
       if (agent != null) {
@@ -116,6 +116,15 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       result.add(new FilterConditionChecker<SBuildAgent>() {
         public boolean isIncluded(@NotNull final SBuildAgent item) {
           return FilterUtil.isIncludedByBooleanFilter(authorizedDimension, item.isAuthorized());
+        }
+      });
+    }
+
+     final Boolean enabledDimension = locator.getSingleDimensionValueAsBoolean(ENABLED);
+    if (enabledDimension != null) {
+      result.add(new FilterConditionChecker<SBuildAgent>() {
+        public boolean isIncluded(@NotNull final SBuildAgent item) {
+          return FilterUtil.isIncludedByBooleanFilter(enabledDimension, item.isEnabled());
         }
       });
     }

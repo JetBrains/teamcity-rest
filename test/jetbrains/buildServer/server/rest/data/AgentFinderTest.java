@@ -64,14 +64,16 @@ public class AgentFinderTest extends BaseServerTestCase {
 
   @Test
   public void testEmptyLocator() {
-    checkAgents(null, myAgent1, myAgent2, myAgent3, myAgent4);
+    checkAgents(null, myAgent1, myAgent2);
   }
 
   @Test
   public void testLocatorConnected() {
-    checkAgents("connected:true", myAgent1, myAgent3);
-    checkAgents("connected:false", myAgent2, myAgent4);
-    checkAgents("connected:any", myAgent1, myAgent2, myAgent3, myAgent4);
+    checkAgents("connected:true", myAgent1);
+    checkAgents("connected:true,authorized:any", myAgent1, myAgent3);
+    checkAgents("connected:false", myAgent2);
+    checkAgents("connected:any", myAgent1, myAgent2);
+    checkAgents("connected:any,authorized:any", myAgent1, myAgent2, myAgent3, myAgent4);
   }
 
   @Test

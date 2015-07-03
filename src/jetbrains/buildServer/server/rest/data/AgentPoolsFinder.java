@@ -30,8 +30,9 @@ import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeStorage;
-import jetbrains.buildServer.util.ItemProcessor;
+import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -56,19 +57,13 @@ public class AgentPoolsFinder {
   public List<SBuildAgent> getPoolAgents(@NotNull final AgentPool agentPool) {
     final Collection<Integer> agentTypeIds = myServiceLocator.getSingletonService(AgentTypeStorage.class).getAgentTypeIdsByPool(agentPool.getAgentPoolId());
 
-    final ArrayList<SBuildAgent> result = new ArrayList<SBuildAgent>(agentTypeIds.size());
-
     //todo: support cloud agents here
-    final AbstractFinder.ItemHolder<SBuildAgent> allAgents = myAgentFinder.getAllItems();
-    allAgents.process(new ItemProcessor<SBuildAgent>() {
-      public boolean processItem(final SBuildAgent agent) {
-        if (agentTypeIds.contains(agent.getAgentTypeId())) {
-          result.add(agent);
-        }
-        return true;
+    final List<SBuildAgent> allAgents = myAgentFinder.getItems(Locator.getStringLocator(AgentFinder.DEFAULT_FILTERING, "false")).myEntries;
+    return CollectionsUtil.filterCollection(allAgents, new Filter<SBuildAgent>() {
+      public boolean accept(@NotNull final SBuildAgent agent) {
+        return agentTypeIds.contains(agent.getAgentTypeId());
       }
     });
-    return result;
   }
 
   //todo: TeamCity API: what is the due way to do this? http://youtrack.jetbrains.com/issue/TW-33307
