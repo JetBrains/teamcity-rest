@@ -89,36 +89,37 @@ public abstract class AbstractFinder<ITEM> {
       if (allItems != null){
         return new PagedSearchResult<ITEM>(toList(allItems), null, null);
       }
-      locator = Locator.createEmptyLocator(null, null);
-    } else{
+      //go on with empty locator
+      locator = createLocator(null, Locator.createEmptyLocator());
+    } else {
       locator = originalLocator;
-    }
 
-    ITEM singleItem = findSingleItem(locator);
-    if (singleItem != null){
-      final Set<String> singleItemUsedDimensions = locator.getUsedDimensions();
-      // ignore start:0 dimension
-      final Long startDimension = locator.getSingleDimensionValueAsLong(PagerData.START);
-      if (startDimension == null || startDimension != 0) {
-        locator.markUnused(PagerData.START);
-      }
-
-      //todo: consider enabling this after check (report 404 instead of "locator is not fully processed"
-      //and do not report "locator is not fully processed" if the single result complies)
-      final Set<String> unusedDimensions = locator.getUnusedDimensions();
-      if (!unusedDimensions.isEmpty()) {
-        AbstractFilter<ITEM> filter = getFilter(locator);
-        locator.checkLocatorFullyProcessed();
-        if (!filter.isIncluded(singleItem)) {
-          throw new NotFoundException("Found single item by " + StringUtil.pluralize("dimension", singleItemUsedDimensions.size()) + " " + singleItemUsedDimensions +
-                                      ", but that was filtered out using the entire locator '" + locator + "'");
+      ITEM singleItem = findSingleItem(locator);
+      if (singleItem != null){
+        final Set<String> singleItemUsedDimensions = locator.getUsedDimensions();
+        // ignore start:0 dimension
+        final Long startDimension = locator.getSingleDimensionValueAsLong(PagerData.START);
+        if (startDimension == null || startDimension != 0) {
+          locator.markUnused(PagerData.START);
         }
-      }
 
-      locator.checkLocatorFullyProcessed();
-      return new PagedSearchResult<ITEM>(Collections.singletonList(singleItem), null, null);
+        //todo: consider enabling this after check (report 404 instead of "locator is not fully processed"
+        //and do not report "locator is not fully processed" if the single result complies)
+        final Set<String> unusedDimensions = locator.getUnusedDimensions();
+        if (!unusedDimensions.isEmpty()) {
+          AbstractFilter<ITEM> filter = getFilter(locator);
+          locator.checkLocatorFullyProcessed();
+          if (!filter.isIncluded(singleItem)) {
+            throw new NotFoundException("Found single item by " + StringUtil.pluralize("dimension", singleItemUsedDimensions.size()) + " " + singleItemUsedDimensions +
+                                        ", but that was filtered out using the entire locator '" + locator + "'");
+          }
+        }
+
+        locator.checkLocatorFullyProcessed();
+        return new PagedSearchResult<ITEM>(Collections.singletonList(singleItem), null, null);
+      }
+      locator.markAllUnused(); // nothing found - no dimensions should be marked as used then
     }
-    locator.markAllUnused(); // nothing found - no dimensions should be marked as used then
 
     //it is important to call "getPrefilteredItems" first as that process some of the dimensions which  "getFilter" can then ignore for performance reasons
     final ItemHolder<ITEM> unfilteredItems = getPrefilteredItems(locator);
