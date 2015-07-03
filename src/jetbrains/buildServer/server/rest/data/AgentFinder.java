@@ -22,6 +22,7 @@ import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.serverSide.BuildAgentManager;
 import jetbrains.buildServer.serverSide.BuildAgentManagerEx;
 import jetbrains.buildServer.serverSide.SBuildAgent;
@@ -36,11 +37,22 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   public static final String CONNECTED = "connected";
   public static final String AUTHORIZED = "authorized";
   public static final String PARAMETER = "parameter";
+  protected static final String IP = "ip";
+  protected static final String PROTOCOL = "protocol";
+
   @NotNull private final BuildAgentManager myAgentManager;
 
   public AgentFinder(final @NotNull BuildAgentManager agentManager) {
-    super(new String[]{DIMENSION_ID, CONNECTED, AUTHORIZED, PARAMETER, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
+    super(new String[]{DIMENSION_ID, CONNECTED, AUTHORIZED, PARAMETER, IP, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
     myAgentManager = agentManager;
+  }
+
+  @NotNull
+  @Override
+  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
+    final Locator result = super.createLocator(locatorText, locatorDefaults);
+    result.addHiddenDimensions(PROTOCOL);    //hide this for now
+    return result;
   }
 
   @NotNull
@@ -113,6 +125,24 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       result.add(new FilterConditionChecker<SBuildAgent>() {
         public boolean isIncluded(@NotNull final SBuildAgent item) {
           return FilterUtil.isIncludedByBooleanFilter(connectedDimension, item.isRegistered());
+        }
+      });
+    }
+
+    final String ipDimension = locator.getSingleDimensionValue(IP);
+    if (ipDimension != null) {
+      result.add(new FilterConditionChecker<SBuildAgent>() {
+        public boolean isIncluded(@NotNull final SBuildAgent item) {
+          return ipDimension.equals(Agent.getFieldValue(item, "ip")); //name of the field, not locator dimension
+        }
+      });
+    }
+
+    final String protocolDimension = locator.getSingleDimensionValue(PROTOCOL);
+    if (protocolDimension != null) {
+      result.add(new FilterConditionChecker<SBuildAgent>() {
+        public boolean isIncluded(@NotNull final SBuildAgent item) {
+          return protocolDimension.equals(Agent.getFieldValue(item, "protocol")); //name of the field, not locator dimension
         }
       });
     }

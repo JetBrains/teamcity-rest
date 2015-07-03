@@ -94,5 +94,6 @@
     <orderEntry type="module" module-name="server-test-core" scope="TEST" />
     <orderEntry type="module" module-name="web-startup" exported="" />
     <orderEntry type="module" module-name="web-diagnostic" />
+    <orderEntry type="module" module-name="remote-api-impl" />
   </component>
 </module>
