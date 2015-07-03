@@ -39,6 +39,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   public static final String PARAMETER = "parameter";
   protected static final String IP = "ip";
   protected static final String PROTOCOL = "protocol";
+  protected static final String DEFAULT_FILTERING = "defaultFilter";
 
   @NotNull private final BuildAgentManager myAgentManager;
 
@@ -52,6 +53,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator result = super.createLocator(locatorText, locatorDefaults);
     result.addHiddenDimensions(PROTOCOL);    //hide this for now
+    result.addHiddenDimensions(DEFAULT_FILTERING);
     return result;
   }
 
@@ -73,7 +75,6 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       if (agent == null) {
         throw new NotFoundException("No agent can be found by name '" + locator.getSingleValue() + "'.");
       }
-      locator.checkLocatorFullyProcessed();
       return agent;
     }
 
@@ -83,7 +84,6 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       if (agent == null) {
         throw new NotFoundException("No agent can be found by id '" + locator.getSingleDimensionValue("id") + "'.");
       }
-      locator.checkLocatorFullyProcessed();
       return agent;
     }
 
@@ -91,7 +91,6 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     if (name != null) {
       final SBuildAgent agent =  myAgentManager.findAgentByName(name, true);
       if (agent != null) {
-        locator.checkLocatorFullyProcessed();
         return agent;
       }
       throw new NotFoundException("No agent can be found by name '" + name + "'.");
@@ -100,6 +99,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     return null;
   }
 
+  @NotNull
   @Override
   protected AbstractFilter<SBuildAgent> getFilter(final Locator locator) {
     if (locator.isSingleValue()) {
@@ -160,9 +160,12 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     return result;
   }
 
+  @NotNull
   @Override
   protected ItemHolder<SBuildAgent> getPrefilteredItems(@NotNull final Locator locator) {
     List<SBuildAgent> result = new ArrayList<SBuildAgent>();
+
+    setLocatorDefaults(locator);
 
     final Boolean authorizedDimension = locator.getSingleDimensionValueAsBoolean(AUTHORIZED);
     final boolean includeUnauthorized = authorizedDimension == null || !authorizedDimension;
@@ -176,5 +179,12 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       result.addAll(((BuildAgentManagerEx)myAgentManager).getUnregisteredAgents(includeUnauthorized));  //TeamCIty API issue: cast
     }
     return getItemHolder(result);
+  }
+
+  private void setLocatorDefaults(@NotNull final Locator locator) {
+    final Boolean defaultFiltering = locator.getSingleDimensionValueAsBoolean(DEFAULT_FILTERING, true);
+    if (!locator.isSingleValue() && (defaultFiltering == null || defaultFiltering)) {
+      locator.setDimensionIfNotPresent(AUTHORIZED, "true");
+    }
   }
 }

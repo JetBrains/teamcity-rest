@@ -90,9 +90,6 @@ public class AgentRequest {
     if (includeUnauthorized != null) {
       //pre-8.1 compatibility:
       locatorToUse = parsedLocator.setDimensionIfNotPresent(AgentFinder.AUTHORIZED, String.valueOf(!includeUnauthorized)).getStringRepresentation();
-    } else {
-      //list only authorized agents by default
-      locatorToUse = parsedLocator.setDimensionIfNotPresent(AgentFinder.AUTHORIZED, "true").getStringRepresentation();
     }
 
     final PagedSearchResult<SBuildAgent> result = myAgentFinder.getItems(locatorToUse);
