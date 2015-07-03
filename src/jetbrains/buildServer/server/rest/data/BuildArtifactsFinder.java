@@ -467,7 +467,8 @@ public class BuildArtifactsFinder {
                                                @NotNull final BuildArtifactsViewMode mode) {
     final BuildArtifacts artifacts = build.getArtifacts(mode);
     final BuildArtifactHolder holder = artifacts.findArtifact(path);
-    if (!holder.isAvailable()) {
+    if (!holder.isAvailable()
+        && !"".equals(path)) { //workaround for no artifact directory case
       final BuildArtifactHolder testHolder = build.getArtifacts(BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT).findArtifact(path);
       if (testHolder.isAvailable()){
         throw new NotFoundException("No artifact with relative path '" + holder.getRelativePath() + "' found with current view mode." +
