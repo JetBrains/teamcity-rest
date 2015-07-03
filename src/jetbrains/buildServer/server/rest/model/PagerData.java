@@ -104,10 +104,12 @@ public class PagerData {
 
   private URI getModifiedHref(@NotNull final UriBuilder uriBuilder, final long start, final long count,
                               @Nullable final String locatorText, @Nullable final String locatorQueryParameterName) {
-    if (StringUtil.isEmpty(locatorText) || StringUtil.isEmpty(locatorQueryParameterName)) {
+    if (StringUtil.isEmpty(locatorQueryParameterName)) {
       return uriBuilder.replaceQueryParam(START, start).replaceQueryParam(COUNT, count).build();
     }
-    String newLocator = Locator.setDimension(Locator.setDimension(locatorText, START, start), COUNT, count);
+    uriBuilder.replaceQueryParam(START, null).replaceQueryParam(COUNT, null);
+    final String locatorWithStart = locatorText != null ? Locator.setDimension(locatorText, START, start) : Locator.getStringLocator(START, String.valueOf(start));
+    String newLocator = Locator.setDimension(locatorWithStart, COUNT, count);
     return uriBuilder.replaceQueryParam(locatorQueryParameterName, newLocator).build();
   }
 
