@@ -17,15 +17,22 @@
 package jetbrains.buildServer.server.rest.model.files;
 
 import jetbrains.buildServer.util.browser.Element;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Vladislav.Rassokhin
  */
 public interface FileApiUrlBuilder {
+  @NotNull
   public String getMetadataHref(@Nullable Element element);
 
+  @NotNull
   public String getChildrenHref(@Nullable Element element);
 
+  @NotNull
   public String getContentHref(@Nullable Element element);
+
+  @NotNull
+  public String getUrlPathPrefix();
 }

@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model.files;
 
 import java.util.Date;
+import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -25,6 +26,7 @@ import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.request.FilesSubResource;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.util.browser.Element;
@@ -123,10 +125,22 @@ public class File {
 
   @Nullable
   @XmlElement(name = "children")
-  public Href getChildren() {
+  public Files getChildren() {
     if (element == null || element.isLeaf()) {
       return null;
     }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("children", false), new Href(fileApiUrlBuilder.getChildrenHref(element)));
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("children", false), new ValueWithDefault.Value<Files>() {
+      @Nullable
+      public Files get() {
+        final Fields nestedFields = myFields.getNestedField("children");
+        final FileApiUrlBuilder builder = FilesSubResource.fileApiUrlBuilder(nestedFields.getLocator(), fileApiUrlBuilder.getUrlPathPrefix());
+        return new Files(builder.getChildrenHref(element), new ValueWithDefault.Value<List<? extends Element>>() {
+          @Nullable
+          public List<? extends Element> get() {
+            return myBeanContext.getSingletonService(BuildArtifactsFinder.class).getItems(element, null, nestedFields.getLocator(), builder);
+          }
+        }, builder, nestedFields, myBeanContext);
+      }
+    });
   }
 }

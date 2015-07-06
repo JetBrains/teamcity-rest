@@ -63,9 +63,9 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
+import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
-import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -634,15 +634,13 @@ public class Build {
       public Files get() {
         final Fields nestedFields = myFields.getNestedField("artifacts");
         final FileApiUrlBuilder builder = FilesSubResource.fileApiUrlBuilder(nestedFields.getLocator(), BuildRequest.getArtifactsUrlPrefix(myBuild, myBeanContext));
-        final List<ArtifactTreeElement> artifacts =
-          ValueWithDefault.decideDefault(nestedFields.isIncluded(Files.FILE, false, true), new ValueWithDefault.Value<List<ArtifactTreeElement>>() {
-            @Nullable
-            public List<ArtifactTreeElement> get() {
-              return myBeanContext.getSingletonService(BuildArtifactsFinder.class).getItems(
-                BuildArtifactsFinder.getArtifactElement(myBuild, ""), null, nestedFields.getLocator(), builder);
-            }
-          });
-        return new Files(builder.getChildrenHref(null), artifacts, null, builder, nestedFields, myBeanContext);
+        return new Files(builder.getChildrenHref(null), new ValueWithDefault.Value<List<? extends Element>>() {
+          @Nullable
+          public List<? extends Element> get() {
+            return myBeanContext.getSingletonService(BuildArtifactsFinder.class)
+                                .getItems(BuildArtifactsFinder.getArtifactElement(myBuild, ""), null, nestedFields.getLocator(), builder);
+          }
+        }, builder, nestedFields, myBeanContext);
       }
     });
   }

@@ -50,20 +50,32 @@ public class Files {
   public Files() {
   }
 
-  public Files(@Nullable final String shortHref, @Nullable final Iterable<? extends Element> children, @Nullable final Element parent, @NotNull final FileApiUrlBuilder builder,
+  public Files(@Nullable final String shortHref, @Nullable final ValueWithDefault.Value<List<? extends Element>> children, @NotNull final FileApiUrlBuilder builder,
                @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     href = shortHref == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href", true), beanContext.getApiUrlBuilder().transformRelativePath(shortHref));
-    files = ValueWithDefault.decideDefault(fields.isIncluded(FILE), new ValueWithDefault.Value<List<File>>() {
+    files = children == null ? null : ValueWithDefault.decideDefault(fields.isIncluded(FILE, false, true), new ValueWithDefault.Value<List<File>>() {
       @Nullable
       public List<File> get() {
-        return CollectionsUtil.convertCollection(children, new Converter<File, Element>() {
+        return CollectionsUtil.convertCollection(children.get(), new Converter<File, Element>() {
           public File createFrom(@NotNull final Element source) {
-            return new File(source, parent, builder, fields.getNestedField("file", Fields.SHORT, Fields.LONG), beanContext);
+            return new File(source, null, builder, fields.getNestedField(FILE, Fields.SHORT, Fields.LONG), beanContext);
           }
         });
       }
     });
-    count = children == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"),
-                                                                              files != null ? ((Integer)files.size()) : ((children instanceof List) ? ((List)children).size() : null));
+
+    final boolean countIsCheap = files != null;
+    count = children == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", countIsCheap, countIsCheap), new ValueWithDefault.Value<Integer>() {
+      @Nullable
+      public Integer get() {
+        if (files != null) {
+          return ((Integer)files.size());
+        } else {
+          // files are not included, but count is requested
+          final List<? extends Element> elements = children.get();
+          return elements == null ? null : elements.size();
+        }
+      }
+    });
   }
 }
