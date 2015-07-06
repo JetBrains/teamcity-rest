@@ -392,6 +392,54 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   }
 
   @Test
+  public void testLocatorDirectory() throws Exception {
+    ArtifactTreeElement element;
+    List<ArtifactTreeElement> artifacts;
+
+    artifacts = getArtifacts("", "directory:any");
+    assertSize(4, artifacts);
+    assertContainsByFullName(artifacts, "dir1");
+    assertContainsByFullName(artifacts, "file.txt");
+    assertContainsByFullName(artifacts, "archive_nested.zip");
+    assertContainsByFullName(artifacts, "archive.zip");
+    element = findElement(artifacts, "archive.zip");
+    assertTrue(element.isArchive());
+    assertTrue(element.isLeaf());
+    assertTrue(element.isContentAvailable());
+    assertNull(element.getChildren());
+
+    artifacts = getArtifacts("", "directory:true");
+    assertSize(1, artifacts);
+    assertContainsByFullName(artifacts, "dir1");
+
+    artifacts = getArtifacts("", "directory:false");
+    assertSize(3, artifacts);
+    assertContainsByFullName(artifacts, "file.txt");
+    assertContainsByFullName(artifacts, "archive_nested.zip");
+    assertContainsByFullName(artifacts, "archive.zip");
+    element = findElement(artifacts, "archive.zip");
+    assertTrue(element.isArchive());
+    assertTrue(element.isLeaf());
+    assertTrue(element.isContentAvailable());
+    assertNull(element.getChildren());
+
+    artifacts = getArtifacts("", "directory:false,browseArchives:true");
+    assertSize(1, artifacts);
+    assertContainsByFullName(artifacts, "file.txt");
+
+    artifacts = getArtifacts("", "directory:true,browseArchives:true");
+    assertSize(3, artifacts);
+    assertContainsByFullName(artifacts, "dir1");
+    assertContainsByFullName(artifacts, "archive_nested.zip");
+    assertContainsByFullName(artifacts, "archive.zip");
+    element = findElement(artifacts, "archive.zip");
+    assertTrue(element.isArchive());
+    assertFalse(element.isLeaf());
+    assertTrue(element.isContentAvailable());
+    assertSize(2, Lists.newArrayList(element.getChildren()));
+  }
+
+  @Test
   public void testLocatorRecursive() throws Exception {
     ArtifactTreeElement element;
     List<ArtifactTreeElement> artifacts = getArtifacts("", "recursive:true");

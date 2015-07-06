@@ -49,10 +49,10 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 27.04.13
  */
 public class BuildArtifactsFinder {
-  public static final String ARCHIVES_DIMENSION_NAME = "browseArchives";
-  public static final String HIDDEN_DIMENSION_NAME = "hidden";
-  public static final String DIRECTORY_DIMENSION_NAME = "directory";
-  public static final String DIMENSION_RECURSIVE = "recursive";
+  public static final String ARCHIVES_DIMENSION_NAME = "browseArchives";  //whether archives are treated as directories while browsing
+  public static final String HIDDEN_DIMENSION_NAME = "hidden";  //whether to include hidden artifacts
+  public static final String DIRECTORY_DIMENSION_NAME = "directory";  //whether to include entries which have children
+  public static final String DIMENSION_RECURSIVE = "recursive";  //whether to list direct children or recursive children
   public static final String DIMENSION_PATTERNS = "patterns";  //todo or "pattern" ?
   protected static final Comparator<ArtifactTreeElement> ARTIFACT_COMPARATOR = new Comparator<ArtifactTreeElement>() {
     public int compare(final ArtifactTreeElement o1, final ArtifactTreeElement o2) {
@@ -102,16 +102,12 @@ public class BuildArtifactsFinder {
     List<String> rules = new ArrayList<String>();
 //    rules.add("+:**"); //todo: is this relative path?
 
-    boolean includeDirectories = true;
+    Boolean includeDirectories = null;
     Boolean includeHidden = false;
     long childrenNestingLevel = 1;
     long archiveChildrenNestingLevel = 0;
     if (locator != null) {
-      final Boolean directory = locator.getSingleDimensionValueAsBoolean(DIRECTORY_DIMENSION_NAME);
-      if (directory != null){
-        includeDirectories = directory;
-      }
-
+      includeDirectories = locator.getSingleDimensionValueAsBoolean(DIRECTORY_DIMENSION_NAME);
       includeHidden = locator.getSingleDimensionValueAsBoolean(HIDDEN_DIMENSION_NAME);
 
       final String filePatterns = locator.getSingleDimensionValue(DIMENSION_PATTERNS);
@@ -169,12 +165,13 @@ public class BuildArtifactsFinder {
 
     final List<ArtifactTreeElement> result = new ArrayList<ArtifactTreeElement>();
     AntPatternTreeMatcher.ScanOption[] options = {};
-    if (!includeDirectories) {
-      options = new AntPatternTreeMatcher.ScanOption[]{AntPatternTreeMatcher.ScanOption.LEAFS_ONLY};
+    if (includeDirectories != null && !includeDirectories) {
+      options = new AntPatternTreeMatcher.ScanOption[]{AntPatternTreeMatcher.ScanOption.LEAFS_ONLY};  // does not seem to have any effect, see TW-41662
     }
 
     final Node rootNode = new Node(initialElement, childrenNestingLevel, archiveChildrenNestingLevel, includeHidden, true);
     final Collection<Node> rawResult = AntPatternTreeMatcher.scan(rootNode, rules, options);
+    final Boolean finalIncludeDirectories = includeDirectories;
     result.addAll(CollectionsUtil.filterAndConvertCollection(rawResult, new Converter<ArtifactTreeElement, Node>() {
       public ArtifactTreeElement createFrom(@NotNull final Node source) {
         if (StringUtil.isEmpty(basePath)) {
@@ -190,7 +187,14 @@ public class BuildArtifactsFinder {
       }
     }, new Filter<Node>() {
       public boolean accept(@NotNull final Node data) {
-        return !rootNode.equals(data); //TeamCity API issue: should support not returning the first node in API
+        if (rootNode.equals(data)) {
+          return false; //TeamCity API issue: should support not returning the first node in API
+        }
+        //noinspection RedundantIfStatement
+        if (!FilterUtil.isIncludedByBooleanFilter(finalIncludeDirectories, data.getElement().getChildren() != null)) {
+          return false;
+        }
+        return true;
       }
     }));
 
@@ -222,7 +226,7 @@ public class BuildArtifactsFinder {
   @Nullable
   private Locator getLocator(@Nullable final String filesLocator) {
     Locator defaults = Locator.createEmptyLocator().setDimension(DIMENSION_RECURSIVE, "false").setDimension(HIDDEN_DIMENSION_NAME, "false")
-                              .setDimension(ARCHIVES_DIMENSION_NAME, "false").setDimension(DIRECTORY_DIMENSION_NAME, "true");
+                              .setDimension(ARCHIVES_DIMENSION_NAME, "false");
     final String[] supportedDimensions = {HIDDEN_DIMENSION_NAME, ARCHIVES_DIMENSION_NAME, DIRECTORY_DIMENSION_NAME, DIMENSION_RECURSIVE, DIMENSION_PATTERNS};
     return Locator.createLocator(filesLocator, defaults, supportedDimensions);
   }
