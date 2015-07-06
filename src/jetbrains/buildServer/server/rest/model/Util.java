@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.model;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -32,5 +33,20 @@ public class Util {
       return null;
     }
     return (new SimpleDateFormat(Constants.TIME_FORMAT, Locale.ENGLISH)).format(time);
+  }
+
+  public static String concatenatePath(final String... pathParts) {
+    final StringBuilder result = new StringBuilder();
+    for (String pathPart : pathParts) {
+      if (pathPart == null) continue;;
+      if (result.length() > 0 && '/' == result.charAt(result.length() - 1)) {
+        result.append(StringUtil.removeLeadingSlash(pathPart));
+      } else if (pathPart.startsWith("/")){
+        result.append(pathPart);
+      } else{
+        result.append('/').append(pathPart);
+      }
+    }
+    return result.toString();
   }
 }

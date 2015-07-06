@@ -21,8 +21,6 @@ import java.util.Collections;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
@@ -33,8 +31,6 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
-import jetbrains.buildServer.server.rest.model.files.File;
-import jetbrains.buildServer.server.rest.model.files.Files;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.serverSide.VcsAccessFactory;
@@ -42,6 +38,7 @@ import jetbrains.buildServer.serverSide.VcsWorkspaceAccess;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.RepositoryStateManager;
+import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
 import org.jetbrains.annotations.NotNull;
 
 /* todo: investigate logging issues:
@@ -182,63 +179,41 @@ public class VcsRootInstanceRequest {
   }
 
   public static final String WHERE_NOTE = "current sources of the VCS root";
+
+
   /**
-   * Gets content of a file form VCS
    * Experimental support only
    */
-  @GET
-  @Path("/{vcsRootInstanceLocator}" + FILES_LATEST + BuildRequest.CONTENT + "{path:(/.*)?}")
-  @Produces({MediaType.WILDCARD})
-  public Response getVcsFileContent(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
-                                     @PathParam("path") final String path,
-                                     @Context HttpServletRequest request) {
+  @Path("/{vcsRootInstanceLocator}" + FILES_LATEST)
+  public FilesSubResource getVcsFilesSubResource(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator) {
     final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
     myVcsRootFinder.checkPermission(Permission.VIEW_FILE_CONTENT, rootInstance);
-    return BuildArtifactsFinder.getContent(getVcsWorkspaceAccess(rootInstance).getVcsFilesBrowser(),
-                                           path,
-                                           WHERE_NOTE,
-                                           BuildArtifactsFinder.getStandardFileApiUrlBuilder(myApiUrlBuilder.getHref(rootInstance) + FILES_LATEST),
-                                           request).build();
+
+    final String urlPrefix = getUrlPrefix(rootInstance);
+
+    return new FilesSubResource(new FilesSubResource.Provider() {
+      @Override
+      @NotNull
+      public ArtifactTreeElement getElement(@NotNull final String path) {
+        return BuildArtifactsFinder.getItem(getVcsWorkspaceAccess(rootInstance).getVcsFilesBrowser(), path, WHERE_NOTE);
+      }
+
+      @NotNull
+      @Override
+      public String getArchiveName(@NotNull final String path) {
+        return rootInstance.getName().replaceAll(" ", "").replaceAll("::", "_").replaceAll("[^a-zA-Z0-9-#.]+", "_") + path.replaceAll("[^a-zA-Z0-9-#.]+", "_");
+      }
+    }, urlPrefix, myBeanContext, false);
+  }
+
+  @NotNull
+  private String getUrlPrefix(final jetbrains.buildServer.vcs.VcsRootInstance rootInstance) {
+    return Util.concatenatePath(myBeanContext.getApiUrlBuilder().getHref(rootInstance), FILES_LATEST);
   }
 
   @NotNull
   public VcsWorkspaceAccess getVcsWorkspaceAccess(@NotNull final jetbrains.buildServer.vcs.VcsRootInstance rootInstance) {
     final VcsRootInstanceEntry entry = new VcsRootInstanceEntry(rootInstance, CheckoutRules.DEFAULT);
     return myBeanContext.getSingletonService(VcsAccessFactory.class).createWorkspaceAccess(Collections.singletonList(entry));
-  }
-
-  /**
-   * Lists files in VCS
-   * Experimental support only
-   */
-  @GET
-  @Path("/{vcsRootInstanceLocator}" + FILES_LATEST + BuildRequest.CHILDREN + "{path:(/.*)?}")
-  @Produces({"application/xml", "application/json"})
-  public Files getVcsFileListing(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
-                                 @PathParam("path") final String path,
-                                 @QueryParam("fields") String fields) {
-    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
-    myVcsRootFinder.checkPermission(Permission.VIEW_FILE_CONTENT, rootInstance);
-    return BuildArtifactsFinder.getChildren(getVcsWorkspaceAccess(rootInstance).getVcsFilesBrowser(), path, WHERE_NOTE,
-                                            BuildArtifactsFinder.getStandardFileApiUrlBuilder(myApiUrlBuilder.getHref(rootInstance) + FILES_LATEST),
-                                            new Fields(fields), myBeanContext);
-  }
-
-  /**
-   * Gets VCS file details
-   * Experimental support only
-   */
-  @GET
-  @Path("/{vcsRootInstanceLocator}" + FILES_LATEST + BuildRequest.METADATA + "{path:(/.*)?}")
-  @Produces({"application/xml", "application/json"})
-  public File getVcsFile(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
-                                     @PathParam("path") final String path,
-                                     @QueryParam("fields") String fields,
-                                     @Context HttpServletRequest request) {
-    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
-    myVcsRootFinder.checkPermission(Permission.VIEW_FILE_CONTENT, rootInstance);
-    return BuildArtifactsFinder.getMetadata(getVcsWorkspaceAccess(rootInstance).getVcsFilesBrowser(), path, WHERE_NOTE,
-                                            BuildArtifactsFinder.getStandardFileApiUrlBuilder(myApiUrlBuilder.getHref(rootInstance) + FILES_LATEST), new Fields(fields),
-                                            myBeanContext);
   }
 }

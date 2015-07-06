@@ -633,15 +633,16 @@ public class Build {
       @Nullable
       public Files get() {
         final Fields nestedFields = myFields.getNestedField("artifacts");
+        final FileApiUrlBuilder builder = FilesSubResource.fileApiUrlBuilder(nestedFields.getLocator(), BuildRequest.getArtifactsUrlPrefix(myBuild, myBeanContext));
         final List<ArtifactTreeElement> artifacts =
           ValueWithDefault.decideDefault(nestedFields.isIncluded(Files.FILE, false, true), new ValueWithDefault.Value<List<ArtifactTreeElement>>() {
             @Nullable
             public List<ArtifactTreeElement> get() {
-              return myBeanContext.getSingletonService(BuildArtifactsFinder.class).getArtifacts(myBuild, "", null, nestedFields.getLocator(), myBeanContext);
+              return myBeanContext.getSingletonService(BuildArtifactsFinder.class).getItems(
+                BuildArtifactsFinder.getArtifactElement(myBuild, ""), null, nestedFields.getLocator(), builder);
             }
           });
-        FileApiUrlBuilder builder = BuildArtifactsFinder.fileApiUrlBuilderForBuild(myBuild, nestedFields.getLocator(), myBeanContext);
-        return new Files(BuildRequest.getBuildArtifactsHref(myBuild), artifacts, null, builder, nestedFields, myBeanContext);
+        return new Files(builder.getChildrenHref(null), artifacts, null, builder, nestedFields, myBeanContext);
       }
     });
   }

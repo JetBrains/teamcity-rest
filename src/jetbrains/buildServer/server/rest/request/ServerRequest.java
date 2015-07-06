@@ -22,20 +22,26 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.plugin.PluginInfos;
 import jetbrains.buildServer.server.rest.model.server.Server;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.serverSide.ServerPaths;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.maintenance.BackupConfig;
 import jetbrains.buildServer.serverSide.maintenance.BackupProcess;
 import jetbrains.buildServer.serverSide.maintenance.BackupProcessManager;
 import jetbrains.buildServer.serverSide.maintenance.MaintenanceProcessAlreadyRunningException;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
+import org.jetbrains.annotations.NotNull;
 
 /*
  * User: Yegor Yarko
@@ -54,6 +60,11 @@ public class ServerRequest {
   private ApiUrlBuilder myApiUrlBuilder;
   @Context
   private BeanFactory myFactory;
+
+  @SuppressWarnings("NullableProblems") @Context @NotNull private BeanContext myBeanContext;
+
+  @SuppressWarnings("NullableProblems") @Context @NotNull private BuildArtifactsFinder myBuildArtifactsFinder;
+  @SuppressWarnings("NullableProblems") @Context @NotNull private PermissionChecker myPermissionChecker;
 
   @GET
   @Produces({"application/xml", "application/json"})
@@ -141,5 +152,49 @@ public class ServerRequest {
       return "Idle";
     }
     return backupProcess.getProgressStatus().name();
+  }
+
+  @Path("/files/{areaId}")
+  public FilesSubResource getFilesSubResource(@PathParam("areaId") final String areaId) {
+    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    final String urlPrefix = getUrlPrefix(areaId);
+
+    return new FilesSubResource(new FilesSubResource.Provider() {
+      @Override
+      @NotNull
+      public ArtifactTreeElement getElement(@NotNull final String path) {
+        return BuildArtifactsFinder.getItem(getAreaRoot(areaId), path);
+      }
+
+      @Override
+      @NotNull
+      public String getArchiveName(@NotNull final String path) {
+        return areaId + (StringUtil.isEmpty(path) ? "" : "-" + path.replaceAll("[^a-zA-Z0-9-#.]+", "_"));
+      }
+    }, urlPrefix, myBeanContext, false);
+  }
+
+
+  @NotNull
+  private String getUrlPrefix(final String areaId) {
+    return Util.concatenatePath(myBeanContext.getContextService(ApiUrlBuilder.class).transformRelativePath(API_SERVER_URL), "/files/", areaId);
+  }
+
+  @NotNull
+  private File getAreaRoot(final @PathParam("areaId") String areaId) {
+    File rootPath;
+    if ("logs".equals(areaId)) {
+      rootPath = myDataProvider.getBean(ServerPaths.class).getLogsPath();
+    } else if ("backups".equals(areaId)) {
+      rootPath = new File(myDataProvider.getBean(ServerPaths.class).getBackupDir());
+    } else if ("dataDirectory".equals(areaId)) {
+      rootPath = myDataProvider.getBean(ServerPaths.class).getDataDirectory();
+    }/*else if (!StringUtil.isEmpty(areaId) && areaId.startsWith("custom.")) {
+      final String customAreaId = areaId.substring("custom.".length());
+      rootPath = new File(TeamCityProperties.getProperty("rest.request.server.files.customArea." + customAreaId));
+    }*/ else {
+      throw new BadRequestException("Unknown area id '" + areaId + "'. Known are: " + "logs, backups, dataDirectory");
+    }
+    return rootPath;
   }
 }

@@ -23,7 +23,10 @@ import java.util.List;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
-import javax.ws.rs.core.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
+import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.controllers.artifacts.RepositoryUtil;
 import jetbrains.buildServer.parameters.ProcessingResult;
 import jetbrains.buildServer.server.rest.data.*;
@@ -34,18 +37,16 @@ import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.BuildCancelRequest;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
-import jetbrains.buildServer.server.rest.model.files.File;
-import jetbrains.buildServer.server.rest.model.files.Files;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.artifacts.BuildArtifactsViewMode;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.LoginConfiguration;
@@ -89,12 +90,6 @@ public class BuildRequest {
   public static final String API_BUILDS_URL = Constants.API_URL + BUILDS_ROOT_REQUEST_PATH;
 
   public static final String ARTIFACTS = "/artifacts";
-  public static final String METADATA = "/metadata";
-  public static final String ARTIFACTS_METADATA = ARTIFACTS + METADATA;
-  public static final String CONTENT = "/content";
-  public static final String ARTIFACTS_CONTENT = ARTIFACTS + CONTENT;
-  public static final String CHILDREN = "/children";
-  public static final String ARTIFACTS_CHILDREN = ARTIFACTS + CHILDREN;
 
   protected static final String REST_BUILD_REQUEST_DELETE_LIMIT = "rest.buildRequest.delete.limit";
 
@@ -118,10 +113,6 @@ public class BuildRequest {
 
   public static String getBuildIssuesHref(final SBuild build) {
     return getBuildHref(build) + RELATED_ISSUES;
-  }
-
-  public static String getBuildArtifactsHref(final SBuild build) {
-    return getBuildHref(build) + ARTIFACTS_CHILDREN;
   }
 
   /**
@@ -224,130 +215,46 @@ public class BuildRequest {
     return build.getParametersProvider().get(propertyName);
   }
 
-  /**
-   * More user-friendly URL for "/{buildLocator}/artifacts/children" one.
-   */
-  @GET
-  @Path("/{buildLocator}" + ARTIFACTS + "{path:(/.*)?}")
-  @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-  public Files getArtifacts(@PathParam("buildLocator") final String buildLocator,
-                            @PathParam("path") final String path,
-                            @QueryParam("basePath") final String basePath,
-                            @QueryParam("resolveParameters") final Boolean resolveParameters,
-                            @QueryParam("locator") final String locator,
-                            @QueryParam("fields") String fields) {
-    return getArtifactChildren(buildLocator, path, basePath, resolveParameters, locator, fields);
-  }
-
-  @GET
-  @Path("/{buildLocator}" + ARTIFACTS_METADATA + "{path:(/.*)?}")
-  @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-  public File getArtifactMetadata(@PathParam("buildLocator") final String buildLocator,
-                                  @PathParam("path") final String path,
-                                  @QueryParam("resolveParameters") final Boolean resolveParameters,
-                                  @QueryParam("locator") final String locator,
-                                  @QueryParam("fields") String fields) {
+  @Path("/{buildLocator}" + ARTIFACTS)
+  public FilesSubResource getFilesSubResource(@PathParam("buildLocator") final String buildLocator,
+                                              @QueryParam("resolveParameters") final Boolean resolveParameters,
+                                              @QueryParam("logBuildUsage") @DefaultValue("true") final Boolean logBuildUsage) {
     final SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return myBuildArtifactsFinder.getFile(build, getResolvedIfNecessary(build, path, resolveParameters), locator, new Fields(fields), myBeanContext);
-  }
 
-  @GET
-  @Path("/{buildLocator}" + ARTIFACTS_CHILDREN + "{path:(/.*)?}")
-  @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-  public Files getArtifactChildren(@PathParam("buildLocator") final String buildLocator,
-                                   @PathParam("path") @DefaultValue("") final String path,
-                                   @QueryParam("basePath") final String basePath,
-                                   @QueryParam("resolveParameters") final Boolean resolveParameters,
-                                   @QueryParam("locator") final String locator,
-                                   @QueryParam("fields") String fields) {
-    final SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    final String resolvedPath = getResolvedIfNecessary(build, path, resolveParameters);
-    String resolvedBasePath = getResolvedIfNecessary(build, basePath, resolveParameters);
-    final List<ArtifactTreeElement> artifacts = myBuildArtifactsFinder.getArtifacts(build, resolvedPath, resolvedBasePath, locator, null);
-    return new Files(null, artifacts, null, BuildArtifactsFinder.fileApiUrlBuilderForBuild(build, locator, myBeanContext), new Fields(fields), myBeanContext);
-  }
-
-  @GET
-  @Path("/{buildLocator}" + ARTIFACTS_CONTENT + "{path:(/.*)?}")
-  @Produces({MediaType.WILDCARD})
-  public Response getArtifactContent(@PathParam("buildLocator") final String buildLocator,
-                                     @PathParam("path") final String path,
-                                     @QueryParam("resolveParameters") final Boolean resolveParameters,
-                                     @QueryParam("logBuildUsage") @DefaultValue("true") final Boolean logBuildUsage,
-                                     @Context HttpServletRequest request) {
-    final SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    final String resolvedPath = getResolvedIfNecessary(build, path, resolveParameters);
-    final ArtifactTreeElement artifactElement = BuildArtifactsFinder.getArtifactElement(build, resolvedPath, BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
-    if (!artifactElement.isContentAvailable()) {
-      throw new NotFoundException("Cannot provide content for '" + path + "'. To get children use '" +
-                                  BuildArtifactsFinder.fileApiUrlBuilderForBuild(build, null, myBeanContext).getChildrenHref(artifactElement) + "'.");
-    }
-    final Response.ResponseBuilder builder = BuildArtifactsFinder.getContent(artifactElement, request);
-    if (logBuildUsage){
-      RepositoryUtil.logArtifactDownload(request, myBeanContext.getSingletonService(DownloadedArtifactsLogger.class), build, resolvedPath);
-    }
-    return builder.build();
-  }
-
-  /**
-   * Experimental
-   * @param path path within build artifacts
-   * @param name name of the file to pack the artifacts into
-   */
-  @GET
-  @Path("/{buildLocator}" + ARTIFACTS + "/archived" + "{path:(/.*)?}")
-  @Produces({MediaType.WILDCARD})
-  public Response getZippedArtifacts(@PathParam("buildLocator") final String buildLocator,
-                                     @PathParam("path") final String path,
-                                     @QueryParam("basePath") final String basePath,
-                                     @QueryParam("locator") final String locator,
-                                     @QueryParam("name") final String name,
-                                     @QueryParam("resolveParameters") final Boolean resolveParameters,
-                                     @QueryParam("logBuildUsage") @DefaultValue("true") final Boolean logBuildUsage,
-                                     @Context HttpServletRequest request) {
-    final SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    String resolvedPath = getResolvedIfNecessary(build, path, resolveParameters);
-    String resolvedName = getResolvedIfNecessary(build, name, resolveParameters);
-    String actualBasePath = basePath!= null ? getResolvedIfNecessary(build, basePath, resolveParameters) : resolvedPath;
-    if ("".equals(resolvedName)) {
-      resolvedName = WebUtil.getFilename(build) + resolvedPath.replaceAll("[^a-zA-Z0-9-#.]+", "_") + "_artifacts.zip";
-    }
-
-    String actualLocator = Locator.setDimensionIfNotPresent(locator, BuildArtifactsFinder.DIMENSION_RECURSIVE, "true"); //include al files recursively by default
-    actualLocator = Locator.setDimensionIfNotPresent(actualLocator, BuildArtifactsFinder.ARCHIVES_DIMENSION_NAME, "false"); //do not expand archives by default
-    final List<ArtifactTreeElement> artifacts = myBuildArtifactsFinder.getArtifacts(build, resolvedPath, actualBasePath, actualLocator, myBeanContext);
-
-    final ArchiveElement archiveElement = new ArchiveElement(artifacts, resolvedName);
-    final Response.ResponseBuilder builder = BuildArtifactsFinder.getContentByStream(archiveElement, request, new BuildArtifactsFinder.StreamingOutputProvider() {
-      public boolean isRangeSupported() {
-        return false;
+    final String urlPrefix = getArtifactsUrlPrefix(build, myBeanContext);
+    return new FilesSubResource(new FilesSubResource.Provider() {
+      @Override
+      @NotNull
+      public ArtifactTreeElement getElement(@NotNull final String path) {
+        return BuildArtifactsFinder.getArtifactElement(build, path);
       }
 
-      public StreamingOutput getStreamingOutput(@Nullable final Long startOffset, @Nullable final Long length) {
-        return archiveElement.getStreamingOutput(startOffset, length);
+      @NotNull
+      @Override
+      public String preprocess(@Nullable final String path) {
+        return getResolvedIfNecessary(build, path, resolveParameters);
       }
-    });
 
-    //if downloaded with build credentials, log usage for all files
-    if (logBuildUsage) {
-      for (ArtifactTreeElement artifact : artifacts) {
-        RepositoryUtil.logArtifactDownload(request, myBeanContext.getSingletonService(DownloadedArtifactsLogger.class), build, artifact.getFullName());
+      @NotNull
+      @Override
+      public String getArchiveName(@NotNull final String path) {
+        return WebUtil.getFilename(build) + path.replaceAll("[^a-zA-Z0-9-#.]+", "_") + "_artifacts";
       }
-    }
-    return builder.build();
+
+      @Override
+      public boolean fileContentServed(@Nullable final String path, @NotNull final HttpServletRequest request) {
+        if (logBuildUsage) {
+          RepositoryUtil.logArtifactDownload(request, myBeanContext.getSingletonService(DownloadedArtifactsLogger.class), build, path);
+        }
+        return logBuildUsage;
+      }
+    }, urlPrefix, myBeanContext, true);
   }
 
-  /**
-   * @deprecated Compatibility. Use #getArtifactContent instead.
-   */
-  @Deprecated
-  @GET
-  @Path("/{buildLocator}" + ARTIFACTS + "/files{path:(/.*)?}")
-  @Produces({MediaType.WILDCARD})
-  public Response getArtifactFilesContent(@PathParam("buildLocator") final String buildLocator, @PathParam("path") final String fileName, @Context HttpServletRequest request) {
-    return getArtifactContent(buildLocator, fileName, false, false, request);
+  @NotNull
+  public static String getArtifactsUrlPrefix(final @NotNull SBuild build, final @NotNull BeanContext beanContext) {
+    return Util.concatenatePath(beanContext.getApiUrlBuilder().getHref(build), ARTIFACTS);
   }
-
 
   @NotNull
   private String getResolvedIfNecessary(@NotNull final SBuild build, @Nullable final String value, @Nullable final Boolean resolveSupported) {
