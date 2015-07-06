@@ -33,6 +33,7 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.AgentCompatibility;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.impl.agent.DeadAgent;
 import jetbrains.buildServer.serverSide.impl.agent.PollingRemoteAgentConnection;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -46,6 +47,7 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("PublicField")
 public class Agent {
 
+  public static final int UNKNOWN_AGENT_ID = -1;
   @XmlAttribute public Integer id;
   @XmlAttribute public String name;
   @XmlAttribute public Integer typeId;
@@ -69,18 +71,21 @@ public class Agent {
   }
 
   public Agent(@NotNull final SBuildAgent agent, @NotNull final AgentPoolsFinder agentPoolsFinder, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
-    id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), agent.getId());
+    final int agentId = agent.getId();
+    final boolean unknownAgent = agentId == UNKNOWN_AGENT_ID;
+    id = unknownAgent ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), agentId);
     name = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), agent.getName());
     typeId = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("typeId"), agent.getAgentTypeId());
-    href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(agent));
+    href = unknownAgent ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(agent));
     connected = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("connected", false), agent.isRegistered());
     enabled = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("enabled", false), agent.isEnabled());
     authorized = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("authorized", false), agent.isAuthorized());
-    uptodate = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("uptodate", false), !agent.isOutdated() && !agent.isPluginsOutdated());
+    uptodate = unknownAgent ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("uptodate", false), !agent.isOutdated() && !agent.isPluginsOutdated());
     ip = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("ip", false), new ValueWithDefault.Value<String>() {
       @Nullable
       public String get() {
-        return agent.getHostAddress();
+        final String hostAddress = agent.getHostAddress();
+        return DeadAgent.NA.equals(hostAddress) ? null : hostAddress;
       }
     });
     protocol = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("protocol", false, false), new ValueWithDefault.Value<String>() {  //hide by default for now
@@ -99,7 +104,8 @@ public class Agent {
     pool = ValueWithDefault.decideDefault(fields.isIncluded("pool", false), new ValueWithDefault.Value<AgentPool>() {
       @Nullable
       public AgentPool get() {
-        return new AgentPool(agentPoolsFinder.getAgentPool(agent), fields.getNestedField("pool"), beanContext);
+        final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = agentPoolsFinder.getAgentPool(agent);
+        return agentPool == null ? null : new AgentPool(agentPool, fields.getNestedField("pool"), beanContext);
       }
     });
     compatibilities =

@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest;
 
 import jetbrains.buildServer.groups.UserGroup;
+import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.request.*;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
@@ -41,7 +42,9 @@ public class ApiUrlBuilder {
     myPathTransformer = pathTransformer;
   }
 
+  @Nullable
   public String getHref(@NotNull final SBuildAgent agent) {
+    if (agent.getId() == Agent.UNKNOWN_AGENT_ID) return null;
     return myPathTransformer.transform(AgentRequest.getAgentHref(agent));
   }
 
