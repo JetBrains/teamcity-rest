@@ -26,18 +26,21 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
-import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
-import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
-import jetbrains.buildServer.serverSide.impl.CancelableTaskHolder;
-import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
+import jetbrains.buildServer.serverSide.impl.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.TestFor;
+import jetbrains.buildServer.vcs.SVcsRootEx;
+import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import static jetbrains.buildServer.util.Util.map;
+import static jetbrains.buildServer.vcs.RepositoryStateData.createVersionState;
 
 /**
  * @author Yegor.Yarko
@@ -54,8 +57,11 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
     final AgentFinder agentFinder = new AgentFinder(myAgentManager);
     final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, myServer);
     final UserFinder userFinder = new UserFinder(myFixture);
-    myBuildPromotionFinder = new BuildPromotionFinder(myFixture.getBuildPromotionManager(), myFixture.getBuildQueue(), myServer, myFixture.getHistory(),
-                                                                               projectFinder, buildTypeFinder, userFinder, agentFinder);
+    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
+    final VcsRootFinder vcsRootFinder = new VcsRootFinder(myFixture.getVcsManager(), projectFinder, buildTypeFinder, myProjectManager,
+                                                          myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class), permissionChecker);
+    myBuildPromotionFinder = new BuildPromotionFinder(myFixture.getBuildPromotionManager(), myFixture.getBuildQueue(), myServer, vcsRootFinder,
+                                                      projectFinder, buildTypeFinder, userFinder, agentFinder);
   }
 
 
@@ -355,6 +361,49 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
     checkBuilds("state:any,sinceBuild:(id:" + queuedBuild10.getId() +")", queuedBuild30, queuedBuild20);
     checkBuilds("state:any,sinceBuild:(id:" + queuedBuild20.getId() +")", queuedBuild30);
     checkBuilds("state:any,sinceBuild:(id:" + queuedBuild30.getId() +")");
+  }
+
+  @Test
+  public void testRevision() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    vcs.setDAGBased(true);
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    SVcsRootEx parentRoot2 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
+    VcsRootInstance root2 = buildConf.getVcsRootInstanceForParent(parentRoot2);
+    assert root1 != null;
+    assert root2 != null;
+
+    final BuildFinderTestBase.MockCollectRepositoryChangesPolicy changesPolicy = new BuildFinderTestBase.MockCollectRepositoryChangesPolicy();
+    vcs.setCollectChangesPolicy(changesPolicy);
+    changesPolicy.setCurrentState(root1, createVersionState("master", map("master", "rev_Vcs1_1")));
+    changesPolicy.setCurrentState(root2, createVersionState("master", map("master", "xxx")));
+    final BuildPromotion build10 = build().in(buildConf).finish().getBuildPromotion();
+    changesPolicy.setCurrentState(root1, createVersionState("master", map("master", "rev_Vcs1_2")));
+    final BuildPromotion build20 = build().in(buildConf).finish().getBuildPromotion();
+    changesPolicy.setCurrentState(root1, createVersionState("master", map("master", "xxx")));
+    changesPolicy.setCurrentState(root2, createVersionState("master", map("master", "rev_Vcs2_3")));
+    final BuildPromotion build30 = build().in(buildConf).finish().getBuildPromotion();
+    final MockVcsModification modification = new MockVcsModification(null, "comment", new Date(), "change_v1") {
+      @Override
+      public String getDisplayVersion() {
+        return "change_V1_display";
+      }
+    }.setRoot(root1);
+    vcs.addChange(root1, modification);
+    changesPolicy.setCurrentState(root1, createVersionState("master", map("master", "change_v1")));
+    final BuildPromotion build40 = build().in(buildConf).onModifications(modification).finish().getBuildPromotion();
+
+    checkBuilds("revision:rev_Vcs1_2", build20);
+    checkBuilds("revision:(version:rev_Vcs1_2)", build20);
+    checkBuilds("revision:(internalVersion:change_v1)", build40);
+    checkBuilds("revision:(version:change_V1_display)", build40);
+    checkBuilds("revision:(version:change_V1_display,vcsRoot:(id:" + root1.getParent().getExternalId() + "))", build40);
+    checkBuilds("revision:(internalVersion:xxx)", build30, build20, build10);
+    checkBuilds("revision:(internalVersion:xxx,vcsRoot:(id:" + root1.getParent().getExternalId() + "))", build30);
   }
 
   @Test

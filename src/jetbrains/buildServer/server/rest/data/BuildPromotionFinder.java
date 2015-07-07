@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import com.intellij.openapi.util.text.StringUtil;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -32,6 +31,8 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.ItemProcessor;
+import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -80,6 +81,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   public static final String BY_PROMOTION = "byPromotion";  //used in BuildFinder
   public static final String EQUIVALENT = "equivalent"; /*experimental*/
+  public static final String REVISION = "revision"; /*experimental*/
 
   public static final BuildPromotionComparator BUILD_PROMOTIONS_COMPARATOR = new BuildPromotionComparator();
   public static final SnapshotDepsTraverser SNAPSHOT_DEPENDENCIES_TRAVERSER = new SnapshotDepsTraverser();
@@ -87,7 +89,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private final BuildPromotionManager myBuildPromotionManager;
   private final BuildQueue myBuildQueue;
   private final BuildsManager myBuildsManager;
-  private final BuildHistory myBuildHistory;
+  private final VcsRootFinder myVcsRootFinder;
   private final ProjectFinder myProjectFinder;
   private final BuildTypeFinder myBuildTypeFinder;
   private final UserFinder myUserFinder;
@@ -101,7 +103,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   public BuildPromotionFinder(final BuildPromotionManager buildPromotionManager,
                               final BuildQueue buildQueue,
                               final BuildsManager buildsManager,
-                              final BuildHistory buildHistory,
+                              final VcsRootFinder vcsRootFinder,
                               final ProjectFinder projectFinder,
                               final BuildTypeFinder buildTypeFinder,
                               final UserFinder userFinder,
@@ -112,7 +114,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     myBuildPromotionManager = buildPromotionManager;
     myBuildQueue = buildQueue;
     myBuildsManager = buildsManager;
-    myBuildHistory = buildHistory;
+    myVcsRootFinder = vcsRootFinder;
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;
     myUserFinder = userFinder;
@@ -128,7 +130,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     );
     result.addHiddenDimensions(FAILED_TO_START); //hide this for now
     result.addHiddenDimensions(BY_PROMOTION);
-    result.addHiddenDimensions(EQUIVALENT);
+    result.addHiddenDimensions(EQUIVALENT, REVISION);
     result.addHiddenDimensions(PROMOTION_ID_ALIAS);
     result.addHiddenDimensions(BUILD_ID);
     result.addHiddenDimensions(DEFAULT_FILTERING);
@@ -517,6 +519,46 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
             return !(untilBuildId < getBuildId(item));
           }
         });
+      }
+    }
+
+    final String revisionLocatorText = locator.getSingleDimensionValue(REVISION);
+    if (revisionLocatorText != null) {
+      final Locator revisionLocator = new Locator(revisionLocatorText, "version", "internalVersion", "vcsRoot", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+      final String revision = revisionLocator.getSingleValue();
+      if (revision != null) {
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            final List<BuildRevision> buildRevisions = item.getRevisions();
+            for (BuildRevision rev : buildRevisions) {
+              if (revision.equals(rev.getRevisionDisplayName())) {
+                return true;
+              }
+            }
+            return false;
+          }
+        });
+      } else {
+        final String vcsRootLocator = revisionLocator.getSingleDimensionValue("vcsRoot");
+        final SVcsRoot vcsRoot = vcsRootLocator == null ? null : myVcsRootFinder.getVcsRoot(vcsRootLocator);
+        final String version = revisionLocator.getSingleDimensionValue("version");
+        final String internalVersion = revisionLocator.getSingleDimensionValue("internalVersion");
+        revisionLocator.checkLocatorFullyProcessed();
+        if (vcsRoot != null || !StringUtil.isEmpty(version) || !StringUtil.isEmpty(internalVersion)) {
+          result.add(new FilterConditionChecker<BuildPromotion>() {
+            public boolean isIncluded(@NotNull final BuildPromotion item) {
+              final List<BuildRevision> revisions = item.getRevisions();
+              for (BuildRevision rev : revisions) {
+                if ((vcsRoot == null || vcsRoot.getId() == rev.getRoot().getParent().getId()) &&
+                    (version == null || version.equals(rev.getRevisionDisplayName())) &&
+                    (internalVersion == null || internalVersion.equals(rev.getRevision()))) {
+                  return true;
+                }
+              }
+              return false;
+            }
+          });
+        }
       }
     }
 
