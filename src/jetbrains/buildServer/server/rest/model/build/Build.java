@@ -77,7 +77,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @XmlRootElement(name = "build")
 /*Commens inside propOrder: q = queued, r = running, f = finished*/
 @XmlType(name = "build",
-         propOrder = {"id"/*rf*/, "promotionId"/*q*/, "buildTypeId", "buildTypeInternalId", "number"/*rf*/, "status"/*rf*/, "state", "running"/*r*/, //"queued"/*q*/, "finished"/*f*/,
+         propOrder = {"id"/*rf*/, "promotionId"/*q*/, "buildTypeId", "buildTypeInternalId", "number"/*rf*/, "status"/*rf*/, "state", "running"/*r*/, "failedToStart"/*f*/,
            "personal", "percentageComplete"/*r*/, "branchName", "defaultBranch", "unspecifiedBranch", "history", "pinned"/*rf*/, "href", "webUrl",
            "statusText"/*rf*/,
            "buildType", "comment", "tags", "pinInfo"/*f*/, "personalBuildUser",
@@ -92,7 +92,7 @@ import org.springframework.beans.factory.annotation.Autowired;
            "buildDependencies", "buildArtifactDependencies", "customBuildArtifactDependencies"/*q*/,
            "triggeringOptions"/*only when triggering*/})
 public class Build {
-  private static Logger LOG = Logger.getInstance(Build.class.getName());
+  private static final Logger LOG = Logger.getInstance(Build.class.getName());
 
   public static final String CANCELED_INFO = "canceledInfo";
   public static final String PROMOTION_ID = "taskId";
@@ -184,24 +184,19 @@ public class Build {
     return "unknown";
   }
 
-  /*
-  @XmlAttribute
-  public Boolean isQueued() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("queued"), myQueuedBuild != null);
-  }
-  */
-
+  /**
+   * @deprecated use "state" instead
+   * @return
+   */
   @XmlAttribute
   public Boolean isRunning() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("running"), myBuild != null && !myBuild.isFinished());
   }
 
-  /*
   @XmlAttribute
-  public Boolean isFinished() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("finished"), myBuild != null && myBuild.isFinished());
+  public Boolean isFailedToStart() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("failedToStart"), myBuild != null && myBuild.isInternalError());
   }
-  */
 
   @XmlAttribute
   public String getNumber() {
@@ -1201,6 +1196,8 @@ public class Build {
       return String.valueOf(build.getId());
     } else if ("state".equals(field)) {
       return build.getState();
+    } else if ("failedToStart".equals(field)) {
+      return String.valueOf(build.isFailedToStart());
     } else if ("startEstimateDate".equals(field)) {
       return build.getStartEstimate();
     } else if ("percentageComplete".equals(field)) {
