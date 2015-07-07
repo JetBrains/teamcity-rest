@@ -23,10 +23,12 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.requirements.RequirementType;
+import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.AgentCompatibility;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.SBuildAgent;
@@ -34,24 +36,39 @@ import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-@XmlRootElement(name = "compatibility")
+@XmlRootElement(name = Compatibility.COMPATIBILITY)
 @SuppressWarnings({"PublicField", "PackageVisibleField"})
 public class Compatibility {
-  @XmlElement(name = "agent-href") String agent;
-  @XmlElement(name = "build-type") BuildType buildType;
-  @XmlAttribute(name = "compatible") boolean isCompatible;
+  public static final String COMPATIBILITY = "compatibility";
+  private boolean isCompatible;
+  @XmlElement(name = "agent") Agent agent;
+  @XmlElement(name = "buildType") BuildType buildType;
   @XmlAttribute(name = "reason") String reason;
 
   public Compatibility() {
   }
 
   public Compatibility(@Nullable final SBuildAgent agent, @NotNull final AgentCompatibility compatibility, @NotNull final Fields fields, @NotNull final BeanContext context) {
-    this.agent = fields.isIncluded("agent", false, true) && agent != null ? context.getApiUrlBuilder().getHref(agent) : null;
-    final Boolean build = fields.isIncluded("build-type");
-    this.buildType =
-      new BuildType(new BuildTypeOrTemplate(compatibility.getBuildType()), (build != null && build) ? fields.getNestedField("build-type") : new Fields("href"), context);
+    this.agent = agent == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("agent", false, true), new ValueWithDefault.Value<Agent>() {
+      @Nullable
+      public Agent get() {
+        return new Agent(agent, context.getSingletonService(AgentPoolsFinder.class), fields.getNestedField("agent"), context);
+      }
+    });
+
+    this.buildType = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("buildType", true, true), new ValueWithDefault.Value<BuildType>() {
+      @Nullable
+      public BuildType get() {
+        return new BuildType(new BuildTypeOrTemplate(compatibility.getBuildType()), fields.getNestedField("buildType"), context);
+      }
+    });
     this.isCompatible = compatibility.isCompatible();
-    this.reason = (!isCompatible && fields.isIncluded("reason", false, true)) ? getIncompatibilityReason(compatibility) : null;
+    this.reason = isCompatible ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("reason", true, true), new ValueWithDefault.Value<String>() {
+      @Nullable
+      public String get() {
+        return getIncompatibilityReason(compatibility);
+      }
+    });
   }
 
   static String getIncompatibilityReason(final AgentCompatibility compatibility) {
@@ -66,25 +83,26 @@ public class Compatibility {
       sb.append("Unmet requirements:\n");
       for (Requirement r : compatibility.getNonMatchedRequirements()) {
         final RequirementType type = r.getType();
-        sb.append('\t').append(r.getPropertyName()).append(' ').append(type.getDisplayName());
-        if (!StringUtil.isEmpty(r.getPropertyValue()) || !type.isParameterCanBeEmpty() || !type.isParameterRequired()) {
-          sb.append(' ').append(r.getPropertyValue());
+        sb.append("\tParameter '").append(r.getPropertyName()).append("' ").append(type.getDisplayName());
+        if (!StringUtil.isEmpty(r.getPropertyValue())) {
+          sb.append(" '").append(r.getPropertyValue()).append("'");
         }
-        sb.append('\n');
+        sb.append("; ");
       }
+      sb.delete(sb.length() - "; ".length(), sb.length());
     }
     if (!compatibility.getMissedVcsPluginsOnAgent().isEmpty()) {
       final Map<String, String> missed = compatibility.getMissedVcsPluginsOnAgent();
       sb.append("Missing VCS plugins on agent:\n");
       for (String v : missed.values()) {
-        sb.append('\t').append(v).append('\n');
+        sb.append("\t'").append(v).append("'\n");
       }
     }
     if (!compatibility.getInvalidRunParameters().isEmpty()) {
       final List<InvalidProperty> irp = compatibility.getInvalidRunParameters();
       sb.append("Missing or invalid build configuration parameters:\n");
       for (InvalidProperty ip : irp) {
-        sb.append('\t').append(ip.getPropertyName()).append(": ").append(ip.getInvalidReason()).append('\n');
+        sb.append("\t'").append(ip.getPropertyName()).append("': ").append(ip.getInvalidReason()).append('\n');
       }
     }
 
@@ -92,7 +110,7 @@ public class Compatibility {
       final Map<String, String> undefined = compatibility.getUndefinedParameters();
       sb.append("Implicit requirements:\n");
       for (Map.Entry<String, String> entry : undefined.entrySet()) {
-        sb.append('\t').append(entry.getKey()).append(" defined in ").append(entry.getValue()).append('\n');
+        sb.append("\t'").append(entry.getKey()).append("' defined in ").append(entry.getValue()).append('\n');
       }
     }
     return sb.toString();
