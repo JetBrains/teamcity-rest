@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.server.rest.model.agent.Compatibilities;
+import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.BuildAgentManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
@@ -139,12 +140,26 @@ public class AgentRequest {
     return Agent.getFieldValue(myAgentFinder.getItem(agentLocator), fieldName);
   }
 
+  /**
+   * Experimental support to get currently compatible build types
+   */
   @GET
-  @Path("/{agentLocator}/compatibilities")
+  @Path("/{agentLocator}/compatibleBuildTypes")
   @Produces({"application/xml", "application/json"})
-  public Compatibilities getAgentCompatibilities(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
+  public BuildTypes getCompatibleBuildTypes(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    return Agent.getCompatibilitiesValue(agent, new Fields(fields), myBeanContext).get();
+    return new BuildTypes(Compatibilities.getCompatiblityLists(agent, null, myBeanContext).getCompatibleBuildTypes(), null, new Fields(fields, Fields.LONG), myBeanContext);
+  }
+
+  /**
+   * Experimental support to get currently incompatible build types with incompatibility reason
+   */
+  @GET
+  @Path("/{agentLocator}/incompatibleBuildTypes")
+  @Produces({"application/xml", "application/json"})
+  public Compatibilities geIncompatibleBuildTypes(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
+    final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
+    return new Compatibilities(Compatibilities.getCompatiblityLists(agent, null, myBeanContext).incompatibleBuildTypes, agent, null, new Fields(fields, Fields.LONG), myBeanContext);
   }
 
   @PUT

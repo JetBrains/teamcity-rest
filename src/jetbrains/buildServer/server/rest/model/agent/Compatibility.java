@@ -32,52 +32,58 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.AgentCompatibility;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.SBuildAgent;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-@XmlRootElement(name = Compatibility.COMPATIBILITY)
-@SuppressWarnings({"PublicField", "PackageVisibleField"})
+@SuppressWarnings("PublicField")
+@XmlRootElement(name = "compatibility")
 public class Compatibility {
-  public static final String COMPATIBILITY = "compatibility";
-  @XmlAttribute(name = "compatible") private boolean isCompatible;
-  @XmlElement(name = "agent") Agent agent;
-  @XmlElement(name = "buildType") BuildType buildType;
-  @XmlAttribute(name = "reason") String reason;
+  @XmlAttribute public Boolean compatible;
+  @XmlElement public Agent agent;
+  @XmlElement public BuildType buildType;
+  @XmlElement public Requirements unmetRequirements;
 
   public Compatibility() {
   }
 
-  public Compatibility(@Nullable final SBuildAgent agent, @NotNull final AgentCompatibility compatibility, @NotNull final Fields fields, @NotNull final BeanContext context) {
-    this.agent = agent == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("agent", false, true), new ValueWithDefault.Value<Agent>() {
+  public Compatibility(@NotNull final AgentCompatibilityData compatibility,
+                       @Nullable final SBuildAgent contextAgent, @Nullable final SBuildType contextBuildType,
+                       @NotNull final Fields fields, @NotNull final BeanContext context) {
+    compatible = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("compatible", true, true), compatibility.getCompatibility().isCompatible());
+
+    final boolean sameAgent = contextAgent != null && compatibility.getAgent().getId() == contextAgent.getId();
+    agent = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("agent", !sameAgent, !sameAgent), new ValueWithDefault.Value<Agent>() {
       @Nullable
       public Agent get() {
-        return new Agent(agent, context.getSingletonService(AgentPoolsFinder.class), fields.getNestedField("agent"), context);
+        return new Agent(compatibility.getAgent(), context.getSingletonService(AgentPoolsFinder.class), fields.getNestedField("agent", Fields.SHORT, Fields.SHORT), context);
       }
     });
 
-    this.buildType = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("buildType", true, true), new ValueWithDefault.Value<BuildType>() {
+    final boolean sameBuildType = contextBuildType != null && compatibility.getBuildType().getInternalId().equals(contextBuildType.getInternalId());
+    buildType = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("buildType", !sameBuildType, !sameBuildType), new ValueWithDefault.Value<BuildType>() {
       @Nullable
       public BuildType get() {
-        return new BuildType(new BuildTypeOrTemplate(compatibility.getBuildType()), fields.getNestedField("buildType"), context);
+        return new BuildType(new BuildTypeOrTemplate(compatibility.getBuildType()), fields.getNestedField("buildType", Fields.SHORT, Fields.SHORT), context);
       }
     });
-    this.isCompatible = compatibility.isCompatible();
-    this.reason = isCompatible ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("reason", true, true), new ValueWithDefault.Value<String>() {
+    unmetRequirements = compatibility.getCompatibility().isCompatible() ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("unmetRequirements", true, true),
+                                                                                                                   new ValueWithDefault.Value<Requirements>() {
       @Nullable
-      public String get() {
-        return getIncompatibilityReason(compatibility);
+      public Requirements get() {
+        return new Requirements(getDescription(compatibility.getCompatibility()), fields.getNestedField("unmetRequirements", Fields.LONG, Fields.LONG), context);
       }
     });
   }
 
-  static String getIncompatibilityReason(final AgentCompatibility compatibility) {
+  static String getDescription(@NotNull final AgentCompatibility compatibility) {
     if (compatibility.isCompatible()) {
       return null;
     }
     StringBuilder sb = new StringBuilder();
     if (compatibility.getIncompatibleRunner() != null) {
-      sb.append("Incompatible runner: ").append(compatibility.getIncompatibleRunner().getDisplayName()).append('\n');
+      sb.append("Incompatible runner: '").append(compatibility.getIncompatibleRunner().getDisplayName()).append("'\n");
     }
     if (!compatibility.getNonMatchedRequirements().isEmpty()) {
       sb.append("Unmet requirements:\n");
@@ -110,9 +116,37 @@ public class Compatibility {
       final Map<String, String> undefined = compatibility.getUndefinedParameters();
       sb.append("Implicit requirements:\n");
       for (Map.Entry<String, String> entry : undefined.entrySet()) {
-        sb.append("\t'").append(entry.getKey()).append("' defined in ").append(entry.getValue()).append('\n');
+        sb.append("\tParameter '").append(entry.getKey()).append("' defined in ").append(entry.getValue()).append('\n');
       }
     }
     return sb.toString();
+  }
+
+  public static class AgentCompatibilityData {
+    @NotNull
+    public final SBuildAgent myAgent;
+
+    @NotNull
+    private final AgentCompatibility myCompatibility;
+
+    public AgentCompatibilityData(final @NotNull AgentCompatibility compatibility, final @NotNull SBuildAgent agent) {
+      myAgent = agent;
+      myCompatibility = compatibility;
+    }
+
+    @NotNull
+    public SBuildAgent getAgent() {
+      return myAgent;
+    }
+
+    @NotNull
+    public SBuildType getBuildType() {
+      return myCompatibility.getBuildType();
+    }
+
+    @NotNull
+    public AgentCompatibility getCompatibility() {
+      return myCompatibility;
+    }
   }
 }
