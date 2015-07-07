@@ -168,6 +168,9 @@ public class BuildTypeUtil {
     }
 
     final String existingValue = parametrizedEntity.getParameters().get(parameterName);
+    if (existingValue == null){
+      throw new NotFoundException("Parameter with name '" + parameterName + "' not found");
+    }
     if (newRawTypeValue != null) {
       parametrizedEntity.addParameter(getParameterFactory(serviceLocator).createTypedParameter(parameterName, existingValue, newRawTypeValue));
     } else {

@@ -144,7 +144,6 @@ public class ParametersSubResource {
 
   @GET
   @Path("/{name}/type/rawValue")
-  @Consumes("text/plain")
   @Produces("text/plain")
   public String getParameterTypeRawValue(@PathParam("name") String parameterName) {
     final ParameterType type = Property.createFrom(parameterName, myEntityWithParameters, Fields.LONG, myServiceLocator).type;
