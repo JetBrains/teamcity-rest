@@ -34,6 +34,7 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.db.DBActionNoResults;
 import jetbrains.buildServer.serverSide.db.DBException;
 import jetbrains.buildServer.serverSide.db.DBFunctions;
+import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -66,8 +67,12 @@ public class BuildFinderTestBase extends BaseServerTestCase {
     final AgentFinder agentFinder = new AgentFinder(myAgentManager);
     final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, myServer);
     final UserFinder userFinder = new UserFinder(myFixture);
-    myBuildPromotionFinder = new BuildPromotionFinder(myFixture.getBuildPromotionManager(), myFixture.getBuildQueue(), myServer, myFixture.getHistory(),
-                                                                               projectFinder, buildTypeFinder, userFinder, agentFinder);
+
+    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
+    final VcsRootFinder vcsRootFinder = new VcsRootFinder(myFixture.getVcsManager(), projectFinder, buildTypeFinder, myProjectManager,
+                                                          myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class), permissionChecker);
+    myBuildPromotionFinder = new BuildPromotionFinder(myFixture.getBuildPromotionManager(), myFixture.getBuildQueue(), myServer, vcsRootFinder,
+                                                      projectFinder, buildTypeFinder, userFinder, agentFinder);
     myBuildFinder = new BuildFinder(myServer, buildTypeFinder, projectFinder, userFinder, myBuildPromotionFinder, agentFinder);
     myQueuedBuildFinder = new QueuedBuildFinder(myServer.getQueue(), projectFinder, buildTypeFinder, userFinder, agentFinder, myFixture.getBuildPromotionManager(), myServer);
   }
@@ -236,7 +241,7 @@ public class BuildFinderTestBase extends BaseServerTestCase {
     }, true);
   }
 
-  public class MockCollectRepositoryChangesPolicy implements CollectChangesBetweenRepositories {
+  public static class MockCollectRepositoryChangesPolicy implements CollectChangesBetweenRepositories {
 
     private final ConcurrentMap<Long, RepositoryStateData> myCurrentStates = new ConcurrentHashMap<Long, RepositoryStateData>();
     private final ConcurrentMap<Long, RepositoryStateData> myLastToStates = new ConcurrentHashMap<Long, RepositoryStateData>();
