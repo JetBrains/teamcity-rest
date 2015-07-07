@@ -544,44 +544,44 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   }
 
   @Test
-  public void testPatterns() throws Exception {
+  public void testPattern() throws Exception {
     ArtifactTreeElement element;
-    List<ArtifactTreeElement> artifacts = getArtifacts("", "patterns:*.txt");
+    List<ArtifactTreeElement> artifacts = getArtifacts("", "pattern:*.txt");
     assertSize(1, artifacts);
     assertContainsByFullName(artifacts, "file.txt");
 
-    artifacts = getArtifacts("", "recursive:true,patterns:*.txt");
+    artifacts = getArtifacts("", "recursive:true,pattern:*.txt");
     assertSize(1, artifacts);
     assertContainsByFullName(artifacts, "file.txt");
 
 
     /*
     // https://youtrack.jetbrains.com/issue/TW-41613
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", "patterns:(+:**,-:*.txt)", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", "pattern:(+:**,-:*.txt)", null);
     assertSize(3, artifacts);
     assertContainsByFullName(artifacts, "dir1");
     assertContainsByFullName(artifacts, "archive.zip");
     assertContainsByFullName(artifacts, "archive_nested.zip");
 
-    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", "recursive:true,patterns:(+:**,-:*.txt)", null);
+    artifacts = myBuildArtifactsFinder.getArtifacts(myBuildWithArtifacts, "", "recursive:true,pattern:(+:**,-:*.txt)", null);
     assertSize(3, artifacts);
     assertContainsByFullName(artifacts, "dir1");
     assertContainsByFullName(artifacts, "archive.zip");
     assertContainsByFullName(artifacts, "archive_nested.zip");
     */
 
-    artifacts = getArtifacts("", "recursive:true,patterns:**/*.txt");
+    artifacts = getArtifacts("", "recursive:true,pattern:**/*.txt");
     assertSize(2, artifacts);
     assertContainsByFullName(artifacts, "file.txt");
     assertContainsByFullName(artifacts, "dir1/file.txt");
 
-    artifacts = getArtifacts("", "recursive:true,patterns:(**/*.txt,d*)");
+    artifacts = getArtifacts("", "recursive:true,pattern:(**/*.txt,d*)");
     assertSize(3, artifacts);
     assertContainsByFullName(artifacts, "dir1");
     assertContainsByFullName(artifacts, "file.txt");
     assertContainsByFullName(artifacts, "dir1/file.txt");
 
-    artifacts = getArtifacts("", "recursive:true,patterns:(file.txt,archive.zip)");
+    artifacts = getArtifacts("", "recursive:true,pattern:(file.txt,archive.zip)");
     assertSize(2, artifacts);
     assertContainsByFullName(artifacts, "file.txt");
     assertContainsByFullName(artifacts, "archive.zip");

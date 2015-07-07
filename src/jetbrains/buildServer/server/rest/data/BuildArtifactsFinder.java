@@ -53,7 +53,7 @@ public class BuildArtifactsFinder {
   public static final String HIDDEN_DIMENSION_NAME = "hidden";  //whether to include hidden artifacts
   public static final String DIRECTORY_DIMENSION_NAME = "directory";  //whether to include entries which have children
   public static final String DIMENSION_RECURSIVE = "recursive";  //whether to list direct children or recursive children
-  public static final String DIMENSION_PATTERNS = "patterns";  //todo or "pattern" ?
+  public static final String DIMENSION_PATTERNS = "pattern";
   protected static final Comparator<ArtifactTreeElement> ARTIFACT_COMPARATOR = new Comparator<ArtifactTreeElement>() {
     public int compare(final ArtifactTreeElement o1, final ArtifactTreeElement o2) {
       return ComparisonChain.start()
