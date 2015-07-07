@@ -40,7 +40,7 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings({"PublicField", "PackageVisibleField"})
 public class Compatibility {
   public static final String COMPATIBILITY = "compatibility";
-  private boolean isCompatible;
+  @XmlAttribute(name = "compatible") private boolean isCompatible;
   @XmlElement(name = "agent") Agent agent;
   @XmlElement(name = "buildType") BuildType buildType;
   @XmlAttribute(name = "reason") String reason;
