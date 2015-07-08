@@ -139,7 +139,7 @@ public class BuildFinder {
       resultingLocatorText = locator.getStringRepresentation();
     }
 
-    if (legacyFieldsPresent && !TeamCityProperties.getBoolean(SUPPORT_NON_LOCATOR_FILTERS)) {
+    if (legacyFieldsPresent && !TeamCityProperties.getBooleanOrTrue(SUPPORT_NON_LOCATOR_FILTERS)) {
       throw new BadRequestException("Legacy query syntax supplied. Try URL parameter instead: " + locatorParameterName + "=" + resultingLocatorText + "\n" +
                                     "Set \"" + SUPPORT_NON_LOCATOR_FILTERS + "=true\" server internal property to allow such legacy queries until next TeamCity upgrade.");
     }
