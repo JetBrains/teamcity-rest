@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.List;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.*;
@@ -57,6 +56,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   public static final String COMMENT = "comment";
   public static final String FILE = "file";
   public static final String SINCE_CHANGE = "sinceChange";
+  public static final String PENDING = "pending";
   public static final String BRANCH = "branch";
   public static final String CHILD_CHANGE = "childChange";
   public static final String PARENT_CHANGE = "parentChange";
@@ -100,7 +100,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   @Override
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(BRANCH, PERSONAL, DIMENSION_LOOKUP_LIMIT, CHILD_CHANGE, PARENT_CHANGE, PROMOTION); //hide these for now
+    result.addHiddenDimensions(BRANCH, PERSONAL, PENDING, DIMENSION_LOOKUP_LIMIT, CHILD_CHANGE, PARENT_CHANGE, PROMOTION); //hide these for now
     return result;
   }
 
@@ -149,6 +149,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     return null;
   }
 
+  @NotNull
   @Override
   protected AbstractFilter<SVcsModification> getFilter(final Locator locator) {
     if (locator.isSingleValue()) {
@@ -308,6 +309,18 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       }
     }
 
+    final Boolean pending = locator.getSingleDimensionValueAsBoolean(PENDING);
+    if (pending != null) {
+      final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
+      final SBuildType buildType = buildTypeLocator == null ? null : myBuildTypeFinder.getBuildType(null, buildTypeLocator);
+      final List<SVcsModification> pendingChanges = getPendingChanges(BranchMatcher.getBranchName(locator.getSingleDimensionValue(BRANCH)), buildType);
+      result.add(new FilterConditionChecker<SVcsModification>() {
+        public boolean isIncluded(@NotNull final SVcsModification item) {
+          return FilterUtil.isIncludedByBooleanFilter(pending, pendingChanges.contains(item));
+        }
+      });
+    }
+
     final String fileLocator = locator.getSingleDimensionValue(FILE);
     if (fileLocator != null) {
       final String pathLocatorText = new Locator(fileLocator).getSingleDimensionValue("path"); //todo: use conditions here
@@ -377,10 +390,12 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     return getItem(sinceChangeDimension).getId();
   }
 
+  @NotNull
   @Override
   protected ItemHolder<SVcsModification> getPrefilteredItems(@NotNull final Locator locator) {
 
-    String branchName = getBranchName(locator.getSingleDimensionValue(BRANCH));
+    Boolean pending = locator.getSingleDimensionValueAsBoolean(PENDING);
+    String branchName = BranchMatcher.getBranchName(locator.getSingleDimensionValue(BRANCH));
 
     SBuildType buildType = null;
     final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
@@ -388,11 +403,19 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
     }
 
+    if (pending != null) {
+      if (pending) {
+        return getItemHolder(getPendingChanges(branchName, buildType));
+      } else{
+        locator.markUnused(PENDING);
+      }
+    }
+
     if (branchName != null) {
       if (buildType == null) {
         throw new BadRequestException("Filtering changes by branch is only supported when buildType is specified.");
       }
-      return getItemHolder(getBranchChanges(buildType, branchName));
+      return getItemHolder(getBranchChanges(buildType, branchName, SelectPrevBuildPolicy.SINCE_FIRST_BUILD));
     }
 
     final String userLocator = locator.getSingleDimensionValue(USER);
@@ -474,6 +497,17 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   }
 
   @NotNull
+  private List<SVcsModification> getPendingChanges(@Nullable final String branchName, @Nullable final SBuildType buildType) {
+    if (buildType == null) {
+      throw new BadRequestException("Getting pending changes is only supported when buildType is specified.");
+    }
+    if (branchName != null) {
+      return getBranchChanges(buildType, branchName, SelectPrevBuildPolicy.SINCE_LAST_BUILD);
+    }
+    return buildType.getPendingChanges();
+  }
+
+  @NotNull
   private List<SVcsModification> getChangesWhichHasChild(@NotNull final SVcsModification change, final Long limit) {
     final ArrayList<SVcsModification> result = new ArrayList<SVcsModification>();
 
@@ -509,27 +543,10 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   }
 
 
-
-  @Nullable
-  private String getBranchName(@Nullable final String branch) {
-    if (branch == null) {
-      return null;
-    }
-    final Locator branchLocator;
-    try {
-      branchLocator = new Locator(branch, "name");
-      final String result = branchLocator.getSingleDimensionValue("name");
-      branchLocator.checkLocatorFullyProcessed();
-      return result;
-    } catch (LocatorProcessException e) {
-      throw new BadRequestException("Error procesing branch locator '" + branch + "'", e);
-    }
-  }
-
-  private List<SVcsModification> getBranchChanges(@NotNull final SBuildType buildType, @NotNull final String branchName) {
+  private List<SVcsModification> getBranchChanges(@NotNull final SBuildType buildType, @NotNull final String branchName, @NotNull final SelectPrevBuildPolicy policy) {
     final boolean includeDependencyChanges = TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) || !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES);
     final List<ChangeDescriptor> changes =
-      ((BuildTypeEx)buildType).getBranchByDisplayName(branchName).getDetectedChanges(SelectPrevBuildPolicy.SINCE_FIRST_BUILD, includeDependencyChanges);
+      ((BuildTypeEx)buildType).getBranchByDisplayName(branchName).getDetectedChanges(policy, includeDependencyChanges);
     return convertChanges(changes);
   }
 

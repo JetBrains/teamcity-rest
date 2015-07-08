@@ -17,6 +17,8 @@
 package jetbrains.buildServer.server.rest.data;
 
 import jetbrains.buildServer.server.rest.data.build.GenericBuildsFilter;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.util.StringUtil;
@@ -183,5 +185,27 @@ public class BranchMatcher {
     }
 
     return null;
+  }
+
+  @Nullable
+  public static String getBranchName(@Nullable final String branchLocatorText) {
+    if (branchLocatorText == null) {
+      return null;
+    }
+    final Locator branchLocator;
+    try {
+      String result;
+      branchLocator = new Locator(branchLocatorText, NAME, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+      final String singleValue = branchLocator.getSingleValue();
+      if (singleValue != null) {
+        result = singleValue;
+      } else {
+        result = branchLocator.getSingleDimensionValue(NAME);
+      }
+      branchLocator.checkLocatorFullyProcessed();
+      return result;
+    } catch (LocatorProcessException e) {
+      throw new BadRequestException("Error processing branch locator '" + branchLocatorText + "'", e);
+    }
   }
 }
