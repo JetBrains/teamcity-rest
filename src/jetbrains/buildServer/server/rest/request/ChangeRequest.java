@@ -104,17 +104,12 @@ public class ChangeRequest {
       updateLocatorDimension(actualLocator, "start", start != null ? String.valueOf(start) : null);
       updateLocatorDimension(actualLocator, "count", count != null ? String.valueOf(count) : null);
       actualLocator.setDimensionIfNotPresent(PagerData.START, String.valueOf(0));
-      actualLocator.setDimensionIfNotPresent(PagerData.COUNT, String.valueOf(Constants.getDefaultPageItemsCount()));
+      actualLocator.setDimensionIfNotPresent(PagerData.COUNT, String.valueOf(Constants.getDefaultPageItemsCount()));  //todo: move into ChangeFinder, check BuildPromotionFinder for example
       actualLocator.addIgnoreUnusedDimensions(PagerData.START);
       actualLocator.addIgnoreUnusedDimensions(PagerData.COUNT);
     }
 
-    if (actualLocator.isEmpty()){
-      throw new BadRequestException("No 'locator' or other parameters are specified.");
-    }
-
-    PagedSearchResult <SVcsModification> buildModifications = myChangeFinder.getItemsByLocator(actualLocator);
-    actualLocator.checkLocatorFullyProcessed();
+    PagedSearchResult<SVcsModification> buildModifications = myChangeFinder.getItems(actualLocator.isEmpty() ? null : actualLocator.getStringRepresentation());
 
     final UriBuilder requestUriBuilder = uriInfo.getRequestUriBuilder();
     requestUriBuilder.replaceQueryParam("count" , null);
