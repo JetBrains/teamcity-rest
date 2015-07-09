@@ -26,7 +26,8 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.files.FileApiUrlBuilder;
-import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.BuildPromotion;
+import jetbrains.buildServer.serverSide.BuildPromotionEx;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifact;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactHolder;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifacts;
@@ -232,21 +233,22 @@ public class BuildArtifactsFinder {
   }
 
   @NotNull
-  public static ArtifactTreeElement getArtifactElement(@NotNull final SBuild build, @NotNull final String path) {
-    return new ArtifactElement(getBuildArtifact(build, path));
+  public static ArtifactTreeElement getArtifactElement(@NotNull final BuildPromotion buildPromotion, @NotNull final String path) {
+    return new ArtifactElement(getBuildArtifact(buildPromotion, path));
   }
 
   @NotNull
-  private static BuildArtifact getBuildArtifact(@NotNull final SBuild build, @NotNull final String path) {
-    final BuildArtifacts artifacts = build.getArtifacts(BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
+  private static BuildArtifact getBuildArtifact(@NotNull final BuildPromotion buildPromotion, @NotNull final String path) {
+    final BuildPromotionEx buildPromotionEx = (BuildPromotionEx)buildPromotion;
+    final BuildArtifacts artifacts = buildPromotionEx.getArtifacts(BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
     final BuildArtifactHolder holder = artifacts.findArtifact(path);
     if (!holder.isAvailable() && !"".equals(path)) { // "".equals(path) is a workaround for no artifact directory case
-      final BuildArtifactHolder testHolder = build.getArtifacts(BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT).findArtifact(path);
+      final BuildArtifactHolder testHolder = buildPromotionEx.getArtifacts(BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT).findArtifact(path);
       if (testHolder.isAvailable()){
         throw new NotFoundException("No artifact with relative path '" + holder.getRelativePath() + "' found with current view mode." +
                                     " Try adding parameter 'locator=" + HIDDEN_DIMENSION_NAME + ":any' to the request.");
       }else{
-        throw new NotFoundException("No artifact with relative path '" + holder.getRelativePath() + "' found in build " + LogUtil.describe(build));
+        throw new NotFoundException("No artifact with relative path '" + holder.getRelativePath() + "' found in build " + LogUtil.describe(buildPromotionEx));
       }
     }
     if (!holder.isAccessible()) {

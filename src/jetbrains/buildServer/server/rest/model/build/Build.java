@@ -623,17 +623,16 @@ public class Build {
 
   @XmlElement(name = "artifacts")
   public Files getArtifacts() {
-    if (myBuild == null) return null;
     return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("artifacts", false), new ValueWithDefault.Value<Files>() {
       @Nullable
       public Files get() {
         final Fields nestedFields = myFields.getNestedField("artifacts");
-        final FileApiUrlBuilder builder = FilesSubResource.fileApiUrlBuilder(nestedFields.getLocator(), BuildRequest.getArtifactsUrlPrefix(myBuild, myBeanContext));
+        final FileApiUrlBuilder builder = FilesSubResource.fileApiUrlBuilder(nestedFields.getLocator(), BuildRequest.getArtifactsUrlPrefix(myBuildPromotion, myBeanContext));
         return new Files(builder.getChildrenHref(null), new ValueWithDefault.Value<List<? extends Element>>() {
           @Nullable
           public List<? extends Element> get() {
             return myBeanContext.getSingletonService(BuildArtifactsFinder.class)
-                                .getItems(BuildArtifactsFinder.getArtifactElement(myBuild, ""), null, nestedFields.getLocator(), builder);
+                                .getItems(BuildArtifactsFinder.getArtifactElement(myBuildPromotion, ""), null, nestedFields.getLocator(), builder);
           }
         }, builder, nestedFields, myBeanContext);
       }

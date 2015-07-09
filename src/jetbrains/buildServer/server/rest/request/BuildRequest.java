@@ -27,7 +27,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
-import jetbrains.buildServer.controllers.artifacts.RepositoryUtil;
 import jetbrains.buildServer.parameters.ProcessingResult;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
@@ -63,6 +62,7 @@ import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsManager;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
 import jetbrains.buildServer.web.util.SessionUser;
+import jetbrains.buildServer.web.util.WebAuthUtil;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -100,6 +100,10 @@ public class BuildRequest {
   }
 
   public static String getBuildHref(@NotNull SBuild build) {
+    return API_BUILDS_URL + "/" + getBuildLocator(build);
+  }
+
+  public static String getBuildHref(@NotNull BuildPromotion build) {
     return API_BUILDS_URL + "/" + getBuildLocator(build);
   }
 
@@ -218,47 +222,62 @@ public class BuildRequest {
   @Path("/{buildLocator}" + ARTIFACTS)
   public FilesSubResource getFilesSubResource(@PathParam("buildLocator") final String buildLocator,
                                               @QueryParam("resolveParameters") final Boolean resolveParameters,
-                                              @QueryParam("logBuildUsage") @DefaultValue("true") final Boolean logBuildUsage) {
-    final SBuild build = myBuildFinder.getBuild(null, buildLocator);
+                                              @QueryParam("logBuildUsage") final Boolean logBuildUsage) {
+    final BuildPromotion buildPromotion = myBuildFinder.getBuildPromotion(null, buildLocator);
 
-    final String urlPrefix = getArtifactsUrlPrefix(build, myBeanContext);
+    final String urlPrefix = getArtifactsUrlPrefix(buildPromotion, myBeanContext);
     return new FilesSubResource(new FilesSubResource.Provider() {
       @Override
       @NotNull
       public ArtifactTreeElement getElement(@NotNull final String path) {
-        return BuildArtifactsFinder.getArtifactElement(build, path);
+        return BuildArtifactsFinder.getArtifactElement(buildPromotion, path);
       }
 
       @NotNull
       @Override
       public String preprocess(@Nullable final String path) {
-        return getResolvedIfNecessary(build, path, resolveParameters);
+        return getResolvedIfNecessary(buildPromotion, path, resolveParameters);
       }
 
       @NotNull
       @Override
       public String getArchiveName(@NotNull final String path) {
-        return WebUtil.getFilename(build) + path.replaceAll("[^a-zA-Z0-9-#.]+", "_") + "_artifacts";
+        final SBuild build = buildPromotion.getAssociatedBuild();
+        if (build != null) {
+          return WebUtil.getFilename(build) + path.replaceAll("[^a-zA-Z0-9-#.]+", "_") + "_artifacts";
+        } else {
+          return (buildPromotion.getBuildTypeExternalId() + "_id" + buildPromotion.getId() + path).replaceAll("[^a-zA-Z0-9-#.]+", "_") + "_artifacts";
+        }
       }
 
       @Override
       public boolean fileContentServed(@Nullable final String path, @NotNull final HttpServletRequest request) {
-        if (logBuildUsage) {
-          RepositoryUtil.logArtifactDownload(request, myBeanContext.getSingletonService(DownloadedArtifactsLogger.class), build, path);
+        if (logBuildUsage == null || logBuildUsage) {
+          //see RepositoryUtil.logArtifactDownload
+          Long authenticatedBuild = WebAuthUtil.getAuthenticatedBuildId(request);
+          if (authenticatedBuild != null) {
+            myBeanContext.getSingletonService(DownloadedArtifactsLogger.class).logArtifactDownload(authenticatedBuild, BuildPromotionFinder.getBuildId(buildPromotion), path);
+            return true;
+          } else {
+            if (logBuildUsage != null) {
+              throw new BadRequestException("No build authentication found while 'logBuildUsage' parameter is set");
+            }
+          }
         }
-        return logBuildUsage;
+        return false;
       }
     }, urlPrefix, myBeanContext, true);
   }
 
   @NotNull
-  public static String getArtifactsUrlPrefix(final @NotNull SBuild build, final @NotNull BeanContext beanContext) {
+  public static String getArtifactsUrlPrefix(final @NotNull BuildPromotion build, final @NotNull BeanContext beanContext) {
     return Util.concatenatePath(beanContext.getApiUrlBuilder().getHref(build), ARTIFACTS);
   }
 
   @NotNull
-  private String getResolvedIfNecessary(@NotNull final SBuild build, @Nullable final String value, @Nullable final Boolean resolveSupported) {
-    if (resolveSupported == null || !resolveSupported || StringUtil.isEmpty(value)) {
+  private String getResolvedIfNecessary(@NotNull final BuildPromotion buildPromotion, @Nullable final String value, @Nullable final Boolean resolveSupported) {
+    final SBuild build = buildPromotion.getAssociatedBuild();  //TeamCity API issue: no way to resolve params by promotion
+    if (build == null || resolveSupported == null || !resolveSupported || StringUtil.isEmpty(value)) {
       return value == null ? "" : value;
     }
     myPermissionChecker.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());

@@ -57,6 +57,10 @@ public class ApiUrlBuilder {
     return myPathTransformer.transform(BuildRequest.getBuildHref(build));
   }
 
+  public String getHref(@NotNull final BuildPromotion build) {
+    return myPathTransformer.transform(BuildRequest.getBuildHref(build));
+  }
+
   public String getHref(@NotNull final SQueuedBuild build) {
     return myPathTransformer.transform(BuildQueueRequest.getQueuedBuildHref(build));
   }

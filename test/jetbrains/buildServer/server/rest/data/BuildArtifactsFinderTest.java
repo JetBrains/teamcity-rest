@@ -137,7 +137,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
 
   private List<ArtifactTreeElement> getArtifacts(final String path, final String filesLocator, final String basePath) {
 //    FilesSubResource.fileApiUrlBuilder(filesLocator, BuildRequest.getArtifactsUrlPrefix(myBuildWithArtifacts, urlPrefix));
-    return myBuildArtifactsFinder.getItems(BuildArtifactsFinder.getArtifactElement(myBuildWithArtifacts, path), basePath, filesLocator, null);
+    return myBuildArtifactsFinder.getItems(BuildArtifactsFinder.getArtifactElement(myBuildWithArtifacts.getBuildPromotion(), path), basePath, filesLocator, null);
   }
 
   private List<String> getNames(final List<ArtifactTreeElement> artifacts) {

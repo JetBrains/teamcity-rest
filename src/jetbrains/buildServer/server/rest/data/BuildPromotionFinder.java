@@ -770,7 +770,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   }
 
   @NotNull
-  private static Long getBuildId(@NotNull final BuildPromotion buildPromotion) {
+  public static Long getBuildId(@NotNull final BuildPromotion buildPromotion) {
     final Long buildId = buildPromotion.getAssociatedBuildId(); //it is important to get id from the build as that might be different from promotion id
     return buildId != null ? buildId : buildPromotion.getId(); // there should be no queued builds with old ids (TW-38777)
   }
@@ -896,7 +896,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       final Boolean failedToStart = locator.lookupSingleDimensionValueAsBoolean(FAILED_TO_START);
       final Boolean canceled = locator.lookupSingleDimensionValueAsBoolean(CANCELED);
       if (canceled == null || canceled || failedToStart == null || failedToStart) {
-        options.setIncludeCanceled(true); //also includes failed to start builds
+        options.setIncludeCanceled(true); //also includes failed to start builds, TW-32060
       } else {
         options.setIncludeCanceled(false);
       }
