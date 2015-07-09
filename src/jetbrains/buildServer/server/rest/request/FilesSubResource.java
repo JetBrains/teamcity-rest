@@ -105,7 +105,7 @@ public class FilesSubResource {
                            @QueryParam("basePath") final String basePath,
                            @QueryParam("locator") final String locator,
                            @QueryParam("fields") String fields) {
-    if (!myArchiveBrowsingSupported){
+    if (!myArchiveBrowsingSupported && locator != null){
       final Boolean browseArchives = new Locator(locator).getSingleDimensionValueAsBoolean(BuildArtifactsFinder.ARCHIVES_DIMENSION_NAME);
       if (browseArchives != null && browseArchives){
         throw new BadRequestException("Archive browsing is not supported for this request, remove '" + BuildArtifactsFinder.ARCHIVES_DIMENSION_NAME + "' dimension");

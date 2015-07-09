@@ -196,7 +196,7 @@ public class BuildRequest {
   @Produces({"application/xml", "application/json"})
   public Properties serveBuildActualParameters(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    myPermissionChecker.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
+    myPermissionChecker.checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getBuildPromotion());
     return new Properties(build.getParametersProvider().getAll(), null, new Fields(fields));
     /* alternative
     try {
@@ -212,7 +212,7 @@ public class BuildRequest {
   @Produces({"text/plain"})
   public String getParameter(@PathParam("buildLocator") String buildLocator, @PathParam("propertyName") String propertyName) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    myPermissionChecker.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
+    myPermissionChecker.checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getBuildPromotion());
     if (StringUtil.isEmpty(propertyName)) {
       throw new BadRequestException("Property name should not be empty");
     }
@@ -242,12 +242,7 @@ public class BuildRequest {
       @NotNull
       @Override
       public String getArchiveName(@NotNull final String path) {
-        final SBuild build = buildPromotion.getAssociatedBuild();
-        if (build != null) {
-          return WebUtil.getFilename(build) + path.replaceAll("[^a-zA-Z0-9-#.]+", "_") + "_artifacts";
-        } else {
-          return (buildPromotion.getBuildTypeExternalId() + "_id" + buildPromotion.getId() + path).replaceAll("[^a-zA-Z0-9-#.]+", "_") + "_artifacts";
-        }
+        return getBuildFileName(buildPromotion, path) + "_artifacts";
       }
 
       @Override
@@ -270,6 +265,16 @@ public class BuildRequest {
   }
 
   @NotNull
+  private String getBuildFileName(@NotNull final BuildPromotion buildPromotion, final @NotNull String path) {
+    final SBuild build = buildPromotion.getAssociatedBuild();
+    if (build != null) {
+      return WebUtil.getFilename(build) + path.replaceAll("[^a-zA-Z0-9-#.]+", "_");
+    } else {
+      return (buildPromotion.getBuildTypeExternalId() + "_id" + buildPromotion.getId() + path).replaceAll("[^a-zA-Z0-9-#.]+", "_");
+    }
+  }
+
+  @NotNull
   public static String getArtifactsUrlPrefix(final @NotNull BuildPromotion build, final @NotNull BeanContext beanContext) {
     return Util.concatenatePath(beanContext.getApiUrlBuilder().getHref(build), ARTIFACTS);
   }
@@ -280,7 +285,7 @@ public class BuildRequest {
     if (build == null || resolveSupported == null || !resolveSupported || StringUtil.isEmpty(value)) {
       return value == null ? "" : value;
     }
-    myPermissionChecker.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
+    myPermissionChecker.checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, buildPromotion);
     final ProcessingResult resolveResult = build.getValueResolver().resolve(value);
     return resolveResult.getResult();
   }

@@ -20,6 +20,8 @@ import com.intellij.openapi.util.text.StringUtil;
 import java.util.Arrays;
 import jetbrains.buildServer.controllers.interceptors.auth.impl.BuildAuthorityHolder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
+import jetbrains.buildServer.serverSide.BuildPromotion;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
@@ -67,6 +69,11 @@ public class PermissionChecker {@NotNull private final SecurityContext mySecurit
 
   public void checkProjectPermission(@NotNull final Permission permission, @Nullable final String internalProjectId) throws AuthorizationFailedException{
     checkProjectPermission(permission, internalProjectId, null);
+  }
+
+  public void checkPermission(@NotNull final Permission permission, @NotNull final BuildPromotion buildPromotion) throws AuthorizationFailedException{
+    final SBuildType buildType = buildPromotion.getBuildType();
+    checkProjectPermission(permission, buildType == null ? null :  buildType.getProjectId(), null);
   }
 
   public void checkProjectPermission(@NotNull final Permission permission,
