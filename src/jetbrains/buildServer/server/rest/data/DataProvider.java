@@ -460,7 +460,7 @@ public class DataProvider {
     final AgentPoolManager agentPoolManager = myServiceLocator.getSingletonService(AgentPoolManager.class);
     final int agentPoolId = agentPool.getAgentPoolId();
     try {
-      agentPoolManager.moveAgentTypesToPool(agentPoolId, Collections.singleton(postedAgent.getId()));
+      agentPoolManager.moveAgentTypesToPool(agentPoolId, Collections.singleton(postedAgent.getAgentTypeId())); //this moves the entire agent type to the pool, not only the agent, TW-40502
     } catch (NoSuchAgentPoolException e) {
       throw new IllegalStateException("Agent pool with id \'" + agentPoolId + "' is not found.");
     }
