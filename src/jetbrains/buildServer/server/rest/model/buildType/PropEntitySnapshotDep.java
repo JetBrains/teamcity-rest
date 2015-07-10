@@ -103,8 +103,8 @@ public class PropEntitySnapshotDep extends PropEntity {
       throw new BadRequestException("Snapshot dependency should have type '" + SNAPSHOT_DEPENDENCY_TYPE_NAME + "'.");
     }
 
-    final Map<String, String> propertiesMap = properties.getMap();
-    final String buildTypeIdFromProperty = propertiesMap.get(NAME_SOURCE_BUILD_TYPE_ID); //compatibility mode with pre-8.0
+    final Map<String, String> propertiesMap = properties == null ? null : properties.getMap();
+    final String buildTypeIdFromProperty = propertiesMap == null ? null : propertiesMap.get(NAME_SOURCE_BUILD_TYPE_ID); //compatibility mode with pre-8.0
     String buildTypeIdDependOn = getBuildTypeExternalIdForDependency(sourceBuildType, buildTypeIdFromProperty, serviceLocator);
     BuildTypeUtil.checkCanUseBuildTypeAsDependency(buildTypeIdDependOn, serviceLocator);
 
@@ -114,9 +114,11 @@ public class PropEntitySnapshotDep extends PropEntity {
     }
 
     final Dependency result = serviceLocator.getSingletonService(DependencyFactory.class).createDependency(buildTypeIdDependOn);
-    for (Map.Entry<String, String> property : propertiesMap.entrySet()) {
-      if (!NAME_SOURCE_BUILD_TYPE_ID.equals(property.getKey())) {
-        setDependencyOption(property.getKey(), property.getValue(), result);
+    if (propertiesMap != null){
+      for (Map.Entry<String, String> property : propertiesMap.entrySet()) {
+        if (!NAME_SOURCE_BUILD_TYPE_ID.equals(property.getKey())) {
+          setDependencyOption(property.getKey(), property.getValue(), result);
+        }
       }
     }
     try {
@@ -170,7 +172,7 @@ public class PropEntitySnapshotDep extends PropEntity {
       throw new IllegalArgumentException("No option found for name '" + name + "'");
     }
     //noinspection unchecked
-    dependency.setOption(option, option.fromString(value));
+    dependency.setOption(option, option.fromString(value));  //todo: try to provide possible values for ENUM options in error message
   }
 
   public static Dependency getSnapshotDep(@NotNull final BuildTypeSettings buildType, @Nullable final String snapshotDepLocator, @NotNull final BuildTypeFinder buildTypeFinder) {
