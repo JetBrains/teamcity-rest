@@ -51,7 +51,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class BuildArtifactsFinder {
   public static final String ARCHIVES_DIMENSION_NAME = "browseArchives";  //whether archives are treated as directories while browsing
-  public static final String HIDDEN_DIMENSION_NAME = "hidden";  //whether to include hidden artifacts
+  public static final String HIDDEN_DIMENSION_NAME = "hidden";  //whether .teamcity directory is included and it's children listed (does not affect anything if within .teamcity already)
   public static final String DIRECTORY_DIMENSION_NAME = "directory";  //whether to include entries which have children
   public static final String DIMENSION_RECURSIVE = "recursive";  //whether to list direct children or recursive children
   public static final String DIMENSION_PATTERNS = "pattern";
@@ -110,7 +110,9 @@ public class BuildArtifactsFinder {
     if (locator != null) {
       includeDirectories = locator.getSingleDimensionValueAsBoolean(DIRECTORY_DIMENSION_NAME);
       includeHidden = locator.getSingleDimensionValueAsBoolean(HIDDEN_DIMENSION_NAME);
-
+      if (isWithinHidden(initialElement)) {
+        includeHidden = null;
+      }
       final String filePatterns = locator.getSingleDimensionValue(DIMENSION_PATTERNS);
       if (filePatterns != null) {
         final String[] splittedPatterns = filePatterns.split(","); //might consider smarter splitting later
@@ -318,11 +320,12 @@ public class BuildArtifactsFinder {
         //noinspection unchecked
         return CollectionsUtil.filterAndConvertCollection(myElement.getChildren(), new Converter<Node, Element>() {
           public Node createFrom(@NotNull final Element source) {
-            return new Node(source, nextListChildrenLevel, nextListArchiveChildrenLevel, myHidden, false);
+            final Boolean nestedHidden = myHidden != null && myHidden && isHiddenDir(source) ? null : myHidden; //do not filter if we list hidden files and already within .teamcity
+            return new Node(source, nextListChildrenLevel, nextListArchiveChildrenLevel, nestedHidden, false);
           }
         }, new Filter<Element>() {
           public boolean accept(@NotNull final Element data) {
-            return FilterUtil.isIncludedByBooleanFilter(myHidden, isHidden(data));
+            return FilterUtil.isIncludedByBooleanFilter(myHidden, isHiddenDir(data)); //do not go into .teamcity
           }
         });
       } catch (BrowserException e) {
@@ -442,9 +445,15 @@ public class BuildArtifactsFinder {
     }
   }
 
-  private static boolean isHidden(final @NotNull Element data) {
+  static boolean isWithinHidden(final @NotNull Element data) {
     final String fullName = data.getFullName();
     return fullName.equals(ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR) ||
            fullName.startsWith(ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR + "/");
+  }
+
+  static boolean isHiddenDir(final @NotNull Element data) {
+    final String fullName = data.getFullName();
+    return fullName.equals(ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR) ||
+           fullName.equals(ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR + "/");
   }
 }

@@ -162,7 +162,12 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   public void testLocatorHidden() throws Exception {
     List<ArtifactTreeElement> artifacts;
 
-    artifacts = getArtifacts("", "hidden:true");
+    artifacts = getArtifacts("", "hidden:any");
+
+    assertSize(5, artifacts);
+    assertContainsByFullName(artifacts, ".teamcity");
+
+   artifacts = getArtifacts("", "hidden:true");
 
     assertSize(1, artifacts);
     assertContainsByFullName(artifacts, ".teamcity");
@@ -193,8 +198,16 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     List<ArtifactTreeElement> artifacts;
 
     artifacts = getArtifacts(".teamcity", null);
+    assertSize(4, artifacts);
 
-    assertSize(0, artifacts);
+    artifacts = getArtifacts(".teamcity/logs", null);
+    assertSize(2, artifacts);
+
+    artifacts = getArtifacts(".teamcity/logs", "hidden:true");
+    assertSize(2, artifacts);
+
+    artifacts = getArtifacts(".teamcity/logs", "hidden:false");
+    assertSize(2, artifacts);
   }
 
   @Test
