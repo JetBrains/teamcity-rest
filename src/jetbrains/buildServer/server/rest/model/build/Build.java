@@ -1094,7 +1094,13 @@ public class Build {
         }
       }
     }
-    final BuildPromotion result = customizer.createPromotion();
+    final BuildPromotion result;
+    try {
+      result = customizer.createPromotion();
+    } catch (IllegalStateException e) {
+      //IllegalStateException is thrown e.g. when we try to create a personal build in a build type which does not allow this
+      throw new BadRequestException("Cannot trigger build: " + e.getMessage());
+    }
     BuildTypeEx modifiedBuildType = getCustomizedSubmittedBuildType(serviceLocator);
     if (modifiedBuildType!= null) {
       //it's core's responsibility to check permissions here
