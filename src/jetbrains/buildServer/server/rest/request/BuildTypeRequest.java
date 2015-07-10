@@ -32,7 +32,6 @@ import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.Branch;
@@ -1105,7 +1104,7 @@ public class BuildTypeRequest {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     final BuildTriggerDescriptor trigger = DataProvider.getTrigger(buildType.get(), triggerLocator);
     if (!buildType.get().removeBuildTrigger(trigger)) {
-      throw new OperationException("Build trigger removal failed");
+      throw new InvalidStateException("Build trigger removal failed");
     }
     buildType.get().persist();
   }
