@@ -109,8 +109,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                               final UserFinder userFinder,
                               final AgentFinder agentFinder) {
     super(new String[]{DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, USER, PERSONAL, STATE, TAG, PROPERTY, COMPATIBLE_AGENT,
-      NUMBER, STATUS, CANCELED, PINNED, DIMENSION_LOOKUP_LIMIT,
-      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
+      NUMBER, STATUS, CANCELED, PINNED, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, DEFAULT_FILTERING,
+      DIMENSION_LOOKUP_LIMIT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
     myBuildPromotionManager = buildPromotionManager;
     myBuildQueue = buildQueue;
     myBuildsManager = buildsManager;
@@ -125,15 +125,10 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   @Override
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(AGENT_NAME, RUNNING, COMPATIBLE_AGENTS_COUNT, SNAPSHOT_DEP, TAGS, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE,
-                               STATE_RUNNING //compatibility with pre-9.1
-    );
-    result.addHiddenDimensions(FAILED_TO_START); //hide this for now
-    result.addHiddenDimensions(BY_PROMOTION);
-    result.addHiddenDimensions(EQUIVALENT, REVISION);
-    result.addHiddenDimensions(PROMOTION_ID_ALIAS);
-    result.addHiddenDimensions(BUILD_ID);
-    result.addHiddenDimensions(DEFAULT_FILTERING);
+    result.addHiddenDimensions(AGENT_NAME, TAGS, RUNNING); //compatibility
+    result.addHiddenDimensions(BY_PROMOTION); //switch for legacy behavior
+    result.addHiddenDimensions(COMPATIBLE_AGENTS_COUNT); //experimental for queued builds only
+    result.addHiddenDimensions(EQUIVALENT, REVISION, PROMOTION_ID_ALIAS, BUILD_ID);
     return result;
   }
 
