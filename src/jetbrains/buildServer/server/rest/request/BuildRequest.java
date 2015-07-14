@@ -403,11 +403,14 @@ public class BuildRequest {
   @POST
   @Path("/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
-  public void addTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
+  @Produces({"application/xml", "application/json"})
+  public Tags addTags(@PathParam("buildLocator") String buildLocator, Tags tags, @QueryParam("fields") String fields) {
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
     final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
 
-    tagsManager.addTagDatas(build, tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class)));
+    final List<TagData> tagsPosted = tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class));
+    tagsManager.addTagDatas(build, tagsPosted);
+    return new Tags(tagsPosted, new Fields(fields), myBeanContext);
   }
 
   /**
@@ -658,6 +661,7 @@ public class BuildRequest {
     final String mediaType = WebUtil.getMimeType(request, resultIconFileName);
     return Response.ok(streamingOutput, mediaType).header("Cache-Control", "no-cache").build();
     //todo: consider using ETag for better caching/cache resets, might also use "Expires" header
+    //see also setting no caching headers in jetbrains.buildServer.server.rest.request.FilesSubResource.getContentByStream()
   }
 
   @NotNull
