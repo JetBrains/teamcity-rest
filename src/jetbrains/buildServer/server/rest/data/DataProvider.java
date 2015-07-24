@@ -406,6 +406,9 @@ public class DataProvider {
     return getCurrentUser(serviceLocator.getSingletonService(SecurityContext.class), serviceLocator.getSingletonService(UserModel.class));
   }
 
+  /**
+   * Use UserFinder.getCurrentUser instead
+   */
   @Nullable
   private static SUser getCurrentUser(@NotNull final SecurityContext securityContext, @NotNull final UserModel userModel) {
     //also related API: SessionUser.getUser(request)

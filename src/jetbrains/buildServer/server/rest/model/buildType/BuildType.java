@@ -602,7 +602,7 @@ public class BuildType {
       }
       result = true;
       buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType().setPaused(Boolean.valueOf(submittedPaused),
-                                                                                   serviceLocator.getSingletonService(DataProvider.class).getCurrentUser(),
+                                                                                   serviceLocator.getSingletonService(UserFinder.class).getCurrentUser(),
                                                                                    TeamCityProperties.getProperty("rest.defaultActionComment"));
     }
     if (submittedTemplate != null) {
