@@ -402,11 +402,36 @@ public class BuildType {
       throw new BadRequestException("Cannot change build type name from '" + buildType.getName() + "' to '" + submittedName + "'. Remove the name from submitted build type.");
     }
 
-    final BuildTypeEx editableCopy = buildType.createEditableCopy(false); //todo: support build type "patching"
+    // consider checking other unsupported options here, see https://confluence.jetbrains.com/display/TCINT/Versioned+Settings+Freeze
+    // At time of 9.1:
+    //VCS
+    //VCS roots and checkout rules
+    //build triggers
+    //snapshot dependencies
+    //fail build on error message from build runner
+    //build features executed on server
+    //VCS labeling
+    //auto-merge
+    //status widget
+    //enable/disable of personal builds
 
-    final BuildTypeOrTemplate result = new BuildTypeOrTemplate(editableCopy);
-    if (fillBuildTypeOrTemplate(result, serviceLocator)) {
-      return result;
+    final BuildTypeOrTemplatePatcher buildTypeOrTemplatePatcher = new BuildTypeOrTemplatePatcher() {
+      private BuildTypeOrTemplate myCached = null;
+
+      @NotNull
+      public BuildTypeOrTemplate getBuildTypeOrTemplate() {
+        if (myCached == null) myCached = new BuildTypeOrTemplate(buildType.createEditableCopy(false));  //todo: support "true" value for build type "patching"
+        return myCached;
+      }
+    };
+
+    try {
+      if (fillBuildTypeOrTemplate(buildTypeOrTemplatePatcher, serviceLocator)) {
+        return buildTypeOrTemplatePatcher.getBuildTypeOrTemplate();
+      }
+    } catch (UnsupportedOperationException e) {
+      //this gets thrown when we try to set not supported settings to an editable build type
+      throw new BadRequestException("Error changing build type as per submitted settings", e);
     }
 
     return null;
@@ -535,81 +560,97 @@ public class BuildType {
       throw new BadRequestException("When creating a build type, non empty name should be provided.");
     }
 
-    BuildTypeOrTemplate resultingBuildType;
-    if (submittedTemplateFlag == null || !submittedTemplateFlag) {
-      resultingBuildType = new BuildTypeOrTemplate(project.createBuildType(getIdForBuildType(serviceLocator, project, submittedName), submittedName));
-    } else {
-      resultingBuildType = new BuildTypeOrTemplate(project.createBuildTypeTemplate(getIdForBuildType(serviceLocator, project, submittedName), submittedName));
-    }
+    final BuildTypeOrTemplate resultingBuildType = createEmptyBuildTypeOrTemplate(serviceLocator, project, submittedName);
 
-    fillBuildTypeOrTemplate(resultingBuildType, serviceLocator);
+    fillBuildTypeOrTemplate(new BuildTypeOrTemplatePatcher() {
+      @NotNull
+      public BuildTypeOrTemplate getBuildTypeOrTemplate() {
+        return resultingBuildType;
+      }
+    }, serviceLocator);
 
     return resultingBuildType;
   }
 
+  @NotNull
+  private BuildTypeOrTemplate createEmptyBuildTypeOrTemplate(final @NotNull ServiceLocator serviceLocator, final @NotNull SProject project, final @NotNull String name) {
+    if (submittedTemplateFlag == null || !submittedTemplateFlag) {
+      return new BuildTypeOrTemplate(project.createBuildType(getIdForBuildType(serviceLocator, project, name), name));
+    } else {
+      return new BuildTypeOrTemplate(project.createBuildTypeTemplate(getIdForBuildType(serviceLocator, project, name), name));
+    }
+  }
+
+  private interface BuildTypeOrTemplatePatcher {
+    @NotNull
+    BuildTypeOrTemplate getBuildTypeOrTemplate();
+  }
+
   /**
+   * @param buildTypeOrTemplatePatcher provider of the build type to patch. Build type/template will only be retrieved if patching is necessary
    * @return true if there were modification attempts
    */
-  private boolean fillBuildTypeOrTemplate(@NotNull final BuildTypeOrTemplate resultingBuildType, final @NotNull ServiceLocator serviceLocator) {
+  private boolean fillBuildTypeOrTemplate(final @NotNull BuildTypeOrTemplatePatcher buildTypeOrTemplatePatcher, final @NotNull ServiceLocator serviceLocator) {
     boolean result = false;
     if (submittedDescription != null) {
       result = true;
-      resultingBuildType.setDescription(submittedDescription);
+      buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().setDescription(submittedDescription);
     }
     if (submittedPaused != null) {
-      if (resultingBuildType.getBuildType() == null) {
+      if (buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType() == null) {
         throw new BadRequestException("Cannot set paused state for a template");
       }
       result = true;
-      resultingBuildType.getBuildType().setPaused(Boolean.valueOf(submittedPaused), serviceLocator.getSingletonService(DataProvider.class).getCurrentUser(),
-                                                  TeamCityProperties.getProperty("rest.defaultActionComment"));
+      buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType().setPaused(Boolean.valueOf(submittedPaused),
+                                                                                   serviceLocator.getSingletonService(DataProvider.class).getCurrentUser(),
+                                                                                   TeamCityProperties.getProperty("rest.defaultActionComment"));
     }
     if (submittedTemplate != null) {
-      if (resultingBuildType.getBuildType() == null) {
+      if (buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType() == null) {
         throw new BadRequestException("Cannot set template for a template");
       }
       //noinspection ConstantConditions
       final BuildTypeOrTemplate templateFromPosted = submittedTemplate.getBuildTypeFromPosted(serviceLocator.findSingletonService(BuildTypeFinder.class));
       if (templateFromPosted.getTemplate() == null) {
-        throw new BadRequestException("emplate should reference a template, not build type");
+        throw new BadRequestException("'template' field should reference a template, not build type");
       }
       result = true;
-      resultingBuildType.getBuildType().attachToTemplate(templateFromPosted.getTemplate());
+      buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType().attachToTemplate(templateFromPosted.getTemplate());
     }
     if (submittedVcsRootEntries != null && submittedVcsRootEntries.vcsRootAssignments != null) {
       for (VcsRootEntry entity : submittedVcsRootEntries.vcsRootAssignments) {
         result = true;
-        BuildTypeRequest.addVcsRoot(resultingBuildType, entity, serviceLocator.getSingletonService(VcsRootFinder.class));
+        BuildTypeRequest.addVcsRoot(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate(), entity, serviceLocator.getSingletonService(VcsRootFinder.class));
       }
     }
     if (submittedParameters != null && submittedParameters.properties != null) {
       for (Property p : submittedParameters.properties) {
         result = true;
-        BuildTypeUtil.changeParameter(p.name, p.value, resultingBuildType.get(), serviceLocator);
+        BuildTypeUtil.changeParameter(p.name, p.value, buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().get(), serviceLocator);
       }
     }
     if (submittedSteps != null && submittedSteps.propEntities != null) {
       for (PropEntityStep entity : submittedSteps.propEntities) {
         result = true;
-        entity.addStep(resultingBuildType.get());
+        entity.addStep(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().get());
       }
     }
     if (submittedFeatures != null && submittedFeatures.propEntities != null) {
       for (PropEntityFeature entity : submittedFeatures.propEntities) {
         result = true;
-        entity.addFeature(resultingBuildType.get(), serviceLocator.getSingletonService(BuildFeatureDescriptorFactory.class));
+        entity.addFeature(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().get(), serviceLocator.getSingletonService(BuildFeatureDescriptorFactory.class));
       }
     }
     if (submittedTriggers != null && submittedTriggers.propEntities != null) {
       for (PropEntityTrigger entity : submittedTriggers.propEntities) {
         result = true;
-        entity.addTrigger(resultingBuildType.get(), serviceLocator.getSingletonService(BuildTriggerDescriptorFactory.class));
+        entity.addTrigger(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().get(), serviceLocator.getSingletonService(BuildTriggerDescriptorFactory.class));
       }
     }
     if (submittedSnapshotDependencies != null && submittedSnapshotDependencies.propEntities != null) {
       for (PropEntitySnapshotDep entity : submittedSnapshotDependencies.propEntities) {
         result = true;
-        entity.addSnapshotDependency(resultingBuildType.get(), serviceLocator);
+        entity.addSnapshotDependency(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().get(), serviceLocator);
       }
     }
     if (submittedArtifactDependencies != null && submittedArtifactDependencies.propEntities != null) {
@@ -620,18 +661,18 @@ public class BuildType {
           }
         });
       result = true;
-      resultingBuildType.get().setArtifactDependencies(dependencyObjects);
+      buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().get().setArtifactDependencies(dependencyObjects);
     }
     if (submittedAgentRequirements != null && submittedAgentRequirements.propEntities != null) {
       for (PropEntityAgentRequirement entity : submittedAgentRequirements.propEntities) {
         result = true;
-        entity.addRequirement(resultingBuildType);
+        entity.addRequirement(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate());
       }
     }
     if (submittedSettings != null && submittedSettings.properties != null) {
       for (Property property : submittedSettings.properties) {
         try {
-          BuildTypeRequest.setSetting(resultingBuildType, property.name, property.value);
+          BuildTypeRequest.setSetting(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate(), property.name, property.value);
           result = true;
         } catch (java.lang.UnsupportedOperationException e) {  //can be thrown from EditableBuildTypeCopy
           LOG.debug("Error setting property '" + property.name + "' to value '" + property.value + "': " + e.getMessage());
