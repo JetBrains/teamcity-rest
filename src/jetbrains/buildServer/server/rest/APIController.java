@@ -406,9 +406,12 @@ public class APIController extends BaseController implements ServletContextAware
         if (processRequestAuthentication(request, response, myAuthManager)){
           return null;
         }
-        if (SessionUser.getUser(request) == null){
+        //TeamCity API issue: SecurityContext.getAuthorityHolder is "SYSTEM" if request is not authorized
+        final boolean notAuthorizedRequest = ((SecurityContextEx)mySecurityContext).isSystemAccess();
+        if (notAuthorizedRequest) {
           response.setStatus(401);
-          response.getWriter().write("TeamCity core was unable to handle authentication.");
+          response.getWriter().write("TeamCity core was unable to handle authentication (no current user).");
+          LOG.warn("TeamCity core was unable to handle authentication (no current user), replying with 401 status. Request details: " + WebUtil.getRequestDump(request));
           return null;
         }
       }
