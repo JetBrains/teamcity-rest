@@ -42,6 +42,7 @@ import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.BuildCancelRequest;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
+import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.files.File;
 import jetbrains.buildServer.server.rest.model.files.Files;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
@@ -187,10 +188,7 @@ public class BuildRequest {
   public String getParameter(@PathParam("buildLocator") String buildLocator, @PathParam("propertyName") String propertyName) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     myDataProvider.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
-    if (StringUtil.isEmpty(propertyName)) {
-      throw new BadRequestException("Property name should not be empty");
-    }
-    return build.getParametersProvider().get(propertyName);
+    return BuildTypeUtil.getParameter(propertyName, build.getParametersProvider(), true, true);
   }
 
   /**
