@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.BuildTypeDescriptor;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -129,9 +130,24 @@ public class BuildTypeUtil {
     if (StringUtil.isEmpty(parameterName)) {
       throw new BadRequestException(nameItProperty ? "Property" : "Parameter" + " name cannot be empty.");
     }
-    if (parameters.containsKey(parameterName)) {
+    if (parameters.containsKey(parameterName)) { // this processes stored "null" values duly, but this might not be necessary...
       if (!checkSecure || !Property.isPropertyToExclude(parameterName)) {
         return parameters.get(parameterName);
+      } else {
+        throw new BadRequestException("Secure " + (nameItProperty ? "properties" : "parameters") + " cannot be retrieved via remote API by default.");
+      }
+    }
+    throw new NotFoundException((nameItProperty ? "No property" : "No parameter") + " with name '" + parameterName + "' is found.");
+  }
+
+  public static String getParameter(@Nullable final String parameterName, @NotNull final ParametersProvider parameters, final boolean checkSecure, final boolean nameItProperty) {
+    if (StringUtil.isEmpty(parameterName)) {
+      throw new BadRequestException(nameItProperty ? "Property" : "Parameter" + " name cannot be empty.");
+    }
+    final String value = parameters.get(parameterName);
+    if (value != null) {
+      if (!checkSecure || !Property.isPropertyToExclude(parameterName)) {
+        return value;
       } else {
         throw new BadRequestException("Secure " + (nameItProperty ? "properties" : "parameters") + " cannot be retrieved via remote API by default.");
       }

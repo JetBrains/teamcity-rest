@@ -578,17 +578,8 @@ public class BuildTypeRequest {
   @Produces({"text/plain"})
   public String getStepParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId,
                                  @PathParam("parameterName") String parameterName) {
-    SBuildRunnerDescriptor step = getBuildTypeStep(myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator
-    ).get(), stepId);
-    return getParameterValue(step, parameterName);
-  }
-
-  private static String getParameterValue(final ParametersDescriptor parametersHolder, final String parameterName) {
-    Map<String, String> stepParameters = parametersHolder.getParameters();
-    if (!stepParameters.containsKey(parameterName)) {
-      throw new NotFoundException("No parameter with name '" + parameterName + "' is found in the step parameters.");
-    }
-    return stepParameters.get(parameterName);
+    SBuildRunnerDescriptor step = getBuildTypeStep(myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator).get(), stepId);
+    return BuildTypeUtil.getParameter(parameterName, step.getParameters(), true, false);
   }
 
   private SBuildRunnerDescriptor getBuildTypeStep(final BuildTypeSettings buildType, final String stepId) {
@@ -614,7 +605,7 @@ public class BuildTypeRequest {
     parameters.put(parameterName, newValue);
     buildType.get().updateBuildRunner(step.getId(), step.getName(), step.getType(), parameters);
     buildType.get().persist();
-    return getParameterValue(step, parameterName);
+    return BuildTypeUtil.getParameter(parameterName, step.getParameters(), false, false);
   }
 
   @GET
@@ -758,7 +749,7 @@ public class BuildTypeRequest {
                                     @PathParam("parameterName") String parameterName) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator);
     SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType.get(), featureId);
-    return feature.getParameters().get(parameterName);
+    return BuildTypeUtil.getParameter(parameterName, feature.getParameters(), true, false);
   }
 
   @PUT
@@ -777,7 +768,7 @@ public class BuildTypeRequest {
     parameters.put(parameterName, newValue);
     buildType.get().updateBuildFeature(feature.getId(), feature.getType(), parameters);
     buildType.get().persist();
-    return feature.getParameters().get(parameterName);
+    return BuildTypeUtil.getParameter(parameterName, feature.getParameters(), false, false);
   }
 
 
