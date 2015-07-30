@@ -26,6 +26,7 @@ import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.server.rest.model.user.User;
@@ -172,8 +173,7 @@ public class UserRequest {
 
     Map<String, String> parameters = User.getUserProperties(user);
     if (parameters.containsKey(parameterName)) {
-      //TODO: process secure fields
-      return parameters.get(parameterName);
+      return BuildTypeUtil.getParameter(parameterName, parameters, true, true);
     }
     throw new NotFoundException("No property with name '" + parameterName + "' is found.");
   }

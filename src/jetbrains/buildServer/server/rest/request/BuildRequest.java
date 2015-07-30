@@ -36,6 +36,7 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
+import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
@@ -148,10 +149,8 @@ public class BuildRequest {
   @Produces({"text/plain"})
   public String getParameter(@PathParam("buildLocator") String buildLocator, @PathParam("propertyName") String propertyName) {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
-    if (StringUtil.isEmpty(propertyName)){
-      throw new BadRequestException("Property name should not be empty");
-    }
-    return build.getParametersProvider().get(propertyName);
+    myDataProvider.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
+    return BuildTypeUtil.getParameter(propertyName, build.getParametersProvider(), true, true);
   }
 
   //todo: need to expose file name and type?

@@ -367,15 +367,7 @@ public class BuildTypeRequest {
   public String getStepParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId,
                                  @PathParam("parameterName") String parameterName) {
     SBuildRunnerDescriptor step = getBuildTypeStep(myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator).get(), stepId);
-    return getParameterValue(step, parameterName);
-  }
-
-  private static String getParameterValue(final ParametersDescriptor parametersHolder, final String parameterName) {
-    Map<String, String> stepParameters = parametersHolder.getParameters();
-    if (!stepParameters.containsKey(parameterName)) {
-      throw new NotFoundException("No parameter with name '" + parameterName + "' is found in the step parameters.");
-    }
-    return stepParameters.get(parameterName);
+    return BuildTypeUtil.getParameter(parameterName, step.getParameters(), true, false);
   }
 
   private SBuildRunnerDescriptor getBuildTypeStep(final BuildTypeSettings buildType, final String stepId) {
@@ -474,7 +466,7 @@ public class BuildTypeRequest {
                                     @PathParam("parameterName") String parameterName) {
     BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(null, buildTypeLocator);
     SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType.get(), featureId);
-    return feature.getParameters().get(parameterName);
+    return BuildTypeUtil.getParameter(parameterName, feature.getParameters(), true, false);
   }
 
   @PUT

@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.BuildTypeDescriptor;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -141,22 +142,37 @@ public class BuildTypeUtil {
     return StringUtil.lastPartOf(vcsRootHref, '/');
   }
 
-  public static String getParameter(final String parameterName, final UserParametersHolder parametrizedEntity) {
-    if (StringUtil.isEmpty(parameterName)) {
-      throw new BadRequestException("Parameter name cannot be empty.");
-    }
+  public static String getParameter(final String parameterName, @NotNull final UserParametersHolder parametrizedEntity) {
+    return getParameter(parameterName, parametrizedEntity.getParameters(), true, false);
+  }
 
-    Map<String, String> parameters = parametrizedEntity.getParameters();
-    if (parameters.containsKey(parameterName)) {
-      if (!Properties.isPropertyToExclude(parameterName)) {
-        //TODO: need to process spec type to filter secure fields, may be include display value
-        //TODO: might support type spec here
+  public static String getParameter(final String parameterName, @NotNull final Map<String, String> parameters, final boolean checkSecure, final boolean nameItProperty) {
+    if (StringUtil.isEmpty(parameterName)) {
+      throw new BadRequestException(nameItProperty ? "Property" : "Parameter" + " name cannot be empty.");
+    }
+    if (parameters.containsKey(parameterName)) { // this processes stored "null" values duly, but this might not be necessary...
+      if (!checkSecure || !Properties.isPropertyToExclude(parameterName)) {
         return parameters.get(parameterName);
-      }else{
-        throw new BadRequestException("Secure parameters cannot be retrieved via remote API by default.");
+      } else {
+        throw new BadRequestException("Secure " + (nameItProperty ? "properties" : "parameters") + " cannot be retrieved via remote API by default.");
       }
     }
-    throw new NotFoundException("No parameter with name '" + parameterName + "' is found.");
+    throw new NotFoundException((nameItProperty ? "No property" : "No parameter") + " with name '" + parameterName + "' is found.");
+  }
+
+  public static String getParameter(final String parameterName, @NotNull final ParametersProvider parameters, final boolean checkSecure, final boolean nameItProperty) {
+    if (StringUtil.isEmpty(parameterName)) {
+      throw new BadRequestException(nameItProperty ? "Property" : "Parameter" + " name cannot be empty.");
+    }
+    final String value = parameters.get(parameterName);
+    if (value != null) {
+      if (!checkSecure || !Properties.isPropertyToExclude(parameterName)) {
+        return value;
+      } else {
+        throw new BadRequestException("Secure " + (nameItProperty ? "properties" : "parameters") + " cannot be retrieved via remote API by default.");
+      }
+    }
+    throw new NotFoundException((nameItProperty ? "No property" : "No parameter") + " with name '" + parameterName + "' is found.");
   }
 
   public static void changeParameter(final String parameterName,
