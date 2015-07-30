@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.BuildTypeDescriptor;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -132,8 +133,7 @@ public class BuildTypeUtil {
     if (StringUtil.isEmpty(parameterName)) {
       throw new BadRequestException(nameItProperty ? "Property" : "Parameter" + " name cannot be empty.");
     }
-    assert parameterName != null;
-    if (parameters.containsKey(parameterName)) {
+    if (parameters.containsKey(parameterName)) { // this processes stored "null" values duly, but this might not be necessary...
       if (!checkSecure || !Properties.isPropertyToExclude(parameterName)) {
         //TODO: need to process spec type to filter secure fields, may be include display value
         //TODO: might support type spec here
@@ -145,7 +145,21 @@ public class BuildTypeUtil {
     throw new NotFoundException((nameItProperty ? "No property" : "No parameter") + " with name '" + parameterName + "' is found.");
   }
 
-  //TODO: support type spec here, http://youtrack.jetbrains.com/issue/TW-21220
+  public static String getParameter(@Nullable final String parameterName, @NotNull final ParametersProvider parameters, final boolean checkSecure, final boolean nameItProperty) {
+    if (StringUtil.isEmpty(parameterName)) {
+      throw new BadRequestException(nameItProperty ? "Property" : "Parameter" + " name cannot be empty.");
+    }
+    final String value = parameters.get(parameterName);
+    if (value != null) {
+      if (!checkSecure || !Properties.isPropertyToExclude(parameterName)) {
+        return value;
+      } else {
+        throw new BadRequestException("Secure " + (nameItProperty ? "properties" : "parameters") + " cannot be retrieved via remote API by default.");
+      }
+    }
+    throw new NotFoundException((nameItProperty ? "No property" : "No parameter") + " with name '" + parameterName + "' is found.");
+  }
+
   public static void changeParameter(final String parameterName,
                                      final String newValue,
                                      @NotNull final UserParametersHolder parametrizedEntity,
