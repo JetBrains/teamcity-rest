@@ -258,7 +258,7 @@ public class DebugRequest {
   @GET
   @Path("/threadDump")
   @Produces({"text/plain"})
-  public String scheduleCheckingForChanges(@QueryParam("lockedMonitors") String lockedMonitors, @QueryParam("lockedSynchronizers") String lockedSynchronizers) {
+  public String getThreadDump(@QueryParam("lockedMonitors") String lockedMonitors, @QueryParam("lockedSynchronizers") String lockedSynchronizers) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     final Date startTime = Dates.now();
     ThreadInfo[] infos = ManagementFactory.getThreadMXBean().dumpAllThreads(Boolean.getBoolean(lockedMonitors), Boolean.getBoolean(lockedSynchronizers));

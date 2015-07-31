@@ -169,7 +169,7 @@ public class ServerRequest {
       @Override
       @NotNull
       public String getArchiveName(@NotNull final String path) {
-        return areaId + (StringUtil.isEmpty(path) ? "" : "-" + path.replaceAll("[^a-zA-Z0-9-#.]+", "_"));
+        return "server_" + areaId + (StringUtil.isEmpty(path) ? "" : "-" + path.replaceAll("[^a-zA-Z0-9-#.]+", "_"));
       }
     }, urlPrefix, myBeanContext, false);
   }
