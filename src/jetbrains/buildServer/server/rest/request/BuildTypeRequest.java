@@ -566,7 +566,7 @@ public class BuildTypeRequest {
 
     buildType.updateBuildRunner(step.getId(), step.getName(), step.getType(), properties.getMap());
     buildType.persist();
-    return new Properties(step.getParameters(), null, new Fields(fields));
+    return new Properties(getBuildTypeStep(buildType, stepId).getParameters(), null, new Fields(fields));
   }
 
   @GET
@@ -601,7 +601,7 @@ public class BuildTypeRequest {
     parameters.put(parameterName, newValue);
     buildType.get().updateBuildRunner(step.getId(), step.getName(), step.getType(), parameters);
     buildType.get().persist();
-    return BuildTypeUtil.getParameter(parameterName, step.getParameters(), false, false);
+    return BuildTypeUtil.getParameter(parameterName, getBuildTypeStep(buildType.get(), stepId).getParameters(), false, false);
   }
 
   @GET
@@ -624,7 +624,7 @@ public class BuildTypeRequest {
     final SBuildRunnerDescriptor step = getBuildTypeStep(buildType, stepId);
     PropEntityStep.setSetting(buildType, step, name, newValue);
     buildType.persist();
-    return PropEntityStep.getSetting(buildType, step, name);
+    return PropEntityStep.getSetting(buildType, getBuildTypeStep(buildType, stepId), name);
   }
 
 
@@ -735,7 +735,7 @@ public class BuildTypeRequest {
 
     buildType.get().updateBuildFeature(feature.getId(), feature.getType(), properties.getMap());
     buildType.get().persist();
-    return new Properties(feature.getParameters(), null, new Fields(fields));
+    return new Properties(BuildTypeUtil.getBuildTypeFeature(buildType.get(), featureId).getParameters(), null, new Fields(fields));
   }
 
   @GET
@@ -764,7 +764,7 @@ public class BuildTypeRequest {
     parameters.put(parameterName, newValue);
     buildType.get().updateBuildFeature(feature.getId(), feature.getType(), parameters);
     buildType.get().persist();
-    return BuildTypeUtil.getParameter(parameterName, feature.getParameters(), false, false);
+    return BuildTypeUtil.getParameter(parameterName, BuildTypeUtil.getBuildTypeFeature(buildType.get(), featureId).getParameters(), false, false);
   }
 
 
@@ -788,7 +788,7 @@ public class BuildTypeRequest {
     final SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType, featureId);
     PropEntityStep.setSetting(buildType, feature, name, newValue);
     buildType.persist();
-    return PropEntityStep.getSetting(buildType, feature, name);
+    return PropEntityStep.getSetting(buildType, BuildTypeUtil.getBuildTypeFeature(buildType, featureId), name);
   }
 
 
@@ -1136,7 +1136,7 @@ public class BuildTypeRequest {
     final BuildTriggerDescriptor trigger = DataProvider.getTrigger(buildType, triggerLocator);
     PropEntityStep.setSetting(buildType, trigger, name, newValue);
     buildType.persist();
-    return PropEntityStep.getSetting(buildType, trigger, name);
+    return PropEntityStep.getSetting(buildType, DataProvider.getTrigger(buildType, triggerLocator), name);
   }
 
 
