@@ -71,7 +71,7 @@ public class Builds implements DefaultValueAware {
                 @Nullable final PagerData pagerData,
                 @NotNull final Fields fields,
                 @NotNull final BeanContext beanContext) {
-    if (buildObjects != null && fields.isIncluded("build", false, true)) {
+    if (buildObjects != null && (fields.isIncluded("build", false, true) || fields.isIncluded("count", false, true))) {
       final ArrayList<Build> buildsList = new ArrayList<Build>(buildObjects.size());
       for (BuildPromotion build : buildObjects) {
         buildsList.add(new Build(build, fields.getNestedField("build"), beanContext));
