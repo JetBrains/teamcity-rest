@@ -21,6 +21,7 @@ import java.util.Arrays;
 import jetbrains.buildServer.controllers.interceptors.auth.impl.BuildAuthorityHolder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.serverSide.BuildPromotion;
+import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
@@ -69,6 +70,10 @@ public class PermissionChecker {@NotNull private final SecurityContext mySecurit
 
   public void checkProjectPermission(@NotNull final Permission permission, @Nullable final String internalProjectId) throws AuthorizationFailedException{
     checkProjectPermission(permission, internalProjectId, null);
+  }
+
+  public void checkPermission(@NotNull final Permission permission, @NotNull final BuildTypeSettings buildTypeSettings) throws AuthorizationFailedException{
+    checkProjectPermission(permission, buildTypeSettings.getProject().getProjectId());
   }
 
   public void checkPermission(@NotNull final Permission permission, @NotNull final BuildPromotion buildPromotion) throws AuthorizationFailedException{

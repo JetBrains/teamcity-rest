@@ -31,7 +31,9 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
   public void setUp() throws Exception {
     super.setUp();
     myProject.remove();
-    setFinder(new ProjectFinder(myProjectManager));
+    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
+    myFixture.addService(permissionChecker);
+    setFinder(new ProjectFinder(myProjectManager, permissionChecker, myServer));
   }
 
   @Test

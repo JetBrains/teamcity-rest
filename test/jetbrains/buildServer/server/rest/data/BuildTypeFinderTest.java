@@ -32,10 +32,13 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
+    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
+    myFixture.addService(permissionChecker);
+
+    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
     final AgentFinder agentFinder = new AgentFinder(myAgentManager);
 
-    setFinder(new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, myServer));
+    setFinder(new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myServer));
   }
 
   @Test
@@ -204,10 +207,13 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     final BuildTypeOrTemplate p10_bt20 = new BuildTypeOrTemplate(project10.createBuildType("p10_bt20", "p10_bt20"));
     final BuildTypeOrTemplate p10_bt30 = new BuildTypeOrTemplate(project10.createBuildTypeTemplate("p10_bt30", "p10_bt30"));
 
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
+    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
+    myFixture.addService(permissionChecker);
+
+    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
     final AgentFinder agentFinder = new AgentFinder(myAgentManager);
 
-    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, myServer);
+    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myServer);
 
     PagedSearchResult<BuildTypeOrTemplate> result = buildTypeFinder.getBuildTypesPaged(project10, null, true);
 

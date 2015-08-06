@@ -20,14 +20,18 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.util.ArrayList;
 import java.util.List;
 import jetbrains.buildServer.BuildProject;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.APIController;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -50,14 +54,16 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   protected static final String DIMENSION_PARAMETER = "parameter";
 
   @NotNull private final ProjectManager myProjectManager;
+  private final PermissionChecker myPermissionChecker;
 
-  public ProjectFinder(@NotNull final ProjectManager projectManager){
+  public ProjectFinder(@NotNull final ProjectManager projectManager, final PermissionChecker permissionChecker, @NotNull final ServiceLocator serviceLocator){
     super(new String[]{DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, DIMENSION_AFFECTED_PROJECT, DIMENSION_NAME, DIMENSION_ARCHIVED,
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME,
       PagerData.START,
       PagerData.COUNT
     });
     myProjectManager = projectManager;
+    myPermissionChecker = permissionChecker;
   }
 
   public static String getLocator(final BuildProject project) {
@@ -187,6 +193,11 @@ public class ProjectFinder extends AbstractFinder<SProject> {
       final ParameterCondition parameterCondition = ParameterCondition.create(parameterDimension);
       result.add(new FilterConditionChecker<SProject>() {
         public boolean isIncluded(@NotNull final SProject item) {
+          final boolean canView = !Project.shouldRestrictSettingsViewing(item, myPermissionChecker);
+          if (!canView) {
+            LOG.debug("While filtering projects by " + DIMENSION_PARAMETER + " user does not have enough permissions to see settings. Excluding project: " + item.describe(false));
+            return false;
+          }
           return parameterCondition.matches(new MapParametersProviderImpl(item.getOwnParameters()));
         }
       });
@@ -271,5 +282,21 @@ public class ProjectFinder extends AbstractFinder<SProject> {
     if (parent.getProjectId().equals(project.getProjectId())) return true;
     if (project.getParentProject() == null) return false;
     return isSameOrParent(parent, project.getParentProject());
+  }
+
+  @NotNull
+  public SProject getItem(@Nullable final String locatorText, final boolean checkViewSettingsPermission) {
+    final SProject result = super.getItem(locatorText, null);
+    if (checkViewSettingsPermission) {
+      check(result, myPermissionChecker);
+    }
+    return result;
+  }
+
+  public static void check(@NotNull SProject project, @NotNull final PermissionChecker permissionChecker) {
+    if (Project.shouldRestrictSettingsViewing(project, permissionChecker)) {
+      throw new AuthorizationFailedException(
+        "User does not have '" + Permission.VIEW_BUILD_CONFIGURATION_SETTINGS.getName() + "' permission in project " + project.describe(false));
+    }
   }
 }

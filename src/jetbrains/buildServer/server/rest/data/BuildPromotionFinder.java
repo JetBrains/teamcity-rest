@@ -198,7 +198,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     if (number != null) {
       final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
       if (buildTypeLocator != null) {
-        final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
+        final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
         SBuild build = myBuildsManager.findBuildInstanceByBuildNumber(buildType.getBuildTypeId(), number);
         if (build == null) {
           throw new NotFoundException("No build can be found by number '" + number + "' in build configuration with id '" + buildType.getExternalId() + "'.");
@@ -297,7 +297,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
     if (buildTypeLocator != null) {
-      final SBuildType buildType = myBuildTypeFinder.getBuildType(affectedProject, buildTypeLocator);
+      final SBuildType buildType = myBuildTypeFinder.getBuildType(affectedProject, buildTypeLocator, false);
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
           return buildType.equals(item.getParentBuildType());
@@ -872,7 +872,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         if (affectedProjectLocator != null) {
           affectedProject = myProjectFinder.getItem(affectedProjectLocator);
         }
-        buildType = myBuildTypeFinder.getBuildType(affectedProject, buildTypeLocator);
+        buildType = myBuildTypeFinder.getBuildType(affectedProject, buildTypeLocator, false);
       }
 
       final BuildQueryOptions options = new BuildQueryOptions();

@@ -53,11 +53,12 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
-    final AgentFinder agentFinder = new AgentFinder(myAgentManager);
-    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, myServer);
-    final UserFinder userFinder = new UserFinder(myFixture);
     final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
+    myFixture.addService(permissionChecker);
+    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
+    final AgentFinder agentFinder = new AgentFinder(myAgentManager);
+    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myServer);
+    final UserFinder userFinder = new UserFinder(myFixture);
     final VcsRootFinder vcsRootFinder = new VcsRootFinder(myFixture.getVcsManager(), projectFinder, buildTypeFinder, myProjectManager,
                                                           myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class), permissionChecker);
     myBuildPromotionFinder = new BuildPromotionFinder(myFixture.getBuildPromotionManager(), myFixture.getBuildQueue(), myServer, vcsRootFinder,

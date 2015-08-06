@@ -40,13 +40,16 @@ public class BuildTest extends BaseServerTestCase {
   }
 
   private void initializeFinders() {
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
+    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
+    myFixture.addService(permissionChecker);
+
+    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
     myFixture.addService(projectFinder);
 
     final AgentFinder agentFinder = new AgentFinder(myAgentManager);
     myFixture.addService(agentFinder);
 
-    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, myFixture);
+    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myFixture);
     myFixture.addService(buildTypeFinder);
 
     final UserFinder userFinder = new UserFinder(myFixture);

@@ -22,6 +22,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
@@ -158,26 +159,35 @@ public class Project {
         return new BuildTypes(buildTypes, null, buildTypesFields, beanContext);
       }
     });
-    templates = ValueWithDefault.decideDefault(fields.isIncluded("templates", false), new ValueWithDefault.Value<BuildTypes>() {
-      public BuildTypes get() {
-        final Fields templateFields = fields.getNestedField("templates", Fields.NONE, Fields.LONG);
-        final String templatesLocator = templateFields.getLocator();
-        final List<BuildTypeOrTemplate> templates = buildTypeFinder.getBuildTypesPaged(project, templatesLocator, false).myEntries;
-        return new BuildTypes(templates, null, templateFields, beanContext);
-      }
-    });
 
-    parameters = ValueWithDefault.decideDefault(fields.isIncluded("parameters", false), new ValueWithDefault.Value<Properties>() {
-      public Properties get() {
-        return new Properties(project.getParametersCollection(),project.getOwnParametersCollection(), ProjectRequest.getParametersHref(project),
-                              fields.getNestedField("parameters", Fields.NONE, Fields.LONG), beanContext.getServiceLocator());
-      }
-    });
-    vcsRoots = ValueWithDefault.decideDefault(fields.isIncluded("vcsRoots", false), new ValueWithDefault.Value<VcsRoots>() {
-      public VcsRoots get() {
-        return new VcsRoots(project.getOwnVcsRoots(), new PagerData(VcsRootRequest.getHref(project)), fields.getNestedField("vcsRoots"), beanContext);
-      }
-    });
+    final PermissionChecker permissionChecker = beanContext.getServiceLocator().findSingletonService(PermissionChecker.class);
+    assert permissionChecker != null;
+    if (!shouldRestrictSettingsViewing(project, permissionChecker)) {
+      templates = ValueWithDefault.decideDefault(fields.isIncluded("templates", false), new ValueWithDefault.Value<BuildTypes>() {
+        public BuildTypes get() {
+          final Fields templateFields = fields.getNestedField("templates", Fields.NONE, Fields.LONG);
+          final String templatesLocator = templateFields.getLocator();
+          final List<BuildTypeOrTemplate> templates = buildTypeFinder.getBuildTypesPaged(project, templatesLocator, false).myEntries;
+          return new BuildTypes(templates, null, templateFields, beanContext);
+        }
+      });
+
+      parameters = ValueWithDefault.decideDefault(fields.isIncluded("parameters", false), new ValueWithDefault.Value<Properties>() {
+        public Properties get() {
+          return new Properties(project.getParametersCollection(), project.getOwnParametersCollection(), ProjectRequest.getParametersHref(project),
+                                fields.getNestedField("parameters", Fields.NONE, Fields.LONG), beanContext.getServiceLocator());
+        }
+      });
+      vcsRoots = ValueWithDefault.decideDefault(fields.isIncluded("vcsRoots", false), new ValueWithDefault.Value<VcsRoots>() {
+        public VcsRoots get() {
+          return new VcsRoots(project.getOwnVcsRoots(), new PagerData(VcsRootRequest.getHref(project)), fields.getNestedField("vcsRoots"), beanContext);
+        }
+      });
+    } else {
+      templates = null;
+      parameters = null;
+      vcsRoots = null;
+    }
 
     projects = ValueWithDefault.decideDefault(fields.isIncluded("projects", false), new ValueWithDefault.Value<Projects>() {
       public Projects get() {
@@ -275,5 +285,12 @@ public class Project {
       throw new BadRequestException("No project specified. Either 'id', 'internalId' or 'locator' attribute should be present.");
     }
     return projectFinder.getItem(locatorText);
+  }
+
+  public static boolean shouldRestrictSettingsViewing(final @NotNull BuildProject project, final @NotNull PermissionChecker permissionChecker) {
+    if (TeamCityProperties.getBoolean("rest.beans.project.checkPermissions")) {
+      return !permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, project.getProjectId());
+    }
+    return false;
   }
 }

@@ -147,26 +147,35 @@ public class VcsRoot {
       project = ValueWithDefault.decideDefault(fields.isIncluded("project", false), new Project(null, ownerProjectId, beanContext.getApiUrlBuilder()));
     }
 
-    properties = ValueWithDefault.decideDefault(fields.isIncluded("properties", false),
-                                                new Properties(root.getProperties(), null, fields.getNestedField("properties", Fields.NONE, Fields.LONG)));
-    modificationCheckInterval = ValueWithDefault.decideDefault(fields.isIncluded("modificationCheckInterval", false),
-                                                               root.isUseDefaultModificationCheckInterval() ? null : root.getModificationCheckInterval());
-    final VcsRootStatus rootStatus = beanContext.getSingletonService(VcsManager.class).getStatus(root);
+    final PermissionChecker permissionChecker = beanContext.getServiceLocator().findSingletonService(PermissionChecker.class);
+    assert permissionChecker != null;
+    if (!shouldRestrictSettingsViewing(root, permissionChecker)) {
+      properties = ValueWithDefault.decideDefault(fields.isIncluded("properties", false),
+                                                  new Properties(root.getProperties(), null, fields.getNestedField("properties", Fields.NONE, Fields.LONG)));
+      modificationCheckInterval = ValueWithDefault.decideDefault(fields.isIncluded("modificationCheckInterval", false),
+                                                                 root.isUseDefaultModificationCheckInterval() ? null : root.getModificationCheckInterval());
+      vcsRootInstances = ValueWithDefault.decideDefault(fields.isIncluded("vcsRootInstances", false), new ValueWithDefault.Value<VcsRootInstances>() {
+        @Nullable
+        public VcsRootInstances get() {
+          return new VcsRootInstances(new CachingValue<Collection<VcsRootInstance>>() {
+            @NotNull
+            @Override
+            protected Collection<VcsRootInstance> doGet() {
+              return beanContext.getSingletonService(VcsRootFinder.class)
+                                .getVcsRootInstances(VcsRootFinder.createVcsRootInstanceLocator(VcsRootFinder.getVcsRootInstancesLocatorText(root))).myEntries;
+            }
+          }, new PagerData(VcsRootInstanceRequest.getVcsRootInstancesHref(root)), fields.getNestedField("vcsRootInstances"), beanContext);
+        }
+      });
+    } else {
+      properties = null;
+      modificationCheckInterval = null;
+      vcsRootInstances = null;
+    }
 
+    final VcsRootStatus rootStatus = beanContext.getSingletonService(VcsManager.class).getStatus(root);
     status = ValueWithDefault.decideDefault(fields.isIncluded("status", false), rootStatus.getType().toString());
     lastChecked = ValueWithDefault.decideDefault(fields.isIncluded("lastChecked", false), Util.formatTime(rootStatus.getTimestamp()));
-    vcsRootInstances = ValueWithDefault.decideDefault(fields.isIncluded("vcsRootInstances", false), new ValueWithDefault.Value<VcsRootInstances>() {
-      @Nullable
-      public VcsRootInstances get() {
-        return new VcsRootInstances(new CachingValue<Collection<VcsRootInstance>>() {
-          @NotNull
-          @Override
-          protected Collection<VcsRootInstance> doGet() {
-            return beanContext.getSingletonService(VcsRootFinder.class).getVcsRootInstances(VcsRootFinder.createVcsRootInstanceLocator(VcsRootFinder.getVcsRootInstancesLocatorText(root))).myEntries;
-          }
-        }, new PagerData(VcsRootInstanceRequest.getVcsRootInstancesHref(root)), fields.getNestedField("vcsRootInstances"), beanContext);
-      }
-    });
   }
 
   @Nullable
@@ -212,6 +221,7 @@ public class VcsRoot {
   }
 
   public static String getFieldValue(final SVcsRoot vcsRoot, final String field, final DataProvider dataProvider) {
+    //assuming only users with VIEW_SETTINGS permissions get here
     if ("id".equals(field)) {
       return vcsRoot.getExternalId();
     } else if ("internalId".equals(field)) {
@@ -313,6 +323,15 @@ public class VcsRoot {
       throw new BadRequestException("No VCS root specified. Either 'id' or 'locator' attribute should be present.");
     }
     return vcsRootFinder.getVcsRoot(locatorText);
+  }
+
+  public static boolean shouldRestrictSettingsViewing(final @NotNull SVcsRoot root, final @NotNull PermissionChecker permissionChecker) {
+    //see also jetbrains.buildServer.server.rest.data.VcsRootFinder.checkPermission
+    if (TeamCityProperties.getBoolean("rest.beans.vcsRoot.checkPermissions")) {
+      final SProject project = VcsRoot.getProjectByRoot(root);
+      return !permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, project != null ? project.getProjectId() : null);
+    }
+    return false;
   }
 }
 

@@ -65,10 +65,13 @@ public class BuildType {
   @NotNull private String myExternalId;
   @Nullable private String myInternalId;
 
+  private final boolean canViewSettings;
+
   private Fields myFields = Fields.LONG;
   @NotNull private BeanContext myBeanContext;
 
   public BuildType() {
+    canViewSettings = true;
   }
 
   public BuildType(@NotNull final BuildTypeOrTemplate buildType, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
@@ -77,6 +80,9 @@ public class BuildType {
     myInternalId = buildType.getInternalId();
     myFields = fields;
     myBeanContext = beanContext;
+    final PermissionChecker permissionChecker = beanContext.getServiceLocator().findSingletonService(PermissionChecker.class);
+    assert permissionChecker != null;
+    canViewSettings = !shouldRestrictSettingsViewing(buildType.get(), permissionChecker);
   }
 
   public BuildType(@NotNull final String externalId, @Nullable final String internalId, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
@@ -85,6 +91,12 @@ public class BuildType {
     myInternalId = internalId;
     myFields = fields;
     myBeanContext = beanContext;
+    //noinspection RedundantIfStatement
+    if (TeamCityProperties.getBooleanOrTrue("rest.beans.buildType.checkPermissions")) {
+      canViewSettings = false;
+    } else {
+      canViewSettings = true;
+    }
   }
 
   /**
@@ -190,23 +202,20 @@ public class BuildType {
       return null;
     }
     final BuildTypeTemplate template = myBuildType.getBuildType().getTemplate();
-    return template == null
-           ? null
-           : ValueWithDefault
-             .decideDefault(myFields.isIncluded("template", false), new ValueWithDefault.Value<BuildType>() {
-               public BuildType get() {
-                 return new BuildType(new BuildTypeOrTemplate(template), myFields.getNestedField("template"), myBeanContext);
-               }
-             });
+    return check(template == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("template", false), new ValueWithDefault.Value<BuildType>() {
+      public BuildType get() {
+        return new BuildType(new BuildTypeOrTemplate(template), myFields.getNestedField("template"), myBeanContext);
+      }
+    }));
   }
 
   @XmlElement(name = "vcs-root-entries")
   public VcsRootEntries getVcsRootEntries() {
-    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("vcs-root-entries", false), new ValueWithDefault.Value<VcsRootEntries>() {
+    return check(ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("vcs-root-entries", false), new ValueWithDefault.Value<VcsRootEntries>() {
       public VcsRootEntries get() {
         return myBuildType == null ? null : new VcsRootEntries(myBuildType, myFields.getNestedField("vcs-root-entries"), myBeanContext);
       }
-    });
+    }));
   }
 
   /**
@@ -239,81 +248,83 @@ public class BuildType {
 
   @XmlElement
   public Properties getParameters() {
-    return myBuildType == null ? null : ValueWithDefault
+    return check(myBuildType == null ? null : ValueWithDefault
       .decideIncludeByDefault(myFields.isIncluded("parameters", false), new ValueWithDefault.Value<Properties>() {
         public Properties get() {
           return new Properties(myBuildType.get().getParametersCollection(), myBuildType.get().getOwnParametersCollection(), BuildTypeRequest.getParametersHref(myBuildType),
                                 myFields.getNestedField("parameters", Fields.NONE, Fields.LONG), myBeanContext.getServiceLocator());
         }
-      });
+      }));
   }
 
   @XmlElement(name = "steps")
   public PropEntitiesStep getSteps() {
-    return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("steps", false), new ValueWithDefault.Value<PropEntitiesStep>() {
+    return check(myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("steps", false), new ValueWithDefault.Value<PropEntitiesStep>() {
       public PropEntitiesStep get() {
         return new PropEntitiesStep(myBuildType.get(), myFields.getNestedField("steps", Fields.NONE, Fields.LONG));
       }
-    });
+    }));
   }
 
   @XmlElement(name = "features")
   public PropEntitiesFeature getFeatures() {
-    return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("features", false), new ValueWithDefault.Value<PropEntitiesFeature>() {
+    return check(myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("features", false), new ValueWithDefault.Value<PropEntitiesFeature>() {
       public PropEntitiesFeature get() {
         return new PropEntitiesFeature(myBuildType.get(), myFields.getNestedField("features", Fields.NONE, Fields.LONG));
       }
-    });
+    }));
   }
 
   @XmlElement(name = "triggers")
   public PropEntitiesTrigger getTriggers() {
-    return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("triggers", false), new ValueWithDefault.Value<PropEntitiesTrigger>() {
+    return check(myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("triggers", false), new ValueWithDefault.Value<PropEntitiesTrigger>() {
       public PropEntitiesTrigger get() {
         return new PropEntitiesTrigger(myBuildType.get(), myFields.getNestedField("triggers", Fields.NONE, Fields.LONG));
       }
-    });
+    }));
   }
 
 
   @XmlElement(name = "snapshot-dependencies")
   public PropEntitiesSnapshotDep getSnapshotDependencies() {
-    return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("snapshot-dependencies", false),
+    return check(myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("snapshot-dependencies", false),
                                                                                 new ValueWithDefault.Value<PropEntitiesSnapshotDep>() {
                                                                                   public PropEntitiesSnapshotDep get() {
                                                                                     return new PropEntitiesSnapshotDep(myBuildType.get(), myFields
                                                                                       .getNestedField("snapshot-dependencies", Fields.NONE, Fields.LONG), myBeanContext);
                                                                                   }
-    });
+                                                                                }));
   }
 
   @XmlElement(name = "artifact-dependencies")
   public PropEntitiesArtifactDep getArtifactDependencies() {
-    return myBuildType == null ? null : ValueWithDefault
+    return check(myBuildType == null ? null : ValueWithDefault
       .decideIncludeByDefault(myFields.isIncluded("artifact-dependencies", false), new ValueWithDefault.Value<PropEntitiesArtifactDep>() {
         public PropEntitiesArtifactDep get() {
           return new PropEntitiesArtifactDep(myBuildType.get().getArtifactDependencies(), myFields.getNestedField("artifact-dependencies", Fields.NONE, Fields.LONG),
                                              myBeanContext);
         }
-      });
+      }));
   }
 
   @XmlElement(name = "agent-requirements")
   public PropEntitiesAgentRequirement getAgentRequirements() {
-    return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("agent-requirements", false), new ValueWithDefault.Value<PropEntitiesAgentRequirement>() {
+    return check(myBuildType == null
+                 ? null
+                 : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("agent-requirements", false), new ValueWithDefault.Value<PropEntitiesAgentRequirement>() {
       public PropEntitiesAgentRequirement get() {
         return new PropEntitiesAgentRequirement(myBuildType.get(), myFields.getNestedField("agent-requirements", Fields.NONE, Fields.LONG));
       }
-    });
+                 }));
   }
 
   @XmlElement(name="settings")
   public Properties getSettings() {
-    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("settings", false), new ValueWithDefault.Value<Properties>() {
+    return check(myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("settings", false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
         return new Properties(BuildTypeUtil.getSettingsParameters(myBuildType), null, myFields.getNestedField("settings", Fields.NONE, Fields.LONG));
       }
-    });
+    }));
   }
 
   /**
@@ -377,7 +388,7 @@ public class BuildType {
       return serviceLocator.getSingletonService(BuildTypeIdentifiersManager.class).internalToExternal(submittedInternalId);
     }
     if (submittedLocator != null) {
-      return serviceLocator.getSingletonService(BuildTypeFinder.class).getBuildType(null, submittedLocator).getExternalId();
+      return serviceLocator.getSingletonService(BuildTypeFinder.class).getBuildType(null, submittedLocator, false).getExternalId();
     }
     throw new BadRequestException("Could not find build type by the data. Either 'id' or 'internalId' or 'locator' attributes should be specified.");
   }
@@ -455,7 +466,7 @@ public class BuildType {
     if (StringUtil.isEmpty(locatorText)) {
       throw new BadRequestException("No build type specified. Either 'id', 'internalId' or 'locator' attribute should be present.");
     }
-    return buildTypeFinder.getBuildTypeOrTemplate(null, locatorText);
+    return buildTypeFinder.getBuildTypeOrTemplate(null, locatorText, false);
   }
 
   @Nullable private  String submittedProjectId;
@@ -689,4 +700,21 @@ public class BuildType {
     }
     return serviceLocator.getSingletonService(BuildTypeIdentifiersManager.class).generateNewExternalId(project.getExternalId(), name, null);
   }
+
+  public static boolean shouldRestrictSettingsViewing(final @NotNull BuildTypeSettings buildType, final @NotNull PermissionChecker permissionChecker) {
+    if (TeamCityProperties.getBoolean("rest.beans.buildType.checkPermissions")) {
+      return !permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, buildType.getProject().getProjectId());
+    }
+    return false;
+  }
+
+  @Nullable
+  private <T> T check(@Nullable T t) {
+    if (canViewSettings) {
+      return t;
+    } else {
+      return null;
+    }
+  }
+
 }

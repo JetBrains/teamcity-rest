@@ -63,12 +63,13 @@ public class BuildFinderTestBase extends BaseServerTestCase {
   }
 
   protected void init() {
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
+    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
+    myFixture.addService(permissionChecker);
+    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
     final AgentFinder agentFinder = new AgentFinder(myAgentManager);
-    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, myServer);
+    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myServer);
     final UserFinder userFinder = new UserFinder(myFixture);
 
-    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
     final VcsRootFinder vcsRootFinder = new VcsRootFinder(myFixture.getVcsManager(), projectFinder, buildTypeFinder, myProjectManager,
                                                           myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class), permissionChecker);
     myBuildPromotionFinder = new BuildPromotionFinder(myFixture.getBuildPromotionManager(), myFixture.getBuildQueue(), myServer, vcsRootFinder,

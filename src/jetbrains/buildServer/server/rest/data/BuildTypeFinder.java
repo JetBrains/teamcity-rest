@@ -24,13 +24,16 @@ import java.util.Set;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.APIController;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -67,10 +70,12 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   @NotNull private final AgentFinder myAgentFinder;
   private final ProjectManager myProjectManager;
   private final ServiceLocator myServiceLocator;
+  private final PermissionChecker myPermissionChecker;
 
   public BuildTypeFinder(@NotNull final ProjectManager projectManager,
                          @NotNull final ProjectFinder projectFinder,
                          @NotNull final AgentFinder agentFinder,
+                         final PermissionChecker permissionChecker,
                          @NotNull final ServiceLocator serviceLocator) {
     super(new String[]{DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, AFFECTED_PROJECT, DIMENSION_NAME, TEMPLATE_FLAG_DIMENSION_NAME, TEMPLATE_DIMENSION_NAME, PAUSED,
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME,
@@ -80,6 +85,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     myProjectManager = projectManager;
     myProjectFinder = projectFinder;
     myAgentFinder = agentFinder;
+    myPermissionChecker = permissionChecker;
     myServiceLocator = serviceLocator;
   }
 
@@ -291,6 +297,11 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       final ParameterCondition parameterCondition = ParameterCondition.create(parameterDimension);
       result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
         public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+          final boolean canView = !BuildType.shouldRestrictSettingsViewing(item.get(), myPermissionChecker);
+          if (!canView) {
+            LOG.debug("While filtering build types by " + PARAMETER + " user does not have enough permissions to see settings. Excluding build type: " + item.describe(false));
+            return false;
+          }
           return parameterCondition.matches(new MapParametersProviderImpl(item.get().getParameters())); //includes project params? template params?
         }
       });
@@ -342,7 +353,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     List<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
     final String snapshotDependencies = locator.getSingleDimensionValue(SNAPSHOT_DEPENDENCY);
     if (snapshotDependencies != null) {
-      final GraphFinder<BuildTypeOrTemplate> graphFinder = new GraphFinder<BuildTypeOrTemplate>(this, new SnapshotDepsTraverser());
+      final GraphFinder<BuildTypeOrTemplate> graphFinder = new GraphFinder<BuildTypeOrTemplate>(this, new SnapshotDepsTraverser(myPermissionChecker));
       return getItemHolder(graphFinder.getItems(snapshotDependencies).myEntries);
     }
 
@@ -358,11 +369,11 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       affectedProject = myProjectFinder.getItem(affectedProjectLocator);
     }
 
-    final String templateLocator = locator.getSingleDimensionValue(TEMPLATE_DIMENSION_NAME);
+    final String templateLocator = locator.getSingleDimensionValue(TEMPLATE_DIMENSION_NAME);  //todo: add check into filter (with permission checking) as well, as it is ignored when filtered by snapshot dependency
     if (templateLocator != null) {
       final BuildTypeTemplate buildTemplate;
       try {
-        buildTemplate = getBuildTemplate(null, templateLocator);
+        buildTemplate = getBuildTemplate(null, templateLocator, true);
       } catch (NotFoundException e) {
         throw new NotFoundException("No templates found by locator '" + templateLocator + "' specified in '" + TEMPLATE_DIMENSION_NAME + "' dimension : " + e.getMessage());
       } catch (BadRequestException e) {
@@ -412,23 +423,34 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   }
 
   @NotNull
-  public BuildTypeOrTemplate getBuildTypeOrTemplate(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
-    if (project == null){
-      return getItem(buildTypeLocator);
+  public BuildTypeOrTemplate getBuildTypeOrTemplate(@Nullable final SProject project, @Nullable final String buildTypeLocator, final boolean checkViewSettingsPermission) {
+    final BuildTypeOrTemplate result;
+    if (project == null) {
+      result = getItem(buildTypeLocator);
+    } else {
+      final Locator locator = buildTypeLocator != null ? new Locator(buildTypeLocator) : null;
+      if (locator == null || !locator.isSingleValue()) {
+        result = getItem(Locator.setDimensionIfNotPresent(buildTypeLocator, DIMENSION_PROJECT, ProjectFinder.getLocator(project)));
+      } else {
+        // single value locator
+        result = getItem(buildTypeLocator);
+        if (!result.getProject().getProjectId().equals(project.getProjectId())) {
+          throw new BadRequestException("Found " + LogUtil.describe(result) + " but it does not belong to project " + LogUtil.describe(project) + ".");
+        }
+      }
     }
 
-    final Locator locator = buildTypeLocator != null ? new Locator(buildTypeLocator) : null;
-    if (locator == null || !locator.isSingleValue()) {
-      return getItem(Locator.setDimensionIfNotPresent(buildTypeLocator, DIMENSION_PROJECT, ProjectFinder.getLocator(project)));
-    }
-
-    // single value locator
-
-    final BuildTypeOrTemplate result = getItem(buildTypeLocator);
-    if (!result.getProject().getProjectId().equals(project.getProjectId())) {
-      throw new BadRequestException("Found " + LogUtil.describe(result) + " but it does not belong to project " + LogUtil.describe(project) + ".");
+    if (checkViewSettingsPermission) {
+      check(result.get(), myPermissionChecker);
     }
     return result;
+  }
+
+  public static void check(@NotNull BuildTypeSettings buildType, @NotNull final PermissionChecker permissionChecker) {
+    if (BuildType.shouldRestrictSettingsViewing(buildType, permissionChecker)) {
+      throw new AuthorizationFailedException(
+        "User does not have '" + Permission.VIEW_BUILD_CONFIGURATION_SETTINGS.getName() + "' permission in project " + buildType.getProject().describe(false));
+    }
   }
 
   private String getName(final Boolean template) {
@@ -439,8 +461,8 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   }
 
   @NotNull
-  public SBuildType getBuildType(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
-    final BuildTypeOrTemplate buildTypeOrTemplate = getBuildTypeOrTemplate(project, buildTypeLocator);
+  public SBuildType getBuildType(@Nullable final SProject project, @Nullable final String buildTypeLocator, final boolean checkViewSettingsPermission) {
+    final BuildTypeOrTemplate buildTypeOrTemplate = getBuildTypeOrTemplate(project, buildTypeLocator, checkViewSettingsPermission);
     if (buildTypeOrTemplate.getBuildType() != null) {
       return buildTypeOrTemplate.getBuildType();
     }
@@ -448,8 +470,8 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   }
 
   @NotNull
-  public BuildTypeTemplate getBuildTemplate(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
-    final BuildTypeOrTemplate buildTypeOrTemplate = getBuildTypeOrTemplate(project, buildTypeLocator);
+  public BuildTypeTemplate getBuildTemplate(@Nullable final SProject project, @Nullable final String buildTypeLocator, final boolean checkViewSettingsPermission) {
+    final BuildTypeOrTemplate buildTypeOrTemplate = getBuildTypeOrTemplate(project, buildTypeLocator, checkViewSettingsPermission);
     if (buildTypeOrTemplate.getTemplate() != null) {
       return buildTypeOrTemplate.getTemplate();
     }
@@ -482,13 +504,13 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
   @Nullable
   public SBuildType getBuildTypeIfNotNull(@Nullable final String buildTypeLocator) {
-    return buildTypeLocator == null ? null : getBuildType(null, buildTypeLocator);
+    return buildTypeLocator == null ? null : getBuildType(null, buildTypeLocator, false);
   }
 
   @Nullable
   public SBuildType deriveBuildTypeFromLocator(@Nullable SBuildType contextBuildType, @Nullable final String buildTypeLocator) {
     if (buildTypeLocator != null) {
-      final SBuildType buildTypeFromLocator = getBuildType(null, buildTypeLocator);
+      final SBuildType buildTypeFromLocator = getBuildType(null, buildTypeLocator, false);
       if (contextBuildType == null) {
         return buildTypeFromLocator;
       } else if (!contextBuildType.getBuildTypeId().equals(buildTypeFromLocator.getBuildTypeId())) {
@@ -628,11 +650,20 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   }
 
   private class SnapshotDepsTraverser implements GraphFinder.Traverser<BuildTypeOrTemplate> {
+    @NotNull private final PermissionChecker myPermissionChecker;
+
+    public SnapshotDepsTraverser(@NotNull final PermissionChecker permissionChecker) {
+      myPermissionChecker = permissionChecker;
+    }
+
     @NotNull
     public GraphFinder.LinkRetriever<BuildTypeOrTemplate> getChildren() {
       return new GraphFinder.LinkRetriever<BuildTypeOrTemplate>() {
         @NotNull
         public List<BuildTypeOrTemplate> getLinked(@NotNull final BuildTypeOrTemplate item) {
+          if (BuildType.shouldRestrictSettingsViewing(item.get(), myPermissionChecker)){
+            return new ArrayList<BuildTypeOrTemplate>(); //conceal dependencies
+          }
           return getNotNullBuildTypes(item.get().getDependencies());
         }
       };
@@ -645,21 +676,21 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
         public List<BuildTypeOrTemplate> getLinked(@NotNull final BuildTypeOrTemplate item) {
           final SBuildType buildType = item.getBuildType();
           if (buildType == null){
-            return new ArrayList<BuildTypeOrTemplate>(); //template should have no dependnecies on it
+            return new ArrayList<BuildTypeOrTemplate>(); //template should have no dependencies on it
           }
-          return getDependingOn(buildType);
+          return getDependingOn(buildType, myPermissionChecker);
         }
       };
     }
   }
 
   @NotNull
-  private List<BuildTypeOrTemplate> getDependingOn(@NotNull final SBuildType buildType) {
+  private List<BuildTypeOrTemplate> getDependingOn(@NotNull final SBuildType buildType, @NotNull final PermissionChecker permissionChecker) {
     final Set<String> internalIds = ((BuildTypeEx)buildType).getDependedOnMe().keySet(); //TeamCity open API issue
     final ArrayList<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
     for (String internalId : internalIds) {
       final SBuildType buildTypeById = myProjectManager.findBuildTypeById(internalId);
-      if (buildTypeById != null){
+      if (buildTypeById != null && !BuildType.shouldRestrictSettingsViewing(buildTypeById, permissionChecker)){ //conceal dependencies
         result.add(new BuildTypeOrTemplate(buildTypeById));
       }
     }
