@@ -20,8 +20,11 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsManager;
 import jetbrains.buildServer.vcs.VcsRootStatus;
@@ -59,11 +62,13 @@ public class VcsRoot {
   public VcsRoot() {
   }
 
-  public VcsRoot(final SVcsRoot root, final VcsManager vcsManager) {
+  public VcsRoot(final SVcsRoot root, final VcsManager vcsManager, final DataProvider dataProvider) {
     id = root.getId();
     name = root.getName();
     vcsName = root.getVcsName();
+    if (!shouldRestrictSettingsViewing(root, dataProvider)) {
     properties = new Properties(root.getProperties());
+    }
     final VcsRootStatus rootStatus = vcsManager.getStatus(root);
     status = rootStatus.getType().toString();
     lastChecked = Util.formatTime(rootStatus.getTimestamp());
@@ -91,6 +96,14 @@ public class VcsRoot {
       this.href = apiUrlBuilder.getHref(root);
       this.name = root.getName();
     }
+  }
+
+  public static boolean shouldRestrictSettingsViewing(final @NotNull SVcsRoot root, final @NotNull DataProvider permissionChecker) {
+    //see also jetbrains.buildServer.server.rest.data.VcsRootFinder.checkPermission
+    if (TeamCityProperties.getBoolean("rest.beans.vcsRoot.checkPermissions")) {
+      return !permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, root.getProject().getProjectId());
+    }
+    return false;
   }
 }
 

@@ -78,7 +78,7 @@ public class BuildTypeRequest {
   @Path("/{btLocator}")
   @Produces({"application/xml", "application/json"})
   public BuildType serveBuildTypeXML(@PathParam("btLocator") String buildTypeLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator, false);
     return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
   }
 
@@ -86,7 +86,7 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/{field}")
   @Produces("text/plain")
   public String serveBuildTypeField(@PathParam("btLocator") String buildTypeLocator, @PathParam("field") String fieldName) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator, false);
     return myDataProvider.getFieldValue(buildType, fieldName);
   }
 
@@ -94,7 +94,7 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/parameters/{name}")
   @Produces("text/plain")
   public String serveBuildTypeParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("name") String parameterName) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator, true);
     if (StringUtil.isEmpty(parameterName)) {
       throw new BadRequestException("Parameter name cannot be empty.");
     }
@@ -110,7 +110,7 @@ public class BuildTypeRequest {
   public void putBuildTypeParameter(@PathParam("btLocator") String buildTypeLocator,
                                     @PathParam("name") String parameterName,
                                     String newValue) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator, true);
     if (StringUtil.isEmpty(parameterName)) {
       throw new BadRequestException("Parameter name cannot be empty.");
     }
@@ -126,7 +126,7 @@ public class BuildTypeRequest {
   @Produces("text/plain")
   public void deleteBuildTypeParameter(@PathParam("btLocator") String buildTypeLocator,
                                        @PathParam("name") String parameterName) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator, true);
     if (StringUtil.isEmpty(parameterName)) {
       throw new BadRequestException("Parameter name cannot be empty.");
     }
@@ -140,7 +140,7 @@ public class BuildTypeRequest {
   public void putBuildTypeRunParameter(@PathParam("btLocator") String buildTypeLocator,
                                        @PathParam("name") String parameterName,
                                        String newValue) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator, true);
     if (StringUtil.isEmpty(parameterName)) {
       throw new BadRequestException("Parameter name cannot be empty.");
     }
@@ -168,7 +168,7 @@ public class BuildTypeRequest {
                             @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count,
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     //todo: support locator parameter
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator, false);
 
     final List<SBuild> buildsList = myDataProvider.getBuilds(
       // preserve 5.0 logic for personal/canceled/pinned builds
@@ -187,7 +187,7 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public Build serveBuildWithProject(@PathParam("btLocator") String buildTypeLocator,
                                      @PathParam("buildLocator") String buildLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator, false);
     SBuild build = myDataProvider.getBuild(buildType, buildLocator);
     return new Build(build, myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
   }
@@ -199,7 +199,7 @@ public class BuildTypeRequest {
   public String serveBuildField(@PathParam("btLocator") String buildTypeLocator,
                                 @PathParam("buildLocator") String buildLocator,
                                 @PathParam("field") String field) {
-    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator);
+    SBuildType buildType = myDataProvider.getBuildType(null, buildTypeLocator, false);
     SBuild build = myDataProvider.getBuild(buildType, buildLocator);
 
     return myDataProvider.getFieldValue(build, field);

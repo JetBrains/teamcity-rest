@@ -88,7 +88,7 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   public BuildType serveBuildType(@PathParam("projectLocator") String projectLocator,
                                   @PathParam("btLocator") String buildTypeLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
+    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator, false);
 
     return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
   }
@@ -99,7 +99,7 @@ public class ProjectRequest {
   public String serveBuildTypeFieldWithProject(@PathParam("projectLocator") String projectLocator,
                                                @PathParam("btLocator") String buildTypeLocator,
                                                @PathParam("field") String fieldName) {
-    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
+    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator, false);
 
     return myDataProvider.getFieldValue(buildType, fieldName);
   }
@@ -125,7 +125,7 @@ public class ProjectRequest {
                             @QueryParam("count") @DefaultValue(value = Constants.DEFAULT_PAGE_ITEMS_COUNT) Integer count,
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     //todo: support locator parameter
-    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
+    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator, false);
     final List<SBuild> buildsList = myDataProvider.getBuilds(
       // preserve 5.0 logic for personal/canceled/pinned builds
       new BuildsFilter(buildType, status, myDataProvider.getUserIfNotNull(userLocator),
@@ -144,7 +144,7 @@ public class ProjectRequest {
   public Build serveBuildWithProject(@PathParam("projectLocator") String projectLocator,
                                      @PathParam("btLocator") String buildTypeLocator,
                                      @PathParam("buildLocator") String buildLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
+    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator, false);
     SBuild build = myDataProvider.getBuild(buildType, buildLocator);
 
     return new Build(build, myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
@@ -157,7 +157,7 @@ public class ProjectRequest {
                                            @PathParam("btLocator") String buildTypeLocator,
                                            @PathParam("buildLocator") String buildLocator,
                                            @PathParam("field") String field) {
-    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
+    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator, false);
     SBuild build = myDataProvider.getBuild(buildType, buildLocator);
 
     return myDataProvider.getFieldValue(build, field);

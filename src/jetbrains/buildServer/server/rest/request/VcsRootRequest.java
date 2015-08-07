@@ -53,6 +53,6 @@ public class VcsRootRequest {
   @Path("/{vcsRootLocator}")
   @Produces({"application/xml", "application/json"})
   public VcsRoot serveRoot(@PathParam("vcsRootLocator") String vcsRootLocator) {
-    return new VcsRoot(myDataProvider.getVcsRoot(vcsRootLocator), myDataProvider.getVcsManager());
+    return new VcsRoot(myDataProvider.getVcsRoot(vcsRootLocator), myDataProvider.getVcsManager(), myDataProvider);
   }
 }

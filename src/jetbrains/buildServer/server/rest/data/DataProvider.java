@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Constants;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.statistics.ValueProviderRegistry;
@@ -247,7 +248,7 @@ public class DataProvider {
   @Nullable
   private SBuildType deriveBuildTypeFromLocator(@Nullable SBuildType contextBuildType, @Nullable final String buildTypeLocator) {
     if (buildTypeLocator != null) {
-      final SBuildType buildTypeFromLocator = getBuildType(null, buildTypeLocator);
+      final SBuildType buildTypeFromLocator = getBuildType(null, buildTypeLocator, false);
       if (contextBuildType == null) {
         return buildTypeFromLocator;
       } else if (!contextBuildType.getBuildTypeId().equals(buildTypeFromLocator.getBuildTypeId())) {
@@ -295,8 +296,20 @@ public class DataProvider {
                             count == null?null:count.intValue());
   }
 
+ @NotNull
+  public SBuildType getBuildType(@Nullable final SProject project, @Nullable final String buildTypeLocator, final boolean checkViewSettingsPermission) {
+    final SBuildType result = getBuildTypeUnckecked(project, buildTypeLocator);
+    if (checkViewSettingsPermission) {
+      if (BuildType.shouldRestrictSettingsViewing(result, this)) {
+        throw new AuthorizationFailedException(
+          "User does not have '" + Permission.VIEW_BUILD_CONFIGURATION_SETTINGS.getName() + "' permission in project " + result.getProject().describe(false));
+      }
+    }
+    return result;
+  }
+
   @NotNull
-  public SBuildType getBuildType(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
+  public SBuildType getBuildTypeUnckecked(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
     if (StringUtil.isEmpty(buildTypeLocator)) {
       throw new BadRequestException("Empty build type locator is not supported.");
     }
@@ -759,7 +772,7 @@ public class DataProvider {
 
   @Nullable
   public SBuildType getBuildTypeIfNotNull(@Nullable final String buildTypeLocator) {
-    return buildTypeLocator == null ? null : getBuildType(null, buildTypeLocator);
+    return buildTypeLocator == null ? null : getBuildType(null, buildTypeLocator, false);
   }
 
   @Nullable
@@ -858,6 +871,14 @@ public class DataProvider {
 
   public String getHelpLink(@NotNull final String page, @Nullable final String anchor) {
     return myWebLinks.getHelp(page, anchor);
+  }
+
+  public boolean isPermissionGranted(@NotNull final Permission permission, @Nullable final String internalProjectId) {
+    final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
+    if (internalProjectId == null){
+      return authorityHolder.isPermissionGrantedGlobally(permission);
+    }
+    return authorityHolder.isPermissionGrantedForProject(internalProjectId, permission);
   }
 
   public void checkGlobalPermission(final Permission permission) throws AuthorizationFailedException{

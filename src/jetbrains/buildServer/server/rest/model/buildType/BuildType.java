@@ -22,6 +22,7 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.BuildsRef;
 import jetbrains.buildServer.server.rest.model.change.VcsRootEntries;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
+import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.SBuildRunnerDescriptor;
 import jetbrains.buildServer.serverSide.SBuildType;
 
@@ -31,6 +32,10 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import java.util.Collections;
 import java.util.List;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * User: Yegor Yarko
@@ -44,13 +49,17 @@ public class BuildType {
   private DataProvider myDataProvider;
   private ApiUrlBuilder myApiUrlBuilder;
 
+  private final boolean canViewSettings;
+
   public BuildType() {
+    canViewSettings = true;
   }
 
   public BuildType(final SBuildType buildType, final DataProvider dataProvider, final ApiUrlBuilder apiUrlBuilder) {
     myBuildType = buildType;
     myDataProvider = dataProvider;
     myApiUrlBuilder = apiUrlBuilder;
+    canViewSettings = !shouldRestrictSettingsViewing(buildType, dataProvider);
   }
 
   @XmlAttribute
@@ -90,7 +99,7 @@ public class BuildType {
 
   @XmlElement(name = "vcs-root")
   public VcsRootEntries getVcsRootEntries() {
-    return new VcsRootEntries(myBuildType.getVcsRootEntries(), myApiUrlBuilder);
+    return check(new VcsRootEntries(myBuildType.getVcsRootEntries(), myApiUrlBuilder));
   }
 
   @XmlElement
@@ -100,12 +109,28 @@ public class BuildType {
 
   @XmlElement
   public Properties getParameters() {
-    return new Properties(myBuildType.getBuildParameters());
+    return check(new Properties(myBuildType.getBuildParameters()));
   }
 
   @XmlElement
   public Properties getRunParameters() {
     List<SBuildRunnerDescriptor> runners = myBuildType.getBuildRunners();
-    return new Properties(runners.isEmpty() ? Collections.<String, String>emptyMap() : runners.get(0).getParameters());
+    return check(new Properties(runners.isEmpty() ? Collections.<String, String>emptyMap() : runners.get(0).getParameters()));
+  }
+
+  public static boolean shouldRestrictSettingsViewing(final @NotNull BuildTypeSettings buildType, final @NotNull DataProvider permissionChecker) {
+    if (TeamCityProperties.getBoolean("rest.beans.buildType.checkPermissions")) {
+      return !permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, buildType.getProject().getProjectId());
+    }
+    return false;
+  }
+
+  @Nullable
+  private <T> T check(@Nullable T t) {
+    if (canViewSettings) {
+      return t;
+    } else {
+      return null;
+    }
   }
 }
