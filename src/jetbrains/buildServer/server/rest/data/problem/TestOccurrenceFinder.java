@@ -175,7 +175,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
       String buildTypeDimension = locator.getSingleDimensionValue(BUILD_TYPE);
       if (buildTypeDimension != null) {
-        final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension);
+        final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension, false);
         final ArrayList<STestRun> result = new ArrayList<STestRun>();
         for (STest test : tests.myEntries) {
           result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), 0, getBranch(locator))); //no personal builds

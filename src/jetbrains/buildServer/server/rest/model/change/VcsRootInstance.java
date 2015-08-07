@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -55,6 +56,7 @@ public class VcsRootInstance {
   private jetbrains.buildServer.vcs.VcsRootInstance myRoot;
   private Fields myFields;
   private BeanContext myBeanContext;
+  private final boolean canViewSettings;
 
   @XmlAttribute
   public String id;
@@ -90,6 +92,7 @@ public class VcsRootInstance {
 
 
   public VcsRootInstance() {
+    canViewSettings = true;
   }
 
   public VcsRootInstance(final jetbrains.buildServer.vcs.VcsRootInstance root, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
@@ -107,33 +110,37 @@ public class VcsRootInstance {
     vcsRootInternalId = ValueWithDefault.decideIncludeByDefault(
       fields.isIncluded("vcsRootInternalId", includeInternalId, includeInternalId), String.valueOf(root.getParentId()));
 
+    final PermissionChecker permissionChecker = beanContext.getServiceLocator().findSingletonService(PermissionChecker.class);
+    assert permissionChecker != null;
+    canViewSettings = !VcsRoot.shouldRestrictSettingsViewing(root.getParent(), permissionChecker);
+
     vcsName = ValueWithDefault.decideDefault(fields.isIncluded("vcsName", false), root.getVcsName());
     final VcsRootStatus vcsRootStatus = ((VcsRootInstanceEx)myRoot).getStatus();
     status = ValueWithDefault.decideDefault(fields.isIncluded("status", false), vcsRootStatus.getType().toString());
-    lastChecked = ValueWithDefault.decideDefault(fields.isIncluded("lastChecked", false), Util.formatTime(vcsRootStatus.getTimestamp()));
+    lastChecked = check(ValueWithDefault.decideDefault(fields.isIncluded("lastChecked", false), Util.formatTime(vcsRootStatus.getTimestamp())));
   }
 
   @XmlAttribute
   public String getLastVersion() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("lastVersion", false), new ValueWithDefault.Value<String>() {
+    return check(ValueWithDefault.decideDefault(myFields.isIncluded("lastVersion", false), new ValueWithDefault.Value<String>() {
       @Nullable
       public String get() {
         final RepositoryVersion currentRevision = myRoot.getLastUsedRevision();
         return currentRevision != null ? currentRevision.getDisplayVersion() : null;
       }
-    });
+    }));
   }
 
   @XmlAttribute
   public String getLastVersionInternal() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("lastVersionInternal", false, TeamCityProperties.getBoolean("rest.internalMode")),
-                                          new ValueWithDefault.Value<String>() {
-                                            @Nullable
-                                            public String get() {
-                                              final RepositoryVersion currentRevision = myRoot.getLastUsedRevision();
-                                              return currentRevision != null ? currentRevision.getVersion() : null;
-                                            }
-                                          });
+    return check(ValueWithDefault.decideDefault(myFields.isIncluded("lastVersionInternal", false, TeamCityProperties.getBoolean("rest.internalMode")),
+                                                new ValueWithDefault.Value<String>() {
+                                                  @Nullable
+                                                  public String get() {
+                                                    final RepositoryVersion currentRevision = myRoot.getLastUsedRevision();
+                                                    return currentRevision != null ? currentRevision.getVersion() : null;
+                                                  }
+                                                }));
   }
 
   @XmlElement(name = "vcs-root")
@@ -142,9 +149,9 @@ public class VcsRootInstance {
   }
 
   @XmlElement
-  public Properties getProperties(){
-    return ValueWithDefault.decideDefault(myFields.isIncluded("properties", false),
-                                          new Properties(myRoot.getProperties(), null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG)));
+  public Properties getProperties() {
+    return check(ValueWithDefault.decideDefault(myFields.isIncluded("properties", false),
+                                                new Properties(myRoot.getProperties(), null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG))));
   }
 
   public static String getFieldValue(final jetbrains.buildServer.vcs.VcsRootInstance rootInstance,
@@ -203,6 +210,15 @@ public class VcsRootInstance {
       return;
     }
     throw new NotFoundException("Setting of field '" + field + "' is not supported. Supported is: " + LAST_VERSION_INTERNAL);
+  }
+
+  @Nullable
+  private <T> T check(@Nullable T t) {
+    if (canViewSettings) {
+      return t;
+    } else {
+      return null;
+    }
   }
 }
 

@@ -127,7 +127,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
 
     final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
     if (buildTypeLocator != null) {
-      final SBuildType buildType = myBuildTypeFinder.getBuildType(project, buildTypeLocator);
+      final SBuildType buildType = myBuildTypeFinder.getBuildType(project, buildTypeLocator, false);
       result.add(new FilterConditionChecker<SQueuedBuild>() {
         public boolean isIncluded(@NotNull final SQueuedBuild item) {
           return buildType.equals(item.getBuildPromotion().getParentBuildType());

@@ -42,13 +42,16 @@ public class InvestigationFinderTest extends BaseServerTestCase {
   private BuildTypeEx myBuildType;
   private SUser myUser;
   private TestName2IndexImpl myTestName2Index;
+  private PermissionChecker myPermissionChecker;
 
   @Override
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
     myProjectManager = myFixture.getProjectManager();
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
+    myPermissionChecker = new PermissionChecker(myServer.getSecurityContext());
+    myFixture.addService(myPermissionChecker);
+    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, myPermissionChecker, myServer);
     final UserFinder userFinder = new UserFinder(myFixture);
     myTestName2Index = myFixture.getSingletonService(TestName2IndexImpl.class);
     final TestFinder testFinder = new TestFinder(projectFinder, myFixture.getTestManager(), myTestName2Index,

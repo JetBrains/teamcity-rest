@@ -232,7 +232,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       //initial collection can contain changes from any buildType/project
       final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
       if (buildTypeLocator != null) {
-        final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
+        final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
         result.add(new FilterConditionChecker<SVcsModification>() {
           public boolean isIncluded(@NotNull final SVcsModification item) {
             return isPersonalChangeMatchesBuildType(item, buildType);
@@ -385,7 +385,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     SBuildType buildType = null;
     final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
     if (buildTypeLocator != null) {
-      buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator);
+      buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
     }
 
     if (branchName != null) {

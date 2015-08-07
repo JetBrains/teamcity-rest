@@ -166,6 +166,7 @@ public class BuildTypeOrTemplate implements Loggable {
 
   @Nullable
   public String getFieldValue(final String field) {
+    // Fields should not require additional permissions apart from VIEW_PROJECT
     if ("id".equals(field)) {
       return getId();
     } else if ("internalId".equals(field)) {

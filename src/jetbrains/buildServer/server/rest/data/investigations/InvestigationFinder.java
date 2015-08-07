@@ -247,7 +247,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
     final String buildTypeDimension = locator.getSingleDimensionValue(BUILD_TYPE);
     if (buildTypeDimension != null){
-      final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension);
+      final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension, false);
       return getItemHolder(getInvestigationWrappersForBuildType(buildType));
     }
 

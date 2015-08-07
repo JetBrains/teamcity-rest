@@ -16,9 +16,11 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.request.BuildTypeRequest;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeTemplateEx;
+import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import org.testng.annotations.BeforeMethod;
@@ -35,10 +37,13 @@ public class BuildTypeFinderTest extends BaseServerTestCase {
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
+    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
+    myFixture.addService(permissionChecker);
+
+    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
     final AgentFinder agentFinder = new AgentFinder(myAgentManager);
 
-    myBuildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, myServer);
+    myBuildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myServer);
   }
 
   @Test

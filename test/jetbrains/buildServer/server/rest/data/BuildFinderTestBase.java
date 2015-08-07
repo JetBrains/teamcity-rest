@@ -23,6 +23,7 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -43,9 +44,11 @@ public class BuildFinderTestBase extends BaseServerTestCase {
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
+    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
+    myFixture.addService(permissionChecker);
+    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
     final AgentFinder agentFinder = new AgentFinder(myAgentManager);
-    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, myServer);
+    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myServer);
     final UserFinder userFinder = new UserFinder(myFixture);
     myBuildPromotionFinder = new BuildPromotionFinder(myFixture.getBuildPromotionManager(), myFixture.getBuildQueue(), myServer, myFixture.getHistory(),
                                                                                projectFinder, buildTypeFinder, userFinder, agentFinder);

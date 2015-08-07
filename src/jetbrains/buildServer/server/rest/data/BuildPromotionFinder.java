@@ -182,7 +182,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final String number = locator.getSingleDimensionValue(NUMBER);
     if (number != null) {
-      final SBuildType buildType = myBuildTypeFinder.getBuildType(null, locator.getSingleDimensionValue(BUILD_TYPE));
+      final SBuildType buildType = myBuildTypeFinder.getBuildType(null, locator.getSingleDimensionValue(BUILD_TYPE), false);
 
       SBuild build = myBuildsManager.findBuildInstanceByBuildNumber(buildType.getBuildTypeId(), number);
       if (build == null) {
@@ -288,7 +288,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
     if (buildTypeLocator != null) {
-      final SBuildType buildType = myBuildTypeFinder.getBuildType(affectedProject, buildTypeLocator);
+      final SBuildType buildType = myBuildTypeFinder.getBuildType(affectedProject, buildTypeLocator, false);
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
           return buildType.equals(item.getParentBuildType());
@@ -683,7 +683,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         if (affectedProjectLocator != null) {
           affectedProject = myProjectFinder.getProject(affectedProjectLocator);
         }
-        buildType = myBuildTypeFinder.getBuildType(affectedProject, buildTypeLocator);
+        buildType = myBuildTypeFinder.getBuildType(affectedProject, buildTypeLocator, false);
       }
 
       if (buildType != null) {
