@@ -39,6 +39,8 @@ import jetbrains.buildServer.server.rest.model.Constants;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.build.Builds;
+import jetbrains.buildServer.server.rest.model.buildType.BuildType;
+import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
@@ -345,7 +347,7 @@ public class DataProvider {
   @Nullable
   private SBuildType deriveBuildTypeFromLocator(@Nullable SBuildType contextBuildType, @Nullable final String buildTypeLocator) {
     if (buildTypeLocator != null) {
-      final SBuildType buildTypeFromLocator = getBuildType(null, buildTypeLocator);
+      final SBuildType buildTypeFromLocator = getBuildType(null, buildTypeLocator, false);
       if (contextBuildType == null) {
         return buildTypeFromLocator;
       } else if (!contextBuildType.getBuildTypeId().equals(buildTypeFromLocator.getBuildTypeId())) {
@@ -409,8 +411,8 @@ public class DataProvider {
   }
 
   @NotNull
-  public BuildTypeTemplate getBuildTemplate(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
-    final BuildTypeOrTemplate buildTypeOrTemplate = getBuildTypeOrTemplate(project, buildTypeLocator);
+  public BuildTypeTemplate getBuildTemplate(@Nullable final SProject project, @Nullable final String buildTypeLocator, final boolean checkViewSettingsPermission) {
+    final BuildTypeOrTemplate buildTypeOrTemplate = getBuildTypeOrTemplate(project, buildTypeLocator, checkViewSettingsPermission);
     if (buildTypeOrTemplate.isBuildType()){
       throw new BadRequestException("Could not find template by locator '" + buildTypeLocator + "'. Build type found instead.");
     }
@@ -418,7 +420,20 @@ public class DataProvider {
   }
 
   @NotNull
-  public BuildTypeOrTemplate getBuildTypeOrTemplate(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
+  public BuildTypeOrTemplate getBuildTypeOrTemplate(@Nullable final SProject project, @Nullable final String buildTypeLocator, final boolean checkViewSettingsPermission) {
+    final BuildTypeOrTemplate result = getBuildTypeOrTemplateUnckecked(project, buildTypeLocator);
+    if (checkViewSettingsPermission) {
+      BuildTypeSettings buildType = result.get();
+      if (BuildType.shouldRestrictSettingsViewing(buildType, this)) {
+        throw new AuthorizationFailedException(
+          "User does not have '" + Permission.VIEW_BUILD_CONFIGURATION_SETTINGS.getName() + "' permission in project " + buildType.getProject().describe(false));
+      }
+    }
+    return result;
+  }
+
+  @NotNull
+  public BuildTypeOrTemplate getBuildTypeOrTemplateUnckecked(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
     if (StringUtil.isEmpty(buildTypeLocator)) {
       throw new BadRequestException("Empty build type locator is not supported.");
     }
@@ -460,8 +475,8 @@ public class DataProvider {
   }
 
   @NotNull
-  public SBuildType getBuildType(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
-    final BuildTypeOrTemplate buildTypeOrTemplate = getBuildTypeOrTemplate(project, buildTypeLocator);
+  public SBuildType getBuildType(@Nullable final SProject project, @Nullable final String buildTypeLocator, final boolean checkViewSettingsPermission) {
+    final BuildTypeOrTemplate buildTypeOrTemplate = getBuildTypeOrTemplate(project, buildTypeLocator, checkViewSettingsPermission);
     if (buildTypeOrTemplate.isBuildType()){
       return buildTypeOrTemplate.getBuildType();
     }
@@ -505,7 +520,19 @@ public class DataProvider {
   }
 
   @NotNull
-  public SProject getProject(String projectLocator) {
+  public SProject getProject(String projectLocator, final boolean checkViewSettingsPermission) {
+    final SProject result = getProjectUnchecked(projectLocator);
+    if (checkViewSettingsPermission) {
+      if (Project.shouldRestrictSettingsViewing(result, this)) {
+        throw new AuthorizationFailedException(
+          "User does not have '" + Permission.VIEW_BUILD_CONFIGURATION_SETTINGS.getName() + "' permission in project " + result.describe(false));
+      }
+    }
+    return result;
+  }
+
+  @NotNull
+  public SProject getProjectUnchecked(String projectLocator) {
     if (StringUtil.isEmpty(projectLocator)) {
       throw new BadRequestException("Empty project locator is not supported.");
     }
@@ -1070,12 +1097,12 @@ public class DataProvider {
 
   @Nullable
   public SProject getProjectIfNotNull(@Nullable final String projectLocator) {
-    return projectLocator == null ? null : getProject(projectLocator);
+    return projectLocator == null ? null : getProject(projectLocator, false);
   }
 
   @Nullable
   public SBuildType getBuildTypeIfNotNull(@Nullable final String buildTypeLocator) {
-    return buildTypeLocator == null ? null : getBuildType(null, buildTypeLocator);
+    return buildTypeLocator == null ? null : getBuildType(null, buildTypeLocator, false);
   }
 
   @Nullable
@@ -1174,6 +1201,14 @@ public class DataProvider {
 
   public String getHelpLink(@NotNull final String page, @Nullable final String anchor) {
     return myWebLinks.getHelp(page, anchor);
+  }
+
+  public boolean isPermissionGranted(@NotNull final Permission permission, @Nullable final String internalProjectId) {
+    final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
+    if (internalProjectId == null){
+      return authorityHolder.isPermissionGrantedGlobally(permission);
+    }
+    return authorityHolder.isPermissionGrantedForProject(internalProjectId, permission);
   }
 
   public void checkGlobalPermission(final Permission permission) throws AuthorizationFailedException{

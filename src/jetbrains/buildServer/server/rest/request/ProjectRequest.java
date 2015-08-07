@@ -89,7 +89,7 @@ public class ProjectRequest {
     if (StringUtil.isEmpty(descriptor.sourceProjectLocator)) {
       resultingProject = myDataProvider.getServer().getProjectManager().createProject(descriptor.name);
     } else {
-      SProject sourceProject = myDataProvider.getProject(descriptor.sourceProjectLocator);
+      SProject sourceProject = myDataProvider.getProject(descriptor.sourceProjectLocator, false);
       resultingProject =
         myDataProvider.getServer().getProjectManager().createProject(sourceProject, descriptor.name, getCopyOptions(descriptor));
     }
@@ -101,13 +101,13 @@ public class ProjectRequest {
   @Path("/{projectLocator}")
   @Produces({"application/xml", "application/json"})
   public Project serveProject(@PathParam("projectLocator") String projectLocator) {
-    return new Project(myDataProvider.getProject(projectLocator), myDataProvider, myApiUrlBuilder);
+    return new Project(myDataProvider.getProject(projectLocator, false), myDataProvider, myApiUrlBuilder);
   }
 
   @DELETE
   @Path("/{projectLocator}")
   public void deleteProject(@PathParam("projectLocator") String projectLocator) {
-    final SProject project = myDataProvider.getProject(projectLocator);
+    final SProject project = myDataProvider.getProject(projectLocator, false);
     myDataProvider.getServer().getProjectManager().removeProject(project.getProjectId());
   }
 
@@ -115,14 +115,14 @@ public class ProjectRequest {
   @Path("/{projectLocator}/{field}")
   @Produces("text/plain")
   public String serveProjectFiled(@PathParam("projectLocator") String projectLocator, @PathParam("field") String fieldName) {
-    return Project.getFieldValue(myDataProvider.getProject(projectLocator), fieldName);
+    return Project.getFieldValue(myDataProvider.getProject(projectLocator, false), fieldName);
   }
 
   @PUT
   @Path("/{projectLocator}/{field}")
   @Consumes("text/plain")
   public void setProjectFiled(@PathParam("projectLocator") String projectLocator, @PathParam("field") String fieldName, String newValue) {
-    final SProject project = myDataProvider.getProject(projectLocator);
+    final SProject project = myDataProvider.getProject(projectLocator, false);
     Project.setFieldValue(project, fieldName, newValue, myDataProvider);
     project.persist();
   }
@@ -131,7 +131,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/buildTypes")
   @Produces({"application/xml", "application/json"})
   public BuildTypes serveBuildTypesInProject(@PathParam("projectLocator") String projectLocator) {
-    SProject project = myDataProvider.getProject(projectLocator);
+    SProject project = myDataProvider.getProject(projectLocator, false);
     return BuildTypes.createFromBuildTypes(project.getBuildTypes(), myDataProvider, myApiUrlBuilder);
   }
 
@@ -140,7 +140,7 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   @Consumes({"text/plain"})
   public BuildType createEmptyBuildType(@PathParam("projectLocator") String projectLocator, String name) {
-    SProject project = myDataProvider.getProject(projectLocator);
+    SProject project = myDataProvider.getProject(projectLocator, false);
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Build type name cannot be empty.");
     }
@@ -160,7 +160,7 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
   public BuildType createBuildType(@PathParam("projectLocator") String projectLocator, NewBuildTypeDescription descriptor) {
-    SProject project = myDataProvider.getProject(projectLocator);
+    SProject project = myDataProvider.getProject(projectLocator, false);
     if (StringUtil.isEmpty(descriptor.name)) {
       throw new BadRequestException("Build type name cannot be empty.");
     }
@@ -168,7 +168,7 @@ public class ProjectRequest {
     if (StringUtil.isEmpty(descriptor.sourceBuildTypeLocator)) {
       resultingBuildType = project.createBuildType(descriptor.name);
     }else{
-      SBuildType sourceBuildType = myDataProvider.getBuildType(null, descriptor.sourceBuildTypeLocator);
+      SBuildType sourceBuildType = myDataProvider.getBuildType(null, descriptor.sourceBuildTypeLocator, true);
       resultingBuildType = project.createBuildType(sourceBuildType, descriptor.name, getCopyOptions(descriptor));
     }
     project.persist();
@@ -203,7 +203,7 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   public BuildType serveBuildType(@PathParam("projectLocator") String projectLocator,
                                   @PathParam("btLocator") String buildTypeLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
+    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator, false), buildTypeLocator, false);
     return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
   }
 
@@ -212,7 +212,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/templates")
   @Produces({"application/xml", "application/json"})
   public BuildTypes serveTemplatesInProject(@PathParam("projectLocator") String projectLocator) {
-    SProject project = myDataProvider.getProject(projectLocator);
+    SProject project = myDataProvider.getProject(projectLocator, true);
     return BuildTypes.createFromTemplates(project.getBuildTypeTemplates(), myDataProvider, myApiUrlBuilder);
   }
 
@@ -221,7 +221,7 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   @Consumes({"text/plain"})
   public BuildType createEmptyBuildTypeTemplate(@PathParam("projectLocator") String projectLocator, String name) {
-    SProject project = myDataProvider.getProject(projectLocator);
+    SProject project = myDataProvider.getProject(projectLocator, true);
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Build type template name cannot be empty.");
     }
@@ -241,7 +241,7 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
   public BuildType createBuildTypeTemplate(@PathParam("projectLocator") String projectLocator, NewBuildTypeDescription descriptor) {
-    SProject project = myDataProvider.getProject(projectLocator);
+    SProject project = myDataProvider.getProject(projectLocator, true);
     if (StringUtil.isEmpty(descriptor.name)) {
       throw new BadRequestException("Build type template name cannot be empty.");
     }
@@ -249,7 +249,7 @@ public class ProjectRequest {
     if (StringUtil.isEmpty(descriptor.sourceBuildTypeLocator)) {
       resultingBuildType = project.createBuildTypeTemplate(descriptor.name);
     }else{
-      BuildTypeTemplate sourceTemplate = myDataProvider.getBuildTemplate(null, descriptor.sourceBuildTypeLocator);
+      BuildTypeTemplate sourceTemplate = myDataProvider.getBuildTemplate(null, descriptor.sourceBuildTypeLocator, true);
       resultingBuildType = project.createBuildTypeTemplate(sourceTemplate, descriptor.name, getCopyOptions(descriptor));
     }
     project.persist();
@@ -262,7 +262,7 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   public BuildType serveBuildTypeTemplates(@PathParam("projectLocator") String projectLocator,
                                   @PathParam("btLocator") String buildTypeLocator) {
-    BuildTypeTemplate buildType = myDataProvider.getBuildTemplate(myDataProvider.getProject(projectLocator), buildTypeLocator);
+    BuildTypeTemplate buildType = myDataProvider.getBuildTemplate(myDataProvider.getProject(projectLocator, true), buildTypeLocator, true);
     return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
   }
 
@@ -270,7 +270,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/parameters")
   @Produces({"application/xml", "application/json"})
   public Properties serveParameters(@PathParam("projectLocator") String projectLocator) {
-    SProject project = myDataProvider.getProject(projectLocator);
+    SProject project = myDataProvider.getProject(projectLocator, true);
     return new Properties(project.getParameters());
   }
 
@@ -278,7 +278,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/parameters/{name}")
   @Produces("text/plain")
   public String serveParameter(@PathParam("projectLocator") String projectLocator, @PathParam("name") String parameterName) {
-    SProject project = myDataProvider.getProject(projectLocator);
+    SProject project = myDataProvider.getProject(projectLocator, true);
     return BuildTypeUtil.getParameter(parameterName, project);
   }
 
@@ -288,7 +288,7 @@ public class ProjectRequest {
   public void putParameter(@PathParam("projectLocator") String projectLocator,
                                     @PathParam("name") String parameterName,
                                     String newValue) {
-    SProject project = myDataProvider.getProject(projectLocator);
+    SProject project = myDataProvider.getProject(projectLocator, true);
     BuildTypeUtil.changeParameter(parameterName, newValue, project, myServiceLocator);
     project.persist();
   }
@@ -298,7 +298,7 @@ public class ProjectRequest {
   @Produces("text/plain")
   public void deleteParameter(@PathParam("projectLocator") String projectLocator,
                                        @PathParam("name") String parameterName) {
-    SProject project = myDataProvider.getProject(projectLocator);
+    SProject project = myDataProvider.getProject(projectLocator, true);
     BuildTypeUtil.deleteParameter(parameterName, project);
     project.persist();
   }
@@ -310,7 +310,7 @@ public class ProjectRequest {
   public String serveBuildTypeFieldWithProject(@PathParam("projectLocator") String projectLocator,
                                                @PathParam("btLocator") String buildTypeLocator,
                                                @PathParam("field") String fieldName) {
-    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(myDataProvider.getProject(projectLocator), buildTypeLocator);
+    BuildTypeOrTemplate buildType = myDataProvider.getBuildTypeOrTemplate(myDataProvider.getProject(projectLocator, false), buildTypeLocator, false);
 
     return buildType.getFieldValue(fieldName);
   }
@@ -352,7 +352,7 @@ public class ProjectRequest {
                             @QueryParam("count") Integer count,
                             @QueryParam("locator") BuildLocator locator,
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
-    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
+    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator, false), buildTypeLocator, false);
     return myDataProvider.getBuildsForRequest(buildType,
                                               status, userLocator, includePersonal, includeCanceled, onlyPinned, tags, agentName,
                                               sinceBuildLocator, sinceDate, start, count, locator, uriInfo, request, myApiUrlBuilder);
@@ -364,7 +364,7 @@ public class ProjectRequest {
   public Build serveBuildWithProject(@PathParam("projectLocator") String projectLocator,
                                      @PathParam("btLocator") String buildTypeLocator,
                                      @PathParam("buildLocator") String buildLocator) {
-    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
+    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator, false), buildTypeLocator, false);
     SBuild build = myDataProvider.getBuild(buildType, buildLocator);
 
     return new Build(build, myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
@@ -377,7 +377,7 @@ public class ProjectRequest {
                                            @PathParam("btLocator") String buildTypeLocator,
                                            @PathParam("buildLocator") String buildLocator,
                                            @PathParam("field") String field) {
-    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator), buildTypeLocator);
+    SBuildType buildType = myDataProvider.getBuildType(myDataProvider.getProject(projectLocator, false), buildTypeLocator, false);
     SBuild build = myDataProvider.getBuild(buildType, buildLocator);
 
     return myDataProvider.getFieldValue(build, field);

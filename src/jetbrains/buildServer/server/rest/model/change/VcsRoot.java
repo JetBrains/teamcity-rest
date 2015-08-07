@@ -33,8 +33,13 @@ import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.project.ProjectRef;
 import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.serverSide.SimpleParameter;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.UserParametersHolder;
-import jetbrains.buildServer.vcs.*;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.vcs.VcsManager;
+import jetbrains.buildServer.vcs.VcsRootScope;
+import jetbrains.buildServer.vcs.VcsRootStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -94,7 +99,9 @@ public class VcsRoot {
     if (!shared){
       project = new ProjectRef(dataProvider.getProjectById(root.getScope().getOwnerProjectId()), apiUrlBuilder);
     }
+    if (!shouldRestrictSettingsViewing(root, dataProvider)) {
     properties = new Properties(root.getProperties());
+    }
     final VcsRootStatus rootStatus = dataProvider.getVcsManager().getStatus(root);
     status = rootStatus.getType().toString();
     lastChecked = Util.formatTime(rootStatus.getTimestamp());
@@ -113,7 +120,9 @@ public class VcsRoot {
     if (!shared){
       project = new ProjectRef(dataProvider.getProjectById(parent.getScope().getOwnerProjectId()), apiUrlBuilder);
     }
+    if (!shouldRestrictSettingsViewing(parent, dataProvider)) {
     properties = new Properties(rootInst.getProperties());
+    }
     final VcsRootStatus rootStatus = dataProvider.getVcsManager().getStatus(parent);
     status = rootStatus.getType().toString();
     lastChecked = Util.formatTime(rootStatus.getTimestamp());
@@ -191,11 +200,19 @@ public class VcsRoot {
       }
       throw new BadRequestException("Setting field 'shared' to false is not supported, set projectId instead.");
     }else if ("projectId".equals(field)) {
-        dataProvider.getVcsManager().setVcsRootScope(vcsRoot.getId(), VcsRootScope.projectScope(dataProvider.getProject(newValue)));
+        dataProvider.getVcsManager().setVcsRootScope(vcsRoot.getId(), VcsRootScope.projectScope(dataProvider.getProject(newValue, true)));
         return;
     }
 
     throw new BadRequestException("Setting field '" + field + "' is not supported. Supported are: name, shared, projectId");
+  }
+
+  public static boolean shouldRestrictSettingsViewing(final @NotNull SVcsRoot root, final @NotNull DataProvider permissionChecker) {
+    //see also jetbrains.buildServer.server.rest.data.VcsRootFinder.checkPermission
+    if (TeamCityProperties.getBoolean("rest.beans.vcsRoot.checkPermissions")) {
+      return !permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, root.getProject().getProjectId());
+    }
+    return false;
   }
 }
 

@@ -24,6 +24,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.serverSide.RepositoryVersion;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -36,8 +37,10 @@ import jetbrains.buildServer.serverSide.TeamCityProperties;
 public class VcsRootInstance extends VcsRoot {
   private jetbrains.buildServer.vcs.VcsRootInstance myRoot;
   private ApiUrlBuilder myApiUrlBuilder;
+  private final boolean canViewSettings;
 
   public VcsRootInstance() {
+    canViewSettings = true;
   }
 
   public VcsRootInstance(final jetbrains.buildServer.vcs.VcsRootInstance root,
@@ -46,6 +49,8 @@ public class VcsRootInstance extends VcsRoot {
     super((jetbrains.buildServer.vcs.VcsRootInstance)root, dataProvider, apiUrlBuilder);
     myRoot = root;
     myApiUrlBuilder = apiUrlBuilder;
+
+    canViewSettings = !VcsRoot.shouldRestrictSettingsViewing(root.getParent(), dataProvider);
   }
 
   @XmlElement(name = "vcs-root")
@@ -56,7 +61,7 @@ public class VcsRootInstance extends VcsRoot {
   @XmlAttribute
   public String getLastVersion() {
     final RepositoryVersion currentRevision = myRoot.getLastUsedRevision();
-    return currentRevision != null ? currentRevision.getDisplayVersion() : null;
+    return check(currentRevision != null ? currentRevision.getDisplayVersion() : null);
   }
 
   @XmlAttribute
@@ -65,8 +70,16 @@ public class VcsRootInstance extends VcsRoot {
       return null;
     }
     final RepositoryVersion currentRevision = myRoot.getLastUsedRevision();
-    return currentRevision != null ? currentRevision.getVersion() : null;
+    return check(currentRevision != null ? currentRevision.getVersion() : null);
   }
 
+  @Nullable
+  private <T> T check(@Nullable T t) {
+    if (canViewSettings) {
+      return t;
+    } else {
+      return null;
+    }
+  }
 }
 

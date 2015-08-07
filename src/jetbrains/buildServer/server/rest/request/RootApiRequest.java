@@ -74,8 +74,8 @@ public class RootApiRequest {
                                      @PathParam("btLocator") String buildTypeLocator,
                                      @PathParam("buildLocator") String buildLocator,
                                      @PathParam("field") String field) {
-    SProject project = myDataProvider.getProject(projectLocator);
-    SBuildType buildType = myDataProvider.getBuildType(project, buildTypeLocator);
+    SProject project = myDataProvider.getProject(projectLocator, false);
+    SBuildType buildType = myDataProvider.getBuildType(project, buildTypeLocator, false);
     SBuild build = myDataProvider.getBuild(buildType, buildLocator);
 
     return myDataProvider.getFieldValue(build, field);

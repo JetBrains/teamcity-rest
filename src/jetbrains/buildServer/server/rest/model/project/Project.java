@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.model.project;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -26,6 +27,8 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -63,8 +66,13 @@ public class Project extends ProjectRef {
     archived = project.isArchived();
     webUrl = dataProvider.getProjectUrl(project);
     buildTypes = BuildTypes.createFromBuildTypes(project.getBuildTypes(), dataProvider, apiUrlBuilder);
+    if (!shouldRestrictSettingsViewing(project, dataProvider)) {
     templates = BuildTypes.createFromTemplates(project.getBuildTypeTemplates(), dataProvider, apiUrlBuilder);
     parameters = new Properties(project.getParameters());
+    } else {
+      templates = null;
+      parameters = null;
+    }
   }
 
   @Nullable
@@ -93,5 +101,12 @@ public class Project extends ProjectRef {
       return;
     }
     throw new BadRequestException("Setting field '" + field + "' is not supported. Supported are: name, description, archived");
+  }
+
+  public static boolean shouldRestrictSettingsViewing(final @NotNull BuildProject project, final @NotNull DataProvider permissionChecker) {
+    if (TeamCityProperties.getBoolean("rest.beans.project.checkPermissions")) {
+      return !permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, project.getProjectId());
+    }
+    return false;
   }
 }
