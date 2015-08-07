@@ -84,12 +84,10 @@
           <root url="jar://$MODULE_DIR$/lib-test/hamcrest-integration-1.3.jar!/" />
           <root url="jar://$MODULE_DIR$/lib-test/hamcrest-library-1.3.jar!/" />
           <root url="jar://$MODULE_DIR$/lib-test/junit-4.11.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib-test/jmock-2.5.1.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
           <root url="jar://$MODULE_DIR$/lib-test/mockito-core-1.9.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib-test/jmock-2.5.1.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
