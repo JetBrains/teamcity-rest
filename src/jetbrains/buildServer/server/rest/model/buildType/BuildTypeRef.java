@@ -138,7 +138,7 @@ public class BuildTypeRef {
       return context.getSingletonService(BuildTypeIdentifiersManager.class).internalToExternal(internalId);
     }
     if (locator != null){
-      return context.getSingletonService(BuildTypeFinder.class).getBuildType(null, locator).getExternalId();
+      return context.getSingletonService(BuildTypeFinder.class).getBuildType(null, locator, false).getExternalId();
     }
     throw new BadRequestException("Could not find build type by the data. Either 'id' or 'internalId' or 'locator' attributes should be specified.");
   }
@@ -159,6 +159,6 @@ public class BuildTypeRef {
       throw new BadRequestException("No project specified. Either 'id', 'internalId' or 'locator' attribute should be present.");
     }
     //todo: support/check posted projectId fields here
-    return buildTypeFinder.getBuildTypeOrTemplate(null, locatorText);
+    return buildTypeFinder.getBuildTypeOrTemplate(null, locatorText, false);
   }
 }

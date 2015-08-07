@@ -49,7 +49,7 @@ public class VcsRootInstancesFilter extends AbstractFilter<VcsRootInstance> {
     }
     final String buildTypeLocator = locator.getSingleDimensionValue("buildType"); //todo: what this project should mean?
     if (buildTypeLocator != null) {
-      myBuildType = buildTypeFinder.getBuildType(myProject, buildTypeLocator);
+      myBuildType = buildTypeFinder.getBuildType(myProject, buildTypeLocator, true);
     } else {
       myBuildType = null;
     }

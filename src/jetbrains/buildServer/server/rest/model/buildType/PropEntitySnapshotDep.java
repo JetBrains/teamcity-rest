@@ -178,7 +178,7 @@ public class PropEntitySnapshotDep extends PropEntity {
 
     String buildTypeLocator = locator.getSingleDimensionValue("buildType");
     if (buildTypeLocator != null) {
-      final String externalId = buildTypeFinder.getBuildType(null, buildTypeLocator).getExternalId();
+      final String externalId = buildTypeFinder.getBuildType(null, buildTypeLocator, false).getExternalId();
       final Dependency foundDependency = getSnapshotDepOrNull(buildType, externalId);
       if (foundDependency != null) {
         return foundDependency;

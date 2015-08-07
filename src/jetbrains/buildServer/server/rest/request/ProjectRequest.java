@@ -241,7 +241,7 @@ public class ProjectRequest {
   public BuildType serveBuildType(@PathParam("projectLocator") String projectLocator,
                                   @PathParam("btLocator") String buildTypeLocator) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(
-      myProjectFinder.getProject(projectLocator), buildTypeLocator
+      myProjectFinder.getItem(projectLocator, false), buildTypeLocator, false
     );
     return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
   }
@@ -251,7 +251,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/templates")
   @Produces({"application/xml", "application/json"})
   public BuildTypes serveTemplatesInProject(@PathParam("projectLocator") String projectLocator) {
-    SProject project = myProjectFinder.getProject(projectLocator);
+    SProject project = myProjectFinder.getItem(projectLocator, true);
     return BuildTypes.createFromTemplates(project.getOwnBuildTypeTemplates(), myDataProvider, myApiUrlBuilder);
   }
 
@@ -260,7 +260,7 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   @Consumes({"text/plain"})
   public BuildType createEmptyBuildTypeTemplate(@PathParam("projectLocator") String projectLocator, String name) {
-    SProject project = myProjectFinder.getProject(projectLocator);
+    SProject project = myProjectFinder.getItem(projectLocator, true);
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Build type template name cannot be empty.");
     }
@@ -281,7 +281,7 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
   public BuildType createBuildTypeTemplate(@PathParam("projectLocator") String projectLocator, NewBuildTypeDescription descriptor) {
-    @NotNull SProject project = myProjectFinder.getProject(projectLocator);
+    @NotNull SProject project = myProjectFinder.getItem(projectLocator, true);
     BuildTypeTemplate resultingBuildType;
     @Nullable final BuildTypeOrTemplate sourceBuildType = descriptor.getSourceBuildTypeOrTemplate(myServiceLocator);
     if (sourceBuildType == null) {
@@ -306,7 +306,7 @@ public class ProjectRequest {
   public BuildType serveBuildTypeTemplates(@PathParam("projectLocator") String projectLocator,
                                   @PathParam("btLocator") String buildTypeLocator) {
     BuildTypeTemplate buildType = myBuildTypeFinder.getBuildTemplate(
-      myProjectFinder.getProject(projectLocator), buildTypeLocator
+      myProjectFinder.getItem(projectLocator, true), buildTypeLocator, true
     );
     return new BuildType(buildType, myDataProvider, myApiUrlBuilder);
   }
@@ -315,7 +315,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/parameters")
   @Produces({"application/xml", "application/json"})
   public Properties serveParameters(@PathParam("projectLocator") String projectLocator) {
-    SProject project = myProjectFinder.getProject(projectLocator);
+    SProject project = myProjectFinder.getItem(projectLocator, true);
     return new Properties(project.getParameters());
   }
 
@@ -324,7 +324,7 @@ public class ProjectRequest {
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Properties changeAllParameters(@PathParam("projectLocator") String projectLocator, Properties properties) {
-    SProject project = myProjectFinder.getProject(projectLocator);
+    SProject project = myProjectFinder.getItem(projectLocator, true);
     BuildTypeUtil.removeAllParameters(project);
     for (Property p : properties.properties) {
       BuildTypeUtil.changeParameter(p.name, p.value, project, myServiceLocator);
@@ -336,7 +336,7 @@ public class ProjectRequest {
   @DELETE
   @Path("/{projectLocator}/parameters")
   public void deleteAllParameters(@PathParam("projectLocator") String projectLocator) {
-    SProject project = myProjectFinder.getProject(projectLocator);
+    SProject project = myProjectFinder.getItem(projectLocator, true);
     BuildTypeUtil.removeAllParameters(project);
     project.persist();
   }
@@ -345,7 +345,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/parameters/{name}")
   @Produces("text/plain")
   public String serveParameter(@PathParam("projectLocator") String projectLocator, @PathParam("name") String parameterName) {
-    SProject project = myProjectFinder.getProject(projectLocator);
+    SProject project = myProjectFinder.getItem(projectLocator, true);
     return BuildTypeUtil.getParameter(parameterName, project, true, false);
   }
 
@@ -356,7 +356,7 @@ public class ProjectRequest {
   public String putParameter(@PathParam("projectLocator") String projectLocator,
                                     @PathParam("name") String parameterName,
                                     String newValue) {
-    SProject project = myProjectFinder.getProject(projectLocator);
+    SProject project = myProjectFinder.getItem(projectLocator, true);
     BuildTypeUtil.changeParameter(parameterName, newValue, project, myServiceLocator);
     project.persist();
     return BuildTypeUtil.getParameter(parameterName, project, false, false);
@@ -367,7 +367,7 @@ public class ProjectRequest {
   @Produces("text/plain")
   public void deleteParameter(@PathParam("projectLocator") String projectLocator,
                                        @PathParam("name") String parameterName) {
-    SProject project = myProjectFinder.getProject(projectLocator);
+    SProject project = myProjectFinder.getItem(projectLocator, true);
     BuildTypeUtil.deleteParameter(parameterName, project);
     project.persist();
   }
@@ -379,9 +379,7 @@ public class ProjectRequest {
   public String serveBuildTypeFieldWithProject(@PathParam("projectLocator") String projectLocator,
                                                @PathParam("btLocator") String buildTypeLocator,
                                                @PathParam("field") String fieldName) {
-    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(
-      myProjectFinder.getProject(projectLocator), buildTypeLocator);
-
+    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(myProjectFinder.getItem(projectLocator, false), buildTypeLocator, false);
     return buildType.getFieldValue(fieldName);
   }
 
@@ -422,9 +420,7 @@ public class ProjectRequest {
                             @QueryParam("count") Integer count,
                             @QueryParam("locator") String locator,
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
-    SBuildType buildType = myBuildTypeFinder.getBuildType(myProjectFinder.getProject(projectLocator
-    ),
-                                                          buildTypeLocator);
+    SBuildType buildType = myBuildTypeFinder.getBuildType(myProjectFinder.getItem(projectLocator, false), buildTypeLocator, false);
     return myBuildFinder.getBuildsForRequest(buildType, status, userLocator, includePersonal, includeCanceled, onlyPinned, tags, agentName,
                                            sinceBuildLocator, sinceDate, start, count, locator, "locator", uriInfo, request, myApiUrlBuilder
     );
@@ -435,10 +431,9 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   public Build serveBuildWithProject(@PathParam("projectLocator") String projectLocator,
                                      @PathParam("btLocator") String buildTypeLocator,
-                                     @PathParam("buildLocator") String buildLocator) {
-    SBuildType buildType = myBuildTypeFinder.getBuildType(myProjectFinder.getProject(projectLocator
-    ),
-                                                          buildTypeLocator);
+                                     @PathParam("buildLocator") String buildLocator,
+                                     @QueryParam("fields") String fields) {
+    SBuildType buildType = myBuildTypeFinder.getBuildType(myProjectFinder.getItem(projectLocator, false), buildTypeLocator, false);
     SBuild build = myBuildFinder.getBuild(buildType, buildLocator);
 
     return new Build(build, myDataProvider, myApiUrlBuilder, myServiceLocator, myFactory);
@@ -451,9 +446,7 @@ public class ProjectRequest {
                                            @PathParam("btLocator") String buildTypeLocator,
                                            @PathParam("buildLocator") String buildLocator,
                                            @PathParam("field") String field) {
-    SBuildType buildType = myBuildTypeFinder.getBuildType(myProjectFinder.getProject(projectLocator
-    ),
-                                                          buildTypeLocator);
+    SBuildType buildType = myBuildTypeFinder.getBuildType(myProjectFinder.getItem(projectLocator, false), buildTypeLocator, false);
     SBuild build = myBuildFinder.getBuild(buildType, buildLocator);
 
     return Build.getFieldValue(build, field);

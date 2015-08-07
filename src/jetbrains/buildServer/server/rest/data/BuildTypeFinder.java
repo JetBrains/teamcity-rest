@@ -3,13 +3,13 @@ package jetbrains.buildServer.server.rest.data;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.List;
 import jetbrains.buildServer.server.rest.APIController;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
-import jetbrains.buildServer.serverSide.BuildTypeTemplate;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -37,7 +37,16 @@ public class BuildTypeFinder {
   }
 
   @NotNull
-  public BuildTypeOrTemplate getBuildTypeOrTemplate(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
+  public BuildTypeOrTemplate getBuildTypeOrTemplate(@Nullable final SProject project, @Nullable final String buildTypeLocator, final boolean checkViewSettingsPermission) {
+    final BuildTypeOrTemplate result = getBuildTypeOrTemplateUnckecked(project, buildTypeLocator);
+    if (checkViewSettingsPermission) {
+      check(result.get(), myDataProvider);
+    }
+    return result;
+  }
+
+  @NotNull
+  public BuildTypeOrTemplate getBuildTypeOrTemplateUnckecked(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
     if (StringUtil.isEmpty(buildTypeLocator)) {
       throw new BadRequestException("Empty build type locator is not supported.");
     }
@@ -139,6 +148,13 @@ public class BuildTypeFinder {
     throw new BadRequestException("Build type locator '" + buildTypeLocator + "' is not supported.");
   }
 
+  public static void check(@NotNull BuildTypeSettings buildType, @NotNull final DataProvider permissionChecker) {
+    if (BuildType.shouldRestrictSettingsViewing(buildType, permissionChecker)) {
+      throw new AuthorizationFailedException(
+        "User does not have '" + Permission.VIEW_BUILD_CONFIGURATION_SETTINGS.getName() + "' permission in project " + buildType.getProject().describe(false));
+    }
+  }
+
   private void checkProjectFilter(final SProject project, final BuildTypeOrTemplate buildType) {
     if (project != null && !buildType.getProject().equals(project)) {
       throw new BadRequestException("Found " + LogUtil.describe(buildType) + " but it does not belong to project " + LogUtil.describe(project) + ".");
@@ -153,8 +169,8 @@ public class BuildTypeFinder {
   }
 
   @NotNull
-  public SBuildType getBuildType(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
-    final BuildTypeOrTemplate buildTypeOrTemplate = getBuildTypeOrTemplate(project, buildTypeLocator);
+  public SBuildType getBuildType(@Nullable final SProject project, @Nullable final String buildTypeLocator, final boolean checkViewSettingsPermission) {
+    final BuildTypeOrTemplate buildTypeOrTemplate = getBuildTypeOrTemplate(project, buildTypeLocator, checkViewSettingsPermission);
     if (buildTypeOrTemplate.isBuildType()){
       return buildTypeOrTemplate.getBuildType();
     }
@@ -162,8 +178,8 @@ public class BuildTypeFinder {
   }
 
   @NotNull
-  public BuildTypeTemplate getBuildTemplate(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
-    final BuildTypeOrTemplate buildTypeOrTemplate = getBuildTypeOrTemplate(project, buildTypeLocator);
+  public BuildTypeTemplate getBuildTemplate(@Nullable final SProject project, @Nullable final String buildTypeLocator, final boolean checkViewSettingsPermission) {
+    final BuildTypeOrTemplate buildTypeOrTemplate = getBuildTypeOrTemplate(project, buildTypeLocator, checkViewSettingsPermission);
     if (buildTypeOrTemplate.isBuildType()){
       throw new BadRequestException("No build type template by locator '" + buildTypeLocator + "'. Build type is found instead.");
     }
@@ -172,13 +188,13 @@ public class BuildTypeFinder {
 
   @Nullable
   public SBuildType getBuildTypeIfNotNull(@Nullable final String buildTypeLocator) {
-    return buildTypeLocator == null ? null : getBuildType(null, buildTypeLocator);
+    return buildTypeLocator == null ? null : getBuildType(null, buildTypeLocator, false);
   }
 
   @Nullable
   public SBuildType deriveBuildTypeFromLocator(@Nullable SBuildType contextBuildType, @Nullable final String buildTypeLocator) {
     if (buildTypeLocator != null) {
-      final SBuildType buildTypeFromLocator = getBuildType(null, buildTypeLocator);
+      final SBuildType buildTypeFromLocator = getBuildType(null, buildTypeLocator, false);
       if (contextBuildType == null) {
         return buildTypeFromLocator;
       } else if (!contextBuildType.getBuildTypeId().equals(buildTypeFromLocator.getBuildTypeId())) {
