@@ -48,7 +48,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
   public void setUp() throws Exception {
     super.setUp();
     myProjectManager = myFixture.getProjectManager();
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
+    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, null);
     final UserFinder userFinder = new UserFinder(myFixture);
     myTestName2Index = myFixture.getSingletonService(TestName2IndexImpl.class);
     final TestFinder testFinder = new TestFinder(projectFinder, myFixture.getTestManager(), myTestName2Index,

@@ -26,9 +26,9 @@ public class VcsRootFinderTest extends BaseServerTestCase {
     super.setUp();
     final VcsManagerImpl vcsManager = myFixture.getVcsManager();
     myProjectManager = myFixture.getProjectManager();
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager);
+    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, null);
     final AgentFinder agentFinder = new AgentFinder(myAgentManager);
-    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, myServer);
+    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, null, myServer);
     myVcsRootFinder = new VcsRootFinder(vcsManager, projectFinder, buildTypeFinder, myProjectManager, myFixture.getSecurityContext());
   }
 

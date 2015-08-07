@@ -34,6 +34,7 @@ import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsRootInstanceEx;
 import jetbrains.buildServer.vcs.VcsRootStatus;
 import jetbrains.buildServer.vcs.impl.RepositoryStateManager;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -48,6 +49,7 @@ public class VcsRootInstance {
   public static final String LAST_VERSION = "lastVersion";
   private jetbrains.buildServer.vcs.VcsRootInstance myRoot;
   private ApiUrlBuilder myApiUrlBuilder;
+  private final boolean canViewSettings;
 
   @XmlAttribute
   public String id;
@@ -76,6 +78,7 @@ public class VcsRootInstance {
 
 
   public VcsRootInstance() {
+    canViewSettings = true;
   }
 
   public VcsRootInstance(final jetbrains.buildServer.vcs.VcsRootInstance root,
@@ -90,14 +93,16 @@ public class VcsRootInstance {
 
     final VcsRootStatus vcsRootStatus = ((VcsRootInstanceEx)myRoot).getStatus();
     status = vcsRootStatus.getType().toString();
-    lastChecked = Util.formatTime(vcsRootStatus.getTimestamp());
+    canViewSettings = !VcsRoot.shouldRestrictSettingsViewing(root.getParent(), dataProvider);
+
+    lastChecked = check(Util.formatTime(vcsRootStatus.getTimestamp()));
     href = apiUrlBuilder.getHref(root);
   }
 
   @XmlAttribute
   public String getLastVersion() {
     final RepositoryVersion currentRevision = myRoot.getLastUsedRevision();
-    return currentRevision != null ? currentRevision.getDisplayVersion() : null;
+    return check(currentRevision != null ? currentRevision.getDisplayVersion() : null);
   }
 
   @XmlAttribute
@@ -106,7 +111,7 @@ public class VcsRootInstance {
       return null;
     }
     final RepositoryVersion currentRevision = myRoot.getLastUsedRevision();
-    return currentRevision != null ? currentRevision.getVersion() : null;
+    return check(currentRevision != null ? currentRevision.getVersion() : null);
   }
 
   @XmlElement(name = "vcs-root")
@@ -116,7 +121,7 @@ public class VcsRootInstance {
 
   @XmlElement
   public Properties getProperties(){
-    return new Properties(myRoot.getProperties());
+    return check(new Properties(myRoot.getProperties()));
   }
 
   public static String getFieldValue(final jetbrains.buildServer.vcs.VcsRootInstance rootInstance,
@@ -174,6 +179,15 @@ public class VcsRootInstance {
       return;
     }
     throw new NotFoundException("Setting of field '" + field + "' is not supported. Supported is: " + LAST_VERSION_INTERNAL);
+  }
+
+  @Nullable
+  private <T> T check(@Nullable T t) {
+    if (canViewSettings) {
+      return t;
+    } else {
+      return null;
+    }
   }
 }
 

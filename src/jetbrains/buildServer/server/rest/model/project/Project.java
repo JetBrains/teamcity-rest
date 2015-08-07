@@ -21,6 +21,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -29,8 +30,10 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Href;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
+import jetbrains.buildServer.server.rest.model.buildType.VcsRoots;
 import jetbrains.buildServer.server.rest.request.ProjectRequest;
 import jetbrains.buildServer.server.rest.request.VcsRootRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -38,6 +41,7 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -140,22 +144,30 @@ public class Project {
         return new BuildTypes(BuildTypes.fromBuildTypes(project.getOwnBuildTypes()), fields.getNestedField("buildTypes", Fields.NONE, Fields.LONG), beanContext);
       }
     });
-    templates = ValueWithDefault.decideDefault(fields.isIncluded("templates", false), new ValueWithDefault.Value<BuildTypes>() {
-      public BuildTypes get() {
-        return new BuildTypes(BuildTypes.fromTemplates(project.getOwnBuildTypeTemplates()), fields.getNestedField("templates", Fields.NONE, Fields.LONG), beanContext);
-      }
-    });
-    parameters = ValueWithDefault.decideDefault(fields.isIncluded("parameters", false), new ValueWithDefault.Value<Properties>() {
-      public Properties get() {
-        return new Properties(project.getParametersCollection(),project.getOwnParametersCollection(), ProjectRequest.getParametersHref(project),
-                              fields.getNestedField("parameters", Fields.NONE, Fields.LONG), beanContext.getServiceLocator());
-      }
-    });
-    vcsRoots = ValueWithDefault.decideDefault(fields.isIncluded("vcsRoots", false), new ValueWithDefault.Value<Href>() {
-      public Href get() {
-        return new Href(VcsRootRequest.API_VCS_ROOTS_URL + "?locator=project:(id:" + project.getExternalId() + ")", beanContext.getApiUrlBuilder());
-      }
-    });
+    final DataProvider permissionChecker = beanContext.getServiceLocator().findSingletonService(DataProvider.class);
+    if (permissionChecker != null && !shouldRestrictSettingsViewing(project, permissionChecker)) {
+      templates = ValueWithDefault.decideDefault(fields.isIncluded("templates", false), new ValueWithDefault.Value<BuildTypes>() {
+        public BuildTypes get() {
+          return new BuildTypes(BuildTypes.fromTemplates(project.getOwnBuildTypeTemplates()), fields.getNestedField("templates", Fields.NONE, Fields.LONG), beanContext);
+        }
+      });
+      parameters = ValueWithDefault.decideDefault(fields.isIncluded("parameters", false), new ValueWithDefault.Value<Properties>() {
+        public Properties get() {
+          return new Properties(project.getParametersCollection(),project.getOwnParametersCollection(), ProjectRequest.getParametersHref(project),
+                                fields.getNestedField("parameters", Fields.NONE, Fields.LONG), beanContext.getServiceLocator());
+        }
+      });
+      vcsRoots = ValueWithDefault.decideDefault(fields.isIncluded("vcsRoots", false), new ValueWithDefault.Value<Href>() {
+        public Href get() {
+          return new Href(VcsRootRequest.API_VCS_ROOTS_URL + "?locator=project:(id:" + project.getExternalId() + ")", beanContext.getApiUrlBuilder());
+        }
+      });
+
+    } else {
+      templates = null;
+      parameters = null;
+      vcsRoots = null;
+    }
 
     projects = ValueWithDefault.decideDefault(fields.isIncluded("projects", false), new ValueWithDefault.Value<Projects>() {
       public Projects get() {
@@ -253,5 +265,12 @@ public class Project {
       throw new BadRequestException("No project specified. Either 'id', 'internalId' or 'locator' attribute should be present.");
     }
     return projectFinder.getProject(locatorText);
+  }
+
+  public static boolean shouldRestrictSettingsViewing(final @NotNull BuildProject project, final @NotNull DataProvider permissionChecker) {
+    if (TeamCityProperties.getBoolean("rest.beans.project.checkPermissions")) {
+      return !permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, project.getProjectId());
+    }
+    return false;
   }
 }

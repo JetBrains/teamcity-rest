@@ -329,7 +329,7 @@ public class VcsRootFinder{
 
     final String buildTypeLocator = locator.getSingleDimensionValue("buildType"); //uses buildType as "used in", but might also need "accessible from" operation
     if (buildTypeLocator != null) {
-      final SBuildType buildType = myBuildTypeFinder.getBuildType(project, buildTypeLocator);
+      final SBuildType buildType = myBuildTypeFinder.getBuildType(project, buildTypeLocator, true);
       result.add(new FilterConditionChecker<VcsRootInstance>() {
         public boolean isIncluded(@NotNull final VcsRootInstance item) {
           return item.getUsages().keySet().contains(buildType);  // todo: how to find usages in templates?

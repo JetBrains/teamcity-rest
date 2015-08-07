@@ -36,6 +36,7 @@ import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.request.VcsRootInstanceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsManager;
@@ -120,14 +121,20 @@ public class VcsRoot {
       project = new Project(null, ownerProjectId, apiUrlBuilder);
     }
 
-    properties = new Properties(root.getProperties());
-    modificationCheckInterval = root.isUseDefaultModificationCheckInterval() ? null : root.getModificationCheckInterval();
     final VcsRootStatus rootStatus = dataProvider.getVcsManager().getStatus(root);
     status = rootStatus.getType().toString();
     lastChecked = Util.formatTime(rootStatus.getTimestamp());
     href = apiUrlBuilder.getHref(root);
 
-    vcsRootInstances = new Href(VcsRootInstanceRequest.getVcsRootInstancesHref(root), apiUrlBuilder);
+    if (!shouldRestrictSettingsViewing(root, dataProvider)) {
+      properties = new Properties(root.getProperties());
+      modificationCheckInterval = root.isUseDefaultModificationCheckInterval() ? null : root.getModificationCheckInterval();
+      vcsRootInstances = new Href(VcsRootInstanceRequest.getVcsRootInstancesHref(root), apiUrlBuilder);
+    } else {
+      properties = null;
+      modificationCheckInterval = null;
+      vcsRootInstances = null;
+    }
   }
 
   @NotNull
@@ -163,6 +170,7 @@ public class VcsRoot {
   }
 
   public static String getFieldValue(final SVcsRoot vcsRoot, final String field, final DataProvider dataProvider) {
+    //assuming only users with VIEW_SETTINGS permissions get here
     if ("id".equals(field)) {
       return vcsRoot.getExternalId();
     } else if ("internalId".equals(field)) {
@@ -246,6 +254,14 @@ public class VcsRoot {
       return Collections.emptyList();
     }
     return mappingGenerator.generateMapping();
+  }
+
+  public static boolean shouldRestrictSettingsViewing(final @NotNull SVcsRoot root, final @NotNull DataProvider permissionChecker) {
+    //see also jetbrains.buildServer.server.rest.data.VcsRootFinder.checkPermission
+    if (TeamCityProperties.getBoolean("rest.beans.vcsRoot.checkPermissions")) {
+      return !permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, root.getProject().getProjectId());
+    }
+    return false;
   }
 }
 

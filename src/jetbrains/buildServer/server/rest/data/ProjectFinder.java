@@ -21,11 +21,14 @@ import java.util.ArrayList;
 import java.util.List;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.server.rest.APIController;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -38,9 +41,11 @@ public class ProjectFinder {
   private static final Logger LOG = Logger.getInstance(ProjectFinder.class.getName());
 
   @NotNull private final ProjectManager myProjectManager;
+  private final DataProvider myPermissionChecker;
 
-  public ProjectFinder(@NotNull final ProjectManager projectManager){
+  public ProjectFinder(@NotNull final ProjectManager projectManager, final DataProvider permissionChecker){
     myProjectManager = projectManager;
+    myPermissionChecker = permissionChecker;
   }
 
   public static boolean isSameOrParent(@NotNull final BuildProject parent, @NotNull final BuildProject project) {
@@ -205,5 +210,21 @@ public class ProjectFinder {
       throw new NotFoundException("No project found by internal id '" + projectInternalId + "'.");
     }
     return project;
+  }
+
+  @NotNull
+  public SProject getItem(@Nullable final String locatorText, final boolean checkViewSettingsPermission) {
+    final SProject result = getProject(locatorText);
+    if (checkViewSettingsPermission) {
+      check(result, myPermissionChecker);
+    }
+    return result;
+  }
+
+  public static void check(@NotNull SProject project, @NotNull final DataProvider permissionChecker) {
+    if (Project.shouldRestrictSettingsViewing(project, permissionChecker)) {
+      throw new AuthorizationFailedException(
+        "User does not have '" + Permission.VIEW_BUILD_CONFIGURATION_SETTINGS.getName() + "' permission in project " + project.describe(false));
+    }
   }
 }

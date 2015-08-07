@@ -343,6 +343,14 @@ public class DataProvider {
     return myWebLinks.getHelp(page, anchor);
   }
 
+  public boolean isPermissionGranted(@NotNull final Permission permission, @Nullable final String internalProjectId) {
+    final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
+    if (internalProjectId == null){
+      return authorityHolder.isPermissionGrantedGlobally(permission);
+    }
+    return authorityHolder.isPermissionGrantedForProject(internalProjectId, permission);
+  }
+
   public void checkGlobalPermission(final Permission permission) throws AuthorizationFailedException{
     final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
     if (!authorityHolder.isPermissionGrantedForAnyProject(permission)) {

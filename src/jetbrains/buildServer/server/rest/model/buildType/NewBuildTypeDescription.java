@@ -71,7 +71,7 @@ public class NewBuildTypeDescription extends CopyOptionsDescription{
       if (StringUtil.isEmpty(sourceBuildTypeLocator)) {
         return null;
       } else {
-        return buildTypeFinder.getBuildTypeOrTemplate(null, sourceBuildTypeLocator);
+        return buildTypeFinder.getBuildTypeOrTemplate(null, sourceBuildTypeLocator, false);
       }
     }
     if (!StringUtil.isEmpty(sourceBuildTypeLocator)) {
