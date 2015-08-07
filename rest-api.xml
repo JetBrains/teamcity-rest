@@ -216,6 +216,7 @@
     <pathelement location="${basedir}/lib-test/junit-4.11.jar"/>
     <pathelement location="${basedir}/lib-test/mockito-core-1.9.5.jar"/>
     <pathelement location="${basedir}/lib-test/testng-6.8.jar"/>
+    <pathelement location="${basedir}/lib-test/jmock-2.5.1.jar"/>
     <path refid="library.teamcity_server_tests.classpath"/>
   </path>
   
@@ -249,6 +250,7 @@
     <pathelement location="${basedir}/lib-test/junit-4.11.jar"/>
     <pathelement location="${basedir}/lib-test/mockito-core-1.9.5.jar"/>
     <pathelement location="${basedir}/lib-test/testng-6.8.jar"/>
+    <pathelement location="${basedir}/lib-test/jmock-2.5.1.jar"/>
     <path refid="library.teamcity_server_tests.classpath"/>
   </path>
   
