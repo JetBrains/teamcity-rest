@@ -162,6 +162,11 @@ public class VcsRoot {
       public Map<String, String> getParameters() {
         return root.getProperties();
       }
+
+      @Nullable
+      public String getParameterValue(@NotNull final String paramName) {
+        return getParameters().get(paramName);
+      }
     };
   }
 
