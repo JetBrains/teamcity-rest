@@ -237,6 +237,11 @@ public class ParametersSubResource {
       return myBuildTypeOrTemplate.get().getParameters();
     }
 
+    @Nullable
+    public String getParameterValue(@NotNull final String paramName) {
+      return myBuildTypeOrTemplate.get().getParameterValue(paramName);
+    }
+
     @NotNull
     public Collection<Parameter> getOwnParametersCollection() {
       return myBuildTypeOrTemplate.get().getOwnParametersCollection();
@@ -275,6 +280,11 @@ public class ParametersSubResource {
     @NotNull
     public Map<String, String> getParameters() {
       return myProject.getParameters();
+    }
+
+    @Nullable
+    public String getParameterValue(@NotNull final String paramName) {
+      return myProject.getParameterValue(paramName);
     }
 
     @NotNull
