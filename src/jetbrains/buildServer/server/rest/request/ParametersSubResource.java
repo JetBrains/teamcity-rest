@@ -32,6 +32,7 @@ import jetbrains.buildServer.serverSide.InheritableUserParametersHolder;
 import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
