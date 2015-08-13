@@ -27,10 +27,12 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
+import jetbrains.buildServer.controllers.FileSecurityUtil;
 import jetbrains.buildServer.parameters.ProcessingResult;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Comment;
@@ -626,18 +628,29 @@ public class BuildRequest {
 
   // Note: authentication for this request is disabled in APIController configuration
   @GET
-  @Path("/{buildLocator}/" + STATUS_ICON_REQUEST_NAME)
-  public Response serveBuildStatusIcon(@PathParam("buildLocator") final String buildLocator, @Context HttpServletRequest request) {
+  @Path("/{buildLocator}/" + STATUS_ICON_REQUEST_NAME + "{suffix:(.*)?}")
+  public Response serveBuildStatusIcon(@PathParam("buildLocator") final String buildLocator, @PathParam("suffix") final String suffix, @Context HttpServletRequest request) {
     //todo: may also use HTTP 304 for different resources in order to make it browser-cached
     //todo: return something appropriate when in maintenance
     //todo: separate icons no build found, etc.
 
-    final String iconFileName = getIconFileName(buildLocator);
-    final String resultIconFileName = getRealFileName(iconFileName);
+    final String iconFileName = IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/" + getIconFileName(buildLocator) + (StringUtil.isEmpty(suffix) ? ".png" : suffix);
+    final String resultIconFileName;
+    try {
+      resultIconFileName = getRealFileName(iconFileName);
+    } catch (AccessDeniedException e) {
+      if (StringUtil.isEmpty(suffix)){
+        throw new InvalidStateException("Error retrieving requested resource", e);
+      } else{
+        throw new BadRequestException("Wrong suffix '" + suffix + "' is specified. Try omitting it."); //todo: list extensions, see below
+      }
+    }
 
     if (resultIconFileName == null || !new java.io.File(resultIconFileName).isFile()) {
-      LOG.debug("Failed to find resource file: " + iconFileName);
-      throw new NotFoundException("Error finding resource file '" + iconFileName + "' (installation corrupted?)");
+      LOG.debug("Resource file not found: '" + iconFileName + "'" + (StringUtil.isEmpty(suffix) ? "" : ", using custom suffix '" + suffix + "' from request"));
+      throw new NotFoundException("There is no resource file with relative path '" + iconFileName + "'" +
+                                  (StringUtil.isEmpty(suffix) ? " (installation corrupted?)" : ", try omitting '" + suffix + "' suffix"));
+      //todo: list extensions in file under IMG_STATUS_WIDGET_ROOT_DIRECTORY, see also above
     }
 
     final java.io.File resultIconFile = new java.io.File(resultIconFileName);
@@ -688,41 +701,41 @@ public class BuildRequest {
       } catch (NotFoundException e) {
         LOG.info("Cannot find build by build locator '" + buildLocator + "': " + e.getMessage());
         if (TeamCityProperties.getBoolean("rest.buildRequest.statusIcon.enableNotFoundResponsesWithoutPermissions") || hasPermissionsToViewStatusGlobally(securityContext)) {
-          return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/not_found.png";
+          return "not_found";
         }
         //should return the same error as when no permissions in order not to expose build existence
-        return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/permission.png";
+        return "permission";
       } catch (Throwable throwable) {
         final String message = "Error while retrieving build under system by build locator '" + buildLocator + "': " + throwable.getMessage();
         LOG.info(message);
         LOG.debug(message, throwable);
-        return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/internal_error.png"; //todo: use separate icon for errors (most importantly, wrong request)
+        return "internal_error"; //todo: use separate icon for errors (most importantly, wrong request)
       }
 
       if (!holderHasPermission[0]) {
         LOG.info("No permissions to access requested build with locator'" + buildLocator + "'" +
             ". Either authenticate as user with appropriate permissions, or ensure 'guest' user has appropriate permissions " +
             "or enable external status widget for the build configuration.");
-        return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/permission.png";
+        return "permission";
       }
 
       //todo: support queued builds
       if (!holderFinished[0]) {
-        return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/running.png";  //todo: support running/failing and may be running/last failed
+        return "running";  //todo: support running/failing and may be running/last failed
       }
       if (holderSuccessful[0]) {
-        return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/successful.png";
+        return "successful";
       }
       if (holderInternalError[0]) {
-        return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/error.png";
+        return "error";
       }
       if (holderCanceled[0]) {
-        return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/canceled.png";
+        return "canceled";
       }
-      return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/failed.png";
+      return "failed";
     } catch (AccessDeniedException e) {
       LOG.warn("Unexpected access denied error encountered while retrieving build by build locator '" + buildLocator + "': " + e.getMessage(), e);
-      return IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/permission.png";
+      return "permission";
     }
   }
 
@@ -760,6 +773,9 @@ public class BuildRequest {
   }
 
   private String getRealFileName(final String relativePath) {
-    return myBeanContext.getSingletonService(ServletContext.class).getRealPath(relativePath);
+    final ServletContext servletContext = myBeanContext.getSingletonService(ServletContext.class);
+    final String realPath = servletContext.getRealPath(relativePath);
+    FileSecurityUtil.checkInsideDirectory(new File(realPath), new File(servletContext.getRealPath("/")));
+    return realPath;
   }
 }
