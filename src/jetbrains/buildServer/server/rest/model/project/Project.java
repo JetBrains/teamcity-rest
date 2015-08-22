@@ -288,7 +288,7 @@ public class Project {
   }
 
   public static boolean shouldRestrictSettingsViewing(final @NotNull BuildProject project, final @NotNull PermissionChecker permissionChecker) {
-    if (TeamCityProperties.getBoolean("rest.beans.project.checkPermissions")) {
+    if (TeamCityProperties.getBooleanOrTrue("rest.beans.project.checkPermissions")) {
       return !permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, project.getProjectId());
     }
     return false;
