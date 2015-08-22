@@ -77,7 +77,10 @@ public class ValueWithDefault {
   }
 
   @Nullable
-  public static <T> T decideDefault(@Nullable Boolean include, @NotNull Value<T> value) {
+  public static <T> T decideDefault(@Nullable Boolean include, @Nullable Value<T> value) {
+    if (value == null)
+      return null;
+
     if (include == null) {
       final T resultValue = value.get();
       return ValueWithDefault.isDefault(resultValue) ? null : resultValue;
