@@ -119,7 +119,7 @@ public class BuildType {
   }
 
   public static boolean shouldRestrictSettingsViewing(final @NotNull BuildTypeSettings buildType, final @NotNull DataProvider permissionChecker) {
-    if (TeamCityProperties.getBoolean("rest.beans.buildType.checkPermissions")) {
+    if (TeamCityProperties.getBooleanOrTrue("rest.beans.buildType.checkPermissions")) {
       return !permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, buildType.getProject().getProjectId());
     }
     return false;
