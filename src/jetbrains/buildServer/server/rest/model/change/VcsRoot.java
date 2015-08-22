@@ -214,7 +214,7 @@ public class VcsRoot {
 
   public static boolean shouldRestrictSettingsViewing(final @NotNull SVcsRoot root, final @NotNull DataProvider permissionChecker) {
     //see also jetbrains.buildServer.server.rest.data.VcsRootFinder.checkPermission
-    if (TeamCityProperties.getBoolean("rest.beans.vcsRoot.checkPermissions")) {
+    if (TeamCityProperties.getBooleanOrTrue("rest.beans.vcsRoot.checkPermissions")) {
       return !permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, root.getProject().getProjectId());
     }
     return false;
