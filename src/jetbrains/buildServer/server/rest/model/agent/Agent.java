@@ -130,7 +130,7 @@ public class Agent {
     final String protocolType = agent.getCommunicationProtocolType();
     if (PollingRemoteAgentConnection.TYPE.equals(protocolType)) return "unidirectional";
     // would be better to check, but that is in another module: if (XmlRpcRemoteAgentConnection.DESCRIPTION.equals(communicationProtocolDescription)) return "bidirectional";
-    return protocolType;
+    return "bidirectional";
   }
 
   public static String getFieldValue(@NotNull final SBuildAgent agent, @Nullable final String name) {
