@@ -163,8 +163,8 @@ public class BuildTypeUtil {
       throw new BadRequestException("Parameter name cannot be empty.");
     }
 
-    if (StringUtil.isEmpty(newValue)) {
-      throw new BadRequestException("Parameter value cannot be empty. Parameter name: '" + parameterName + "'");
+    if (newValue == null) {
+      throw new BadRequestException("Value for parameter '" + parameterName + "' should be specified.");
     }
 
     final ControlDescription typeSpec = getExistingParameterTypeSpec(parametrizedEntity, parameterName);
