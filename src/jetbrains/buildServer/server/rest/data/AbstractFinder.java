@@ -135,13 +135,16 @@ public abstract class AbstractFinder<ITEM> {
     unfilteredItems.process(filterItemProcessor);
     final ArrayList<ITEM> result = filterItemProcessor.getResult();
     final long finishTime = System.nanoTime();
-    LOG.debug("While processing locator '" + locator + "', " + result.size() + " items were matched by the filter from " +
-              filterItemProcessor.getTotalItemsProcessed() + " processed in total" +
-              (filter.isLookupLimitReached() ? " (lookup limit of " + filter.getLookupLimit() + " reached)" : "")); //todo make AbstractFilter loggable and add logging here
-    if (filterItemProcessor.getTotalItemsProcessed() > TeamCityProperties.getLong("rest.finder.processedItemsWarnLimit", 10000)) {
-      final String time = TimeUnit.MILLISECONDS.convert(finishTime - startTime, TimeUnit.NANOSECONDS) + " ms";
+    final long totalItemsProcessed = filterItemProcessor.getTotalItemsProcessed();
+    if (totalItemsProcessed >= TeamCityProperties.getLong("rest.finder.processedItemsLogLimit", 1)) {
+      LOG.debug("While processing locator '" + locator + "', " + result.size() + " items were matched by the filter from " + totalItemsProcessed + " processed in total" +
+                (filter.isLookupLimitReached() ? " (lookup limit of " + filter.getLookupLimit() + " reached)" : "")); //todo make AbstractFilter loggable and add logging here
+    }
+    final long processingTimeMs = TimeUnit.MILLISECONDS.convert(finishTime - startTime, TimeUnit.NANOSECONDS);
+    if (totalItemsProcessed > TeamCityProperties.getLong("rest.finder.processedItemsWarnLimit", 10000) ||
+        processingTimeMs > TeamCityProperties.getLong("rest.finder.timeWarnLimit", 10000)) {
       LOG.info("Server performance can be affected by REST request with locator '" + locator + "': " +
-               filterItemProcessor.getTotalItemsProcessed() + " items were processed and " + result.size() + " items were returned, took " + time);
+               totalItemsProcessed + " items were processed and " + result.size() + " items were returned, took " + processingTimeMs + " ms");
     }
     return result;
   }
