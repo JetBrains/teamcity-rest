@@ -32,6 +32,7 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.ItemProcessor;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -308,11 +309,25 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     final String agentLocator = locator.getSingleDimensionValue(AGENT);
     if (agentLocator != null) {
       final List<SBuildAgent> agents = myAgentFinder.getItems(agentLocator).myEntries;
+      if (agents.isEmpty()){
+        throw new NotFoundException("No agents are found by locator '" + agentLocator +"'");
+      }
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
           final SBuild build = item.getAssociatedBuild();
           if (build != null) {
-            return agents.contains(build.getAgent());
+            final SBuildAgent buildAgent = build.getAgent();
+            final int buildAgentId = buildAgent.getId();
+            final String buildAgentName = buildAgent.getName();
+            return CollectionsUtil.contains(agents, new Filter<SBuildAgent>() {
+              public boolean accept(@NotNull final SBuildAgent agent) {
+                if (agent.getId() > 0){
+                  return buildAgentId == agent.getId();
+                } else {
+                  return buildAgentName.equals(agent.getName());
+                }
+              }
+            });
           }
 
           final SQueuedBuild queuedBuild = item.getQueuedBuild(); //for queued build using compatible agents
