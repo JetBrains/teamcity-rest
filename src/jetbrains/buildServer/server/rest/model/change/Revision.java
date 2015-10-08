@@ -25,6 +25,7 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -41,6 +42,12 @@ public class Revision {
   @XmlElement(name = "vcs-root-instance")
   public VcsRootInstance vcsRoot;
 
+  /**
+   * Experimental, https://youtrack.jetbrains.com/issue/TW-42653
+   */
+  @XmlElement(name = "checkoutRules")
+  public String checkoutRules;
+
   public Revision() {
   }
 
@@ -48,6 +55,13 @@ public class Revision {
     displayRevision = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("version"), revision.getRevisionDisplayName());
     final boolean internalMode = TeamCityProperties.getBoolean("rest.internalMode");
     internalRevision = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("internalVersion", internalMode, internalMode), revision.getRevision());
+
+    checkoutRules = ValueWithDefault.decideDefault(fields.isIncluded("checkoutRules", false, false), new ValueWithDefault.Value<String>() {
+      @Nullable
+      public String get() {
+        return revision.getCheckoutRules().getAsString();
+      }
+    });
 
     vcsRoot = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("vcs-root-instance"),
                                                       new VcsRootInstance(revision.getRoot(), fields.getNestedField("vcs-root-instance"), beanContext));
