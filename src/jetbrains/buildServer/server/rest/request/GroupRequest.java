@@ -35,6 +35,7 @@ import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.users.SimplePropertyKey;
@@ -214,5 +215,18 @@ public class GroupRequest {
     }
 
     group.deleteGroupProperty(new SimplePropertyKey(name));
+  }
+  /**
+   * Experimental use only
+   */
+  @GET
+  @Path("/{groupLocator}/debug/permissions")
+  @Produces({"text/plain"})
+  public String getPermissions(@PathParam("groupLocator") String groupLocator) {
+    if (!TeamCityProperties.getBoolean("rest.debug.permissionsList.enable")) {
+      throw new BadRequestException("Request is not enabled. Set \"rest.debug.permissionsList.enable\" internal property to enable.");
+    }
+    SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
+    return DebugRequest.getRolesStringPresentation(group, myBeanContext.getSingletonService(ProjectManager.class));
   }
 }

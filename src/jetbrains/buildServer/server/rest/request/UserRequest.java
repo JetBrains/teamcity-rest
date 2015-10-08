@@ -34,6 +34,7 @@ import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.model.user.Users;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.users.SUser;
@@ -289,4 +290,18 @@ public class UserRequest {
     return new Group(userGroup,  new Fields(fields), myBeanContext);
   }
 
+  /**
+   * Experimental use only
+   */
+  @GET
+  @Path("/{userLocator}/debug/permissions")
+  @Produces({"text/plain"})
+  public String getPermissions(@PathParam("userLocator") String userLocator) {
+    myUserFinder.checkViewUserPermission(userLocator);
+    if (!TeamCityProperties.getBoolean("rest.debug.permissionsList.enable")) {
+      throw new BadRequestException("Request is not enabled. Set \"rest.debug.permissionsList.enable\" internal property to enable.");
+    }
+    SUser user = myUserFinder.getUser(userLocator);
+    return DebugRequest.getRolesStringPresentation(user, myBeanContext.getSingletonService(ProjectManager.class));
+  }
 }

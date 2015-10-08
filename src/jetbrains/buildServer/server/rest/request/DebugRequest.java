@@ -27,6 +27,8 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -38,6 +40,7 @@ import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
@@ -160,6 +163,49 @@ public class DebugRequest {
   /**
    * Experimental use only!
    */
+  @GET
+  @Path("/sessions/summary")
+  @Produces({"text/plain"})
+  public String getSessions(@Context HttpServletRequest request) {
+    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    StringBuilder result = new StringBuilder();
+    try {
+      MBeanServer serverBean = ManagementFactory.getPlatformMBeanServer();
+      Set<ObjectName> managerBeans = serverBean.queryNames(new ObjectName("Catalina:type=Manager,*"), null);
+      for (ObjectName managerBean : managerBeans) {
+        String activeSessions = String.valueOf(serverBean.getAttribute(managerBean, "activeSessions"));
+        String maxActive = String.valueOf(serverBean.getAttribute(managerBean, "maxActive"));
+        if (result.length() > 0) {
+          result.append(", ");
+        }
+        result.append("activeSessions: ").append(activeSessions).append(", maxActive: ").append(maxActive);
+      }
+
+      return result.toString();
+    } catch (Exception e) {
+      throw new OperationException("Could not get sessions data: " + e.toString(), e);
+    }
+  }
+
+  /**
+   * Experimental use only!
+   */
+  @GET
+  @Path("/jvm/systemProperties")
+  @Produces({"application/xml", "application/json"})
+  public Properties getSystemProperties(@Context HttpServletRequest request, @QueryParam("fields") final String fields) {
+    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    final Set<Map.Entry<Object, Object>> entries = System.getProperties().entrySet();
+    final HashMap<String, String> result = new HashMap<String, String>(entries.size());
+    for (Map.Entry<Object, Object> entry : entries) {
+      result.put(entry.getKey().toString(), entry.getValue().toString());
+    }
+    return new Properties(result, null, new Fields(fields));
+  }
+
+  /**
+   * Experimental use only!
+   */
   @POST
   @Path("/emptyTask")
   @Produces({"text/plain"})
@@ -199,9 +245,14 @@ public class DebugRequest {
     if (!TeamCityProperties.getBoolean("rest.debug.currentUserPermissions.enable")) {
       throw new BadRequestException("Request is not enabled. Set \"rest.debug.currentUserPermissions.enable\" internal property to enable.");
     }
-    StringBuilder result = new StringBuilder();
 
     final AuthorityHolder authorityHolder = myServiceLocator.getSingletonService(SecurityContext.class).getAuthorityHolder();
+    return getRolesStringPresentation(authorityHolder, myServiceLocator.getSingletonService(ProjectManager.class));
+  }
+
+  @NotNull
+  public static String getRolesStringPresentation(@NotNull final AuthorityHolder authorityHolder, @NotNull final ProjectManager projectManager) {
+    StringBuilder result = new StringBuilder();
     final Permission[] globalPermissions = authorityHolder.getGlobalPermissions().toArray();
     if (globalPermissions.length > 0) {
       result.append("Global:\n");
@@ -209,7 +260,6 @@ public class DebugRequest {
         result.append("\t").append(p.getName()).append("\n");
       }
     }
-    final ProjectManager projectManager = myServiceLocator.getSingletonService(ProjectManager.class);
     for (Map.Entry<String, Permissions> permissionsEntry : authorityHolder.getProjectsPermissions().entrySet()) {
       SProject projectById = null;
       try {
