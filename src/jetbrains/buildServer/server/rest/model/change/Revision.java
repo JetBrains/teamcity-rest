@@ -20,6 +20,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.buildType.VcsRootEntry;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildRevision;
@@ -45,7 +46,7 @@ public class Revision {
   /**
    * Experimental, https://youtrack.jetbrains.com/issue/TW-42653
    */
-  @XmlElement(name = "checkoutRules")
+  @XmlElement(name = VcsRootEntry.CHECKOUT_RULES)
   public String checkoutRules;
 
   public Revision() {
@@ -56,7 +57,7 @@ public class Revision {
     final boolean internalMode = TeamCityProperties.getBoolean("rest.internalMode");
     internalRevision = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("internalVersion", internalMode, internalMode), revision.getRevision());
 
-    checkoutRules = ValueWithDefault.decideDefault(fields.isIncluded("checkoutRules", false, false), new ValueWithDefault.Value<String>() {
+    checkoutRules = ValueWithDefault.decideDefault(fields.isIncluded(VcsRootEntry.CHECKOUT_RULES, false, false), new ValueWithDefault.Value<String>() {
       @Nullable
       public String get() {
         return revision.getCheckoutRules().getAsString();
