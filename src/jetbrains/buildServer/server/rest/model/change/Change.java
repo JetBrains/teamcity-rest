@@ -44,7 +44,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * Date: 12.04.2009
  */
 @XmlRootElement(name = "change")
-@XmlType(name= "change", propOrder = {"id", "version", "username", "date", "personal", "href", "webUrl",
+@XmlType(name = "change", propOrder = {"id", "version", "internalVersion", "username", "date", "registrationDate", "personal", "href", "webUrl",
   "comment", "user", "fileChanges", "vcsRootInstance"})
 public class Change {
   protected SVcsModification myModification;
@@ -68,9 +68,20 @@ public class Change {
   public Long getId() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("id"), myModification.getId());
   }
+
   @XmlAttribute
   public String getVersion() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("version"), myModification.getDisplayVersion());
+  }
+
+  @XmlAttribute
+  public String getInternalVersion() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("internalVersion", false, false), new ValueWithDefault.Value<String>() {
+      @Nullable
+      public String get() {
+        return myModification.getVersion();
+      }
+    });
   }
 
   @XmlAttribute
@@ -97,6 +108,16 @@ public class Change {
   public String getDate() {
     final Date vcsDate = myModification.getVcsDate();
     return ValueWithDefault.decideDefault(myFields.isIncluded("date"), Util.formatTime(vcsDate));
+  }
+
+  @XmlAttribute
+  public String getRegistrationDate() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("registrationDate", false, false), new ValueWithDefault.Value<String>() {
+      @Nullable
+      public String get() {
+        return Util.formatTime(myModification.getRegistrationDate());
+      }
+    });
   }
 
   @XmlElement
