@@ -444,6 +444,37 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
     checkBuilds("state:any", getBuildPromotions(build14queued, build13running, build2failed, build1));
   }
 
+  @Test
+  public void testBuildNumber() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+    final SUser user = createUser("uuser");
+
+    SBuild build10 = build().in(buildConf).finish();
+    SBuild build20 = build().in(buildConf).number("100").finish();
+    SBuild build30 = build().in(buildConf).number("100").failed().finish();
+    SBuild build40 = build().in(buildConf).number("100").failedToStart().finish();
+    SBuild build50 = build().in(buildConf).number("100").personalForUser(user.getUsername()).finish();
+    SBuild build60 = build().in(buildConf).number("100").cancel(user);
+    SBuild build70 = build().in(buildConf).finish();
+    SBuild build80 = build().in(buildConf).number("100").run();
+
+    final String buildTypeDimension = ",buildType:(id:" + buildConf.getExternalId() + ")";
+
+    checkBuilds("number:100" + buildTypeDimension, getBuildPromotions(build30, build20));
+    checkBuilds("number:100", getBuildPromotions(build30, build20));
+//getBuildPromotions(build80, build60, build50, build40, build30, build20, build10)
+    checkBuilds("number:100,defaultFilter:false", getBuildPromotions(build80, build60, build50, build40, build30, build20));
+    checkBuilds("number:100,defaultFilter:false" + buildTypeDimension,                getBuildPromotions(build80, build60, build50, build40, build30, build20));
+    checkBuilds("number:100,canceled:any", getBuildPromotions(build60, build30, build20));
+    checkBuilds("number:100,canceled:any" + buildTypeDimension, getBuildPromotions(build60, build30, build20));
+    checkBuilds("number:100,personal:true", getBuildPromotions(build50));
+    checkBuilds("number:100,personal:true" + buildTypeDimension, getBuildPromotions(build50));
+    checkBuilds("number:100,personal:any", getBuildPromotions(build50, build30, build20));
+    checkBuilds("number:100,personal:any" + buildTypeDimension, getBuildPromotions(build50, build30, build20));
+    checkBuilds("number:100,state:any", getBuildPromotions(build80, build30, build20));
+    checkBuilds("number:100,state:any" + buildTypeDimension, getBuildPromotions(build80, build30, build20));
+  }
+
 //==================================================
 
   public void checkBuilds(final String locator, BuildPromotion... builds) {

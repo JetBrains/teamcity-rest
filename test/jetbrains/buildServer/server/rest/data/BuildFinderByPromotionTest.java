@@ -414,8 +414,7 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     final SFinishedBuild build2 = build().in(buildConf).failed().finish();
 
     checkBuilds("number:" + build0.getBuildNumber(), build1, build0);
-//    checkBuilds("buildType:(" + buildConf.getExternalId() + "),number:" + build0.getBuildNumber(), build1, build0);
-    checkBuilds("buildType:(" + buildConf.getExternalId() + "),number:" + build0.getBuildNumber(), build1); //this finds only the most recent build for performance reasons
+    checkBuilds("buildType:(" + buildConf.getExternalId() + "),number:" + build0.getBuildNumber(), build1, build0);
   }
 
   @Test
