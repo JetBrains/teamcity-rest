@@ -71,7 +71,7 @@ public class Properties  implements DefaultValueAware {
         final Fields propertyFields = fields.getNestedField(PROPERTY, Fields.NONE, Fields.LONG);
         final ParameterCondition parameterCondition = getParameterCondition(fields);
         for (java.util.Map.Entry<String, String> prop : properties.entrySet()) {
-          if (parameterCondition == null || parameterCondition.parameterMatches(new SimpleParameter(prop.getKey(), prop.getValue()))) {
+          if (parameterCondition == null || parameterCondition.parameterMatches(new SimpleParameter(prop.getKey(), prop.getValue() != null ? prop.getValue() : ""))) {
             this.properties.add(new Property(prop.getKey(), prop.getValue(), propertyFields));
           }
         }

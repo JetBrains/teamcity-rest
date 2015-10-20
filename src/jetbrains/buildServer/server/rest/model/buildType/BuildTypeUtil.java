@@ -49,8 +49,9 @@ public class BuildTypeUtil {
   public static HashMap<String, String> getSettingsParameters(@NotNull final BuildTypeOrTemplate buildType) {
     HashMap<String, String> properties = new HashMap<String, String>();
     addAllOptionsAsProperties(properties, buildType.get());
-    properties.put("checkoutDirectory", buildType.get().getCheckoutDirectory());
-    if (buildType.getBuildType() != null){
+    final String checkoutDirectory = buildType.get().getCheckoutDirectory();
+    if (checkoutDirectory != null) properties.put("checkoutDirectory", checkoutDirectory);
+    if (buildType.getBuildType() != null) {
       properties.put("buildNumberCounter", String.valueOf(buildType.getBuildType().getBuildNumbers().getBuildCounter()));
     }
     return properties;
