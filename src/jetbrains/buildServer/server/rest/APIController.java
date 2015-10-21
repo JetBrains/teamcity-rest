@@ -206,7 +206,7 @@ public class APIController extends BaseController implements ServletContextAware
       if (ownPluginName.equals(plugin.getPluginName())) {
         continue;
       }
-      if (plugin instanceof PluginDescriptor) {
+      if (plugin instanceof ServerPluginInfo) {
         final PluginDescriptor pluginDescriptor = (ServerPluginInfo)plugin; //TeamCity API issue: cast
         String bindPath = pluginDescriptor.getParameterValue(Constants.BIND_PATH_PROPERTY_NAME);
         if (!StringUtil.isEmpty(bindPath)) {
