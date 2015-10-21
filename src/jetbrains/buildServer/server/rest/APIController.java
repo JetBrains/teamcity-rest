@@ -280,7 +280,7 @@ public class APIController extends BaseController implements ServletContextAware
   private List<String> getBindPaths(@NotNull final PluginDescriptor pluginDescriptor) {
     String bindPath = pluginDescriptor.getParameterValue(Constants.BIND_PATH_PROPERTY_NAME);
     if (bindPath == null) {
-      LOG.error("No property '" + Constants.BIND_PATH_PROPERTY_NAME + "' found in pugin descriptor file in " + getPluginIdentifyingText() + ". Corrupted plugin?");
+      LOG.error("No property '" + Constants.BIND_PATH_PROPERTY_NAME + "' found in plugin descriptor file in " + getPluginIdentifyingText() + ". Corrupted plugin?");
       return Collections.emptyList();
     }
 
