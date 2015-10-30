@@ -91,7 +91,7 @@ public class BuildArtifactsFinder {
                                             final @Nullable String basePath,
                                             final @Nullable String filesLocator,
                                             final @Nullable FileApiUrlBuilder urlBuilder) {
-    if (initialElement.isLeaf() || initialElement.getChildren() == null) {
+    if (initialElement.isLeaf()) {
       String additionalMessage = "";
       if (urlBuilder != null) {
         additionalMessage = " To get content use '" + urlBuilder.getContentHref(initialElement) + "'.";
@@ -194,7 +194,7 @@ public class BuildArtifactsFinder {
           return false; //TeamCity API issue: should support not returning the first node in API
         }
         //noinspection RedundantIfStatement
-        if (!FilterUtil.isIncludedByBooleanFilter(finalIncludeDirectories, data.getElement().getChildren() != null)) {
+        if (!FilterUtil.isIncludedByBooleanFilter(finalIncludeDirectories, !data.getElement().isLeaf())) {
           return false;
         }
         return true;
