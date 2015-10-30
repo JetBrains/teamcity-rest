@@ -600,6 +600,22 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertContainsByFullName(artifacts, "archive.zip");
   }
 
+  @Test
+  public void testPathWithPatterns() throws Exception {
+    assertEquals("file.txt", getArtifact("file.txt"));
+    assertEquals("file.txt", getArtifact("fil?.txt"));
+    assertEquals("archive_nested.zip", getArtifact("archiv*d.zip"));
+    assertEquals("archive.zip", getArtifact("archive.???"));
+    assertEquals("archive.zip", getArtifact("archive.*"));
+    assertEquals("file.txt", getArtifact("*.txt"));
+//    assertEquals("dir1/file.txt", getArtifact("d*/file.txt")); https://youtrack.jetbrains.com/issue/TW-43015
+  }
+
+  @NotNull
+  private String getArtifact(final String path) {
+    return BuildArtifactsFinder.getArtifactElement(myBuildWithArtifacts.getBuildPromotion(), path).getFullName();
+  }
+
   private void assertContainsByFullName(final List<ArtifactTreeElement> artifacts, final String fullName) {
     if (findElement(artifacts, fullName) == null) {
       throw new AssertionFailedError("Collection does not contain element with full name '" + fullName + "'. Collection: " + artifacts);

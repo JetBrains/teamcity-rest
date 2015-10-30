@@ -28,7 +28,6 @@ import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.files.FileApiUrlBuilder;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.BuildPromotionEx;
-import jetbrains.buildServer.serverSide.artifacts.BuildArtifact;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactHolder;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifacts;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactsViewMode;
@@ -42,6 +41,7 @@ import jetbrains.buildServer.util.pathMatcher.AntPatternTreeMatcher;
 import jetbrains.buildServer.util.pathMatcher.PathNode;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactElement;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
+import jetbrains.buildServer.web.artifacts.browser.ArtifactsBrowser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -66,14 +66,16 @@ public class BuildArtifactsFinder {
 
   @NotNull
   public static ArtifactTreeElementWrapper getItem(@NotNull final Browser browser, @NotNull final String path, @NotNull final String where) {
-    final Element element;
+    Element element;
     if (path.replace("\\","").replace("/","").replace(" ", "").length() == 0){ //TeamCity API issue: cannot list root of the Browser by empty string or "/"
       element = browser.getRoot();
     }else{
       element = browser.getElement(path);
     }
     if (element == null) {
-      throw new NotFoundException("Path '" + path + "' is not found in " + where + " or an error occurred");
+      element = getSingleItemByPatternPath(path, browser.getRoot(), browser);
+      if (element == null)
+        throw new NotFoundException("Path '" + path + "' is not found in " + where + " or an error occurred");
       //TeamCity API: or error occurred (related http://youtrack.jetbrains.com/issue/TW-34377)
     }
     return new ArtifactTreeElementWrapper(element);
@@ -87,7 +89,7 @@ public class BuildArtifactsFinder {
   }
 
   @NotNull
-  public List<ArtifactTreeElement> getItems(final ArtifactTreeElement initialElement,
+  public static List<ArtifactTreeElement> getItems(final Element initialElement,
                                             final @Nullable String basePath,
                                             final @Nullable String filesLocator,
                                             final @Nullable FileApiUrlBuilder urlBuilder) {
@@ -206,7 +208,7 @@ public class BuildArtifactsFinder {
   }
 
   @NotNull
-  private String relativeToBase(@NotNull final String name, @Nullable final String basePath) {
+  private static String relativeToBase(@NotNull final String name, @Nullable final String basePath) {
     if (StringUtil.isEmpty(basePath)) return name;
 
     final String normalizedName = removeLeadingDelimeters(name);
@@ -226,8 +228,8 @@ public class BuildArtifactsFinder {
     return result.startsWith(prefix) ? result.substring(prefix.length()) : result;
   }
 
-  @Nullable
-  private Locator getLocator(@Nullable final String filesLocator) {
+  @NotNull
+  private static Locator getLocator(@Nullable final String filesLocator) {
     Locator defaults = Locator.createEmptyLocator().setDimension(DIMENSION_RECURSIVE, "false").setDimension(HIDDEN_DIMENSION_NAME, "false")
                               .setDimension(ARCHIVES_DIMENSION_NAME, "false");
     final String[] supportedDimensions = {HIDDEN_DIMENSION_NAME, ARCHIVES_DIMENSION_NAME, DIRECTORY_DIMENSION_NAME, DIMENSION_RECURSIVE, DIMENSION_PATTERNS};
@@ -236,30 +238,38 @@ public class BuildArtifactsFinder {
 
   @NotNull
   public static ArtifactTreeElement getArtifactElement(@NotNull final BuildPromotion buildPromotion, @NotNull final String path) {
-    return new ArtifactElement(getBuildArtifact(buildPromotion, path));
-  }
-
-  @NotNull
-  private static BuildArtifact getBuildArtifact(@NotNull final BuildPromotion buildPromotion, @NotNull final String path) {
     final BuildPromotionEx buildPromotionEx = (BuildPromotionEx)buildPromotion;
     final BuildArtifacts artifacts = buildPromotionEx.getArtifacts(BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
     final BuildArtifactHolder holder = artifacts.findArtifact(path);
     if (!holder.isAvailable() && !"".equals(path)) { // "".equals(path) is a workaround for no artifact directory case
-      final BuildArtifactHolder testHolder = buildPromotionEx.getArtifacts(BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT).findArtifact(path);
-      if (testHolder.isAvailable()){
-        throw new NotFoundException("No artifact with relative path '" + holder.getRelativePath() + "' found with current view mode." +
-                                    " Try adding parameter 'locator=" + HIDDEN_DIMENSION_NAME + ":any' to the request.");
-      }else{
-        throw new NotFoundException("No artifact with relative path '" + holder.getRelativePath() + "' found in build " + LogUtil.describe(buildPromotionEx));
-      }
+      final ArtifactTreeElement itemByPattern = getSingleItemByPatternPath(path, new ArtifactElement(artifacts.getRootArtifact()), new ArtifactsBrowser(artifacts));
+      if (itemByPattern != null) return itemByPattern;
+      throw new NotFoundException("No artifact with relative path '" + holder.getRelativePath() + "' found in build " + LogUtil.describe(buildPromotionEx));
     }
     if (!holder.isAccessible()) {
       throw new AuthorizationFailedException("Artifact is not accessible with current user permissions. Relative path: '" + holder.getRelativePath() + "'");
     }
-    return holder.getArtifact();
+    return  new ArtifactElement(holder.getArtifact());
   }
 
-  private class Node implements PathNode<Node> {
+  @Nullable
+  private static ArtifactTreeElement getSingleItemByPatternPath(final @NotNull String pathWithPatterns, final @NotNull Element root, final @NotNull Browser browser) {
+    final String locator = getLocator(Locator.getStringLocator(DIMENSION_PATTERNS, pathWithPatterns)).getStringRepresentation();
+    final List<ArtifactTreeElement> items = getItems(root, "", locator, null);
+    if (items.size() > 0){
+      final ArtifactTreeElement first = items.get(0);
+      //now find it in browser to make sure archive's children can be listed
+      final Element foundAgain = browser.getElement(first.getFullName());
+      try {
+        return foundAgain != null ? (ArtifactTreeElement)foundAgain : first; //todo: remove cast!
+      } catch (Exception e) {
+        return first;
+      }
+    }
+    return null;
+  }
+
+  private static class Node implements PathNode<Node> {
     @NotNull private final ArtifactTreeElement myElement;
     private final long myListChildrenLevel;
     private final long myListArchiveChildrenLevel;

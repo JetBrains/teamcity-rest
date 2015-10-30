@@ -112,7 +112,7 @@ public class FilesSubResource {
       }
     }
     final FileApiUrlBuilder builder = fileApiUrlBuilder(locator, myUrlPrefix);
-    final ArtifactTreeElement rootElement = myProvider.getElement(myProvider.preprocess(path));
+    final ArtifactTreeElement rootElement = myProvider.getElement(myProvider.preprocess(StringUtil.removeLeadingSlash(path)));
     return new Files(null, new ValueWithDefault.Value<List<? extends Element>>() {
       @Nullable
       public List<? extends Element> get() {
@@ -148,10 +148,10 @@ public class FilesSubResource {
   @Path(FilesSubResource.CONTENT + "{path:(/.*)?}")
   @Produces({MediaType.WILDCARD})
   public Response getContent(@PathParam("path") final String path, @Context HttpServletRequest request) {
-    final String preprocessedPath = myProvider.preprocess(path);
+    final String preprocessedPath = myProvider.preprocess(StringUtil.removeLeadingSlash(path));
     final ArtifactTreeElement initialElement = myProvider.getElement(preprocessedPath);
     if (!initialElement.isContentAvailable()) {
-      throw new NotFoundException("Cannot provide content for '" + path + "'. To get children use '" +
+      throw new NotFoundException("Cannot provide content for '" + initialElement.getFullName() + "'. To get children use '" +
                                   fileApiUrlBuilder(null, myUrlPrefix).getChildrenHref(initialElement) + "'.");
     }
     final Response.ResponseBuilder builder = getContent(initialElement, request);
@@ -165,7 +165,7 @@ public class FilesSubResource {
   public jetbrains.buildServer.server.rest.model.files.File getMetadata(@PathParam("path") final String path,
                                                                         @QueryParam("fields") String fields,
                                                                         @Context HttpServletRequest request) {
-    final ArtifactTreeElement element = myProvider.getElement(myProvider.preprocess(path));
+    final ArtifactTreeElement element = myProvider.getElement(myProvider.preprocess(StringUtil.removeLeadingSlash(path)));
     return new jetbrains.buildServer.server.rest.model.files.File(element, getParent(element), fileApiUrlBuilder(null, myUrlPrefix), new Fields(fields), myBeanContext);
   }
 
@@ -178,7 +178,7 @@ public class FilesSubResource {
                             @QueryParam("name") final String name,
 //                            @QueryParam("ignoreErrors") final String ignoreErrors, //todo: implement
                             @Context HttpServletRequest request) {
-    final String processedPath = myProvider.preprocess(path);
+    final String processedPath = myProvider.preprocess(StringUtil.removeLeadingSlash(path));
     String actualBasePath = basePath != null ? myProvider.preprocess(basePath) : processedPath;
     String finalName = myProvider.preprocess(name);
     if (StringUtil.isEmpty(finalName)) {
@@ -246,6 +246,8 @@ public class FilesSubResource {
 
   public static Response.ResponseBuilder getContentByStream(@NotNull final Element element, @NotNull final HttpServletRequest request,
                                                             @NotNull final StreamingOutputProvider streamingOutputProvider) {
+    //todo: review possibility to reuse HttpDownloadProcessor.processDownload here instead of custom logic
+
     //TeamCity API: need to lock artifacts while reading???  e.g. see JavaDoc for jetbrains.buildServer.serverSide.artifacts.BuildArtifacts.iterateArtifacts()
     if (!element.isContentAvailable()) {
       throw new NotFoundException("Cannot provide content for '" + element.getFullName() + "' (not a file).");
