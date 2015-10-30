@@ -36,9 +36,9 @@ import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.serverSide.VcsAccessFactory;
 import jetbrains.buildServer.serverSide.VcsWorkspaceAccess;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.RepositoryStateManager;
-import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
 import org.jetbrains.annotations.NotNull;
 
 /* todo: investigate logging issues:
@@ -194,7 +194,7 @@ public class VcsRootInstanceRequest {
     return new FilesSubResource(new FilesSubResource.Provider() {
       @Override
       @NotNull
-      public ArtifactTreeElement getElement(@NotNull final String path) {
+      public Element getElement(@NotNull final String path) {
         return BuildArtifactsFinder.getItem(getVcsWorkspaceAccess(rootInstance).getVcsFilesBrowser(), path, WHERE_NOTE);
       }
 

@@ -52,10 +52,10 @@ import jetbrains.buildServer.serverSide.impl.VcsLabelingBuildFeature;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.vcs.CheckoutRules;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
-import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -173,7 +173,7 @@ public class BuildTypeRequest {
   @Consumes("text/plain")
   @Produces("text/plain")
   public String setBuildTypeField(@PathParam("btLocator") String buildTypeLocator, @PathParam("field") String fieldName, String newValue) {
-    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, false);
+    BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, false); //todo: support multiple locator here to pause many in one request
     buildType.setFieldValueAndPersist(fieldName, newValue, myDataProvider);
     return buildType.getFieldValue(fieldName);
   }
@@ -1417,7 +1417,7 @@ public class BuildTypeRequest {
     return new FilesSubResource(new FilesSubResource.Provider() {
       @Override
       @NotNull
-      public ArtifactTreeElement getElement(@NotNull final String path) {
+      public Element getElement(@NotNull final String path) {
         return BuildArtifactsFinder.getItem(buildType.getVcsFilesBrowser(), path, WHERE_NOTE);
       }
 

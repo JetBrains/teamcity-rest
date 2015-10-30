@@ -40,7 +40,7 @@ import jetbrains.buildServer.serverSide.maintenance.BackupProcess;
 import jetbrains.buildServer.serverSide.maintenance.BackupProcessManager;
 import jetbrains.buildServer.serverSide.maintenance.MaintenanceProcessAlreadyRunningException;
 import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
+import jetbrains.buildServer.util.browser.Element;
 import org.jetbrains.annotations.NotNull;
 
 /*
@@ -162,7 +162,7 @@ public class ServerRequest {
     return new FilesSubResource(new FilesSubResource.Provider() {
       @Override
       @NotNull
-      public ArtifactTreeElement getElement(@NotNull final String path) {
+      public Element getElement(@NotNull final String path) {
         return BuildArtifactsFinder.getItem(getAreaRoot(areaId), path);
       }
 

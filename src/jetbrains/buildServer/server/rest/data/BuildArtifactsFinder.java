@@ -237,12 +237,12 @@ public class BuildArtifactsFinder {
   }
 
   @NotNull
-  public static ArtifactTreeElement getArtifactElement(@NotNull final BuildPromotion buildPromotion, @NotNull final String path) {
+  public static Element getArtifactElement(@NotNull final BuildPromotion buildPromotion, @NotNull final String path) {
     final BuildPromotionEx buildPromotionEx = (BuildPromotionEx)buildPromotion;
     final BuildArtifacts artifacts = buildPromotionEx.getArtifacts(BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
     final BuildArtifactHolder holder = artifacts.findArtifact(path);
     if (!holder.isAvailable() && !"".equals(path)) { // "".equals(path) is a workaround for no artifact directory case
-      final ArtifactTreeElement itemByPattern = getSingleItemByPatternPath(path, new ArtifactElement(artifacts.getRootArtifact()), new ArtifactsBrowser(artifacts));
+      final Element itemByPattern = getSingleItemByPatternPath(path, new ArtifactElement(artifacts.getRootArtifact()), new ArtifactsBrowser(artifacts));
       if (itemByPattern != null) return itemByPattern;
       throw new NotFoundException("No artifact with relative path '" + holder.getRelativePath() + "' found in build " + LogUtil.describe(buildPromotionEx));
     }
@@ -253,18 +253,14 @@ public class BuildArtifactsFinder {
   }
 
   @Nullable
-  private static ArtifactTreeElement getSingleItemByPatternPath(final @NotNull String pathWithPatterns, final @NotNull Element root, final @NotNull Browser browser) {
+  private static Element getSingleItemByPatternPath(final @NotNull String pathWithPatterns, final @NotNull Element root, final @NotNull Browser browser) {
     final String locator = getLocator(Locator.getStringLocator(DIMENSION_PATTERNS, pathWithPatterns)).getStringRepresentation();
     final List<ArtifactTreeElement> items = getItems(root, "", locator, null);
     if (items.size() > 0){
       final ArtifactTreeElement first = items.get(0);
       //now find it in browser to make sure archive's children can be listed
       final Element foundAgain = browser.getElement(first.getFullName());
-      try {
-        return foundAgain != null ? (ArtifactTreeElement)foundAgain : first; //todo: remove cast!
-      } catch (Exception e) {
-        return first;
-      }
+        return foundAgain != null ? foundAgain : first;
     }
     return null;
   }

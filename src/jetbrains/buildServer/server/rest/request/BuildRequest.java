@@ -61,9 +61,9 @@ import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.TCStreamUtil;
+import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsManager;
-import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
 import jetbrains.buildServer.web.util.SessionUser;
 import jetbrains.buildServer.web.util.WebAuthUtil;
 import jetbrains.buildServer.web.util.WebUtil;
@@ -229,7 +229,7 @@ public class BuildRequest {
     return new FilesSubResource(new FilesSubResource.Provider() {
       @Override
       @NotNull
-      public ArtifactTreeElement getElement(@NotNull final String path) {
+      public Element getElement(@NotNull final String path) {
         return BuildArtifactsFinder.getArtifactElement(buildPromotion, path);
       }
 

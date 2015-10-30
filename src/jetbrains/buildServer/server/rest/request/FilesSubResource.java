@@ -112,7 +112,7 @@ public class FilesSubResource {
       }
     }
     final FileApiUrlBuilder builder = fileApiUrlBuilder(locator, myUrlPrefix);
-    final ArtifactTreeElement rootElement = myProvider.getElement(myProvider.preprocess(StringUtil.removeLeadingSlash(path)));
+    final Element rootElement = myProvider.getElement(myProvider.preprocess(StringUtil.removeLeadingSlash(path)));
     return new Files(null, new ValueWithDefault.Value<List<? extends Element>>() {
       @Nullable
       public List<? extends Element> get() {
@@ -122,7 +122,7 @@ public class FilesSubResource {
   }
 
   @Nullable
-  private Element getParent(@NotNull final ArtifactTreeElement element) {
+  private Element getParent(@NotNull final Element element) {
     final String parentPath = ArchiveUtil.getParentPath(element.getFullName());
     if (!StringUtil.isEmpty(parentPath)) {
       try {
@@ -149,7 +149,7 @@ public class FilesSubResource {
   @Produces({MediaType.WILDCARD})
   public Response getContent(@PathParam("path") final String path, @Context HttpServletRequest request) {
     final String preprocessedPath = myProvider.preprocess(StringUtil.removeLeadingSlash(path));
-    final ArtifactTreeElement initialElement = myProvider.getElement(preprocessedPath);
+    final Element initialElement = myProvider.getElement(preprocessedPath);
     if (!initialElement.isContentAvailable()) {
       throw new NotFoundException("Cannot provide content for '" + initialElement.getFullName() + "'. To get children use '" +
                                   fileApiUrlBuilder(null, myUrlPrefix).getChildrenHref(initialElement) + "'.");
@@ -165,7 +165,7 @@ public class FilesSubResource {
   public jetbrains.buildServer.server.rest.model.files.File getMetadata(@PathParam("path") final String path,
                                                                         @QueryParam("fields") String fields,
                                                                         @Context HttpServletRequest request) {
-    final ArtifactTreeElement element = myProvider.getElement(myProvider.preprocess(StringUtil.removeLeadingSlash(path)));
+    final Element element = myProvider.getElement(myProvider.preprocess(StringUtil.removeLeadingSlash(path)));
     return new jetbrains.buildServer.server.rest.model.files.File(element, getParent(element), fileApiUrlBuilder(null, myUrlPrefix), new Fields(fields), myBeanContext);
   }
 
@@ -364,7 +364,7 @@ public class FilesSubResource {
 
   abstract static class Provider {
     @NotNull
-    public abstract ArtifactTreeElement getElement(@NotNull final String path);
+    public abstract Element getElement(@NotNull final String path);
 
     @NotNull
     public String getArchiveName(@NotNull final String path) {
