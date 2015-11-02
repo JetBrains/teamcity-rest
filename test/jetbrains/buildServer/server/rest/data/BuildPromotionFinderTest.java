@@ -473,6 +473,10 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
     checkBuilds("number:100,personal:any" + buildTypeDimension, getBuildPromotions(build50, build30, build20));
     checkBuilds("number:100,state:any", getBuildPromotions(build80, build30, build20));
     checkBuilds("number:100,state:any" + buildTypeDimension, getBuildPromotions(build80, build30, build20));
+    checkBuilds("number:100,running:true", getBuildPromotions(build80));
+    checkBuilds("number:100,running:true" + buildTypeDimension, getBuildPromotions(build80));
+    checkBuilds("number:100,running:false", getBuildPromotions(build30, build20));
+    checkBuilds("number:100,running:false" + buildTypeDimension, getBuildPromotions(build30, build20));
   }
 
 //==================================================
