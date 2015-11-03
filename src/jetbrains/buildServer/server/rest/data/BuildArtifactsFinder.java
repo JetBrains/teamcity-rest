@@ -82,10 +82,10 @@ public class BuildArtifactsFinder {
   }
 
   @NotNull
-  public static ArtifactTreeElement getItem(@NotNull final java.io.File rootPath, @NotNull final String path) {
+  public static ArtifactTreeElement getItem(@NotNull final java.io.File rootPath, @NotNull final String path, @NotNull final String where) {
     // does not work for archives so far...
     // return getItem(new ZipAwareBrowser(new FileSystemBrowser(rootPath)), path, "");
-    return getItem(new FileSystemBrowser(rootPath), path, "");
+    return getItem(new FileSystemBrowser(rootPath), path, where);
   }
 
   @NotNull
