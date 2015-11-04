@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.change;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -28,6 +29,7 @@ import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.Items;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -45,7 +47,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 @XmlRootElement(name = "change")
 @XmlType(name = "change", propOrder = {"id", "version", "internalVersion", "username", "date", "registrationDate", "personal", "href", "webUrl",
-  "comment", "user", "fileChanges", "vcsRootInstance"})
+  "comment", "user", "fileChanges", "vcsRootInstance", "parentChanges", "parentRevisions"})
 public class Change {
   protected SVcsModification myModification;
   @NotNull private Fields myFields;
@@ -155,6 +157,26 @@ public class Change {
            ? null
            : ValueWithDefault.decideDefault(myFields.isIncluded("vcsRootInstance", false),
                                             new VcsRootInstance(myModification.getVcsRoot(), myFields.getNestedField("vcsRootInstance"), myBeanContext));
+  }
+
+  @XmlElement(name = "parentChanges")
+  public Changes getParentChanges() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("parentChanges", false, false), new ValueWithDefault.Value<Changes>() {
+      @Nullable
+      public Changes get() {
+        return new Changes(new ArrayList<SVcsModification>(myModification.getParentModifications()), null, myFields.getNestedField("parentChanges"), myBeanContext);
+      }
+    });
+  }
+
+  @XmlElement(name = "parentRevisions")
+  public Items getParentRevisions() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("parentRevisions", false, false), new ValueWithDefault.Value<Items>() {
+      @Nullable
+      public Items get() {
+        return new Items(myModification.getParentRevisions());
+      }
+    });
   }
 
   /**
