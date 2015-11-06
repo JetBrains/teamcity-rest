@@ -1,0 +1,77 @@
+/*
+ * Copyright 2000-2015 JetBrains s.r.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+// Script to fetch dependencies
+// Just run 'gradle -b update-libs.gradle update'
+
+ext.versions = [
+        'jersey' : '1.19',
+        'jackson': '1.9.11',
+]
+
+apply plugin: 'java'
+
+repositories {
+  mavenLocal()
+  mavenCentral()
+}
+
+configurations {
+  jersey
+  jackson
+}
+
+configurations.forEach { it.transitive = false }
+
+dependencies {
+  jersey "javax.ws.rs:jsr311-api:1.1.1"
+  jersey "javax.ws.rs:jsr311-api:1.1.1:sources"
+
+  jersey "com.sun.jersey:jersey-core:${versions.jersey}"
+  jersey "com.sun.jersey:jersey-json:${versions.jersey}"
+  jersey "com.sun.jersey:jersey-server:${versions.jersey}"
+  jersey "com.sun.jersey:jersey-servlet:${versions.jersey}"
+  jersey "com.sun.jersey.contribs:jersey-spring:${versions.jersey}"
+  jersey "com.sun.jersey:jersey-core:${versions.jersey}:sources"
+  jersey "com.sun.jersey:jersey-json:${versions.jersey}:sources"
+  jersey "com.sun.jersey:jersey-server:${versions.jersey}:sources"
+  jersey "com.sun.jersey:jersey-servlet:${versions.jersey}:sources"
+  jersey "com.sun.jersey.contribs:jersey-spring:${versions.jersey}:sources"
+}
+
+
+task fetchJersey(type: Copy) {
+  from configurations.jersey.grep { !it.name.contains("sources") }
+  into 'lib'
+}
+
+task fetchJerseySrc(type: Copy) {
+  from configurations.jersey.grep { it.name.contains("sources") }
+  into 'lib/src'
+}
+
+task fetchSrc
+fetchSrc.dependsOn fetchJerseySrc
+
+task fetchLibs
+fetchLibs.dependsOn fetchJersey
+
+task fetch
+fetch.dependsOn fetchLibs, fetchSrc
+
+task cleanup(type: Delete) {
+  delete '.gradle', project.buildDir
+}
+cleanup.shouldRunAfter fetch
