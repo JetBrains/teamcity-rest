@@ -532,7 +532,7 @@ public class APIController extends BaseController implements ServletContextAware
 
   @NotNull
   public String[] getBasePackages() {
-    return new String[]{"org.codehaus.jackson.jaxrs","jetbrains.buildServer.server.rest.request"};
+    return new String[]{"org.fasterxml.jackson.jaxrs","jetbrains.buildServer.server.rest.request"};
   }
 
   @NotNull

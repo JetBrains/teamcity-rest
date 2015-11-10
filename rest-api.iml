@@ -54,21 +54,30 @@
     <orderEntry type="library" exported="" name="TeamCity Third-Party" level="project" />
     <orderEntry type="library" exported="" name="Tomcat" level="project" />
     <orderEntry type="module-library" exported="">
-      <library name="JaxB">
+      <library name="Jackson">
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/jackson-core-asl-1.9.11.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-jaxrs-1.9.11.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-mapper-asl-1.9.11.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-xc-1.9.11.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jettison-1.3.3.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-annotations-2.3.5.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-core-2.3.5.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-databind-2.3.5.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-dataformat-xml-2.3.5.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-dataformat-yaml-2.3.5.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-datatype-joda-2.3.5.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-jaxrs-base-2.3.5.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-jaxrs-json-provider-2.3.5.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-module-jaxb-annotations-2.3.5.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/stax2-api-3.1.1.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="jar://$MODULE_DIR$/lib/src/jettison-1.3.3-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-xc-1.9.11-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-mapper-asl-1.9.11-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-jaxrs-1.9.11-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-core-asl-1.9.11-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-annotations-2.3.5-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-core-2.3.5-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-databind-2.3.5-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-dataformat-xml-2.3.5-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-dataformat-yaml-2.3.5-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-datatype-joda-2.3.5-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-jaxrs-base-2.3.5-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-jaxrs-json-provider-2.3.5-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-module-jaxb-annotations-2.3.5-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
@@ -103,4 +112,3 @@
     <orderEntry type="library" scope="TEST" name="TeamCity Server Tests" level="project" />
   </component>
 </module>
-

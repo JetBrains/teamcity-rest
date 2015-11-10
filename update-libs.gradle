@@ -18,7 +18,8 @@
 
 ext.versions = [
         'jersey' : '1.19',
-        'jackson': '1.9.11',
+        'jackson': '2.3.5',
+        'swagger': '1.5.4',
 ]
 
 apply plugin: 'java'
@@ -29,28 +30,73 @@ repositories {
 }
 
 configurations {
-  jersey
+  jersey { transitive = false }
   jackson
+  swagger
 }
 
-configurations.forEach { it.transitive = false }
+def dep(String coordinates, javadoc = false, sources = true) {
+  def result = [dependencies.create(coordinates)]
+  if (javadoc) result << dependencies.create("$coordinates:javadoc")
+  if (sources) result << dependencies.create("$coordinates:sources")
+  result
+}
+
+def dep(Map coordinates, javadoc = false, sources = true) {
+  def result = [dependencies.create(coordinates)]
+  if (javadoc) {
+    def c = new HashMap(coordinates)
+    c['classifier'] = 'javadoc'
+    result << dependencies.create(c)
+  }
+  if (sources) {
+    def c = new HashMap(coordinates)
+    c['classifier'] = 'sources'
+    result << dependencies.create(c)
+  }
+  result
+}
+
 
 dependencies {
-  jersey "javax.ws.rs:jsr311-api:1.1.1"
-  jersey "javax.ws.rs:jsr311-api:1.1.1:sources"
+  jersey dep("javax.ws.rs:jsr311-api:1.1.1")
 
-  jersey "com.sun.jersey:jersey-core:${versions.jersey}"
-  jersey "com.sun.jersey:jersey-json:${versions.jersey}"
-  jersey "com.sun.jersey:jersey-server:${versions.jersey}"
-  jersey "com.sun.jersey:jersey-servlet:${versions.jersey}"
-  jersey "com.sun.jersey.contribs:jersey-spring:${versions.jersey}"
-  jersey "com.sun.jersey:jersey-core:${versions.jersey}:sources"
-  jersey "com.sun.jersey:jersey-json:${versions.jersey}:sources"
-  jersey "com.sun.jersey:jersey-server:${versions.jersey}:sources"
-  jersey "com.sun.jersey:jersey-servlet:${versions.jersey}:sources"
-  jersey "com.sun.jersey.contribs:jersey-spring:${versions.jersey}:sources"
+  jersey dep("com.sun.jersey:jersey-core:${versions.jersey}")
+  jersey dep("com.sun.jersey:jersey-json:${versions.jersey}")
+  jersey dep("com.sun.jersey:jersey-server:${versions.jersey}")
+  jersey dep("com.sun.jersey:jersey-servlet:${versions.jersey}")
+  jersey dep("com.sun.jersey.contribs:jersey-spring:${versions.jersey}")
+
+  jackson dep("com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}")
+  jackson dep("com.fasterxml.jackson.core:jackson-core:${versions.jackson}")
+  jackson dep("com.fasterxml.jackson.core:jackson-databind:${versions.jackson}")
+
+  jackson dep("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:${versions.jackson}")
+  jackson dep("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}")
+  jackson dep("com.fasterxml.jackson.datatype:jackson-datatype-joda:${versions.jackson}")
+
+  jackson dep("com.fasterxml.jackson.jaxrs:jackson-jaxrs-base:${versions.jackson}")
+  jackson dep("com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider:${versions.jackson}")
+  jackson dep("com.fasterxml.jackson.module:jackson-module-jaxb-annotations:${versions.jackson}")
+
+  swagger(dep(group: 'io.swagger', name: 'swagger-models', version: versions.swagger),
+          dep(group: 'io.swagger', name: 'swagger-core', version: versions.swagger),
+          dep(group: 'io.swagger', name: 'swagger-jaxrs', version: versions.swagger),
+          dep(group: 'io.swagger', name: 'swagger-jersey-jaxrs', version: versions.swagger),
+          dep(group: 'io.swagger', name: 'swagger-annotations', version: versions.swagger))
+
 }
 
+
+configurations.jersey.dependencies.forEach { configurations.jackson.exclude(group: it.group, module: it.name) }
+configurations.jersey.dependencies.forEach { configurations.swagger.exclude(group: it.group, module: it.name) }
+configurations.jackson.dependencies.forEach { configurations.swagger.exclude(group: it.group, module: it.name) }
+//configurations.swagger.exclude  module: 'jersey-client'
+
+// Exclude libraries that already in TC core
+configurations.swagger.exclude group: 'com.google.guava'
+configurations.jackson.exclude group: 'joda-time'
+configurations.jackson.exclude module: 'stax-api'
 
 task fetchJersey(type: Copy) {
   from configurations.jersey.grep { !it.name.contains("sources") }
@@ -62,11 +108,32 @@ task fetchJerseySrc(type: Copy) {
   into 'lib/src'
 }
 
+task fetchJackson(type: Copy) {
+  from configurations.jackson.grep { !it.name.contains("sources") }
+  into 'lib'
+}
+
+task fetchJacksonSrc(type: Copy) {
+  from configurations.jackson.grep { it.name.contains("sources") }
+  into 'lib/src'
+}
+
+task fetchSwagger(type: Copy) {
+  from configurations.swagger.grep { !it.name.contains("sources") }
+  into 'lib/swagger'
+}
+
+task fetchSwaggerSrc(type: Copy) {
+  from configurations.swagger.grep { it.name.contains("sources") }
+  into 'lib/swagger/src'
+}
+
+
 task fetchSrc
-fetchSrc.dependsOn fetchJerseySrc
+fetchSrc.dependsOn fetchJerseySrc, fetchJacksonSrc//, fetchSwaggerSrc
 
 task fetchLibs
-fetchLibs.dependsOn fetchJersey
+fetchLibs.dependsOn fetchJersey, fetchJackson//, fetchSwagger
 
 task fetch
 fetch.dependsOn fetchLibs, fetchSrc

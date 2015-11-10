@@ -16,6 +16,12 @@
 
 package jetbrains.buildServer.server.rest.jersey;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.type.TypeFactory;
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 import com.intellij.openapi.diagnostic.Logger;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
@@ -26,11 +32,6 @@ import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.model.Constants;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
-import org.codehaus.jackson.map.DeserializationConfig;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
-import org.codehaus.jackson.xc.JaxbAnnotationIntrospector;
 
 /**
  * @author Vladislav.Rassokhin
@@ -45,13 +46,13 @@ public class JacksonObjectMapperResolver implements ContextResolver<ObjectMapper
 
   public JacksonObjectMapperResolver() {
     myMapper = new ObjectMapper();
-    myMapper.setSerializationInclusion(JsonSerialize.Inclusion.NON_NULL);
-    myMapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
+    myMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    myMapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(TypeFactory.defaultInstance()));
     myMapper.setDateFormat(new SimpleDateFormat(Constants.TIME_FORMAT, Locale.ENGLISH));
-    myMapper.configure(SerializationConfig.Feature.WRITE_EMPTY_JSON_ARRAYS, true);
-    myMapper.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, TeamCityProperties.getBoolean("rest.response.json.deserialize.ignoreUnknownProperties"));
+    myMapper.configure(SerializationFeature.WRITE_EMPTY_JSON_ARRAYS, true);
+    myMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, TeamCityProperties.getBoolean("rest.response.json.deserialize.ignoreUnknownProperties"));
     if (TeamCityProperties.getBoolean(APIController.REST_RESPONSE_PRETTYFORMAT)) {
-      myMapper.configure(SerializationConfig.Feature.INDENT_OUTPUT, true);
+      myMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
     }
   }
 
