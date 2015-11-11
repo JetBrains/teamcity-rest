@@ -27,13 +27,14 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
-import jetbrains.buildServer.ExtensionHolder;
+import javax.ws.rs.HttpMethod;
 import jetbrains.buildServer.controllers.AuthorizationInterceptor;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.controllers.interceptors.PathSet;
@@ -70,6 +71,8 @@ import org.springframework.web.context.ServletContextAware;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.ModelAndView;
 
+import static jetbrains.buildServer.util.Util.doUnderContextClassLoader;
+
 /**
  * @author Yegor.Yarko
  *         Date: 23.03.2009
@@ -91,12 +94,12 @@ public class APIController extends BaseController implements ServletContextAware
     Constants.EXTERNAL_APPLICATION_WADL_NAME,
     Constants.EXTERNAL_APPLICATION_WADL_NAME + "/xsd*.xsd"};
 
-  private JerseyWebComponent myWebComponent;
+  private final JerseyWebComponent myWebComponent;
+  private final AtomicBoolean myWebComponentInitialized = new AtomicBoolean(false);
   private final ConfigurableApplicationContext myConfigurableApplicationContext;
   private final SecurityContextEx mySecurityContext;
   private final WebControllerManager myWebControllerManager;
   private final ServerPluginInfo myPluginDescriptor;
-  private final ExtensionHolder myExtensionHolder;
   private final AuthorizationInterceptor myAuthorizationInterceptor;
   @NotNull private final HttpAuthenticationManager myAuthManager;
   @NotNull private final PluginManager myPluginManager;
@@ -115,7 +118,7 @@ public class APIController extends BaseController implements ServletContextAware
                        final SecurityContextEx securityContext,
                        final RequestPathTransformInfo requestPathTransformInfo,
                        final ServerPluginInfo pluginDescriptor,
-                       final ExtensionHolder extensionHolder,
+                       @NotNull final JerseyWebComponent jerseyWebComponent,
                        final AuthorizationInterceptor authorizationInterceptor,
                        @NotNull final HttpAuthenticationManager authManager,
                        @NotNull final PluginManager pluginManager) throws ServletException {
@@ -123,11 +126,11 @@ public class APIController extends BaseController implements ServletContextAware
     LOG = Logger.getInstance(APIController.class.getName() + "/" + pluginDescriptor.getPluginName());
     myWebControllerManager = webControllerManager;
     myPluginDescriptor = pluginDescriptor;
-    myExtensionHolder = extensionHolder;
+    myWebComponent = jerseyWebComponent;
     myAuthorizationInterceptor = authorizationInterceptor;
     myPluginManager = pluginManager;
     myAuthManager = authManager;
-    setSupportedMethods(new String[]{METHOD_GET, METHOD_HEAD, METHOD_POST, "PUT", "OPTIONS", "DELETE"});
+    setSupportedMethods(HttpMethod.GET, HttpMethod.HEAD, HttpMethod.POST, HttpMethod.PUT, HttpMethod.OPTIONS, HttpMethod.DELETE);
 
     myConfigurableApplicationContext = configurableApplicationContext;
     mySecurityContext = securityContext;
@@ -296,19 +299,22 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   private void init() throws ServletException {
-    myWebComponent = new JerseyWebComponent(myPluginDescriptor.getPluginName());
-    myWebComponent.setExtensionHolder(myExtensionHolder);
-    final Set<ConfigurableApplicationContext> contexts = new HashSet<ConfigurableApplicationContext>();
-    contexts.add(myConfigurableApplicationContext);
-    for (RESTControllerExtension extension : getExtensions()) {
-      contexts.add(extension.getContext());
+    if (myWebComponentInitialized.get()) return;
+    synchronized (myWebComponentInitialized) {
+      if (myWebComponentInitialized.get()) return;
+      final Set<ConfigurableApplicationContext> contexts = new HashSet<ConfigurableApplicationContext>();
+      contexts.add(myConfigurableApplicationContext);
+      for (RESTControllerExtension extension : getExtensions()) {
+        contexts.add(extension.getContext());
+      }
+      myWebComponent.setContexts(contexts);
+      // ExtensionsAwareResourceConfig not initialized yet. We should wait for all extensions to load first.
+      // Now it's time to initialize and scan for extensions.
+      final ExtensionsAwareResourceConfig config = getApplicationContext().getBean(ExtensionsAwareResourceConfig.class);
+      config.onReload();
+      myWebComponent.init(createJerseyConfig());
+      myWebComponentInitialized.compareAndSet(false, true);
     }
-    myWebComponent.setContexts(contexts);
-    // ExtensionsAwareResourceConfig not initialized yet. We should wait for all extensions to load first.
-    // Now it's time to initilize and scan for extensions.
-    final ExtensionsAwareResourceConfig config = getApplicationContext().getBean(ExtensionsAwareResourceConfig.class);
-    config.onReload();
-    myWebComponent.init(createJerseyConfig());
   }
 
   private FilterConfig createJerseyConfig() {
@@ -418,7 +424,7 @@ public class APIController extends BaseController implements ServletContextAware
       }
 
       // workaround for http://jetbrains.net/tracker/issue2/TW-7656
-      jetbrains.buildServer.util.Util.doUnderContextClassLoader(getClass().getClassLoader(), new FuncThrow<Void, Throwable>() {
+      doUnderContextClassLoader(getClass().getClassLoader(), new FuncThrow<Void, Throwable>() {
         public Void apply() throws Throwable {
           // patching request
           final HttpServletRequest actualRequest =
@@ -608,33 +614,27 @@ public class APIController extends BaseController implements ServletContextAware
     };
   }
 
-  private void ensureInitialized() throws ServletException {
-    //todo: check synchronization
-    synchronized (this) {
+  private void ensureInitialized() throws Throwable {
+    // TODO: Consider run #ensureInitialized() on jetbrains.buildServer.serverSide.BuildServerListener#pluginsLoaded event (in #initializeController method)
+    if (myWebComponentInitialized.get()) return;
+    try {
       // workaround for http://jetbrains.net/tracker/issue2/TW-7656
-      if (myWebComponent == null) {
-        final ClassLoader cl = Thread.currentThread().getContextClassLoader();
-        Thread.currentThread().setContextClassLoader(myClassloader);
-        try {
+      doUnderContextClassLoader(myClassloader, new FuncThrow<Void, Throwable>() {
+        public Void apply() throws Throwable {
           init();
-        } catch (RuntimeException e) {
-          //otherwise exception here is swallowed and logged nowhere
-          LOG.error("Error initializing REST API: ", e);
-          myWebComponent = null;
-          throw e;
-        } catch (Error e) {
-          LOG.error("Error initializing REST API: ", e);
-          myWebComponent = null;
-          throw e;
-        } catch (ServletException e) {
-          LOG.error("Error initializing REST API: ", e);
-          myWebComponent = null;
-          throw e;
+          return null;
         }
-        finally {
-          Thread.currentThread().setContextClassLoader(cl);
-        }
-      }
+      });
+    } catch (RuntimeException e) {
+      //otherwise exception here is swallowed and logged nowhere
+      LOG.error("Error initializing REST API: ", e);
+      throw e;
+    } catch (Error e) {
+      LOG.error("Error initializing REST API: ", e);
+      throw e;
+    } catch (ServletException e) {
+      LOG.error("Error initializing REST API: ", e);
+      throw e;
     }
   }
 

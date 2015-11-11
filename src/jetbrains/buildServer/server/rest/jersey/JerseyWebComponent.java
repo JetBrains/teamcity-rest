@@ -22,6 +22,7 @@ import com.sun.jersey.spi.container.WebApplication;
 import com.sun.jersey.spi.spring.container.servlet.SpringServlet;
 import java.util.Collection;
 import jetbrains.buildServer.ExtensionHolder;
+import jetbrains.buildServer.plugins.bean.PluginInfo;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -38,12 +39,13 @@ public class JerseyWebComponent extends SpringServlet {
   private final String myPluginName;
 
   private Logger LOG = Logger.getInstance(JerseyWebComponent.class.getName());
-  private ExtensionHolder myExtensionHolder;
+  private final ExtensionHolder myExtensionHolder;
   private Collection<ConfigurableApplicationContext> myContexts;
 
-  public JerseyWebComponent(final String pluginName) {
-    myPluginName = pluginName;
+  public JerseyWebComponent(final PluginInfo descriptor, final ExtensionHolder extensionHolder) {
+    myPluginName = descriptor.getPluginName();
     LOG = Logger.getInstance(JerseyWebComponent.class.getName() + "/" + myPluginName);
+    myExtensionHolder = extensionHolder;
   }
 
   @Override
@@ -81,9 +83,5 @@ public class JerseyWebComponent extends SpringServlet {
 
   public void setContexts(@NotNull Collection<ConfigurableApplicationContext> contexts) {
     myContexts = contexts;
-  }
-
-  public void setExtensionHolder(@NotNull final ExtensionHolder extensionHolder) {
-    myExtensionHolder = extensionHolder;
   }
 }

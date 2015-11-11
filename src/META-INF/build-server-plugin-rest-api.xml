@@ -34,6 +34,7 @@
   <bean id="illegalArgumentExceptionMapper" class="jetbrains.buildServer.server.rest.errors.IllegalArgumentExceptionMapper"/>
   <bean id="partialUpdateErrorMapper" class="jetbrains.buildServer.server.rest.errors.PartialUpdateErrorMapper"/>
 
+  <bean id="jerseyWebComponent" class="jetbrains.buildServer.server.rest.jersey.JerseyWebComponent"/>
   <bean id="apiController" class="jetbrains.buildServer.server.rest.APIController"/>
 
   <bean id="restDataProvider" class="jetbrains.buildServer.server.rest.data.DataProvider"/>
