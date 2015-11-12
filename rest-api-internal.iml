@@ -31,15 +31,15 @@
     <orderEntry type="module-library" exported="">
       <library name="Jersey">
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/asm-3.1.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jersey-core-1.19.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jersey-json-1.19.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jersey-server-1.19.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jersey-servlet-1.19.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jersey-spring-1.19.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jaxb-api-2.2.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jaxb-impl-2.2.5.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jersey-multipart-1.19.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jsr311-api-1.1.1.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/mimepull-1.9.3.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jettison-1.1.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
@@ -48,9 +48,7 @@
           <root url="jar://$MODULE_DIR$/lib/src/jersey-server-1.19-sources.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/src/jersey-servlet-1.19-sources.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/src/jersey-spring-1.19-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/asm-3.1-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jaxb-api-2.2.5-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jaxb-impl-2.2.5-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jersey-multipart-1.19-sources.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/src/jsr311-api-1.1.1-sources.jar!/" />
         </SOURCES>
       </library>
@@ -59,28 +57,55 @@
     <orderEntry type="module-library" exported="">
       <library name="Jackson">
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/jackson-annotations-2.3.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-core-2.3.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-databind-2.3.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-dataformat-xml-2.3.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-dataformat-yaml-2.3.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-datatype-joda-2.3.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-jaxrs-base-2.3.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-jaxrs-json-provider-2.3.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-module-jaxb-annotations-2.3.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/stax2-api-3.1.1.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-annotations-2.6.3.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-core-2.6.3.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-databind-2.6.3.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-dataformat-xml-2.6.3.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-dataformat-yaml-2.6.3.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-datatype-joda-2.6.3.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-jaxrs-base-2.6.3.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-jaxrs-json-provider-2.6.3.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-module-jaxb-annotations-2.6.3.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/stax2-api-3.1.4.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/snakeyaml-1.15.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-annotations-2.3.5-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-core-2.3.5-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-databind-2.3.5-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-dataformat-xml-2.3.5-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-dataformat-yaml-2.3.5-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-datatype-joda-2.3.5-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-jaxrs-base-2.3.5-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-jaxrs-json-provider-2.3.5-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-module-jaxb-annotations-2.3.5-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-annotations-2.6.3-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-core-2.6.3-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-databind-2.6.3-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-dataformat-xml-2.6.3-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-dataformat-yaml-2.6.3-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-datatype-joda-2.6.3-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-jaxrs-base-2.6.3-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-jaxrs-json-provider-2.6.3-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-module-jaxb-annotations-2.6.3-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library" exported="">
+      <library name="Swagger">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/annotations-2.0.1.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/commons-lang3-3.2.1.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/javassist-3.18.2-GA.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jersey-client-1.13.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/reflections-0.9.10.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/swagger-annotations-1.5.4.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/swagger-core-1.5.4.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/swagger-jaxrs-1.5.4.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/swagger-jersey-jaxrs-1.5.4.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/swagger-models-1.5.4.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/validation-api-1.1.0.Final.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/annotations-2.0.1.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/swagger-annotations-1.5.4-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/swagger-core-1.5.4-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/swagger-jaxrs-1.5.4-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/swagger-jersey-jaxrs-1.5.4-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/swagger-models-1.5.4-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
@@ -106,5 +131,6 @@
     <orderEntry type="module" module-name="web-startup" exported="" />
     <orderEntry type="module" module-name="web-diagnostic" />
     <orderEntry type="module" module-name="remote-api-impl" />
+    <orderEntry type="library" name="slf4j" level="project" />
   </component>
 </module>

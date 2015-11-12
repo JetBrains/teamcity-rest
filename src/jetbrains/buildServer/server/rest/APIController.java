@@ -92,7 +92,9 @@ public class APIController extends BaseController implements ServletContextAware
     RootApiRequest.VERSION,
     RootApiRequest.API_VERSION,
     Constants.EXTERNAL_APPLICATION_WADL_NAME,
-    Constants.EXTERNAL_APPLICATION_WADL_NAME + "/xsd*.xsd"};
+    Constants.EXTERNAL_APPLICATION_WADL_NAME + "/xsd*.xsd",
+    "/swagger**",
+  };
 
   private final JerseyWebComponent myWebComponent;
   private final AtomicBoolean myWebComponentInitialized = new AtomicBoolean(false);
@@ -538,7 +540,12 @@ public class APIController extends BaseController implements ServletContextAware
 
   @NotNull
   public String[] getBasePackages() {
-    return new String[]{"org.fasterxml.jackson.jaxrs","jetbrains.buildServer.server.rest.request"};
+    return new String[]{
+      "org.fasterxml.jackson.jaxrs",
+      "jetbrains.buildServer.server.rest.request",
+      "jetbrains.buildServer.server.rest.swagger",
+      "io.swagger.jaxrs.json",
+    };
   }
 
   @NotNull

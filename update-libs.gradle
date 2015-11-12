@@ -18,7 +18,7 @@
 
 ext.versions = [
         'jersey' : '1.19',
-        'jackson': '2.3.5',
+        'jackson': '2.6.3', //swagger requires at least 2.4.0
         'swagger': '1.5.4',
 ]
 
@@ -30,7 +30,7 @@ repositories {
 }
 
 configurations {
-  jersey { transitive = false }
+  jersey
   jackson
   swagger
 }
@@ -66,6 +66,7 @@ dependencies {
   jersey dep("com.sun.jersey:jersey-server:${versions.jersey}")
   jersey dep("com.sun.jersey:jersey-servlet:${versions.jersey}")
   jersey dep("com.sun.jersey.contribs:jersey-spring:${versions.jersey}")
+  jersey dep("com.sun.jersey.contribs:jersey-multipart:${versions.jersey}")
 
   jackson dep("com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}")
   jackson dep("com.fasterxml.jackson.core:jackson-core:${versions.jackson}")
@@ -91,12 +92,19 @@ dependencies {
 configurations.jersey.dependencies.forEach { configurations.jackson.exclude(group: it.group, module: it.name) }
 configurations.jersey.dependencies.forEach { configurations.swagger.exclude(group: it.group, module: it.name) }
 configurations.jackson.dependencies.forEach { configurations.swagger.exclude(group: it.group, module: it.name) }
-//configurations.swagger.exclude  module: 'jersey-client'
 
-// Exclude libraries that already in TC core
-configurations.swagger.exclude group: 'com.google.guava'
-configurations.jackson.exclude group: 'joda-time'
-configurations.jackson.exclude module: 'stax-api'
+// Exclude libraries that already present in TC core or JRE
+configurations.swagger.exclude group: 'com.google.guava' // TC core
+configurations.swagger.exclude module: 'slf4j-api' // TC core
+configurations.jackson.exclude group: 'joda-time' // TC core
+configurations.jackson.exclude module: 'stax-api' // JRE
+
+configurations.jersey.exclude module: 'jaxb-api' // JRE
+configurations.jersey.exclude module: 'jaxb-impl' // JRE
+configurations.jersey.exclude group: 'org.codehaus.jackson' // added later from jackson configuration
+configurations.jersey.exclude group: 'org.springframework' // TC core
+configurations.jersey.exclude module: 'aopalliance' // TC core
+configurations.jersey.exclude module: 'commons-logging' // TC core
 
 task fetchJersey(type: Copy) {
   from configurations.jersey.grep { !it.name.contains("sources") }
@@ -120,20 +128,20 @@ task fetchJacksonSrc(type: Copy) {
 
 task fetchSwagger(type: Copy) {
   from configurations.swagger.grep { !it.name.contains("sources") }
-  into 'lib/swagger'
+  into 'lib'
 }
 
 task fetchSwaggerSrc(type: Copy) {
   from configurations.swagger.grep { it.name.contains("sources") }
-  into 'lib/swagger/src'
+  into 'lib/src'
 }
 
 
 task fetchSrc
-fetchSrc.dependsOn fetchJerseySrc, fetchJacksonSrc//, fetchSwaggerSrc
+fetchSrc.dependsOn fetchJerseySrc, fetchJacksonSrc, fetchSwaggerSrc
 
 task fetchLibs
-fetchLibs.dependsOn fetchJersey, fetchJackson//, fetchSwagger
+fetchLibs.dependsOn fetchJersey, fetchJackson, fetchSwagger
 
 task fetch
 fetch.dependsOn fetchLibs, fetchSrc

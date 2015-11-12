@@ -90,6 +90,15 @@
   <bean id="serviceLocatorContextProvider" class="jetbrains.buildServer.server.rest.jersey.ServiceLocatorContextProvider"/>
   <bean id="beanFactoryContextProvider" class="jetbrains.buildServer.server.rest.jersey.BeanFactoryContextProvider"/>
 
+  <bean id="swaggerReaderConfig" class="io.swagger.jaxrs.config.DefaultReaderConfig">
+    <property name="scanAllResources" value="true"/>
+  </bean>
+
+  <bean id="swaggerConfig" class="jetbrains.buildServer.server.rest.swagger.SwaggerConfigImpl"/>
+
+  <bean id="swaggerReaderConfigProvider" class="jetbrains.buildServer.server.rest.swagger.SwaggerReaderConfigProvider"/>
+  <bean id="swaggerConfigProvider" class="jetbrains.buildServer.server.rest.swagger.SwaggerConfigProvider"/>
+
   <bean id="jacksonObjectMapperResolver" class="jetbrains.buildServer.server.rest.jersey.JacksonObjectMapperResolver"/>
 
   <bean id="extensionsAwareResourceConfig" class="jetbrains.buildServer.server.rest.jersey.ExtensionsAwareResourceConfig"/>

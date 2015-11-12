@@ -22,93 +22,15 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module-library" exported="">
-      <library name="Jersey">
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/asm-3.1.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jsr311-api-1.1.1.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jersey-core-1.19.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jersey-json-1.19.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jersey-server-1.19.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jersey-servlet-1.19.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jersey-spring-1.19.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jaxb-impl-2.2.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jaxb-api-2.2.5.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES>
-          <root url="jar://$MODULE_DIR$/lib/src/jsr311-api-1.1.1-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jersey-core-1.19-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jersey-json-1.19-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jersey-server-1.19-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jersey-servlet-1.19-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jersey-spring-1.19-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/asm-3.1-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jaxb-api-2.2.5-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jaxb-impl-2.2.5-sources.jar!/" />
-        </SOURCES>
-      </library>
-    </orderEntry>
+    <orderEntry type="library" exported="" name="Jersey" level="project" />
     <orderEntry type="library" exported="" name="TeamCity Open API server" level="project" />
     <orderEntry type="library" exported="" name="TeamCity Open API common" level="project" />
     <orderEntry type="library" exported="" name="TeamCity Third-Party" level="project" />
     <orderEntry type="library" exported="" name="Tomcat" level="project" />
-    <orderEntry type="module-library" exported="">
-      <library name="Jackson">
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/jackson-annotations-2.3.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-core-2.3.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-databind-2.3.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-dataformat-xml-2.3.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-dataformat-yaml-2.3.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-datatype-joda-2.3.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-jaxrs-base-2.3.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-jaxrs-json-provider-2.3.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-module-jaxb-annotations-2.3.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/stax2-api-3.1.1.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES>
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-annotations-2.3.5-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-core-2.3.5-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-databind-2.3.5-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-dataformat-xml-2.3.5-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-dataformat-yaml-2.3.5-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-datatype-joda-2.3.5-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-jaxrs-base-2.3.5-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-jaxrs-json-provider-2.3.5-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-module-jaxb-annotations-2.3.5-sources.jar!/" />
-        </SOURCES>
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library" exported="">
-      <library name="TeamCity Closed API server">
-        <CLASSES>
-          <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/server.jar!/" />
-          <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/db.jar!/" />
-          <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/web.jar!/" />
-          <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/common-impl.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library" scope="TEST">
-      <library name="TestNG &amp; Mockito">
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib-test/mockito-core-1.9.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib-test/testng-6.8.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib-test/hamcrest-core-1.3.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib-test/hamcrest-integration-1.3.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib-test/hamcrest-library-1.3.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib-test/junit-4.11.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES>
-          <root url="jar://$MODULE_DIR$/lib-test/mockito-core-1.9.5.jar!/" />
-        </SOURCES>
-      </library>
-    </orderEntry>
+    <orderEntry type="library" exported="" name="Jackson" level="project" />
+    <orderEntry type="library" exported="" name="Swagger" level="project" />
+    <orderEntry type="library" exported="" name="TeamCity Closed API server" level="project" />
+    <orderEntry type="library" scope="TEST" name="TestNG &amp; Mockito" level="project" />
     <orderEntry type="library" scope="TEST" name="TeamCity Server Tests" level="project" />
   </component>
 </module>
