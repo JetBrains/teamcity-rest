@@ -22,6 +22,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.config.FilterFactory;
 import io.swagger.config.SwaggerConfig;
+import io.swagger.converter.ModelConverters;
 import io.swagger.core.filter.SpecFilter;
 import io.swagger.core.filter.SwaggerSpecFilter;
 import io.swagger.jaxrs.Reader;
@@ -85,6 +86,7 @@ public class SwaggerResource {
       Set<Class<?>> classes = scanner.classesFromContext(myApplication, null);
       if (classes == null) classes = Collections.emptySet();
 
+      ModelConverters.getInstance().addPackageToSkip("javax.servlet.");
       final Reader reader = new Reader(swagger, myReaderConfig);
       swagger = reader.read(classes);
       if (mySwaggerConfig != null) {
