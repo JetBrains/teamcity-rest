@@ -16,12 +16,6 @@
 
 package jetbrains.buildServer.server.rest.jersey;
 
-import com.sun.jersey.core.spi.component.ComponentContext;
-import com.sun.jersey.core.spi.component.ComponentScope;
-import com.sun.jersey.spi.inject.Injectable;
-import com.sun.jersey.spi.inject.InjectableProvider;
-import java.lang.reflect.Type;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.ServiceLocator;
 
@@ -30,25 +24,8 @@ import jetbrains.buildServer.ServiceLocator;
  *         Date: 06.08.2010
  */
 @Provider
-public class ServiceLocatorContextProvider implements InjectableProvider<Context, Type>, Injectable<ServiceLocator> {
-  private final ServiceLocator myValue;
-
+public class ServiceLocatorContextProvider extends AbstractSingletonBeanProvider<ServiceLocator> {
   public ServiceLocatorContextProvider(final ServiceLocator contextLocator) {
-    myValue = contextLocator;
-  }
-
-  public ComponentScope getScope() {
-    return ComponentScope.Singleton;
-  }
-
-  public Injectable getInjectable(final ComponentContext ic, final Context context, final Type type) {
-    if (type.equals(ServiceLocator.class)) {
-      return this;
-    }
-    return null;
-  }
-
-  public ServiceLocator getValue() {
-    return myValue;
+    super(contextLocator, ServiceLocator.class);
   }
 }

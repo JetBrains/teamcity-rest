@@ -16,12 +16,6 @@
 
 package jetbrains.buildServer.server.rest.jersey;
 
-import com.sun.jersey.core.spi.component.ComponentContext;
-import com.sun.jersey.core.spi.component.ComponentScope;
-import com.sun.jersey.spi.inject.Injectable;
-import com.sun.jersey.spi.inject.InjectableProvider;
-import java.lang.reflect.Type;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 
@@ -30,25 +24,8 @@ import jetbrains.buildServer.server.rest.util.BeanFactory;
  *         Date: 06.08.2010
  */
 @Provider
-public class BeanFactoryContextProvider implements InjectableProvider<Context, Type>, Injectable<BeanFactory> {
-  private final BeanFactory myValue;
-
+public class BeanFactoryContextProvider extends AbstractSingletonBeanProvider<BeanFactory> {
   public BeanFactoryContextProvider(final BeanFactory contextLocator) {
-    myValue = contextLocator;
-  }
-
-  public ComponentScope getScope() {
-    return ComponentScope.Singleton;
-  }
-
-  public Injectable getInjectable(final ComponentContext ic, final Context context, final Type type) {
-    if (type.equals(BeanFactory.class)) {
-      return this;
-    }
-    return null;
-  }
-
-  public BeanFactory getValue() {
-    return myValue;
+    super(contextLocator, BeanFactory.class);
   }
 }

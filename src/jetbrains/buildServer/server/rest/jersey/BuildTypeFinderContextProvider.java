@@ -16,12 +16,6 @@
 
 package jetbrains.buildServer.server.rest.jersey;
 
-import com.sun.jersey.core.spi.component.ComponentContext;
-import com.sun.jersey.core.spi.component.ComponentScope;
-import com.sun.jersey.spi.inject.Injectable;
-import com.sun.jersey.spi.inject.InjectableProvider;
-import java.lang.reflect.Type;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 
@@ -30,25 +24,8 @@ import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
  *         Date: 15.11.2009
  */
 @Provider
-public class BuildTypeFinderContextProvider implements InjectableProvider<Context, Type>, Injectable<BuildTypeFinder> {
-  private final BuildTypeFinder myBuildTypeFinder;
-
+public class BuildTypeFinderContextProvider extends AbstractSingletonBeanProvider<BuildTypeFinder> {
   public BuildTypeFinderContextProvider(final BuildTypeFinder buildTypeFinder) {
-    myBuildTypeFinder = buildTypeFinder;
-  }
-
-  public ComponentScope getScope() {
-    return ComponentScope.Singleton;
-  }
-
-  public Injectable getInjectable(final ComponentContext ic, final Context context, final Type type) {
-    if (type.equals(BuildTypeFinder.class)) {
-      return this;
-    }
-    return null;
-  }
-
-  public BuildTypeFinder getValue() {
-    return myBuildTypeFinder;
+    super(buildTypeFinder, BuildTypeFinder.class);
   }
 }

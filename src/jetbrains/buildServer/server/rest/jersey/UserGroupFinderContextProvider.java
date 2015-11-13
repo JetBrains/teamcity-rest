@@ -30,25 +30,8 @@ import jetbrains.buildServer.server.rest.data.UserGroupFinder;
  *         Date: 15.11.2009
  */
 @Provider
-public class UserGroupFinderContextProvider implements InjectableProvider<Context, Type>, Injectable<UserGroupFinder> {
-  private final UserGroupFinder myObject;
-
+public class UserGroupFinderContextProvider extends AbstractSingletonBeanProvider<UserGroupFinder> {
   public UserGroupFinderContextProvider(final UserGroupFinder object) {
-    myObject = object;
-  }
-
-  public ComponentScope getScope() {
-    return ComponentScope.Singleton;
-  }
-
-  public Injectable getInjectable(final ComponentContext ic, final Context context, final Type type) {
-    if (type.equals(UserGroupFinder.class)) {
-      return this;
-    }
-    return null;
-  }
-
-  public UserGroupFinder getValue() {
-    return myObject;
+    super(object, UserGroupFinder.class);
   }
 }

@@ -30,25 +30,8 @@ import jetbrains.buildServer.server.rest.data.UserFinder;
  *         Date: 15.11.2009
  */
 @Provider
-public class UserFinderContextProvider implements InjectableProvider<Context, Type>, Injectable<UserFinder> {
-  private final UserFinder myObject;
-
+public class UserFinderContextProvider extends AbstractSingletonBeanProvider<UserFinder> {
   public UserFinderContextProvider(final UserFinder object) {
-    myObject = object;
-  }
-
-  public ComponentScope getScope() {
-    return ComponentScope.Singleton;
-  }
-
-  public Injectable getInjectable(final ComponentContext ic, final Context context, final Type type) {
-    if (type.equals(UserFinder.class)) {
-      return this;
-    }
-    return null;
-  }
-
-  public UserFinder getValue() {
-    return myObject;
+    super(object, UserFinder.class);
   }
 }

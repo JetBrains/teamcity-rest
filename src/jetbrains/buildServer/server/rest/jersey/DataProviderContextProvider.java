@@ -16,12 +16,6 @@
 
 package jetbrains.buildServer.server.rest.jersey;
 
-import com.sun.jersey.core.spi.component.ComponentContext;
-import com.sun.jersey.core.spi.component.ComponentScope;
-import com.sun.jersey.spi.inject.Injectable;
-import com.sun.jersey.spi.inject.InjectableProvider;
-import java.lang.reflect.Type;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 
@@ -30,25 +24,8 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
  *         Date: 15.11.2009
  */
 @Provider
-public class DataProviderContextProvider implements InjectableProvider<Context, Type>, Injectable<DataProvider> {
-  private final DataProvider myDataProvider;
-
+public class DataProviderContextProvider extends AbstractSingletonBeanProvider<DataProvider> {
   public DataProviderContextProvider(final DataProvider dataProvider) {
-    myDataProvider = dataProvider;
-  }
-
-  public ComponentScope getScope() {
-    return ComponentScope.Singleton;
-  }
-
-  public Injectable getInjectable(final ComponentContext ic, final Context context, final Type type) {
-    if (type.equals(DataProvider.class)) {
-      return this;
-    }
-    return null;
-  }
-
-  public DataProvider getValue() {
-    return myDataProvider;
+    super(dataProvider, DataProvider.class);
   }
 }

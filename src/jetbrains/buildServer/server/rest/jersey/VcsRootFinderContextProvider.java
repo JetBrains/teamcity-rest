@@ -16,12 +16,6 @@
 
 package jetbrains.buildServer.server.rest.jersey;
 
-import com.sun.jersey.core.spi.component.ComponentContext;
-import com.sun.jersey.core.spi.component.ComponentScope;
-import com.sun.jersey.spi.inject.Injectable;
-import com.sun.jersey.spi.inject.InjectableProvider;
-import java.lang.reflect.Type;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 
@@ -30,25 +24,8 @@ import jetbrains.buildServer.server.rest.data.VcsRootFinder;
  *         Date: 15.11.2009
  */
 @Provider
-public class VcsRootFinderContextProvider implements InjectableProvider<Context, Type>, Injectable<VcsRootFinder> {
-  private final VcsRootFinder myObject;
-
+public class VcsRootFinderContextProvider extends AbstractSingletonBeanProvider<VcsRootFinder> {
   public VcsRootFinderContextProvider(final VcsRootFinder object) {
-    myObject = object;
-  }
-
-  public ComponentScope getScope() {
-    return ComponentScope.Singleton;
-  }
-
-  public Injectable getInjectable(final ComponentContext ic, final Context context, final Type type) {
-    if (type.equals(VcsRootFinder.class)) {
-      return this;
-    }
-    return null;
-  }
-
-  public VcsRootFinder getValue() {
-    return myObject;
+    super(object, VcsRootFinder.class);
   }
 }
