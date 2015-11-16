@@ -544,7 +544,6 @@ public class APIController extends BaseController implements ServletContextAware
       "org.fasterxml.jackson.jaxrs",
       "jetbrains.buildServer.server.rest.request",
       "jetbrains.buildServer.server.rest.swagger",
-      "io.swagger.jaxrs.json",
     };
   }
 
