@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import io.swagger.annotations.Api;
 import java.util.Collection;
 import java.util.Collections;
 import javax.servlet.http.HttpServletRequest;
@@ -47,6 +48,7 @@ import org.jetbrains.annotations.NotNull;
 */
 
 @Path(VcsRootInstanceRequest.API_VCS_ROOT_INSTANCES_URL)
+@Api
 public class VcsRootInstanceRequest {
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private BeanContext myBeanContext;

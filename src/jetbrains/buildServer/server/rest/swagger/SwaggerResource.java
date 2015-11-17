@@ -16,6 +16,8 @@
 
 package jetbrains.buildServer.server.rest.swagger;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import com.intellij.openapi.util.text.StringUtil;
 import com.sun.jersey.spi.resource.Singleton;
 import io.swagger.annotations.Api;
@@ -25,10 +27,13 @@ import io.swagger.config.SwaggerConfig;
 import io.swagger.converter.ModelConverters;
 import io.swagger.core.filter.SpecFilter;
 import io.swagger.core.filter.SwaggerSpecFilter;
+import io.swagger.jackson.ModelResolver;
 import io.swagger.jaxrs.Reader;
 import io.swagger.jaxrs.config.DefaultJaxrsScanner;
 import io.swagger.jaxrs.config.ReaderConfig;
 import io.swagger.models.Swagger;
+import io.swagger.util.Json;
+import io.swagger.util.Yaml;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.ws.rs.GET;
@@ -36,6 +41,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.*;
+import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.jersey.JacksonObjectMapperResolver;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.server.rest.util.AdditionalMediaTypes;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -49,6 +56,7 @@ import org.jetbrains.annotations.Nullable;
 public class SwaggerResource {
 
   @Context private SwaggerConfig mySwaggerConfig;
+  @Context private DataProvider myDataProvider;
   @Context private ReaderConfig myReaderConfig;
   @Context private Application myApplication;
 
@@ -77,6 +85,13 @@ public class SwaggerResource {
       swagger = mySwagger.get();
       if (swagger != null) return swagger;
 
+      // Configure Swagger internals first to make sure it would properly analyze our resources
+      Json.mapper().registerModule(new JaxbAnnotationModule());
+      Yaml.mapper().registerModule(new JaxbAnnotationModule());
+      final JacksonObjectMapperResolver resolver = myDataProvider.getBean(JacksonObjectMapperResolver.class);
+      final ObjectMapper mapper = resolver.getContext(ObjectMapper.class);
+      ModelConverters.getInstance().addConverter(new ModelResolver(mapper));
+
       // Let's create swagger and populate it
 
       swagger = new Swagger();
@@ -86,9 +101,19 @@ public class SwaggerResource {
       Set<Class<?>> classes = scanner.classesFromContext(myApplication, null);
       if (classes == null) classes = Collections.emptySet();
 
-      ModelConverters.getInstance().addPackageToSkip("javax.servlet.");
       final Reader reader = new Reader(swagger, myReaderConfig);
       swagger = reader.read(classes);
+
+      // Sort output maps
+      swagger.setPaths(SwaggerUtil.getOrderedMap(swagger.getPaths()));
+      swagger.setDefinitions(SwaggerUtil.getOrderedMap(swagger.getDefinitions()));
+      swagger.setParameters(SwaggerUtil.getOrderedMap(swagger.getParameters()));
+      swagger.setResponses(SwaggerUtil.getOrderedMap(swagger.getResponses()));
+      swagger.setSecurityDefinitions(SwaggerUtil.getOrderedMap(swagger.getSecurityDefinitions()));
+
+      // Analyze for unused definitions
+      SwaggerUtil.doAnalyzeSwaggerDefinitionReferences(swagger);
+
       if (mySwaggerConfig != null) {
         mySwaggerConfig.configure(swagger);
       }

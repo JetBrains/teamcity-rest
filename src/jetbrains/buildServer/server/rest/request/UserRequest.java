@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import io.swagger.annotations.Api;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.groups.SUserGroup;
@@ -45,6 +46,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Path(UserRequest.API_USERS_URL)
+@Api
 public class UserRequest {
   public static final String REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS = "rest.request.checkAdditionalPermissionsForUsersAndGroups";
   @Context @NotNull private DataProvider myDataProvider;

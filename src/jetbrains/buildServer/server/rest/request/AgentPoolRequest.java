@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import io.swagger.annotations.Api;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -51,6 +52,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 07.11.13
  */
 @Path(AgentPoolRequest.API_AGENT_POOLS_URL)
+@Api
 public class AgentPoolRequest {
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;

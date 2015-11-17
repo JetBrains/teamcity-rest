@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import io.swagger.annotations.Api;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,6 +51,7 @@ import org.jetbrains.annotations.NotNull;
 */
 
 @Path(VcsRootRequest.API_VCS_ROOTS_URL)
+@Api
 public class VcsRootRequest {
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private ProjectFinder myProjectFinder;

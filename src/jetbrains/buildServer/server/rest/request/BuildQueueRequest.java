@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.Function;
+import io.swagger.annotations.Api;
 import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -54,6 +55,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 03.11.13
  */
 @Path(BuildQueueRequest.API_BUILD_QUEUE_URL)
+@Api
 public class BuildQueueRequest {
   private static final Logger LOG = Logger.getInstance(BuildRequest.class.getName());
 

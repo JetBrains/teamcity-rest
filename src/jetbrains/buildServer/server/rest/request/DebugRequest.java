@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.sun.jersey.spi.resource.Singleton;
+import io.swagger.annotations.Api;
 import java.io.File;
 import java.lang.management.LockInfo;
 import java.lang.management.ManagementFactory;
@@ -65,6 +66,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @Path(Constants.API_URL + "/debug")
 @Singleton
+@Api
 public class DebugRequest {
   public static final String REST_VALID_QUERY_PROPERTY_NAME = "rest.debug.database.allow.query.prefixes";
 

@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import io.swagger.annotations.Api;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -37,6 +38,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 22.07.2009
  */
 @Path(Constants.API_URL)
+@Api
 public class RootApiRequest {
   public static final String API_VERSION = "/apiVersion";
   public static final String VERSION = "/version";

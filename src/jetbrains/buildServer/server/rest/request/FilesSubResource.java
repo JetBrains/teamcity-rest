@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import io.swagger.annotations.Api;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -55,6 +56,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 04/07/2015
  */
+@Api(hidden = true) // To prevent appearing in Swagger#definitions
 public class FilesSubResource {
   public static final String METADATA = "/metadata";
   public static final String CONTENT = "/content";

@@ -91,7 +91,7 @@
   <bean id="beanFactoryContextProvider" class="jetbrains.buildServer.server.rest.jersey.BeanFactoryContextProvider"/>
 
   <bean id="swaggerReaderConfig" class="io.swagger.jaxrs.config.DefaultReaderConfig">
-    <property name="scanAllResources" value="true"/>
+    <property name="scanAllResources" value="false"/>
   </bean>
 
   <bean id="swaggerConfig" class="jetbrains.buildServer.server.rest.swagger.SwaggerConfigImpl"/>

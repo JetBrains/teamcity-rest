@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.sun.jersey.api.core.InjectParam;
+import io.swagger.annotations.Api;
 import java.io.File;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -48,6 +49,7 @@ import org.jetbrains.annotations.NotNull;
  * Date: 11.04.2009
  */
 @Path(ServerRequest.API_SERVER_URL)
+@Api
 public class ServerRequest {
   public static final String SERVER_VERSION_RQUEST_PATH = "version";
   public static final String SERVER_REQUEST_PATH = "/server";

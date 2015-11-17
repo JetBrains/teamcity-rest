@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
+import io.swagger.annotations.Api;
 import java.io.*;
 import java.util.Collections;
 import java.util.List;
@@ -75,6 +76,7 @@ import org.jetbrains.annotations.Nullable;
  * Date: 11.04.2009
  */
 @Path(BuildRequest.API_BUILDS_URL)
+@Api
 public class BuildRequest {
   private static final Logger LOG = Logger.getInstance(BuildRequest.class.getName());
   public static final String IMG_STATUS_WIDGET_ROOT_DIRECTORY = "/img/statusWidget";

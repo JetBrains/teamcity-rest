@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.util.text.StringUtil;
+import io.swagger.annotations.Api;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.groups.SUserGroup;
@@ -48,6 +49,7 @@ import org.jetbrains.annotations.Nullable;
 */
 
 @Path(GroupRequest.API_USER_GROUPS_URL)
+@Api
 public class GroupRequest {
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private UserGroupFinder myUserGroupFinder;

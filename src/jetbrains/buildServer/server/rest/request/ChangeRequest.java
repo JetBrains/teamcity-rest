@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.util.text.StringUtil;
+import io.swagger.annotations.Api;
 import java.util.ArrayList;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
@@ -49,6 +50,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Path(ChangeRequest.API_CHANGES_URL)
+@Api
 public class ChangeRequest {
   public static final String API_CHANGES_URL = Constants.API_URL + "/changes";
   @Context @NotNull private ServiceLocator myServiceLocator;

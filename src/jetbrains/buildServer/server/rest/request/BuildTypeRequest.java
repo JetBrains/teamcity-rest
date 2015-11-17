@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import io.swagger.annotations.Api;
 import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
@@ -70,6 +71,7 @@ import org.jetbrains.annotations.Nullable;
 */
 
 @Path(BuildTypeRequest.API_BUILD_TYPES_URL)
+@Api
 public class BuildTypeRequest {
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private BuildFinder myBuildFinder;

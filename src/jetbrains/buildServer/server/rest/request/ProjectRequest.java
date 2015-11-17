@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
+import io.swagger.annotations.Api;
 import java.io.File;
 import java.util.Collections;
 import java.util.List;
@@ -59,6 +60,7 @@ import org.jetbrains.annotations.Nullable;
  * Date: 11.04.2009
  */
 @Path(ProjectRequest.API_PROJECTS_URL)
+@Api
 public class ProjectRequest {
   private static final Logger LOG = Logger.getInstance(ProjectRequest.class.getName());
   public static final boolean ID_GENERATION_FLAG = true;

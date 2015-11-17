@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import io.swagger.annotations.Api;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 16.03.2015
  */
+@Api(hidden = true) // To prevent appearing in Swagger#definitions
 public class ParametersSubResource {
 
   @NotNull private ServiceLocator myServiceLocator;
