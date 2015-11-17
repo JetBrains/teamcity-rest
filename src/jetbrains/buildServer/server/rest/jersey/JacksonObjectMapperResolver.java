@@ -20,7 +20,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 import com.intellij.openapi.diagnostic.Logger;
 import java.text.SimpleDateFormat;
@@ -47,7 +46,7 @@ public class JacksonObjectMapperResolver implements ContextResolver<ObjectMapper
   public JacksonObjectMapperResolver() {
     myMapper = new ObjectMapper();
     myMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-    myMapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(TypeFactory.defaultInstance()));
+    myMapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(myMapper.getTypeFactory()));
     myMapper.setDateFormat(new SimpleDateFormat(Constants.TIME_FORMAT, Locale.ENGLISH));
     myMapper.configure(SerializationFeature.WRITE_EMPTY_JSON_ARRAYS, true);
     myMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, TeamCityProperties.getBoolean("rest.response.json.deserialize.ignoreUnknownProperties"));
