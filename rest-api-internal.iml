@@ -132,5 +132,6 @@
     <orderEntry type="module" module-name="web-diagnostic" />
     <orderEntry type="module" module-name="remote-api-impl" />
     <orderEntry type="library" name="slf4j" level="project" />
+    <orderEntry type="library" name="commons-codec" level="project" />
   </component>
 </module>

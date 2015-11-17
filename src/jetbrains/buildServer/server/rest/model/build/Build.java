@@ -66,6 +66,7 @@ import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
+import org.apache.commons.codec.binary.Hex;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,7 +76,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "build")
-/*Commens inside propOrder: q = queued, r = running, f = finished*/
+/*Comments inside propOrder: q = queued, r = running, f = finished*/
 @XmlType(name = "build",
          propOrder = {"id"/*rf*/, "promotionId"/*q*/, "buildTypeId", "buildTypeInternalId", "number"/*rf*/, "status"/*rf*/, "state", "running"/*r*/, "failedToStart"/*f*/,
            "personal", "percentageComplete"/*r*/, "branchName", "defaultBranch", "unspecifiedBranch", "history", "pinned"/*rf*/, "href", "webUrl",
@@ -90,6 +91,7 @@ import org.springframework.beans.factory.annotation.Autowired;
            "artifacts"/*rf*/, "issues"/*rf*/,
            "properties", "attributes", "statistics"/*rf*/,
            "buildDependencies", "buildArtifactDependencies", "customBuildArtifactDependencies"/*q*/,
+           "settingsHash", "currentSettingsHash",
            "triggeringOptions"/*only when triggering*/})
 public class Build {
   private static final Logger LOG = Logger.getInstance(Build.class.getName());
@@ -830,6 +832,32 @@ public class Build {
     });
   }
 
+  /**
+   * Experimental
+   */
+  @XmlElement
+  public String getSettingsHash() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("settingsHash", false, false), new ValueWithDefault.Value<String>() {
+      @Nullable
+      public String get() {
+        return new String(Hex.encodeHex(((BuildPromotionEx)myBuildPromotion).getSettingsDigest(false)));
+      }
+    });
+  }
+
+  /**
+   * Experimental
+   */
+  @XmlElement
+  public String getCurrentSettingsHash() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("currentSettingsHash", false, false), new ValueWithDefault.Value<String>() {
+      @Nullable
+      public String get() {
+        return new String(Hex.encodeHex(((BuildPromotionEx)myBuildPromotion).getBuildSettings().getDigest()));
+      }
+    });
+  }
+
   public static Comment getCanceledComment(@NotNull final SBuild build, @NotNull final Fields fields, @NotNull final BeanContext context) {
     final CanceledInfo canceledInfo = build.getCanceledInfo();
     if (canceledInfo == null) return null;
@@ -1241,6 +1269,10 @@ public class Build {
       return String.valueOf(((BuildPromotionEx)buildPromotion).isChangesCollectingInProgress());
     } else if ("changeCollectingNeeded".equals(field)) { //Experimental support only
       return String.valueOf(((BuildPromotionEx)buildPromotion).isChangeCollectingNeeded());
+    } else if ("settingsHash".equals(field)) { //Experimental support only to get settings digest
+      return new String(Hex.encodeHex(((BuildPromotionEx)buildPromotion).getSettingsDigest(false)));
+    } else if ("currentSettingsHash".equals(field)) { //Experimental support only to get settings digest
+      return new String(Hex.encodeHex(((BuildPromotionEx)buildPromotion).getBuildSettings().getDigest()));
     }
 
     final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
