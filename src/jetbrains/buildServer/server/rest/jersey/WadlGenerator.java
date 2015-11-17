@@ -38,12 +38,7 @@ public class WadlGenerator extends WadlGeneratorConfig {
 
     builder = builder.generator(WadlGeneratorJAXBGrammarGenerator.class);
 
-    //if (getClass().getClassLoader().getResourceAsStream("buildServerResources/rest-api-schema.xsd") != null) {
-    //  builder = builder.generator(WadlGeneratorGrammarsSupport.class)
-    //    .prop("grammarsStream", "jetbrains/buildServer/server/rest/jersey/application-grammars.xml");
-    //}
-
-    if (getClass().getClassLoader().getResourceAsStream(RESOURCE_JAVADOC_XML) != null) {
+    if (getClass().getClassLoader().getResource(RESOURCE_JAVADOC_XML) != null) {
       builder = builder.generator(WadlGeneratorResourceDocSupport.class).
         prop("resourceDocStream", RESOURCE_JAVADOC_XML);
     }
