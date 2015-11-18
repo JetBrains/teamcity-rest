@@ -96,19 +96,20 @@ public class DebugRequest {
   @Path("/database/query/{query}")
   @Produces({"text/plain; charset=UTF-8"})
   public String executeDBQuery(@PathParam("query") String query,
-                                   @QueryParam("fieldDelimiter") @DefaultValue(", ") String fieldDelimiter,
-                                   @QueryParam("count") @DefaultValue("1000") int maxRows) {
+                               @QueryParam("fieldDelimiter") @DefaultValue(", ") String fieldDelimiter,
+                               @QueryParam("dataRetrieveQuery") String dataRetrieveQuery,
+                               @QueryParam("count") @DefaultValue("1000") int maxRows) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     checkQuery(query);
-    final boolean selectQuery = query.trim().toLowerCase().startsWith("select");
+    final boolean treatAsDataRetrieveQuery = dataRetrieveQuery != null ? Boolean.valueOf(dataRetrieveQuery) : isDataRetrieveQuery(query);
     DumpResultSetProcessor processor;
-    if (selectQuery) {
+    if (treatAsDataRetrieveQuery) {
       processor = new DumpResultSetProcessor(fieldDelimiter);
     } else {
       processor = null;
     }
     final GenericQuery<List<String>> genericQuery = new GenericQuery<List<String>>(query, processor);
-    if (maxRows >= 0 && selectQuery) {
+    if (maxRows >= 0 && query.trim().toLowerCase().startsWith("select")) {
       final QueryOptions options = new QueryOptions();
       options.setMaxRows(maxRows);
       genericQuery.setOptions(options);
@@ -117,7 +118,7 @@ public class DebugRequest {
     //workaround for http://youtrack.jetbrains.com/issue/TW-25260
     try {
       final SQLRunnerEx sqlRunner = myServiceLocator.getSingletonService(BuildServerEx.class).getSQLRunner();
-      if (selectQuery) {
+      if (treatAsDataRetrieveQuery) {
         final List<String> result = genericQuery.execute(sqlRunner);
         if (result == null) {
           return "";
@@ -131,6 +132,14 @@ public class DebugRequest {
     } catch (UnexpectedDBException e) {
       throw new BadRequestException("Error while executing SQL query: " + e.getMessage(), e);
     }
+  }
+
+  private boolean isDataRetrieveQuery(@NotNull final String query) {
+    final String normalizedQuery = query.trim().toLowerCase();
+    for (String prefix : new String[]{"select", "show", "explain"}) {
+      if (normalizedQuery.startsWith(prefix)) return true;
+    }
+    return false;
   }
 
   /**
