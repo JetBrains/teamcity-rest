@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
 import java.util.*;
+import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -73,6 +74,11 @@ import org.jetbrains.annotations.Nullable;
 @Path(BuildTypeRequest.API_BUILD_TYPES_URL)
 @Api
 public class BuildTypeRequest {
+
+  private static final Pattern WHITESPACE_PATTERN = Pattern.compile(" ");
+  private static final Pattern PROJECT_PATH_SEPARATOR_PATTERN = Pattern.compile("::");
+  private static final Pattern NON_ALPHA_NUM_PATTERN = Pattern.compile("[^a-zA-Z0-9-#.]+");
+
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private BuildFinder myBuildFinder;
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
@@ -1432,9 +1438,21 @@ public class BuildTypeRequest {
       @NotNull
       @Override
       public String getArchiveName(@NotNull final String path) {
-        return buildType.getFullName().replaceAll(" ", "").replaceAll("::", "_").replaceAll("[^a-zA-Z0-9-#.]+", "_") + path.replaceAll("[^a-zA-Z0-9-#.]+", "_") + "_sources";
+        return replaceNonAlphaNum(replaceProjectSeparator(removeWhitespace(buildType.getFullName()))) + replaceNonAlphaNum(path) + "_sources";
       }
     }, urlPrefix, myBeanContext, false);
+  }
+
+  private String replaceProjectSeparator(final String string) {
+    return PROJECT_PATH_SEPARATOR_PATTERN.matcher(string).replaceAll("_");
+  }
+
+  private String removeWhitespace(final String string) {
+    return WHITESPACE_PATTERN.matcher(string).replaceAll("");
+  }
+
+  private String replaceNonAlphaNum(final @NotNull String path) {
+    return NON_ALPHA_NUM_PATTERN.matcher(path).replaceAll("_");
   }
 
 

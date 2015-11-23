@@ -21,6 +21,7 @@ import io.swagger.annotations.Api;
 import java.io.*;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Pattern;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
@@ -84,6 +85,7 @@ public class BuildRequest {
   public static final String RELATED_ISSUES = "/relatedIssues";
   public static final String TESTS = "testOccurrences";
   public static final String STATISTICS = "/statistics";
+  private static final Pattern NON_ALPHA_NUM_PATTERN = Pattern.compile("[^a-zA-Z0-9-#.]+");
 
   @Context @NotNull public BuildFinder myBuildFinder;
   @Context @NotNull public BuildPromotionFinder myBuildPromotionFinder;
@@ -270,10 +272,14 @@ public class BuildRequest {
   private String getBuildFileName(@NotNull final BuildPromotion buildPromotion, final @NotNull String path) {
     final SBuild build = buildPromotion.getAssociatedBuild();
     if (build != null) {
-      return WebUtil.getFilename(build) + path.replaceAll("[^a-zA-Z0-9-#.]+", "_");
+      return WebUtil.getFilename(build) + replaceNonAlphaNum(path);
     } else {
-      return (buildPromotion.getBuildTypeExternalId() + "_id" + buildPromotion.getId() + path).replaceAll("[^a-zA-Z0-9-#.]+", "_");
+      return replaceNonAlphaNum(buildPromotion.getBuildTypeExternalId() + "_id" + buildPromotion.getId() + path);
     }
+  }
+
+  private String replaceNonAlphaNum(final String s) {
+    return NON_ALPHA_NUM_PATTERN.matcher(s).replaceAll("_");
   }
 
   @NotNull
