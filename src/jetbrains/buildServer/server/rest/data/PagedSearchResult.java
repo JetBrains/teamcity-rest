@@ -29,11 +29,21 @@ public class PagedSearchResult<T> {
   public final int myActualCount;
   @Nullable public final Long myStart;
   @Nullable public final Integer myCount;
+  @Nullable public final Long myActuallyProcessedCount;
 
   public PagedSearchResult(@NotNull final List<T> entries, @Nullable final Long requestedStart, @Nullable final Integer requestedCount) {
     myEntries = entries;
     myActualCount = entries.size();
     myStart = requestedStart;
     myCount = requestedCount;
+    myActuallyProcessedCount = null;
+  }
+
+  public PagedSearchResult(@NotNull final List<T> entries, @Nullable final Long requestedStart, @Nullable final Integer requestedCount, @Nullable final Long actuallyProcessedCount) {
+    myEntries = entries;
+    myActualCount = entries.size();
+    myStart = requestedStart;
+    myCount = requestedCount;
+    myActuallyProcessedCount = actuallyProcessedCount;
   }
 }

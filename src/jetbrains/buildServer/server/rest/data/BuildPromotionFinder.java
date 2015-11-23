@@ -28,10 +28,7 @@ import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.users.SUser;
-import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
-import jetbrains.buildServer.util.ItemProcessor;
-import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
@@ -529,7 +526,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     });
 
-    Date sinceStartDate = processTimeCondition(STARTED_TIME, locator, result, new TimeCondition.ValueExtractor<BuildPromotion, Date>() {
+    @Nullable Date sinceStartDate = processTimeCondition(STARTED_TIME, locator, result, new TimeCondition.ValueExtractor<BuildPromotion, Date>() {
       @Nullable
       public Date get(@NotNull final BuildPromotion buildPromotion) {
         final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
@@ -598,6 +595,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
+    sinceStartDate = maxDate(sinceStartDate, DataProvider.parseDate(locator.getSingleDimensionValue(SINCE_DATE))); //see also filtering in getBuildFilter
+
     final Boolean canceled = locator.getSingleDimensionValueAsBoolean(CANCELED);
     if (canceled != null) {
       result.add(new FilterConditionChecker<BuildPromotion>() {
@@ -618,31 +617,30 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
-    if (sinceBuildPromotion == null && sinceBuildId == null) {
+    return getFilterWithProcessingCutOff(result, lookupLimit, sinceBuildPromotion, sinceBuildId, sinceStartDate);
+  }
+
+  private AbstractFilter<BuildPromotion> getFilterWithProcessingCutOff(@NotNull final MultiCheckerFilter<BuildPromotion> result,
+                                                                       @Nullable final Long lookupLimit,
+                                                                       @Nullable final BuildPromotion sinceBuildPromotion,
+                                                                       @Nullable Long sinceBuildId,
+                                                                       @Nullable Date sinceStartDate) {
+    if (sinceBuildPromotion == null && sinceBuildId == null && sinceStartDate == null) {
       return result;
     }
 
-    //cut off builds traversing
     if (sinceBuildPromotion != null) {
-      final SBuild limitingBuild = sinceBuildPromotion.getAssociatedBuild();
-      if (limitingBuild != null) {
-        final Date startDate = limitingBuild.getStartDate();
-        return new ProxyFilter<BuildPromotion>(result) {
-          @Override
-          public boolean shouldStop(final BuildPromotion item) {
-            if (super.shouldStop(item)) return true;
-            final SBuild build = item.getAssociatedBuild();
-            if (build == null || !build.isFinished()) return false; //do not stop while processing queued and running builds
-            if (limitingBuild.getBuildId() == build.getBuildId()) return true; //found exactly the limiting build - stop here
-            return !startDate.before(build.getStartDate());
-          }
-        };
-      }
       sinceBuildId = sinceBuildId != null ? Math.max(sinceBuildId, getBuildId(sinceBuildPromotion)) : getBuildId(sinceBuildPromotion);
+      final SBuild sinceBuild = sinceBuildPromotion.getAssociatedBuild();
+      if (sinceBuild != null) {
+        sinceStartDate = maxDate(sinceStartDate, sinceBuild.getStartDate());
+      }
     }
 
+    //cut off builds traversing
     final long lookAheadCount = lookupLimit != null ? lookupLimit : TeamCityProperties.getLong("rest.request.builds.sinceBuildIdLookAheadCount", 50);
     final Long sinceBuildIdFinal = sinceBuildId;
+    final Date sinceStartDateFinal = sinceStartDate;
     return new ProxyFilter<BuildPromotion>(result) {
       private long currentLookAheadCount = 0;
 
@@ -651,15 +649,27 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         if (super.shouldStop(item)) return true;
         final SBuild build = item.getAssociatedBuild();
         if (build == null || !build.isFinished()) return false; //do not stop while processing queued and running builds
-        if (sinceBuildIdFinal.equals(getBuildId(item))) return true; //found exactly the limiting build - stop here
-        if (sinceBuildIdFinal > getBuildId(item)) {
-          currentLookAheadCount++;
-        } else {
-          currentLookAheadCount = 0; //reset the counter
+        if (sinceStartDateFinal != null && sinceStartDateFinal.after(build.getStartDate())) return true;
+        if (sinceBuildIdFinal != null) {
+          if (sinceBuildIdFinal.equals(getBuildId(item))) return true; //found exactly the limiting build - stop here
+          if (sinceBuildIdFinal > getBuildId(item)) {
+            currentLookAheadCount++;
+          } else {
+            currentLookAheadCount = 0; //reset the counter
+          }
+          return currentLookAheadCount > lookAheadCount; // stop only after finding more than lookAheadCount builds with lesser id (try to take into account builds reordering)
         }
-        return currentLookAheadCount > lookAheadCount; // stop only after finding more than lookAheadCount builds with lesser id (try to take into account builds reordering)
+        return false;
       }
     };
+  }
+
+  @Nullable
+  private Date maxDate(@Nullable final Date date1, @Nullable final Date date2) {
+    if (date1 == null) return date2;
+    if (date2 == null) return date1;
+    if (Dates.isBeforeWithError(date1, date2, 0)) return date2;
+    return date1;
   }
 
   /**
@@ -668,17 +678,20 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   @Nullable
   private Date processTimeCondition(@NotNull final String locatorDimension,
                                     @NotNull final Locator locator,
-                                    @NotNull final MultiCheckerFilter<BuildPromotion> result,
+                                    @NotNull final MultiCheckerFilter<BuildPromotion> filter,
                                     @NotNull final TimeCondition.ValueExtractor<BuildPromotion, Date> valueExtractor) {
-    final String timeLocatorText = locator.getSingleDimensionValue(locatorDimension);
-    if (timeLocatorText == null)
+    final List<String> timeLocators = locator.getDimensionValue(locatorDimension);
+    if (timeLocators.isEmpty())
       return null;
-
-    try {
-      return TimeCondition.processTimeCondition(timeLocatorText, result, valueExtractor, this);
-    } catch (BadRequestException e) {
-      throw new BadRequestException("Error processing '" + locatorDimension + "' locator: " + e.getMessage(), e);
+    Date result = null;
+    for (String timeLocator : timeLocators) {
+      try {
+        result = maxDate(result, TimeCondition.processTimeCondition(timeLocator, filter, valueExtractor, this));
+      } catch (BadRequestException e) {
+        throw new BadRequestException("Error processing '" + locatorDimension + "' locator '" + timeLocator + "': " + e.getMessage(), e);
+      }
     }
+    return result;
   }
 
   @NotNull
@@ -758,7 +771,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
-    final Date sinceDate = DataProvider.parseDate(locator.getSingleDimensionValue(SINCE_DATE));
+    final Date sinceDate = DataProvider.parseDate(locator.getSingleDimensionValue(SINCE_DATE)); //see also settings cut off date in main filter
     if (sinceDate != null) {
       result.add(new FilterConditionChecker<SBuild>() {
         public boolean isIncluded(@NotNull final SBuild item) {

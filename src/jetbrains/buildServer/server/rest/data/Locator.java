@@ -479,6 +479,19 @@ public class Locator {
   }
 
   /**
+   * Extracts the multiple dimension value from dimensions.
+   *
+   * @param dimensionName the name of the dimension to extract value.   @return empty collection if no such dimension is found, values of the dimension otherwise.
+   * @throws jetbrains.buildServer.server.rest.errors.LocatorProcessException if there are more then a single dimension definition for a 'dimensionName' name or the dimension has no value specified.
+   */
+  @NotNull
+  public List<String> getDimensionValue(@NotNull final String dimensionName) {
+    myUsedDimensions.add(dimensionName);
+    Collection<String> idDimension = myDimensions.get(dimensionName);
+    return idDimension != null ? new ArrayList<String>(idDimension) : Collections.<String>emptyList();
+  }
+
+  /**
    * Same as getSingleDimensionValue but does not mark the value as used
    */
   @Nullable

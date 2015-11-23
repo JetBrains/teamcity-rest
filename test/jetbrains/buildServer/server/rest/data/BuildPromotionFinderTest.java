@@ -344,8 +344,18 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
     time.jumpTo(10);
     final SQueuedBuild build90 = build().in(buildConf1).addToQueue();
 
-    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),state:any", getBuildPromotions(build90, build80, build70, build60, build40, build20));
-    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),state:any,failedToStart:any", getBuildPromotions(build90, build80, build70, build60, build40, build30, build20));
+    checkBuilds("defaultFilter:false", 8, getBuildPromotions(build90, build80, build70, build60, build40, build30, build20, build10));
+    checkBuilds("state:any", 7, getBuildPromotions(build90, build80, build70, build60, build40, build20, build10));
+    checkBuilds("defaultFilter:false,buildType:(id:" + buildConf1.getExternalId() + ")", 5, getBuildPromotions(build90, build80, build70, build40, build10));
+
+    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),state:any", 7, getBuildPromotions(build90, build80, build70, build60, build40, build20));
+    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),state:any,failedToStart:any", 8, getBuildPromotions(build90, build80, build70, build60, build40, build30, build20));
+    checkBuilds("sinceBuild:(id:" + build30.getBuildId() + "),state:any", 6, getBuildPromotions(build90, build80, build70, build60, build40));
+    checkBuilds("sinceBuild:(id:" + build30.getBuildId() + "),state:any,failedToStart:any", 6, getBuildPromotions(build90, build80, build70, build60, build40));
+    checkBuilds("sinceBuild:(id:" + build60.getBuildId() + "),state:any", 4, getBuildPromotions(build90, build80, build70));
+
+    checkBuilds("sinceDate:(" + Util.formatTime(build60.getStartDate()) + "),state:any", 5, getBuildPromotions(build80, build70, build60));
+    checkBuilds("sinceBuild:(id:" + build30.getBuildId() + "),sinceDate:(" + Util.formatTime(build60.getStartDate()) + "),state:any", 5, getBuildPromotions(build80, build70, build60));
 
     checkExceptionOnBuildsSearch(BadRequestException.class, "sinceBuild:(xxx)");
     checkExceptionOnBuildsSearch(BadRequestException.class, "sinceBuild:(buildType:(" + buildConf1.getId() + "),status:FAILURE)");
@@ -438,6 +448,74 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
     checkExceptionOnBuildsSearch(BadRequestException.class, "finishDate:(xxx)");
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "finishDate:(time:20150101T000000+0000,build:(id:3))");
     checkExceptionOnBuildsSearch(BadRequestException.class, "finishDate:(time:20150101T000000+0000,condition:xxx)");
+  }
+
+  @Test
+  public void testStopProcessing() {
+    final MockTimeService time = new MockTimeService(Dates.now().getTime());
+    myServer.setTimeService(time);
+
+    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
+
+    final SFinishedBuild finishedBuild03 = build().in(buildConf1).finish();
+    time.jumpTo(10);
+    final SFinishedBuild finishedBuild05 = build().in(buildConf1).finish();
+    time.jumpTo(10);
+    final SQueuedBuild queuedBuild10 = build().in(buildConf1).addToQueue();
+    time.jumpTo(10);
+    final SQueuedBuild queuedBuild20 = build().in(buildConf1).parameter("a", "x").addToQueue();
+    time.jumpTo(10);
+    myFixture.getBuildQueue().moveTop(queuedBuild20.getItemId());
+    final RunningBuildEx runningBuild20 = BuildBuilder.run(queuedBuild20, myFixture);
+    time.jumpTo(10);
+    final SQueuedBuild queuedBuild30 = build().in(buildConf1).parameter("a", "y").addToQueue();
+    time.jumpTo(10);
+    myFixture.getBuildQueue().moveTop(queuedBuild10.getItemId());
+    final MockBuildAgent agent2 = myFixture.createEnabledAgent("Ant");// adding one more agent to allow parallel builds
+    final RunningBuildEx runningBuild10 = BuildBuilder.run(queuedBuild10, myFixture);
+    time.jumpTo(10);
+    final SFinishedBuild finishedBuild10 = myFixture.finishBuild(runningBuild10, false);
+    time.jumpTo(10);
+    final RunningBuildEx runningBuild30 = BuildBuilder.run(queuedBuild30, myFixture);
+    agent2.setEnabled(false, null, "");
+    time.jumpTo(10);
+    final SFinishedBuild finishedBuild30 = myFixture.finishBuild(runningBuild30, false);
+    time.jumpTo(10);
+    final SFinishedBuild finishedBuild20 = myFixture.finishBuild(runningBuild20, false);
+    time.jumpTo(10);
+    final SQueuedBuild queuedBuild40 = build().in(buildConf1).parameter("a", "z").addToQueue();
+    time.jumpTo(10);
+    final SQueuedBuild queuedBuild50 = build().in(buildConf1).parameter("a", "z1").addToQueue();
+    time.jumpTo(10);
+    myFixture.getBuildQueue().moveTop(queuedBuild50.getItemId());
+    final RunningBuildEx runningBuild50 = BuildBuilder.run(queuedBuild50, myFixture);
+    time.jumpTo(10);
+
+    checkBuilds("state:any", 7, getBuildPromotions(queuedBuild40, runningBuild50, finishedBuild30, finishedBuild10, finishedBuild20, finishedBuild05, finishedBuild03));
+    checkBuilds("startDate:(build:(id:" + finishedBuild10.getBuildId() + "),condition:after),state:any", 5, getBuildPromotions(runningBuild50, finishedBuild30));
+    checkBuilds("startDate:(build:(id:" + finishedBuild20.getBuildId() + "),condition:after),state:any", 6, getBuildPromotions(runningBuild50, finishedBuild30, finishedBuild10));
+    checkBuilds("startDate:(build:(id:" + finishedBuild30.getBuildId() + "),condition:after),state:any", 4, getBuildPromotions(runningBuild50));
+    checkBuilds("startDate:(build:(id:" + finishedBuild30.getBuildId() + "),condition:after)", 2, new BuildPromotion[]{});
+    checkBuilds("startDate:(build:(id:" + finishedBuild30.getBuildId() + "),condition:after),state:finished", 2, new BuildPromotion[]{});
+    checkBuilds("startDate:(build:(id:" + finishedBuild30.getBuildId() + "),condition:after),state:queued", 1, new BuildPromotion[]{});
+    checkBuilds("startDate:(build:(id:" + finishedBuild10.getBuildId() + "),condition:after)", 3, getBuildPromotions(finishedBuild30));
+    checkBuilds("startDate:(build:(id:" + finishedBuild20.getBuildId() + "),condition:after)", 4, getBuildPromotions(finishedBuild30, finishedBuild10));
+
+    checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild10.getStartDate()) + ",condition:after),state:any", 5, getBuildPromotions(runningBuild50, finishedBuild30));
+    checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild20.getStartDate()) + ",condition:after),state:any", 6,
+                getBuildPromotions(runningBuild50, finishedBuild30, finishedBuild10));
+    checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild30.getStartDate()) + ",condition:after),state:any", 4, getBuildPromotions(runningBuild50));
+    checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild30.getStartDate()) + ",condition:after)", 2, new BuildPromotion[]{});
+    checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild10.getStartDate()) + ",condition:after)", 3, getBuildPromotions(finishedBuild30));
+    checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild20.getStartDate()) + ",condition:after)", 4, getBuildPromotions(finishedBuild30, finishedBuild10));
+
+    checkBuilds(
+      "startDate:(build:(id:" + finishedBuild20.getBuildId() + "),condition:after),startDate:(build:(id:" + finishedBuild30.getBuildId() + "),condition:before),state:any", 6,
+      getBuildPromotions(finishedBuild10));
+    checkBuilds(
+      "startDate:(build:(id:" + finishedBuild05.getBuildId() + "),condition:after),finishDate:(build:(id:" + finishedBuild30.getBuildId() + "),condition:before),state:any", 7,
+      getBuildPromotions(finishedBuild10));
   }
 
   @Test
@@ -573,7 +651,29 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
 //==================================================
 
   public void checkBuilds(final String locator, BuildPromotion... builds) {
-    final List<BuildPromotion> result = myBuildPromotionFinder.getItems(locator).myEntries;
+    checkMultipleBuilds(locator, builds);
+
+    //check single build retrieve
+    if (locator != null) {
+      if (builds.length == 0) {
+        checkNoBuildFound(locator);
+      } else {
+        checkBuild(locator, builds[0]);
+      }
+    }
+  }
+
+  private void checkBuilds(final String locator, final long actuallyProcessedLimit, final BuildPromotion[] builds) {
+    final PagedSearchResult<BuildPromotion> result = checkMultipleBuilds(locator, builds);
+    //noinspection ConstantConditions
+    assertTrue("Actually processed count (" + result.myActuallyProcessedCount + ") is more than expected limit " + actuallyProcessedLimit,
+                 (long)result.myActuallyProcessedCount <= actuallyProcessedLimit);
+
+  }
+
+  private PagedSearchResult<BuildPromotion> checkMultipleBuilds(final String locator, final BuildPromotion[] builds) {
+    final PagedSearchResult<BuildPromotion> searchResult = myBuildPromotionFinder.getItems(locator);
+    final List<BuildPromotion> result = searchResult.myEntries;
     final String expected = getPromotionsDescription(Arrays.asList(builds));
     final String actual = getPromotionsDescription(result);
     assertEquals("For locator \"" + locator + "\"\n" +
@@ -586,15 +686,7 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
              "\nActual:\n" + actual);
       }
     }
-
-    //check single build retrieve
-    if (locator != null) {
-      if (builds.length == 0) {
-        checkNoBuildFound(locator);
-      } else {
-        checkBuild(locator, builds[0]);
-      }
-    }
+    return searchResult;
   }
 
   protected void checkBuild(final String locator, @NotNull BuildPromotion build) {

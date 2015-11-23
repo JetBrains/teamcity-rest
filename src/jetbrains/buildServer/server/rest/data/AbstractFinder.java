@@ -125,11 +125,11 @@ public abstract class AbstractFinder<ITEM> {
     final ItemHolder<ITEM> unfilteredItems = getPrefilteredItems(locator);
     AbstractFilter<ITEM> filter = getFilter(locator);
     locator.checkLocatorFullyProcessed();
-    return new PagedSearchResult<ITEM>(getItems(filter, unfilteredItems, locator), filter.getStart(), filter.getCount());
+    return getItems(filter, unfilteredItems, locator);
   }
 
   @NotNull
-  protected List<ITEM> getItems(final @NotNull AbstractFilter<ITEM> filter, final @NotNull ItemHolder<ITEM> unfilteredItems, @NotNull final Locator locator) {
+  protected PagedSearchResult<ITEM> getItems(final @NotNull AbstractFilter<ITEM> filter, final @NotNull ItemHolder<ITEM> unfilteredItems, @NotNull final Locator locator) {
     final long startTime = System.nanoTime();
     final FilterItemProcessor<ITEM> filterItemProcessor = new FilterItemProcessor<ITEM>(filter);
     unfilteredItems.process(filterItemProcessor);
@@ -146,7 +146,7 @@ public abstract class AbstractFinder<ITEM> {
       LOG.info("Server performance can be affected by REST request with locator '" + locator + "': " +
                totalItemsProcessed + " items were processed and " + result.size() + " items were returned, took " + processingTimeMs + " ms");
     }
-    return result;
+    return new PagedSearchResult<ITEM>(result, filter.getStart(), filter.getCount(), totalItemsProcessed);
   }
 
   @NotNull
