@@ -73,10 +73,14 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected static final String TAGS = "tags";
   protected static final String TAG = "tag";
   protected static final String COMPATIBLE_AGENT = "compatibleAgent";
-  protected static final String SINCE_BUILD = "sinceBuild";
-  protected static final String SINCE_DATE = "sinceDate";
-  protected static final String UNTIL_BUILD = "untilBuild";
-  protected static final String UNTIL_DATE = "untilDate";
+  protected static final String SINCE_BUILD = "sinceBuild"; //use startDate:(build:(<locator>),condition:after) instead
+  protected static final String SINCE_DATE = "sinceDate"; //use startDate:(date:<date>,condition:after) instead
+  protected static final String UNTIL_BUILD = "untilBuild"; //use startDate:(build:(<locator>),condition:before) instead
+  protected static final String UNTIL_DATE = "untilDate"; //use startDate:(date:<date>,condition:before) instead
+
+  protected static final String QUEUED_TIME = "queuedDate";
+  protected static final String STARTED_TIME = "startDate";
+  protected static final String FINISHED_TIME = "finishDate";
 
   protected static final String DEFAULT_FILTERING = "defaultFilter";
 
@@ -110,7 +114,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                               final UserFinder userFinder,
                               final AgentFinder agentFinder) {
     super(new String[]{DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, USER, PERSONAL, STATE, TAG, PROPERTY, COMPATIBLE_AGENT,
-      NUMBER, STATUS, CANCELED, PINNED, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, DEFAULT_FILTERING,
+      NUMBER, STATUS, CANCELED, PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP,
+      DEFAULT_FILTERING,
       DIMENSION_LOOKUP_LIMIT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
     myBuildPromotionManager = buildPromotionManager;
     myBuildQueue = buildQueue;
@@ -438,8 +443,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     }
 
-    //todo: rework SINCE_ and UNTIL_ handling (see also getBuildFilter()):filter on getting builds; more options (all times); also for buildPromotion,
-    // use "since:(build:(),start:(build:(),date:()),queued:(build:(),date:()),finish:(build:(),date:()))"
     final String sinceBuildDimension = locator.getSingleDimensionValue(SINCE_BUILD);
     BuildPromotion sinceBuildPromotion = null;
     Long sinceBuildId = null;
@@ -518,6 +521,29 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         });
       }
     }
+
+    processTimeCondition(QUEUED_TIME, locator, result, new TimeCondition.ValueExtractor<BuildPromotion, Date>() {
+      @Nullable
+      public Date get(@NotNull final BuildPromotion buildPromotion) {
+        return buildPromotion.getQueuedDate();
+      }
+    });
+
+    Date sinceStartDate = processTimeCondition(STARTED_TIME, locator, result, new TimeCondition.ValueExtractor<BuildPromotion, Date>() {
+      @Nullable
+      public Date get(@NotNull final BuildPromotion buildPromotion) {
+        final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
+        return associatedBuild == null ? null : associatedBuild.getStartDate();
+      }
+    });
+
+    processTimeCondition(FINISHED_TIME, locator, result, new TimeCondition.ValueExtractor<BuildPromotion, Date>() {
+      @Nullable
+      public Date get(@NotNull final BuildPromotion buildPromotion) {
+        final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
+        return associatedBuild == null ? null : associatedBuild.getFinishDate();
+      }
+    });
 
     final String revisionLocatorText = locator.getSingleDimensionValue(REVISION);
     if (revisionLocatorText != null) {
@@ -634,6 +660,25 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         return currentLookAheadCount > lookAheadCount; // stop only after finding more than lookAheadCount builds with lesser id (try to take into account builds reordering)
       }
     };
+  }
+
+  /**
+   * @return Date if it can be used for cutting builds processing
+   */
+  @Nullable
+  private Date processTimeCondition(@NotNull final String locatorDimension,
+                                    @NotNull final Locator locator,
+                                    @NotNull final MultiCheckerFilter<BuildPromotion> result,
+                                    @NotNull final TimeCondition.ValueExtractor<BuildPromotion, Date> valueExtractor) {
+    final String timeLocatorText = locator.getSingleDimensionValue(locatorDimension);
+    if (timeLocatorText == null)
+      return null;
+
+    try {
+      return TimeCondition.processTimeCondition(timeLocatorText, result, valueExtractor, this);
+    } catch (BadRequestException e) {
+      throw new BadRequestException("Error processing '" + locatorDimension + "' locator: " + e.getMessage(), e);
+    }
   }
 
   @NotNull
@@ -863,6 +908,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     Locator stateLocator = getStateLocator(locator);
 
     if (isStateIncluded(stateLocator, STATE_QUEUED)) {
+      //todo: should sort backwards as currently the order does not seem right...
       result.addAll(CollectionsUtil.convertCollection(myBuildQueue.getItems(), new Converter<BuildPromotion, SQueuedBuild>() {
         public BuildPromotion createFrom(@NotNull final SQueuedBuild source) {
           return source.getBuildPromotion();
