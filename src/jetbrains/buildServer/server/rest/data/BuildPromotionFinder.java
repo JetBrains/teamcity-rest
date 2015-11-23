@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -422,9 +423,9 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
-    final String property = locator.getSingleDimensionValue(PROPERTY);
-    if (property != null) {
-      final ParameterCondition parameterCondition = ParameterCondition.create(property);
+    final List<String> properties = locator.getDimensionValue(PROPERTY);
+    if (!properties.isEmpty()) {
+      final Matcher<ParametersProvider> parameterCondition = ParameterCondition.create(properties);
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
           return parameterCondition.matches(((BuildPromotionEx)item).getParametersProvider()); //TeamCity open API issue
@@ -793,9 +794,9 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
-    final String statisticValues = locator.getSingleDimensionValue(STATISTIC_VALUE);
-    if (statisticValues != null) {
-      final ParameterCondition parameterCondition = ParameterCondition.create(statisticValues);
+    final List<String> statisticValues = locator.getDimensionValue(STATISTIC_VALUE);
+    if (!statisticValues.isEmpty()) {
+      final Matcher<ParametersProvider> parameterCondition = ParameterCondition.create(statisticValues);
       result.add(new FilterConditionChecker<SBuild>() {
         public boolean isIncluded(@NotNull final SBuild item) {
           return parameterCondition.matches(new AbstractMapParametersProvider(Build.getBuildStatisticsValues(item)));

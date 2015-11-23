@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -71,7 +72,32 @@ public class ParameterCondition {
     return result;
   }
 
-  public static List<String> getAllRequirementTypes() {
+  @NotNull
+  public static Matcher<ParametersProvider> create(@Nullable final List<String> propertyConditionLocators) {
+    if (propertyConditionLocators == null || propertyConditionLocators.isEmpty()) {
+      return new Matcher<ParametersProvider>() {
+        public boolean matches(@NotNull final ParametersProvider parametersProvider) {
+          return true;
+        }
+      };
+    }
+
+    final List<ParameterCondition> list = new ArrayList<ParameterCondition>(propertyConditionLocators.size());
+    for (String propertyConditionLocator : propertyConditionLocators) {
+      final ParameterCondition condition = create(propertyConditionLocator);
+      if (condition != null) list.add(condition);
+    }
+    return new Matcher<ParametersProvider>() {
+      public boolean matches(@NotNull final ParametersProvider parametersProvider) {
+        for (ParameterCondition condition : list) {
+          if (!condition.matches(parametersProvider)) return false;
+        }
+        return true;
+      }
+    };
+  }
+
+  private static List<String> getAllRequirementTypes() {
     return CollectionsUtil.convertCollection(RequirementType.ALL_REQUIREMENT_TYPES, new Converter<String, RequirementType>() {
       public String createFrom(@NotNull final RequirementType source) {
         return source.getName();
