@@ -19,11 +19,13 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
@@ -52,6 +54,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   public static final String USER = "user";
   protected static final String BRANCH = "branch";
   protected static final String PROPERTY = "property";
+  protected static final String STATISTIC_VALUE = "statisticValue";
 
   public static final String STATE = "state";
   public static final String STATE_QUEUED = "queued";
@@ -132,6 +135,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     result.addHiddenDimensions(BY_PROMOTION); //switch for legacy behavior
     result.addHiddenDimensions(COMPATIBLE_AGENTS_COUNT); //experimental for queued builds only
     result.addHiddenDimensions(EQUIVALENT, REVISION, PROMOTION_ID_ALIAS, BUILD_ID);
+    result.addHiddenDimensions(STATISTIC_VALUE); //experimental
     return result;
   }
 
@@ -785,6 +789,16 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       result.add(new FilterConditionChecker<SBuild>() {
         public boolean isIncluded(@NotNull final SBuild item) {
           return !(untilDate.before(item.getStartDate()));
+        }
+      });
+    }
+
+    final String statisticValues = locator.getSingleDimensionValue(STATISTIC_VALUE);
+    if (statisticValues != null) {
+      final ParameterCondition parameterCondition = ParameterCondition.create(statisticValues);
+      result.add(new FilterConditionChecker<SBuild>() {
+        public boolean isIncluded(@NotNull final SBuild item) {
+          return parameterCondition.matches(new AbstractMapParametersProvider(Build.getBuildStatisticsValues(item)));
         }
       });
     }
