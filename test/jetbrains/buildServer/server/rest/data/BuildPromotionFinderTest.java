@@ -573,30 +573,7 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
 //==================================================
 
   public void checkBuilds(final String locator, BuildPromotion... builds) {
-    checkMultipleBuilds(locator, builds);
-
-    //check single build retrieve
-    if (locator != null) {
-      if (builds.length == 0) {
-        checkNoBuildFound(locator);
-      } else {
-        checkBuild(locator, builds[0]);
-      }
-    }
-  }
-
-  private void checkMultipleBuildsWithProcessedCount(final String locator, final long actuallyProcessed, final BuildPromotion[] builds) {
-    checkMultipleBuilds(locator, builds);
-    final PagedSearchResult<BuildPromotion> result = checkMultipleBuilds(locator, builds);
-    //noinspection ConstantConditions
-    assertEquals("Actually processed count (" + result.myActualyProcessedCount + ") is different from expected + " + actuallyProcessed,
-                 actuallyProcessed, (long)result.myActualyProcessedCount);
-
-  }
-
-  private PagedSearchResult<BuildPromotion> checkMultipleBuilds(final String locator, final BuildPromotion[] builds) {
-    final PagedSearchResult<BuildPromotion> searchResult = myBuildPromotionFinder.getItems(locator);
-    final List<BuildPromotion> result = searchResult.myEntries;
+    final List<BuildPromotion> result = myBuildPromotionFinder.getItems(locator).myEntries;
     final String expected = getPromotionsDescription(Arrays.asList(builds));
     final String actual = getPromotionsDescription(result);
     assertEquals("For locator \"" + locator + "\"\n" +
@@ -609,7 +586,15 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
              "\nActual:\n" + actual);
       }
     }
-    return searchResult;
+
+    //check single build retrieve
+    if (locator != null) {
+      if (builds.length == 0) {
+        checkNoBuildFound(locator);
+      } else {
+        checkBuild(locator, builds[0]);
+      }
+    }
   }
 
   protected void checkBuild(final String locator, @NotNull BuildPromotion build) {
