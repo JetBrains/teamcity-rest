@@ -19,6 +19,9 @@ package jetbrains.buildServer.server.rest.model.build;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
@@ -28,26 +31,29 @@ import javax.xml.bind.annotation.XmlType;
 @XmlType(name = "branch", propOrder = {"name", "default", "unspecified"})
 public class Branch {
   private jetbrains.buildServer.serverSide.Branch myBranch;
+  private Fields myFields;
 
   public Branch() {
   }
 
-  public Branch(jetbrains.buildServer.serverSide.Branch branch) {
+  public Branch(jetbrains.buildServer.serverSide.Branch branch, @NotNull final Fields fields) {
     myBranch = branch;
+    myFields = fields;
   }
 
   @XmlAttribute(name = "name")
   String getName(){
-    return myBranch.getDisplayName();
+    return ValueWithDefault.decideDefault(myFields.isIncluded("name"), myBranch.getDisplayName());
   }
 
   @XmlAttribute(name = "default")
   Boolean isDefault(){
-    return myBranch.isDefaultBranch() ? Boolean.TRUE : null;
+    return ValueWithDefault.decideDefault(myFields.isIncluded("default"), myBranch.isDefaultBranch());
   }
 
   @XmlAttribute(name = "unspecified")
   Boolean isUnspecified(){
-    return jetbrains.buildServer.serverSide.Branch.UNSPECIFIED_BRANCH_NAME.equals(myBranch.getName()) ? Boolean.TRUE : null;
+    return ValueWithDefault.decideDefault(myFields.isIncluded("unspecified"),
+                                          jetbrains.buildServer.serverSide.Branch.UNSPECIFIED_BRANCH_NAME.equals(myBranch.getName()));
   }
 }

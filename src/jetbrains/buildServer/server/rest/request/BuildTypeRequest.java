@@ -36,8 +36,10 @@ import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.server.rest.model.build.Branch;
-import jetbrains.buildServer.server.rest.model.build.*;
+import jetbrains.buildServer.server.rest.model.build.Branches;
+import jetbrains.buildServer.server.rest.model.build.Build;
+import jetbrains.buildServer.server.rest.model.build.Builds;
+import jetbrains.buildServer.server.rest.model.build.Tags;
 import jetbrains.buildServer.server.rest.model.buildType.*;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
@@ -1362,7 +1364,7 @@ public class BuildTypeRequest {
   @GET
   @Path("/{btLocator}/branches")
   @Produces({"application/xml", "application/json"})
-  public Branches serveBranches(@PathParam("btLocator") String buildTypeLocator, @QueryParam("locator") String branchesLocator) {
+  public Branches serveBranches(@PathParam("btLocator") String buildTypeLocator, @QueryParam("locator") String branchesLocator, @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
     BranchesPolicy branchesPolicy = BranchesPolicy.ACTIVE_HISTORY_AND_ACTIVE_VCS_BRANCHES;
     boolean includeBranchesFromDependencies = false;
@@ -1388,12 +1390,7 @@ public class BuildTypeRequest {
       locator.checkLocatorFullyProcessed();
     }
 
-    return new Branches(CollectionsUtil.convertCollection(((BuildTypeImpl)buildType).getBranches(branchesPolicy, includeBranchesFromDependencies),
-                                                          new Converter<jetbrains.buildServer.server.rest.model.build.Branch, BranchEx>() {
-                                                            public Branch createFrom(@NotNull final BranchEx source) {
-                                                              return new Branch(source);
-                                                            }
-                                                          }));
+    return new Branches(((BuildTypeImpl)buildType).getBranches(branchesPolicy, includeBranchesFromDependencies), new Fields(fields));
   }
 
   /**
