@@ -97,7 +97,7 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
 
     checkBuild("id:" + queuedBuild.getId() + ",state:any", queuedBuild);
     checkBuild("id:" + queuedBuild.getId() + ",state:queued", queuedBuild);
-    checkExceptionOnBuildsSearch(NotFoundException.class, "id:" + queuedBuild.getId() + ",state:running");
+    checkBuilds("id:" + queuedBuild.getId() + ",state:running");
 
     checkBuild("promotionId:" + build1.getId(), build1);
     checkBuild("buildType:(id:" + buildConf.getExternalId() + "),promotionId:" + build1.getId(), build1);

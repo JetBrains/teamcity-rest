@@ -79,7 +79,7 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
     checkBuilds("id:" + runningBuild.getBuildId(), runningBuild.getBuildPromotion());
     checkBuilds("id:" + queuedBuild.getItemId(), queuedBuild.getBuildPromotion());
     checkBuilds("id:" + runningBuild.getBuildId() + ",running:true", runningBuild.getBuildPromotion());
-    checkExceptionOnBuildsSearch(NotFoundException.class, "id:" + runningBuild.getBuildId() + ",running:false");
+    checkBuilds("id:" + runningBuild.getBuildId() + ",running:false");
   }
 
   @Test
@@ -180,7 +180,7 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
     checkBuilds("snapshotDependency:(from:(id:" + build1.getId() + "),to:(id:" + build3.getId() + "),includeInitial:true),state:any", build3, build2, build1);
     checkBuilds("snapshotDependency:(from:(id:" + build1.getId() + "),to:(id:" + build3.getId() + ")),state:any", build2);
 
-    checkExceptionOnBuildsSearch(NotFoundException.class, "snapshotDependency:(to:(id:" + (build4.getId() + 10) + ")),state:any");
+    checkBuilds("snapshotDependency:(to:(id:" + (build4.getId() + 10) + ")),state:any");
   }
 
   @Test

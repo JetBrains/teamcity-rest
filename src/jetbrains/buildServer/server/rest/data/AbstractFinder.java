@@ -73,16 +73,26 @@ public abstract class AbstractFinder<ITEM> {
 
   @NotNull
   public PagedSearchResult<ITEM> getItems(@Nullable final String locatorText) {
-    return getItemsByLocator(getLocatorOrNull(locatorText));
+    try {
+      return getItemsByLocator(getLocatorOrNull(locatorText));
+    } catch (NotFoundException e) {
+      //returning empty result instead of error as the request was for set of items
+      return new PagedSearchResult<ITEM>(Collections.<ITEM>emptyList(), null, null);
+    }
   }
 
   @NotNull
   public PagedSearchResult<ITEM> getItems(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    return getItemsByLocator(getLocatorOrNull(locatorText, locatorDefaults));
+    try {
+      return getItemsByLocator(getLocatorOrNull(locatorText, locatorDefaults));
+    } catch (NotFoundException e) {
+      //returning empty result instead of error as the request was for set of items
+      return new PagedSearchResult<ITEM>(Collections.<ITEM>emptyList(), null, null);
+    }
   }
 
   @NotNull
-  public PagedSearchResult<ITEM> getItemsByLocator(@Nullable final Locator originalLocator) {
+  private PagedSearchResult<ITEM> getItemsByLocator(@Nullable final Locator originalLocator) {
     Locator locator;
     if (originalLocator == null) {
       final ItemHolder<ITEM> allItems = getAllItems();
@@ -182,6 +192,12 @@ public abstract class AbstractFinder<ITEM> {
     return allItems;
   }
 
+  /**
+   *
+   * @param locator
+   * @return the item found or null if this is not single item locator
+   * @throws NotFoundException when the locator is for single item, but the item does not exist / is not accessible for the current user
+   */
   @Nullable
   protected ITEM findSingleItem(@NotNull final Locator locator){
     return null;
