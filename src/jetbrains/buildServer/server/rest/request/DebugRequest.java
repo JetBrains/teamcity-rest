@@ -37,7 +37,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.diagnostic.web.ThreadDumpsController;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
-import jetbrains.buildServer.server.rest.data.VcsRootFinder;
+import jetbrains.buildServer.server.rest.data.VcsRootInstanceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -71,7 +71,7 @@ public class DebugRequest {
   public static final String REST_VALID_QUERY_PROPERTY_NAME = "rest.debug.database.allow.query.prefixes";
 
   @Context @NotNull private DataProvider myDataProvider;
-  @Context @NotNull private VcsRootFinder myVcsRootFinder;
+  @Context @NotNull private VcsRootInstanceFinder myVcsRootInstanceFinder;
   @Context @NotNull private ServiceLocator myServiceLocator;
 
   @GET
@@ -152,7 +152,7 @@ public class DebugRequest {
                                                      @QueryParam("fields") final String fields,
                                                      @Context @NotNull final BeanContext beanContext) {
     //todo: check whether permission checks are necessary
-    final PagedSearchResult<VcsRootInstance> vcsRootInstances = myVcsRootFinder.getVcsRootInstances(VcsRootFinder.createVcsRootInstanceLocator(vcsRootInstancesLocator));
+    final PagedSearchResult<VcsRootInstance> vcsRootInstances = myVcsRootInstanceFinder.getItems(vcsRootInstancesLocator);
     myDataProvider.getVcsModificationChecker().forceCheckingFor(vcsRootInstances.myEntries);
     return new VcsRootInstances(CachingValue.simple(((Collection<VcsRootInstance>)vcsRootInstances.myEntries)), null, new Fields(fields), beanContext);
   }

@@ -16,12 +16,14 @@
 
 package jetbrains.buildServer.server.rest.util;
 
+import java.util.List;
 import jetbrains.buildServer.log.Loggable;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.vcs.VcsRootInstanceEntry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -189,6 +191,12 @@ public class BuildTypeOrTemplate implements Loggable {
   public boolean isEnabled(final String id) {
     //noinspection ConstantConditions
     return myBuildType != null ? myBuildType.isEnabled(id) : myTemplate.isEnabled(id);
+  }
+
+  @NotNull
+  public List<VcsRootInstanceEntry> getVcsRootInstanceEntries(){
+    //noinspection ConstantConditions
+    return myBuildType != null ? myBuildType.getVcsRootInstanceEntries() : ((BuildTypeTemplateEx)myTemplate).getVcsRootInstanceEntries(); //TeamCity open API issue
   }
 
   @NotNull

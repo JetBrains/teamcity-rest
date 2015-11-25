@@ -382,11 +382,11 @@ public class BuildTypeRequest {
   }
 
   @GET
-  @Path("/{btLocator}/vcs-root-entries/{id}")
+  @Path("/{btLocator}/vcs-root-entries/{vcsRootLocator}")
   @Produces({"application/xml", "application/json"})
-  public VcsRootEntry getVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("id") String vcsRootLocator, @QueryParam("fields") String fields) {
+  public VcsRootEntry getVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("vcsRootLocator") String vcsRootLocator, @QueryParam("fields") String fields) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
+    final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
 
     if (!buildType.get().containsVcsRoot(vcsRoot.getId())) {
       throw new NotFoundException("VCS root with id '" + vcsRoot.getExternalId() + "' is not attached to the build type.");
@@ -395,13 +395,13 @@ public class BuildTypeRequest {
   }
 
   @PUT
-  @Path("/{btLocator}/vcs-root-entries/{id}")
+  @Path("/{btLocator}/vcs-root-entries/{vcsRootLocator}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public VcsRootEntry updateVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("id") String vcsRootLocator, VcsRootEntry entry,
+  public VcsRootEntry updateVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("vcsRootLocator") String vcsRootLocator, VcsRootEntry entry,
                                          @QueryParam("fields") String fields) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
+    final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
 
     if (!buildType.get().containsVcsRoot(vcsRoot.getId())) {
       throw new NotFoundException("VCS root with id '" + vcsRoot.getExternalId() + "' is not attached to the build type.");
@@ -420,11 +420,11 @@ public class BuildTypeRequest {
   }
 
   @GET
-  @Path("/{btLocator}/vcs-root-entries/{id}/" + VcsRootEntry.CHECKOUT_RULES)
+  @Path("/{btLocator}/vcs-root-entries/{vcsRootLocator}/" + VcsRootEntry.CHECKOUT_RULES)
   @Produces({"text/plain"})
-  public String getVcsRootEntryCheckoutRules(@PathParam("btLocator") String buildTypeLocator, @PathParam("id") String vcsRootLocator) {
+  public String getVcsRootEntryCheckoutRules(@PathParam("btLocator") String buildTypeLocator, @PathParam("vcsRootLocator") String vcsRootLocator) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
+    final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
 
     if (!buildType.get().containsVcsRoot(vcsRoot.getId())) {
       throw new NotFoundException("VCS root with id '" + vcsRoot.getExternalId() + "' is not attached to the build type.");
@@ -433,12 +433,12 @@ public class BuildTypeRequest {
   }
 
   @PUT
-  @Path("/{btLocator}/vcs-root-entries/{id}/" + VcsRootEntry.CHECKOUT_RULES)
+  @Path("/{btLocator}/vcs-root-entries/{vcsRootLocator}/" + VcsRootEntry.CHECKOUT_RULES)
   @Consumes({"text/plain"})
   @Produces({"text/plain"})
-  public String updateVcsRootEntryCheckoutRules(@PathParam("btLocator") String buildTypeLocator, @PathParam("id") String vcsRootLocator, String newCheckoutRules) {
+  public String updateVcsRootEntryCheckoutRules(@PathParam("btLocator") String buildTypeLocator, @PathParam("vcsRootLocator") String vcsRootLocator, String newCheckoutRules) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
+    final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
 
     if (!buildType.get().containsVcsRoot(vcsRoot.getId())) {
       throw new NotFoundException("VCS root with id '" + vcsRoot.getExternalId() + "' is not attached to the build type.");
@@ -451,10 +451,10 @@ public class BuildTypeRequest {
   }
 
   @DELETE
-  @Path("/{btLocator}/vcs-root-entries/{id}")
-  public void deleteVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("id") String vcsRootLocator) {
-    final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    final SVcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator); //this assumes VCS root id are unique throughout the server
+  @Path("/{btLocator}/vcs-root-entries/{vcsRootLocator}")
+  public void deleteVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, @PathParam("vcsRootLocator") String vcsRootLocator) {
+    final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true); //todo: extract builType/VCS root id retrieving logic into single method
+    final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator); //this assumes VCS root id are unique throughout the server
     if (!buildType.get().containsVcsRoot(vcsRoot.getId())) {
       throw new NotFoundException("VCS root with id '" + vcsRoot.getExternalId() + "' is not attached to the build type.");
     }

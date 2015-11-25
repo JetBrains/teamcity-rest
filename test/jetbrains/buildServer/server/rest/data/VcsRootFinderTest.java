@@ -18,12 +18,11 @@ package jetbrains.buildServer.server.rest.data;
 
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
-import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectManagerImpl;
+import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.impl.VcsManagerImpl;
-import org.junit.Ignore;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -32,123 +31,87 @@ import org.testng.annotations.Test;
  *         Date: 29.07.13
  */
 @Test
-public class VcsRootFinderTest extends BaseServerTestCase {
+public class VcsRootFinderTest extends BaseFinderTest<SVcsRoot> {
 
-  private VcsRootFinder myVcsRootFinder;
-  private ProjectManagerImpl myProjectManager;
+  private SVcsRoot myRoot10;
+  private SVcsRoot myRoot20;
+  private SVcsRoot myRoot30;
+  private SVcsRoot myRoot40;
 
   @Override
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
     final VcsManagerImpl vcsManager = myFixture.getVcsManager();
-    myProjectManager = myFixture.getProjectManager();
+    final ProjectManagerImpl projectManager = myFixture.getProjectManager();
     final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
     myFixture.addService(permissionChecker);
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
+    final ProjectFinder projectFinder = new ProjectFinder(projectManager, permissionChecker, myServer);
     final AgentFinder agentFinder = new AgentFinder(myAgentManager);
-    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myServer);
-    myVcsRootFinder = new VcsRootFinder(vcsManager, projectFinder, buildTypeFinder, myProjectManager,
-                                        myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class),
-                                        permissionChecker);
-  }
+    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(projectManager, projectFinder, agentFinder, permissionChecker, myServer);
+    setFinder(new VcsRootFinder(vcsManager, projectFinder, buildTypeFinder, projectManager,
+                                myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class),
+                                permissionChecker));
 
-  private SVcsRoot createRoots() {
-    return createRoots("svn");
-  }
-
-  private SVcsRoot createRoots(final String type) {
     myFixture.registerVcsSupport("svn");
     myFixture.registerVcsSupport("cvs");
-    if (!"svn".equals(type) && !"cvs".equals(type)) myFixture.registerVcsSupport(type);
-    final ProjectEx rootProject = myProjectManager.getRootProject();
-    final ProjectEx project1 = rootProject.createProject("project1", "Project name");
-    rootProject.createVcsRoot("svn", "id1", "VCS root 1 name");
-    final SVcsRoot actualVcsRoot = project1.createVcsRoot(type, "id2", "VCS root 2 name");
-    project1.createVcsRoot("cvs", "id3", "VCS root 3 name");
-    rootProject.createVcsRoot("svn", "id4", "VCS root 4 name");
-
-    return actualVcsRoot;
+    final ProjectEx rootProject = projectManager.getRootProject();
+    myProject = rootProject.createProject("project1", "Project name");
+    myRoot10 = rootProject.createVcsRoot("svn", "id1", "VCS root 1 name");
+    myRoot20 = myProject.createVcsRoot("svn", "id2", "VCS root 2 name");
+    myRoot30 = myProject.createVcsRoot("cvs", "id3", "VCS root 3 name");
+    myRoot40 = rootProject.createVcsRoot("svn", "id4", "VCS root 4 name");
   }
 
 
-  @Test(enabled = false, description = "Need to disable permission checking or run tests with due authorized user")
+  @Test
   public void testNoLocator() throws Exception {
-    createRoots();
-
-    final PagedSearchResult<SVcsRoot> foundVcsRoots = myVcsRootFinder.getVcsRoots(null);
-    assertEquals(4, foundVcsRoots.myEntries.size());
+    check(null, myRoot10, myRoot20, myRoot30, myRoot40);
   }
 
   @Test
-  @Ignore("Need to disable permission checking or run tests with due authorized user")
   public void testNoDimensionLocator() throws Exception {
-    final SVcsRoot actualVcsRoot = createRoots();
-
-    checkRootIsFoundBy(actualVcsRoot, "id2");
-    checkNoRootIsFoundBy("id_2");
+    check("id2", myRoot20);
+    check("id_2");
   }
 
   @Test
   public void testIdsLocator() throws Exception {
-    final SVcsRoot actualVcsRoot = createRoots();
-
-    checkRootIsFoundBy(actualVcsRoot, "id:id2");
-    checkNoRootIsFoundBy("id:id 2");
+    check("id:id2", myRoot20);
+    check("id:id 2");
   }
 
   @Test
   public void testInternalIdsLocator() throws Exception {
-    final SVcsRoot actualVcsRoot = createRoots();
-
-    checkRootIsFoundBy(actualVcsRoot, "internalId:" + actualVcsRoot.getId());
-    checkNoRootIsFoundBy("internalId:" + actualVcsRoot.getId() + 10);
+    check("internalId:" + myRoot20.getId(), myRoot20);
+    check("internalId:" + myRoot20.getId() + 10);
   }
 
   @Test
   public void testNameLocator() throws Exception {
-    final SVcsRoot actualVcsRoot = createRoots();
-
-    checkRootIsFoundBy(actualVcsRoot, "name:VCS root 2 name");
-    checkNoRootIsFoundBy("name:VCS root 2 name1");
+    check("name:VCS root 2 name", myRoot20);
+    check("name:VCS root 2 name1");
   }
 
   @Test
   public void testTypeLocator() throws Exception {
-    final SVcsRoot actualVcsRoot = createRoots("customType");
+    myFixture.registerVcsSupport("customType");
+    myRoot20 = myProject.createVcsRoot("customType", "custom_id1", "VCS root custom 1 name");
 
-    checkRootIsFoundBy(actualVcsRoot, "type:customType");
-    checkNoRootIsFoundBy("type:custom Type");
+    check("type:customType", myRoot20);
+    check("type:custom Type");
   }
 
   @Test
   public void testProjectLocator() throws Exception {
-    final SVcsRoot actualVcsRoot = createRoots();
-
-    checkRootIsFoundBy(actualVcsRoot, "project:(id:project1),type:svn");
-    checkNoRootIsFoundBy("project:(id:project_missing)");
+    check("project:(id:project1),type:svn", myRoot20);
+    checkExceptionOnItemsSearch(NotFoundException.class, "project:(id:project_missing)");
   }
 
-  private void checkRootIsFoundBy(final SVcsRoot actualVcsRoot, final String locatorText) {
-    SVcsRoot foundVcsRoot = myVcsRootFinder.getVcsRoot(locatorText);
-    assertNotNull(foundVcsRoot);
-    assertEquals(actualVcsRoot, foundVcsRoot);
-
-    final PagedSearchResult<SVcsRoot> foundVcsRoots = myVcsRootFinder.getVcsRoots(VcsRootFinder.createVcsRootLocator("name:VCS root 2 name"));
-    assertEquals(1, foundVcsRoots.myEntries.size());
-    foundVcsRoot = foundVcsRoots.myEntries.get(0);
-    assertNotNull(foundVcsRoot);
-    assertEquals(actualVcsRoot, foundVcsRoot);
+  @Test
+  public void testPropertyLocator() throws Exception {
+    myRoot20.setProperties(CollectionsUtil.asMap("aaa", "bbb"));
+    check("project:(id:project1),property:(name:aaa)", myRoot20);
+    checkExceptionOnItemsSearch(NotFoundException.class, "project:(id:project_missing)");
   }
-
-  private void checkNoRootIsFoundBy(final String locatorText) {
-    try {
-      myVcsRootFinder.getVcsRoot(locatorText);
-      assertTrue("Exception should be thrown", false);
-    } catch (NotFoundException e) {
-      return;
-    }
-    assertTrue("NotFoundException exception should be thrown", false);
-  }
-
 }

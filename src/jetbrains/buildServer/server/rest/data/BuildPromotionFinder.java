@@ -565,7 +565,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         });
       } else {
         final String vcsRootLocator = revisionLocator.getSingleDimensionValue("vcsRoot");
-        final SVcsRoot vcsRoot = vcsRootLocator == null ? null : myVcsRootFinder.getVcsRoot(vcsRootLocator);
+        final SVcsRoot vcsRoot = vcsRootLocator == null ? null : myVcsRootFinder.getItem(vcsRootLocator);
         final String version = revisionLocator.getSingleDimensionValue("version");
         final String internalVersion = revisionLocator.getSingleDimensionValue("internalVersion");
         revisionLocator.checkLocatorFullyProcessed();

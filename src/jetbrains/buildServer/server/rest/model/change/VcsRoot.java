@@ -23,10 +23,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.APIController;
-import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.data.PermissionChecker;
-import jetbrains.buildServer.server.rest.data.ProjectFinder;
-import jetbrains.buildServer.server.rest.data.VcsRootFinder;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -161,8 +158,7 @@ public class VcsRoot {
             @NotNull
             @Override
             protected Collection<VcsRootInstance> doGet() {
-              return beanContext.getSingletonService(VcsRootFinder.class)
-                                .getVcsRootInstances(VcsRootFinder.createVcsRootInstanceLocator(VcsRootFinder.getVcsRootInstancesLocatorText(root))).myEntries;
+              return beanContext.getSingletonService(VcsRootInstanceFinder.class).getItems(VcsRootInstanceFinder.getLocatorByVcsRoot(root)).myEntries;
             }
           }, new PagerData(VcsRootInstanceRequest.getVcsRootInstancesHref(root)), fields.getNestedField("vcsRootInstances"), beanContext);
         }
@@ -316,7 +312,7 @@ public class VcsRoot {
   public SVcsRoot getVcsRoot(@NotNull VcsRootFinder vcsRootFinder) {
     String locatorText = "";
 //    if (internalId != null) locatorText = "internalId:" + internalId;
-    if (id != null) locatorText += (!locatorText.isEmpty() ? "," : "") + "id:" + id; //todo: link to dimension in finder
+    if (id != null) locatorText = Locator.getStringLocator(AbstractFinder.DIMENSION_ID, id);
     if (locatorText.isEmpty()) {
       locatorText = locator;
     } else {
@@ -327,7 +323,7 @@ public class VcsRoot {
     if (StringUtil.isEmpty(locatorText)){
       throw new BadRequestException("No VCS root specified. Either 'id' or 'locator' attribute should be present.");
     }
-    return vcsRootFinder.getVcsRoot(locatorText);
+    return vcsRootFinder.getItem(locatorText);
   }
 
   public static boolean shouldRestrictSettingsViewing(final @NotNull SVcsRoot root, final @NotNull PermissionChecker permissionChecker) {

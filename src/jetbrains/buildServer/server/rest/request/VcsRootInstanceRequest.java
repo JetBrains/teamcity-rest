@@ -27,7 +27,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
-import jetbrains.buildServer.server.rest.data.VcsRootFinder;
+import jetbrains.buildServer.server.rest.data.VcsRootInstanceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
@@ -52,7 +52,7 @@ import org.jetbrains.annotations.NotNull;
 public class VcsRootInstanceRequest {
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private BeanContext myBeanContext;
-  @Context @NotNull private VcsRootFinder myVcsRootFinder;
+  @Context @NotNull private VcsRootInstanceFinder myVcsRootInstanceFinder;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
 
   public static final String API_VCS_ROOT_INSTANCES_URL = Constants.API_URL + "/vcs-root-instances";
@@ -67,7 +67,7 @@ public class VcsRootInstanceRequest {
   }
 
   public static String getVcsRootInstancesHref(@NotNull final SVcsRoot vcsRoot) {
-    return API_VCS_ROOT_INSTANCES_URL + "?locator=" + VcsRootFinder.getVcsRootInstancesLocatorText(vcsRoot);
+    return API_VCS_ROOT_INSTANCES_URL + "?locator=" + VcsRootInstanceFinder.getLocatorByVcsRoot(vcsRoot);
   }
 
   @GET
@@ -76,9 +76,7 @@ public class VcsRootInstanceRequest {
                                          @QueryParam("fields") String fields,
                                          @Context UriInfo uriInfo,
                                          @Context HttpServletRequest request) {
-    final PagedSearchResult<jetbrains.buildServer.vcs.VcsRootInstance> vcsRootInstances =
-      myVcsRootFinder.getVcsRootInstances(vcsRootInstanceLocator != null ? VcsRootFinder.createVcsRootInstanceLocator(vcsRootInstanceLocator) : null);
-
+    final PagedSearchResult<jetbrains.buildServer.vcs.VcsRootInstance> vcsRootInstances = myVcsRootInstanceFinder.getItems(vcsRootInstanceLocator);
     return new VcsRootInstances(CachingValue.simple(((Collection<jetbrains.buildServer.vcs.VcsRootInstance>)vcsRootInstances.myEntries)),
                                 new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), vcsRootInstances, vcsRootInstanceLocator, "locator"),
                                 new Fields(fields),
@@ -89,8 +87,7 @@ public class VcsRootInstanceRequest {
   @Path("/{vcsRootInstanceLocator}")
   @Produces({"application/xml", "application/json"})
   public VcsRootInstance serveInstance(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator, @QueryParam("fields") String fields) {
-    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
-    myVcsRootFinder.checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance);
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
     return new VcsRootInstance(rootInstance, new Fields(fields), myBeanContext);
   }
 
@@ -98,8 +95,7 @@ public class VcsRootInstanceRequest {
   @Path("/{vcsRootInstanceLocator}/properties")
   @Produces({"application/xml", "application/json"})
   public Properties serveRootInstanceProperties(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator, @QueryParam("fields") String fields) {
-    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
-    myVcsRootFinder.checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance);
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
     return new Properties(rootInstance.getProperties(), null, new Fields(fields));
   }
 
@@ -109,8 +105,7 @@ public class VcsRootInstanceRequest {
   @Produces("text/plain")
   public String serveInstanceField(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
                                    @PathParam("field") String fieldName) {
-    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
-    myVcsRootFinder.checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance);
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
     return VcsRootInstance.getFieldValue(rootInstance, fieldName, myDataProvider);
   }
 
@@ -120,8 +115,8 @@ public class VcsRootInstanceRequest {
   @Produces("text/plain")
   public String setInstanceField(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
                                @PathParam("field") String fieldName, String newValue) {
-    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
-    myVcsRootFinder.checkPermission(Permission.EDIT_PROJECT, rootInstance);
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
+    myVcsRootInstanceFinder.checkPermission(Permission.EDIT_PROJECT, rootInstance);
     VcsRootInstance.setFieldValue(rootInstance, fieldName, newValue, myDataProvider);
     rootInstance.getParent().persist();
     return VcsRootInstance.getFieldValue(rootInstance, fieldName, myDataProvider);
@@ -130,8 +125,8 @@ public class VcsRootInstanceRequest {
   @DELETE
   @Path("/{vcsRootInstanceLocator}/{field}")
   public void deleteInstanceField(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator, @PathParam("field") String fieldName) {
-    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
-    myVcsRootFinder.checkPermission(Permission.EDIT_PROJECT, rootInstance);
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
+    myVcsRootInstanceFinder.checkPermission(Permission.EDIT_PROJECT, rootInstance);
     if (VcsRootInstance.LAST_VERSION_INTERNAL.equals(fieldName) || VcsRootInstance.LAST_VERSION.equals(fieldName)) {
       VcsRootInstance.setFieldValue(rootInstance, fieldName, "", myDataProvider);
     } else {
@@ -143,8 +138,7 @@ public class VcsRootInstanceRequest {
   @Path("/{vcsRootInstanceLocator}/repositoryState")
   @Produces({"application/xml", "application/json"})
   public Entries getRepositoryState(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator) {
-    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
-    myVcsRootFinder.checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance);
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
     final RepositoryState repositoryState = myDataProvider.getBean(RepositoryStateManager.class).getRepositoryState(rootInstance);
     return new Entries(repositoryState.getBranchRevisions());
   }
@@ -152,8 +146,8 @@ public class VcsRootInstanceRequest {
   @DELETE
   @Path("/{vcsRootInstanceLocator}/repositoryState")
   public void deleteRepositoryState(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator) {
-    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
-    myVcsRootFinder.checkPermission(Permission.EDIT_PROJECT, rootInstance);
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
+    myVcsRootInstanceFinder.checkPermission(Permission.EDIT_PROJECT, rootInstance);
     myDataProvider.getBean(RepositoryStateManager.class).setRepositoryState(rootInstance, new SingleVersionRepositoryStateAdapter((String)null));
   }
 
@@ -161,8 +155,7 @@ public class VcsRootInstanceRequest {
   @Path("/{vcsRootInstanceLocator}/repositoryState/creationDate")
   @Consumes("text/plain")
   public String getRepositoryStateCreationDate(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator) {
-    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
-    myVcsRootFinder.checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance);
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
     final RepositoryState repositoryState = myDataProvider.getBean(RepositoryStateManager.class).getRepositoryState(rootInstance);
     return Util.formatTime(repositoryState.getCreateTimestamp());
   }
@@ -172,8 +165,8 @@ public class VcsRootInstanceRequest {
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Entries setRepositoryState(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator, Entries branchesState) {
-    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
-    myVcsRootFinder.checkPermission(Permission.EDIT_PROJECT, rootInstance);
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
+    myVcsRootInstanceFinder.checkPermission(Permission.EDIT_PROJECT, rootInstance);
     final RepositoryStateManager repositoryStateManager = myDataProvider.getBean(RepositoryStateManager.class);
     repositoryStateManager.setRepositoryState(rootInstance, RepositoryStateFactory.createRepositoryState(branchesState.getMap()));
     final RepositoryState repositoryState = repositoryStateManager.getRepositoryState(rootInstance);
@@ -188,8 +181,8 @@ public class VcsRootInstanceRequest {
    */
   @Path("/{vcsRootInstanceLocator}" + FILES_LATEST)
   public FilesSubResource getVcsFilesSubResource(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator) {
-    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
-    myVcsRootFinder.checkPermission(Permission.VIEW_FILE_CONTENT, rootInstance);
+    final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
+    myVcsRootInstanceFinder.checkPermission(Permission.VIEW_FILE_CONTENT, rootInstance);
 
     final String urlPrefix = getUrlPrefix(rootInstance);
 

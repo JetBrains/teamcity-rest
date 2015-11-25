@@ -67,6 +67,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   @NotNull private final BuildPromotionFinder myBuildPromotionFinder;
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
   @NotNull private final VcsRootFinder myVcsRootFinder;
+  @NotNull private final VcsRootInstanceFinder myVcsRootInstanceFinder;
   @NotNull private final UserFinder myUserFinder;
   @NotNull private final VcsManager myVcsManager;
   @NotNull private final VcsModificationHistory myVcsModificationHistory;
@@ -78,6 +79,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
                       @NotNull final BuildPromotionFinder buildPromotionFinder,
                       @NotNull final BuildTypeFinder buildTypeFinder,
                       @NotNull final VcsRootFinder vcsRootFinder,
+                      @NotNull final VcsRootInstanceFinder vcsRootInstanceFinder,
                       @NotNull final UserFinder userFinder,
                       @NotNull final VcsManager vcsManager,
                       @NotNull final VcsModificationHistory vcsModificationHistory,
@@ -90,6 +92,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     myBuildPromotionFinder = buildPromotionFinder;
     myBuildTypeFinder = buildTypeFinder;
     myVcsRootFinder = vcsRootFinder;
+    myVcsRootInstanceFinder = vcsRootInstanceFinder;
     myUserFinder = userFinder;
     myVcsManager = vcsManager;
     myVcsModificationHistory = vcsModificationHistory;
@@ -165,7 +168,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
     final String vcsRootInstanceLocator = locator.getSingleDimensionValue(VCS_ROOT_INSTANCE);
     if (vcsRootInstanceLocator != null) {
-      final VcsRootInstance vcsRootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
+      final VcsRootInstance vcsRootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
       result.add(new FilterConditionChecker<SVcsModification>() {
         public boolean isIncluded(@NotNull final SVcsModification item) {
           return !item.isPersonal() && vcsRootInstance.getId() == item.getVcsRoot().getId(); //todo: check personal change applicability to the root
@@ -175,7 +178,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
     final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT);
     if (vcsRootLocator != null) {
-      final VcsRoot vcsRoot = myVcsRootFinder.getVcsRoot(vcsRootLocator);
+      final VcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
       result.add(new FilterConditionChecker<SVcsModification>() {
         public boolean isIncluded(@NotNull final SVcsModification item) {
           return !item.isPersonal() && vcsRoot.getId() == item.getVcsRoot().getParent().getId(); //todo: check personal change applicability to the root
@@ -426,6 +429,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
     final Boolean personal = locator.getSingleDimensionValueAsBoolean(PERSONAL);
 
+    //todo: remove this?
     if (personal != null && personal) {
       throw new BadRequestException("Serving personal changes is only supported when user is specified.");
     }
@@ -462,7 +466,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
     final String vcsRootInstanceLocator = locator.getSingleDimensionValue(VCS_ROOT_INSTANCE);
     if (vcsRootInstanceLocator != null) {
-      final VcsRootInstance vcsRootInstance = myVcsRootFinder.getVcsRootInstance(vcsRootInstanceLocator);
+      final VcsRootInstance vcsRootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
       if (sinceChangeId != null) {
         return getItemHolder(myVcsModificationHistory.getModificationsInRange(vcsRootInstance, sinceChangeId, null)); //todo: use lookupLimit here or othervise limit processing
       } else {
@@ -544,6 +548,8 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
 
   private List<SVcsModification> getBranchChanges(@NotNull final SBuildType buildType, @NotNull final String branchName, @NotNull final SelectPrevBuildPolicy policy) {
+    //todo: buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES) == false => do not include???
+    //todo: 2 - allow to set the option in request
     final boolean includeDependencyChanges = TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) || !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES);
     final List<ChangeDescriptor> changes =
       ((BuildTypeEx)buildType).getBranchByDisplayName(branchName).getDetectedChanges(policy, includeDependencyChanges);

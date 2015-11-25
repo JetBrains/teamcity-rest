@@ -180,7 +180,8 @@ public class Project {
       });
       vcsRoots = ValueWithDefault.decideDefault(fields.isIncluded("vcsRoots", false), new ValueWithDefault.Value<VcsRoots>() {
         public VcsRoots get() {
-          return new VcsRoots(project.getOwnVcsRoots(), new PagerData(VcsRootRequest.getHref(project)), fields.getNestedField("vcsRoots"), beanContext);
+          return new VcsRoots(project.getOwnVcsRoots(), //consistent with VcsRootFinder
+                              new PagerData(VcsRootRequest.getHref(project)), fields.getNestedField("vcsRoots"), beanContext);
         }
       });
     } else {
