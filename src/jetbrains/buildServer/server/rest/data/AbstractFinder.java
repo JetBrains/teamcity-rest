@@ -71,28 +71,26 @@ public abstract class AbstractFinder<ITEM> {
     return (locatorText == null && locatorDefaults == null) ? null : createLocator(locatorText, locatorDefaults);
   }
 
+  /**
+   * @returns the items found by locatorText or empty collection if the locator does ot correspond to any item
+   * @throws NotFoundException if there is locator sub-dimension which references a single entry which cannot be found (might need to return empty collection for the case as well)
+   */
   @NotNull
   public PagedSearchResult<ITEM> getItems(@Nullable final String locatorText) {
-    try {
-      return getItemsByLocator(getLocatorOrNull(locatorText));
-    } catch (NotFoundException e) {
-      //returning empty result instead of error as the request was for set of items
-      return new PagedSearchResult<ITEM>(Collections.<ITEM>emptyList(), null, null);
-    }
+    return getItemsByLocator(getLocatorOrNull(locatorText), true);
   }
 
+  /**
+   * @returns the items found by locatorText or empty collection if the locator does ot correspond to any item
+   * @throws NotFoundException if there is locator sub-dimension which  references a single entry which cannot be found (might need to return empty collection for the case as well)
+   */
   @NotNull
   public PagedSearchResult<ITEM> getItems(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    try {
-      return getItemsByLocator(getLocatorOrNull(locatorText, locatorDefaults));
-    } catch (NotFoundException e) {
-      //returning empty result instead of error as the request was for set of items
-      return new PagedSearchResult<ITEM>(Collections.<ITEM>emptyList(), null, null);
-    }
+    return getItemsByLocator(getLocatorOrNull(locatorText, locatorDefaults), true);
   }
 
   @NotNull
-  private PagedSearchResult<ITEM> getItemsByLocator(@Nullable final Locator originalLocator) {
+  private PagedSearchResult<ITEM> getItemsByLocator(@Nullable final Locator originalLocator, final boolean multipleItemsQuery) {
     Locator locator;
     if (originalLocator == null) {
       final ItemHolder<ITEM> allItems = getAllItems();
@@ -104,7 +102,16 @@ public abstract class AbstractFinder<ITEM> {
     } else {
       locator = originalLocator;
 
-      ITEM singleItem = findSingleItem(locator);
+      ITEM singleItem = null;
+      try {
+        singleItem = findSingleItem(locator);
+      } catch (NotFoundException e) {
+        if (multipleItemsQuery) { //todo: add messages to PagedSearchResult, return it as a header in the response
+          //returning empty collection for multiple items query
+          return new PagedSearchResult<ITEM>(Collections.<ITEM>emptyList(), null, null);
+        }
+        throw e;
+      }
       if (singleItem != null){
         final Set<String> singleItemUsedDimensions = locator.getUsedDimensions();
         // ignore start:0 dimension
@@ -120,8 +127,14 @@ public abstract class AbstractFinder<ITEM> {
           AbstractFilter<ITEM> filter = getFilter(locator);
           locator.checkLocatorFullyProcessed();
           if (!filter.isIncluded(singleItem)) {
-            throw new NotFoundException("Found single item by " + StringUtil.pluralize("dimension", singleItemUsedDimensions.size()) + " " + singleItemUsedDimensions +
-                                        ", but that was filtered out using the entire locator '" + locator + "'");
+            if (multipleItemsQuery) {
+              LOG.debug("Found single item by " + StringUtil.pluralize("dimension", singleItemUsedDimensions.size()) + " " + singleItemUsedDimensions +
+                        ", but that was filtered out using the entire locator '" + locator + "'");
+              return new PagedSearchResult<ITEM>(Collections.<ITEM>emptyList(), null, null);
+            } else {
+              throw new NotFoundException("Found single item by " + StringUtil.pluralize("dimension", singleItemUsedDimensions.size()) + " " + singleItemUsedDimensions +
+                                          ", but that was filtered out using the entire locator '" + locator + "'");
+            }
           }
         }
 
@@ -175,7 +188,7 @@ public abstract class AbstractFinder<ITEM> {
       locator.setDimension(PagerData.COUNT, "1"); //get only the first one that matches
       locator.addHiddenDimensions(PagerData.COUNT);
     }
-    final PagedSearchResult<ITEM> items = getItemsByLocator(locator);
+    final PagedSearchResult<ITEM> items = getItemsByLocator(locator, false);
     if (items.myEntries.size() == 0) {
       throw new NotFoundException("Nothing is found by locator '" + locator.getStringRepresentation() + "'.");
     }
@@ -222,7 +235,7 @@ public abstract class AbstractFinder<ITEM> {
   }
 
   @NotNull
-  public static <P> ItemHolder<P> getItemHolder(@NotNull Iterable<P> items){
+  public static <P> ItemHolder<P> getItemHolder(@NotNull Iterable < P > items){
     return new CollectionItemHolder<P>(items);
   }
 
