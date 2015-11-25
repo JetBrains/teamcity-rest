@@ -151,7 +151,12 @@ public class ParameterCondition {
     if (!myRequirementType.isActualValueCanBeEmpty() && (value == null || value.length() == 0)) {
       return false;
     }
-    return myRequirementType.matchValues(myParameterValue, value);
+    try {
+      return myRequirementType.matchValues(myParameterValue, value);
+    } catch (Exception e) {
+      //e.g. more-than can throw NumberFormatException for non-number
+      return false;
+    }
   }
 
   @Override
