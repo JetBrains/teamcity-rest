@@ -614,6 +614,7 @@ public class BuildType {
       if (buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType() == null) {
         throw new BadRequestException("Cannot set paused state for a template");
       }
+//check if it is already paused      if (Boolean.valueOf(submittedPaused) ^ buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType().isPaused())
       result = true;
       buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType().setPaused(Boolean.valueOf(submittedPaused),
                                                                                    serviceLocator.getSingletonService(UserFinder.class).getCurrentUser(),

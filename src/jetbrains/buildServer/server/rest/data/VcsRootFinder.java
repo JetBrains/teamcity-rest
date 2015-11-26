@@ -261,8 +261,7 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
       return getItemHolder(project.getOwnVcsRoots()); //consistent with Project.java:183
     }
 
-    //noinspection ConstantConditions
-    return getAllItems();
+    return super.getPrefilteredItems(locator);
   }
 
   static boolean repositoryIdStringMatches(@NotNull final jetbrains.buildServer.vcs.VcsRoot root,

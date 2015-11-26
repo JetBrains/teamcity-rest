@@ -111,7 +111,7 @@ public class TestOccurrence {
         return testRun.getFullText();
       }
     });
-
+    //consider providing separate stacktrace, stdout and stderr, see implementation of jetbrains.buildServer.serverSide.stat.TestFullTextBuilderImpl.getFullText()
     ignoreDetails = ValueWithDefault.decideDefault(fields.isIncluded("ignoreDetails", false), new ValueWithDefault.Value<String>() {
       public String get() {
         return testRun.getIgnoreComment();

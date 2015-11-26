@@ -40,6 +40,8 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 09.11.13
  */
 public abstract class AbstractFinder<ITEM> {
+  //todo: add set-filtering (filter by collection of items in prefiltering and in filter), e.g. see handling of ProjectFinder.DIMENSION_PROJECT
+  //todo: add mandatory filter to apply on any returned results: single, prefiltered, etc. (e.g. permissions checked in VCSRoot*Finder)
   private static final Logger LOG = Logger.getInstance(AbstractFinder.class.getName());
 
   public static final String DIMENSION_ID = "id";
@@ -106,7 +108,7 @@ public abstract class AbstractFinder<ITEM> {
       try {
         singleItem = findSingleItem(locator);
       } catch (NotFoundException e) {
-        if (multipleItemsQuery) { //todo: add messages to PagedSearchResult, return it as a header in the response
+        if (multipleItemsQuery) { //consider adding comment/warning messages to PagedSearchResult, return it as a header in the response
           //returning empty collection for multiple items query
           return new PagedSearchResult<ITEM>(Collections.<ITEM>emptyList(), null, null);
         }
@@ -120,8 +122,6 @@ public abstract class AbstractFinder<ITEM> {
           locator.markUnused(PagerData.START);
         }
 
-        //todo: consider enabling this after check (report 404 instead of "locator is not fully processed"
-        //and do not report "locator is not fully processed" if the single result complies)
         final Set<String> unusedDimensions = locator.getUnusedDimensions();
         if (!unusedDimensions.isEmpty()) {
           AbstractFilter<ITEM> filter = getFilter(locator);

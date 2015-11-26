@@ -70,7 +70,7 @@ public class PropEntityStep extends PropEntity {
 
 
   public static String getSetting(final BuildTypeSettings buildType, final BuildRunnerDescriptor step, final String name) {
-    if ("name".equals(name)) {
+    if ("name".equals(name)) { //todo: move to PropEntity...
       return step.getName();
     }
     if ("disabled".equals(name)) {

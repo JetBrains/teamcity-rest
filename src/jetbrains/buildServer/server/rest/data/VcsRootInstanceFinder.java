@@ -292,8 +292,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       return getItemHolder(project.getVcsRootInstances());
     }
 
-    //noinspection ConstantConditions
-    return getAllItems();
+    return super.getPrefilteredItems(locator);
   }
 
   public void checkPermission(@NotNull final Permission permission, @NotNull final VcsRootInstance rootInstance) {
