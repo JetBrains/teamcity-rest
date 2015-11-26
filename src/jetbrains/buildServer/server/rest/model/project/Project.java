@@ -192,7 +192,11 @@ public class Project {
 
     projects = ValueWithDefault.decideDefault(fields.isIncluded("projects", false), new ValueWithDefault.Value<Projects>() {
       public Projects get() {
-        return new Projects(project.getOwnProjects(), null, fields.getNestedField("projects", Fields.NONE, Fields.LONG), beanContext);
+        final Fields projectsFields = fields.getNestedField("projects", Fields.NONE, Fields.LONG);
+        final String projectsLocator = projectsFields.getLocator();
+        final ProjectFinder projectFinder = beanContext.getSingletonService(ProjectFinder.class);
+        final List<SProject> projects = projectFinder.getItems(project, projectsLocator).myEntries;
+        return new Projects(projects, null, projectsFields, beanContext);
       }
     });
 

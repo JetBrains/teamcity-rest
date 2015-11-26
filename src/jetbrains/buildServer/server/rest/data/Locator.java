@@ -584,6 +584,10 @@ public class Locator {
     return new HashSet<String>(myUsedDimensions);
   }
 
+  public boolean isUnused(@NotNull final String dimensionName) {
+    return !myUsedDimensions.contains(dimensionName);
+  }
+
   /**
    * Marks the passed dimensions as not used.
    * This also has a side effect of not reporting the dimensions as known but not reported, see "reportKnownButNotReportedDimensions" method.

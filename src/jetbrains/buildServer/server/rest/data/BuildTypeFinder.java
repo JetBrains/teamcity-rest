@@ -36,6 +36,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
@@ -65,6 +66,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   protected static final String PARAMETER = "parameter";
   protected static final String FILTER_BUILDS = "filterByBuilds";
   protected static final String SNAPSHOT_DEPENDENCY = "snapshotDependency";
+  protected static final String DIMENSION_SELECTED = "selectedByUser";
 
   private final ProjectFinder myProjectFinder;
   @NotNull private final AgentFinder myAgentFinder;
@@ -103,7 +105,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   @Override
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(COMPATIBLE_AGENT, COMPATIBLE_AGENTS_COUNT, PARAMETER, FILTER_BUILDS, SNAPSHOT_DEPENDENCY); //hide these for now
+    result.addHiddenDimensions(COMPATIBLE_AGENT, COMPATIBLE_AGENTS_COUNT, PARAMETER, FILTER_BUILDS, SNAPSHOT_DEPENDENCY, DIMENSION_SELECTED); //hide these for now
     return result;
   }
 
@@ -344,13 +346,54 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       }
     }
 
+    final String snapshotDependencies = locator.getSingleDimensionValue(SNAPSHOT_DEPENDENCY);
+    if (snapshotDependencies != null) {
+      final GraphFinder<BuildTypeOrTemplate> graphFinder = new GraphFinder<BuildTypeOrTemplate>(this, new SnapshotDepsTraverser(myPermissionChecker));
+      final List<BuildTypeOrTemplate> boundingList = graphFinder.getItems(snapshotDependencies).myEntries;
+      result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
+        public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+          return boundingList.contains(item);
+        }
+      });
+    }
+
+    final String templateLocator = locator.getSingleDimensionValue(TEMPLATE_DIMENSION_NAME);
+    if (templateLocator != null) {
+      final BuildTypeTemplate buildTemplate;
+      try {
+        buildTemplate = getBuildTemplate(null, templateLocator, true);
+      } catch (NotFoundException e) {
+        throw new NotFoundException("No templates found by locator '" + templateLocator + "' specified in '" + TEMPLATE_DIMENSION_NAME + "' dimension : " + e.getMessage());
+      } catch (BadRequestException e) {
+        throw new BadRequestException(
+          "Error while searching for templates by locator '" + templateLocator + "' specified in '" + TEMPLATE_DIMENSION_NAME + "' dimension : " + e.getMessage(), e);
+      }
+      final List<BuildTypeOrTemplate> boundingList = BuildTypes.fromBuildTypes(buildTemplate.getUsages());
+      result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
+        public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+          return boundingList.contains(item);
+        }
+      });
+    }
+
     return result;
   }
 
   @NotNull
   @Override
   protected ItemHolder<BuildTypeOrTemplate> getPrefilteredItems(@NotNull final Locator locator) {
-    List<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
+    //this should be the first one as the order returned here is important!
+    final String selectedForUser = locator.getSingleDimensionValue(DIMENSION_SELECTED);
+    if (selectedForUser != null) {
+      final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getUser(selectedForUser);
+      List<SProject> projects = null;
+      final String projectLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
+      if (projectLocator != null) {
+        projects = myProjectFinder.getItems(projectLocator).myEntries;
+      }
+      return getItemHolder(getBuildTypesSelectedForUser(user, projects));
+    }
+
     final String snapshotDependencies = locator.getSingleDimensionValue(SNAPSHOT_DEPENDENCY);
     if (snapshotDependencies != null) {
       final GraphFinder<BuildTypeOrTemplate> graphFinder = new GraphFinder<BuildTypeOrTemplate>(this, new SnapshotDepsTraverser(myPermissionChecker));
@@ -369,7 +412,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       affectedProject = myProjectFinder.getItem(affectedProjectLocator);
     }
 
-    final String templateLocator = locator.getSingleDimensionValue(TEMPLATE_DIMENSION_NAME);  //todo: add check into filter (with permission checking) as well, as it is ignored when filtered by snapshot dependency
+    final String templateLocator = locator.getSingleDimensionValue(TEMPLATE_DIMENSION_NAME);
     if (templateLocator != null) {
       final BuildTypeTemplate buildTemplate;
       try {
@@ -383,6 +426,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       return getItemHolder(BuildTypes.fromBuildTypes(buildTemplate.getUsages()));
     }
 
+    List<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
     Boolean template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_FLAG_DIMENSION_NAME);
     if (template == null || !template) {
       if (projects != null) {
@@ -706,6 +750,23 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
         result.add(new BuildTypeOrTemplate(dependOn));
       }
       //todo: else expose this somehow
+    }
+    return result;
+  }
+
+  @NotNull
+  public List<BuildTypeOrTemplate> getBuildTypesSelectedForUser(@NotNull final SUser user, @Nullable final List<SProject> projects) {
+    Collection<SProject> selectedProjects = projects;
+    if (selectedProjects == null){
+      selectedProjects = myProjectFinder.getSelectedProjects(user);
+    }
+    final List<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
+    for (SProject project : selectedProjects) {
+      result.addAll(CollectionsUtil.convertCollection(user.getOrderedBuildTypes(project), new Converter<BuildTypeOrTemplate, SBuildType>() {
+        public BuildTypeOrTemplate createFrom(@NotNull final SBuildType source) {
+          return new BuildTypeOrTemplate(source);
+        }
+      }));
     }
     return result;
   }

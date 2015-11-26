@@ -18,6 +18,8 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.ServiceLocator;
@@ -32,6 +34,9 @@ import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -52,9 +57,11 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   public static final String DIMENSION_NAME = "name";
   public static final String DIMENSION_ARCHIVED = "archived";
   protected static final String DIMENSION_PARAMETER = "parameter";
+  protected static final String DIMENSION_SELECTED = "selectedByUser";
 
   @NotNull private final ProjectManager myProjectManager;
   private final PermissionChecker myPermissionChecker;
+  @NotNull private final ServiceLocator myServiceLocator;
 
   public ProjectFinder(@NotNull final ProjectManager projectManager, final PermissionChecker permissionChecker, @NotNull final ServiceLocator serviceLocator){
     super(new String[]{DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, DIMENSION_AFFECTED_PROJECT, DIMENSION_NAME, DIMENSION_ARCHIVED,
@@ -64,6 +71,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
     });
     myProjectManager = projectManager;
     myPermissionChecker = permissionChecker;
+    myServiceLocator = serviceLocator;
   }
 
   public static String getLocator(final BuildProject project) {
@@ -75,7 +83,8 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   @Override
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(DIMENSION_PARAMETER, DIMENSION_PARENT_PROJECT); //hide these for now
+    result.addHiddenDimensions(DIMENSION_PARAMETER, DIMENSION_SELECTED); //hide for now
+    result.addHiddenDimensions(DIMENSION_PARENT_PROJECT); //compatibility mode for versions <9.1
     return result;
   }
 
@@ -203,6 +212,29 @@ public class ProjectFinder extends AbstractFinder<SProject> {
       });
     }
 
+    if (locator.isUnused(DIMENSION_PROJECT)) {
+      final String directParentLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
+      if (directParentLocator != null) {
+        final SProject directParent = getItem(directParentLocator);
+        result.add(new FilterConditionChecker<SProject>() {
+          public boolean isIncluded(@NotNull final SProject item) {
+            return directParent.equals(item.getParent());
+          }
+        });
+      }
+    }
+
+    if (locator.isUnused(DIMENSION_AFFECTED_PROJECT)) {
+      final SProject parentProject = getParentProject(locator);
+      if (parentProject != null) {
+        result.add(new FilterConditionChecker<SProject>() {
+          public boolean isIncluded(@NotNull final SProject item) {
+            return isSameOrParent(parentProject, item);
+          }
+        });
+      }
+    }
+
     return result;
   }
 
@@ -210,9 +242,15 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   @Override
   protected ItemHolder<SProject> getPrefilteredItems(@NotNull final Locator locator) {
 
-    SProject parentProject = getParentProject(locator);
+    //this should be the first one as the order returned here is important!
+    final String selectedForUser = locator.getSingleDimensionValue(DIMENSION_SELECTED);
+    if (selectedForUser != null) {
+      final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getUser(selectedForUser);
+      return getItemHolder(getSelectedProjects(user));
+    }
 
-    String name = locator.getSingleDimensionValue(DIMENSION_NAME);
+    final SProject parentProject = getParentProject(locator);
+    final String name = locator.getSingleDimensionValue(DIMENSION_NAME);
     if (name != null) {
       if (parentProject != null) {
         return getItemHolder(findProjectsByName(parentProject, name, true));
@@ -223,15 +261,28 @@ public class ProjectFinder extends AbstractFinder<SProject> {
       }
     }
 
+    final String directParent = locator.getSingleDimensionValue(DIMENSION_PROJECT);
+    if (directParent != null) {
+      return getItemHolder(getItem(directParent).getOwnProjects());
+    }
+
     if (parentProject != null) {
       return getItemHolder(parentProject.getProjects());
     }
 
-    String directParent = locator.getSingleDimensionValue(DIMENSION_PROJECT);
-    if (directParent != null){
-      return getItemHolder(getItem(directParent).getOwnProjects());
-    }
     return super.getPrefilteredItems(locator);
+  }
+
+  @NotNull
+  public Collection<SProject> getSelectedProjects(@NotNull final SUser user) {
+    //TeamCity API issue: the order of the projects is not completely clear: is project's hierarchy is applied (seems like it is not)
+    // also, if user has not configured visibility, what the order will be?
+    final List<String> visibleProjects = user.getVisibleProjects();
+    return visibleProjects == null ? Collections.<SProject>emptyList() : CollectionsUtil.convertAndFilterNulls(visibleProjects, new Converter<SProject, String>() {
+      public SProject createFrom(@NotNull final String projectInternalId) {
+        return myProjectManager.findProjectById(projectInternalId);
+      }
+    });
   }
 
   @NotNull
@@ -291,6 +342,16 @@ public class ProjectFinder extends AbstractFinder<SProject> {
       check(result, myPermissionChecker);
     }
     return result;
+  }
+
+  @NotNull
+  public PagedSearchResult<SProject> getItems(final @Nullable SProject parentProject, final @Nullable String projectLocator) {
+    String actualLocator = projectLocator;
+    if (parentProject != null) {
+      actualLocator = Locator.setDimensionIfNotPresent(actualLocator, DIMENSION_PROJECT, ProjectFinder.getLocator(parentProject));
+    }
+
+    return getItems(actualLocator);
   }
 
   public static void check(@NotNull SProject project, @NotNull final PermissionChecker permissionChecker) {

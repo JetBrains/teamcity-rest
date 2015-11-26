@@ -16,7 +16,19 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import java.util.Arrays;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.PathTransformer;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.project.Project;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.auth.RoleScope;
+import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
+import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -53,6 +65,7 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
     check("id:" + project10.getExternalId().toUpperCase(), project10);
     check("internalId:" + project10.getProjectId(), project10);
     check("id:" + project30.getExternalId(), project30);
+    check("id:XXXX");
     check(project30.getExternalId(), project30);
     check("name:(" + project10.getName() + ")", project10);
     check("name:(" + project10.getName().toUpperCase() + ")");
@@ -125,5 +138,82 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
     check("project:(id:" + project10.getExternalId() + "),archived:false", project10_10);
     check("project:(id:" + project20.getExternalId() + "),archived:false", project20_10);
     check("project:(id:" + project40.getExternalId() + "),archived:false");
+  }
+
+  @Test
+  public void testUserSelectedDimension() throws Exception {
+    final SProject project10 = createProject("p10", "project 10");
+    final SProject project20 = createProject("p20", "project 20");
+    final SProject project10_10 = project10.createProject("p10_10", "p10 child1");
+    final SProject project10_20 = project10.createProject("p10_20", "xxx");
+    final SProject project10_10_10 = project10_10.createProject("p10_10_10", "xxx");
+    final SProject project10_10_20 = project10_10.createProject("p10_10_20", "p10_10 child2");
+    final SProject project10_10_30 = project10_10.createProject("p10_10_30", "p10_10 child3");
+    final SProject project30 = createProject(project10.getProjectId(), "project 30");
+//todo 1    final SProject project40 = createProject("p40", "project 40");
+
+    myFixture.addService(new UserFinder(myFixture));
+
+    final SUser user2 = createUser("user2");
+    user2.addRole(RoleScope.projectScope(project10.getProjectId()), getProjectViewerRole());
+    //the order seems to be lexicographic in the case...
+//todo: fails in the TeamCity build
+//   check("selectedByUser:(username:user2)", project10_10, project10_10_20, project10_10_30, project10, project10_10_10, project10_20);
+
+    final SUser user1 = createUser("user1");
+    user1.addRole(RoleScope.projectScope(project10.getProjectId()), getProjectViewerRole());
+    user1.addRole(RoleScope.projectScope(project20.getProjectId()), getProjectViewerRole());
+    user1.addRole(RoleScope.projectScope(project30.getProjectId()), getProjectViewerRole());
+
+
+    user1.setVisibleProjects(Arrays.asList(project10.getProjectId(), project10_10_20.getProjectId(), project10_10_10.getProjectId(), /*todo 1 project40.getProjectId(), */project30.getProjectId()));
+    user1.setProjectsOrder(Arrays.asList(project10.getProjectId(), project10_10_20.getProjectId(), project10_10_10.getProjectId(), /*todo 1 project40.getProjectId(),*/ project30.getProjectId()));
+    check("selectedByUser:(username:user1)", project10, project10_10_20, project10_10_10, project30);
+    check("selectedByUser:(username:user1),project:(id:_Root)", project10, project30);
+    check("selectedByUser:(username:user1),project:(id:p10)");
+
+    user1.setVisibleProjects(Arrays.asList(project30.getProjectId(), project10_10_20.getProjectId(), project10_10_10.getProjectId()));
+    user1.setProjectsOrder(Arrays.asList(project30.getProjectId(), project10_10_20.getProjectId(), project10_10_10.getProjectId()));
+    check("selectedByUser:(username:user1)", project30, project10_10_20, project10_10_10);
+    check("selectedByUser:(username:user1),project:(id:_Root)", project30);
+  }
+
+  @Test
+  public void testProjectBean() throws Exception {
+    final SProject project10 = createProject("p1", "project 1");
+    final SProject project20 = createProject("p2", "project 2");
+    final SProject project10_10 = project10.createProject("p10_10", "p1_child1");
+    final SProject project10_20 = project10.createProject("p10_20", "xxx");
+    final SProject project10_10_10 = project10_10.createProject("p10_10_10", "xxx");
+    final SProject project30 = createProject(project10.getProjectId(), "p3");
+
+    final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
+      public String transform(final String path) {
+        return path;
+      }
+    });
+    final BeanFactory beanFactory = new BeanFactory(null);
+
+    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
+    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
+    final AgentFinder agentFinder = new AgentFinder(myAgentManager);
+    myFixture.addService(projectFinder);
+    myFixture.addService(new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myServer));
+
+    Project project = new Project(project10, new Fields("projects($long)"), new BeanContext(beanFactory, myServer, apiUrlBuilder));
+    assertNotNull(project.projects.projects);
+    checkOrderedCollection(CollectionsUtil.convertCollection(project.projects.projects, new Converter<String, Project>() {
+      public String createFrom(@NotNull final Project source) {
+        return source.id;
+      }
+    }), project10_10.getExternalId(), project10_20.getExternalId());
+
+    project = new Project(project10, new Fields("projects($long,$locator(name:xxx))"), new BeanContext(beanFactory, myServer, apiUrlBuilder));
+    assertNotNull(project.projects.projects);
+    checkOrderedCollection(CollectionsUtil.convertCollection(project.projects.projects, new Converter<String, Project>() {
+      public String createFrom(@NotNull final Project source) {
+        return source.id;
+      }
+    }), project10_20.getExternalId());
   }
 }
