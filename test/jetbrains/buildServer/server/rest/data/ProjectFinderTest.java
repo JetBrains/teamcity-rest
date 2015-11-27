@@ -142,6 +142,8 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
 
   @Test
   public void testUserSelectedDimension() throws Exception {
+    myFixture.getServerSettings().setPerProjectPermissionsEnabled(true);
+
     final SProject project10 = createProject("p10", "project 10");
     final SProject project20 = createProject("p20", "project 20");
     final SProject project10_10 = project10.createProject("p10_10", "p10 child1");
@@ -150,15 +152,14 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
     final SProject project10_10_20 = project10_10.createProject("p10_10_20", "p10_10 child2");
     final SProject project10_10_30 = project10_10.createProject("p10_10_30", "p10_10 child3");
     final SProject project30 = createProject(project10.getProjectId(), "project 30");
-//todo 1    final SProject project40 = createProject("p40", "project 40");
+    final SProject project40 = createProject("p40", "project 40");
 
     myFixture.addService(new UserFinder(myFixture));
 
     final SUser user2 = createUser("user2");
     user2.addRole(RoleScope.projectScope(project10.getProjectId()), getProjectViewerRole());
     //the order seems to be lexicographic in the case...
-//todo: fails in the TeamCity build
-//   check("selectedByUser:(username:user2)", project10_10, project10_10_20, project10_10_30, project10, project10_10_10, project10_20);
+    check("selectedByUser:(username:user2)", project10_10, project10_10_20, project10_10_30, project10, project10_10_10, project10_20);
 
     final SUser user1 = createUser("user1");
     user1.addRole(RoleScope.projectScope(project10.getProjectId()), getProjectViewerRole());
@@ -166,8 +167,8 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
     user1.addRole(RoleScope.projectScope(project30.getProjectId()), getProjectViewerRole());
 
 
-    user1.setVisibleProjects(Arrays.asList(project10.getProjectId(), project10_10_20.getProjectId(), project10_10_10.getProjectId(), /*todo 1 project40.getProjectId(), */project30.getProjectId()));
-    user1.setProjectsOrder(Arrays.asList(project10.getProjectId(), project10_10_20.getProjectId(), project10_10_10.getProjectId(), /*todo 1 project40.getProjectId(),*/ project30.getProjectId()));
+    user1.setVisibleProjects(Arrays.asList(project10.getProjectId(), project10_10_20.getProjectId(), project10_10_10.getProjectId(), project40.getProjectId(), project30.getProjectId()));
+    user1.setProjectsOrder(Arrays.asList(project10.getProjectId(), project10_10_20.getProjectId(), project10_10_10.getProjectId(), project40.getProjectId(), project30.getProjectId()));
     check("selectedByUser:(username:user1)", project10, project10_10_20, project10_10_10, project30);
     check("selectedByUser:(username:user1),project:(id:_Root)", project10, project30);
     check("selectedByUser:(username:user1),project:(id:p10)");
