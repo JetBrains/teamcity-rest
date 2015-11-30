@@ -123,7 +123,7 @@ public class APIController extends BaseController implements ServletContextAware
                        @NotNull final JerseyWebComponent jerseyWebComponent,
                        final AuthorizationInterceptor authorizationInterceptor,
                        @NotNull final HttpAuthenticationManager authManager,
-                       @NotNull final PluginManager pluginManager) throws ServletException {
+                       @NotNull final PluginManager pluginManager) {
     super(server);
     LOG = Logger.getInstance(APIController.class.getName() + "/" + pluginDescriptor.getPluginName());
     myWebControllerManager = webControllerManager;
@@ -183,7 +183,7 @@ public class APIController extends BaseController implements ServletContextAware
     myRequestPathTransformInfo.setPathMapping(transformBindPaths);
     LOG.debug("Will use request mapping: " + myRequestPathTransformInfo);
 
-    registerController(myWebControllerManager, originalBindPaths);
+    registerController(originalBindPaths);
 
     myClassloader = getClass().getClassLoader();
   }
@@ -256,11 +256,11 @@ public class APIController extends BaseController implements ServletContextAware
     return result;
   }
 
-  private void registerController(final WebControllerManager webControllerManager, final List<String> bindPaths) {
+  private void registerController(final List<String> bindPaths) {
     try {
       for (String controllerBindPath : bindPaths) {
         LOG.debug("Binding REST API " + getPluginIdentifyingText() + " to path '" + controllerBindPath + "'");
-        webControllerManager.registerController(controllerBindPath + "/**", this);
+        myWebControllerManager.registerController(controllerBindPath + "/**", this);
         if (myInternalAuthProcessing &&
             !controllerBindPath.equals(Constants.API_URL)) {// this is a special case as it contains paths of other plugins under it. Thus, it cannot be registered as not requiring auth
           myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + "/**");
