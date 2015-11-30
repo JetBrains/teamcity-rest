@@ -17,10 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.APIController;
@@ -40,6 +37,9 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.vcs.VcsManager;
+import jetbrains.buildServer.vcs.VcsRootInstanceEntry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -67,6 +67,8 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   protected static final String FILTER_BUILDS = "filterByBuilds";
   protected static final String SNAPSHOT_DEPENDENCY = "snapshotDependency";
   protected static final String DIMENSION_SELECTED = "selectedByUser";
+  public static final String VCS_ROOT_DIMENSION = "vcsRoot";
+  public static final String VCS_ROOT_INSTANCE_DIMENSION = "vcsRootInstance";
 
   private final ProjectFinder myProjectFinder;
   @NotNull private final AgentFinder myAgentFinder;
@@ -79,10 +81,9 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
                          @NotNull final AgentFinder agentFinder,
                          final PermissionChecker permissionChecker,
                          @NotNull final ServiceLocator serviceLocator) {
-    super(new String[]{DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, AFFECTED_PROJECT, DIMENSION_NAME, TEMPLATE_FLAG_DIMENSION_NAME, TEMPLATE_DIMENSION_NAME, PAUSED,
-      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME,
-      PagerData.START,
-      PagerData.COUNT
+    super(new String[]{DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, AFFECTED_PROJECT, DIMENSION_NAME, TEMPLATE_FLAG_DIMENSION_NAME,
+      TEMPLATE_DIMENSION_NAME, PAUSED, VCS_ROOT_DIMENSION, VCS_ROOT_INSTANCE_DIMENSION,
+      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT
     });
     myProjectManager = projectManager;
     myProjectFinder = projectFinder;
@@ -376,6 +377,36 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       });
     }
 
+    if (locator.isUnused(VCS_ROOT_DIMENSION)) {
+      final String vcsRoot = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
+      if (vcsRoot != null) {
+        final Set<SVcsRoot> vcsRoots = new HashSet<SVcsRoot>(myServiceLocator.getSingletonService(VcsRootFinder.class).getItems(vcsRoot).myEntries);
+        result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
+          public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+            for (VcsRootInstanceEntry vcsRootInstanceEntry : item.getVcsRootInstanceEntries()) {
+              if (vcsRoots.contains(vcsRootInstanceEntry.getVcsRoot().getParent())) return true;
+            }
+            return false;
+          }
+        });
+      }
+    }
+
+    if (locator.isUnused(VCS_ROOT_INSTANCE_DIMENSION)) {
+      final String vcsRootInstance = locator.getSingleDimensionValue(VCS_ROOT_INSTANCE_DIMENSION);
+      if (vcsRootInstance != null) {
+        final Set<jetbrains.buildServer.vcs.VcsRootInstance> vcsRootInstances =
+          new HashSet<jetbrains.buildServer.vcs.VcsRootInstance>(myServiceLocator.getSingletonService(VcsRootInstanceFinder.class).getItems(vcsRootInstance).myEntries);
+        result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
+          public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+            for (VcsRootInstanceEntry vcsRootInstanceEntry : item.getVcsRootInstanceEntries()) {
+              if (vcsRootInstances.contains(vcsRootInstanceEntry.getVcsRoot())) return true;
+            }
+            return false;
+          }
+        });
+      }
+    }
     return result;
   }
 
@@ -398,6 +429,33 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     if (snapshotDependencies != null) {
       final GraphFinder<BuildTypeOrTemplate> graphFinder = new GraphFinder<BuildTypeOrTemplate>(this, new SnapshotDepsTraverser(myPermissionChecker));
       return getItemHolder(graphFinder.getItems(snapshotDependencies).myEntries);
+    }
+
+    final String vcsRoot = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
+    if (vcsRoot != null) {
+      final Set<SVcsRoot> vcsRoots = new HashSet<SVcsRoot>(myServiceLocator.getSingletonService(VcsRootFinder.class).getItems(vcsRoot).myEntries);
+      final VcsManager vcsManager = myServiceLocator.getSingletonService(VcsManager.class);
+      final LinkedHashSet<BuildTypeOrTemplate> result = new LinkedHashSet<BuildTypeOrTemplate>();
+      for (SVcsRoot root : vcsRoots) {
+        //can optimize more by checking template flag here
+        result.addAll(BuildTypes.fromBuildTypes(root.getUsages().keySet()));
+        result.addAll(BuildTypes.fromTemplates(vcsManager.getAllTemplateUsages(root)));
+      }
+      //order of the result is not well defined here, might need to resort...
+      return getItemHolder(result);
+    }
+
+    final String vcsRootInstance = locator.getSingleDimensionValue(VCS_ROOT_INSTANCE_DIMENSION);
+    if (vcsRootInstance != null) {
+      final Set<jetbrains.buildServer.vcs.VcsRootInstance> vcsRootInstances =
+        new HashSet<jetbrains.buildServer.vcs.VcsRootInstance>(myServiceLocator.getSingletonService(VcsRootInstanceFinder.class).getItems(vcsRootInstance).myEntries);
+      final List<SBuildType> result = new ArrayList<SBuildType>();
+      for (jetbrains.buildServer.vcs.VcsRootInstance root : vcsRootInstances) {
+        result.addAll(root.getUsages().keySet());
+        //cannot find templates by instances
+      }
+      //order of the result is not well defined here, might need to resort...
+      return getItemHolder(BuildTypes.fromBuildTypes(result));
     }
 
     List<SProject> projects = null;

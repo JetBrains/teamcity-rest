@@ -20,12 +20,16 @@ import java.util.Arrays;
 import java.util.Collections;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
+import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
+import jetbrains.buildServer.serverSide.impl.projects.ProjectManagerImpl;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
+import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcs.impl.VcsManagerImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
@@ -46,6 +50,17 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
 
     final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
     final AgentFinder agentFinder = new AgentFinder(myAgentManager);
+
+    final VcsManagerImpl vcsManager = myFixture.getVcsManager();
+    final ProjectManagerImpl projectManager = myFixture.getProjectManager();
+    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(projectManager, projectFinder, agentFinder, permissionChecker, myServer);
+    final VcsRootFinder vcsRootFinder = new VcsRootFinder(vcsManager, projectFinder, buildTypeFinder, projectManager,
+                                                          myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class),
+                                                          permissionChecker);
+    myFixture.addService(vcsRootFinder);
+    myFixture.addService(new VcsRootInstanceFinder(vcsRootFinder, vcsManager, projectFinder, buildTypeFinder, projectManager,
+                                                   myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class),
+                                                   permissionChecker));
 
     setFinder(new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myServer));
   }
@@ -327,11 +342,77 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     result = buildTypeFinder.getBuildTypesPaged(project10, null, false);
     assertEquals(String.valueOf(result.myEntries), 1, result.myEntries.size());
   }
-  
-  private void checkBuildTypes(@Nullable final String locator, SBuildType... items) {
-    check(locator, CollectionsUtil.convertCollection(Arrays.asList(items), new Converter<BuildTypeOrTemplate, SBuildType>() {
-      public BuildTypeOrTemplate createFrom(@NotNull final SBuildType source) {
-        return new BuildTypeOrTemplate(source);
+
+  @Test
+  public void testVcsDimensions() throws Exception {
+    myBuildType.remove();
+
+    final SProject project10 = createProject("p10");
+    myFixture.registerVcsSupport("svn");
+    myFixture.registerVcsSupport("cvs");
+    final SVcsRoot vcsRoot10 = getRootProject().createVcsRoot("svn", "id10", "VCS root 10 name");
+    vcsRoot10.setProperties(CollectionsUtil.asMap("url", "", "param", "%aaa%"));
+
+    final BuildTypeTemplate template = project10.createBuildTypeTemplate("template");
+    template.addConfigParameter(new SimpleParameter("aaa", "111"));
+    template.addVcsRoot(vcsRoot10);
+
+    final SBuildType buildConf10 = project10.createBuildType("buildConf10");
+    buildConf10.attachToTemplate(template);
+
+    final SBuildType buildConf20 = project10.createBuildType("buildConf20");
+    buildConf20.attachToTemplate(template);
+    buildConf20.addConfigParameter(new SimpleParameter("aaa", "222"));
+
+    final SVcsRoot vcsRoot20 = project10.createVcsRoot("svn", "id20", "VCS root 20 name");
+    buildConf20.addVcsRoot(vcsRoot20);
+
+
+    final SBuildType buildConf30 = project10.createBuildType("buildConf30");
+    final SBuildType buildConf40 = project10.createBuildType("buildConf40");
+    final SVcsRoot vcsRoot30 = getRootProject().createVcsRoot("cvs", "id30", "VCS root 30 name");
+    buildConf40.addVcsRoot(vcsRoot30);
+
+    final SProject project10_10 = project10.createProject("p10_10", "p10_10");
+    final SBuildType buildConf50 = project10_10.createBuildType("buildConf50");
+    final SBuildType buildConf60 = project10_10.createBuildType("buildConf60");
+    buildConf50.addVcsRoot(vcsRoot20);
+    buildConf60.addVcsRoot(vcsRoot30);
+
+
+    checkBuildTypes("templateFlag:false", buildConf10, buildConf20, buildConf30, buildConf40, buildConf50, buildConf60);
+    checkBuildTypes("vcsRoot:(id:id10),templateFlag:true", template);
+    checkBuildTypes("vcsRoot:(id:id10),templateFlag:false", buildConf10, buildConf20);
+    checkBuildTypes("vcsRoot:(id:id10)", buildConf10, buildConf20, template);
+    checkBuildTypes("vcsRoot:(type:svn)", buildConf10, buildConf20, template, buildConf50);
+    checkBuildTypes("vcsRoot:(type:cvs)", buildConf40, buildConf60);
+    checkBuildTypes("vcsRoot:(type:cvs),templateFlag:true");
+    checkBuildTypes("vcsRoot:(type:svn),project:(id:" + project10_10.getExternalId() + ")", buildConf50);
+
+    final VcsRootInstance vcsRootInstance10 = buildConf10.getVcsRootInstanceForParent(vcsRoot10);
+    assert vcsRootInstance10 != null;
+
+    final VcsRootInstance vcsRootInstance10_2 = buildConf20.getVcsRootInstanceForParent(vcsRoot10);
+    assert vcsRootInstance10_2 != null;
+
+    final VcsRootInstance vcsRootInstance20 = buildConf20.getVcsRootInstanceForParent(vcsRoot20);
+    assert vcsRootInstance20 != null;
+
+    checkBuildTypes("vcsRootInstance:(id:" + vcsRootInstance10.getId() + ")", buildConf10);
+    checkBuildTypes("vcsRootInstance:(id:" + vcsRootInstance10_2.getId() + ")", buildConf20);
+    checkBuildTypes("vcsRootInstance:(id:" + vcsRootInstance20.getId() + ")", buildConf20, buildConf50);
+    checkBuildTypes("vcsRootInstance:(vcsRoot:(id:id10))", buildConf10, buildConf20);
+    checkBuildTypes("vcsRootInstance:(vcsRoot:(type:svn)),project:(id:" + project10_10.getExternalId() + ")", buildConf50);
+  }
+
+  private void checkBuildTypes(@Nullable final String locator, BuildTypeSettings... items) {
+    check(locator, CollectionsUtil.convertCollection(Arrays.asList(items), new Converter<BuildTypeOrTemplate, BuildTypeSettings>() {
+      public BuildTypeOrTemplate createFrom(@NotNull final BuildTypeSettings source) {
+        if (source instanceof SBuildType) {
+          return new BuildTypeOrTemplate((SBuildType)source);
+        } else {
+          return new BuildTypeOrTemplate((BuildTypeTemplate)source);
+        }
       }
     }).toArray(new BuildTypeOrTemplate[items.length]));
   }
