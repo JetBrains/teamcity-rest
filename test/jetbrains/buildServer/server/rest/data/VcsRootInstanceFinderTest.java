@@ -120,6 +120,7 @@ public class VcsRootInstanceFinderTest extends BaseFinderTest<VcsRootInstance> {
 
     check("vcsRoot:(id:" + vcsRoot10.getExternalId() + ")", vInstance10);
     check("vcsRoot:(id:" + vcsRoot12.getExternalId() + ")", vInstance20, vInstance50);
+    check("vcsRoot:(type:cvs)", vInstance30, vInstance90);
 
     check("type:svn", vInstance10, vInstance20, vInstance50, vInstance70, vInstance80);
     check("type:custom");

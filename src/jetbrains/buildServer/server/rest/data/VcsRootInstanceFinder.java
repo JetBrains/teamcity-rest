@@ -228,10 +228,10 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
     final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
     if (vcsRootLocator != null) {
-      final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
+      final List<SVcsRoot> vcsRoots = myVcsRootFinder.getItems(vcsRootLocator).myEntries;
       result.add(new FilterConditionChecker<VcsRootInstance>() {
         public boolean isIncluded(@NotNull final VcsRootInstance item) {
-          return vcsRoot.equals(item.getParent());
+          return vcsRoots.contains(item.getParent());
         }
       });
     }
@@ -258,18 +258,20 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   @NotNull
   @Override
   protected ItemHolder<VcsRootInstance> getPrefilteredItems(@NotNull Locator locator) {
-    final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);  //todo: support multiple selection here, see also VCS_ROOT_DIMENSION in getFilter
+    final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
     if (vcsRootLocator != null) {
-      final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
-      final HashSet<VcsRootInstance> result = new HashSet<VcsRootInstance>();
-      for (SBuildType buildType : vcsRoot.getUsages().keySet()) {
-        final VcsRootInstance rootInstance = buildType.getVcsRootInstanceForParent(vcsRoot);
-        if (rootInstance != null) {
-          try {
-            checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance); //this can actually be dropped as it is checked in filter
-            result.add(rootInstance); //todo: need to sort?
-          } catch (Exception e) {
-            //ignore
+      final List<SVcsRoot> vcsRoots = myVcsRootFinder.getItems(vcsRootLocator).myEntries;
+      final Set<VcsRootInstance> result = new LinkedHashSet<VcsRootInstance>();
+      for (SVcsRoot vcsRoot : vcsRoots) {
+        for (SBuildType buildType : vcsRoot.getUsages().keySet()) {
+          final VcsRootInstance rootInstance = buildType.getVcsRootInstanceForParent(vcsRoot);
+          if (rootInstance != null) {
+            try {
+              checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance); //this can actually be dropped as it is checked in filter
+              result.add(rootInstance); //todo: need to sort?
+            } catch (Exception e) {
+              //ignore
+            }
           }
         }
       }
