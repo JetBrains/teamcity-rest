@@ -25,7 +25,6 @@ import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
@@ -84,11 +83,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected static final String FINISHED_TIME = "finishDate";
 
   protected static final String DEFAULT_FILTERING = "defaultFilter";
+  protected static final String SINCE_BUILD_ID_LOOK_AHEAD_COUNT = "sinceBuildIdLookAheadCount";  /*experimental*/
 
   public static final String BY_PROMOTION = "byPromotion";  //used in BuildFinder
   public static final String EQUIVALENT = "equivalent"; /*experimental*/
-  public static final String REVISION = "revision"; /*experimental*/
 
+  public static final String REVISION = "revision"; /*experimental*/
   public static final BuildPromotionComparator BUILD_PROMOTIONS_COMPARATOR = new BuildPromotionComparator();
   public static final SnapshotDepsTraverser SNAPSHOT_DEPENDENCIES_TRAVERSER = new SnapshotDepsTraverser();
 
@@ -116,8 +116,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                               final AgentFinder agentFinder) {
     super(new String[]{DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, USER, PERSONAL, STATE, TAG, PROPERTY, COMPATIBLE_AGENT,
       NUMBER, STATUS, CANCELED, PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP,
-      DEFAULT_FILTERING,
-      DIMENSION_LOOKUP_LIMIT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
+      DEFAULT_FILTERING, SINCE_BUILD_ID_LOOK_AHEAD_COUNT,
+      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myBuildPromotionManager = buildPromotionManager;
     myBuildQueue = buildQueue;
     myBuildsManager = buildsManager;
@@ -126,6 +126,20 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     myBuildTypeFinder = buildTypeFinder;
     myUserFinder = userFinder;
     myAgentFinder = agentFinder;
+  }
+
+  @Override
+  public Long getDefaultPageItemsCount() {
+    return (long)Constants.getDefaultPageItemsCount();
+  }
+
+  @Override
+  public Long getDefaultLookupLimit() {
+    final long defaultLookupLimit = TeamCityProperties.getLong("rest.request.builds.defaultLookupLimit");
+    if (defaultLookupLimit != 0) {
+      return defaultLookupLimit;
+    }
+    return null;
   }
 
   @NotNull
@@ -137,6 +151,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     result.addHiddenDimensions(COMPATIBLE_AGENTS_COUNT); //experimental for queued builds only
     result.addHiddenDimensions(EQUIVALENT, REVISION, PROMOTION_ID_ALIAS, BUILD_ID);
     result.addHiddenDimensions(STATISTIC_VALUE); //experimental
+    result.addHiddenDimensions(SINCE_BUILD_ID_LOOK_AHEAD_COUNT); //experimental
     return result;
   }
 
@@ -207,16 +222,9 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   @NotNull
   @Override
-  protected AbstractFilter<BuildPromotion> getFilter(final Locator locator) {
+  protected ItemFilter<BuildPromotion> getFilter(final Locator locator) {
 
-    Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    if (countFromFilter == null) {
-      //limiting to 100 builds by default
-      countFromFilter = (long)Constants.getDefaultPageItemsCount();
-    }
-    final Long lookupLimit = locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT);
-    final MultiCheckerFilter<BuildPromotion> result =
-      new MultiCheckerFilter<BuildPromotion>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter.intValue(), lookupLimit);
+    final MultiCheckerFilter<BuildPromotion> result = new MultiCheckerFilter<BuildPromotion>();
 
     Locator stateLocator = getStateLocator(locator);
 
@@ -539,6 +547,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     });
 
+    //todo: add processing cut of based on assumption of max build time (say, a week); for other times as well
     processTimeCondition(FINISHED_TIME, locator, result, new TimeCondition.ValueExtractor<BuildPromotion, Date>() {
       @Nullable
       public Date get(@NotNull final BuildPromotion buildPromotion) {
@@ -622,10 +631,10 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
-    return getFilterWithProcessingCutOff(result, lookupLimit, sinceBuildPromotion, sinceBuildId, sinceStartDate);
+    return getFilterWithProcessingCutOff(result, locator.getSingleDimensionValueAsLong(SINCE_BUILD_ID_LOOK_AHEAD_COUNT), sinceBuildPromotion, sinceBuildId, sinceStartDate);
   }
 
-  private AbstractFilter<BuildPromotion> getFilterWithProcessingCutOff(@NotNull final MultiCheckerFilter<BuildPromotion> result,
+  private ItemFilter<BuildPromotion> getFilterWithProcessingCutOff(@NotNull final MultiCheckerFilter<BuildPromotion> result,
                                                                        @Nullable final Long lookupLimit,
                                                                        @Nullable final BuildPromotion sinceBuildPromotion,
                                                                        @Nullable Long sinceBuildId,
@@ -646,12 +655,15 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     final long lookAheadCount = lookupLimit != null ? lookupLimit : TeamCityProperties.getLong("rest.request.builds.sinceBuildIdLookAheadCount", 50);
     final Long sinceBuildIdFinal = sinceBuildId;
     final Date sinceStartDateFinal = sinceStartDate;
-    return new ProxyFilter<BuildPromotion>(result) {
+    return new ItemFilter<BuildPromotion>() {
       private long currentLookAheadCount = 0;
 
-      @Override
-      public boolean shouldStop(final BuildPromotion item) {
-        if (super.shouldStop(item)) return true;
+      public boolean isIncluded(@NotNull final BuildPromotion item) {
+        return result.isIncluded(item);
+      }
+
+      public boolean shouldStop(@NotNull final BuildPromotion item) {
+        if (result.shouldStop(item)) return true;
         final SBuild build = item.getAssociatedBuild();
         if (build == null || !build.isFinished()) return false; //do not stop while processing queued and running builds
         if (sinceStartDateFinal != null && sinceStartDateFinal.after(build.getStartDate())) return true;
@@ -737,7 +749,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   @NotNull
   private MultiCheckerFilter<SBuild> getBuildFilter(@NotNull final Locator locator) {
-    final MultiCheckerFilter<SBuild> result = new MultiCheckerFilter<SBuild>(null, null, null);
+    final MultiCheckerFilter<SBuild> result = new MultiCheckerFilter<SBuild>();
 
     final String buildNumber = locator.getSingleDimensionValue(NUMBER);
     if (buildNumber != null) {
@@ -1057,10 +1069,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
       locator.setDimensionIfNotPresent(FAILED_TO_START, "false");
       locator.setDimensionIfNotPresent(BRANCH, BranchMatcher.getDefaultBranchLocator());
-    }
-    final long defaultLookupLimit = TeamCityProperties.getLong("rest.request.builds.defaultLookupLimit");
-    if (defaultLookupLimit != 0) {
-      locator.setDimensionIfNotPresent(DIMENSION_LOOKUP_LIMIT, String.valueOf(defaultLookupLimit));
     }
   }
 

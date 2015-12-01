@@ -21,7 +21,6 @@ import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
@@ -63,14 +62,18 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
                               final @NotNull ProjectFinder projectFinder,
                               final @NotNull BuildHistoryEx buildHistory,
                               final @NotNull CurrentProblemsManager currentProblemsManager) {
-    super(new String[]{DIMENSION_ID, TEST, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED, PagerData.START,
-      PagerData.COUNT, DIMENSION_LOOKUP_LIMIT});
+    super(new String[]{DIMENSION_ID, TEST, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED});
     myTestFinder = testFinder;
     myBuildFinder = buildFinder;
     myBuildTypeFinder = buildTypeFinder;
     myProjectFinder = projectFinder;
     myBuildHistory = buildHistory;
     myCurrentProblemsManager = currentProblemsManager;
+  }
+
+  @Override
+  public Long getDefaultPageItemsCount() {
+    return (long)Constants.getDefaultPageItemsCount();
   }
 
   public static String getTestRunLocator(final @NotNull STestRun testRun) {
@@ -84,17 +87,6 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   public static String getTestRunLocator(final @NotNull SBuild build) {
     return Locator.createEmptyLocator().setDimension(BUILD, BuildRequest.getBuildLocator(build)).getStringRepresentation();
-  }
-
-  @Nullable
-  @Override
-  public Locator getLocatorOrNull(@Nullable final String locatorText) {
-    final Locator locator = super.getLocatorOrNull(locatorText);
-    if (locator != null && !locator.isSingleValue()){
-      locator.setDimensionIfNotPresent(PagerData.COUNT, String.valueOf(Constants.getDefaultPageItemsCount()));
-      locator.addIgnoreUnusedDimensions(PagerData.COUNT);
-    }
-    return locator;
   }
 
   @Override
@@ -242,15 +234,12 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   @Override
-  protected AbstractFilter<STestRun> getFilter(final Locator locator) {
+  protected ItemFilter<STestRun> getFilter(final Locator locator) {
     if (locator.isSingleValue()) {
       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }
 
-    final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    final MultiCheckerFilter<STestRun> result = new MultiCheckerFilter<STestRun>(locator.getSingleDimensionValueAsLong(PagerData.START),
-                                                                                 countFromFilter != null ? countFromFilter.intValue() : null,
-                                                                                 locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT));
+    final MultiCheckerFilter<STestRun> result = new MultiCheckerFilter<STestRun>();
 
 
     final String statusDimension = locator.getSingleDimensionValue(STATUS);

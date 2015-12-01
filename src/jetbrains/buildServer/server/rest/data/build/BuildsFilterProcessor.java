@@ -20,13 +20,15 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import jetbrains.buildServer.server.rest.data.AbstractFilter;
 import jetbrains.buildServer.server.rest.data.FilterItemProcessor;
+import jetbrains.buildServer.server.rest.data.ItemFilter;
+import jetbrains.buildServer.server.rest.data.PagingItemFilter;
 import jetbrains.buildServer.serverSide.BuildHistory;
 import jetbrains.buildServer.serverSide.RunningBuildsManager;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SRunningBuild;
 import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.util.ItemProcessor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,7 +45,7 @@ public class BuildsFilterProcessor {
     }
 
     final FilterItemProcessor<SFinishedBuild> buildsFilterItemProcessor =
-      new FilterItemProcessor<SFinishedBuild>(new FinishedBuildsFilter(buildsFilter));
+      new FilterItemProcessor<SFinishedBuild>(new PagingItemFilter<SFinishedBuild>(new FinishedBuildsFilter(buildsFilter), buildsFilter.getStart(), buildsFilter.getCount(), null));
     if (buildsFilter.getBuildType() != null) {
       //noinspection ConstantConditions
       buildHistory.processEntries(buildsFilter.getBuildType().getBuildTypeId(),
@@ -63,8 +65,8 @@ public class BuildsFilterProcessor {
   public static List<SRunningBuild> getMatchingRunningBuilds(@NotNull final BuildsFilter buildsFilter,
                                                              @NotNull final RunningBuildsManager runningBuildsManager) {
     final FilterItemProcessor<SRunningBuild> buildsFilterItemProcessor =
-      new FilterItemProcessor<SRunningBuild>(new RunningBuildsFilter(buildsFilter));
-    AbstractFilter.processList(runningBuildsManager.getRunningBuilds(), buildsFilterItemProcessor);
+      new FilterItemProcessor<SRunningBuild>(new PagingItemFilter<SRunningBuild>(new RunningBuildsFilter(buildsFilter), buildsFilter.getStart(), buildsFilter.getCount(), null));
+    processList(runningBuildsManager.getRunningBuilds(), buildsFilterItemProcessor);
     return buildsFilterItemProcessor.getResult();
   }
 
@@ -76,25 +78,30 @@ public class BuildsFilterProcessor {
     return null;
   }
 
+  public static <P> void processList(final List<P> entries, final ItemProcessor<P> processor) {
+    for (P entry : entries) {
+      if (!processor.processItem(entry)) {
+        break;
+      }
+    }
+  }
+
   //todo: just use AbstractFilter
-  private static class FinishedBuildsFilter extends AbstractFilter<SFinishedBuild> {
+  private static class FinishedBuildsFilter implements ItemFilter<SFinishedBuild> {
     private int processedItems;
     @NotNull private final BuildsFilter myBuildsFilter;
 
     public FinishedBuildsFilter(@NotNull final BuildsFilter buildsFilter) {
-      super(buildsFilter.getStart(), buildsFilter.getCount(), null);
       processedItems = 0;
       myBuildsFilter = buildsFilter;
     }
 
-    @Override
-    protected boolean isIncluded(@NotNull final SFinishedBuild item) {
+    public boolean isIncluded(@NotNull final SFinishedBuild item) {
       ++processedItems;
       return myBuildsFilter.isIncluded(item);
     }
 
-    @Override
-    public boolean shouldStop(final SFinishedBuild item) {
+    public boolean shouldStop(@NotNull final SFinishedBuild item) {
       if (myBuildsFilter.getLookupLimit() != null && processedItems >= myBuildsFilter.getLookupLimit()){
         return true;
       }
@@ -103,17 +110,19 @@ public class BuildsFilterProcessor {
     }
   }
 
-  private static class RunningBuildsFilter extends AbstractFilter<SRunningBuild> {
+  private static class RunningBuildsFilter implements ItemFilter<SRunningBuild> {
     @NotNull private final BuildsFilter myBuildsFilter;
 
     public RunningBuildsFilter(@NotNull final BuildsFilter buildsFilter) {
-      super(buildsFilter.getStart(), buildsFilter.getCount(), null);
       this.myBuildsFilter = buildsFilter;
     }
 
-    @Override
-    protected boolean isIncluded(@NotNull final SRunningBuild item) {
+    public boolean isIncluded(@NotNull final SRunningBuild item) {
       return myBuildsFilter.isIncluded(item);
+    }
+
+    public boolean shouldStop(@NotNull final SRunningBuild item) {
+      return false;
     }
   }
 }

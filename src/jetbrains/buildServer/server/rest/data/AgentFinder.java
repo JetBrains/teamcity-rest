@@ -21,7 +21,6 @@ import java.util.List;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.serverSide.BuildAgentManager;
 import jetbrains.buildServer.serverSide.BuildAgentManagerEx;
@@ -46,7 +45,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   @NotNull private final BuildAgentManager myAgentManager;
 
   public AgentFinder(final @NotNull BuildAgentManager agentManager) {
-    super(new String[]{DIMENSION_ID, NAME, CONNECTED, AUTHORIZED, ENABLED, PARAMETER, IP, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
+    super(new String[]{DIMENSION_ID, NAME, CONNECTED, AUTHORIZED, ENABLED, PARAMETER, IP, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myAgentManager = agentManager;
   }
 
@@ -56,6 +55,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     final Locator result = super.createLocator(locatorText, locatorDefaults);
     result.addHiddenDimensions(PROTOCOL);    //hide this for now
     result.addHiddenDimensions(DEFAULT_FILTERING);
+    result.addHiddenDimensions(DIMENSION_LOOKUP_LIMIT);
     return result;
   }
 
@@ -101,14 +101,12 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
 
   @NotNull
   @Override
-  protected AbstractFilter<SBuildAgent> getFilter(final Locator locator) {
+  protected ItemFilter<SBuildAgent> getFilter(final Locator locator) {
     if (locator.isSingleValue()) {
       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }
 
-    final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    final MultiCheckerFilter<SBuildAgent> result =
-      new MultiCheckerFilter<SBuildAgent>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
+    final MultiCheckerFilter<SBuildAgent> result = new MultiCheckerFilter<SBuildAgent>();
 
 
     final Boolean authorizedDimension = locator.getSingleDimensionValueAsBoolean(AUTHORIZED);

@@ -30,6 +30,7 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.ItemProcessor;
 import jetbrains.buildServer.util.StringUtil;
+import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -49,9 +50,18 @@ public abstract class AbstractFinder<ITEM> {
 
   private final String[] myKnownDimensions;
 
-  public AbstractFinder(final String[] knownDimensions) {
-    myKnownDimensions = new String[knownDimensions.length];
-    System.arraycopy(knownDimensions, 0, myKnownDimensions, 0, knownDimensions.length);
+  public AbstractFinder(@NotNull final String[] knownDimensions) {
+    myKnownDimensions = ArrayUtils.addAll(knownDimensions, PagerData.START, PagerData.COUNT, DIMENSION_LOOKUP_LIMIT);
+  }
+
+  @Nullable
+  public Long getDefaultPageItemsCount() {
+    return null;
+  }
+
+  @Nullable
+  public Long getDefaultLookupLimit() {
+    return null;
   }
 
   @NotNull
@@ -124,7 +134,7 @@ public abstract class AbstractFinder<ITEM> {
 
         final Set<String> unusedDimensions = locator.getUnusedDimensions();
         if (!unusedDimensions.isEmpty()) {
-          AbstractFilter<ITEM> filter = getFilter(locator);
+          ItemFilter<ITEM> filter = getFilter(locator);
           locator.checkLocatorFullyProcessed();
           if (!filter.isIncluded(singleItem)) {
             if (multipleItemsQuery) {
@@ -146,13 +156,20 @@ public abstract class AbstractFinder<ITEM> {
 
     //it is important to call "getPrefilteredItems" first as that process some of the dimensions which  "getFilter" can then ignore for performance reasons
     final ItemHolder<ITEM> unfilteredItems = getPrefilteredItems(locator);
-    AbstractFilter<ITEM> filter = getFilter(locator);
+    final ItemFilter<ITEM> filter = getFilter(locator);
+
+    final Long start = locator.getSingleDimensionValueAsLong(PagerData.START);
+    final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT, getDefaultPageItemsCount());
+    final Long lookupLimit = locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT, getDefaultLookupLimit());
+
+    final PagingItemFilter<ITEM> pagingFilter = new PagingItemFilter<ITEM>(filter, start, countFromFilter == null ? null : countFromFilter.intValue(), lookupLimit);
+
     locator.checkLocatorFullyProcessed();
-    return getItems(filter, unfilteredItems, locator);
+    return getItems(pagingFilter, unfilteredItems, locator);
   }
 
   @NotNull
-  protected PagedSearchResult<ITEM> getItems(final @NotNull AbstractFilter<ITEM> filter, final @NotNull ItemHolder<ITEM> unfilteredItems, @NotNull final Locator locator) {
+  protected PagedSearchResult<ITEM> getItems(final @NotNull PagingItemFilter<ITEM> filter, final @NotNull ItemHolder<ITEM> unfilteredItems, @NotNull final Locator locator) {
     final long startTime = System.nanoTime();
     final FilterItemProcessor<ITEM> filterItemProcessor = new FilterItemProcessor<ITEM>(filter);
     unfilteredItems.process(filterItemProcessor);
@@ -228,7 +245,7 @@ public abstract class AbstractFinder<ITEM> {
   public abstract ItemHolder<ITEM> getAllItems();
 
   @NotNull
-  protected abstract AbstractFilter<ITEM> getFilter(final Locator locator);
+  protected abstract ItemFilter<ITEM> getFilter(final Locator locator);
 
   public String[] getKnownDimensions() {
     return myKnownDimensions;

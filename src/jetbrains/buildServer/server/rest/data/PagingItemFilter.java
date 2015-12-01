@@ -16,8 +16,6 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import java.util.List;
-import jetbrains.buildServer.util.ItemProcessor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -25,14 +23,16 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 09.09.2009
  */
-public abstract class AbstractFilter<T> {
+public class PagingItemFilter<T> implements ItemFilter<T> {
+  @NotNull private final ItemFilter<T> myFilter;
   @Nullable protected final Long myStart;
   @Nullable protected final Integer myCount;
   @Nullable private final Long myLookupLimit;
   private final long myActualStart;
   private boolean myLookupLimitReached = false;
 
-  public AbstractFilter(@Nullable final Long start, @Nullable final Integer count, @Nullable final Long lookupLimit) {
+  public PagingItemFilter(@NotNull final ItemFilter<T> filter, @Nullable final Long start, @Nullable final Integer count, @Nullable final Long lookupLimit) {
+    myFilter = filter;
     myStart = start;
     myCount = count;
     myLookupLimit = lookupLimit;
@@ -40,11 +40,11 @@ public abstract class AbstractFilter<T> {
     myActualStart = myStart == null ? 0 : myStart;
   }
 
-  protected boolean isIncludedByRange(final long matchedItemsIndex) {
+  public boolean isIncludedByRange(final long matchedItemsIndex) {
     return (matchedItemsIndex >= myActualStart) && (myCount == null || matchedItemsIndex < myActualStart + myCount);
   }
 
-  protected boolean isBelowUpperRangeLimit(final long matchedItemsIndex, final long processedItemsIndex) {
+  public boolean isBelowUpperRangeLimit(final long matchedItemsIndex, final long processedItemsIndex) {
     if (myCount != null && matchedItemsIndex >= myActualStart + myCount) return false;
     //noinspection RedundantIfStatement
     if (myLookupLimit != null && processedItemsIndex >= myLookupLimit) {
@@ -54,20 +54,14 @@ public abstract class AbstractFilter<T> {
     return true;
   }
 
-
-  protected abstract boolean isIncluded(@NotNull final T item);
-
-  public static <P> void processList(final List<P> entries, final ItemProcessor<P> processor) {
-    for (P entry : entries) {
-      if (!processor.processItem(entry)){
-        break;
+  public boolean isIncluded(@NotNull final T item) {
+    return myFilter.isIncluded(item);
       }
-    }
+
+  public boolean shouldStop(@NotNull final T item) {
+    return myFilter.shouldStop(item);
   }
 
-  public boolean shouldStop(final T item) {
-    return false;
-  }
 
   @Nullable
   public Long getStart() {

@@ -26,10 +26,10 @@ import jetbrains.buildServer.util.ItemProcessor;
 public class FilterItemProcessor<T> implements ItemProcessor<T> {
   private long myCurrentIndex = 0;
   private long myTotalItemsProcessed = 0;
-  private final AbstractFilter<T> myFilter;
+  private final PagingItemFilter<T> myFilter;
   private final ArrayList<T> myList = new ArrayList<T>();
 
-  public FilterItemProcessor(final AbstractFilter<T> filter) {
+  public FilterItemProcessor(final PagingItemFilter<T> filter) {
     myFilter = filter;
   }
 

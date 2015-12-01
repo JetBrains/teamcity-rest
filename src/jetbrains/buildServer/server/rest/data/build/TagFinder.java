@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import jetbrains.buildServer.server.rest.data.*;
-import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.TagData;
 import jetbrains.buildServer.users.SUser;
@@ -58,7 +57,7 @@ public class TagFinder extends AbstractFinder<TagData> {
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator locator = super.createLocator(locatorText, locatorDefaults);
     locator.addHiddenDimensions(Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, CONDITION); //experimental
-    locator.addHiddenDimensions(PagerData.START, PagerData.COUNT);
+    locator.addHiddenDimensions(DIMENSION_LOOKUP_LIMIT);
     return locator;
   }
 
@@ -92,10 +91,10 @@ public class TagFinder extends AbstractFinder<TagData> {
 
   @NotNull
   @Override
-  protected AbstractFilter<TagData> getFilter(final Locator locator) {
+  protected ItemFilter<TagData> getFilter(final Locator locator) {
     if (locator.isSingleValue()) {
       final String singleValue = locator.getSingleValue();
-      final MultiCheckerFilter<TagData> result = new MultiCheckerFilter<TagData>(null, null, null);
+      final MultiCheckerFilter<TagData> result = new MultiCheckerFilter<TagData>();
       result.add(new FilterConditionChecker<TagData>() {
         public boolean isIncluded(@NotNull final TagData item) {
           return item.isPublic() && item.getLabel().equals(singleValue);
@@ -104,9 +103,7 @@ public class TagFinder extends AbstractFinder<TagData> {
       return result;
     }
 
-    final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    final MultiCheckerFilter<TagData> result =
-      new MultiCheckerFilter<TagData>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
+    final MultiCheckerFilter<TagData> result = new MultiCheckerFilter<TagData>();
 
     final String nameDimension = locator.getSingleDimensionValue(NAME);
     if (nameDimension != null) {

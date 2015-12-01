@@ -20,7 +20,6 @@ import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
@@ -54,8 +53,8 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
                        final @NotNull ProjectManager projectManager,
                        final @NotNull ServiceLocator serviceLocator,
                        final @NotNull ProblemMutingService problemMutingService) {
-    super(new String[]{DIMENSION_ID, IDENTITY, TYPE, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED, PagerData.START, PagerData.COUNT,
-      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, DIMENSION_LOOKUP_LIMIT});
+    super(new String[]{DIMENSION_ID, IDENTITY, TYPE, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED,
+      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myProjectFinder = projectFinder;
     myBuildProblemManager = buildProblemManager;
     myProjectManager = projectManager;
@@ -137,15 +136,12 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
 
   @NotNull
   @Override
-  protected AbstractFilter<ProblemWrapper> getFilter(final Locator locator) {
+  protected ItemFilter<ProblemWrapper> getFilter(final Locator locator) {
     if (locator.isSingleValue()) {
       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }
 
-    final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    final MultiCheckerFilter<ProblemWrapper> result = new MultiCheckerFilter<ProblemWrapper>(locator.getSingleDimensionValueAsLong(PagerData.START),
-                                                                                             countFromFilter != null ? countFromFilter.intValue() : null,
-                                                                                             locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT));
+    final MultiCheckerFilter<ProblemWrapper> result = new MultiCheckerFilter<ProblemWrapper>();
 
     final String identityDimension = locator.getSingleDimensionValue(IDENTITY);
     if (identityDimension != null) {

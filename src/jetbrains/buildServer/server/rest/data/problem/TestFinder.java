@@ -23,7 +23,6 @@ import java.util.Map;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
@@ -53,8 +52,8 @@ public class TestFinder extends AbstractFinder<STest> {
                     final @NotNull TestName2IndexImpl testName2Index,
                     final @NotNull CurrentProblemsManager currentProblemsManager,
                     final @NotNull ProblemMutingService problemMutingService) {
-    super(new String[]{DIMENSION_ID, NAME, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED, PagerData.START, PagerData.COUNT,
-      DIMENSION_LOOKUP_LIMIT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+    super(new String[]{DIMENSION_ID, NAME, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED,
+      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myTestManager = testManager;
     myProjectFinder = projectFinder;
     myTestName2Index = testName2Index;
@@ -164,15 +163,12 @@ public class TestFinder extends AbstractFinder<STest> {
   }
 
   @Override
-  protected AbstractFilter<STest> getFilter(final Locator locator) {
+  protected ItemFilter<STest> getFilter(final Locator locator) {
     if (locator.isSingleValue()) {
       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }
 
-    final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    final MultiCheckerFilter<STest> result = new MultiCheckerFilter<STest>(locator.getSingleDimensionValueAsLong(PagerData.START),
-                                                                           countFromFilter != null ? countFromFilter.intValue() : null,
-                                                                           locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT));
+    final MultiCheckerFilter<STest> result = new MultiCheckerFilter<STest>();
 
     final String nameDimension = locator.getSingleDimensionValue(NAME);
     if (nameDimension != null) {

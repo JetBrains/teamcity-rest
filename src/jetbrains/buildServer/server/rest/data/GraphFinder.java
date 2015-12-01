@@ -17,7 +17,6 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.*;
-import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.util.CollectionsUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -36,7 +35,7 @@ public class GraphFinder<T> extends AbstractFinder<T> {
   private final Traverser<T> myTraverser;
 
   public GraphFinder(@NotNull AbstractFinder<T> finder, Traverser<T> traverser) {
-    super(new String[]{DIMENSION_FROM, DIMENSION_TO, DIMENSION_RECURSIVE, DIMENSION_INCLUDE_INITIAL, DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT});
+    super(new String[]{DIMENSION_FROM, DIMENSION_TO, DIMENSION_RECURSIVE, DIMENSION_INCLUDE_INITIAL});
     myFinder = finder;
     myTraverser = traverser;
   }
@@ -49,10 +48,8 @@ public class GraphFinder<T> extends AbstractFinder<T> {
 
   @NotNull
   @Override
-  protected AbstractFilter<T> getFilter(final Locator locator) {
-    Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    return new MultiCheckerFilter<T>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter == null ? null : countFromFilter.intValue(),
-                                     locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT));
+  protected ItemFilter<T> getFilter(final Locator locator) {
+    return new MultiCheckerFilter<T>();
   }
 
   @NotNull

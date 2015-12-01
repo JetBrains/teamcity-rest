@@ -23,7 +23,6 @@ import java.util.List;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.RemoteBuildType;
 import jetbrains.buildServer.serverSide.userChanges.UserChangesFacade;
@@ -85,7 +84,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
                       @NotNull final VcsModificationHistory vcsModificationHistory,
                       @NotNull final ServiceLocator serviceLocator) {
     super(new String[]{DIMENSION_ID, PROJECT, BUILD_TYPE, BUILD, VCS_ROOT, VCS_ROOT_INSTANCE, USERNAME, USER, VERSION, INTERNAL_VERSION, COMMENT, FILE,
-      SINCE_CHANGE, DIMENSION_LOOKUP_LIMIT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
+      SINCE_CHANGE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myDataProvider = dataProvider;
     myProjectFinder = projectFinder;
     myBuildFinder = buildFinder;
@@ -103,7 +102,8 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   @Override
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(BRANCH, PERSONAL, PENDING, DIMENSION_LOOKUP_LIMIT, CHILD_CHANGE, PARENT_CHANGE, PROMOTION); //hide these for now
+    result.addHiddenDimensions(BRANCH, PERSONAL, PENDING, CHILD_CHANGE, PARENT_CHANGE, PROMOTION); //hide these for now
+    result.addHiddenDimensions(DIMENSION_LOOKUP_LIMIT); //not supported in fact
     return result;
   }
 
@@ -154,15 +154,12 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
   @NotNull
   @Override
-  protected AbstractFilter<SVcsModification> getFilter(final Locator locator) {
+  protected ItemFilter<SVcsModification> getFilter(final Locator locator) {
     if (locator.isSingleValue()) {
       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }
 
-    final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    final MultiCheckerFilter<SVcsModification> result = new MultiCheckerFilter<SVcsModification>(locator.getSingleDimensionValueAsLong(PagerData.START),
-                                                                                                 countFromFilter != null ? countFromFilter.intValue() : null,
-                                                                                                 locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT));
+    final MultiCheckerFilter<SVcsModification> result = new MultiCheckerFilter<SVcsModification>();
 
     //myBuildType, myProject and myBranchName are handled on getting initial collection to filter
 

@@ -23,7 +23,6 @@ import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
@@ -72,13 +71,18 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
                                final @NotNull PermissionChecker permissionChecker) {
     super(new String[]{DIMENSION_ID, TYPE, PROJECT, AFFECTED_PROJECT, PROPERTY, REPOSITORY_ID_STRING,
       BUILD_TYPE, VCS_ROOT_DIMENSION,
-      DIMENSION_LOOKUP_LIMIT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
+      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myVcsRootFinder = vcsRootFinder;
     myVcsManager = vcsManager;
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;
     myProjectManager = projectManager;
     myPermissionChecker = permissionChecker;
+  }
+
+  @Override
+  public Long getDefaultPageItemsCount() {
+    return (long)Constants.getDefaultPageItemsCount();
   }
 
   @NotNull
@@ -151,15 +155,9 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
   @NotNull
   @Override
-  protected AbstractFilter<VcsRootInstance> getFilter(final Locator locator) {
+  protected ItemFilter<VcsRootInstance> getFilter(final Locator locator) {
 
-    Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    if (countFromFilter == null) {
-      countFromFilter = (long)Constants.getDefaultPageItemsCount();
-    }
-    final Long lookupLimit = locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT);
-    final MultiCheckerFilter<VcsRootInstance> result =
-      new MultiCheckerFilter<VcsRootInstance>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter.intValue(), lookupLimit);
+    final MultiCheckerFilter<VcsRootInstance> result = new MultiCheckerFilter<VcsRootInstance>();
 
     result.add(new FilterConditionChecker<VcsRootInstance>() {
       public boolean isIncluded(@NotNull final VcsRootInstance item) {

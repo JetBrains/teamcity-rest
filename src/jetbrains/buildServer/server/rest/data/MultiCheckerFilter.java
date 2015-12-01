@@ -19,17 +19,15 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.ArrayList;
 import java.util.List;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
  *         Date: 09.09.2009
  */
-public class MultiCheckerFilter<T> extends AbstractFilter<T> {
+public class MultiCheckerFilter<T> implements ItemFilter<T> {
   @NotNull private final List<FilterConditionChecker<T>> myCheckers;
 
-  public MultiCheckerFilter(@Nullable final Long start, @Nullable final Integer count, @Nullable final Long lookupLimit) {
-    super(start, count, lookupLimit);
+  public MultiCheckerFilter() {
     myCheckers = new ArrayList<FilterConditionChecker<T>>();
   }
 
@@ -42,13 +40,16 @@ public class MultiCheckerFilter<T> extends AbstractFilter<T> {
     return myCheckers.size();
   }
 
-  @Override
-  protected boolean isIncluded(@NotNull T item) {
+  public boolean isIncluded(@NotNull T item) {
     for (FilterConditionChecker<T> checker : myCheckers) {
       if (!checker.isIncluded(item)) {
         return false;
       }
     }
     return true;
+  }
+
+  public boolean shouldStop(@NotNull final T item) {
+    return false;
   }
 }

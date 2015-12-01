@@ -31,7 +31,6 @@ import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.STest;
@@ -75,8 +74,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
                              final BuildTypeResponsibilityFacade buildTypeResponsibilityFacade,
                              final TestNameResponsibilityFacade testNameResponsibilityFacade,
                              final BuildProblemResponsibilityFacade buildProblemResponsibilityFacade) {
-    super(new String[]{ASSIGNEE, REPORTER, TYPE, STATE, SINCE_DATE, ASSIGNMENT_PROJECT, AFFECTED_PROJECT, BUILD_TYPE, TEST_DIMENSION, PROBLEM_DIMENSION, DIMENSION_LOOKUP_LIMIT,
-      PagerData.START, PagerData.COUNT});
+    super(new String[]{ASSIGNEE, REPORTER, TYPE, STATE, SINCE_DATE, ASSIGNMENT_PROJECT, AFFECTED_PROJECT, BUILD_TYPE, TEST_DIMENSION, PROBLEM_DIMENSION});
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;
     myProblemFinder = problemFinder;
@@ -135,16 +133,14 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     return getItemHolder(getInvestigationWrappersForProjectWithSubprojects(myProjectFinder.getRootProject(), null));
   }
 
+  @NotNull
   @Override
-  protected AbstractFilter<InvestigationWrapper> getFilter(final Locator locator) {
+  protected ItemFilter<InvestigationWrapper> getFilter(final Locator locator) {
     if (locator.isSingleValue()) {
       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }
 
-    final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    final MultiCheckerFilter<InvestigationWrapper> result = new MultiCheckerFilter<InvestigationWrapper>(locator.getSingleDimensionValueAsLong(PagerData.START),
-                                                                                                         countFromFilter != null ? countFromFilter.intValue() : null,
-                                                                                                         locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT));
+    final MultiCheckerFilter<InvestigationWrapper> result = new MultiCheckerFilter<InvestigationWrapper>();
 
     final String investigatorDimension = locator.getSingleDimensionValue(ASSIGNEE);
     if (investigatorDimension != null) {

@@ -24,6 +24,7 @@ import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -401,9 +402,15 @@ public class Locator {
 
   @Nullable
   public Long getSingleDimensionValueAsLong(@NotNull final String dimensionName) {
+    return getSingleDimensionValueAsLong(dimensionName, null);
+  }
+
+  @Nullable
+  @Contract("_, !null -> !null")
+  public Long getSingleDimensionValueAsLong(@NotNull final String dimensionName, @Nullable Long defaultValue) {
     final String value = getSingleDimensionValue(dimensionName);
     if (value == null) {
-      return null;
+      return defaultValue;
     }
     try {
       return Long.parseLong(value);
@@ -635,7 +642,7 @@ public class Locator {
     return result;
   }
 
-  public static String setDimension(@NotNull final String locator, @NotNull final String dimensionName, final long value) {
+  public static String setDimension(@Nullable final String locator, @NotNull final String dimensionName, final long value) {
     return setDimension(locator, dimensionName, String.valueOf(value));
   }
 

@@ -25,7 +25,6 @@ import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
@@ -83,8 +82,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
                          @NotNull final ServiceLocator serviceLocator) {
     super(new String[]{DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, AFFECTED_PROJECT, DIMENSION_NAME, TEMPLATE_FLAG_DIMENSION_NAME,
       TEMPLATE_DIMENSION_NAME, PAUSED, VCS_ROOT_DIMENSION, VCS_ROOT_INSTANCE_DIMENSION,
-      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT
-    });
+      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myProjectManager = projectManager;
     myProjectFinder = projectFinder;
     myAgentFinder = agentFinder;
@@ -107,6 +105,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator result = super.createLocator(locatorText, locatorDefaults);
     result.addHiddenDimensions(COMPATIBLE_AGENT, COMPATIBLE_AGENTS_COUNT, PARAMETER, FILTER_BUILDS, SNAPSHOT_DEPENDENCY, DIMENSION_SELECTED); //hide these for now
+    result.addHiddenDimensions(DIMENSION_LOOKUP_LIMIT);
     return result;
   }
 
@@ -219,14 +218,12 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
   @NotNull
   @Override
-  protected AbstractFilter<BuildTypeOrTemplate> getFilter(final Locator locator) {
+  protected ItemFilter<BuildTypeOrTemplate> getFilter(final Locator locator) {
     if (locator.isSingleValue()) {
       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }
 
-    final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    final MultiCheckerFilter<BuildTypeOrTemplate> result =
-      new MultiCheckerFilter<BuildTypeOrTemplate>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
+    final MultiCheckerFilter<BuildTypeOrTemplate> result = new MultiCheckerFilter<BuildTypeOrTemplate>();
 
     final String name = locator.getSingleDimensionValue(DIMENSION_NAME);
     if (name != null) {

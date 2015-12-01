@@ -18,7 +18,6 @@ package jetbrains.buildServer.server.rest.data;
 
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
@@ -52,7 +51,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
                            final AgentFinder agentFinder,
                            final BuildPromotionManager buildPromotionManager,
                            final BuildsManager buildsManager) {
-    super(new String[]{DIMENSION_ID, PROMOTION_ID, PROJECT, BUILD_TYPE, AGENT, USER, PERSONAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
+    super(new String[]{DIMENSION_ID, PROMOTION_ID, PROJECT, BUILD_TYPE, AGENT, USER, PERSONAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myBuildQueue = buildQueue;
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;
@@ -65,6 +64,14 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
   @NotNull
   public static String getLocator(@NotNull final SQueuedBuild build) {
     return Locator.getStringLocator(DIMENSION_ID, String.valueOf(build.getBuildPromotion().getId()));
+  }
+
+  @NotNull
+  @Override
+  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
+    final Locator result = super.createLocator(locatorText, locatorDefaults);
+    result.addHiddenDimensions(DIMENSION_LOOKUP_LIMIT);
+    return result;
   }
 
   @NotNull
@@ -104,14 +111,12 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
 
   @NotNull
   @Override
-  protected AbstractFilter<SQueuedBuild> getFilter(final Locator locator) {
+  protected ItemFilter<SQueuedBuild> getFilter(final Locator locator) {
     if (locator.isSingleValue()) {
       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }
 
-    final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    final MultiCheckerFilter<SQueuedBuild> result =
-      new MultiCheckerFilter<SQueuedBuild>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
+    final MultiCheckerFilter<SQueuedBuild> result = new MultiCheckerFilter<SQueuedBuild>();
 
     final String projectLocator = locator.getSingleDimensionValue(PROJECT);
     SProject project = null;

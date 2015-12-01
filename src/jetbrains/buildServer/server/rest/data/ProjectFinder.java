@@ -28,7 +28,6 @@ import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
@@ -65,10 +64,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
   public ProjectFinder(@NotNull final ProjectManager projectManager, final PermissionChecker permissionChecker, @NotNull final ServiceLocator serviceLocator){
     super(new String[]{DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, DIMENSION_AFFECTED_PROJECT, DIMENSION_NAME, DIMENSION_ARCHIVED,
-      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME,
-      PagerData.START,
-      PagerData.COUNT
-    });
+      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myProjectManager = projectManager;
     myPermissionChecker = permissionChecker;
     myServiceLocator = serviceLocator;
@@ -85,6 +81,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
     final Locator result = super.createLocator(locatorText, locatorDefaults);
     result.addHiddenDimensions(DIMENSION_PARAMETER, DIMENSION_SELECTED); //hide for now
     result.addHiddenDimensions(DIMENSION_PARENT_PROJECT); //compatibility mode for versions <9.1
+    result.addHiddenDimensions(DIMENSION_LOOKUP_LIMIT);
     return result;
   }
 
@@ -170,14 +167,12 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
   @NotNull
   @Override
-  protected AbstractFilter<SProject> getFilter(final Locator locator) {
+  protected ItemFilter<SProject> getFilter(final Locator locator) {
     if (locator.isSingleValue()) {
       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }
 
-    final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    final MultiCheckerFilter<SProject> result =
-      new MultiCheckerFilter<SProject>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter != null ? countFromFilter.intValue() : null, null);
+    final MultiCheckerFilter<SProject> result = new MultiCheckerFilter<SProject>();
 
     final String name = locator.getSingleDimensionValue(DIMENSION_NAME);
     if (name != null) {
