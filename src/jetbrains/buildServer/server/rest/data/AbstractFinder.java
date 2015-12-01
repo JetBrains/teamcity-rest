@@ -169,7 +169,7 @@ public abstract class AbstractFinder<ITEM> {
       LOG.info("Server performance can be affected by REST request with locator '" + locator + "': " +
                totalItemsProcessed + " items were processed and " + result.size() + " items were returned, took " + processingTimeMs + " ms");
     }
-    return new PagedSearchResult<ITEM>(result, filter.getStart(), filter.getCount(), totalItemsProcessed);
+    return new PagedSearchResult<ITEM>(result, filter.getStart(), filter.getCount(), totalItemsProcessed, filter.getLookupLimit(), filter.isLookupLimitReached());
   }
 
   @NotNull
@@ -190,7 +190,11 @@ public abstract class AbstractFinder<ITEM> {
     }
     final PagedSearchResult<ITEM> items = getItemsByLocator(locator, false);
     if (items.myEntries.size() == 0) {
-      throw new NotFoundException("Nothing is found by locator '" + locator.getStringRepresentation() + "'.");
+      if (!items.myLookupLimitReached)
+        throw new NotFoundException("Nothing is found by locator '" + locator.getStringRepresentation() + "'.");
+      //todo: consider logging this; also log last processed build
+      throw new NotFoundException("Nothing is found by locator '" + locator.getStringRepresentation() + "' while processing first " +
+                                       items.myLookupLimit + " items. Set " + DIMENSION_LOOKUP_LIMIT + " dimension to larger value to process more items.");
     }
     assert items.myEntries.size()== 1;
     return items.myEntries.get(0);

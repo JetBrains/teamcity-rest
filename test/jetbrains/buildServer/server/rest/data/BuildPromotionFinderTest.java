@@ -519,6 +519,29 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
   }
 
   @Test
+  public void testLookupLimit() {
+    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
+
+    final SFinishedBuild finishedBuild03 = build().in(buildConf1).parameter("a", "b").finish();
+    final SFinishedBuild finishedBuild05 = build().in(buildConf2).finish();
+
+    for (int i = 0; i < 100; i++) {
+      build().in(buildConf1).finish();
+    }
+
+    checkBuilds("property:(name:a)", 102, getBuildPromotions(finishedBuild03));
+    checkBuilds("property:(name:a),lookupLimit:20", 21, new BuildPromotion[]{});
+
+    setInternalProperty("rest.request.builds.defaultLookupLimit", "30");
+    checkBuilds("property:(name:a)", 31, new BuildPromotion[]{});
+
+    checkBuilds("property:(name:a),lookupLimit:40", 41, new BuildPromotion[]{});
+
+    checkNoBuildFound("property:(name:a)");
+  }
+
+  @Test
   public void testSinceWithQueuedBuilds() {
     final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
     final BuildPromotion queuedBuild10 = build().in(buildConf).addToQueue().getBuildPromotion();

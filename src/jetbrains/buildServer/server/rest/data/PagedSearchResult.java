@@ -30,6 +30,8 @@ public class PagedSearchResult<T> {
   @Nullable public final Long myStart;
   @Nullable public final Integer myCount;
   @Nullable public final Long myActuallyProcessedCount;
+  public final boolean myLookupLimitReached;
+  @Nullable public final Long myLookupLimit;
 
   public PagedSearchResult(@NotNull final List<T> entries, @Nullable final Long requestedStart, @Nullable final Integer requestedCount) {
     myEntries = entries;
@@ -37,13 +39,18 @@ public class PagedSearchResult<T> {
     myStart = requestedStart;
     myCount = requestedCount;
     myActuallyProcessedCount = null;
+    myLookupLimit = null;
+    myLookupLimitReached = false;
   }
 
-  public PagedSearchResult(@NotNull final List<T> entries, @Nullable final Long requestedStart, @Nullable final Integer requestedCount, @Nullable final Long actuallyProcessedCount) {
+  public PagedSearchResult(@NotNull final List<T> entries, @Nullable final Long requestedStart, @Nullable final Integer requestedCount,
+                           @Nullable final Long actuallyProcessedCount, @Nullable final Long lookupLimit, final boolean lookupLimitReached) {
     myEntries = entries;
     myActualCount = entries.size();
     myStart = requestedStart;
     myCount = requestedCount;
     myActuallyProcessedCount = actuallyProcessedCount;
+    myLookupLimit = lookupLimit;
+    myLookupLimitReached = lookupLimitReached;
   }
 }
