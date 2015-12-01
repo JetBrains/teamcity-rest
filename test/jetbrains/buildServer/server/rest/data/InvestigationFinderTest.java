@@ -183,7 +183,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
 
     assertEquals(1, investigations.count.longValue());
     final Investigation investigation = investigations.items.get(0);
-    assertEquals("assignmentProject:(id:" + myProject.getExternalId() + "),problem:(id:" + buildProblemResponsibility.getBuildProblemInfo().getId() + ")", investigation.id);
+    assertEquals("problem:(id:" + buildProblemResponsibility.getBuildProblemInfo().getId() + "),assignmentProject:(id:" + myProject.getExternalId() + ")", investigation.id);
     assertEquals("TAKEN", investigation.state);
     assertEquals((Long)myUser.getId(), investigation.assignee.getId());
     assertEquals("The comment", investigation.assignment.text);

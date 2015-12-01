@@ -335,6 +335,32 @@ public class LocatorTest {
     assertEquals(null, locator.getSingleDimensionValue("~"));
   }
 
+  @Test
+  public void testStringRepresentation() {
+    assertEquals("aaa:bbb", Locator.getStringLocator("aaa", "bbb"));
+    assertEquals("a:b,c:d", Locator.getStringLocator("a", "b", "c", "d"));
+    assertEquals("c:d,a:b", Locator.getStringLocator("c", "d", "a", "b"));
+
+    //several values not supported yet
+    //assertEquals("a:1,a:2", Locator.getStringLocator("a", "1", "a", "2"));
+    //assertEquals("a:2,a:1", Locator.getStringLocator("a", "2", "a", "1"));
+
+    assertEquals("c:(1:2),a:(,,)", Locator.getStringLocator("c", "1:2", "a", ",,"));
+
+    assertEquals("c:d,a:b", new Locator("c:d,a:b").getStringRepresentation());
+    assertEquals("a:b,c:d", new Locator("a:b,c:d").getStringRepresentation());
+
+    Locator locator = new Locator("a:b,c:d");
+    locator.setDimension("c", "y");
+    locator.setDimension("a", "x");
+    assertEquals("a:x,c:y", locator.getStringRepresentation());
+
+    locator = new Locator("c:d,a:b");
+    locator.setDimension("c", "y");
+    locator.setDimension("a", "x");
+    assertEquals("c:y,a:x", locator.getStringRepresentation());
+  }
+
   @Test(expectedExceptions = LocatorProcessException.class)
   public void testCustomNamesErrors() {
     new Locator("~aa:b", true, "~a", "~aaa", "-");

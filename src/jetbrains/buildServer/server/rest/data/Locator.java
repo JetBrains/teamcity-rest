@@ -17,7 +17,6 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.util.MultiValuesMap;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -57,7 +56,7 @@ public class Locator {
   private final String myRawValue;
   private final boolean myExtendedMode;
   private boolean modified = false;
-  private final MultiValuesMap<String, String> myDimensions;
+  private final LinkedHashMap<String, List<String>> myDimensions;
   private final String mySingleValue;
 
   @NotNull private final Set<String> myUsedDimensions = new HashSet<String>();
@@ -77,9 +76,9 @@ public class Locator {
   public Locator(@NotNull final Locator locator) {
     myRawValue = locator.myRawValue;
     modified = locator.modified;
-    myDimensions = new MultiValuesMap<String, String>();
-    for (Map.Entry<String, Collection<String>> entry : locator.myDimensions.entrySet()) {
-      myDimensions.putAll(entry.getKey(), entry.getValue());
+    myDimensions = new LinkedHashMap<String, List<String>>();
+    for (Map.Entry<String, List<String>> entry : locator.myDimensions.entrySet()) {
+      myDimensions.put(entry.getKey(), new ArrayList<String>(entry.getValue()));
     }
 
     mySingleValue = locator.mySingleValue;
@@ -118,7 +117,7 @@ public class Locator {
     @SuppressWarnings("ConstantConditions") final boolean hasDimensions = locator.contains(DIMENSION_NAME_VALUE_DELIMITER);
     if (!extendedMode && !hasDimensions) {
       mySingleValue = locator;
-      myDimensions = new MultiValuesMap<String, String>();
+      myDimensions = new LinkedHashMap<String, List<String>>();
     } else {
       mySingleValue = null;
       myDimensions = parse(locator);
@@ -131,7 +130,7 @@ public class Locator {
   private Locator() {
     myRawValue = "";
     mySingleValue = null;
-    myDimensions = new MultiValuesMap<String, String>();
+    myDimensions = new LinkedHashMap<String, List<String>>();
     mySupportedDimensions = null;
     myExtendedMode = false;
   }
@@ -194,8 +193,8 @@ public class Locator {
     myHddenSupportedDimensions.addAll(Arrays.asList(hiddenDimensions));
   }
 
-  private MultiValuesMap<String, String> parse(final String locator) {
-    MultiValuesMap<String, String> result = new MultiValuesMap<String, String>();
+  private LinkedHashMap<String, List<String>> parse(final String locator) {
+    LinkedHashMap<String, List<String>> result = new LinkedHashMap<String, List<String>>();
     String currentDimensionName;
     String currentDimensionValue;
     int parsedIndex = 0;
@@ -276,7 +275,10 @@ public class Locator {
           }
         }
       }
-      result.put(currentDimensionName, currentDimensionValue);
+      final List<String> currentList = result.get(currentDimensionName);
+      final List<String> newList = currentList == null ? new ArrayList<String>(1) : new ArrayList<String>(currentList);
+      newList.add(currentDimensionValue);
+      result.put(currentDimensionName, newList);
     }
 
     return result;
@@ -507,7 +509,7 @@ public class Locator {
   }
 
   public int getDimensionsCount() {
-    return myDimensions.keySet().size();
+    return myDimensions.size();
   }
 
   /**
@@ -521,8 +523,7 @@ public class Locator {
     if (isSingleValue()) {
       throw new InternalError("Attempt to set dimension '" + name + "' for single value locator.");
     }
-    myDimensions.removeAll(name);
-    myDimensions.put(name, value);
+    myDimensions.put(name, Collections.singletonList(value));
     markUnused(name);
     modified = true; // todo: use setDimension to replace the dimension in myRawValue
     return this;
@@ -553,7 +554,7 @@ public class Locator {
       throw new LocatorProcessException("Attemt to remove dimension '" + name + "' for single value locator.");
     }
     boolean result = myDimensions.get(name) != null;
-    myDimensions.removeAll(name);
+    myDimensions.remove(name);
     modified = true; // todo: use setDimension to replace the dimension in myRawValue
     return result;
   }
@@ -677,7 +678,7 @@ public class Locator {
       return myRawValue;
     }
     String result = "";
-    for (Map.Entry<String, Collection<String>> dimensionEntries : myDimensions.entrySet()) {
+    for (Map.Entry<String, List<String>> dimensionEntries : myDimensions.entrySet()) {
       for (String value : dimensionEntries.getValue()) {
         if (!StringUtil.isEmpty(result)) {
           result += DIMENSIONS_DELIMITER;
