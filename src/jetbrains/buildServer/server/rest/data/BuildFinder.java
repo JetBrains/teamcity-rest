@@ -155,8 +155,7 @@ public class BuildFinder {
   public PagedSearchResult<BuildPromotion> getBuilds(@Nullable final SBuildType buildType, @Nullable final String locatorText) {
     Locator locator = locatorText != null ? new Locator(locatorText) : Locator.createEmptyLocator();
     if (useByPromotionFiltering(locator)) {
-      final PagedSearchResult<BuildPromotion> promotions = myBuildPromotionFinder.getBuildPromotions(buildType, locatorText);
-      return new PagedSearchResult<BuildPromotion>(promotions.myEntries, promotions.myStart, promotions.myCount);
+      return myBuildPromotionFinder.getBuildPromotions(buildType, locatorText);
     }
 
     BuildsFilter buildsFilter = getBuildsFilter(locator, buildType);
