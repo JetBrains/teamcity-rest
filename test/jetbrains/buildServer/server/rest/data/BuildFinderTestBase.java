@@ -66,7 +66,7 @@ public class BuildFinderTestBase extends BaseServerTestCase {
     final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
     myFixture.addService(permissionChecker);
     final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
-    final AgentFinder agentFinder = new AgentFinder(myAgentManager);
+    final AgentFinder agentFinder = new AgentFinder(myAgentManager, myFixture);
     final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myServer);
     final UserFinder userFinder = new UserFinder(myFixture);
 

@@ -197,7 +197,7 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
 
     final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
     final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
-    final AgentFinder agentFinder = new AgentFinder(myAgentManager);
+    final AgentFinder agentFinder = new AgentFinder(myAgentManager, myFixture);
     myFixture.addService(projectFinder);
     myFixture.addService(new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myServer));
 

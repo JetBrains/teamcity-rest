@@ -47,7 +47,7 @@ public class VcsRootFinderTest extends BaseFinderTest<SVcsRoot> {
     final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
     myFixture.addService(permissionChecker);
     final ProjectFinder projectFinder = new ProjectFinder(projectManager, permissionChecker, myServer);
-    final AgentFinder agentFinder = new AgentFinder(myAgentManager);
+    final AgentFinder agentFinder = new AgentFinder(myAgentManager, myFixture);
     final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(projectManager, projectFinder, agentFinder, permissionChecker, myServer);
     setFinder(new VcsRootFinder(vcsManager, projectFinder, buildTypeFinder, projectManager,
                                 myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class),

@@ -196,7 +196,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
 
   private void registerBuildTypeFinder() {
     final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, myPermissionChecker, myServer);
-    final AgentFinder agentFinder = new AgentFinder(myAgentManager);
+    final AgentFinder agentFinder = new AgentFinder(myAgentManager, myFixture);
     myFixture.addService(new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, myPermissionChecker, myServer));
   }
 

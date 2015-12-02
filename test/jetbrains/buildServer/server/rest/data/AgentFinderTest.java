@@ -19,10 +19,12 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.List;
 import jetbrains.buildServer.serverSide.BuildAgentEx;
 import jetbrains.buildServer.serverSide.SBuildAgent;
+import jetbrains.buildServer.serverSide.agentPools.AgentPoolCannotBeRenamedException;
+import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.util.StringUtil;
-import org.junit.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 /**
@@ -38,11 +40,14 @@ public class AgentFinderTest extends BaseServerTestCase {
   private MockBuildAgent myAgent4;
 
   @Override
-  @BeforeClass
+  @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
 
-    myAgentFinder = new AgentFinder(myAgentManager);
+    myAgentFinder = new AgentFinder(myAgentManager, myFixture);
+
+    final AgentPoolsFinder agentPoolFinder = new AgentPoolsFinder(myFixture, myAgentFinder);
+    myFixture.addService(agentPoolFinder);
 
     final List<BuildAgentEx> currentAgents = myAgentManager.getAllAgents(true);
     assertEquals(1, currentAgents.size());
@@ -89,6 +94,15 @@ public class AgentFinderTest extends BaseServerTestCase {
     checkAgents("connected:false,authorized:true", myAgent2);
     checkAgents("connected:true,authorized:false", myAgent3);
     checkAgents("connected:false,authorized:false", myAgent4);
+  }
+
+  @Test
+  public void testLocatorPool() throws AgentPoolCannotBeRenamedException, NoSuchAgentPoolException {
+    final int poolId1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1");
+    myFixture.getAgentPoolManager().moveAgentTypesToPool(poolId1, createSet(myAgent3.getId()));
+
+    checkAgents("pool:(id:" + poolId1 + "),defaultFilter:false", myAgent3);
+    checkAgents("pool:(id:0),defaultFilter:false", myAgent1, myAgent2, myAgent4);
   }
 
 

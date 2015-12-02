@@ -18,13 +18,16 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.ArrayList;
 import java.util.List;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
+import jetbrains.buildServer.serverSide.BuildAgentEx;
 import jetbrains.buildServer.serverSide.BuildAgentManager;
 import jetbrains.buildServer.serverSide.BuildAgentManagerEx;
 import jetbrains.buildServer.serverSide.SBuildAgent;
+import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -41,12 +44,15 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   protected static final String IP = "ip";
   protected static final String PROTOCOL = "protocol";
   protected static final String DEFAULT_FILTERING = "defaultFilter";
+  protected static final String POOL = "pool";
 
   @NotNull private final BuildAgentManager myAgentManager;
+  @NotNull private final ServiceLocator myServiceLocator;
 
-  public AgentFinder(final @NotNull BuildAgentManager agentManager) {
-    super(new String[]{DIMENSION_ID, NAME, CONNECTED, AUTHORIZED, ENABLED, PARAMETER, IP, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+  public AgentFinder(final @NotNull BuildAgentManager agentManager, @NotNull final ServiceLocator serviceLocator) {
+    super(new String[]{DIMENSION_ID, NAME, CONNECTED, AUTHORIZED, ENABLED, PARAMETER, IP, POOL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myAgentManager = agentManager;
+    myServiceLocator = serviceLocator;
   }
 
   @NotNull
@@ -132,6 +138,17 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       result.add(new FilterConditionChecker<SBuildAgent>() {
         public boolean isIncluded(@NotNull final SBuildAgent item) {
           return FilterUtil.isIncludedByBooleanFilter(connectedDimension, item.isRegistered());
+        }
+      });
+    }
+
+    final String poolDimension = locator.getSingleDimensionValue(POOL); //see also AgentPoolsFinder.getPoolAgents()
+    if (poolDimension != null) {
+      AgentPoolsFinder agentPoolsFinder = myServiceLocator.getSingletonService(AgentPoolsFinder.class);
+      final AgentPool agentPool = agentPoolsFinder.getAgentPool(poolDimension); //get id here to support not existing pools?
+      result.add(new FilterConditionChecker<SBuildAgent>() {
+        public boolean isIncluded(@NotNull final SBuildAgent item) {
+          return ((BuildAgentEx)item).getAgentType().getAgentPoolId() == agentPool.getAgentPoolId(); //TeamCity API issue: cast
         }
       });
     }
