@@ -122,7 +122,7 @@ public class PagerData {
 
   private long getNextLookUpLimit(final long currentLookupLimit) {
     final long exponentialNextStep = Math.round((double)currentLookupLimit * TeamCityProperties.getFloat("rest.page.nextLookupLimitMultiplier", 2.0f)) - currentLookupLimit;
-    final long maxNextStep = TeamCityProperties.getLong("rest.page.nextLookupLimitMaxStep", 2000);
+    final long maxNextStep = TeamCityProperties.getLong("rest.page.nextLookupLimitMaxStep", 5000);
     if (exponentialNextStep > maxNextStep) {
       if (maxNextStep < 1) {
         return currentLookupLimit + 1; //protection against looping

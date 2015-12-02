@@ -135,7 +135,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   @Override
   public Long getDefaultLookupLimit() {
-    final long defaultLookupLimit = TeamCityProperties.getLong("rest.request.builds.defaultLookupLimit");
+    final long defaultLookupLimit = TeamCityProperties.getLong("rest.request.builds.defaultLookupLimit", 5000);
     if (defaultLookupLimit != 0) {
       return defaultLookupLimit;
     }
