@@ -17,12 +17,20 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.HashMap;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.PathTransformer;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SQueuedBuild;
+import jetbrains.buildServer.serverSide.impl.AgentRestrictorFactoryImpl;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
+import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.users.SUser;
+import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -79,5 +87,35 @@ public class BuildTest extends BaseServerTestCase {
     final SUser triggeringUser = getOrCreateUser("user");
 
     build.triggerBuild(triggeringUser, myFixture, new HashMap<Long, Long>());
+  }
+
+  @Test
+  public void testBuildOnAgentTriggering() {
+    myFixture.addService(new AgentRestrictorFactoryImpl());
+    final MockBuildAgent agent2 = myFixture.createEnabledAgent("agent2", "Ant");
+
+    final Build build = new Build(getBeanContext());
+    final BuildType buildType = new BuildType();
+    buildType.setId(myBuildType.getExternalId());
+    build.setBuildType(buildType);
+    final Agent submittedAgent = new Agent();
+    submittedAgent.id = agent2.getId();
+    build.setAgent(submittedAgent);
+
+    final SUser triggeringUser = getOrCreateUser("user");
+    final SQueuedBuild queuedBuild = build.triggerBuild(triggeringUser, myFixture, new HashMap<Long, Long>());
+    assertEquals(Integer.valueOf(agent2.getId()), queuedBuild.getBuildAgentId());
+  }
+
+
+  @NotNull
+  private BeanContext getBeanContext() {
+    final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
+      public String transform(final String path) {
+        return path;
+      }
+    });
+    final BeanFactory beanFactory = new BeanFactory(null);
+    return new BeanContext(beanFactory, myFixture, apiUrlBuilder);
   }
 }

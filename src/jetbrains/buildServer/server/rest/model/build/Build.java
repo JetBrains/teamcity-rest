@@ -25,7 +25,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
@@ -48,7 +47,10 @@ import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.request.*;
-import jetbrains.buildServer.server.rest.util.*;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.server.rest.util.CachingValue;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
@@ -106,10 +108,8 @@ public class Build {
 
   @NotNull final protected Fields myFields;
   @NotNull final private BeanContext myBeanContext;
-  @NotNull final private ApiUrlBuilder myApiUrlBuilder;
   @Autowired @NotNull private DataProvider myDataProvider;
   @Autowired @NotNull private ServiceLocator myServiceLocator;
-  @Autowired @NotNull private BeanFactory myFactory;
 
   @SuppressWarnings("ConstantConditions")
   public Build() {
@@ -119,10 +119,18 @@ public class Build {
 
     myFields = null;
     myBeanContext = null;
-    myApiUrlBuilder = null;
     myDataProvider = null;
     myServiceLocator = null;
-    myFactory = null;
+  }
+
+  //used in tests
+  @SuppressWarnings("ConstantConditions")
+  public Build(@NotNull final BeanContext beanContext) {
+    myBeanContext = beanContext;
+    myBuildPromotion = null;
+    myBuild = null;
+    myQueuedBuild = null;
+    myFields = null;
   }
 
   public Build(@NotNull final SBuild build, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
@@ -131,7 +139,6 @@ public class Build {
     myQueuedBuild = null;
 
     myBeanContext = beanContext;
-    myApiUrlBuilder = beanContext.getApiUrlBuilder();
     beanContext.autowire(this);
     myFields = fields;
   }
@@ -152,7 +159,6 @@ public class Build {
     }
 
     myBeanContext = beanContext;
-    myApiUrlBuilder = beanContext.getApiUrlBuilder();
     beanContext.autowire(this);
     myFields = fields;
   }
@@ -513,9 +519,7 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded("custom-artifact-dependencies", false), new ValueWithDefault.Value<PropEntitiesArtifactDep>() {
       public PropEntitiesArtifactDep get() {
         final List<SArtifactDependency> artifactDependencies = ((BuildPromotionEx)myBuildPromotion).getCustomArtifactDependencies(); //TeamCity API: cast
-        return new PropEntitiesArtifactDep(artifactDependencies,
-                                           myFields.getNestedField("custom-artifact-dependencies", Fields.NONE, Fields.LONG),
-                                           new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+        return new PropEntitiesArtifactDep(artifactDependencies, myFields.getNestedField("custom-artifact-dependencies", Fields.NONE, Fields.LONG), myBeanContext);
       }
     });
   }
@@ -1191,7 +1195,7 @@ public class Build {
     if (submittedAgent == null) {
       return null;
     }
-    return submittedAgent.getAgentFromPosted(agentFinder);
+    return submittedAgent.getAgentFromPosted(agentFinder);  //todo: make it ID to support running on not connected agentl same for pool
   }
 
   @NotNull
