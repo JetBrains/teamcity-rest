@@ -19,6 +19,8 @@ package jetbrains.buildServer.server.rest.model.agent;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.AgentRestrictorType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -28,6 +30,8 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.AgentRestrictorFactory;
+import jetbrains.buildServer.serverSide.SAgentRestrictor;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.impl.agent.DeadAgent;
@@ -66,6 +70,15 @@ public class Agent {
   @XmlAttribute public String locator;
 
   public Agent() {
+  }
+
+  public Agent(@NotNull final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+    pool = ValueWithDefault.decideDefault(fields.isIncluded("pool", true), new ValueWithDefault.Value<AgentPool>() {
+      @Nullable
+      public AgentPool get() {
+        return new AgentPool(agentPool, fields.getNestedField("pool", Fields.SHORT, Fields.SHORT), beanContext);
+      }
+    });
   }
 
   public Agent(@NotNull final SBuildAgent agent, @NotNull final AgentPoolsFinder agentPoolsFinder, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
@@ -188,5 +201,26 @@ public class Agent {
       throw new BadRequestException("No agent specified. Either 'id' or 'locator' attribute should be present.");
     }
     return agentFinder.getItem(locatorText);
+  }
+
+  @Nullable
+  public SAgentRestrictor getAgentRestrictor(@NotNull final ServiceLocator serviceLocator) {
+    final AgentRestrictorFactory agentRestrictorFactory = serviceLocator.getSingletonService(AgentRestrictorFactory.class);
+    if (pool != null) {
+      final AgentPoolsFinder agentPoolsFinder = serviceLocator.getSingletonService(AgentPoolsFinder.class);
+      return agentRestrictorFactory.createFor(AgentRestrictorType.AGENT_POOL, pool.getAgentPoolFromPosted(agentPoolsFinder).getAgentPoolId());
+    }
+    if (locator != null) {
+      final AgentPoolsFinder agentPoolsFinder = serviceLocator.getSingletonService(AgentPoolsFinder.class);
+      final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = AgentFinder.getAgentPoolFromLocator(locator, agentPoolsFinder);
+      if (agentPool != null){
+        return agentRestrictorFactory.createFor(AgentRestrictorType.AGENT_POOL, agentPool.getAgentPoolId());
+      }
+    }
+
+    //not a pool. Agent?
+    final AgentFinder agentFinder = serviceLocator.getSingletonService(AgentFinder.class);
+    //todo: retrieve ID right away to support running on not connected agent; same for pool
+    return agentRestrictorFactory.createFor(AgentRestrictorType.SINGLE_AGENT, getAgentFromPosted(agentFinder).getId());
   }
 }

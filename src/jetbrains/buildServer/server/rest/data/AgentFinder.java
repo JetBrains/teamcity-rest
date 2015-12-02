@@ -211,4 +211,18 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       locator.setDimensionIfNotPresent(AUTHORIZED, "true");
     }
   }
+
+  /**
+   *
+   * @return found agent pool or null if cannot extract agent pool from the locator
+   */
+  @Nullable
+  public static AgentPool getAgentPoolFromLocator(@NotNull final String locatorText, @NotNull final AgentPoolsFinder agentPoolsFinder) {
+    final Locator locator = new Locator(locatorText);
+    final String poolDimension = locator.getSingleDimensionValue(POOL);
+    if (poolDimension != null){
+      return agentPoolsFinder.getAgentPool(poolDimension);
+    }
+    return null; //reporting no errors by method contract
+  }
 }

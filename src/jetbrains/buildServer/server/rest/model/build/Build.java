@@ -24,6 +24,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.AgentRestrictor;
+import jetbrains.buildServer.AgentRestrictorType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
@@ -53,6 +55,7 @@ import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.Branch;
+import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.buildDistribution.WaitReason;
@@ -121,16 +124,6 @@ public class Build {
     myBeanContext = null;
     myDataProvider = null;
     myServiceLocator = null;
-  }
-
-  //used in tests
-  @SuppressWarnings("ConstantConditions")
-  public Build(@NotNull final BeanContext beanContext) {
-    myBeanContext = beanContext;
-    myBuildPromotion = null;
-    myBuild = null;
-    myQueuedBuild = null;
-    myFields = null;
   }
 
   public Build(@NotNull final SBuild build, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
@@ -306,13 +299,27 @@ public class Build {
   public Agent getAgent() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("agent", false), new ValueWithDefault.Value<Agent>() {
       public Agent get() {
-        SBuildAgent agent = null;
         if (myBuild != null) {
-          agent = myBuild.getAgent();
-        } else if (myQueuedBuild != null) {
-          agent = myQueuedBuild.getBuildAgent();
+          SBuildAgent agent = myBuild.getAgent();
+          return new Agent(agent, myBeanContext.getSingletonService(AgentPoolsFinder.class), myFields.getNestedField("agent"), myBeanContext);
         }
-        return agent == null ? null : new Agent(agent, myBeanContext.getSingletonService(AgentPoolsFinder.class), myFields.getNestedField("agent"), myBeanContext);
+        if (myQueuedBuild != null) {
+          final AgentRestrictor agentRestrictor = myQueuedBuild.getAgentRestrictor();
+          if (agentRestrictor != null) {
+            if (agentRestrictor.getType() == AgentRestrictorType.SINGLE_AGENT) {
+              SBuildAgent agent = myQueuedBuild.getBuildAgent();
+              if (agent != null) {
+                return new Agent(agent, myBeanContext.getSingletonService(AgentPoolsFinder.class), myFields.getNestedField("agent"), myBeanContext);
+              }
+            }
+            if (agentRestrictor.getType() == AgentRestrictorType.AGENT_POOL) {
+              final int agentPoolId = agentRestrictor.getId();
+              final AgentPool agentPool = myBeanContext.getSingletonService(AgentPoolsFinder.class).getAgentPoolById(agentPoolId);
+              return new Agent(agentPool, myFields.getNestedField("agent"), myBeanContext);
+            }
+          }
+        }
+        return null;
       }
     });
   }
@@ -1190,28 +1197,11 @@ public class Build {
     return ((BuildTypeEx)regularBuildType).createPersonalBuildType(currentUser, personalChange.getId());
   }
 
-  @Nullable
-  private SBuildAgent getSubmittedAgent(@NotNull final AgentFinder agentFinder) {
-    if (submittedAgent == null) {
-      return null;
-    }
-    return submittedAgent.getAgentFromPosted(agentFinder);  //todo: make it ID to support running on not connected agentl same for pool
-  }
-
   @NotNull
   public SQueuedBuild triggerBuild(@Nullable final SUser user, @NotNull final ServiceLocator serviceLocator, @NotNull final Map<Long, Long> buildPromotionIdReplacements) {
     BuildPromotion buildToTrigger = getBuildToTrigger(user, serviceLocator, buildPromotionIdReplacements);
-    TriggeredByBuilder triggeredByBulder = new TriggeredByBuilder();
-    if (user != null) {
-      triggeredByBulder = new TriggeredByBuilder(user);
-    }
-    final SBuildAgent agent = getSubmittedAgent(serviceLocator.getSingletonService(AgentFinder.class));
-    SQueuedBuild queuedBuild;
-    if (agent != null) {
-      queuedBuild = buildToTrigger.addToQueue(agent, triggeredByBulder.toString());
-    } else {
-      queuedBuild = buildToTrigger.addToQueue(triggeredByBulder.toString());
-    }
+    SQueuedBuild queuedBuild = triggerBuild((BuildPromotionEx)buildToTrigger, user,
+                                            submittedAgent == null ? null : submittedAgent.getAgentRestrictor(serviceLocator)); //TeamCity API issue: cast
     if (queuedBuild == null) {
       throw new InvalidStateException("Failed to add build for build type with id '" + buildToTrigger.getBuildTypeExternalId() + "' into the queue for unknown reason.");
     }
@@ -1219,6 +1209,26 @@ public class Build {
       serviceLocator.getSingletonService(BuildQueue.class).moveTop(queuedBuild.getItemId());
     }
     return queuedBuild;
+  }
+
+  @Nullable
+  private SQueuedBuild triggerBuild(@NotNull final BuildPromotionEx buildToTrigger, @Nullable final SUser user, @Nullable final SAgentRestrictor agentRestrictor) {
+    final BuildTypeEx bt = buildToTrigger.getBuildType();
+    if (bt == null) return null;
+    final String triggeredBy = getTriggeredBy(user);
+
+    if (agentRestrictor != null) {
+      return bt.addToQueue(agentRestrictor, buildToTrigger, triggeredBy);
+    }
+
+    return bt.addToQueue(buildToTrigger, triggeredBy);
+  }
+
+  private String getTriggeredBy(final @Nullable SUser user) {
+    if (user != null) {
+      return new TriggeredByBuilder(user).toString();
+    }
+    return new TriggeredByBuilder().toString();
   }
 
   @Nullable

@@ -17,15 +17,19 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.HashMap;
+import jetbrains.buildServer.AgentRestrictorType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.PathTransformer;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
+import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SQueuedBuild;
+import jetbrains.buildServer.serverSide.agentPools.AgentPoolCannotBeRenamedException;
+import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
 import jetbrains.buildServer.serverSide.impl.AgentRestrictorFactoryImpl;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
@@ -97,7 +101,7 @@ public class BuildTest extends BaseServerTestCase {
     myFixture.addService(new AgentRestrictorFactoryImpl());
     final MockBuildAgent agent2 = myFixture.createEnabledAgent("agent2", "Ant");
 
-    final Build build = new Build(getBeanContext());
+    final Build build = new Build();
     final BuildType buildType = new BuildType();
     buildType.setId(myBuildType.getExternalId());
     build.setBuildType(buildType);
@@ -110,6 +114,49 @@ public class BuildTest extends BaseServerTestCase {
     assertEquals(Integer.valueOf(agent2.getId()), queuedBuild.getBuildAgentId());
   }
 
+  @Test
+  public void testBuildOnAgentPoolTriggering() throws NoSuchAgentPoolException, AgentPoolCannotBeRenamedException {
+
+    final MockBuildAgent agent2 = myFixture.createEnabledAgent("agent2", "Ant");
+    final int poolId1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1");
+    myFixture.getAgentPoolManager().moveAgentTypesToPool(poolId1, createSet(agent2.getId()));
+
+    final Build build = new Build();
+    final BuildType buildType = new BuildType();
+    buildType.setId(myBuildType.getExternalId());
+    build.setBuildType(buildType);
+    final SUser triggeringUser = getOrCreateUser("user");
+
+    Agent submittedAgent = new Agent();
+    submittedAgent.locator = "pool:(id:" + poolId1+")";
+    build.setAgent(submittedAgent);
+
+    SQueuedBuild queuedBuild = build.triggerBuild(triggeringUser, myFixture, new HashMap<Long, Long>());
+    assertNotNull(queuedBuild.getAgentRestrictor());
+    assertEquals(AgentRestrictorType.AGENT_POOL, queuedBuild.getAgentRestrictor().getType());
+    assertEquals(poolId1, queuedBuild.getAgentRestrictor().getId());
+
+
+    submittedAgent = new Agent();
+    submittedAgent.pool = new AgentPool();
+    submittedAgent.pool.id = poolId1;
+    build.setAgent(submittedAgent);
+
+    queuedBuild = build.triggerBuild(triggeringUser, myFixture, new HashMap<Long, Long>());
+    assertNotNull(queuedBuild.getAgentRestrictor());
+    assertEquals(AgentRestrictorType.AGENT_POOL, queuedBuild.getAgentRestrictor().getType());
+    assertEquals(poolId1, queuedBuild.getAgentRestrictor().getId());
+
+    submittedAgent = new Agent();
+    submittedAgent.pool = new AgentPool();
+    submittedAgent.pool.locator = "id:" + poolId1;
+    build.setAgent(submittedAgent);
+
+    queuedBuild = build.triggerBuild(triggeringUser, myFixture, new HashMap<Long, Long>());
+    assertNotNull(queuedBuild.getAgentRestrictor());
+    assertEquals(AgentRestrictorType.AGENT_POOL, queuedBuild.getAgentRestrictor().getType());
+    assertEquals(poolId1, queuedBuild.getAgentRestrictor().getId());
+  }
 
   @NotNull
   private BeanContext getBeanContext() {
