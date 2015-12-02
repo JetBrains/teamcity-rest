@@ -19,8 +19,11 @@ package jetbrains.buildServer.server.rest.model;
 import com.intellij.openapi.util.text.StringUtil;
 import java.net.URI;
 import javax.ws.rs.core.UriBuilder;
+import jetbrains.buildServer.server.rest.data.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -66,51 +69,104 @@ public class PagerData {
                    @NotNull final PagedSearchResult pagedResult,
                    @Nullable final String locatorText, @Nullable final String locatorQueryParameterName) {
     final Long start = pagedResult.myStart;
-    final Integer count = pagedResult.myCount;
+    final Long count = pagedResult.myCount == null ? null : Long.valueOf(pagedResult.myCount);
     long currentPageRealCount = pagedResult.myActualCount;
 
     myHref = getRelativePath(uriBuilder.build(), contextPath); //todo: investigate a way to preserve order of the parameters
-    URI nextHref;
-    URI prevHref;
+    UriModification nextHref;
+    UriBuilder prevHref;
     if (start == null || start == 0) {
       prevHref = null;
       if (count == null || currentPageRealCount < count) {
         nextHref = null;
       } else {
-        nextHref = getModifiedHref(uriBuilder, 0 + count, count, locatorText, locatorQueryParameterName);
+        nextHref = getModifiedBuilder(uriBuilder, 0 + count, count, locatorText, locatorQueryParameterName);
       }
     } else {
       if (count == null) {
         nextHref = null;
 
-        prevHref = getModifiedHref(uriBuilder, 0, start, locatorText, locatorQueryParameterName);
+        prevHref = getModifiedBuilder(uriBuilder, 0, start, locatorText, locatorQueryParameterName).getBuilder();
       } else {
         if (currentPageRealCount < count) {
           nextHref = null;
         } else {
-          nextHref = getModifiedHref(uriBuilder, start + count, count, locatorText, locatorQueryParameterName);
+          nextHref = getModifiedBuilder(uriBuilder, start + count, count, locatorText, locatorQueryParameterName);
         }
         final long itemsFromStart = start - count;
         if (itemsFromStart < 0) {
-          prevHref = getModifiedHref(uriBuilder, 0, start, locatorText, locatorQueryParameterName);
+          prevHref = getModifiedBuilder(uriBuilder, 0, start, locatorText, locatorQueryParameterName).getBuilder();
         } else {
-          prevHref = getModifiedHref(uriBuilder, itemsFromStart, count, locatorText, locatorQueryParameterName);
+          prevHref = getModifiedBuilder(uriBuilder, itemsFromStart, count, locatorText, locatorQueryParameterName).getBuilder();
         }
       }
     }
-    myNextHref = nextHref == null ? null : getRelativePath(nextHref, contextPath);
-    myPrevHref = prevHref== null ? null : getRelativePath(prevHref, contextPath);
+
+    if (pagedResult.myLookupLimit != null && pagedResult.myLookupLimitReached) {
+      if (StringUtil.isEmpty(locatorQueryParameterName)) {
+        throw new OperationException("TeamCity REST API implementation error: lookupLimit is passed while no locator parameter name is specified.");
+      }
+      if (nextHref == null) {
+      }
+      if (currentPageRealCount == 0) {
+        nextHref = new UriModification(uriBuilder, locatorText);
+      } else {
+        nextHref = getModifiedBuilder(uriBuilder, (start != null ? start : 0) + currentPageRealCount, (count != null ? count : 0), locatorText, locatorQueryParameterName);
+      }
+      final String newLocator = Locator.setDimension(nextHref.getCurrentLocatorText(), AbstractFinder.DIMENSION_LOOKUP_LIMIT, getNextLookUpLimit(pagedResult.myLookupLimit));
+      nextHref = new UriModification(nextHref.getBuilder().replaceQueryParam(locatorQueryParameterName, newLocator), newLocator);
+    }
+    myNextHref = nextHref == null ? null : getRelativePath(nextHref.getBuilder().build(), contextPath);
+    myPrevHref = prevHref == null ? null : getRelativePath(prevHref.build(), contextPath);
   }
 
-  private URI getModifiedHref(@NotNull final UriBuilder uriBuilder, final long start, final long count,
-                              @Nullable final String locatorText, @Nullable final String locatorQueryParameterName) {
-    if (StringUtil.isEmpty(locatorQueryParameterName)) {
-      return uriBuilder.replaceQueryParam(START, start).replaceQueryParam(COUNT, count).build();
+  private long getNextLookUpLimit(final long currentLookupLimit) {
+    final long exponentialNextStep = Math.round((double)currentLookupLimit * TeamCityProperties.getFloat("rest.page.nextLookupLimitMultiplier", 2.0f)) - currentLookupLimit;
+    final long maxNextStep = TeamCityProperties.getLong("rest.page.nextLookupLimitMaxStep", 2000);
+    if (exponentialNextStep > maxNextStep) {
+      if (maxNextStep < 1) {
+        return currentLookupLimit + 1; //protection against looping
+      }
+      return currentLookupLimit + maxNextStep;
     }
-    uriBuilder.replaceQueryParam(START, null).replaceQueryParam(COUNT, null);
-    final String locatorWithStart = locatorText != null ? Locator.setDimension(locatorText, START, start) : Locator.getStringLocator(START, String.valueOf(start));
-    String newLocator = Locator.setDimension(locatorWithStart, COUNT, count);
-    return uriBuilder.replaceQueryParam(locatorQueryParameterName, newLocator).build();
+    if (currentLookupLimit < 1) {
+      return currentLookupLimit + 1; //protection against looping
+    }
+    return currentLookupLimit + exponentialNextStep;
+  }
+
+  private UriModification getModifiedBuilder(@NotNull final UriBuilder baseUriBuilder, final long start, @Nullable final Long count,
+                                             @Nullable final String locatorText, @Nullable final String locatorQueryParameterName) {
+    final UriBuilder newBuilder = baseUriBuilder.clone();
+    if (StringUtil.isEmpty(locatorQueryParameterName)) {
+      final UriBuilder startPatched = newBuilder.replaceQueryParam(START, start);
+      final UriBuilder result = count == null ? startPatched : startPatched.replaceQueryParam(COUNT, count);
+      return new UriModification(result, null);
+    }
+    newBuilder.replaceQueryParam(START, null).replaceQueryParam(COUNT, null);
+    final String locatorWithStart = Locator.setDimension(locatorText, START, start);
+    String newLocator = count == null ? locatorWithStart : Locator.setDimension(locatorWithStart, COUNT, count);
+    return new UriModification(newBuilder.replaceQueryParam(locatorQueryParameterName, newLocator), newLocator);
+  }
+
+  class UriModification {
+    @NotNull private final UriBuilder myBuilder;
+    @Nullable private final String myCurrentLocatorText;
+
+    public UriModification(@NotNull final UriBuilder builder, @Nullable final String currentLocatorText) {
+      myBuilder = builder;
+      myCurrentLocatorText = currentLocatorText;
+    }
+
+    @NotNull
+    public UriBuilder getBuilder() {
+      return myBuilder;
+    }
+
+    @Nullable
+    public String getCurrentLocatorText() {
+      return myCurrentLocatorText;
+    }
   }
 
   @NotNull
