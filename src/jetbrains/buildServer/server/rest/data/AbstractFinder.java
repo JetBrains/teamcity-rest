@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.ItemProcessor;
 import jetbrains.buildServer.util.StringUtil;
 import org.apache.commons.lang3.ArrayUtils;
@@ -186,7 +187,8 @@ public abstract class AbstractFinder<ITEM> {
       LOG.info("Server performance can be affected by REST request with locator '" + locator + "': " +
                totalItemsProcessed + " items were processed and " + result.size() + " items were returned, took " + processingTimeMs + " ms");
     }
-    return new PagedSearchResult<ITEM>(result, filter.getStart(), filter.getCount(), totalItemsProcessed, filter.getLookupLimit(), filter.isLookupLimitReached());
+    return new PagedSearchResult<ITEM>(result, filter.getStart(), filter.getCount(), totalItemsProcessed,
+                                       filter.getLookupLimit(), filter.isLookupLimitReached(), filter.getLastProcessedItem());
   }
 
   @NotNull
@@ -209,7 +211,7 @@ public abstract class AbstractFinder<ITEM> {
     if (items.myEntries.size() == 0) {
       if (!items.myLookupLimitReached)
         throw new NotFoundException("Nothing is found by locator '" + locator.getStringRepresentation() + "'.");
-      //todo: consider logging this; also log last processed build
+      LOG.debug("Returning \"Not Found\" response because of reaching lookupLimit. Last processed item: " + LogUtil.describe(items.getLastProcessedItem()));
       throw new NotFoundException("Nothing is found by locator '" + locator.getStringRepresentation() + "' while processing first " +
                                        items.myLookupLimit + " items. Set " + DIMENSION_LOOKUP_LIMIT + " dimension to larger value to process more items.");
     }

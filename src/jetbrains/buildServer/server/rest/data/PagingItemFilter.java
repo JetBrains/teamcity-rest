@@ -30,6 +30,7 @@ public class PagingItemFilter<T> implements ItemFilter<T> {
   @Nullable private final Long myLookupLimit;
   private final long myActualStart;
   private boolean myLookupLimitReached = false;
+  @Nullable private T myLastProcessedItem = null;
 
   public PagingItemFilter(@NotNull final ItemFilter<T> filter, @Nullable final Long start, @Nullable final Integer count, @Nullable final Long lookupLimit) {
     myFilter = filter;
@@ -55,8 +56,9 @@ public class PagingItemFilter<T> implements ItemFilter<T> {
   }
 
   public boolean isIncluded(@NotNull final T item) {
+    myLastProcessedItem = item;
     return myFilter.isIncluded(item);
-      }
+  }
 
   public boolean shouldStop(@NotNull final T item) {
     return myFilter.shouldStop(item);
@@ -80,5 +82,10 @@ public class PagingItemFilter<T> implements ItemFilter<T> {
 
   public boolean isLookupLimitReached() {
     return myLookupLimitReached;
+  }
+
+  @Nullable
+  public T getLastProcessedItem() {
+    return myLastProcessedItem;
   }
 }
