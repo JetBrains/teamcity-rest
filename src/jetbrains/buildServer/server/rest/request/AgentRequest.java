@@ -28,10 +28,7 @@ import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.server.rest.model.agent.Agent;
-import jetbrains.buildServer.server.rest.model.agent.AgentPool;
-import jetbrains.buildServer.server.rest.model.agent.Agents;
-import jetbrains.buildServer.server.rest.model.agent.Compatibilities;
+import jetbrains.buildServer.server.rest.model.agent.*;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.BuildAgentManager;
@@ -136,10 +133,56 @@ public class AgentRequest {
   }
 
   @GET
+  @Path("/{agentLocator}/enabledInfo")
+  @Produces({"application/xml", "application/json"})
+  public AgentEnabledInfo getEnabledInfo(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
+    final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
+    return new AgentEnabledInfo(agent.isEnabled(), agent.getStatusComment(), new Fields(fields), myBeanContext);
+  }
+
+  @PUT
+  @Path("/{agentLocator}/enabledInfo")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public AgentEnabledInfo setEnabledInfo(@PathParam("agentLocator") String agentLocator, AgentEnabledInfo enabledInfo, @QueryParam("fields") String fields) {
+    final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
+    if (enabledInfo == null) throw new BadRequestException("No data is sent as payload.");
+    String commentText = enabledInfo.getCommentTextFromPosted();
+    Boolean value = enabledInfo.getValueFromPosted();
+    if (value == null && commentText == null) throw new BadRequestException("Neither value nor comment are provided, nothing to change");
+    agent.setEnabled(value != null ? value : agent.isEnabled(), myDataProvider.getCurrentUser(), Agent.getActualActionComment(commentText));
+
+    return new AgentEnabledInfo(agent.isEnabled(), agent.getStatusComment(), new Fields(fields), myBeanContext);
+  }
+
+  @GET
+  @Path("/{agentLocator}/authorizedInfo")
+  @Produces({"application/xml", "application/json"})
+  public AgentAuthorizedInfo getAuthorizedInfo(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
+    final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
+    return new AgentAuthorizedInfo(agent.isAuthorized(), agent.getAuthorizeComment(), new Fields(fields), myBeanContext);
+  }
+
+  @PUT
+  @Path("/{agentLocator}/authorizedInfo")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public AgentAuthorizedInfo setAuthorizedInfo(@PathParam("agentLocator") String agentLocator, AgentAuthorizedInfo authorizedInfo, @QueryParam("fields") String fields) {
+    final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
+    if (authorizedInfo == null) throw new BadRequestException("No data is sent as payload.");
+    String commentText = authorizedInfo.getCommentTextFromPosted();
+    Boolean value = authorizedInfo.getValueFromPosted();
+    if (value == null && commentText == null) throw new BadRequestException("Neither value nor comment are provided, nothing to change");
+    agent.setAuthorized(value != null ? value : agent.isAuthorized(), myDataProvider.getCurrentUser(), Agent.getActualActionComment(commentText));
+
+    return new AgentAuthorizedInfo(agent.isAuthorized(), agent.getAuthorizeComment(), new Fields(fields), myBeanContext);
+  }
+
+  @GET
   @Path("/{agentLocator}/{field}")
   @Produces("text/plain")
   public String serveAgentField(@PathParam("agentLocator") String agentLocator, @PathParam("field") String fieldName) {
-    return Agent.getFieldValue(myAgentFinder.getItem(agentLocator), fieldName);
+    return Agent.getFieldValue(myAgentFinder.getItem(agentLocator), fieldName, myServiceLocator);
   }
 
   /**
@@ -168,9 +211,10 @@ public class AgentRequest {
   @Path("/{agentLocator}/{field}")
   @Consumes("text/plain")
   @Produces("text/plain")
-  public String setAgentField(@PathParam("agentLocator") String agentLocator, @PathParam("field") String fieldName, String value) {
+  public String setAgentField(@PathParam("agentLocator") String agentLocator, @HeaderParam("TeamCity-Action-Comment") String commentText /*experimental, ignored if not supported*/,
+                              @PathParam("field") String fieldName, String value) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    Agent.setFieldValue(agent, fieldName, value, myDataProvider);
-    return Agent.getFieldValue(agent, fieldName);
+    Agent.setFieldValue(agent, fieldName, value, commentText, myDataProvider);
+    return Agent.getFieldValue(agent, fieldName, myServiceLocator);
   }
 }

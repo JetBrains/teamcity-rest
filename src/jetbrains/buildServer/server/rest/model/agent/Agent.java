@@ -24,6 +24,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -34,6 +35,7 @@ import jetbrains.buildServer.serverSide.AgentRestrictorFactory;
 import jetbrains.buildServer.serverSide.SAgentRestrictor;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.agent.DeadAgent;
 import jetbrains.buildServer.serverSide.impl.agent.PollingRemoteAgentConnection;
 import jetbrains.buildServer.util.StringUtil;
@@ -59,6 +61,8 @@ public class Agent {
   @XmlAttribute public String ip;
   @XmlAttribute public String protocol;
   @XmlAttribute public String href;
+  @XmlElement public BooleanStatus enabledInfo;
+  @XmlElement public BooleanStatus authorizedInfo;
   @XmlElement public Properties properties;
   @XmlElement public AgentPool pool;
   @XmlElement public BuildTypes compatibleBuildTypes;
@@ -105,6 +109,24 @@ public class Agent {
         return getAgentProtocol(agent);
       }
     });
+
+    enabledInfo = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("enabledInfo", false), new ValueWithDefault.Value<BooleanStatus>() {
+      @Nullable
+      public BooleanStatus get() {
+        return new BooleanStatus(agent.isEnabled(), agent.getStatusComment(), fields.getNestedField("enabledInfo", Fields.NONE, Fields.LONG), beanContext);
+      }
+    });
+
+    authorizedInfo = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("authorizedInfo", false), new ValueWithDefault.Value<BooleanStatus>() {
+      @Nullable
+      public BooleanStatus get() {
+        //check permission to match UI
+        if (!beanContext.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.VIEW_AGENT_DETAILS, null))
+          return null;
+        return new BooleanStatus(agent.isAuthorized(), agent.getAuthorizeComment(), fields.getNestedField("authorizedInfo", Fields.NONE, Fields.LONG), beanContext);
+      }
+    });
+
     //TODO: review, if it should return all parameters on agent, use #getDefinedParameters()
     properties = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
       @Nullable
@@ -146,7 +168,7 @@ public class Agent {
     return "bidirectional";
   }
 
-  public static String getFieldValue(@NotNull final SBuildAgent agent, @Nullable final String name) {
+  public static String getFieldValue(@NotNull final SBuildAgent agent, @Nullable final String name, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Field name cannot be empty");
     }
@@ -162,6 +184,11 @@ public class Agent {
       return String.valueOf(agent.isEnabled());
     } else if ("authorized".equals(name)) {
       return String.valueOf(agent.isAuthorized());
+    } else if ("enabledInfoCommentText".equals(name)) {
+      return String.valueOf(agent.getStatusComment().getComment());
+    } else if ("authorizedInfoCommentText".equals(name)) {
+      serviceLocator.getSingletonService(PermissionChecker.class).checkGlobalPermission(Permission.VIEW_AGENT_DETAILS);
+      return String.valueOf(agent.getAuthorizeComment().getComment());
     } else if ("ip".equals(name)) {
       return agent.getHostAddress();
     } else if ("protocol".equals(name)) {
@@ -170,20 +197,34 @@ public class Agent {
     throw new BadRequestException("Unknown field '" + name + "'. Supported fields are: id, name, connected, enabled, authorized, ip");
   }
 
-  public static void setFieldValue(@NotNull final SBuildAgent agent, @Nullable final String name, @NotNull final String value, @NotNull final DataProvider dataProvider) {
+  public static void setFieldValue(@NotNull final SBuildAgent agent,
+                                   @Nullable final String name,
+                                   @NotNull final String value,
+                                   @Nullable final String comment, @NotNull final DataProvider dataProvider) {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Field name cannot be empty");
     }
     if ("enabled".equals(name)) {
-      agent.setEnabled(Boolean.valueOf(value), dataProvider.getCurrentUser(), TeamCityProperties.getProperty("rest.defaultActionComment"));
+      agent.setEnabled(Boolean.valueOf(value), dataProvider.getCurrentUser(), getActualActionComment(comment));
       //todo (TeamCity) why not use current user by default?
       return;
     } else if ("authorized".equals(name)) {
-      agent.setAuthorized(Boolean.valueOf(value), dataProvider.getCurrentUser(), TeamCityProperties.getProperty("rest.defaultActionComment"));
+      agent.setAuthorized(Boolean.valueOf(value), dataProvider.getCurrentUser(), getActualActionComment(comment));
       //todo (TeamCity) why not use current user by default?
+      return;
+    } else if ("enabledInfoCommentText".equals(name)) {
+      agent.setEnabled(agent.isEnabled(), dataProvider.getCurrentUser(), value);
+      return;
+    } else if ("authorizedInfoCommentText".equals(name)) {
+      agent.setAuthorized(agent.isAuthorized(), dataProvider.getCurrentUser(), value);
       return;
     }
     throw new BadRequestException("Changing field '" + name + "' is not supported. Supported fields are: enabled, authorized");
+  }
+
+  @NotNull
+  public static String getActualActionComment(final @Nullable String submittedComment) {
+    return StringUtil.isEmpty(submittedComment) ? TeamCityProperties.getProperty("rest.defaultActionComment") : submittedComment;
   }
 
   @NotNull

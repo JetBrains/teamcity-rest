@@ -71,6 +71,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     return null;
   }
 
+  //todo: check view agent details permission before returning unauthorized agents, here and in prefiltering
   @Override
   @Nullable
   protected SBuildAgent findSingleItem(@NotNull final Locator locator) {
@@ -157,7 +158,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     if (ipDimension != null) {
       result.add(new FilterConditionChecker<SBuildAgent>() {
         public boolean isIncluded(@NotNull final SBuildAgent item) {
-          return ipDimension.equals(Agent.getFieldValue(item, "ip")); //name of the field, not locator dimension
+          return ipDimension.equals(Agent.getFieldValue(item, "ip", myServiceLocator)); //name of the field, not locator dimension
         }
       });
     }
@@ -166,7 +167,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     if (protocolDimension != null) {
       result.add(new FilterConditionChecker<SBuildAgent>() {
         public boolean isIncluded(@NotNull final SBuildAgent item) {
-          return protocolDimension.equals(Agent.getFieldValue(item, "protocol")); //name of the field, not locator dimension
+          return protocolDimension.equals(Agent.getFieldValue(item, "protocol", myServiceLocator)); //name of the field, not locator dimension
         }
       });
     }
