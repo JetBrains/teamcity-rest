@@ -46,7 +46,7 @@ public class BuildTest extends BaseServerTestCase {
     final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
     myFixture.addService(projectFinder);
 
-    final AgentFinder agentFinder = new AgentFinder(myAgentManager);
+    final AgentFinder agentFinder = new AgentFinder(myAgentManager, myFixture);
     myFixture.addService(agentFinder);
 
     final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myFixture);

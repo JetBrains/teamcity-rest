@@ -19,9 +19,11 @@ package jetbrains.buildServer.server.rest.model.agent;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -30,6 +32,7 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.agent.DeadAgent;
 import jetbrains.buildServer.serverSide.impl.agent.PollingRemoteAgentConnection;
 import jetbrains.buildServer.util.StringUtil;
@@ -133,7 +136,7 @@ public class Agent {
     return "bidirectional";
   }
 
-  public static String getFieldValue(@NotNull final SBuildAgent agent, @Nullable final String name) {
+  public static String getFieldValue(@NotNull final SBuildAgent agent, @Nullable final String name, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Field name cannot be empty");
     }
@@ -149,6 +152,11 @@ public class Agent {
       return String.valueOf(agent.isEnabled());
     } else if ("authorized".equals(name)) {
       return String.valueOf(agent.isAuthorized());
+    } else if ("enabledInfoCommentText".equals(name)) {
+      return String.valueOf(agent.getStatusComment().getComment());
+    } else if ("authorizedInfoCommentText".equals(name)) {
+      serviceLocator.getSingletonService(PermissionChecker.class).checkGlobalPermission(Permission.VIEW_AGENT_DETAILS);
+      return String.valueOf(agent.getAuthorizeComment().getComment());
     } else if ("ip".equals(name)) {
       return agent.getHostAddress();
     } else if ("protocol".equals(name)) {
@@ -168,6 +176,12 @@ public class Agent {
     } else if ("authorized".equals(name)) {
       agent.setAuthorized(Boolean.valueOf(value), dataProvider.getCurrentUser(), TeamCityProperties.getProperty("rest.defaultActionComment"));
       //todo (TeamCity) why not use current user by default?
+      return;
+    } else if ("enabledInfoCommentText".equals(name)) {
+      agent.setEnabled(agent.isEnabled(), dataProvider.getCurrentUser(), value);
+      return;
+    } else if ("authorizedInfoCommentText".equals(name)) {
+      agent.setAuthorized(agent.isAuthorized(), dataProvider.getCurrentUser(), value);
       return;
     }
     throw new BadRequestException("Changing field '" + name + "' is not supported. Supported fields are: enabled, authorized");

@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.ArrayList;
 import java.util.List;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -44,11 +45,13 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   protected static final String DEFAULT_FILTERING = "defaultFilter";
 
   @NotNull private final BuildAgentManager myAgentManager;
+  @NotNull private final ServiceLocator myServiceLocator;
 
-  public AgentFinder(final @NotNull BuildAgentManager agentManager) {
+  public AgentFinder(final @NotNull BuildAgentManager agentManager, @NotNull final ServiceLocator serviceLocator) {
     super(new String[]{DIMENSION_ID, NAME, CONNECTED, AUTHORIZED, ENABLED, PARAMETER, IP, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT});
     myAgentManager = agentManager;
-  }
+    myServiceLocator = serviceLocator;
+}
 
   @NotNull
   @Override
@@ -142,7 +145,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     if (ipDimension != null) {
       result.add(new FilterConditionChecker<SBuildAgent>() {
         public boolean isIncluded(@NotNull final SBuildAgent item) {
-          return ipDimension.equals(Agent.getFieldValue(item, "ip")); //name of the field, not locator dimension
+          return ipDimension.equals(Agent.getFieldValue(item, "ip", myServiceLocator)); //name of the field, not locator dimension
         }
       });
     }
@@ -151,7 +154,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     if (protocolDimension != null) {
       result.add(new FilterConditionChecker<SBuildAgent>() {
         public boolean isIncluded(@NotNull final SBuildAgent item) {
-          return protocolDimension.equals(Agent.getFieldValue(item, "protocol")); //name of the field, not locator dimension
+          return protocolDimension.equals(Agent.getFieldValue(item, "protocol", myServiceLocator)); //name of the field, not locator dimension
         }
       });
     }

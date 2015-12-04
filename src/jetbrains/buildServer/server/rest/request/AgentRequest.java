@@ -137,7 +137,7 @@ public class AgentRequest {
   @Path("/{agentLocator}/{field}")
   @Produces("text/plain")
   public String serveAgentField(@PathParam("agentLocator") String agentLocator, @PathParam("field") String fieldName) {
-    return Agent.getFieldValue(myAgentFinder.getItem(agentLocator), fieldName);
+    return Agent.getFieldValue(myAgentFinder.getItem(agentLocator), fieldName, myServiceLocator);
   }
 
   /**
@@ -169,6 +169,6 @@ public class AgentRequest {
   public String setAgentField(@PathParam("agentLocator") String agentLocator, @PathParam("field") String fieldName, String value) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     Agent.setFieldValue(agent, fieldName, value, myDataProvider);
-    return Agent.getFieldValue(agent, fieldName);
+    return Agent.getFieldValue(agent, fieldName, myServiceLocator);
   }
 }

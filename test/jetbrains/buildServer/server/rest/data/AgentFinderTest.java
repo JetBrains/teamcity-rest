@@ -42,7 +42,7 @@ public class AgentFinderTest extends BaseServerTestCase {
   public void setUp() throws Exception {
     super.setUp();
 
-    myAgentFinder = new AgentFinder(myAgentManager);
+    myAgentFinder = new AgentFinder(myAgentManager, myFixture);
 
     final List<BuildAgentEx> currentAgents = myAgentManager.getAllAgents(true);
     assertEquals(1, currentAgents.size());
