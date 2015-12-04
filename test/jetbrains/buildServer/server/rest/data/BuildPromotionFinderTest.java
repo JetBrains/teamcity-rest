@@ -534,7 +534,8 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
     checkBuilds("property:(name:a),lookupLimit:20", 21, new BuildPromotion[]{});
 
     setInternalProperty("rest.request.builds.defaultLookupLimit", "30");
-    checkBuilds("property:(name:a)", 31, new BuildPromotion[]{});
+    checkBuilds("property:(name:a)", 101, new BuildPromotion[]{}); //lookupLimit should not be less than count which is 100 by defualt
+    checkBuilds("property:(name:a),count:30", 31, new BuildPromotion[]{});
 
     checkBuilds("property:(name:a),lookupLimit:40", 41, new BuildPromotion[]{});
 
