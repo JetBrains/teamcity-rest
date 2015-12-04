@@ -200,16 +200,16 @@ public class Agent {
   public static void setFieldValue(@NotNull final SBuildAgent agent,
                                    @Nullable final String name,
                                    @NotNull final String value,
-                                   @Nullable final String comment, @NotNull final DataProvider dataProvider) {
+                                   @NotNull final DataProvider dataProvider) {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Field name cannot be empty");
     }
     if ("enabled".equals(name)) {
-      agent.setEnabled(Boolean.valueOf(value), dataProvider.getCurrentUser(), getActualActionComment(comment));
+      agent.setEnabled(Boolean.valueOf(value), dataProvider.getCurrentUser(), getActualActionComment(null));
       //todo (TeamCity) why not use current user by default?
       return;
     } else if ("authorized".equals(name)) {
-      agent.setAuthorized(Boolean.valueOf(value), dataProvider.getCurrentUser(), getActualActionComment(comment));
+      agent.setAuthorized(Boolean.valueOf(value), dataProvider.getCurrentUser(), getActualActionComment(null));
       //todo (TeamCity) why not use current user by default?
       return;
     } else if ("enabledInfoCommentText".equals(name)) {

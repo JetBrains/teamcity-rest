@@ -211,10 +211,9 @@ public class AgentRequest {
   @Path("/{agentLocator}/{field}")
   @Consumes("text/plain")
   @Produces("text/plain")
-  public String setAgentField(@PathParam("agentLocator") String agentLocator, @HeaderParam("TeamCity-Action-Comment") String commentText /*experimental, ignored if not supported*/,
-                              @PathParam("field") String fieldName, String value) {
+  public String setAgentField(@PathParam("agentLocator") String agentLocator, @PathParam("field") String fieldName, String value) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    Agent.setFieldValue(agent, fieldName, value, commentText, myDataProvider);
+    Agent.setFieldValue(agent, fieldName, value, myDataProvider);
     return Agent.getFieldValue(agent, fieldName, myServiceLocator);
   }
 }
