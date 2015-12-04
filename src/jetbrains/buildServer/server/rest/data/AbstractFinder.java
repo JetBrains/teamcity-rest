@@ -161,7 +161,12 @@ public abstract class AbstractFinder<ITEM> {
 
     final Long start = locator.getSingleDimensionValueAsLong(PagerData.START);
     final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT, getDefaultPageItemsCount());
-    final Long lookupLimit = locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT, getDefaultLookupLimit());
+    Long lookupLimit = locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT, getDefaultLookupLimit());
+
+    if (countFromFilter != null && lookupLimit != null && locator.getSingleDimensionValue(DIMENSION_LOOKUP_LIMIT) == null && lookupLimit < countFromFilter){
+      // if count of items is set, but lookupLimit is not, process at least as many items as count
+      lookupLimit = countFromFilter;
+    }
 
     final PagingItemFilter<ITEM> pagingFilter = new PagingItemFilter<ITEM>(filter, start, countFromFilter == null ? null : countFromFilter.intValue(), lookupLimit);
 
