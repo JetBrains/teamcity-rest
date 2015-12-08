@@ -111,6 +111,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     throw new BadRequestException("Listing all problems is not supported. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
   }
 
+  @NotNull
   @Override
   protected ItemHolder<ProblemWrapper> getPrefilteredItems(@NotNull final Locator locator) {
     final SProject affectedProject;
@@ -136,7 +137,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
 
   @NotNull
   @Override
-  protected ItemFilter<ProblemWrapper> getFilter(final Locator locator) {
+  protected ItemFilter<ProblemWrapper> getFilter(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }

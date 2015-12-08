@@ -48,7 +48,7 @@ public class GraphFinder<T> extends AbstractFinder<T> {
 
   @NotNull
   @Override
-  protected ItemFilter<T> getFilter(final Locator locator) {
+  protected ItemFilter<T> getFilter(@NotNull final Locator locator) {
     return new MultiCheckerFilter<T>();
   }
 

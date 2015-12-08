@@ -153,6 +153,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     throw new BadRequestException("Listing all test occurrences is not supported. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
   }
 
+  @NotNull
   @Override
   protected ItemHolder<STestRun> getPrefilteredItems(@NotNull final Locator locator) {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
@@ -233,8 +234,9 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     return new ArrayList<STestRun>(result);
   }
 
+  @NotNull
   @Override
-  protected ItemFilter<STestRun> getFilter(final Locator locator) {
+  protected ItemFilter<STestRun> getFilter(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }

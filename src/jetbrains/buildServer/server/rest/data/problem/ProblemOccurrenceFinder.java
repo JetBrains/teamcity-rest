@@ -145,6 +145,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     throw new BadRequestException("Listing all problem occurrences is not supported. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
   }
 
+  @NotNull
   @Override
   protected ItemHolder<BuildProblem> getPrefilteredItems(@NotNull final Locator locator) {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
@@ -184,7 +185,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
   @NotNull
   @Override
-  protected ItemFilter<BuildProblem> getFilter(final Locator locator) {
+  protected ItemFilter<BuildProblem> getFilter(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }

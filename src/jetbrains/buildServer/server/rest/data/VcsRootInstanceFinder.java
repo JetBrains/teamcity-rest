@@ -155,7 +155,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
   @NotNull
   @Override
-  protected ItemFilter<VcsRootInstance> getFilter(final Locator locator) {
+  protected ItemFilter<VcsRootInstance> getFilter(@NotNull final Locator locator) {
 
     final MultiCheckerFilter<VcsRootInstance> result = new MultiCheckerFilter<VcsRootInstance>();
 

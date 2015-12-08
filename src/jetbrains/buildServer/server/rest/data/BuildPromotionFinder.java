@@ -222,7 +222,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   @NotNull
   @Override
-  protected ItemFilter<BuildPromotion> getFilter(final Locator locator) {
+  protected ItemFilter<BuildPromotion> getFilter(@NotNull final Locator locator) {
 
     final MultiCheckerFilter<BuildPromotion> result = new MultiCheckerFilter<BuildPromotion>();
 

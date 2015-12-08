@@ -91,7 +91,7 @@ public class TagFinder extends AbstractFinder<TagData> {
 
   @NotNull
   @Override
-  protected ItemFilter<TagData> getFilter(final Locator locator) {
+  protected ItemFilter<TagData> getFilter(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       final String singleValue = locator.getSingleValue();
       final MultiCheckerFilter<TagData> result = new MultiCheckerFilter<TagData>();

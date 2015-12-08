@@ -121,6 +121,7 @@ public class TestFinder extends AbstractFinder<STest> {
     throw new BadRequestException("Listing all tests is not supported. Try locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
   }
 
+  @NotNull
   @Override
   protected ItemHolder<STest> getPrefilteredItems(@NotNull final Locator locator) {
     final SProject affectedProject;
@@ -162,8 +163,9 @@ public class TestFinder extends AbstractFinder<STest> {
     return new ArrayList<STest>(result);
   }
 
+  @NotNull
   @Override
-  protected ItemFilter<STest> getFilter(final Locator locator) {
+  protected ItemFilter<STest> getFilter(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }

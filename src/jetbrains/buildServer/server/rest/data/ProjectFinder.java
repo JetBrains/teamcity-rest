@@ -167,7 +167,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
   @NotNull
   @Override
-  protected ItemFilter<SProject> getFilter(final Locator locator) {
+  protected ItemFilter<SProject> getFilter(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }

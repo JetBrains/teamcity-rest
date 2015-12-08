@@ -218,7 +218,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
   @NotNull
   @Override
-  protected ItemFilter<BuildTypeOrTemplate> getFilter(final Locator locator) {
+  protected ItemFilter<BuildTypeOrTemplate> getFilter(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }

@@ -135,7 +135,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
   @NotNull
   @Override
-  protected ItemFilter<InvestigationWrapper> getFilter(final Locator locator) {
+  protected ItemFilter<InvestigationWrapper> getFilter(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }
@@ -227,6 +227,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     return result;
   }
 
+  @NotNull
   @Override
   protected ItemHolder<InvestigationWrapper> getPrefilteredItems(@NotNull final Locator locator) {
     final String problemDimension = locator.getSingleDimensionValue(PROBLEM_DIMENSION);

@@ -111,7 +111,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
 
   @NotNull
   @Override
-  protected ItemFilter<SQueuedBuild> getFilter(final Locator locator) {
+  protected ItemFilter<SQueuedBuild> getFilter(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }

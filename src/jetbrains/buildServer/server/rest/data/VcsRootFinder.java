@@ -186,7 +186,7 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
 
   @NotNull
   @Override
-  protected ItemFilter<SVcsRoot> getFilter(final Locator locator) {
+  protected ItemFilter<SVcsRoot> getFilter(@NotNull final Locator locator) {
 
     final MultiCheckerFilter<SVcsRoot> result = new MultiCheckerFilter<SVcsRoot>();
 
