@@ -94,10 +94,10 @@ public class ValueWithDefault {
     try {
       return decideDefault(include, value);
     } catch (AccessDeniedException e) {
-      if (LOG.isDebugEnabled()) LOG.debug("Got permisisons issue while getting value, ignoring the field. Error: " + e.toString());
+      if (LOG.isDebugEnabled()) LOG.debug("Got permissions issue while getting value, ignoring the field. Error: " + e.toString());
       return null;
     } catch (AuthorizationFailedException e) {
-      if (LOG.isDebugEnabled()) LOG.debug("Got permisisons issue while getting value, ignoring the field. Error: " + e.toString());
+      if (LOG.isDebugEnabled()) LOG.debug("Got permissions issue while getting value, ignoring the field. Error: " + e.toString());
       return null;
     }
   }

@@ -130,7 +130,7 @@ public class BuildQueueRequest {
     //TeamCity API issue: TW-34143
     for (String itemId : itemIds) {
       if (buildQueue.findQueued(itemId) != null) {
-        errors.add(new AuthorizationFailedException("Build was not canceled. Probably not sufficient permisisons."));
+        errors.add(new AuthorizationFailedException("Build was not canceled. Probably not sufficient permissions."));
       }
     }
 
@@ -174,7 +174,7 @@ public class BuildQueueRequest {
 
     //TeamCity API issue: TW-34143
     if (!buildQueue.isQueueEmpty()) {
-      throw new AuthorizationFailedException("Some builds were not canceled. Probably not sufficient permisisons.");
+      throw new AuthorizationFailedException("Some builds were not canceled. Probably not sufficient permissions.");
     }
 
     //now delete the canceled builds
@@ -299,7 +299,7 @@ public class BuildQueueRequest {
 
     //TeamCity API issue: TW-34143
     if (buildQueue.findQueued(itemId) != null) {
-      throw new AuthorizationFailedException("Build was not canceled. Probably not sufficient permisisons.");
+      throw new AuthorizationFailedException("Build was not canceled. Probably not sufficient permissions.");
     }
   }
 
