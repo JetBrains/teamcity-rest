@@ -106,10 +106,6 @@ public abstract class AbstractFinder<ITEM> {
   private PagedSearchResult<ITEM> getItemsByLocator(@Nullable final Locator originalLocator, final boolean multipleItemsQuery) {
     Locator locator;
     if (originalLocator == null) {
-      final ItemHolder<ITEM> allItems = getAllItems();
-      if (allItems != null){
-        return new PagedSearchResult<ITEM>(toList(allItems), null, null);
-      }
       //go on with empty locator
       locator = createLocator(null, Locator.createEmptyLocator());
     } else {
@@ -155,8 +151,12 @@ public abstract class AbstractFinder<ITEM> {
       locator.markAllUnused(); // nothing found - no dimensions should be marked as used then
     }
 
+    ItemHolder<ITEM> unfilteredItems = null;
+    if (originalLocator == null){
+      unfilteredItems = getAllItems();
+    }
     //it is important to call "getPrefilteredItems" first as that process some of the dimensions which  "getFilter" can then ignore for performance reasons
-    final ItemHolder<ITEM> unfilteredItems = getPrefilteredItems(locator);
+    unfilteredItems = unfilteredItems != null ? unfilteredItems : getPrefilteredItems(locator);
     final ItemFilter<ITEM> filter = getFilter(locator);
 
     final Long start = locator.getSingleDimensionValueAsLong(PagerData.START);
@@ -254,7 +254,7 @@ public abstract class AbstractFinder<ITEM> {
   public abstract ItemHolder<ITEM> getAllItems();
 
   @NotNull
-  protected abstract ItemFilter<ITEM> getFilter(final Locator locator);
+  protected abstract ItemFilter<ITEM> getFilter(@NotNull final Locator locator);
 
   public String[] getKnownDimensions() {
     return myKnownDimensions;
