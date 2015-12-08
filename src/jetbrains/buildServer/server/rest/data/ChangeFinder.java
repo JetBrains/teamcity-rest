@@ -23,6 +23,7 @@ import java.util.List;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.RemoteBuildType;
 import jetbrains.buildServer.serverSide.userChanges.UserChangesFacade;
@@ -98,6 +99,12 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     myServiceLocator = serviceLocator;
   }
 
+  @Nullable
+  @Override
+  public Long getDefaultPageItemsCount() {
+    return (long)Constants.getDefaultPageItemsCount();
+  }
+
   @NotNull
   @Override
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
@@ -154,7 +161,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
   @NotNull
   @Override
-  protected ItemFilter<SVcsModification> getFilter(final Locator locator) {
+  protected ItemFilter<SVcsModification> getFilter(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
     }

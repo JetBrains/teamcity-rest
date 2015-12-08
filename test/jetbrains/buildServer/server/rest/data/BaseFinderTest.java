@@ -34,6 +34,10 @@ public abstract class BaseFinderTest<T extends Loggable> extends BaseServerTestC
     myFinder = finder;
   }
 
+  public AbstractFinder<T> getFinder() {
+    return myFinder;
+  }
+
   public void check(@Nullable final String locator, T... items) {
     final List<T> result = myFinder.getItems(locator).myEntries;
     final String expected = getDescription(Arrays.asList(items));

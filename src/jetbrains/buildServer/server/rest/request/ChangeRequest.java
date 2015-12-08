@@ -105,19 +105,16 @@ public class ChangeRequest {
       updateLocatorDimension(actualLocator, "sinceChange", sinceChangeLocator);
       updateLocatorDimension(actualLocator, "start", start != null ? String.valueOf(start) : null);
       updateLocatorDimension(actualLocator, "count", count != null ? String.valueOf(count) : null);
-      actualLocator.setDimensionIfNotPresent(PagerData.START, String.valueOf(0));
-      actualLocator.setDimensionIfNotPresent(PagerData.COUNT, String.valueOf(Constants.getDefaultPageItemsCount()));  //todo: move into ChangeFinder, check BuildPromotionFinder for example
-      actualLocator.addIgnoreUnusedDimensions(PagerData.START);
-      actualLocator.addIgnoreUnusedDimensions(PagerData.COUNT);
     }
 
-    PagedSearchResult<SVcsModification> buildModifications = myChangeFinder.getItems(actualLocator.isEmpty() ? null : actualLocator.getStringRepresentation());
+    final String locatorText = actualLocator.isEmpty() ? null : actualLocator.getStringRepresentation();
+    PagedSearchResult<SVcsModification> buildModifications = myChangeFinder.getItems(locatorText);
 
     final UriBuilder requestUriBuilder = uriInfo.getRequestUriBuilder();
     requestUriBuilder.replaceQueryParam("count" , null);
     requestUriBuilder.replaceQueryParam("start", null);
     return new Changes(buildModifications.myEntries,
-                       new PagerData(requestUriBuilder, request.getContextPath(), buildModifications, actualLocator.getStringRepresentation(), "locator"),
+                       new PagerData(requestUriBuilder, request.getContextPath(), buildModifications, locatorText, "locator"),
                        new Fields(fields),
                        myBeanContext);
   }
