@@ -147,20 +147,20 @@ public class VcsRootInstanceFinderTest extends BaseFinderTest<VcsRootInstance> {
 
     final ProjectEx project10 = getRootProject().createProject("project10", "Project name 10");
 
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < 15; i++) {
       final SVcsRoot vcsRoot = getRootProject().createVcsRoot("svn", "id" + i, "VCS root " + i + " name");
       final SBuildType bt = project10.createBuildType("id" + i, "name " + i);
       attachVcsRoot(bt, vcsRoot);
     }
 
     assertEquals(3, getFinder().getItems("count:3").myEntries.size());
-    assertEquals(50, getFinder().getItems(null).myEntries.size());
-
-    assertEquals(40, getFinder().getItems("start:10").myEntries.size());
-    assertEquals(20, getFinder().getItems("lookupLimit:20").myEntries.size());
-
-    setInternalProperty("rest.defaultPageSize", "15");
     assertEquals(15, getFinder().getItems(null).myEntries.size());
+
+    assertEquals(5, getFinder().getItems("start:10").myEntries.size());
+    assertEquals(10, getFinder().getItems("lookupLimit:10").myEntries.size());
+
+    setInternalProperty("rest.defaultPageSize", "12");
+    assertEquals(12, getFinder().getItems(null).myEntries.size());
   }
 
   private VcsRootInstance attachVcsRoot(final SBuildType buildType, final SVcsRoot vcsRoot) {
