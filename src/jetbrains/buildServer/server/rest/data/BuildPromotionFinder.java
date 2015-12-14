@@ -195,6 +195,20 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       return getBuildPromotionById(id, myBuildPromotionManager, myBuildsManager);
     }
 
+    final String number = locator.getSingleDimensionValue(NUMBER);
+    if (number != null) {
+      final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
+      if (buildTypeLocator != null) {
+        final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
+        SBuild build = myBuildsManager.findBuildInstanceByBuildNumber(buildType.getBuildTypeId(), number);
+        if (build == null) {
+          return null;
+        }
+        return build.getBuildPromotion();
+      }
+      //search by scanning // throw new BadRequestException("Cannot search build by number without build type specified");
+    }
+
     return null;
   }
 
@@ -299,7 +313,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         throw new NotFoundException("No agents are found by locator '" + agentLocator +"'");
       }
       result.add(new FilterConditionChecker<BuildPromotion>() {
-        //todo: consider improving performance, see jetbrains/buildServer/server/rest/data/build/GenericBuildsFilter.java:120
         public boolean isIncluded(@NotNull final BuildPromotion item) {
           final SBuild build = item.getAssociatedBuild();
           if (build != null) {
@@ -850,12 +863,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       if (buildTypeLocator != null) {
         final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
         final List<SBuild> builds = myBuildsManager.findBuildInstancesByBuildNumber(buildType.getBuildTypeId(), number);
-        if (builds.isEmpty()) {
-          throw new NotFoundException("No builds can be found by number '" + number + "' in build configuration with id '" + buildType.getExternalId() + "'.");
-        }
         return getItemHolder(BuildFinder.toBuildPromotions(builds));
+      } else {
+        // if build type is not specified, search by scanning (performance impact)
+        locator.markUnused(NUMBER);
       }
-      // if build type is not specified, search by scanning (performance impact)
     }
 
     final ArrayList<BuildPromotion> result = new ArrayList<BuildPromotion>();
