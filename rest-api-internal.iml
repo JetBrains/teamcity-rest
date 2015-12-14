@@ -146,5 +146,6 @@
         </SOURCES>
       </library>
     </orderEntry>
+    <orderEntry type="module" module-name="federation-server" />
   </component>
 </module>
