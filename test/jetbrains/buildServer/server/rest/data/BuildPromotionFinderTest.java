@@ -670,6 +670,8 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
     checkBuilds("number:100,running:true" + buildTypeDimension, getBuildPromotions(build80));
     checkBuilds("number:100,running:false", getBuildPromotions(build30, build20));
     checkBuilds("number:100,running:false" + buildTypeDimension, getBuildPromotions(build30, build20));
+
+    checkBuilds("count:1,number:378" + buildTypeDimension);
   }
 
 //==================================================

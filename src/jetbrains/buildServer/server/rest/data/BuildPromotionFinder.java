@@ -935,12 +935,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       if (buildTypeLocator != null) {
         final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
         final List<SBuild> builds = myBuildsManager.findBuildInstancesByBuildNumber(buildType.getBuildTypeId(), number);
-        if (builds.isEmpty()) {
-          throw new NotFoundException("No builds can be found by number '" + number + "' in build configuration with id '" + buildType.getExternalId() + "'.");
-        }
         return getItemHolder(BuildFinder.toBuildPromotions(builds));
+      } else{
+        // if build type is not specified, search by scanning (performance impact)
+        locator.markUnused(NUMBER);
       }
-      // if build type is not specified, search by scanning (performance impact)
     }
 
     final ArrayList<BuildPromotion> result = new ArrayList<BuildPromotion>();
