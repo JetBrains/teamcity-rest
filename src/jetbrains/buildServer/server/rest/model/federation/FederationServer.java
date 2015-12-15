@@ -24,7 +24,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 
 @XmlRootElement(name = "server")
-@XmlType(propOrder = {"url", "description"})
+@XmlType(propOrder = {"url", "name"})
 public class FederationServer {
 
   private TeamCityServer mySource;
@@ -44,7 +44,7 @@ public class FederationServer {
   }
 
   @XmlAttribute
-  public String getDescription() {
-    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("description"), mySource.getDescription());
+  public String getName() {
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("name"), mySource.getName());
   }
 }
