@@ -455,6 +455,9 @@ public class Build {
     return val;
   }
 
+  /**
+   * @deprecated See @getRunningBuildInfo
+   */
   @XmlAttribute
   public Integer getPercentageComplete() {
     if (myBuild == null || myBuild.isFinished()) {
@@ -468,7 +471,7 @@ public class Build {
   public RunningBuildInfo getRunningBuildInfo() {
     SRunningBuild runningBuild = getRunningBuild(myBuildPromotion, myServiceLocator);
     if (runningBuild == null) return null;
-    return ValueWithDefault.decideDefault(myFields.isIncluded("running-info", false), new RunningBuildInfo(runningBuild));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("running-info", false), new RunningBuildInfo(runningBuild, myFields.getNestedField("running-info")));
   }
 
   @Nullable

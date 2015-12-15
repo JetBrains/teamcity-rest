@@ -19,6 +19,8 @@ package jetbrains.buildServer.server.rest.model.build;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SRunningBuild;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,12 +33,14 @@ import org.jetbrains.annotations.NotNull;
 public class RunningBuildInfo {
   @NotNull
   private SRunningBuild myBuild;
+  @NotNull private Fields myFields;
 
   public RunningBuildInfo() {
   }
 
-  public RunningBuildInfo(@NotNull final SRunningBuild build) {
+  public RunningBuildInfo(@NotNull final SRunningBuild build, @NotNull final Fields fields) {
     myBuild = build;
+    myFields = fields;
   }
 
   @XmlAttribute(name = "percentageComplete")
@@ -44,12 +48,12 @@ public class RunningBuildInfo {
     if (myBuild.getDurationEstimate() == -1){
       return null;
     }
-    return myBuild.getCompletedPercent();
+    return ValueWithDefault.decideDefault(myFields.isIncluded("percentageComplete", true), myBuild.getCompletedPercent());
   }
 
   @XmlAttribute(name = "elapsedSeconds")
-  public long getElapsedTime() {
-    return myBuild.getElapsedTime();
+  public Long getElapsedTime() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("elapsedSeconds", true), myBuild.getElapsedTime());
   }
 
   @XmlAttribute(name = "estimatedTotalSeconds")
@@ -58,22 +62,22 @@ public class RunningBuildInfo {
     if (durationEstimate == -1) {
       return null;
     } else {
-      return durationEstimate;
+      return ValueWithDefault.decideDefault(myFields.isIncluded("estimatedTotalSeconds", true), durationEstimate);
     }
   }
 
   @XmlAttribute
-  public boolean isOutdated() {
-    return myBuild.isOutdated();
+  public Boolean isOutdated() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("outdated", true), myBuild.isOutdated());
   }
 
   @XmlAttribute
-  public boolean isProbablyHanging() {
-    return myBuild.isProbablyHanging();
+  public Boolean isProbablyHanging() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("probablyHanging", true), myBuild.isProbablyHanging());
   }
 
   @XmlAttribute
   public String getCurrentStageText() {
-    return myBuild.getCurrentPath();
+    return ValueWithDefault.decideDefault(myFields.isIncluded("currentStageText", true), myBuild.getCurrentPath());
   }
 }
