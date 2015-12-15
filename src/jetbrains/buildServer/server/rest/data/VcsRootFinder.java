@@ -104,22 +104,6 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
 
   @Nullable
   @Override
-  public ItemHolder<SVcsRoot> getAllItems() {
-      final List<SVcsRoot> allRegisteredVcsRoots = myVcsManager.getAllRegisteredVcsRoots();
-      final List<SVcsRoot> result = new ArrayList<SVcsRoot>(allRegisteredVcsRoots.size());
-      for (SVcsRoot root : allRegisteredVcsRoots) {
-        try {
-          checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, root);
-          result.add(root);
-        } catch (AuthorizationFailedException e) {
-          //ignore
-        }
-      }
-      return getItemHolder(result);
-  }
-
-  @Nullable
-  @Override
   protected SVcsRoot findSingleItem(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's an internal id or external id
@@ -259,7 +243,17 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
       return getItemHolder(project.getOwnVcsRoots()); //consistent with Project.java:183
     }
 
-    return super.getPrefilteredItems(locator);
+    final List<SVcsRoot> allRegisteredVcsRoots = myVcsManager.getAllRegisteredVcsRoots();
+    final List<SVcsRoot> result = new ArrayList<SVcsRoot>(allRegisteredVcsRoots.size());
+    for (SVcsRoot root : allRegisteredVcsRoots) {
+      try {
+        checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, root);
+        result.add(root);
+      } catch (AuthorizationFailedException e) {
+        //ignore
+      }
+    }
+    return getItemHolder(result);
   }
 
   static boolean repositoryIdStringMatches(@NotNull final jetbrains.buildServer.vcs.VcsRoot root,

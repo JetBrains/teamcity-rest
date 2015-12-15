@@ -135,18 +135,6 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
   @NotNull
   @Override
-  public ItemHolder<BuildProblem> getAllItems() {
-    ArrayList<String> exampleLocators = new ArrayList<String>();
-//    exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "XXX"));
-    exampleLocators.add(Locator.getStringLocator(BUILD, "XXX"));
-    exampleLocators.add(Locator.getStringLocator(PROBLEM, "XXX"));
-    exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
-    exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
-    throw new BadRequestException("Listing all problem occurrences is not supported. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
-  }
-
-  @NotNull
-  @Override
   protected ItemHolder<BuildProblem> getPrefilteredItems(@NotNull final Locator locator) {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
@@ -180,7 +168,13 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       return getItemHolder(result);
     }
 
-    return super.getPrefilteredItems(locator);
+    ArrayList<String> exampleLocators = new ArrayList<String>();
+//    exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(BUILD, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(PROBLEM, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
+    throw new BadRequestException("Listing all problem occurrences is not supported. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
   }
 
   @NotNull

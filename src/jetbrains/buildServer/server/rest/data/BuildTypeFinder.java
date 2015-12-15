@@ -109,15 +109,6 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     return result;
   }
 
-  @NotNull
-  @Override
-  public ItemHolder<BuildTypeOrTemplate> getAllItems() {
-    final List<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
-    result.addAll(BuildTypes.fromBuildTypes(myProjectManager.getAllBuildTypes()));
-    result.addAll(BuildTypes.fromTemplates(myProjectManager.getAllTemplates()));
-    return getItemHolder(result);
-  }
-
   @Override
   @Nullable
   protected BuildTypeOrTemplate findSingleItem(@NotNull final Locator locator) {

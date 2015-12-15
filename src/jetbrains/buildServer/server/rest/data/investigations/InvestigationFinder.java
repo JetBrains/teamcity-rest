@@ -127,12 +127,6 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     return null;
   }
 
-  @Override
-  @NotNull
-  public ItemHolder<InvestigationWrapper> getAllItems() {
-    return getItemHolder(getInvestigationWrappersForProjectWithSubprojects(myProjectFinder.getRootProject(), null));
-  }
-
   @NotNull
   @Override
   protected ItemFilter<InvestigationWrapper> getFilter(@NotNull final Locator locator) {
@@ -270,7 +264,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
       return getItemHolder(getInvestigationWrappersForProjectWithSubprojects(myProjectFinder.getRootProject(), user));
     }
     locator.markUnused(ASSIGNEE);
-    return super.getPrefilteredItems(locator);
+    return getItemHolder(getInvestigationWrappersForProjectWithSubprojects(myProjectFinder.getRootProject(), null));
   }
 
   public List<InvestigationWrapper> getInvestigationWrappersForBuildType(final SBuildType buildType) {

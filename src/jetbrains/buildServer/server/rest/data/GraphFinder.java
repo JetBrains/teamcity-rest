@@ -19,7 +19,6 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.*;
 import jetbrains.buildServer.util.CollectionsUtil;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -38,12 +37,6 @@ public class GraphFinder<T> extends AbstractFinder<T> {
     super(new String[]{DIMENSION_FROM, DIMENSION_TO, DIMENSION_RECURSIVE, DIMENSION_INCLUDE_INITIAL});
     myFinder = finder;
     myTraverser = traverser;
-  }
-
-  @Nullable
-  @Override
-  public ItemHolder<T> getAllItems() {
-    return null;
   }
 
   @NotNull

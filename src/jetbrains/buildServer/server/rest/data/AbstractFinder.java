@@ -20,7 +20,6 @@ package jetbrains.buildServer.server.rest.data;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -151,12 +150,8 @@ public abstract class AbstractFinder<ITEM> {
       locator.markAllUnused(); // nothing found - no dimensions should be marked as used then
     }
 
-    ItemHolder<ITEM> unfilteredItems = null;
-    if (originalLocator == null){
-      unfilteredItems = getAllItems();
-    }
     //it is important to call "getPrefilteredItems" first as that process some of the dimensions which  "getFilter" can then ignore for performance reasons
-    unfilteredItems = unfilteredItems != null ? unfilteredItems : getPrefilteredItems(locator);
+    ItemHolder<ITEM> unfilteredItems = getPrefilteredItems(locator);
     final ItemFilter<ITEM> filter = getFilter(locator);
 
     final Long start = locator.getSingleDimensionValueAsLong(PagerData.START);
@@ -226,13 +221,9 @@ public abstract class AbstractFinder<ITEM> {
     return items.myEntries.get(0);
   }
 
-  @NotNull   //todo: change overrides, drop getAllItems at all
+  @NotNull
   protected ItemHolder<ITEM> getPrefilteredItems(@NotNull Locator locator) {
-    final ItemHolder<ITEM> allItems = getAllItems();
-    if (allItems == null){
-      throw new OperationException("Incorrect implementation: nor all items nor prefiltered items are defined.");
-    }
-    return allItems;
+    throw new OperationException("Incorrect implementation: prefiltered items retrieval is not implemented.");
   }
 
   /**
@@ -245,13 +236,6 @@ public abstract class AbstractFinder<ITEM> {
   protected ITEM findSingleItem(@NotNull final Locator locator){
     return null;
   }
-
-  /**
-   *
-   * @return null if all items are not supported and usual scheme (get prefiltered + filtering) should be applied
-   */
-  @Nullable  //todo: change overrides
-  public abstract ItemHolder<ITEM> getAllItems();
 
   @NotNull
   protected abstract ItemFilter<ITEM> getFilter(@NotNull final Locator locator);
@@ -284,17 +268,5 @@ public abstract class AbstractFinder<ITEM> {
       }
       return true;
     }
-  }
-
-  @NotNull
-  public List<ITEM> toList(@NotNull final ItemHolder<ITEM> items) {//todo support lookuplimit here?
-    final ArrayList<ITEM> result = new ArrayList<ITEM>();
-    items.process(new ItemProcessor<ITEM>() {
-      public boolean processItem(final ITEM item) {
-        result.add(item);
-        return true;
-      }
-    });
-    return result;
   }
 }

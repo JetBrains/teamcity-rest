@@ -159,12 +159,6 @@ public class ProjectFinder extends AbstractFinder<SProject> {
     return parentProjectLocator == null ? null : getItem(parentProjectLocator);
   }
 
-  @Nullable
-  @Override
-  public ItemHolder<SProject> getAllItems() {
-    return getItemHolder(myProjectManager.getProjects());
-  }
-
   @NotNull
   @Override
   protected ItemFilter<SProject> getFilter(@NotNull final Locator locator) {
@@ -265,7 +259,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
       return getItemHolder(parentProject.getProjects());
     }
 
-    return super.getPrefilteredItems(locator);
+    return getItemHolder(myProjectManager.getProjects());
   }
 
   @NotNull

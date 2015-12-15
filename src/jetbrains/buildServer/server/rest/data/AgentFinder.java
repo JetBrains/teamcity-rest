@@ -65,13 +65,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     return result;
   }
 
-  @Nullable
-  @Override
-  public ItemHolder<SBuildAgent> getAllItems() {
-    return null;
-  }
-
-  //todo: check view agent details permission before returning unauthorized agents, here and in prefiltering
+   //todo: check view agent details permission before returning unauthorized agents, here and in prefiltering
   @Override
   @Nullable
   protected SBuildAgent findSingleItem(@NotNull final Locator locator) {

@@ -105,27 +105,6 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
   @Nullable
   @Override
-  public ItemHolder<VcsRootInstance> getAllItems() {
-    //todo: (TeamCity) open API is there a better way to do this?
-    //if reworked, can use checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, item);
-    final Set<VcsRootInstance> rootInstancesSet = new LinkedHashSet<VcsRootInstance>();
-    for (SBuildType buildType : myProjectManager.getAllBuildTypes()) {
-      if (myPermissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, buildType.getProjectId())) {
-        rootInstancesSet.addAll(buildType.getVcsRootInstances());
-      }
-    }
-    final List<VcsRootInstance> result = new ArrayList<VcsRootInstance>(rootInstancesSet.size());
-    result.addAll(rootInstancesSet);
-    Collections.sort(result, new Comparator<VcsRootInstance>() {
-      public int compare(final VcsRootInstance o1, final VcsRootInstance o2) {
-        return (int)(o1.getId() - o2.getId());
-      }
-    });
-    return getItemHolder(result);
-  }
-
-  @Nullable
-  @Override
   protected VcsRootInstance findSingleItem(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's root instance id
@@ -292,7 +271,22 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       return getItemHolder(project.getVcsRootInstances());
     }
 
-    return super.getPrefilteredItems(locator);
+    //todo: (TeamCity) open API is there a better way to do this?
+    //if reworked, can use checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, item);
+    final Set<VcsRootInstance> rootInstancesSet = new LinkedHashSet<VcsRootInstance>();
+    for (SBuildType buildType : myProjectManager.getAllBuildTypes()) {
+      if (myPermissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, buildType.getProjectId())) {
+        rootInstancesSet.addAll(buildType.getVcsRootInstances());
+      }
+    }
+    final List<VcsRootInstance> result = new ArrayList<VcsRootInstance>(rootInstancesSet.size());
+    result.addAll(rootInstancesSet);
+    Collections.sort(result, new Comparator<VcsRootInstance>() {
+      public int compare(final VcsRootInstance o1, final VcsRootInstance o2) {
+        return (int)(o1.getId() - o2.getId());
+      }
+    });
+    return getItemHolder(result);
   }
 
   public void checkPermission(@NotNull final Permission permission, @NotNull final VcsRootInstance rootInstance) {

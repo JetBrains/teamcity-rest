@@ -63,7 +63,7 @@ public class TagFinder extends AbstractFinder<TagData> {
 
   @NotNull
   @Override
-  public ItemHolder<TagData> getAllItems() {
+  protected ItemHolder<TagData> getPrefilteredItems(@NotNull final Locator locator) {
     final ArrayList<TagData> result = new ArrayList<TagData>(myBuildPromotion.getTagDatas());
     Collections.sort(result, new Comparator<TagData>() {
       public int compare(final TagData o1, final TagData o2) {

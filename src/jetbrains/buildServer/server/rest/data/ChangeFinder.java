@@ -119,13 +119,6 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     return Locator.getStringLocator(BUILD, BuildPromotionFinder.getLocator(item));
   }
 
-  @NotNull
-  @Override
-  public ItemHolder<SVcsModification> getAllItems() {
-    //todo: highly inefficient!
-    return getItemHolder(myVcsModificationHistory.getAllModifications());
-  }
-
   @Override
   @Nullable
   protected SVcsModification findSingleItem(@NotNull final Locator locator) {

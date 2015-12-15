@@ -76,7 +76,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
 
   @NotNull
   @Override
-  public ItemHolder<SQueuedBuild> getAllItems() {
+  protected ItemHolder<SQueuedBuild> getPrefilteredItems(@NotNull final Locator locator) {
     return getItemHolder(myBuildQueue.getItems());
   }
 

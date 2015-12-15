@@ -158,31 +158,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   @Nullable
   @Override
-  public ItemHolder<BuildPromotion> getAllItems() {
-    return null;
-    /*
-    final ArrayList<BuildPromotion> result = new ArrayList<BuildPromotion>();
-    result.addAll(CollectionsUtil.convertCollection(myBuildQueue.getItems(), new Converter<BuildPromotion, SQueuedBuild>() {
-      public BuildPromotion createFrom(@NotNull final SQueuedBuild source) {
-        return source.getBuildPromotion();
-      }
-    }));
-    result.addAll(CollectionsUtil.convertCollection(myBuildsManager.getRunningBuilds(), new Converter<BuildPromotion, SRunningBuild>() {
-      public BuildPromotion createFrom(@NotNull final SRunningBuild source) {
-        return source.getBuildPromotion();
-      }
-    }));
-    result.addAll(CollectionsUtil.convertCollection(myBuildHistory.getEntries(true), new Converter<BuildPromotion, SFinishedBuild>() {
-      public BuildPromotion createFrom(@NotNull final SFinishedBuild source) {
-        return source.getBuildPromotion();
-      }
-    }));
-    return getItemHolder(result);
-    */
-  }
-
-  @Nullable
-  @Override
   protected BuildPromotion findSingleItem(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       @NotNull final Long singleValueAsLong;

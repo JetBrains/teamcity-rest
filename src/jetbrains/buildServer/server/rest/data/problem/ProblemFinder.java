@@ -100,17 +100,6 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     return null;
   }
 
-  @Override
-  @NotNull
-  public ItemHolder<ProblemWrapper> getAllItems() {
-    //todo: TeamCity API: find a way to do this
-    ArrayList<String> exampleLocators = new ArrayList<String>();
-    exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "XXX"));
-    exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
-    exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
-    throw new BadRequestException("Listing all problems is not supported. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
-  }
-
   @NotNull
   @Override
   protected ItemHolder<ProblemWrapper> getPrefilteredItems(@NotNull final Locator locator) {
@@ -132,7 +121,12 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
       return getItemHolder(getCurrentlyMutedProblems(affectedProject));
     }
 
-    return super.getPrefilteredItems(locator);
+    //todo: TeamCity API: find a way to do this
+    ArrayList<String> exampleLocators = new ArrayList<String>();
+    exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
+    throw new BadRequestException("Listing all problems is not supported. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
   }
 
   @NotNull
