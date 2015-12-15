@@ -68,6 +68,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected static final String FAILED_TO_START = "failedToStart";
   protected static final String PINNED = "pinned";
   protected static final String RUNNING = "running";
+  protected static final String HANGING = "hanging";
   protected static final String SNAPSHOT_DEP = "snapshotDependency";
   protected static final String COMPATIBLE_AGENTS_COUNT = "compatibleAgentsCount";
   protected static final String TAGS = "tags";
@@ -115,7 +116,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                               final UserFinder userFinder,
                               final AgentFinder agentFinder) {
     super(new String[]{DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, USER, PERSONAL, STATE, TAG, PROPERTY, COMPATIBLE_AGENT,
-      NUMBER, STATUS, CANCELED, PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP,
+      NUMBER, STATUS, CANCELED, PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, HANGING,
       DEFAULT_FILTERING, SINCE_BUILD_ID_LOOK_AHEAD_COUNT,
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myBuildPromotionManager = buildPromotionManager;
@@ -778,6 +779,16 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
+    final Boolean hanging = locator.getSingleDimensionValueAsBoolean(HANGING);
+    if (hanging != null) {
+      result.add(new FilterConditionChecker<SBuild>() {
+        public boolean isIncluded(@NotNull final SBuild item) {
+          if (item.isFinished()) return !hanging;
+          return FilterUtil.isIncludedByBooleanFilter(hanging, ((SRunningBuild)item).isProbablyHanging());
+        }
+      });
+    }
+
     //compatibility, use "agent" locator instead
     final String agentName = locator.getSingleDimensionValue(AGENT_NAME);
     if (agentName != null) {
@@ -1145,7 +1156,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
           !stateDimension.equals(STATE_RUNNING) &&
           !stateDimension.equals(STATE_FINISHED) &&
           !stateDimension.equals(STATE_ANY)) {
-        throw new BadRequestException("Unsupported value of '" + STATE + "' dimension: '" + stateDimension + "'. Should be one of the build states or '" + STATE_ANY + "'");
+        throw new BadRequestException("Unsupported value of '" + STATE + "' dimension: '" + stateDimension +
+                                      "'. Should be one of the build states('" + STATE_QUEUED + "', '" + STATE_RUNNING + "', '" + STATE_FINISHED + "') or '" + STATE_ANY + "'");
       }
     }
 
