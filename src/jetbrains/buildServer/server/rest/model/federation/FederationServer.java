@@ -38,4 +38,9 @@ public class FederationServer {
   public String getUrl() {
     return mySource.getUrl();
   }
+
+  @XmlAttribute
+  public String getDescription() {
+    return mySource.getDescription();
+  }
 }
