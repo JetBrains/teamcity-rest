@@ -73,13 +73,13 @@ public abstract class AbstractFinder<ITEM> {
 
   @Nullable
   @Contract("null -> null; !null -> !null")
-  public Locator getLocatorOrNull(@Nullable final String locatorText) {
+  private Locator getLocatorOrNull(@Nullable final String locatorText) {
     return locatorText != null ? createLocator(locatorText, null) : null;
   }
 
   @Nullable
   @Contract("null, null -> null; !null, _ -> !null; _, !null -> !null")
-  public Locator getLocatorOrNull(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
+  private Locator getLocatorOrNull(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     return (locatorText == null && locatorDefaults == null) ? null : createLocator(locatorText, locatorDefaults);
   }
 
@@ -131,15 +131,15 @@ public abstract class AbstractFinder<ITEM> {
         final Set<String> unusedDimensions = locator.getUnusedDimensions();
         if (!unusedDimensions.isEmpty()) {
           ItemFilter<ITEM> filter = getFilter(locator);
-          locator.checkLocatorFullyProcessed();
           if (!filter.isIncluded(singleItem)) {
+            locator.checkLocatorFullyProcessed();
+            final String message = "Found single item by " + StringUtil.pluralize("dimension", singleItemUsedDimensions.size()) + " " + singleItemUsedDimensions +
+                                   ", but that was filtered out using the entire locator '" + locator + "'";
             if (multipleItemsQuery) {
-              LOG.debug("Found single item by " + StringUtil.pluralize("dimension", singleItemUsedDimensions.size()) + " " + singleItemUsedDimensions +
-                        ", but that was filtered out using the entire locator '" + locator + "'");
+              LOG.debug(message);
               return new PagedSearchResult<ITEM>(Collections.<ITEM>emptyList(), null, null);
             } else {
-              throw new NotFoundException("Found single item by " + StringUtil.pluralize("dimension", singleItemUsedDimensions.size()) + " " + singleItemUsedDimensions +
-                                          ", but that was filtered out using the entire locator '" + locator + "'");
+              throw new NotFoundException(message);
             }
           }
         }
@@ -170,7 +170,7 @@ public abstract class AbstractFinder<ITEM> {
   }
 
   @NotNull
-  protected PagedSearchResult<ITEM> getItems(final @NotNull PagingItemFilter<ITEM> filter, final @NotNull ItemHolder<ITEM> unfilteredItems, @NotNull final Locator locator) {
+  private PagedSearchResult<ITEM> getItems(final @NotNull PagingItemFilter<ITEM> filter, final @NotNull ItemHolder<ITEM> unfilteredItems, @NotNull final Locator locator) {
     final long startTime = System.nanoTime();
     final FilterItemProcessor<ITEM> filterItemProcessor = new FilterItemProcessor<ITEM>(filter);
     unfilteredItems.process(filterItemProcessor);
@@ -210,14 +210,17 @@ public abstract class AbstractFinder<ITEM> {
       locator.addHiddenDimensions(PagerData.COUNT);
     }
     final PagedSearchResult<ITEM> items = getItemsByLocator(locator, false);
-    if (items.myEntries.size() == 0) {
+    final int entriesSize = items.myEntries.size();
+    if (entriesSize == 0) {
       if (!items.myLookupLimitReached)
         throw new NotFoundException("Nothing is found by locator '" + locator.getStringRepresentation() + "'.");
       LOG.debug("Returning \"Not Found\" response because of reaching lookupLimit. Last processed item: " + LogUtil.describe(items.getLastProcessedItem()));
       throw new NotFoundException("Nothing is found by locator '" + locator.getStringRepresentation() + "' while processing first " +
                                        items.myLookupLimit + " items. Set " + DIMENSION_LOOKUP_LIMIT + " dimension to larger value to process more items.");
     }
-    assert items.myEntries.size()== 1;
+    if (entriesSize != 1) {
+      throw new OperationException("Found + " + entriesSize + " items for locator '" + locator.getStringRepresentation() + "' while a single item is expected.");
+    }
     return items.myEntries.get(0);
   }
 
