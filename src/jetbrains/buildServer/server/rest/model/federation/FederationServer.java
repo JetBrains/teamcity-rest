@@ -20,27 +20,31 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.federation.TeamCityServer;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 
 @XmlRootElement(name = "server")
-@XmlType(propOrder = {"url"})
+@XmlType(propOrder = {"url", "description"})
 public class FederationServer {
 
   private TeamCityServer mySource;
+  private Fields myFields;
 
   public FederationServer() {
   }
 
-  public FederationServer(final TeamCityServer source) {
+  public FederationServer(final TeamCityServer source, final Fields fields) {
     mySource = source;
+    myFields = fields;
   }
 
   @XmlAttribute
   public String getUrl() {
-    return mySource.getUrl();
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("url"), mySource.getUrl());
   }
 
   @XmlAttribute
   public String getDescription() {
-    return mySource.getDescription();
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("description"), mySource.getDescription());
   }
 }

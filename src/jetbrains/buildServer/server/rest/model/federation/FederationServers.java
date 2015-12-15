@@ -17,14 +17,18 @@
 package jetbrains.buildServer.server.rest.model.federation;
 
 
+import com.google.common.collect.Iterables;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.federation.TeamCityServer;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "servers")
@@ -38,11 +42,17 @@ public class FederationServers {
   public FederationServers() {
   }
 
-  public FederationServers(final Iterable<TeamCityServer> servers) {
-    this.servers = CollectionsUtil.convertCollection(servers, new Converter<FederationServer, TeamCityServer>() {
-      public FederationServer createFrom(@NotNull final TeamCityServer source) {
-        return new FederationServer(source);
+  public FederationServers(final Iterable<TeamCityServer> servers, @NotNull final Fields fields) {
+    this.servers = ValueWithDefault.decideDefault(fields.isIncluded("server", true), new ValueWithDefault.Value<List<FederationServer>>() {
+      @Nullable
+      public List<FederationServer> get() {
+        return CollectionsUtil.convertCollection(servers, new Converter<FederationServer, TeamCityServer>() {
+          public FederationServer createFrom(@NotNull final TeamCityServer source) {
+            return new FederationServer(source, fields.getNestedField("server", Fields.SHORT, Fields.LONG));
+          }
+        });
       }
     });
+    this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), Iterables.size(servers));
   }
 }

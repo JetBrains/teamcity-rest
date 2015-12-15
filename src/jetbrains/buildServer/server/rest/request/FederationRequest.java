@@ -20,10 +20,12 @@ import io.swagger.annotations.Api;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.federation.ConnectedServers;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.federation.FederationServers;
 
 @Path(FederationRequest.API_FEDERATION_URL)
@@ -36,9 +38,9 @@ public class FederationRequest {
   @GET
   @Path("/servers")
   @Produces({"application/xml", "application/json"})
-  public FederationServers servers() {
+  public FederationServers servers(@QueryParam("fields") String fields) {
     ConnectedServers connectedServers = myServiceLocator.getSingletonService(ConnectedServers.class);
-    return new FederationServers(connectedServers.getAttachedServers());
+    return new FederationServers(connectedServers.getAttachedServers(), new Fields(fields));
   }
 
 }
