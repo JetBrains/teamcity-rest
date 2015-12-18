@@ -342,7 +342,7 @@ public class Locator {
               message = "Locator dimension " + unusedDimensions + " is ignored or unknown.";
             }
           } else {
-            message = "Single value locator is not supported here.";
+            message = "Single value locator is not supported (actual value '" + mySingleValue + "').";
           }
         }
         if (mySupportedDimensions != null && mySupportedDimensions.length > 0) message += " Supported dimensions are: " + Arrays.toString(mySupportedDimensions);
@@ -528,7 +528,7 @@ public class Locator {
    */
   public Locator setDimension(@NotNull final String name, @NotNull final String value) {
     if (isSingleValue()) {
-      throw new InternalError("Attempt to set dimension '" + name + "' for single value locator.");
+      throw new IllegalArgumentException("Attempt to set dimension '" + name + "' for single value locator.");
     }
     myDimensions.put(name, Collections.singletonList(value));
     markUnused(name);

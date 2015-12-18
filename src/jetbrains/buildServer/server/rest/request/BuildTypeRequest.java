@@ -136,7 +136,13 @@ public class BuildTypeRequest {
   public BuildTypes getBuildTypes(@QueryParam("locator") String locator, @QueryParam("fields") String fields,
                                        @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     //do not return templates unless specifically requested
-    final String actualLocator = Locator.setDimensionIfNotPresent(locator, BuildTypeFinder.TEMPLATE_FLAG_DIMENSION_NAME, "false");
+    String actualLocator;
+    try {
+      actualLocator = Locator.setDimensionIfNotPresent(locator, BuildTypeFinder.TEMPLATE_FLAG_DIMENSION_NAME, "false");
+    } catch (IllegalArgumentException e) {
+      //cannot set the dimension, continue as is
+      actualLocator = locator;
+    }
     final PagedSearchResult<BuildTypeOrTemplate> result = myBuildTypeFinder.getItems(actualLocator);
 
     final PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
