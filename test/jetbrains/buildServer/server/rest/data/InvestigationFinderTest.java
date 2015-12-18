@@ -27,6 +27,7 @@ import jetbrains.buildServer.server.rest.PathTransformer;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.buildType.Investigation;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
@@ -76,6 +77,25 @@ public class InvestigationFinderTest extends BaseServerTestCase {
     myFixture.addService(new PermissionChecker(myServer.getSecurityContext()));
     myInvestigationFinder = new InvestigationFinder(projectFinder, null, null, testFinder, userFinder, myFixture.getResponsibilityFacadeEx(), myFixture.getResponsibilityFacadeEx(),
                                                     myFixture.getResponsibilityFacadeEx());
+  }
+
+  @Test
+  public void testBasic() throws Exception {
+    createFailingBuild();
+    myFixture.getResponsibilityFacadeEx().setBuildTypeResponsibility(myBuildType, createRespEntry(ResponsibilityEntry.State.TAKEN, myUser));
+
+
+    BuildPromotionFinderTest.checkException(LocatorProcessException.class, new Runnable() {
+      public void run() {
+        myInvestigationFinder.getItem("No_match");
+      }
+    }, "searching for item with locator \"" + "No_match" + "\"");
+
+    BuildPromotionFinderTest.checkException(LocatorProcessException.class, new Runnable() {
+      public void run() {
+        myInvestigationFinder.getItems("No_match");
+      }
+    }, "searching for item with locator \"" + "No_match" + "\"");
   }
 
   @Test

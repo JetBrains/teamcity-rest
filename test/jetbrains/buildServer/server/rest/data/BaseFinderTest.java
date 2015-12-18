@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import jetbrains.buildServer.log.Loggable;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -27,7 +28,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Created by yaegor on 13/06/2015.
  */
-public abstract class BaseFinderTest<T extends Loggable> extends BaseServerTestCase{
+public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   private AbstractFinder<T> myFinder;
 
   public void setFinder(AbstractFinder<T> finder){
@@ -59,7 +60,7 @@ public abstract class BaseFinderTest<T extends Loggable> extends BaseServerTestC
       if (items.length == 0) {
         try {
           T singleResult = myFinder.getItem(locator);
-          fail("No items should be found by locator \"" + locator + "\", but found: " + LogUtil.describeInDetail(singleResult));
+          fail("No items should be found by locator \"" + locator + "\", but found: " + getDescription(singleResult));
         } catch (NotFoundException e) {
           //exception is expected
         }
@@ -68,11 +69,18 @@ public abstract class BaseFinderTest<T extends Loggable> extends BaseServerTestC
         final T item = items[0];
         if (!item.equals(singleResult)) {
           fail("While searching for single item with locator \"" + locator + "\"\n" +
-               "Expected: " + LogUtil.describeInDetail(item) + "\n" +
-               "Actual: " + LogUtil.describeInDetail(singleResult));
+               "Expected: " + getDescription(item) + "\n" +
+               "Actual: " + getDescription(singleResult));
         }
       }
     }
+  }
+
+  private String getDescription(final T singleResult) {
+    if (singleResult instanceof Loggable){
+      return LogUtil.describeInDetail(((Loggable)singleResult));
+    }
+    return LogUtil.describe(singleResult);
   }
 
   public <E extends Throwable> void checkExceptionOnItemsSearch(final Class<E> exception, final String multipleSearchLocator) {
@@ -92,7 +100,21 @@ public abstract class BaseFinderTest<T extends Loggable> extends BaseServerTestC
   }
 
   public String getDescription(final List<T> result) {
-    return LogUtil.describe(result, false, "\n", "", "");
-  }
+    if (result == null) {
+      return LogUtil.describe((Object)null);
+    }
 
+    final StringBuilder result1 = new StringBuilder();
+    final Iterator<T> it = result.iterator();
+    while(it.hasNext()) {
+      T item = it.next();
+      if (item != null) {
+        result1.append("").append(LogUtil.describe(item)).append("");
+        if (it.hasNext()) {
+          result1.append("\n");
+        }
+      }
+    }
+    return result1.toString();
+  }
 }

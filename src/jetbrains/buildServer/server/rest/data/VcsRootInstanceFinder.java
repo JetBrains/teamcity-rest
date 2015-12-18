@@ -244,7 +244,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
           final VcsRootInstance rootInstance = buildType.getVcsRootInstanceForParent(vcsRoot);
           if (rootInstance != null) {
             try {
-              checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance); //this can actually be dropped as it is checked in filter
+              checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance); //minor performance optimization not to return roots which will be filtered in the filter
               result.add(rootInstance); //todo: need to sort?
             } catch (Exception e) {
               //ignore

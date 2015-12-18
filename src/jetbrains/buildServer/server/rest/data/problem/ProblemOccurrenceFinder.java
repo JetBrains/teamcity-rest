@@ -105,9 +105,6 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   @Override
   protected BuildProblem findSingleItem(@NotNull final Locator locator) {
     //todo: searching occurrence by id does not work: review!!!
-    if (locator.isSingleValue()) {
-      throw new NotFoundException("Single value locators are not supported: Cannot find problem occurrence without build specification.");
-    }
 
     // dimension-specific item search
 
@@ -174,16 +171,12 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     exampleLocators.add(Locator.getStringLocator(PROBLEM, "XXX"));
     exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
     exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
-    throw new BadRequestException("Listing all problem occurrences is not supported. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
+    throw new BadRequestException("Unsupported problem occurrence locator '" + locator.getStringRepresentation() + "'. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
   }
 
   @NotNull
   @Override
   protected ItemFilter<BuildProblem> getFilter(@NotNull final Locator locator) {
-    if (locator.isSingleValue()) {
-      throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
-    }
-
     final MultiCheckerFilter<BuildProblem> result = new MultiCheckerFilter<BuildProblem>();
 
     String problemDimension = locator.getSingleDimensionValue(PROBLEM);

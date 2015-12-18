@@ -120,6 +120,7 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
         if (root == null) {
           throw new NotFoundException("No VCS root can be found by id '" + id + "'.");
         }
+        //todo: this and other invocations except for in getFilter can be removed as the filter is applied to all items
         checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, root);
       }
       return root;

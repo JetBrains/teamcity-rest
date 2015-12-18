@@ -126,16 +126,12 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "XXX"));
     exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
     exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
-    throw new BadRequestException("Listing all problems is not supported. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
+    throw new BadRequestException("Unsupported problem locator '" + locator.getStringRepresentation() + "'. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
   }
 
   @NotNull
   @Override
   protected ItemFilter<ProblemWrapper> getFilter(@NotNull final Locator locator) {
-    if (locator.isSingleValue()) {
-      throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
-    }
-
     final MultiCheckerFilter<ProblemWrapper> result = new MultiCheckerFilter<ProblemWrapper>();
 
     final String identityDimension = locator.getSingleDimensionValue(IDENTITY);

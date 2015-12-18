@@ -194,7 +194,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     exampleLocators.add(Locator.getStringLocator(TEST, "XXX"));
     exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
     exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
-    throw new BadRequestException("Listing all test occurrences is not supported. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
+    throw new BadRequestException("Unsupported test occurrence locator '" + locator.getStringRepresentation() + "'. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
   }
 
   @Nullable
@@ -231,10 +231,6 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @NotNull
   @Override
   protected ItemFilter<STestRun> getFilter(@NotNull final Locator locator) {
-    if (locator.isSingleValue()) {
-      throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
-    }
-
     final MultiCheckerFilter<STestRun> result = new MultiCheckerFilter<STestRun>();
 
 

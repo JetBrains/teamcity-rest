@@ -6,6 +6,8 @@
       <class name="jetbrains.buildServer.server.rest.data.VcsRootFinderTest"/>
       <class name="jetbrains.buildServer.server.rest.data.VcsRootInstanceFinderTest"/>
       <class name="jetbrains.buildServer.server.rest.data.InvestigationFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.TestOccurrenceFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.ProblemOccurrenceFinderTest"/>
       <class name="jetbrains.buildServer.server.rest.data.BuildTypeFinderTest"/>
       <class name="jetbrains.buildServer.server.rest.data.ProjectFinderTest"/>
       <class name="jetbrains.buildServer.server.rest.data.BuildArtifactsFinderTest"/>

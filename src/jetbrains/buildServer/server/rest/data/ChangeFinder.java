@@ -128,7 +128,6 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       if (modification == null) {
         throw new NotFoundException("No change can be found by id '" + locator.getSingleValueAsLong() + "'.");
       }
-      locator.checkLocatorFullyProcessed();
       return modification;
     }
 
@@ -145,7 +144,6 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
         throw new NotFoundException("No change can be found by id '" + locator.getSingleDimensionValue(DIMENSION_ID) + "' (searching " +
                                     (isPersonal ? "personal" : "non-personal") + " changes).");
       }
-      locator.checkLocatorFullyProcessed();
       return modification;
     }
 
@@ -155,10 +153,6 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   @NotNull
   @Override
   protected ItemFilter<SVcsModification> getFilter(@NotNull final Locator locator) {
-    if (locator.isSingleValue()) {
-      throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
-    }
-
     final MultiCheckerFilter<SVcsModification> result = new MultiCheckerFilter<SVcsModification>();
 
     //myBuildType, myProject and myBranchName are handled on getting initial collection to filter

@@ -42,7 +42,6 @@ import org.jetbrains.annotations.Nullable;
  */
 public abstract class AbstractFinder<ITEM> {
   //todo: add set-filtering (filter by collection of items in prefiltering and in filter), e.g. see handling of ProjectFinder.DIMENSION_PROJECT
-  //todo: add mandatory filter to apply on any returned results: single, prefiltered, etc. (e.g. permissions checked in VCSRoot*Finder)
   private static final Logger LOG = Logger.getInstance(AbstractFinder.class.getName());
 
   public static final String DIMENSION_ID = "id";
@@ -128,19 +127,25 @@ public abstract class AbstractFinder<ITEM> {
           locator.markUnused(PagerData.START);
         }
 
-        final Set<String> unusedDimensions = locator.getUnusedDimensions();
-        if (!unusedDimensions.isEmpty()) {
-          ItemFilter<ITEM> filter = getFilter(locator);
-          if (!filter.isIncluded(singleItem)) {
-            locator.checkLocatorFullyProcessed();
-            final String message = "Found single item by " + StringUtil.pluralize("dimension", singleItemUsedDimensions.size()) + " " + singleItemUsedDimensions +
-                                   ", but that was filtered out using the entire locator '" + locator + "'";
-            if (multipleItemsQuery) {
-              LOG.debug(message);
-              return new PagedSearchResult<ITEM>(Collections.<ITEM>emptyList(), null, null);
-            } else {
-              throw new NotFoundException(message);
-            }
+        ItemFilter<ITEM> filter = null;
+        try {
+          filter = getFilter(locator);
+        } catch (NotFoundException e) {
+          throw new NotFoundException("Invalid filter for found single item, try omitting extra dimensions: " + e.getMessage(), e);
+        } catch (BadRequestException e) {
+          throw new BadRequestException("Invalid filter for found single item, try omitting extra dimensions: " + e.getMessage(), e);
+        } catch (Exception e) {
+          throw new BadRequestException("Invalid filter for found single item, try omitting extra dimensions: " + e.toString(), e);
+        }
+        locator.checkLocatorFullyProcessed(); //checking before invoking filter to report any unused dimensions before possible error reporting in filter
+        if (!filter.isIncluded(singleItem)) {
+          final String message = "Found single item by " + StringUtil.pluralize("dimension", singleItemUsedDimensions.size()) + " " + singleItemUsedDimensions +
+                                 ", but that was filtered out using the entire locator '" + locator + "'";
+          if (multipleItemsQuery) {
+            LOG.debug(message);
+            return new PagedSearchResult<ITEM>(Collections.<ITEM>emptyList(), null, null);
+          } else {
+            throw new NotFoundException(message);
           }
         }
 
@@ -240,6 +245,11 @@ public abstract class AbstractFinder<ITEM> {
     return null;
   }
 
+  /**
+   * Returns filter based on passed locator
+   * Should not have side-effects other than marking used locator dimensions
+   * @param locator can be empty locator. Can
+   */
   @NotNull
   protected abstract ItemFilter<ITEM> getFilter(@NotNull final Locator locator);
 

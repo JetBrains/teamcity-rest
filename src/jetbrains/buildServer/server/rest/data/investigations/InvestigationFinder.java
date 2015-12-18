@@ -130,10 +130,6 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   @NotNull
   @Override
   protected ItemFilter<InvestigationWrapper> getFilter(@NotNull final Locator locator) {
-    if (locator.isSingleValue()) {
-      throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
-    }
-
     final MultiCheckerFilter<InvestigationWrapper> result = new MultiCheckerFilter<InvestigationWrapper>();
 
     final String investigatorDimension = locator.getSingleDimensionValue(ASSIGNEE);

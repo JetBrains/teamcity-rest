@@ -73,6 +73,10 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
     check("name:(" + project10_10.getName() + ")", project10_10);
     check("name:(" + project10_10.getName().toUpperCase() + ")");
     check("name:(" + "xxx" + ")", project10_10_10, project10_20);
+
+    check(project10.getExternalId(), project10);
+    check(project10.getName(), project10);
+    check("No_match");
   }
 
   @Test

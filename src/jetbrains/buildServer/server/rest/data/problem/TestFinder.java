@@ -82,7 +82,6 @@ public class TestFinder extends AbstractFinder<STest> {
       if (item == null) {
         throw new NotFoundException("No test can be found by id '" + parsedId + "' on the entire server.");
       }
-      locator.checkLocatorFullyProcessed();
       return item;
     }
 
@@ -136,7 +135,7 @@ public class TestFinder extends AbstractFinder<STest> {
     exampleLocators.add(Locator.getStringLocator(NAME, "XXX"));
     exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
     exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
-    throw new BadRequestException("Listing all tests is not supported. Try locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
+    throw new BadRequestException("Unsupported test locator '" + locator.getStringRepresentation() + "'. Try locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
   }
 
   List<STest> getCurrentlyMutedTests(final SProject affectedProject) {
@@ -160,10 +159,6 @@ public class TestFinder extends AbstractFinder<STest> {
   @NotNull
   @Override
   protected ItemFilter<STest> getFilter(@NotNull final Locator locator) {
-    if (locator.isSingleValue()) {
-      throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
-    }
-
     final MultiCheckerFilter<STest> result = new MultiCheckerFilter<STest>();
 
     final String nameDimension = locator.getSingleDimensionValue(NAME);

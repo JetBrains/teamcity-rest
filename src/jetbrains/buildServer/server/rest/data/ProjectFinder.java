@@ -26,7 +26,6 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.serverSide.ProjectManager;
@@ -162,10 +161,6 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   @NotNull
   @Override
   protected ItemFilter<SProject> getFilter(@NotNull final Locator locator) {
-    if (locator.isSingleValue()) {
-      throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
-    }
-
     final MultiCheckerFilter<SProject> result = new MultiCheckerFilter<SProject>();
 
     final String name = locator.getSingleDimensionValue(DIMENSION_NAME);

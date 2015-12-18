@@ -210,10 +210,6 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   @NotNull
   @Override
   protected ItemFilter<BuildTypeOrTemplate> getFilter(@NotNull final Locator locator) {
-    if (locator.isSingleValue()) {
-      throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
-    }
-
     final MultiCheckerFilter<BuildTypeOrTemplate> result = new MultiCheckerFilter<BuildTypeOrTemplate>();
 
     final String name = locator.getSingleDimensionValue(DIMENSION_NAME);
@@ -348,21 +344,36 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
     final String templateLocator = locator.getSingleDimensionValue(TEMPLATE_DIMENSION_NAME);
     if (templateLocator != null) {
-      final BuildTypeTemplate buildTemplate;
       try {
-        buildTemplate = getBuildTemplate(null, templateLocator, true);
+        final BuildTypeTemplate buildTemplate = getBuildTemplate(null, templateLocator, true); //only this can throw exceptions caught later
+        final List<BuildTypeOrTemplate> boundingList = BuildTypes.fromBuildTypes(buildTemplate.getUsages());
+        result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
+          public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+            return boundingList.contains(item);
+          }
+        });
       } catch (NotFoundException e) {
-        throw new NotFoundException("No templates found by locator '" + templateLocator + "' specified in '" + TEMPLATE_DIMENSION_NAME + "' dimension : " + e.getMessage());
+        //legacy support for boolean template
+        Boolean legacyTemplateFlag = null;
+        try {
+          legacyTemplateFlag = locator.getSingleDimensionValueAsBoolean(TEMPLATE_DIMENSION_NAME);
+        } catch (LocatorProcessException eNested) {
+          //not a boolean, throw original error
+          throw new NotFoundException("No templates found by locator '" + templateLocator + "' specified in '" + TEMPLATE_DIMENSION_NAME + "' dimension : " + e.getMessage());
+        }
+        //legacy request detected
+        if (legacyTemplateFlag != null) {
+          final boolean legacyTemplateFlagFinal = legacyTemplateFlag;
+          result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
+            public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+              return FilterUtil.isIncludedByBooleanFilter(legacyTemplateFlagFinal, item.isTemplate());
+            }
+          });
+        }
       } catch (BadRequestException e) {
         throw new BadRequestException(
           "Error while searching for templates by locator '" + templateLocator + "' specified in '" + TEMPLATE_DIMENSION_NAME + "' dimension : " + e.getMessage(), e);
       }
-      final List<BuildTypeOrTemplate> boundingList = BuildTypes.fromBuildTypes(buildTemplate.getUsages());
-      result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-        public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
-          return boundingList.contains(item);
-        }
-      });
     }
 
     if (locator.isUnused(VCS_ROOT_DIMENSION)) {
@@ -646,7 +657,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
           } else {
             message += "build types";
           }
-          throw new BadRequestException(message + " found for name '" + name + "'.");
+          throw new BadRequestException(message + " found by name for single value locator '" + name + "'. Try another locator");
         }
         firstFound = found;
       }

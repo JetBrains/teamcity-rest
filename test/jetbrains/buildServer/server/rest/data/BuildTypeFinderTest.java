@@ -81,6 +81,19 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
   }
 
   @Test
+  public void testBuildTypeLegacyTemplateDimension() throws Exception {
+    final BuildTypeOrTemplate template = new BuildTypeOrTemplate(createBuildTypeTemplate("template"));
+    final BuildTypeOrTemplate buildConf = new BuildTypeOrTemplate(registerTemplateBasedBuildType("buildConf"));
+    //noinspection ConstantConditions
+    buildConf.getBuildType().attachToTemplate(template.getTemplate());
+
+    check("template:true,id:" + template.getId(), template);
+    check("template:true,internalId:" + template.getInternalId(), template);
+    check("template:false,id:" + buildConf.getId(), buildConf);
+    check("template:false,internalId:" + buildConf.getInternalId(), buildConf);
+  }
+
+  @Test
   public void testBuildTypes1() throws Exception {
     myBuildType.remove();
 
@@ -127,8 +140,9 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     check("name:xxX", p10_bt10, p10_10_bt10, p10_10_10_bt10, p20_10_bt10, p20_10_10_bt10);
     check("name:P10_10_10_bt20,affectedProject:(id:" + project10_10.getExternalId() + ")", p10_10_10_bt20);
 
-    checkExceptionOnItemSearch(BadRequestException.class, "xxx");
+    checkExceptionOnItemSearch(BadRequestException.class, "xxx"); //BadRequestException: Several matching build types/templates found for name 'xxx'.
     check("p10_10_10_bt20", p10_10_10_bt20);
+    check("No_match");
   }
   
 
