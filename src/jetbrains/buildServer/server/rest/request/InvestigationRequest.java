@@ -61,22 +61,21 @@ public class InvestigationRequest {
   }
 
   public static String getHref(@NotNull final ProblemWrapper problem) {
-    return API_SUB_URL + "?locator=" + InvestigationFinder.getLocator(problem);
+    return getHref(InvestigationFinder.getLocator(problem));
   }
 
   public static String getHref(@NotNull final STest test) {
-    return API_SUB_URL + "?locator=" + InvestigationFinder.getLocator(test);
+    return getHref(InvestigationFinder.getLocator(test));
   }
 
   public static String getHref(@NotNull final SBuildType buildType) {
-    return API_SUB_URL + "?locator=" + InvestigationFinder.getLocator(buildType);
+    return getHref(InvestigationFinder.getLocator(buildType));
   }
 
-  /*
-  public static String getInvestigationHref(@NotNull final InvestigationWrapper investigation) {
-    return API_SUB_URL + "?locator=" + VcsRootFinder.VCS_ROOT_DIMENSION + ":(id:" + vcsRoot.getExternalId() + ")";
+  @NotNull
+  public static String getHref(@NotNull final String locator) {
+    return API_SUB_URL + "?locator=" + locator;
   }
-  */
 
   /**
    * Experimental, the requests and results returned will change in future versions!

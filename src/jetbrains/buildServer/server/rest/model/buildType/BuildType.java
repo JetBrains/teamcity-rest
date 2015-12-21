@@ -24,9 +24,10 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptorFactory;
-import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
+import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -340,14 +341,22 @@ public class BuildType {
     if (myBuildType == null || myBuildType.getBuildType() == null) {
       return null;
     }
-    if (myFields.isIncluded("investigations", false, true)) {
-      final ResponsibilityEntry.State state = myBuildType.getBuildType().getResponsibilityInfo().getState();
-      if (!state.equals(ResponsibilityEntry.State.NONE)) {
-        //todo: include list by default, add support for locator + filter here, like for builds in BuildType
-        return new Investigations(null, new PagerData(InvestigationRequest.getHref(myBuildType.getBuildType())), myFields.getNestedField("investigations"), myBeanContext);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("investigations", false, true), new ValueWithDefault.Value<Investigations>() {
+      @Nullable
+      public Investigations get() {
+        final Fields nestedFields = myFields.getNestedField("investigations");
+        final InvestigationFinder finder = myBeanContext.getSingletonService(InvestigationFinder.class);
+        final String nestedLocator = nestedFields.getLocator();
+        final String actualLocatorText;
+        if (nestedLocator == null) {
+          actualLocatorText = InvestigationFinder.getLocator(myBuildType.getBuildType());
+        } else {
+          actualLocatorText = finder.createLocator(nestedLocator, new Locator(InvestigationFinder.getLocator(myBuildType.getBuildType()))).getStringRepresentation();
+        }
+        final List<InvestigationWrapper> result = Investigations.isDataNecessary(nestedFields) ? finder.getItems(actualLocatorText).myEntries : null;
+        return new Investigations(result, new PagerData(InvestigationRequest.getHref(actualLocatorText)), nestedFields, myBeanContext);
       }
-    }
-    return null;
+    });
   }
 
   /**

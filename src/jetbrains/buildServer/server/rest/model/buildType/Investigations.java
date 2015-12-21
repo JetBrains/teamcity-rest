@@ -83,4 +83,8 @@ public class Investigations implements DefaultValueAware {
   public boolean isDefault() {
     return isDefault;
   }
+
+  public static boolean isDataNecessary(@NotNull final Fields fields){
+    return fields.isIncluded("investigation", false, true) || fields.isIncluded("count", false, true);
+  }
 }
