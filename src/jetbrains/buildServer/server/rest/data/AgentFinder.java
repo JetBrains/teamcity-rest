@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.serverSide.BuildAgentEx;
@@ -103,12 +102,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   @NotNull
   @Override
   protected ItemFilter<SBuildAgent> getFilter(@NotNull final Locator locator) {
-    if (locator.isSingleValue()) {
-      throw new BadRequestException("Single value locator '" + locator.getSingleValue() + "' is not supported for several items query.");
-    }
-
     final MultiCheckerFilter<SBuildAgent> result = new MultiCheckerFilter<SBuildAgent>();
-
 
     final Boolean authorizedDimension = locator.getSingleDimensionValueAsBoolean(AUTHORIZED);
     if (authorizedDimension != null) {
