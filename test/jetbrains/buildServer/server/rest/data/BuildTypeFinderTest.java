@@ -389,6 +389,44 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     checkBuildTypes("vcsRootInstance:(vcsRoot:(type:svn)),project:(id:" + project10_10.getExternalId() + ")", buildConf50);
   }
 
+  @Test
+  public void testSearchByBuilds() throws Exception {
+    myBuildType.remove();
+
+    final SProject project10 = createProject("p10");
+
+    final BuildTypeEx buildConf10 = (BuildTypeEx)project10.createBuildType("buildConf10");
+    final BuildTypeEx buildConf20 = (BuildTypeEx)project10.createBuildType("buildConf20");
+    final BuildTypeEx buildConf30 = (BuildTypeEx)project10.createBuildType("buildConf30");
+    final BuildTypeEx buildConf40 = (BuildTypeEx)project10.createBuildType("buildConf40");
+
+    final SFinishedBuild build10 = build().in(buildConf10).finish();
+    final SFinishedBuild build20 = build().in(buildConf10).failed().finish();
+    final SFinishedBuild build30 = build().in(buildConf10).failed().finish();
+    final SFinishedBuild build40 = build().in(buildConf10).personalForUser("user1").finish();
+
+    final SFinishedBuild build60 = build().in(buildConf20).failed().finish();
+    final SFinishedBuild build70 = build().in(buildConf20).finish();
+
+    final SFinishedBuild build100 = build().in(buildConf30).finish();
+
+    checkBuildTypes(null, buildConf10, buildConf20, buildConf30, buildConf40);
+    checkBuildTypes("filterByBuilds:(search:(id:" + build10.getBuildId() + "))", buildConf10);
+    checkBuildTypes("filterByBuilds:(search:(count:1),match:(status:FAILURE))", buildConf10);
+    checkBuildTypes("filterByBuilds:(search:(status:FAILURE))", buildConf10, buildConf20);
+    checkBuildTypes("filterByBuilds:(search:(count:1),match:(status:SUCCESS))", buildConf20, buildConf30);
+    checkBuildTypes("filterByBuilds:(search:(start:1),match:(status:FAILURE))", buildConf10, buildConf20);
+
+    final RunningBuildEx build50 = build().in(buildConf20).withProblem(createBuildProblem()).run();
+    checkBuildTypes("filterByBuilds:(search:(id:" + build50.getBuildId() + "))", buildConf20);
+    checkBuildTypes("filterByBuilds:(search:(state:running))", buildConf20);
+    checkBuildTypes("filterByBuilds:(search:(count:1),match:(status:FAILURE))", buildConf10);
+    checkBuildTypes("filterByBuilds:(search:(state:any),match:(status:FAILURE))", buildConf10, buildConf20);
+
+    checkBuildTypes("filterByBuilds:(search:(count:1))", buildConf10, buildConf20, buildConf30);
+    checkBuildTypes("filterByBuilds:(search:(count:100),match:(status:SUCCESS))", buildConf30);
+  }
+
   private void checkBuildTypes(@Nullable final String locator, BuildTypeSettings... items) {
     check(locator, CollectionsUtil.convertCollection(Arrays.asList(items), new Converter<BuildTypeOrTemplate, BuildTypeSettings>() {
       public BuildTypeOrTemplate createFrom(@NotNull final BuildTypeSettings source) {

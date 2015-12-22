@@ -918,16 +918,15 @@ public class Build {
   }
 
   @NotNull
-  public BuildPromotion getFromPosted(@NotNull final BuildFinder buildFinder,
-                                      @NotNull final QueuedBuildFinder queuedBuildFinder,
+  public BuildPromotion getFromPosted(@NotNull final BuildPromotionFinder buildFinder,
                                       @NotNull final Map<Long, Long> buildPromotionIdQueuedBuildsReplacements) {
     String locatorText;
     if (submittedLocator != null) {
       if (submittedPromotionId != null) {
-        throw new BadRequestException("Both 'locator' and '" + QueuedBuildFinder.PROMOTION_ID + "' attributes are specified. Only one should be present.");
+        throw new BadRequestException("Both 'locator' and '" + BuildPromotionFinder.PROMOTION_ID + "' attributes are specified. Only one should be present.");
       }
       if (submittedId != null) {
-        throw new BadRequestException("Both 'locator' and '" + BuildFinder.DIMENSION_ID + "' attributes are specified. Only one should be present.");
+        throw new BadRequestException("Both 'locator' and '" + BuildPromotionFinder.DIMENSION_ID + "' attributes are specified. Only one should be present.");
       }
       locatorText = submittedLocator;
     } else {
@@ -935,34 +934,28 @@ public class Build {
       if (submittedPromotionId != null) {
         final Long replacementPromotionId = buildPromotionIdQueuedBuildsReplacements.get(submittedPromotionId);
         if (replacementPromotionId != null){
-          locator.setDimension(QueuedBuildFinder.PROMOTION_ID, String.valueOf(replacementPromotionId));
+          locator.setDimension(BuildPromotionFinder.PROMOTION_ID, String.valueOf(replacementPromotionId));
         } else{
-          locator.setDimension(QueuedBuildFinder.PROMOTION_ID, String.valueOf(submittedPromotionId));
+          locator.setDimension(BuildPromotionFinder.PROMOTION_ID, String.valueOf(submittedPromotionId));
         }
       }
       if (submittedId != null) {
         //assuming https://youtrack.jetbrains.com/issue/TW-38777 never takes place
         final Long replacementPromotionId = buildPromotionIdQueuedBuildsReplacements.get(submittedId);
         if (replacementPromotionId != null){
-          locator.setDimension(QueuedBuildFinder.PROMOTION_ID, String.valueOf(replacementPromotionId));
+          locator.setDimension(BuildPromotionFinder.PROMOTION_ID, String.valueOf(replacementPromotionId));
         } else{
-          locator.setDimension(QueuedBuildFinder.DIMENSION_ID, String.valueOf(submittedId));
+          locator.setDimension(BuildPromotionFinder.DIMENSION_ID, String.valueOf(submittedId));
         }
       }
       if (locator.isEmpty()) {
-        throw new BadRequestException("No build specified. Either '" + BuildFinder.DIMENSION_ID + "' or 'locator' attributes should be present.");
+        throw new BadRequestException("No build specified. Either '" + BuildPromotionFinder.DIMENSION_ID + "' or 'locator' attributes should be present.");
       }
 
       locatorText = locator.getStringRepresentation();
     }
 
-    BuildPromotion result;
-    try {
-      result = queuedBuildFinder.getItem(locatorText).getBuildPromotion();
-    } catch (Exception e) {
-      result = buildFinder.getBuildPromotion(null, locatorText);
-    }
-    return result;
+    return buildFinder.getItem(locatorText);
   }
 
   private BuildTriggeringOptions submittedTriggeringOptions;

@@ -111,6 +111,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myFixture.addService(myBuildPromotionFinder);
 
     myBuildFinder = new BuildFinder(myServer, myBuildTypeFinder, myProjectFinder, myUserFinder, myBuildPromotionFinder, myAgentFinder);
+    myFixture.addService(myBuildFinder);
 
     final TestName2IndexImpl testName2Index = myFixture.getSingletonService(TestName2IndexImpl.class);
     final ProblemMutingService problemMutingService = myFixture.getSingletonService(ProblemMutingService.class);

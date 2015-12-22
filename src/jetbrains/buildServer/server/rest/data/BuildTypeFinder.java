@@ -25,6 +25,7 @@ import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
@@ -310,22 +311,24 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       final String match = filterBuildsLocator.getSingleDimensionValue("match");
       if (search != null) {
         result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
+          @Override
           public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
             if (item.getBuildType() == null) return false;
-            final BuildFinder buildFinder = myServiceLocator.getSingletonService(BuildFinder.class);
-            final List<BuildPromotion> buildPromotions = buildFinder.getBuilds(item.getBuildType(), search).myEntries;
+            final BuildPromotionFinder buildFinder = myServiceLocator.getSingletonService(BuildPromotionFinder.class);
+            final String patchedSearch = Locator.setDimensionIfNotPresent(search, PagerData.COUNT, "1");
+            final List<BuildPromotion> buildPromotions = buildFinder.getBuildPromotions(item.getBuildType(), patchedSearch).myEntries;
             if (buildPromotions.isEmpty()) {
               return false;
             }
             if (match == null) {
               return buildPromotions.size() > 0;
             }
-            final BuildPromotion buildPromotion = buildPromotions.get(0);
-            final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
-            if (associatedBuild == null) {
-              return false; //queued builds are not yet supported
+
+            final ItemFilter<BuildPromotion> filter = buildFinder.getFilter(buildFinder.createLocator(match, null));
+            for (BuildPromotion buildPromotion : buildPromotions) {
+              if (!filter.isIncluded(buildPromotion)) return false;
             }
-            return buildFinder.getBuildsFilter(null, match).isIncluded(associatedBuild);
+            return true;
           }
         });
       }
