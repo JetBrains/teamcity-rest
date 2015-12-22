@@ -34,49 +34,19 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.db.DBActionNoResults;
 import jetbrains.buildServer.serverSide.db.DBException;
 import jetbrains.buildServer.serverSide.db.DBFunctions;
-import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
-import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.vcs.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.testng.annotations.BeforeMethod;
 
 /**
  * @author Yegor.Yarko
  *         Date: 16.04.2015
  */
-public class BuildFinderTestBase extends BaseServerTestCase {
+public class BuildFinderTestBase extends BaseFinderTest<SBuild> {
   private static Logger LOG = Logger.getInstance(BuildFinderTestBase.class.getName());
-
-  protected BuildFinder myBuildFinder;
-  protected QueuedBuildFinder myQueuedBuildFinder;
-  private BuildPromotionFinder myBuildPromotionFinder;
-
-  @Override
-  @BeforeMethod
-  public void setUp() throws Exception {
-    super.setUp();
-    init();
-  }
-
-  protected void init() {
-    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
-    myFixture.addService(permissionChecker);
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
-    final AgentFinder agentFinder = new AgentFinder(myAgentManager, myFixture);
-    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myServer);
-    final UserFinder userFinder = new UserFinder(myFixture);
-
-    final VcsRootFinder vcsRootFinder = new VcsRootFinder(myFixture.getVcsManager(), projectFinder, buildTypeFinder, myProjectManager,
-                                                          myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class), permissionChecker);
-    myBuildPromotionFinder = new BuildPromotionFinder(myFixture.getBuildPromotionManager(), myFixture.getBuildQueue(), myServer, vcsRootFinder,
-                                                      projectFinder, buildTypeFinder, userFinder, agentFinder);
-    myBuildFinder = new BuildFinder(myServer, buildTypeFinder, projectFinder, userFinder, myBuildPromotionFinder, agentFinder);
-    myQueuedBuildFinder = new QueuedBuildFinder(myServer.getQueue(), projectFinder, buildTypeFinder, userFinder, agentFinder, myFixture.getBuildPromotionManager(), myServer);
-  }
 
   public void checkBuilds(@Nullable final String locator, SBuild... builds) {
     checkMultipleBuilds(locator, builds);

@@ -20,14 +20,11 @@ import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.BuildTypeTemplate;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SimpleParameter;
-import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
-import jetbrains.buildServer.serverSide.impl.projects.ProjectManagerImpl;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.vcs.CheckoutRules;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
-import jetbrains.buildServer.vcs.impl.VcsManagerImpl;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -41,19 +38,8 @@ public class VcsRootInstanceFinderTest extends BaseFinderTest<VcsRootInstance> {
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    final VcsManagerImpl vcsManager = myFixture.getVcsManager();
-    final ProjectManagerImpl projectManager = myFixture.getProjectManager();
-    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
-    myFixture.addService(permissionChecker);
-    final ProjectFinder projectFinder = new ProjectFinder(projectManager, permissionChecker, myServer);
-    final AgentFinder agentFinder = new AgentFinder(myAgentManager, myFixture);
-    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(projectManager, projectFinder, agentFinder, permissionChecker, myServer);
-    final VcsRootFinder vcsRootFinder = new VcsRootFinder(vcsManager, projectFinder, buildTypeFinder, projectManager,
-                                                          myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class),
-                                                          permissionChecker);
-    setFinder(new VcsRootInstanceFinder(vcsRootFinder, vcsManager, projectFinder, buildTypeFinder, projectManager,
-                                        myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class),
-                                        permissionChecker));
+
+    setFinder(myVcsRootInstanceFinder);
   }
 
   @SuppressWarnings("ConstantConditions")

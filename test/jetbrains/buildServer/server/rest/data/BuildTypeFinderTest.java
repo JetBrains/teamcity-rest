@@ -22,14 +22,11 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
-import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
-import jetbrains.buildServer.serverSide.impl.projects.ProjectManagerImpl;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
-import jetbrains.buildServer.vcs.impl.VcsManagerImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
@@ -45,24 +42,7 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
-    myFixture.addService(permissionChecker);
-
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
-    final AgentFinder agentFinder = new AgentFinder(myAgentManager, myFixture);
-
-    final VcsManagerImpl vcsManager = myFixture.getVcsManager();
-    final ProjectManagerImpl projectManager = myFixture.getProjectManager();
-    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(projectManager, projectFinder, agentFinder, permissionChecker, myServer);
-    final VcsRootFinder vcsRootFinder = new VcsRootFinder(vcsManager, projectFinder, buildTypeFinder, projectManager,
-                                                          myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class),
-                                                          permissionChecker);
-    myFixture.addService(vcsRootFinder);
-    myFixture.addService(new VcsRootInstanceFinder(vcsRootFinder, vcsManager, projectFinder, buildTypeFinder, projectManager,
-                                                   myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class),
-                                                   permissionChecker));
-
-    setFinder(new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myServer));
+    setFinder(myBuildTypeFinder);
   }
 
   @Test
@@ -239,7 +219,6 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
   public void testUserSelectedDimension() throws Exception {
     myFixture.getServerSettings().setPerProjectPermissionsEnabled(true);
 
-    myFixture.addService(new UserFinder(myFixture));
     myBuildType.remove();
     final SProject project10 = createProject("p10", "project 10");
     final SProject project20 = createProject("p20", "project 20");
@@ -303,7 +282,6 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
 
   @Test
   public void testSnapshotAndSelected() throws Exception {
-    myFixture.addService(new UserFinder(myFixture));
     myBuildType.remove();
     final SBuildType buildConf01 = myProject.createBuildType("buildConf01","build conf 01");
     final SBuildType buildConf02 = myProject.createBuildType("buildConf02","build conf 02");
@@ -341,19 +319,11 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     final BuildTypeOrTemplate p10_bt20 = new BuildTypeOrTemplate(project10.createBuildType("p10_bt20", "p10_bt20"));
     final BuildTypeOrTemplate p10_bt30 = new BuildTypeOrTemplate(project10.createBuildTypeTemplate("p10_bt30", "p10_bt30"));
 
-    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
-    myFixture.addService(permissionChecker);
-
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
-    final AgentFinder agentFinder = new AgentFinder(myAgentManager, myFixture);
-
-    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myServer);
-
-    PagedSearchResult<BuildTypeOrTemplate> result = buildTypeFinder.getBuildTypesPaged(project10, null, true);
+    PagedSearchResult<BuildTypeOrTemplate> result = myBuildTypeFinder.getBuildTypesPaged(project10, null, true);
 
     assertEquals(String.valueOf(result.myEntries), 2, result.myEntries.size());
 
-    result = buildTypeFinder.getBuildTypesPaged(project10, null, false);
+    result = myBuildTypeFinder.getBuildTypesPaged(project10, null, false);
     assertEquals(String.valueOf(result.myEntries), 1, result.myEntries.size());
   }
 

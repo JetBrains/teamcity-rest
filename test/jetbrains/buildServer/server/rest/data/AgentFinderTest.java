@@ -21,7 +21,6 @@ import jetbrains.buildServer.serverSide.BuildAgentEx;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolCannotBeRenamedException;
 import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
-import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.util.StringUtil;
 import org.testng.annotations.BeforeMethod;
@@ -32,8 +31,7 @@ import org.testng.annotations.Test;
  *         Date: 17.10.2014
  */
 @Test
-public class AgentFinderTest extends BaseServerTestCase {
-  private AgentFinder myAgentFinder;
+public class AgentFinderTest extends BaseFinderTest<SBuildAgent> {
   private MockBuildAgent myAgent1;
   private MockBuildAgent myAgent2;
   private MockBuildAgent myAgent3;
@@ -44,10 +42,6 @@ public class AgentFinderTest extends BaseServerTestCase {
   public void setUp() throws Exception {
     super.setUp();
 
-    myAgentFinder = new AgentFinder(myAgentManager, myFixture);
-
-    final AgentPoolsFinder agentPoolFinder = new AgentPoolsFinder(myFixture, myAgentFinder);
-    myFixture.addService(agentPoolFinder);
 
     final List<BuildAgentEx> currentAgents = myAgentManager.getAllAgents(true);
     assertEquals(1, currentAgents.size());

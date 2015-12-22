@@ -43,9 +43,8 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
   public void setUp() throws Exception {
     super.setUp();
     myProject.remove();
-    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
-    myFixture.addService(permissionChecker);
-    setFinder(new ProjectFinder(myProjectManager, permissionChecker, myServer));
+
+    setFinder(myProjectFinder);
   }
 
   @Test
@@ -158,8 +157,6 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
     final SProject project30 = createProject(project10.getProjectId(), "project 30");
     final SProject project40 = createProject("p40", "project 40");
 
-    myFixture.addService(new UserFinder(myFixture));
-
     final SUser user2 = createUser("user2");
     user2.addRole(RoleScope.projectScope(project10.getProjectId()), getProjectViewerRole());
     //the order seems to be lexicographic in the case...
@@ -198,12 +195,6 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
       }
     });
     final BeanFactory beanFactory = new BeanFactory(null);
-
-    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
-    final AgentFinder agentFinder = new AgentFinder(myAgentManager, myFixture);
-    myFixture.addService(projectFinder);
-    myFixture.addService(new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myServer));
 
     Project project = new Project(project10, new Fields("projects($long)"), new BeanContext(beanFactory, myServer, apiUrlBuilder));
     assertNotNull(project.projects.projects);

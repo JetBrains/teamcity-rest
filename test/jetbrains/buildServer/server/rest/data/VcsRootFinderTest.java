@@ -17,12 +17,9 @@
 package jetbrains.buildServer.server.rest.data;
 
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
-import jetbrains.buildServer.serverSide.impl.projects.ProjectManagerImpl;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
-import jetbrains.buildServer.vcs.impl.VcsManagerImpl;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -42,20 +39,12 @@ public class VcsRootFinderTest extends BaseFinderTest<SVcsRoot> {
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    final VcsManagerImpl vcsManager = myFixture.getVcsManager();
-    final ProjectManagerImpl projectManager = myFixture.getProjectManager();
-    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
-    myFixture.addService(permissionChecker);
-    final ProjectFinder projectFinder = new ProjectFinder(projectManager, permissionChecker, myServer);
-    final AgentFinder agentFinder = new AgentFinder(myAgentManager, myFixture);
-    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(projectManager, projectFinder, agentFinder, permissionChecker, myServer);
-    setFinder(new VcsRootFinder(vcsManager, projectFinder, buildTypeFinder, projectManager,
-                                myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class),
-                                permissionChecker));
+
+    setFinder(myVcsRootFinder);
 
     myFixture.registerVcsSupport("svn");
     myFixture.registerVcsSupport("cvs");
-    final ProjectEx rootProject = projectManager.getRootProject();
+    final ProjectEx rootProject = myProjectManager.getRootProject();
     myProject = rootProject.createProject("project1", "Project name");
     myRoot10 = rootProject.createVcsRoot("svn", "id1", "VCS root 1 name");
     myRoot20 = myProject.createVcsRoot("svn", "id2", "VCS root 2 name");

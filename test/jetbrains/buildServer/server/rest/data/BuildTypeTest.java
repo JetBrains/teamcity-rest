@@ -19,8 +19,6 @@ package jetbrains.buildServer.server.rest.data;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.PathTransformer;
-import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
-import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
@@ -28,9 +26,6 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
-import jetbrains.buildServer.serverSide.TestName2IndexImpl;
-import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
-import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
 import jetbrains.buildServer.users.SUser;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -39,7 +34,7 @@ import org.testng.annotations.Test;
  * @author Yegor.Yarko
  *         Date: 20/10/2015
  */
-public class BuildTypeTest extends BaseServerTestCase {
+public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
 
   private BeanContext myBeanContext;
 
@@ -47,9 +42,6 @@ public class BuildTypeTest extends BaseServerTestCase {
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-
-    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
-    myFixture.addService(permissionChecker);
 
     final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
       public String transform(final String path) {
@@ -59,20 +51,6 @@ public class BuildTypeTest extends BaseServerTestCase {
     final BeanFactory beanFactory = new BeanFactory(null);
 
     myBeanContext = new BeanContext(beanFactory, myServer, apiUrlBuilder);
-
-    myProjectManager = myFixture.getProjectManager();
-    myFixture.addService(permissionChecker);
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
-    final UserFinder userFinder = new UserFinder(myFixture);
-    final TestFinder testFinder = new TestFinder(projectFinder, myFixture.getTestManager(), myFixture.getSingletonService(TestName2IndexImpl.class),
-                                                 myFixture.getCurrentProblemsManager(), myFixture.getSingletonService(ProblemMutingService.class));
-    myFixture.addService(testFinder);
-    myFixture.addService(permissionChecker);
-    final AgentFinder agentFinder = new AgentFinder(myAgentManager, myFixture);
-    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myServer);
-    myFixture.addService(
-      new InvestigationFinder(projectFinder, buildTypeFinder, null, testFinder, userFinder, myFixture.getResponsibilityFacadeEx(), myFixture.getResponsibilityFacadeEx(),
-                              myFixture.getResponsibilityFacadeEx()));
   }
 
   @Test

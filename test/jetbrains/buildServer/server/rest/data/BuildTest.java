@@ -27,11 +27,11 @@ import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SQueuedBuild;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolCannotBeRenamedException;
 import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
 import jetbrains.buildServer.serverSide.impl.AgentRestrictorFactoryImpl;
-import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
@@ -42,33 +42,12 @@ import org.testng.annotations.Test;
  * @author Yegor.Yarko
  *         Date: 24/07/2015
  */
-public class BuildTest extends BaseServerTestCase {
+public class BuildTest extends BaseFinderTest<SBuild> {
 
   @Override
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    initializeFinders();
-  }
-
-  private void initializeFinders() {
-    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
-    myFixture.addService(permissionChecker);
-
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
-    myFixture.addService(projectFinder);
-
-    final AgentFinder agentFinder = new AgentFinder(myAgentManager, myFixture);
-    myFixture.addService(agentFinder);
-
-    final AgentPoolsFinder agentPoolFinder = new AgentPoolsFinder(myFixture, agentFinder);
-    myFixture.addService(agentPoolFinder);
-
-    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myFixture);
-    myFixture.addService(buildTypeFinder);
-
-    final UserFinder userFinder = new UserFinder(myFixture);
-    myFixture.addService(userFinder);
   }
 
   @Test

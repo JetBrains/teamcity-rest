@@ -131,7 +131,7 @@ public class BuildFinderTest extends BuildFinderTestBase {
       prepareFinishedBuildIdChange(build10.getBuildId(), build10id);
       prepareFinishedBuildIdChange(build20.getBuildId(), build20id);
       recreateBuildServer();
-      init();
+      initFinders();
     }
 
     final SBuild build10 = myServer.findBuildInstanceById(build10id);

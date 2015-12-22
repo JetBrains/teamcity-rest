@@ -28,7 +28,6 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
-import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
 import jetbrains.buildServer.serverSide.impl.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -48,23 +47,12 @@ import static jetbrains.buildServer.vcs.RepositoryStateData.createVersionState;
  * @author Yegor.Yarko
  *         Date: 16.04.2015
  */
-public class BuildPromotionFinderTest extends BaseServerTestCase {
-  private BuildPromotionFinder myBuildPromotionFinder;
+public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 
   @Override
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
-    myFixture.addService(permissionChecker);
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, permissionChecker, myServer);
-    final AgentFinder agentFinder = new AgentFinder(myAgentManager, myFixture);
-    final BuildTypeFinder buildTypeFinder = new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, permissionChecker, myServer);
-    final UserFinder userFinder = new UserFinder(myFixture);
-    final VcsRootFinder vcsRootFinder = new VcsRootFinder(myFixture.getVcsManager(), projectFinder, buildTypeFinder, myProjectManager,
-                                                          myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class), permissionChecker);
-    myBuildPromotionFinder = new BuildPromotionFinder(myFixture.getBuildPromotionManager(), myFixture.getBuildQueue(), myServer, vcsRootFinder,
-                                                      projectFinder, buildTypeFinder, userFinder, agentFinder);
   }
 
 

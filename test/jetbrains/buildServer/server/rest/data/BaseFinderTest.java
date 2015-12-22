@@ -20,16 +20,122 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import jetbrains.buildServer.log.Loggable;
+import jetbrains.buildServer.responsibility.ResponsibilityFacadeEx;
+import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
+import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
+import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
+import jetbrains.buildServer.server.rest.data.problem.TestFinder;
+import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.serverSide.CurrentProblemsManager;
+import jetbrains.buildServer.serverSide.TestName2IndexImpl;
+import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
+import jetbrains.buildServer.serverSide.problems.BuildProblemManager;
+import jetbrains.buildServer.vcs.impl.VcsManagerImpl;
 import org.jetbrains.annotations.Nullable;
+import org.testng.annotations.BeforeMethod;
 
 /**
  * Created by yaegor on 13/06/2015.
  */
 public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   private AbstractFinder<T> myFinder;
+  protected VcsManagerImpl myVcsManager;
+  protected PermissionChecker myPermissionChecker;
+
+  protected ProjectFinder myProjectFinder;
+  protected AgentFinder myAgentFinder;
+  protected BuildTypeFinder myBuildTypeFinder;
+  protected VcsRootFinder myVcsRootFinder;
+  protected VcsRootInstanceFinder myVcsRootInstanceFinder;
+  protected UserFinder myUserFinder;
+  protected TestFinder myTestFinder;
+  protected BuildPromotionFinder myBuildPromotionFinder;
+  protected BuildFinder myBuildFinder;
+  protected ProblemFinder myProblemFinder;
+  protected ProblemOccurrenceFinder myProblemOccurrenceFinder;
+  protected TestOccurrenceFinder myTestOccurrenceFinder;
+  protected InvestigationFinder myInvestigationFinder;
+  protected AgentPoolsFinder myAgentPoolsFinder;
+  protected QueuedBuildFinder myQueuedBuildFinder;
+
+  @Override
+  @BeforeMethod
+  public void setUp() throws Exception {
+    super.setUp();
+    initFinders();
+  }
+
+  protected void initFinders() {
+    myVcsManager = myFixture.getVcsManager();
+    myFixture.addService(myVcsManager);
+    myFixture.addService(myProjectManager);
+    myPermissionChecker = new PermissionChecker(myServer.getSecurityContext());
+    myFixture.addService(myPermissionChecker);
+
+    myProjectFinder = new ProjectFinder(myProjectManager, myPermissionChecker, myServer);
+    myFixture.addService(myProjectFinder);
+
+    myAgentFinder = new AgentFinder(myAgentManager, myFixture);
+    myFixture.addService(myAgentFinder);
+
+    myAgentPoolsFinder = new AgentPoolsFinder(myFixture, myAgentFinder);
+    myFixture.addService(myAgentPoolsFinder);
+
+    myBuildTypeFinder = new BuildTypeFinder(myProjectManager, myProjectFinder, myAgentFinder, myPermissionChecker, myServer);
+    myFixture.addService(myBuildTypeFinder);
+
+    final VcsRootIdentifiersManagerImpl vcsRootIdentifiersManager = myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class);
+
+    myVcsRootFinder = new VcsRootFinder(myVcsManager, myProjectFinder, myBuildTypeFinder, myProjectManager,
+                                        vcsRootIdentifiersManager,
+                                        myPermissionChecker);
+    myFixture.addService(myVcsRootFinder);
+    myVcsRootInstanceFinder = new VcsRootInstanceFinder(myVcsRootFinder, myVcsManager, myProjectFinder, myBuildTypeFinder, myProjectManager,
+                                                        vcsRootIdentifiersManager,
+                                                        myPermissionChecker);
+    myFixture.addService(myVcsRootInstanceFinder);
+
+
+    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
+    myFixture.addService(permissionChecker);
+
+    myUserFinder = new UserFinder(myFixture);
+    myFixture.addService(myUserFinder);
+
+    myBuildPromotionFinder = new BuildPromotionFinder(myFixture.getBuildPromotionManager(), myFixture.getBuildQueue(), myServer, myVcsRootFinder,
+                                                      myProjectFinder, myBuildTypeFinder, myUserFinder, myAgentFinder);
+    myFixture.addService(myBuildPromotionFinder);
+
+    myBuildFinder = new BuildFinder(myServer, myBuildTypeFinder, myProjectFinder, myUserFinder, myBuildPromotionFinder, myAgentFinder);
+
+    final TestName2IndexImpl testName2Index = myFixture.getSingletonService(TestName2IndexImpl.class);
+    final ProblemMutingService problemMutingService = myFixture.getSingletonService(ProblemMutingService.class);
+    myTestFinder = new TestFinder(myProjectFinder, myFixture.getTestManager(), testName2Index, myFixture.getCurrentProblemsManager(), problemMutingService);
+    myFixture.addService(myTestFinder);
+
+    final CurrentProblemsManager currentProblemsManager = myServer.getSingletonService(CurrentProblemsManager.class);
+    myTestOccurrenceFinder = new TestOccurrenceFinder(myTestFinder, myBuildFinder, myBuildTypeFinder, myProjectFinder, myServer.getHistory(), currentProblemsManager);
+    myFixture.addService(myTestOccurrenceFinder);
+
+    final BuildProblemManager buildProblemManager = myFixture.getSingletonService(BuildProblemManager.class);
+    myProblemFinder = new ProblemFinder(myProjectFinder, buildProblemManager, myProjectManager, myFixture, problemMutingService);
+    myFixture.addService(myProblemFinder);
+    myProblemOccurrenceFinder = new ProblemOccurrenceFinder(myProjectFinder, myBuildFinder, myProblemFinder, buildProblemManager, myProjectManager, myFixture);
+    myFixture.addService(myProblemOccurrenceFinder);
+
+    final ResponsibilityFacadeEx responsibilityFacade = myFixture.getResponsibilityFacadeEx();
+    myInvestigationFinder = new InvestigationFinder(myProjectFinder, myBuildTypeFinder, myProblemFinder, myTestFinder, myUserFinder,
+                                                    responsibilityFacade, responsibilityFacade, responsibilityFacade);
+    myFixture.addService(myInvestigationFinder);
+
+    myQueuedBuildFinder =
+      new QueuedBuildFinder(myServer.getQueue(), myProjectFinder, myBuildTypeFinder, myUserFinder, myAgentFinder, myFixture.getBuildPromotionManager(), myServer);
+    myFixture.addService(myQueuedBuildFinder);
+  }
 
   public void setFinder(AbstractFinder<T> finder){
     myFinder = finder;

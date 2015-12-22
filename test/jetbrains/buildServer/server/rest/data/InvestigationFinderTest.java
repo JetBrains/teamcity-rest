@@ -24,9 +24,7 @@ import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.responsibility.ResponsibilityEntryEx;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.PathTransformer;
-import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
-import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.buildType.Investigation;
@@ -36,11 +34,8 @@ import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.TestName2IndexImpl;
-import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.problems.BuildProblemInfoImpl;
-import jetbrains.buildServer.serverSide.impl.projects.ProjectManagerImpl;
-import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
 import jetbrains.buildServer.tests.TestName;
 import jetbrains.buildServer.users.SUser;
 import org.testng.annotations.BeforeMethod;
@@ -51,32 +46,16 @@ import org.testng.annotations.Test;
  *         Date: 11.11.13
  */
 @Test
-public class InvestigationFinderTest extends BaseServerTestCase {
+public class InvestigationFinderTest extends BaseFinderTest<InvestigationWrapper> {
   public static final String FAIL_TEST2_NAME = "fail.test2";
   public static final String PROBLEM_IDENTITY = "myUniqueProblem";
-  private InvestigationFinder myInvestigationFinder;
-  private ProjectManagerImpl myProjectManager;
   private BuildTypeEx myBuildType;
   private SUser myUser;
-  private TestName2IndexImpl myTestName2Index;
-  private PermissionChecker myPermissionChecker;
 
   @Override
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    myProjectManager = myFixture.getProjectManager();
-    myPermissionChecker = new PermissionChecker(myServer.getSecurityContext());
-    myFixture.addService(myPermissionChecker);
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, myPermissionChecker, myServer);
-    final UserFinder userFinder = new UserFinder(myFixture);
-    myTestName2Index = myFixture.getSingletonService(TestName2IndexImpl.class);
-    final TestFinder testFinder = new TestFinder(projectFinder, myFixture.getTestManager(), myTestName2Index,
-                                                 myFixture.getCurrentProblemsManager(), myFixture.getSingletonService(ProblemMutingService.class));
-    myFixture.addService(testFinder);
-    myFixture.addService(new PermissionChecker(myServer.getSecurityContext()));
-    myInvestigationFinder = new InvestigationFinder(projectFinder, null, null, testFinder, userFinder, myFixture.getResponsibilityFacadeEx(), myFixture.getResponsibilityFacadeEx(),
-                                                    myFixture.getResponsibilityFacadeEx());
   }
 
   @Test
@@ -162,13 +141,13 @@ public class InvestigationFinderTest extends BaseServerTestCase {
       }
     });
     final BeanFactory beanFactory = new BeanFactory(null);
-    registerBuildTypeFinder();
 
     final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.LONG, new BeanContext(beanFactory, myServer, apiUrlBuilder));
 
     assertEquals(1, investigations.count.longValue());
     final Investigation investigation = investigations.items.get(0);
-    assertEquals("test:(id:" + myTestName2Index.findTestNameId(testName) + "),assignmentProject:(id:" + myProject.getExternalId() + ")", investigation.id);
+    final TestName2IndexImpl testName2Index = myFixture.getSingletonService(TestName2IndexImpl.class);
+    assertEquals("test:(id:" + testName2Index.findTestNameId(testName) + "),assignmentProject:(id:" + myProject.getExternalId() + ")", investigation.id);
     assertEquals("TAKEN", investigation.state);
     assertEquals((Long)myUser.getId(), investigation.assignee.getId());
     assertEquals("The comment", investigation.assignment.text);
@@ -197,7 +176,6 @@ public class InvestigationFinderTest extends BaseServerTestCase {
       }
     });
     final BeanFactory beanFactory = new BeanFactory(null);
-    registerBuildTypeFinder();
 
     final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.LONG, new BeanContext(beanFactory, myServer, apiUrlBuilder));
 
@@ -212,12 +190,6 @@ public class InvestigationFinderTest extends BaseServerTestCase {
 
     assertEquals(PROBLEM_IDENTITY, investigation.target.problems.items.get(0).identity);
     assertEquals(myProject.getExternalId(), investigation.scope.project.id);
-  }
-
-  private void registerBuildTypeFinder() {
-    final ProjectFinder projectFinder = new ProjectFinder(myProjectManager, myPermissionChecker, myServer);
-    final AgentFinder agentFinder = new AgentFinder(myAgentManager, myFixture);
-    myFixture.addService(new BuildTypeFinder(myProjectManager, projectFinder, agentFinder, myPermissionChecker, myServer));
   }
 
   @Override

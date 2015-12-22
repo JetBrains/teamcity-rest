@@ -141,7 +141,7 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
       prepareFinishedBuildIdChange(build10.getBuildId(), build10id);
       prepareFinishedBuildIdChange(build20.getBuildId(), build20id);
       recreateBuildServer();
-      init();
+      initFinders();
     }
 
     final SBuild build10 = myServer.findBuildInstanceById(build10id);
@@ -739,7 +739,7 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
       prepareFinishedBuildIdChange(build20.getBuildId(), initialId + 1);
       prepareFinishedBuildIdChange(build30.getBuildId(), initialId + 2);
       recreateBuildServer();
-      init();
+      initFinders();
     }
 
     final SBuild build10 = myServer.findBuildInstanceById(initialId);
