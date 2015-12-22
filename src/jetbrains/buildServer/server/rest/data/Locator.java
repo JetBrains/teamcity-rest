@@ -115,7 +115,8 @@ public class Locator {
       throw new LocatorProcessException("Invalid locator. Cannot be empty.");
     }
     mySupportedDimensions = supportedDimensions;
-    @SuppressWarnings("ConstantConditions") final boolean hasDimensions = locator.contains(DIMENSION_NAME_VALUE_DELIMITER);
+    final boolean hasDimensions = locator.contains(DIMENSION_NAME_VALUE_DELIMITER) ||
+                                  (locator.contains(DIMENSION_COMPLEX_VALUE_START_DELIMITER) && locator.contains(DIMENSION_COMPLEX_VALUE_END_DELIMITER));
     if (!extendedMode && !hasDimensions) {
       mySingleValue = locator;
       myDimensions = new LinkedHashMap<String, List<String>>();
@@ -437,7 +438,7 @@ public class Locator {
   }
 
   private static Boolean getBooleanByValue(final @NotNull String dimensionName, @Nullable final String value) {
-    if (value == null || "all".equalsIgnoreCase(value) || "any".equalsIgnoreCase(value)) {
+    if (value == null || "all".equalsIgnoreCase(value) || "any".equalsIgnoreCase(value) || isAny(value)) {
       return null;
     }
     final Boolean result = getStrictBoolean(value);
@@ -506,13 +507,15 @@ public class Locator {
   @Nullable
   public String lookupSingleDimensionValue(@NotNull final String dimensionName) {
     Collection<String> idDimension = myDimensions.get(dimensionName);
-    if (idDimension == null || idDimension.size() == 0) {
+    if (idDimension == null || idDimension.isEmpty()) {
       return null;
     }
     if (idDimension.size() > 1) {
       throw new LocatorProcessException("Only single '" + dimensionName + "' dimension is supported in locator. Found: " + idDimension);
     }
-    return idDimension.iterator().next();
+    final String result = idDimension.iterator().next();
+    if (isAny(result)) return null;
+    return result;
   }
 
   public int getDimensionsCount() {
@@ -544,7 +547,8 @@ public class Locator {
    * @param value value of the dimension
    */
   public Locator setDimensionIfNotPresent(@NotNull final String name, @NotNull final String value) {
-    if (lookupSingleDimensionValue(name) == null) {
+    Collection<String> idDimension = myDimensions.get(name);
+    if (idDimension == null || idDimension.isEmpty()) {
       setDimension(name, value);
     }
     return this;
@@ -558,7 +562,7 @@ public class Locator {
    */
   public boolean removeDimension(@NotNull final String name) {
     if (isSingleValue()) {
-      throw new LocatorProcessException("Attemt to remove dimension '" + name + "' for single value locator.");
+      throw new LocatorProcessException("Attempt to remove dimension '" + name + "' for single value locator.");
     }
     boolean result = myDimensions.get(name) != null;
     myDimensions.remove(name);
@@ -658,12 +662,11 @@ public class Locator {
     if (locator == null){
       return Locator.getStringLocator(dimensionName, value);
     }
+    return (new Locator(locator)).setDimensionIfNotPresent(dimensionName, value).getStringRepresentation();
+  }
 
-    final Locator actualLocator = new Locator(locator);
-    if (actualLocator.getSingleDimensionValue(dimensionName) == null){
-      return actualLocator.setDimension(dimensionName, value).getStringRepresentation();
-    }
-    return locator;
+  public static boolean isAny(@NotNull final String value) {
+    return "$any".equals(value);
   }
 
   public static String getStringLocator(final String... strings) {

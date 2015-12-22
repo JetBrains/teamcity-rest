@@ -313,11 +313,14 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
   public void testProjectItem() throws Exception {
     myBuildType.remove();
     final SProject project10 = createProject("p10");
+    final SProject project20 = createProject("p20");
     final SProject project10_10 = project10.createProject("p10_10", "xxx");
 
     final BuildTypeOrTemplate p10_bt10 = new BuildTypeOrTemplate(project10.createBuildType("p10_bt10", "xxx"));
     final BuildTypeOrTemplate p10_bt20 = new BuildTypeOrTemplate(project10.createBuildType("p10_bt20", "p10_bt20"));
     final BuildTypeOrTemplate p10_bt30 = new BuildTypeOrTemplate(project10.createBuildTypeTemplate("p10_bt30", "p10_bt30"));
+    final BuildTypeOrTemplate p10_10_bt40 = new BuildTypeOrTemplate(project10_10.createBuildType("p10_10_bt40", "xxx"));
+    final BuildTypeOrTemplate p20_bt50 = new BuildTypeOrTemplate(project20.createBuildType("p20_bt50", "xxx"));
 
     PagedSearchResult<BuildTypeOrTemplate> result = myBuildTypeFinder.getBuildTypesPaged(project10, null, true);
 
@@ -325,6 +328,27 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
 
     result = myBuildTypeFinder.getBuildTypesPaged(project10, null, false);
     assertEquals(String.valueOf(result.myEntries), 1, result.myEntries.size());
+
+    result = myBuildTypeFinder.getBuildTypesPaged(project10, "name:xxx", true);
+    assertEquals(Arrays.asList(p10_bt10), result.myEntries);
+
+    result = myBuildTypeFinder.getBuildTypesPaged(project10, "templateFlag:any", false);
+    assertEquals(3, result.myEntries.size());
+
+    result = myBuildTypeFinder.getBuildTypesPaged(project10, "project:$any", true);
+    assertEquals(getDescription(result.myEntries), 4, result.myEntries.size());
+
+    result = myBuildTypeFinder.getBuildTypesPaged(project10, "project:$any,affectedProject:(id:" + project10.getExternalId() +")", true);
+    assertEquals(getDescription(result.myEntries), 3, result.myEntries.size());
+  }
+
+  @Test
+  public void testBuildTypeWithSpecialName() throws Exception {
+    final SProject project10 = createProject("p10");
+    final SBuildType buildType = project10.createBuildType("bt", "$any");
+    checkBuildTypes("$any", buildType);
+    checkBuildTypes("name:($any)", myBuildType, buildType);  //matches everything
+    checkBuildTypes("name:$any", myBuildType, buildType); //matches everything
   }
 
   @Test

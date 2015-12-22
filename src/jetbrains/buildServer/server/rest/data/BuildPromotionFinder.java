@@ -1102,14 +1102,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   @NotNull
   private String patchLocatorWithBuildType(@Nullable final SBuildType buildType, @NotNull final Locator locator) {
     if (buildType != null) {
-      final String buildTypeDimension = locator.getSingleDimensionValue(BuildPromotionFinder.BUILD_TYPE);
-      if (buildTypeDimension != null) {
-        if (!buildType.getInternalId().equals(myBuildTypeFinder.getItem(buildTypeDimension).getInternalId())) {
-          throw new BadRequestException("Context build type is not the same as build type in '" + BuildPromotionFinder.BUILD_TYPE + "' dimention");
-        }
-      } else {
         return locator.setDimensionIfNotPresent(BuildPromotionFinder.BUILD_TYPE, BuildTypeFinder.getLocator(buildType)).getStringRepresentation();
-      }
     }
     return locator.getStringRepresentation();
   }

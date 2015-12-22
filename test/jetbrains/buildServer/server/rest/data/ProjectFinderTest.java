@@ -211,5 +211,14 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
         return source.id;
       }
     }), project10_20.getExternalId());
+
+    project = new Project(project10, new Fields("projects($long,$locator(project:$any,affectedProject:(" + project10.getExternalId() + ")))"),
+                          new BeanContext(beanFactory, myServer, apiUrlBuilder));
+    assertNotNull(project.projects.projects);
+    checkOrderedCollection(CollectionsUtil.convertCollection(project.projects.projects, new Converter<String, Project>() {
+      public String createFrom(@NotNull final Project source) {
+        return source.id;
+      }
+    }), project10_10.getExternalId(), project10_20.getExternalId(), project10_10_10.getExternalId());
   }
 }

@@ -16,6 +16,8 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import java.util.Arrays;
+import java.util.Collections;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -82,6 +84,113 @@ public class LocatorTest {
     assertEquals(null, locator.getSingleValueAsLong());
     assertEquals(1, locator.getDimensionsCount());
     assertEquals("!@#$%^&*()_+\"\'iqhjbw`0912", locator.getSingleDimensionValue("a"));
+  }
+
+  @Test
+  public void testSingleDimension2() {
+    final Locator locator = new Locator("aaa(x");
+    assertEquals(true, locator.isSingleValue());
+    assertEquals("aaa(x", locator.getSingleValue());
+    assertEquals(0, locator.getDimensionsCount());
+  }
+
+  @Test
+  public void testNoColon() {
+    final Locator locator = new Locator("aaa(x:y)");
+    assertEquals(false, locator.isSingleValue());
+    assertEquals(null, locator.getSingleValue());
+    assertEquals(1, locator.getDimensionsCount());
+    assertEquals("x:y", locator.getSingleDimensionValue("aaa"));
+  }
+
+  @Test
+  public void testNoColon2() {
+    final Locator locator = new Locator("aaa(x)");
+    assertEquals(false, locator.isSingleValue());
+    assertEquals(null, locator.getSingleValue());
+    assertEquals(1, locator.getDimensionsCount());
+    assertEquals("x", locator.getSingleDimensionValue("aaa"));
+  }
+
+  @Test
+  public void testNoColon3() {
+    final Locator locator = new Locator("aaa(x(y))");
+    assertEquals(false, locator.isSingleValue());
+    assertEquals(null, locator.getSingleValue());
+    assertEquals(1, locator.getDimensionsCount());
+    assertEquals("x(y)", locator.getSingleDimensionValue("aaa"));
+  }
+
+  @Test
+  public void testAnySpecialValue1() {
+    final Locator locator = new Locator("$any"); //no special meaning for single value
+    assertEquals(true, locator.isSingleValue());
+    assertEquals("$any", locator.getSingleValue());
+  }
+
+  @Test
+  public void testAnySpecialValue2() {
+    final Locator locator = new Locator("a:$any");
+    assertEquals(false, locator.isSingleValue());
+    assertEquals(null, locator.getSingleValue());
+    assertEquals(1, locator.getDimensionsCount());
+    assertEquals(null, locator.getSingleDimensionValue("a"));
+    assertEquals(Arrays.asList("$any"), locator.getDimensionValue("a"));
+    assertEquals(Collections.emptySet(), locator.getUnusedDimensions());
+    assertTrue(locator.getUsedDimensions().contains("a"));
+  }
+
+  @Test
+  public void testAnySpecialValue3() {
+    final Locator locator = new Locator("a:($any)");
+    assertEquals(false, locator.isSingleValue());
+    assertEquals(null, locator.getSingleValue());
+    assertEquals(1, locator.getDimensionsCount());
+    assertEquals(null, locator.getSingleDimensionValue("a"));
+    assertEquals(Arrays.asList("$any"), locator.getDimensionValue("a"));
+  }
+
+  @Test
+  public void testAnySpecialValue4() {
+    final Locator locator = new Locator("a:($any),a:b");
+    assertEquals(false, locator.isSingleValue());
+    assertEquals(null, locator.getSingleValue());
+    assertEquals(1, locator.getDimensionsCount());
+    assertEquals(Arrays.asList("$any", "b"), locator.getDimensionValue("a"));
+  }
+
+  @Test
+  public void testAnySpecialValue5() {
+    final Locator locator = new Locator("a:($any),b:c");
+    locator.setDimensionIfNotPresent("a", "x");
+    assertEquals("a:($any),b:c", locator.getStringRepresentation());
+  }
+
+  @Test
+  public void testSetDimension() {
+    assertEquals("a:b,x:y,aa:z", Locator.setDimensionIfNotPresent("a:b,x:y", "aa","z"));
+    assertEquals("a:b,x:y", Locator.setDimensionIfNotPresent("a:b,x:y", "a","z"));
+    assertEquals("a:$any,x:y", Locator.setDimensionIfNotPresent("a:$any,x:y", "a","z"));
+  }
+
+  @SuppressWarnings("ConstantConditions")
+  @Test
+  public void testBooleanDimensions() {
+    assertTrue(new Locator("a:b,c:true").getSingleDimensionValueAsBoolean("c"));
+    assertFalse(new Locator("a:b,c:false").getSingleDimensionValueAsBoolean("c"));
+    assertTrue(new Locator("a:b,c:yes").getSingleDimensionValueAsBoolean("c"));
+    assertFalse(new Locator("a:b,c:no").getSingleDimensionValueAsBoolean("c"));
+    assertNull(new Locator("a:b,c:any").getSingleDimensionValueAsBoolean("c"));
+    assertNull(new Locator("a:b,c:all").getSingleDimensionValueAsBoolean("c"));
+    assertNull(new Locator("a:b,c:$any").getSingleDimensionValueAsBoolean("c"));
+    assertNull(new Locator("a:b,c:($any)").getSingleDimensionValueAsBoolean("c"));
+
+    try {
+      new Locator("a:b,c:xxx").getSingleDimensionValueAsBoolean("c");
+      fail("No exception thrown");
+    } catch (LocatorProcessException e) {
+      //all OK
+    }
   }
 
   @Test

@@ -331,8 +331,8 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   @NotNull
   public PagedSearchResult<SProject> getItems(final @Nullable SProject parentProject, final @Nullable String projectLocator) {
     String actualLocator = projectLocator;
-    if (parentProject != null) {
-      actualLocator = Locator.setDimensionIfNotPresent(actualLocator, DIMENSION_PROJECT, ProjectFinder.getLocator(parentProject));
+    if (parentProject != null && (projectLocator == null || !(new Locator(projectLocator)).isSingleValue())) {
+      actualLocator = Locator.setDimensionIfNotPresent(projectLocator, DIMENSION_PROJECT, ProjectFinder.getLocator(parentProject));
     }
 
     return getItems(actualLocator);

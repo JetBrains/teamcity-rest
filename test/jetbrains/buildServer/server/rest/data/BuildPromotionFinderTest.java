@@ -662,6 +662,25 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("count:1,number:378" + buildTypeDimension);
   }
 
+  @Test
+  public void testWithProject() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    SBuild build10 = build().in(buildConf).finish();
+    SBuild build20 = build().in(buildConf).number("100").finish();
+    SBuild build30 = build().in(buildConf).number("100").failed().finish();
+    SBuild build40 = build().in(buildConf).number("100").failedToStart().finish();
+
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
+    SBuild build100 = build().in(buildConf2).failed().finish();
+
+    PagedSearchResult<BuildPromotion> promotions = myBuildPromotionFinder.getBuildPromotions(buildConf, null);
+    assertEquals(3, promotions.myEntries.size());
+
+    promotions = myBuildPromotionFinder.getBuildPromotions(buildConf, "buildType:$any,status:FAILURE");
+    assertEquals(2, promotions.myEntries.size());
+  }
+
 //==================================================
 
   public void checkBuilds(final String locator, BuildPromotion... builds) {
