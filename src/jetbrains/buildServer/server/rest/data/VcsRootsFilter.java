@@ -17,6 +17,8 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
+
+import java.util.Arrays;
 import java.util.Collection;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -25,7 +27,8 @@ import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.vcs.*;
-import jetbrains.vcs.api.services.tc.PersonalSupportService;
+import jetbrains.vcs.api.VcsSettings;
+import jetbrains.vcs.api.services.tc.PersonalSupportBatchService;
 import jetbrains.vcs.api.services.tc.VcsMappingElement;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -78,11 +81,10 @@ public class VcsRootsFilter extends AbstractFilter<SVcsRoot> {
     try {
       final VcsSupportCore vcsSupport = vcsManager.findVcsByName(root.getVcsName());
       if (vcsSupport != null) {
-        final PersonalSupportService personalSupportService =
-          vcsManager.getVcsService(new VcsRootEntry(root, CheckoutRules.DEFAULT), PersonalSupportService.class);
+        final PersonalSupportBatchService personalSupportService = vcsManager.getGenericService(root.getVcsName(), PersonalSupportBatchService.class);
 
         if (personalSupportService != null) {
-          if (null != personalSupportService.mapPath(repositoryIdString, true).getMappedPath())
+          if (null != personalSupportService.mapPath(Arrays.asList(new VcsSettings(root, "")), repositoryIdString, true).getMappedPath())
             return true;
         } else {
           LOG.debug("No personal support for VCS root " + LogUtil.describe(root) + " found, ignoring root in search");
