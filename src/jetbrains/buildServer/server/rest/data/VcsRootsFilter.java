@@ -17,6 +17,8 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
+
+import java.util.Arrays;
 import java.util.Collection;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -25,7 +27,8 @@ import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.vcs.*;
-import jetbrains.vcs.api.services.tc.PersonalSupportService;
+import jetbrains.vcs.api.VcsSettings;
+import jetbrains.vcs.api.services.tc.PersonalSupportBatchService;
 import jetbrains.vcs.api.services.tc.VcsMappingElement;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -76,25 +79,24 @@ public class VcsRootsFilter extends AbstractFilter<SVcsRoot> {
                                            @NotNull final String repositoryIdString,
                                            final VcsManager vcsManager) {
     //todo: handle errors
-    final VcsSupportCore vcsSupport = vcsManager.findVcsByName(root.getVcsName());
-    if (vcsSupport != null) {
-      final PersonalSupportService personalSupportService =
-              vcsManager.getVcsService(new VcsRootEntry(root, CheckoutRules.DEFAULT), PersonalSupportService.class);
+    try {
+      final VcsSupportCore vcsSupport = vcsManager.findVcsByName(root.getVcsName());
+      if (vcsSupport != null) {
+        final PersonalSupportBatchService personalSupportService = vcsManager.getGenericService(root.getVcsName(), PersonalSupportBatchService.class);
 
-      if (personalSupportService != null) {
-        try {
-          if (null != personalSupportService.mapPath(repositoryIdString, true).getMappedPath())
+        if (personalSupportService != null) {
+          if (null != personalSupportService.mapPath(Arrays.asList(new VcsSettings(root, "")), repositoryIdString, true).getMappedPath())
             return true;
-        } catch (VcsException e) {
-          LOG.debug("Error while retrieving mapping for VCS root " + LogUtil.describe(root) + " via mapFullPath, ignoring", e);
+        } else {
+          LOG.debug("No personal support for VCS root " + LogUtil.describe(root) + " found, ignoring root in search");
+          return false;
         }
       } else {
-        LOG.debug("No personal support for VCS root " + LogUtil.describe(root) + " found, ignoring root in search");
+        LOG.debug("No VCS support for VCS root " + LogUtil.describe(root) + " found, ignoring root in search");
         return false;
       }
-    } else {
-      LOG.debug("No VCS support for VCS root " + LogUtil.describe(root) + " found, ignoring root in search");
-      return false;
+    } catch (Exception e) {
+      LOG.debug("Error while retrieving mapping for VCS root " + LogUtil.describe(root) + " via mapFullPath, ignoring", e);
     }
 
     try {
