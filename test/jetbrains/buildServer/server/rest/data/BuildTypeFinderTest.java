@@ -347,8 +347,8 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     final SProject project10 = createProject("p10");
     final SBuildType buildType = project10.createBuildType("bt", "$any");
     checkBuildTypes("$any", buildType);
-    checkBuildTypes("name:($any)", myBuildType, buildType);  //matches everything
     checkBuildTypes("name:$any", myBuildType, buildType); //matches everything
+    checkBuildTypes("name:($any)", buildType); //"escapes" the value, finds by name
   }
 
   @Test

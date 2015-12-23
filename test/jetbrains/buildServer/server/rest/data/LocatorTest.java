@@ -146,7 +146,7 @@ public class LocatorTest {
     assertEquals(false, locator.isSingleValue());
     assertEquals(null, locator.getSingleValue());
     assertEquals(1, locator.getDimensionsCount());
-    assertEquals(null, locator.getSingleDimensionValue("a"));
+    assertEquals("$any", locator.getSingleDimensionValue("a"));
     assertEquals(Arrays.asList("$any"), locator.getDimensionValue("a"));
   }
 
@@ -171,6 +171,75 @@ public class LocatorTest {
     assertEquals("a:b,x:y,aa:z", Locator.setDimensionIfNotPresent("a:b,x:y", "aa","z"));
     assertEquals("a:b,x:y", Locator.setDimensionIfNotPresent("a:b,x:y", "a","z"));
     assertEquals("a:$any,x:y", Locator.setDimensionIfNotPresent("a:$any,x:y", "a","z"));
+  }
+
+  @Test
+  public void testEscaped1() {
+    final Locator locator = new Locator("(abc)");
+    assertEquals(true, locator.isSingleValue());
+    assertEquals("abc", locator.getSingleValue());
+    assertEquals(0, locator.getDimensionsCount());
+  }
+
+  @Test
+  public void testEscaped2() {
+    final Locator locator = new Locator("(a:b)");
+    assertEquals(true, locator.isSingleValue());
+    assertEquals("a:b", locator.getSingleValue());
+    assertEquals(0, locator.getDimensionsCount());
+  }
+
+  @Test
+  public void testEscaped3() {
+    final Locator locator = new Locator("(a:b,d(x:y))");
+    assertEquals(true, locator.isSingleValue());
+    assertEquals("a:b,d(x:y)", locator.getSingleValue());
+    assertEquals(0, locator.getDimensionsCount());
+    assertEquals(Collections.emptyList(), locator.getDimensionValue("a"));
+  }
+
+  @Test
+  public void testEscaped4() {
+    final Locator locator = new Locator("(a:b,)d(x:y)");
+    assertEquals(true, locator.isSingleValue());
+    assertEquals("a:b,)d(x:y", locator.getSingleValue());
+    assertEquals(0, locator.getDimensionsCount());
+  }
+
+  @Test
+  public void testEscaped5() {
+    final Locator locator = new Locator("a:(bb)");
+    assertEquals(false, locator.isSingleValue());
+    assertEquals(1, locator.getDimensionsCount());
+    assertEquals("bb", locator.getSingleDimensionValue("a"));
+  }
+
+  @Test
+  public void testEscaped6() {
+    final Locator locator = new Locator("a:((bb))");
+    assertEquals(false, locator.isSingleValue());
+    assertEquals(1, locator.getDimensionsCount());
+    assertEquals("(bb)", locator.getSingleDimensionValue("a"));
+  }
+
+  @Test
+  public void testEscaped7() {
+    try {
+      new Locator("a:(a(b)");
+      fail("No error for locator " + "a:(a(b)");
+    } catch (LocatorProcessException e) {
+      //expected Could not find matching ')'
+    }
+  }
+
+  @Test
+  public void testEscaped8() {
+    try {
+      new Locator("a:(a)b)");
+      fail("No error for locator " + "a:(a)b)");
+    } catch (LocatorProcessException e) {
+      //expected
+    }
   }
 
   @SuppressWarnings("ConstantConditions")

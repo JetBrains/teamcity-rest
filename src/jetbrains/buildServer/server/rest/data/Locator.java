@@ -31,6 +31,8 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Class that support parsing of "locators".
  * Locator is a string with single value or several named "dimensions".
+ * text enclosed into matching parentheses "()" is excluded from parsing and the parentheses are omitted
+ * "$any" text (when not enclosed into parentheses) means "no value" to force dimension use, but treat the value as "null"
  * Example:
  * <tt>31</tt> - locator wth single value "31"
  * <tt>name:Frodo</tt> - locator wth single dimension "name" which has value "Frodo"
@@ -53,6 +55,7 @@ public class Locator {
   private static final String DIMENSION_COMPLEX_VALUE_START_DELIMITER = "(";
   private static final String DIMENSION_COMPLEX_VALUE_END_DELIMITER = ")";
   public static final String LOCATOR_SINGLE_VALUE_UNUSED_NAME = "single value";
+  protected static final String ANY_LITERAL = "$any";
 
   private final String myRawValue;
   private final boolean myExtendedMode;
@@ -115,15 +118,32 @@ public class Locator {
       throw new LocatorProcessException("Invalid locator. Cannot be empty.");
     }
     mySupportedDimensions = supportedDimensions;
-    final boolean hasDimensions = locator.contains(DIMENSION_NAME_VALUE_DELIMITER) ||
-                                  (locator.contains(DIMENSION_COMPLEX_VALUE_START_DELIMITER) && locator.contains(DIMENSION_COMPLEX_VALUE_END_DELIMITER));
-    if (!extendedMode && !hasDimensions) {
+    if (isEscapedValue(locator)) {
+      mySingleValue = locator.substring(DIMENSION_COMPLEX_VALUE_START_DELIMITER.length(), locator.length() - DIMENSION_COMPLEX_VALUE_END_DELIMITER.length());
+      myDimensions = new LinkedHashMap<String, List<String>>();
+    } else if (!extendedMode && !hasDimensions(locator)) {
       mySingleValue = locator;
       myDimensions = new LinkedHashMap<String, List<String>>();
     } else {
       mySingleValue = null;
       myDimensions = parse(locator);
     }
+  }
+
+  private boolean isEscapedValue(final @NotNull String locator) {
+    return locator.length() > (DIMENSION_COMPLEX_VALUE_START_DELIMITER.length() + DIMENSION_COMPLEX_VALUE_END_DELIMITER.length()) &&
+           locator.startsWith(DIMENSION_COMPLEX_VALUE_START_DELIMITER) && locator.endsWith(DIMENSION_COMPLEX_VALUE_END_DELIMITER);
+  }
+
+  private boolean hasDimensions(final @NotNull String locatorText) {
+    if (locatorText.contains(DIMENSION_NAME_VALUE_DELIMITER)) {
+      return true;
+    }
+    //noinspection RedundantIfStatement
+    if (locatorText.contains(DIMENSION_COMPLEX_VALUE_START_DELIMITER) && locatorText.contains(DIMENSION_COMPLEX_VALUE_END_DELIMITER)) {
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -195,7 +215,8 @@ public class Locator {
     myHddenSupportedDimensions.addAll(Arrays.asList(hiddenDimensions));
   }
 
-  private LinkedHashMap<String, List<String>> parse(final String locator) {
+  @NotNull
+  private LinkedHashMap<String, List<String>> parse(@NotNull final String locator) {
     LinkedHashMap<String, List<String>> result = new LinkedHashMap<String, List<String>>();
     String currentDimensionName;
     String currentDimensionValue;
@@ -273,6 +294,9 @@ public class Locator {
             } else {
               currentDimensionValue = valueAndRest.substring(0, valueEnd);
               parsedIndex = parsedIndex + valueEnd + DIMENSIONS_DELIMITER.length();
+            }
+            if (ANY_LITERAL.equals(currentDimensionValue)) {
+              currentDimensionValue = ANY_LITERAL; //this was not a complex value, so setting exactly the same string to be able to determine this on retrieving
             }
           }
         }
@@ -514,7 +538,11 @@ public class Locator {
       throw new LocatorProcessException("Only single '" + dimensionName + "' dimension is supported in locator. Found: " + idDimension);
     }
     final String result = idDimension.iterator().next();
-    if (isAny(result)) return null;
+    //noinspection StringEquality
+    if (result == ANY_LITERAL) {
+      //if it was $any without ()-escaping as complex value, return no value
+      return null;
+    }
     return result;
   }
 
@@ -666,7 +694,7 @@ public class Locator {
   }
 
   public static boolean isAny(@NotNull final String value) {
-    return "$any".equals(value);
+    return ANY_LITERAL.equals(value);
   }
 
   public static String getStringLocator(final String... strings) {
