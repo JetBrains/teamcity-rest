@@ -45,6 +45,8 @@ import jetbrains.buildServer.users.SUser;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static java.util.Arrays.asList;
+
 /**
  * @author Yegor.Yarko
  *         Date: 11.11.13
@@ -183,7 +185,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
 
     assertEquals(1, investigations.count.longValue());
     final Investigation investigation = investigations.items.get(0);
-    assertEquals("assignmentProject:(id:" + myProject.getExternalId() + "),problem:(id:" + buildProblemResponsibility.getBuildProblemInfo().getId() + ")", investigation.id);
+    assertThat(asList(investigation.id.split(",")), containsInAnyOrder("assignmentProject:(id:" + myProject.getExternalId() + ")", "problem:(id:" + buildProblemResponsibility.getBuildProblemInfo().getId() + ")"));
     assertEquals("TAKEN", investigation.state);
     assertEquals((Long)myUser.getId(), investigation.assignee.getId());
     assertEquals("The comment", investigation.assignment.text);
