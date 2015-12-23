@@ -68,9 +68,7 @@
     <option name="GENERATE_NO_WARNINGS" value="true" />
     <option name="DEPRECATION" value="false" />
   </component>
-  <component name="Encoding" useUTFGuessing="true" native2AsciiForPropertiesFiles="false">
-    <file url="PROJECT" charset="UTF-8" />
-  </component>
+  <component name="Encoding" useUTFGuessing="true" native2AsciiForPropertiesFiles="false" />
   <component name="EntryPointsManager">
     <entry_points version="2.0" />
   </component>
@@ -99,13 +97,18 @@
       </facet-type>
     </autodetection-disabled>
   </component>
-  <component name="FrameworkDetectionExcludesConfiguration">
-    <file type="web" url="file://$PROJECT_DIR$/misc/fromSample/resources/web.xml" />
-    <file type="web" url="file://$PROJECT_DIR$/misc/web.xml" />
-    <type id="Spring" />
-  </component>
   <component name="IdProvider" IDEtalkID="516EED8E06E55A07358597D9FDA5137C" />
   <component name="InspectionProjectProfileManager">
+    <profiles>
+      <profile version="1.0" is_locked="false">
+        <option name="myName" value="Project Default" />
+        <option name="myLocal" value="false" />
+        <inspection_tool class="UnusedImport" enabled="true" level="ERROR" enabled_by_default="true" />
+      </profile>
+    </profiles>
+    <option name="PROJECT_PROFILE" value="Project Default" />
+    <option name="USE_PROJECT_PROFILE" value="true" />
+    <version value="1.0" />
     <list size="7">
       <item index="0" class="java.lang.String" itemvalue="TYPO" />
       <item index="1" class="java.lang.String" itemvalue="WEAK WARNING" />
@@ -308,64 +311,65 @@
   <component name="libraryTable">
     <library name="TeamCity Open API common">
       <CLASSES>
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/devPackage/common-api.jar!/" />
+        <root url="jar://$TeamCityDistribution$/devPackage/common-api.jar!/" />
       </CLASSES>
       <JAVADOC>
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/devPackage/javadoc/openApi-help.jar!/" />
+        <root url="jar://$TeamCityDistribution$/devPackage/javadoc/openApi-help.jar!/" />
       </JAVADOC>
       <SOURCES>
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/devPackage/src/openApi-source.jar!/" />
+        <root url="jar://$TeamCityDistribution$/devPackage/src/openApi-source.jar!/" />
       </SOURCES>
     </library>
     <library name="TeamCity Open API server">
       <CLASSES>
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/devPackage/server-api.jar!/" />
+        <root url="jar://$TeamCityDistribution$/devPackage/server-api.jar!/" />
       </CLASSES>
       <JAVADOC>
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/devPackage/javadoc/openApi-help.jar!/" />
+        <root url="jar://$TeamCityDistribution$/devPackage/javadoc/openApi-help.jar!/" />
       </JAVADOC>
       <SOURCES>
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/devPackage/src/openApi-source.jar!/" />
+        <root url="jar://$TeamCityDistribution$/devPackage/src/openApi-source.jar!/" />
       </SOURCES>
     </library>
     <library name="TeamCity Server Tests">
       <CLASSES>
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/devPackage/tests/jmock-1.2.0.jar!/" />
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/devPackage/tests/junit-3.8.2.jar!/" />
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/devPackage/tests/tests-integration.jar!/" />
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/devPackage/tests/tests-support.jar!/" />
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/webapps/ROOT/WEB-INF/lib/jdom.jar!/" />
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/webapps/ROOT/WEB-INF/lib/trove4j.jar!/" />
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/webapps/ROOT/WEB-INF/lib/remote-api-impl.jar!/" />
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/webapps/ROOT/WEB-INF/lib/hsqldb.jar!/" />
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/webapps/ROOT/WEB-INF/lib/guava-13.0.1.jar!/" />
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/webapps/ROOT/WEB-INF/lib/tomcat-jdbc-7.0.23.jar!/" />
-        <root url="file://$BUILDSERVER_PROJECT_HOME$/webapps/ROOT/WEB-INF/lib" />
+        <root url="jar://$TeamCityDistribution$/devPackage/tests/jmock-1.2.0.jar!/" />
+        <root url="jar://$TeamCityDistribution$/devPackage/tests/junit-3.8.2.jar!/" />
+        <root url="jar://$TeamCityDistribution$/devPackage/tests/tests-integration.jar!/" />
+        <root url="jar://$TeamCityDistribution$/devPackage/tests/tests-support.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/jdom.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/trove4j.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/remote-api-impl.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/hsqldb.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/guava-13.0.1.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/tomcat-jdbc-7.0.23.jar!/" />
+        <root url="file://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib" />
       </CLASSES>
       <JAVADOC />
       <SOURCES />
-      <jarDirectory url="file://$BUILDSERVER_PROJECT_HOME$/webapps/ROOT/WEB-INF/lib" recursive="false" />
+      <jarDirectory url="file://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib" recursive="false" />
     </library>
     <library name="TeamCity Third-Party">
       <CLASSES>
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/webapps/ROOT/WEB-INF/lib/annotations.jar!/" />
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/webapps/ROOT/WEB-INF/lib/openapi.jar!/" />
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/webapps/ROOT/WEB-INF/lib/util.jar!/" />
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/webapps/ROOT/WEB-INF/lib/log4j-1.2.12.jar!/" />
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/webapps/ROOT/WEB-INF/lib/spring-webmvc.jar!/" />
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/webapps/ROOT/WEB-INF/lib/spring.jar!/" />
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/webapps/ROOT/WEB-INF/lib/commons-compress-1.4.1.jar!/" />
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/webapps/ROOT/WEB-INF/lib/UserAgentUtils.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/annotations.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/openapi.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/util.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/log4j-1.2.12.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/spring-webmvc.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/spring.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/commons-compress-1.4.1.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/UserAgentUtils.jar!/" />
       </CLASSES>
       <JAVADOC />
       <SOURCES />
     </library>
     <library name="Tomcat">
       <CLASSES>
-        <root url="jar://$BUILDSERVER_PROJECT_HOME$/lib/servlet-api.jar!/" />
+        <root url="jar://$TeamCityDistribution$/lib/servlet-api.jar!/" />
       </CLASSES>
       <JAVADOC />
       <SOURCES />
     </library>
   </component>
 </project>
+
