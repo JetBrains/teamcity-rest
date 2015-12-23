@@ -222,24 +222,14 @@ public class LocatorTest {
     assertEquals("(bb)", locator.getSingleDimensionValue("a"));
   }
 
-  @Test
+  @Test(expectedExceptions = LocatorProcessException.class)
   public void testEscaped7() {
-    try {
       new Locator("a:(a(b)");
-      fail("No error for locator " + "a:(a(b)");
-    } catch (LocatorProcessException e) {
-      //expected Could not find matching ')'
-    }
   }
 
-  @Test
+  @Test(expectedExceptions = LocatorProcessException.class)
   public void testEscaped8() {
-    try {
       new Locator("a:(a)b)");
-      fail("No error for locator " + "a:(a)b)");
-    } catch (LocatorProcessException e) {
-      //expected
-    }
   }
 
   @SuppressWarnings("ConstantConditions")
