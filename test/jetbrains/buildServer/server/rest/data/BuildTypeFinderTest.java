@@ -106,7 +106,7 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     checkExceptionOnItemSearch(BadRequestException.class, "xxx");
     check("p10_10_10_bt20", p10_10_10_bt20);
   }
-  
+
 
   @Test
   public void testSnapshotDependencies() throws Exception {
@@ -157,12 +157,12 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     check(baseToLocatorStart3 + ",includeInitial:true,recursive:true)", buildConf31, buildConf2, buildConf1, buildConf01, buildConf02);
 
     final String baseToLocatorStart4 = "snapshotDependency:(from:(id:" + buildConf31.getId() + ")";
-    check(baseToLocatorStart4 + ")", buildConf4, buildConf5, buildConf6);
-    check(baseToLocatorStart4 + ",includeInitial:true)", buildConf31, buildConf4, buildConf5, buildConf6);
-    check(baseToLocatorStart4 + ",includeInitial:false)", buildConf4, buildConf5, buildConf6);
-    check(baseToLocatorStart4 + ",recursive:true)", buildConf4, buildConf5, buildConf6);
-    check(baseToLocatorStart4 + ",recursive:false)", buildConf4, buildConf5);
-    check(baseToLocatorStart4 + ",includeInitial:true,recursive:true)", buildConf31, buildConf4, buildConf5, buildConf6);
+    check(baseToLocatorStart4 + ")", buildConf5, buildConf4, buildConf6);
+    check(baseToLocatorStart4 + ",includeInitial:true)", buildConf31, buildConf5, buildConf4, buildConf6);
+    check(baseToLocatorStart4 + ",includeInitial:false)", buildConf5, buildConf4, buildConf6);
+    check(baseToLocatorStart4 + ",recursive:true)", buildConf5, buildConf4, buildConf6);
+    check(baseToLocatorStart4 + ",recursive:false)", buildConf5, buildConf4);
+    check(baseToLocatorStart4 + ",includeInitial:true,recursive:true)", buildConf31, buildConf5, buildConf4, buildConf6);
 
     check("snapshotDependency:(from:(id:" + buildConf2.getId() + "),to:(id:" + buildConf31.getId() + "),includeInitial:true)", buildConf31, buildConf2);
     check("snapshotDependency:(from:(id:" + buildConf1.getId() + "),to:(id:" + buildConf4.getId() + "))", buildConf31, buildConf2, buildConf32);
