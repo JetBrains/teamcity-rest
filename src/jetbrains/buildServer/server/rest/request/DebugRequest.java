@@ -50,9 +50,12 @@ import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.Permissions;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
 import jetbrains.buildServer.serverSide.db.*;
 import jetbrains.buildServer.serverSide.db.queries.GenericQuery;
 import jetbrains.buildServer.serverSide.db.queries.QueryOptions;
+import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -190,6 +193,29 @@ public class DebugRequest {
           result.append(", ");
         }
         result.append("activeSessions: ").append(activeSessions).append(", maxActive: ").append(maxActive);
+
+        result.append("\nDetails:\n");
+        String sessionsListRaw = String.valueOf(serverBean.invoke(managerBean, "listSessionIds", null, null));
+        final String[] sessionsIds = sessionsListRaw.split(" ");
+        final String signature[] = {String.class.getName(), String.class.getName()};
+        final String user_key = "USER_KEY"; //see jetbrains.buildServer.web.util.SessionUser.DEFAULT_USER_KEY
+        final UserModel userModel = myServiceLocator.getSingletonService(UserModel.class);
+        for (String sessionsId : sessionsIds) {
+          result.append(sessionsId.length() > 10 ? sessionsId.substring(0, sessionsId.length() - 10) + "..." : sessionsId).append(": ");
+          final String userKeyAttribute = (String)serverBean.invoke(managerBean, "getSessionAttribute", new Object[]{sessionsId, user_key}, signature);
+          if (!StringUtil.isEmpty(userKeyAttribute)) {
+            final int index = userKeyAttribute.lastIndexOf("{id=");
+            if (userKeyAttribute.endsWith("}") && index >= 0) {
+              final String userId = userKeyAttribute.substring(index + "{id=".length(), userKeyAttribute.length() - "}".length());
+              final SUser user = userModel.findUserById(Long.valueOf(userId)); //catch parsing error
+              result.append("user ").append(user == null ? "user with id " + userId : user.describe(false)).append("\n");
+            } else {
+              result.append("unparsable: ").append(userKeyAttribute).append("\n");
+            }
+          } else {
+            result.append("no ").append(user_key).append(" session attribute found").append("\n");
+          }
+        }
       }
 
       return result.toString();
@@ -330,6 +356,7 @@ public class DebugRequest {
     result.append("Full thread dump ").append(System.getProperty("java.vm.name"));
     result.append(" (").append(System.getProperty("java.vm.version")).append(" ").append(System.getProperty("java.vm.info")).append("):").append("\n");
     result.append("\n");
+    //todo: sort threads by the first start time and then by status
     for (ThreadInfo threadInfo : infos) {
       appendThreadEntry(result, threadInfo);
     }
@@ -354,6 +381,28 @@ public class DebugRequest {
     result.append("Dump taken in ").append(TimePrinter.createMillisecondsFormatter().formatTime(Dates.now().getTime() - startTime.getTime()));
 
     return result.toString();
+  }
+
+  /**
+   * Experimental use only!
+   */
+  @GET
+  @Path("/values/password/scrambled")
+  @Produces({"text/plain"})
+  public String getScrambled(@QueryParam("value") String value) {
+    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    return EncryptUtil.scramble(value);
+  }
+
+  /**
+   * Experimental use only!
+   */
+  @GET
+  @Path("/values/password/unscrambled")
+  @Produces({"text/plain"})
+  public String getUnscrambled(@QueryParam("value") String value) {
+    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    return EncryptUtil.unscramble(value);
   }
 
   /**
