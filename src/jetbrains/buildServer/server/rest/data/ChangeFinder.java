@@ -342,7 +342,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
     // include by build should be already handled by this time on the upper level
 
-    if (TeamCityProperties.getBoolean("rest.request.changes.check.enforceChangeViewPermissson")) {
+    if (TeamCityProperties.getBoolean("rest.request.changes.check.enforceChangeViewPermission")) {
       result.add(new FilterConditionChecker<SVcsModification>() {
         public boolean isIncluded(@NotNull final SVcsModification item) {
           return myDataProvider.checkCanView(item);
