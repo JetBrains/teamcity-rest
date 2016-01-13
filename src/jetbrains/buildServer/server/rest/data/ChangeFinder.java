@@ -28,6 +28,8 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.RemoteBuildType;
 import jetbrains.buildServer.serverSide.userChanges.UserChangesFacade;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.graph.BFSVisitorAdapter;
 import jetbrains.buildServer.util.graph.DAG;
 import jetbrains.buildServer.util.graph.DAGIterator;
@@ -60,6 +62,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   public static final String BRANCH = "branch";
   public static final String CHILD_CHANGE = "childChange";
   public static final String PARENT_CHANGE = "parentChange";
+  public static final String DAG_TRAVERSE = "dag";
 
   @NotNull private final DataProvider myDataProvider;
   @NotNull private final ProjectFinder myProjectFinder;
@@ -109,7 +112,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   @Override
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(BRANCH, PERSONAL, PENDING, CHILD_CHANGE, PARENT_CHANGE, PROMOTION); //hide these for now
+    result.addHiddenDimensions(BRANCH, PERSONAL, PENDING, CHILD_CHANGE, PARENT_CHANGE, DAG_TRAVERSE, PROMOTION); //hide these for now
     result.addHiddenDimensions(DIMENSION_LOOKUP_LIMIT); //not supported in fact
     return result;
   }
@@ -487,8 +490,49 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       return getItemHolder(getChangesWhichHasParent(parentChange, locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT)));
     }
 
+    final String graphLocator = locator.getSingleDimensionValue(DAG_TRAVERSE);
+    if (graphLocator != null) {
+      final GraphFinder<SVcsModification> graphFinder = new GraphFinder<SVcsModification>(this, new GraphFinder.Traverser<SVcsModification>() {
+        @NotNull
+        @Override
+        public GraphFinder.LinkRetriever<SVcsModification> getChildren() {
+          return new GraphFinder.LinkRetriever<SVcsModification>() {
+            @NotNull
+            @Override
+            public List<SVcsModification> getLinked(@NotNull final SVcsModification item) {
+              return new ArrayList<SVcsModification>(item.getParentModifications());
+            }
+          };
+        }
+
+        @NotNull
+        @Override
+        public GraphFinder.LinkRetriever<SVcsModification> getParents() {
+          return new GraphFinder.LinkRetriever<SVcsModification>() {
+            @NotNull
+            @Override
+            public List<SVcsModification> getLinked(@NotNull final SVcsModification item) {
+              final List<Long> resultIds = ((VcsRootInstanceEx)item.getVcsRoot()).getDag().getChildren(item.getId());
+              return getModificationsByIds(resultIds, myVcsManager);
+            }
+          };
+        }
+      });
+      graphFinder.setDefaultLookupLimit(1000L);
+      return getItemHolder(graphFinder.getItems(graphLocator).myEntries);
+    }
+
     //todo: highly inefficient!
     return getItemHolder(myVcsModificationHistory.getAllModifications());
+  }
+
+  private static List<SVcsModification> getModificationsByIds(final List<Long> ids, final VcsManager vcsManager) {
+    return CollectionsUtil.convertAndFilterNulls(ids, new Converter<SVcsModification, Long>() {
+      @Override
+      public SVcsModification createFrom(@NotNull final Long source) {
+        return vcsManager.findModificationById(source, false);
+      }
+    });
   }
 
   @NotNull

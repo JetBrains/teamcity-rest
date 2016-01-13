@@ -16,25 +16,30 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import jetbrains.buildServer.util.CollectionsUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
  *         Date: 15/06/2015
  */
 public class GraphFinder<T> extends AbstractFinder<T> {
+  private static final Logger LOG = Logger.getInstance(GraphFinder.class.getName());
 
   protected static final String DIMENSION_FROM = "from";
   protected static final String DIMENSION_TO = "to";
+  protected static final String DIMENSION_STOP = "stop";
   protected static final String DIMENSION_RECURSIVE = "recursive";
   protected static final String DIMENSION_INCLUDE_INITIAL = "includeInitial";
   private final AbstractFinder<T> myFinder;
   private final Traverser<T> myTraverser;
+  private Long myDefaultLookupLimit;
 
   public GraphFinder(@NotNull AbstractFinder<T> finder, Traverser<T> traverser) {
-    super(new String[]{DIMENSION_FROM, DIMENSION_TO, DIMENSION_RECURSIVE, DIMENSION_INCLUDE_INITIAL});
+    super(new String[]{DIMENSION_FROM, DIMENSION_TO, DIMENSION_RECURSIVE, DIMENSION_INCLUDE_INITIAL, DIMENSION_STOP});
     myFinder = finder;
     myTraverser = traverser;
   }
@@ -43,6 +48,16 @@ public class GraphFinder<T> extends AbstractFinder<T> {
   @Override
   protected ItemFilter<T> getFilter(@NotNull final Locator locator) {
     return new MultiCheckerFilter<T>();
+  }
+
+  @Nullable
+  @Override
+  public Long getDefaultLookupLimit() {
+    return myDefaultLookupLimit;
+  }
+
+  public void setDefaultLookupLimit(final Long defaultLookupLimit) {
+    myDefaultLookupLimit = defaultLookupLimit;
   }
 
   @NotNull
@@ -54,24 +69,25 @@ public class GraphFinder<T> extends AbstractFinder<T> {
     Boolean includeOriginal = locator.getSingleDimensionValueAsBoolean(DIMENSION_INCLUDE_INITIAL, false);
     if (includeOriginal == null) includeOriginal = false;
 
+    final List<T> toItems = getItemsFromDimension(locator, DIMENSION_TO, myFinder);
+    final List<T> fromItems = getItemsFromDimension(locator, DIMENSION_FROM, myFinder);
+    final List<T> stopItems = getItemsFromDimension(locator, DIMENSION_STOP, myFinder);
+    Long lookupLimit = locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT, getDefaultLookupLimit());
+
     Set<T> resultTo = new LinkedHashSet<T>();
-    final String toItemsDimension = locator.getSingleDimensionValue(DIMENSION_TO);
-    if (toItemsDimension != null) {
-      final List<T> toItems = myFinder.getItems(toItemsDimension).myEntries;
+    if (!toItems.isEmpty()) {
       if (includeOriginal) {
         resultTo.addAll(toItems);
       }
-      collectLinked(resultTo, toItems, myTraverser.getChildren(), recursive);
+      collectLinked(resultTo, toItems, CollectionsUtil.join(fromItems, stopItems), lookupLimit, myTraverser.getChildren(), recursive);
     }
 
     Set<T> resultFrom = new LinkedHashSet<T>();
-    final String fromItemsDimension = locator.getSingleDimensionValue(DIMENSION_FROM);
-    if (fromItemsDimension != null) {
-      final List<T> toItems = myFinder.getItems(fromItemsDimension).myEntries;
+    if (!fromItems.isEmpty()) {
       if (includeOriginal) {
-        resultFrom.addAll(toItems);
+        resultFrom.addAll(fromItems);
       }
-      collectLinked(resultFrom, toItems, myTraverser.getParents(), recursive);
+      collectLinked(resultFrom, fromItems, CollectionsUtil.join(toItems, stopItems), lookupLimit, myTraverser.getParents(), recursive);
     }
 
     ArrayList<T> result;
@@ -80,18 +96,46 @@ public class GraphFinder<T> extends AbstractFinder<T> {
     } else {
       result = new ArrayList<T>(!resultTo.isEmpty() ? resultTo : resultFrom);
     }
-    return getItemHolder(result);
+    return getItemHolder(result); //can improve performance by performing traversing in the holder, not retrieving all upfront, this will also add support for lookupLimit
   }
 
-  private void collectLinked(@NotNull final Collection<T> result, @NotNull Collection<T> toProcess, @NotNull LinkRetriever<T> linkRetriever, final boolean recursive) {
+  @NotNull
+  private List<T> getItemsFromDimension(final Locator locator, final String dimensionName, final AbstractFinder<T> finder) {
+    final List<String> dimensionValues = locator.getDimensionValue(dimensionName);
+    if (!dimensionValues.isEmpty()) {
+      final ArrayList<T> result = new ArrayList<T>();
+      for (String dimensionValue : dimensionValues) {
+        result.addAll(myFinder.getItems(dimensionValue).myEntries);
+      }
+      return result;
+    }
+    return Collections.emptyList();
+  }
+
+  private void collectLinked(@NotNull final Set<T> result,
+                             @NotNull Collection<T> toProcess,
+                             @NotNull Collection<T> stopItems,
+                             final Long lookupLimit,
+                             @NotNull LinkRetriever<T> linkRetriever,
+                             final boolean recursive) {
+    final int initialSize = result.size();
     while (!toProcess.isEmpty()) {
       Set<T> linkedItems = new LinkedHashSet<T>();
       for (T item : toProcess) {
-        linkedItems.addAll(linkRetriever.getLinked(item));
+        if (stopItems.contains(item)) {
+          result.add(item);
+        } else {
+          final List<T> linked = linkRetriever.getLinked(item);
+          result.addAll(linked);
+          linkedItems.addAll(linked);
+        }
       }
-      result.addAll(linkedItems);
       toProcess = linkedItems;
       if (!recursive) break;
+      if (lookupLimit != null && (result.size() - initialSize >= lookupLimit)) {
+        LOG.debug("Hit lookupLimit " + lookupLimit + " while traversing graph, result is partial");
+        break;
+      }
     }
   }
 
