@@ -39,6 +39,8 @@ public class Revision {
   public String displayRevision;
   @XmlAttribute(name = "internalVersion")
   public String internalRevision;
+  @XmlAttribute(name = "vcsBranchName")
+  public String vcsBranchName;
 
   @XmlElement(name = "vcs-root-instance")
   public VcsRootInstance vcsRoot;
@@ -61,6 +63,13 @@ public class Revision {
       @Nullable
       public String get() {
         return revision.getCheckoutRules().getAsString();
+      }
+    });
+
+    vcsBranchName = ValueWithDefault.decideDefault(fields.isIncluded("vcsBranchName"), new ValueWithDefault.Value<String>() {
+      @Nullable
+      public String get() {
+        return revision.getRepositoryVersion().getVcsBranch();
       }
     });
 
