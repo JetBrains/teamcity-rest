@@ -159,8 +159,8 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
 
     final SUser user2 = createUser("user2");
     user2.addRole(RoleScope.projectScope(project10.getProjectId()), getProjectViewerRole());
-    //the order seems to be lexicographic in the case...
-    check("selectedByUser:(username:user2)", project10_10, project10_10_20, project10_10_30, project10, project10_10_10, project10_20);
+    //default sorting is hierarchy-based + name-based within the same level
+    check("selectedByUser:(username:user2)", project10, project10_10, project10_10_20, project10_10_30, project10_10_10, project10_20);
 
     final SUser user1 = createUser("user1");
     user1.addRole(RoleScope.projectScope(project10.getProjectId()), getProjectViewerRole());

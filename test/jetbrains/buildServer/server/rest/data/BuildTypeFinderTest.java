@@ -229,7 +229,7 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     final SProject project40 = createProject("p40", "project 40");
 
     final SBuildType p10_bt10 = project10.createBuildType("p10_bt10", "10-10");
-    final SBuildType p10_bt20 = project10.createBuildType("p10_bt20", "10-20");
+    final SBuildType p10_bt20 = project10.createBuildType("p10_bt20", "10-02");
     final SBuildType p10_bt30 = project10.createBuildType("p10_bt30", "10-30");
 
     final SBuildType p10_10_bt10 = project10_10.createBuildType("p10_10_bt10", "10_10-10");
@@ -254,12 +254,12 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
 
     final SUser user2 = createUser("user2");
     user2.addRole(RoleScope.projectScope(project10.getProjectId()), getProjectViewerRole());
-    //default sorting is name-based
-    checkBuildTypes("selectedByUser:(username:user2)", p10_10_bt10, p10_10_bt20, p10_10_bt30, p10_30_bt10, p10_30_bt20, p10_30_bt30, p10_bt10, p10_bt20, p10_bt30);
+    //default sorting is hierarchy-based + name-based within the same level
+    checkBuildTypes("selectedByUser:(username:user2)", p10_bt20, p10_bt10, p10_bt30, p10_10_bt10, p10_10_bt20, p10_10_bt30, p10_30_bt10, p10_30_bt20, p10_30_bt30);
 
     user2.setVisibleProjects(Arrays.asList(project10.getProjectId(), project10_30.getProjectId(), project10_10.getProjectId(), project40.getProjectId(), project30.getProjectId()));
     user2.setProjectsOrder(Arrays.asList(project10.getProjectId(), project10_30.getProjectId(), project10_10.getProjectId(), project40.getProjectId(), project30.getProjectId()));
-    checkBuildTypes("selectedByUser:(username:user2)", p10_bt10, p10_bt20, p10_bt30, p10_30_bt10, p10_30_bt20, p10_30_bt30, p10_10_bt10, p10_10_bt20, p10_10_bt30);
+    checkBuildTypes("selectedByUser:(username:user2)", p10_bt20, p10_bt10, p10_bt30, p10_30_bt10, p10_30_bt20, p10_30_bt30, p10_10_bt10, p10_10_bt20, p10_10_bt30);
 
 
     final SUser user1 = createUser("user1");
