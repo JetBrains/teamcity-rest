@@ -96,7 +96,7 @@ import org.springframework.beans.factory.annotation.Autowired;
            "artifacts"/*rf*/, "issues"/*rf*/,
            "properties", "attributes", "statistics"/*rf*/,
            "buildDependencies", "buildArtifactDependencies", "customBuildArtifactDependencies"/*q*/,
-           "settingsHash", "currentSettingsHash",
+           "settingsHash", "currentSettingsHash", "modificationId", "chainModificationId",
            "triggeringOptions"/*only when triggering*/})
 public class Build {
   private static final Logger LOG = Logger.getInstance(Build.class.getName());
@@ -872,6 +872,32 @@ public class Build {
     });
   }
 
+  /**
+   * Experimental
+   */
+  @XmlElement
+  public String getModificationId() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("modificationId", false, false), new ValueWithDefault.Value<String>() {
+      @Nullable
+      public String get() {
+        return String.valueOf(myBuildPromotion.getLastModificationId());
+      }
+    });
+  }
+
+  /**
+   * Experimental
+   */
+  @XmlElement
+  public String getChainModificationId() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("chainModificationId", false, false), new ValueWithDefault.Value<String>() {
+      @Nullable
+      public String get() {
+        return String.valueOf(((BuildPromotionEx)myBuildPromotion).getChainModificationId());
+      }
+    });
+  }
+
   public static Comment getCanceledComment(@NotNull final SBuild build, @NotNull final Fields fields, @NotNull final BeanContext context) {
     final CanceledInfo canceledInfo = build.getCanceledInfo();
     if (canceledInfo == null) return null;
@@ -1266,10 +1292,12 @@ public class Build {
       return String.valueOf(build.getDefaultBranch());
     } else if ("unspecifiedBranch".equals(field)) {
       return String.valueOf(build.getUnspecifiedBranch());
-    } else if (PROMOTION_ID.equals(field) || "promotionId".equals(field)) { //Experimental support only, this is not exposed in any other way
+    } else if (PROMOTION_ID.equals(field) || "promotionId".equals(field)) { //Experimental support only
       return (String.valueOf(build.getPromotionId()));
-    } else if ("modificationId".equals(field)) { //Experimental support only, this is not exposed in any other way
+    } else if ("modificationId".equals(field)) { //Experimental support only
       return String.valueOf(buildPromotion.getLastModificationId());
+    } else if ("chainModificationId".equals(field)) { //Experimental support only
+      return String.valueOf(((BuildPromotionEx)buildPromotion).getChainModificationId());
     } else if ("commentText".equals(field)) { //Experimental support only
       final Comment comment = build.getComment();
       return comment == null ? null : comment.text;
