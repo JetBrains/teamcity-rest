@@ -17,7 +17,6 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import jetbrains.buildServer.parameters.ParametersProvider;
@@ -39,21 +38,34 @@ public class ParameterCondition {
   public static final String NAME = "name";
   public static final String VALUE = "value";
   public static final String TYPE = "matchType";
+  protected static final String NAME_MATCH_TYPE = "nameMatchType"; // condition to restrict parameters by name before checking value with "matchType"
+  protected static final String NAME_MATCH_CHECK = "matchScope"; // when "nameMatchType" is specified, can be set to:
+  // "all" to require all the name-matched params to match using "matchType"
+  // "any" to require at least one of the name-matched params to match using "matchType"
+
   @Nullable private final String myParameterName;
   @Nullable private final String myParameterValue;
   @NotNull private final RequirementType myRequirementType;
+  @Nullable private RequirementType myNameRequirementType;
+  private boolean myNameCheckShouldMatchAll;
 
-  public ParameterCondition(@Nullable final String name, @Nullable final String value, final @NotNull RequirementType requirementType) {
+  public ParameterCondition(@Nullable final String name,
+                            @Nullable final String value,
+                            final @NotNull RequirementType requirementType,
+                            @Nullable final RequirementType nameRequirementType,
+                            final boolean nameCheckShouldMatchAll) {
     myParameterName = name;
     myParameterValue = value;
     myRequirementType = requirementType;
+    myNameRequirementType = nameRequirementType;
+    myNameCheckShouldMatchAll = nameCheckShouldMatchAll;
   }
 
   public static ParameterCondition create(@Nullable final String propertyConditionLocator) {
     if (propertyConditionLocator == null){
       return null;
     }
-    final Locator locator = new Locator(propertyConditionLocator, NAME, VALUE, TYPE);
+    final Locator locator = new Locator(propertyConditionLocator, NAME, VALUE, TYPE, NAME_MATCH_TYPE, NAME_MATCH_CHECK);
 
     final String name = locator.getSingleDimensionValue(NAME);
     final String value = locator.getSingleDimensionValue(VALUE);
@@ -64,10 +76,28 @@ public class ParameterCondition {
     if (type != null){
       requirement = RequirementType.findByName(type);
       if (requirement == null){
-        throw new BadRequestException("Unsupported parameter match type. Supported are: " + getAllRequirementTypes());
+        throw new BadRequestException("Unsupported value for '" + TYPE + "'. Supported are: " + getAllRequirementTypes());
       }
     }
-    final ParameterCondition result = new ParameterCondition(name, value, requirement);
+
+    RequirementType nameRequirement = null;
+    final String nameType = locator.getSingleDimensionValue(NAME_MATCH_TYPE);
+    if (nameType != null) {
+      nameRequirement = RequirementType.findByName(nameType);
+      if (nameRequirement == null) {
+        throw new BadRequestException("Unsupported value for '" + NAME_MATCH_TYPE + "'. Supported are: " + getAllRequirementTypes());
+      }
+    }
+    final String nameRequirementCheck = locator.getSingleDimensionValue(NAME_MATCH_CHECK);
+    final boolean nameCheckShouldMatchAll;
+    if (StringUtil.isEmpty(nameRequirementCheck) || "any".equals(nameRequirementCheck) || "or".equals(nameRequirementCheck)) {
+      nameCheckShouldMatchAll = false;
+    } else if ("all".equals(nameRequirementCheck) || "and".equals(nameRequirementCheck)) {
+      nameCheckShouldMatchAll = true;
+    } else {
+      throw new BadRequestException("Unsupported value for '" + NAME_MATCH_CHECK + "'. Supported are: " + "any, all");
+    }
+    final ParameterCondition result = new ParameterCondition(name, value, requirement, nameRequirement, nameCheckShouldMatchAll);
     locator.checkLocatorFullyProcessed();
     return result;
   }
@@ -109,21 +139,26 @@ public class ParameterCondition {
     if (myRequirementType.isParameterRequired() && myParameterValue == null) {
       return false;
     }
-    if (!StringUtil.isEmpty(myParameterName)) {
+    if (myNameRequirementType == null && !StringUtil.isEmpty(myParameterName)) {
       final String value = parametersProvider.get(myParameterName);
-      return matches(value);
+      return matches(myRequirementType, myParameterValue, value);
     }
+    boolean matched = false;
     for (Map.Entry<String, String> parameter : parametersProvider.getAll().entrySet()) {
-      if (matches(parameter.getValue())) return true;
+      if (myNameRequirementType != null) {
+        if (!matches(myNameRequirementType, myParameterName, parameter.getKey())) continue;
+      }
+      if (myNameCheckShouldMatchAll) {
+        if (matches(myRequirementType, myParameterValue, parameter.getValue())) {
+          matched = true;
+        } else {
+          return false;
+        }
+      } else {
+        if (matches(myRequirementType, myParameterValue, parameter.getValue())) return true;
+      }
     }
-    return false;
-  }
-
-  public boolean matches(@NotNull final Collection<Parameter> parametersProvider) {
-    for (Parameter parameter : parametersProvider) {
-      if (parameterMatches(parameter)) return true;
-    }
-    return false;
+    return matched;
   }
 
   public boolean parameterMatches(@NotNull final Parameter parameter) {
@@ -132,31 +167,35 @@ public class ParameterCondition {
     }
     if (!StringUtil.isEmpty(myParameterName)) {
       if (myParameterName.equals(parameter.getName())) {
-        return matches(parameter.getValue());
+        return matches(myRequirementType, myParameterValue, parameter.getValue());
       } else {
         return false;
       }
     } else {
-      return matches(parameter.getValue());
+      return matches(myRequirementType, myParameterValue, parameter.getValue());
     }
   }
 
-  public boolean matches(@Nullable final String value) {
-    if (myRequirementType.isParameterRequired() && myParameterValue == null) {
+  private static boolean matches(final RequirementType requirementType, final String requirementValue, @Nullable final String actualValue) {
+    if (requirementType.isParameterRequired() && requirementValue == null) {
       return false;
     }
-    if (myRequirementType.isActualValueRequired() && value == null) {
+    if (requirementType.isActualValueRequired() && actualValue == null) {
       return false;
     }
-    if (!myRequirementType.isActualValueCanBeEmpty() && (value == null || value.length() == 0)) {
+    if (!requirementType.isActualValueCanBeEmpty() && (actualValue == null || actualValue.length() == 0)) {
       return false;
     }
     try {
-      return myRequirementType.matchValues(myParameterValue, value);
+      return requirementType.matchValues(requirementValue, actualValue);
     } catch (Exception e) {
       //e.g. more-than can throw NumberFormatException for non-number
       return false;
     }
+  }
+
+  public boolean matches(@Nullable final String value) {
+    return matches(myRequirementType, myParameterValue, value);
   }
 
   @Override

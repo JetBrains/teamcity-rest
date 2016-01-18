@@ -681,6 +681,43 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     assertEquals(2, promotions.myEntries.size());
   }
 
+  @Test
+  public void testParametersCondition() {
+    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
+
+    final SFinishedBuild finishedBuild05 = build().in(buildConf1).finish();
+    final SFinishedBuild finishedBuild10 = build().in(buildConf1).parameter("a", "10").parameter("b", "10").parameter("aa", "15").finish();
+    final SFinishedBuild finishedBuild20 = build().in(buildConf1).parameter("b", "20").finish();
+    final SFinishedBuild finishedBuild30 = build().in(buildConf1).parameter("c", "20").finish();
+    final SFinishedBuild finishedBuild35 = build().in(buildConf1).parameter("c", "10").finish();
+    final SFinishedBuild finishedBuild40 = build().in(buildConf1).parameter("zzz", "30").finish();
+    final SFinishedBuild finishedBuild50 = build().in(buildConf1).parameter("aa", "10").parameter("aaa", "10").finish();
+
+    checkBuilds("property:(name:a)", getBuildPromotions(finishedBuild10));
+    checkBuilds("property:(name:b)", getBuildPromotions(finishedBuild20, finishedBuild10));
+    checkBuilds("property:(name:b,value:20)", getBuildPromotions(finishedBuild20));
+    checkBuilds("property:(value:20)", getBuildPromotions(finishedBuild30, finishedBuild20));
+
+    //"contains" by default
+    checkBuilds("property:(value:0)", getBuildPromotions(finishedBuild50, finishedBuild40, finishedBuild35, finishedBuild30, finishedBuild20, finishedBuild10, finishedBuild05));
+
+    //finds all as entire build params map is used for the search and build has a parameter with build conf id
+    checkBuilds("property:(value:" + buildConf1.getExternalId() + ")",
+                getBuildPromotions(finishedBuild50, finishedBuild40, finishedBuild35, finishedBuild30, finishedBuild20, finishedBuild10, finishedBuild05));
+
+    checkBuilds("property:(value:10,matchType:equals)", getBuildPromotions(finishedBuild50, finishedBuild35, finishedBuild10));
+    checkBuilds("property:(value:15,matchType:more-than)", getBuildPromotions(finishedBuild40, finishedBuild30, finishedBuild20));
+    checkBuilds("property:(name:b,value:15,matchType:more-than)", getBuildPromotions(finishedBuild20));
+//this is not reported anyhow from the core (Requirement)    checkExceptionOnBuildsSearch(BadRequestException.class, "property:(value:[,matchType:matches)");
+
+    checkBuilds("property:(name:([b,c]),nameMatchType:matches)", getBuildPromotions(finishedBuild35, finishedBuild30, finishedBuild20, finishedBuild10));
+    checkBuilds("property:(name:.,nameMatchType:matches,value:15,matchType:more-than)", getBuildPromotions(finishedBuild30, finishedBuild20));
+    checkBuilds("property:(matchScope:any,value:10,matchType:equals)", getBuildPromotions(finishedBuild50, finishedBuild35, finishedBuild10));
+//this does not work as all build params are checked, not only custom    checkBuilds("property:(matchScope:all,value:10,matchType:equals)", getBuildPromotions(finishedBuild50, finishedBuild35));
+    checkBuilds("property:(name:(a*),nameMatchType:matches,matchScope:all,value:10,matchType:equals)", getBuildPromotions(finishedBuild50));
+    checkBuilds("property:(name:(.),nameMatchType:matches,matchScope:any,value:10,matchType:equals)", getBuildPromotions(finishedBuild35, finishedBuild10));
+  }
+
 //==================================================
 
   public void checkBuilds(final String locator, BuildPromotion... builds) {
