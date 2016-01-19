@@ -412,6 +412,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       final Matcher<ParametersProvider> parameterCondition = ParameterCondition.create(properties);
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
+          //does not correspond to Build.getProperties() which includes less parameters
           return parameterCondition.matches(((BuildPromotionEx)item).getParametersProvider()); //TeamCity open API issue
         }
       });
@@ -1053,7 +1054,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         locator.setDimension(STATE, STATE_FINISHED);
       }
       locator.setDimensionIfNotPresent(FAILED_TO_START, "false");
-      locator.setDimensionIfNotPresent(BRANCH, BranchMatcher.getDefaultBranchLocator());
+      if (locator.lookupSingleDimensionValue(SNAPSHOT_DEP) == null &&
+          locator.lookupSingleDimensionValue(EQUIVALENT) == null) {
+        //do not force branch to default for some locators
+        locator.setDimensionIfNotPresent(BRANCH, BranchMatcher.getDefaultBranchLocator());
+      }
     }
   }
 

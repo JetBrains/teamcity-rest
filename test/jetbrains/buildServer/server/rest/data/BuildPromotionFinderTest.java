@@ -34,6 +34,7 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.TestFor;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.SVcsRootEx;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
@@ -172,6 +173,44 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
+  public void testSnapshotDependenciesAndBranches() throws Exception {
+    final BuildTypeImpl buildConf0 = registerBuildType("buildConf0", "project");
+    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
+    addDependency(buildConf2, buildConf1);
+    addDependency(buildConf1, buildConf0);
+
+    MockVcsSupport vcs = vcsSupport().withName("vcs").dagBased(true).register();
+
+    BuildFinderTestBase.MockCollectRepositoryChangesPolicy collectChangesPolicy = new BuildFinderTestBase.MockCollectRepositoryChangesPolicy();
+    vcs.setCollectChangesPolicy(collectChangesPolicy);
+
+    final SVcsRoot vcsRoot = buildConf0.getProject().createVcsRoot("vcs", "extId", "name");
+
+    buildConf0.addVcsRoot(vcsRoot);
+    buildConf1.addVcsRoot(vcsRoot);
+    buildConf2.addVcsRoot(vcsRoot);
+
+    final VcsRootInstance vcsRootInstance = buildConf0.getVcsRootInstances().get(0);
+    collectChangesPolicy.setCurrentState(vcsRootInstance, createVersionState("master", map("master", "1", "branch1", "2", "branch2", "3")));
+    setBranchSpec(vcsRootInstance, "+:*");
+
+    final BuildPromotion build20 = build().in(buildConf2).finish().getBuildPromotion();
+    final BuildPromotion build10 = build20.getDependencies().iterator().next().getDependOn();
+    final BuildPromotion build00 = build10.getDependencies().iterator().next().getDependOn();
+
+    final BuildPromotion build2_20 = build().in(buildConf2).withBranch("branch1").finish().getBuildPromotion();
+    final BuildPromotion build2_10 = build2_20.getDependencies().iterator().next().getDependOn();
+    final BuildPromotion build2_00 = build2_10.getDependencies().iterator().next().getDependOn();
+
+    checkBuilds("snapshotDependency:(to:(id:" + build10.getId() + "))", build00);
+    checkBuilds("snapshotDependency:(to:(id:" + build2_10.getId() + "))", build2_00);
+
+    final BuildPromotion build3_20 = build().in(buildConf2).withBranch("branch1").finish().getBuildPromotion();
+    checkBuilds("snapshotDependency:(from:(id:" + build2_00.getId() + ")),equivalent:(id:" + build3_20.getId() + ")", build2_20);
+  }
+
+  @Test
   public void testQueuedBuildFinding() throws Exception {
     final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
 
@@ -225,10 +264,11 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 
     final SFinishedBuild build0 = build().in(buildConf).finish();
     final SFinishedBuild build1 = build().in(buildConf).finish();
+    final SFinishedBuild build2 = build().in(buildConf).withBranch("branch1").finish();
+    final SFinishedBuild build3 = build().in(buildConf).withBranch("branch1").finish();
 
     checkBuilds("equivalent:(id:" + build0.getBuildId() + ")", build1.getBuildPromotion());
-
-    //todo: add test for snapshot +  equivalent filtering
+    checkBuilds("equivalent:(id:" + build2.getBuildId() + ")", build3.getBuildPromotion());
   }
 
 
@@ -709,6 +749,8 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("property:(value:15,matchType:more-than)", getBuildPromotions(finishedBuild40, finishedBuild30, finishedBuild20));
     checkBuilds("property:(name:b,value:15,matchType:more-than)", getBuildPromotions(finishedBuild20));
 //this is not reported anyhow from the core (Requirement)    checkExceptionOnBuildsSearch(BadRequestException.class, "property:(value:[,matchType:matches)");
+    checkExceptionOnBuildsSearch(BadRequestException.class, "property:(value:10,matchType:Equals)");
+    checkExceptionOnBuildsSearch(BadRequestException.class, "property:(value:10,matchType:AAA)");
 
     checkBuilds("property:(name:([b,c]),nameMatchType:matches)", getBuildPromotions(finishedBuild35, finishedBuild30, finishedBuild20, finishedBuild10));
     checkBuilds("property:(name:.,nameMatchType:matches,value:15,matchType:more-than)", getBuildPromotions(finishedBuild30, finishedBuild20));
@@ -716,6 +758,13 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 //this does not work as all build params are checked, not only custom    checkBuilds("property:(matchScope:all,value:10,matchType:equals)", getBuildPromotions(finishedBuild50, finishedBuild35));
     checkBuilds("property:(name:(a*),nameMatchType:matches,matchScope:all,value:10,matchType:equals)", getBuildPromotions(finishedBuild50));
     checkBuilds("property:(name:(.),nameMatchType:matches,matchScope:any,value:10,matchType:equals)", getBuildPromotions(finishedBuild35, finishedBuild10));
+
+    //builds with at least one param not equal to 10
+    checkBuilds("property:(value:10,matchType:does-not-match)",
+                getBuildPromotions(finishedBuild50, finishedBuild40, finishedBuild35, finishedBuild30, finishedBuild20, finishedBuild10, finishedBuild05));
+    //builds with no param equal to 10
+    checkBuilds("property:(nameMatchType:exists,matchScope:all,value:10,matchType:does-not-equal)",
+                getBuildPromotions(finishedBuild40, finishedBuild30, finishedBuild20, finishedBuild05));
   }
 
 //==================================================
