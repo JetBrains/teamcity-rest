@@ -272,7 +272,7 @@ public class BuildFinderTest extends BuildFinderTestBase {
     checkBuilds("buildType:(id:" + buildConf.getExternalId() + ")", build1);
     checkBuilds("pinned:any", build1);
 
-    checkBuilds("branch:<default>", build1);
+    //checkBuilds("branch:<default>", build1); this works only if the build was forced to run on the branch "<default>". Normally, however, branch is set to null
     checkBuilds("branch:(default:true)", build1);
     checkBuilds("branch:(default:any)", build2, build1);
     checkBuilds("branch:(branchName)", build2);
