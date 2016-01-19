@@ -808,7 +808,24 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("ordered:(to:(id:" + build10.getId() + ")),equivalent:(id:" + build5.getId() + ")", build6);
   }
 
-//==================================================
+  @Test
+  public void testItemDimension() {
+    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
+
+    final BuildPromotion build10 = build().in(buildConf1).finish().getBuildPromotion();
+    final BuildPromotion build20 = build().in(buildConf1).parameter("a", "10").parameter("b", "10").parameter("aa", "15").finish().getBuildPromotion();
+    final BuildPromotion build30 = build().in(buildConf1).failed().parameter("b", "20").finish().getBuildPromotion();
+
+    checkBuilds("item:(id:" + build10.getId() + ")", build10);
+    checkBuilds("item:(id:" + build10.getId() + "),item:(id:" + build10.getId() + ")", build10, build10);
+    checkBuilds("item:(id:" + build10.getId() + "),item:(id:" + build20.getId() + ")", build10, build20);
+    checkBuilds("item:(id:" + build20.getId() + "),item:(id:" + build10.getId() + ")", build20, build10);
+    checkBuilds("item:(id:" + build20.getId() + "),item:(id:" + build10.getId() + "),count:1", build20);
+    checkBuilds("item:(id:" + build20.getId() + "),item:(id:" + build10.getId() + "),start:1", build10);
+    checkBuilds("item:(status:SUCCESS),item:(status:FAILURE)", build20, build10, build30);
+  }
+
+  //==================================================
 
   public void checkBuilds(final String locator, BuildPromotion... builds) {
     checkMultipleBuilds(locator, builds);

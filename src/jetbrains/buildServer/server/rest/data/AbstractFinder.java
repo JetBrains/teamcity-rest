@@ -20,6 +20,7 @@ package jetbrains.buildServer.server.rest.data;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -46,6 +47,7 @@ public abstract class AbstractFinder<ITEM> {
 
   public static final String DIMENSION_ID = "id";
   public static final String DIMENSION_LOOKUP_LIMIT = "lookupLimit";
+  public static final String DIMENSION_ITEM = "item";
 
   private final String[] myKnownDimensions;
 
@@ -67,6 +69,7 @@ public abstract class AbstractFinder<ITEM> {
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator result = Locator.createLocator(locatorText, locatorDefaults, myKnownDimensions);
     result.addIgnoreUnusedDimensions(PagerData.COUNT);
+    result.addHiddenDimensions(DIMENSION_ITEM); //experimental
     return result;
   }
 
@@ -156,7 +159,7 @@ public abstract class AbstractFinder<ITEM> {
     }
 
     //it is important to call "getPrefilteredItems" first as that process some of the dimensions which  "getFilter" can then ignore for performance reasons
-    ItemHolder<ITEM> unfilteredItems = getPrefilteredItems(locator);
+    ItemHolder<ITEM> unfilteredItems = getPrefilteredItemsWithItemsSupport(locator);
     final ItemFilter<ITEM> filter = getFilter(locator);
 
     final Long start = locator.getSingleDimensionValueAsLong(PagerData.START);
@@ -227,6 +230,19 @@ public abstract class AbstractFinder<ITEM> {
       throw new OperationException("Found + " + entriesSize + " items for locator '" + locator.getStringRepresentation() + "' while a single item is expected.");
     }
     return items.myEntries.get(0);
+  }
+
+  @NotNull
+  private ItemHolder<ITEM> getPrefilteredItemsWithItemsSupport(@NotNull Locator locator) {
+    final List<String> itemsDimension = locator.getDimensionValue(DIMENSION_ITEM);
+    if (itemsDimension.isEmpty()) {
+      return getPrefilteredItems(locator);
+    }
+    final ArrayList<ITEM> result = new ArrayList<>();
+    for (String itemLocator : itemsDimension) {
+      result.addAll(getItems(itemLocator).myEntries);
+    }
+    return getItemHolder(result);
   }
 
   @NotNull
