@@ -35,10 +35,10 @@ public class GraphFinder<T> extends AbstractFinder<T> {
   protected static final String DIMENSION_RECURSIVE = "recursive";
   protected static final String DIMENSION_INCLUDE_INITIAL = "includeInitial";
   private final AbstractFinder<T> myFinder;
-  private final Traverser<T> myTraverser;
+  @NotNull private final Traverser<T> myTraverser;
   private Long myDefaultLookupLimit;
 
-  public GraphFinder(@NotNull AbstractFinder<T> finder, Traverser<T> traverser) {
+  public GraphFinder(@NotNull AbstractFinder<T> finder, @NotNull Traverser<T> traverser) {
     super(new String[]{DIMENSION_FROM, DIMENSION_TO, DIMENSION_RECURSIVE, DIMENSION_INCLUDE_INITIAL, DIMENSION_STOP});
     myFinder = finder;
     myTraverser = traverser;
@@ -112,7 +112,7 @@ public class GraphFinder<T> extends AbstractFinder<T> {
     return Collections.emptyList();
   }
 
-  private void collectLinked(@NotNull final Set<T> result,
+  protected void collectLinked(@NotNull final Set<T> result,
                              @NotNull Collection<T> toProcess,
                              @NotNull Collection<T> stopItems,
                              final Long lookupLimit,
@@ -140,9 +140,15 @@ public class GraphFinder<T> extends AbstractFinder<T> {
   }
 
   public interface Traverser<S> {
+    /**
+     * Get items when "to" is specified
+     */
     @NotNull
     LinkRetriever<S> getChildren();
 
+    /**
+     * Get items when "from" is specified
+     */
     @NotNull
     LinkRetriever<S> getParents();
   }

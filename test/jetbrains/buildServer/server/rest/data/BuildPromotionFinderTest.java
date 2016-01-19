@@ -767,6 +767,47 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
                 getBuildPromotions(finishedBuild40, finishedBuild30, finishedBuild20, finishedBuild05));
   }
 
+  @Test
+  public void testOrderDimension() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
+
+    final BuildPromotion build01 = build().in(buildConf).finish().getBuildPromotion();
+    final BuildPromotion build1 = build().in(buildConf2).finish().getBuildPromotion();
+    final BuildPromotion build02 = build().in(buildConf).failed().finish().getBuildPromotion();
+    final BuildPromotion build2 = build().in(buildConf2).failed().finish().getBuildPromotion();
+
+    final RunningBuildEx running3 = build().in(buildConf2).run();
+    running3.stop(getOrCreateUser("user1"), "cancel comment");
+    final BuildPromotion build3 = finishBuild(running3, true).getBuildPromotion();
+
+    final BuildPromotion build4 = build().in(buildConf2).failedToStart().finish().getBuildPromotion();
+    final BuildPromotion build5 = build().in(buildConf2).withBranch("branch").finish().getBuildPromotion();
+    final BuildPromotion build6 = build().in(buildConf2).withBranch("branch").finish().getBuildPromotion();
+    final BuildPromotion build7 = build().in(buildConf2).withBranch("branch2").finish().getBuildPromotion();
+    final BuildPromotion build8 = build().in(buildConf2).finish().getBuildPromotion();
+    final BuildPromotion build9 = build().in(buildConf2).withBranch("branch2").finish().getBuildPromotion();
+    final BuildPromotion build10 = build().in(buildConf2).withBranch("branch").finish().getBuildPromotion();
+
+    final RunningBuildEx running11 = build().in(buildConf2).withBranch("branch").run();
+    running3.stop(getOrCreateUser("user1"), "cancel comment");
+    final BuildPromotion build11 = finishBuild(running11, true).getBuildPromotion();
+
+    final BuildPromotion runningBuild5 = build().in(buildConf2).withBranch("branch").run().getBuildPromotion();
+    final BuildPromotion build15 = build().in(buildConf2).withBranch("branch").addToQueue().getBuildPromotion();
+
+    checkBuilds("ordered:(from:(id:" + build4.getId() + "))", build8);
+    checkBuilds("ordered:(to:(id:" + build4.getId() + "))", build2, build1);
+    checkBuilds("ordered:(to:(id:" + build4.getId() + ")),defaultFilter:false", build3, build2, build1);
+    checkBuilds("ordered:(from:(id:" + build6.getId() + ")),defaultFilter:false", build10, build11, runningBuild5);
+    checkBuilds("ordered:(to:(id:" + build6.getId() + "))", build5, build2, build1);
+    checkBuilds("ordered:(to:(id:" + build6.getId() + ")),defaultFilter:false", build5, build4, build3, build2, build1);
+    checkBuilds("ordered:(to:(id:" + runningBuild5.getId() + "))", build11, build10, build6, build5, build2, build1);
+    checkBuilds("ordered:(to:(id:" + build7.getId() + ")),equivalent:(id:" + build5.getId() + ")");
+    checkBuilds("ordered:(to:(id:" + build10.getId() + "))", build6, build5, build2, build1);
+    checkBuilds("ordered:(to:(id:" + build10.getId() + ")),equivalent:(id:" + build5.getId() + ")", build6);
+  }
+
 //==================================================
 
   public void checkBuilds(final String locator, BuildPromotion... builds) {

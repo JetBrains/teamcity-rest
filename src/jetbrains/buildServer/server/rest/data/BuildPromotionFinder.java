@@ -85,6 +85,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   protected static final String DEFAULT_FILTERING = "defaultFilter";
   protected static final String SINCE_BUILD_ID_LOOK_AHEAD_COUNT = "sinceBuildIdLookAheadCount";  /*experimental*/
+  public static final String ORDERED = "ordered"; /*experimental*/
 
   public static final String BY_PROMOTION = "byPromotion";  //used in BuildFinder
   public static final String EQUIVALENT = "equivalent"; /*experimental*/
@@ -153,6 +154,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     result.addHiddenDimensions(EQUIVALENT, REVISION, PROMOTION_ID_ALIAS, BUILD_ID);
     result.addHiddenDimensions(STATISTIC_VALUE); //experimental
     result.addHiddenDimensions(SINCE_BUILD_ID_LOOK_AHEAD_COUNT); //experimental
+    result.addHiddenDimensions(ORDERED); //experimental
     return result;
   }
 
@@ -421,10 +423,35 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     if (locator.getUnusedDimensions().contains(SNAPSHOT_DEP)) { //performance optimization: do not filter if already processed
       final String snapshotDepDimension = locator.getSingleDimensionValue(SNAPSHOT_DEP);
       if (snapshotDepDimension != null) {
-        final List<BuildPromotion> snapshotRelatedBuilds = getSnapshotRelatedBuilds(snapshotDepDimension);
+        final Set<BuildPromotion> snapshotRelatedBuilds = new HashSet<>(getSnapshotRelatedBuilds(snapshotDepDimension));
         result.add(new FilterConditionChecker<BuildPromotion>() {
           public boolean isIncluded(@NotNull final BuildPromotion item) {
             return snapshotRelatedBuilds.contains(item);
+          }
+        });
+      }
+    }
+
+    if (locator.getUnusedDimensions().contains(EQUIVALENT)) { //performance optimization: do not filter if already processed
+      final String equivalent = locator.getSingleDimensionValue(EQUIVALENT);
+      if (equivalent != null) {
+        final Set<BuildPromotion> filter = new HashSet<BuildPromotion>(((BuildPromotionEx)getItem(equivalent)).getStartedEquivalentPromotions());
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            return filter.contains(item);
+          }
+        });
+      }
+    }
+
+    if (locator.getUnusedDimensions().contains(ORDERED)) { //performance optimization: do not filter if already processed
+      final String graphLocator = locator.getSingleDimensionValue(ORDERED);
+      if (graphLocator != null) {
+        final GraphFinder<BuildPromotion> graphFinder = new BuildPromotionOrderedFinder(BuildPromotionFinder.this);
+        final Set<BuildPromotion> filter = new HashSet<BuildPromotion>(graphFinder.getItems(graphLocator).myEntries);
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            return filter.contains(item);
           }
         });
       }
@@ -911,6 +938,13 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       return getItemHolder(convertedResult);
     }
 
+    final String graphLocator = locator.getSingleDimensionValue(ORDERED);
+    if (graphLocator != null) {
+      final GraphFinder<BuildPromotion> graphFinder = new BuildPromotionOrderedFinder(this);
+      //consider performance optimization by converting id to build only on actual retrieve (use GraphFinder<Int/buildId>)
+      return getItemHolder(graphFinder.getItems(graphLocator).myEntries);
+    }
+
     final String snapshotDepDimension = locator.getSingleDimensionValue(SNAPSHOT_DEP);
     if (snapshotDepDimension != null) {
       return getItemHolder(getSnapshotRelatedBuilds(snapshotDepDimension));
@@ -1055,7 +1089,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
       locator.setDimensionIfNotPresent(FAILED_TO_START, "false");
       if (locator.lookupSingleDimensionValue(SNAPSHOT_DEP) == null &&
-          locator.lookupSingleDimensionValue(EQUIVALENT) == null) {
+          locator.lookupSingleDimensionValue(EQUIVALENT) == null &&
+          locator.lookupSingleDimensionValue(ORDERED) == null) {
         //do not force branch to default for some locators
         locator.setDimensionIfNotPresent(BRANCH, BranchMatcher.getDefaultBranchLocator());
       }
@@ -1217,6 +1252,110 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                   return source.getDependent();
                 }
               });
+        }
+      };
+    }
+  }
+
+  private class BuildPromotionOrderedFinder extends GraphFinder<BuildPromotion> {
+    public BuildPromotionOrderedFinder(@NotNull final BuildPromotionFinder finder) {
+      super(finder, new BuildPromotionOrderSupportTraverser());
+    }
+
+    @Override
+    protected void collectLinked(@NotNull final Set<BuildPromotion> result,
+                                 @NotNull final Collection<BuildPromotion> toProcess,
+                                 @NotNull final Collection<BuildPromotion> stopItems,
+                                 final Long lookupLimit,
+                                 @NotNull final LinkRetriever<BuildPromotion> linkRetriever,
+                                 final boolean recursive) {
+      if (!recursive) {
+        throw new BadRequestException("Builds traversal is only supported in 'recursive:true' mode");
+      }
+
+      for (BuildPromotion item : toProcess) {
+        if (stopItems.contains(item)) {
+          result.add(item);
+        } else {
+          final List<BuildPromotion> linked = linkRetriever.getLinked(item);
+          for (BuildPromotion promotion : linked) {
+            result.add(promotion);
+            if (stopItems.contains(item)) {
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private class BuildPromotionOrderSupportTraverser implements GraphFinder.Traverser<BuildPromotion> {
+    @NotNull
+    @Override
+    public GraphFinder.LinkRetriever<BuildPromotion> getChildren() {
+      return new GraphFinder.LinkRetriever<BuildPromotion>() {
+        @NotNull
+        @Override
+        public List<BuildPromotion> getLinked(@NotNull final BuildPromotion item) {
+          final SBuildType buildType = item.getBuildType();
+          if (buildType == null) {
+            return Collections.emptyList();
+          }
+          final SBuild associatedBuild = item.getAssociatedBuild();
+          if (associatedBuild != null) {
+            final List<OrderedBuild> buildsBefore = ((BuildTypeEx)buildType).getBuildTypeOrderedBuilds().getBuildsBefore(associatedBuild);
+            //consider performance optimization by converting id to build only on actual retrieve
+            return CollectionsUtil.convertAndFilterNulls(buildsBefore, new Converter<BuildPromotion, OrderedBuild>() {
+              @Override
+              public BuildPromotion createFrom(@NotNull final OrderedBuild source) {
+                return myBuildPromotionManager.findPromotionById(source.getPromotionId());
+              }
+            });
+          } else {
+            final Branch branch = item.getBranch();
+            if (branch == null) {
+              return Collections.emptyList();
+            }
+            final List<OrderedBuild> buildsBefore = ((BuildTypeEx)buildType).getBuildTypeOrderedBuilds().getBuildsBefore(item, new Filter<String>() {
+              @Override
+              public boolean accept(@NotNull final String data) {
+                return true;
+              }
+            });
+            return CollectionsUtil.convertAndFilterNulls(buildsBefore, new Converter<BuildPromotion, OrderedBuild>() {
+              @Override
+              public BuildPromotion createFrom(@NotNull final OrderedBuild source) {
+                return myBuildPromotionManager.findPromotionById(source.getPromotionId());
+              }
+            });
+          }
+        }
+      };
+    }
+
+    @NotNull
+    @Override
+    public GraphFinder.LinkRetriever<BuildPromotion> getParents() {
+      return new GraphFinder.LinkRetriever<BuildPromotion>() {
+        @NotNull
+        @Override
+        public List<BuildPromotion> getLinked(@NotNull final BuildPromotion item) {
+          final SBuildType buildType = item.getBuildType();
+          if (buildType == null) {
+            return Collections.emptyList();
+          }
+          final SBuild associatedBuild = item.getAssociatedBuild();
+          if (associatedBuild != null) {
+            final List<OrderedBuild> buildsBefore = ((BuildTypeEx)buildType).getBuildTypeOrderedBuilds().getBuildsAfter(associatedBuild);
+            return CollectionsUtil.convertAndFilterNulls(buildsBefore, new Converter<BuildPromotion, OrderedBuild>() {
+              @Override
+              public BuildPromotion createFrom(@NotNull final OrderedBuild source) {
+                return myBuildPromotionManager.findPromotionById(source.getPromotionId());
+              }
+            });
+          } else {
+            return Collections.emptyList();
+          }
         }
       };
     }
