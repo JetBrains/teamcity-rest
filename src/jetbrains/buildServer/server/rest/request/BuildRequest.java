@@ -97,6 +97,7 @@ public class BuildRequest {
   public static final String API_BUILDS_URL = Constants.API_URL + BUILDS_ROOT_REQUEST_PATH;
 
   public static final String ARTIFACTS = "/artifacts";
+  public static final String AGGREGATED = "/aggregated";
 
   protected static final String REST_BUILD_REQUEST_DELETE_LIMIT = "rest.buildRequest.delete.limit";
 
@@ -642,6 +643,46 @@ public class BuildRequest {
     return processIconRequest(stateName.getIconName(), suffix, request);
   }
 
+  // Note: authentication for this request is disabled in APIController configuration
+  @GET
+  @Path(AGGREGATED + "/{buildLocator}/" + STATUS_ICON_REQUEST_NAME + "{suffix:(.*)?}")
+  public Response serveAggregatedBuildStatusIcon(@PathParam("buildLocator") String locator, @PathParam("suffix") final String suffix, @Context HttpServletRequest request) {
+    final BuildIconStatus stateName = getAggregatedStatus(locator);
+    return processIconRequest(stateName.getIconName(), suffix, request);
+  }
+
+  @NotNull
+  private BuildIconStatus getAggregatedStatus(@Nullable final String multipleBuildsLocator) {
+    BuildIconStatus resultState = BuildIconStatus.NOT_FOUND;
+    boolean[] hasNext = new boolean[1];
+    hasNext[0] = true;
+    final BuildIconStatus.Value<BuildPromotion> buildPromotionRetriever = new BuildIconStatus.Value<BuildPromotion>() {
+      private List<BuildPromotion> myBuilds;
+      private int currentIndex = 0;
+
+      @NotNull
+      @Override
+      public BuildPromotion get() {
+        if (myBuilds == null) {
+          hasNext[0] = false;
+          myBuilds = myBuildPromotionFinder.getItems(multipleBuildsLocator).myEntries;
+          if (myBuilds.isEmpty()) {
+            throw new NotFoundException("No builds found");
+          }
+        }
+        hasNext[0] = currentIndex < myBuilds.size() - 1;
+        return myBuilds.get(currentIndex++);
+      }
+    };
+    while (hasNext[0]) {
+      final BuildIconStatus stateName = BuildIconStatus.create(myBeanContext, buildPromotionRetriever);
+      if (resultState.compareTo(stateName) < 0) {
+        resultState = stateName;
+      }
+    }
+    return resultState;
+  }
+
   @NotNull
   private BuildIconStatus getStatus(@Nullable final String buildLocator) {
     return BuildIconStatus.create(myBeanContext, new BuildIconStatus.Value<BuildPromotion>() {
@@ -741,16 +782,16 @@ public class BuildRequest {
                 result[0] = RUNNING;  //todo: support running/failing and may be running/last failed
                 return;
               }
+              if (build.getCanceledInfo() != null) {
+                result[0] = CANCELED;
+                return;
+              }
               if (build.getStatusDescriptor().isSuccessful()) {
                 result[0] = SUCCESSFUL;
                 return;
               }
               if (build.isInternalError()) {
                 result[0] = ERROR;
-                return;
-              }
-              if (build.getCanceledInfo() != null) {
-                result[0] = CANCELED;
                 return;
               }
               result[0] = FAILED;

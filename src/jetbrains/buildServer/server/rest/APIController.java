@@ -88,6 +88,7 @@ public class APIController extends BaseController implements ServletContextAware
   private final boolean myInternalAuthProcessing = TeamCityProperties.getBoolean("rest.cors.optionsRequest.allowUnauthorized");
   private final String[] myPathsWithoutAuth = new String[]{
     BuildRequest.BUILDS_ROOT_REQUEST_PATH + "/*/" + BuildRequest.STATUS_ICON_REQUEST_NAME + "*",
+    BuildRequest.BUILDS_ROOT_REQUEST_PATH + BuildRequest.AGGREGATED + "/*/" + BuildRequest.STATUS_ICON_REQUEST_NAME + "*",
     ServerRequest.SERVER_REQUEST_PATH + "/" + ServerRequest.SERVER_VERSION_RQUEST_PATH,
     RootApiRequest.VERSION,
     RootApiRequest.API_VERSION,
