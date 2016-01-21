@@ -733,19 +733,23 @@ public class BuildRequest {
               }
               final SBuild build = buildPromotion.getAssociatedBuild();
               //todo: support queued builds
-              if (build != null && !build.isFinished()) {
+              if (build == null){
+                result[0] = NOT_FOUND;
+                return;
+              }
+              if (!build.isFinished()) {
                 result[0] = RUNNING;  //todo: support running/failing and may be running/last failed
                 return;
               }
-              if (build != null && build.getStatusDescriptor().isSuccessful()) {
+              if (build.getStatusDescriptor().isSuccessful()) {
                 result[0] = SUCCESSFUL;
                 return;
               }
-              if (build != null && build.isInternalError()) {
+              if (build.isInternalError()) {
                 result[0] = ERROR;
                 return;
               }
-              if (build != null && build.getCanceledInfo() != null) {
+              if (build.getCanceledInfo() != null) {
                 result[0] = CANCELED;
                 return;
               }
