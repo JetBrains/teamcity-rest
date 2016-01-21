@@ -443,6 +443,7 @@ public class BuildRequest {
   }
 //todo: add GET (true/false) and DELETE, amy be PUT (true/false) for a single tag
 
+//todo: rework .../pin to have consistent GET/PUT, see also agents/.../enabled
   /**
    * Fetches current build pinned status.
    *
@@ -630,19 +631,30 @@ public class BuildRequest {
     }
   }
 
-  private boolean isPersonalUserBuild(final SBuild build, @NotNull final SUser user) {
-    return user.equals(build.getOwner());
-  }
-
   // Note: authentication for this request is disabled in APIController configuration
   @GET
   @Path("/{buildLocator}/" + STATUS_ICON_REQUEST_NAME + "{suffix:(.*)?}")
   public Response serveBuildStatusIcon(@PathParam("buildLocator") final String buildLocator, @PathParam("suffix") final String suffix, @Context HttpServletRequest request) {
     //todo: may also use HTTP 304 for different resources in order to make it browser-cached
     //todo: return something appropriate when in maintenance
-    //todo: separate icons no build found, etc.
 
-    final String iconFileName = IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/" + getIconFileName(buildLocator) + (StringUtil.isEmpty(suffix) ? ".png" : suffix);
+    final BuildIconStatus stateName = getStatus(buildLocator);
+    return processIconRequest(stateName.getIconName(), suffix, request);
+  }
+
+  @NotNull
+  private BuildIconStatus getStatus(@Nullable final String buildLocator) {
+    return BuildIconStatus.create(myBeanContext, new BuildIconStatus.Value<BuildPromotion>() {
+      @NotNull
+      @Override
+      public BuildPromotion get() {
+        return myBuildFinder.getBuildPromotion(null, buildLocator);
+      }
+    });
+  }
+
+  private Response processIconRequest(final String stateName, final @PathParam("suffix") String suffix, final @Context HttpServletRequest request) {
+    final String iconFileName = IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/" + stateName + (StringUtil.isEmpty(suffix) ? ".png" : suffix);
     final String resultIconFileName;
     try {
       resultIconFileName = getRealFileName(iconFileName);
@@ -654,14 +666,14 @@ public class BuildRequest {
       }
     }
 
-    if (resultIconFileName == null || !new java.io.File(resultIconFileName).isFile()) {
+    if (resultIconFileName == null || !new File(resultIconFileName).isFile()) {
       LOG.debug("Resource file not found: '" + iconFileName + "'" + (StringUtil.isEmpty(suffix) ? "" : ", using custom suffix '" + suffix + "' from request"));
       throw new NotFoundException("There is no resource file with relative path '" + iconFileName + "'" +
                                   (StringUtil.isEmpty(suffix) ? " (installation corrupted?)" : ", try omitting '" + suffix + "' suffix"));
       //todo: list extensions in file under IMG_STATUS_WIDGET_ROOT_DIRECTORY, see also above
     }
 
-    final java.io.File resultIconFile = new java.io.File(resultIconFileName);
+    final File resultIconFile = new File(resultIconFileName);
     final StreamingOutput streamingOutput = new StreamingOutput() {
       public void write(final OutputStream output) throws WebApplicationException {
         InputStream inputStream = null;
@@ -683,101 +695,121 @@ public class BuildRequest {
     //see also setting no caching headers in jetbrains.buildServer.server.rest.request.FilesSubResource.getContentByStream()
   }
 
-  @NotNull
-  private String getIconFileName(@Nullable final String buildLocator) {
-    final boolean holderHasPermission[] = new boolean[1];
-    final boolean holderFinished[] = new boolean[1];
-    final boolean holderSuccessful[] = new boolean[1];
-    final boolean holderInternalError[] = new boolean[1];
-    final boolean holderCanceled[] = new boolean[1];
+  enum BuildIconStatus {
+    NOT_FOUND("not_found"),
+    INTERNAL_ERROR("internal_error"),
+    PERMISSION("permission"),
+    CANCELED("canceled"),
+    RUNNING("running"),
+    SUCCESSFUL("successful"),
+    ERROR("error"),
+    FAILED("failed");
 
-    try {
-      final SecurityContextEx securityContext = myBeanContext.getSingletonService(SecurityContextEx.class);
-      final AuthorityHolder currentUserAuthorityHolder = securityContext.getAuthorityHolder();
+    private final String myIconName;
+
+    BuildIconStatus(String iconName) {
+      myIconName = iconName;
+    }
+
+    public String getIconName() {
+      return myIconName;
+    }
+
+   @NotNull
+    private static BuildIconStatus create(final BeanContext beanContext, final Value<BuildPromotion> buildPromotionRetriever) {
+      BuildIconStatus[] result = new BuildIconStatus[1];
       try {
-        securityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
-          public void run() throws Throwable {
-            BuildPromotion buildPromotion = myBuildFinder.getBuildPromotion(null, buildLocator);
-            holderHasPermission[0] = hasPermissionsToViewStatus(buildPromotion, currentUserAuthorityHolder);
-            final SBuild build = buildPromotion.getAssociatedBuild();
-            holderFinished[0] = build != null && build.isFinished();
-            holderSuccessful[0] = build != null && build.getStatusDescriptor().isSuccessful();
-            holderInternalError[0] = build != null && build.isInternalError();
-            holderCanceled[0] = build != null && build.getCanceledInfo() != null;
+        final SecurityContextEx securityContext = beanContext.getSingletonService(SecurityContextEx.class);
+        final AuthorityHolder currentUserAuthorityHolder = securityContext.getAuthorityHolder();
+        try {
+          securityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
+            public void run() throws Throwable {
+              BuildPromotion buildPromotion = buildPromotionRetriever.get();
+              if (!hasPermissionsToViewStatus(buildPromotion, currentUserAuthorityHolder, beanContext)) {
+                LOG.info("No permissions to access requested build. Either authenticate as user with appropriate permissions, or ensure 'guest' user has appropriate permissions " +
+                         "or enable external status widget for the build configuration.");
+                result[0] = PERMISSION;
+                return;
+              }
+              final SBuild build = buildPromotion.getAssociatedBuild();
+              //todo: support queued builds
+              if (build != null && !build.isFinished()) {
+                result[0] = RUNNING;  //todo: support running/failing and may be running/last failed
+                return;
+              }
+              if (build != null && build.getStatusDescriptor().isSuccessful()) {
+                result[0] = SUCCESSFUL;
+                return;
+              }
+              if (build != null && build.isInternalError()) {
+                result[0] = ERROR;
+                return;
+              }
+              if (build != null && build.getCanceledInfo() != null) {
+                result[0] = CANCELED;
+                return;
+              }
+              result[0] = FAILED;
+            }
+          });
+          return result[0];
+        } catch (NotFoundException e) {
+          if (TeamCityProperties.getBoolean("rest.buildRequest.statusIcon.enableNotFoundResponsesWithoutPermissions") ||
+              hasPermissionsToViewStatusGlobally(securityContext, beanContext)) {
+            LOG.debug("Cannot find build for status icon under system, returning 'not_found': " + e.getMessage());
+            return NOT_FOUND;
+          } else {
+            //should return the same error as when no permissions in order not to expose build existence
+            LOG.debug("Cannot find build for status icon under system, returning 'permission': " + e.getMessage());
+            return PERMISSION;
           }
-        });
-      } catch (NotFoundException e) {
-        LOG.info("Cannot find build by build locator '" + buildLocator + "': " + e.getMessage());
-        if (TeamCityProperties.getBoolean("rest.buildRequest.statusIcon.enableNotFoundResponsesWithoutPermissions") || hasPermissionsToViewStatusGlobally(securityContext)) {
-          return "not_found";
+        } catch (Throwable throwable) {
+          LOG.info("Error while retrieving build under system, returning 'internal_error'': " + throwable.toString(), throwable);
+          return INTERNAL_ERROR; //todo: use separate icon for errors (most importantly, wrong request)
         }
-        //should return the same error as when no permissions in order not to expose build existence
-        return "permission";
-      } catch (Throwable throwable) {
-        final String message = "Error while retrieving build under system by build locator '" + buildLocator + "': " + throwable.getMessage();
-        LOG.info(message);
-        LOG.debug(message, throwable);
-        return "internal_error"; //todo: use separate icon for errors (most importantly, wrong request)
+      } catch (AccessDeniedException e) {
+        LOG.warn("Unexpected access denied error encountered while retrieving build, returning 'permission': " + e.toString());
+        return PERMISSION;
       }
-
-      if (!holderHasPermission[0]) {
-        LOG.info("No permissions to access requested build with locator'" + buildLocator + "'" +
-            ". Either authenticate as user with appropriate permissions, or ensure 'guest' user has appropriate permissions " +
-            "or enable external status widget for the build configuration.");
-        return "permission";
-      }
-
-      //todo: support queued builds
-      if (!holderFinished[0]) {
-        return "running";  //todo: support running/failing and may be running/last failed
-      }
-      if (holderSuccessful[0]) {
-        return "successful";
-      }
-      if (holderInternalError[0]) {
-        return "error";
-      }
-      if (holderCanceled[0]) {
-        return "canceled";
-      }
-      return "failed";
-    } catch (AccessDeniedException e) {
-      LOG.warn("Unexpected access denied error encountered while retrieving build by build locator '" + buildLocator + "': " + e.getMessage(), e);
-      return "permission";
-    }
-  }
-
-  private boolean hasPermissionsToViewStatus(@NotNull final BuildPromotion build, @NotNull final AuthorityHolder authorityHolder) {
-    final SBuildType buildType = build.getBuildType();
-    if (buildType == null) {
-      throw new OperationException("No build type found for build.");
     }
 
-    if (buildType.isAllowExternalStatus() && TeamCityProperties.getBooleanOrTrue("rest.buildRequest.statusIcon.enableWithStatusWidget")) {
-      return true;
+    public interface Value<S> {
+      @NotNull
+      S get();
     }
 
-    //todo: how to distinguish no user from system? Might check for system to support authToken requests...
-    if (authorityHolder.getAssociatedUser() != null &&
-        authorityHolder.isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_PROJECT)) {
-      return true;
+    private static boolean hasPermissionsToViewStatus(@NotNull final BuildPromotion build, @NotNull final AuthorityHolder authorityHolder, final BeanContext beanContext) {
+      final SBuildType buildType = build.getBuildType();
+      if (buildType == null) {
+        throw new OperationException("No build type found for build.");
+      }
+
+      if (buildType.isAllowExternalStatus() && TeamCityProperties.getBooleanOrTrue("rest.buildRequest.statusIcon.enableWithStatusWidget")) {
+        return true;
+      }
+
+      //todo: how to distinguish no user from system? Might check for system to support authToken requests...
+      if (authorityHolder.getAssociatedUser() != null &&
+          authorityHolder.isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_PROJECT)) {
+        return true;
+      }
+
+      final SUser guestUser = beanContext.getSingletonService(UserModel.class).getGuestUser();
+      return beanContext.getSingletonService(LoginConfiguration.class).isGuestLoginAllowed() &&
+             guestUser.isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_PROJECT);
     }
 
-    final SUser guestUser = myBeanContext.getSingletonService(UserModel.class).getGuestUser();
-    return myBeanContext.getSingletonService(LoginConfiguration.class).isGuestLoginAllowed() &&
-           guestUser.isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_PROJECT);
-  }
-
-  private boolean hasPermissionsToViewStatusGlobally(@NotNull final SecurityContextEx securityContext) {
-    final AuthorityHolder authorityHolder = securityContext.getAuthorityHolder();
-    //todo: how to distinguish no user from system? Might check for system to support authToken requests...
-    if (authorityHolder.getAssociatedUser() != null &&
-        authorityHolder.isPermissionGrantedGlobally(Permission.VIEW_PROJECT)) {
-      return true;
+    private static boolean hasPermissionsToViewStatusGlobally(@NotNull final SecurityContextEx securityContext, final BeanContext beanContext) {
+      final AuthorityHolder authorityHolder = securityContext.getAuthorityHolder();
+      //todo: how to distinguish no user from system? Might check for system to support authToken requests...
+      if (authorityHolder.getAssociatedUser() != null &&
+          authorityHolder.isPermissionGrantedGlobally(Permission.VIEW_PROJECT)) {
+        return true;
+      }
+      final SUser guestUser = beanContext.getSingletonService(UserModel.class).getGuestUser();
+      return beanContext.getSingletonService(LoginConfiguration.class).isGuestLoginAllowed() &&
+             guestUser.isPermissionGrantedGlobally(Permission.VIEW_PROJECT);
     }
-    final SUser guestUser = myBeanContext.getSingletonService(UserModel.class).getGuestUser();
-    return myBeanContext.getSingletonService(LoginConfiguration.class).isGuestLoginAllowed() &&
-           guestUser.isPermissionGrantedGlobally(Permission.VIEW_PROJECT);
   }
 
   private String getRealFileName(final String relativePath) {
