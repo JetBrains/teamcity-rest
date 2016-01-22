@@ -92,6 +92,11 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   }
 
   @NotNull
+  public static String getLocator(@NotNull final BuildTypeOrTemplate buildType) {
+    return Locator.createEmptyLocator().setDimension(DIMENSION_ID, buildType.getId()).getStringRepresentation();
+  }
+
+  @NotNull
   public static String getLocator(@NotNull final SBuildType buildType) {
     return Locator.createEmptyLocator().setDimension(DIMENSION_ID, buildType.getExternalId()).getStringRepresentation();
   }

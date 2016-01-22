@@ -303,4 +303,21 @@ public abstract class AbstractFinder<ITEM> {
       return true;
     }
   }
+
+  public static class AggregatingItemHolder<P> implements ItemHolder<P> {
+    @NotNull final private List<ItemHolder<P>> myItemHolders = new ArrayList<>();
+
+    public void add(ItemHolder<P> holder){
+      myItemHolders.add(holder);
+    }
+
+    public boolean process(@NotNull final ItemProcessor<P> processor) {
+      for (ItemHolder<P> itemHolder : myItemHolders) {
+        if (!itemHolder.process(processor)){
+          return false;
+        }
+      }
+      return true;
+    }
+  }
 }

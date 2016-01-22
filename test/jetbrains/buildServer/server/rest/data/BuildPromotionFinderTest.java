@@ -29,6 +29,7 @@ import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
 import jetbrains.buildServer.serverSide.impl.*;
+import jetbrains.buildServer.serverSide.impl.projects.ProjectImpl;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -825,6 +826,28 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("item:(id:" + build20.getId() + "),item:(id:" + build10.getId() + "),start:1", build10);
     checkBuilds("item:(status:SUCCESS),item:(status:FAILURE)", build20, build10, build30);
     checkBuilds("item:(status:SUCCESS),item:(status:FAILURE),item:(id:" + build10.getId() + "),unique:true", build20, build10, build30);
+  }
+
+  @Test
+  public void testStrobDimension() {
+    final SProject project = createProject("prj", "project");
+    final BuildTypeEx buildConf1 = (BuildTypeEx)project.createBuildType("buildConf1", "buildConf1");
+    final BuildTypeEx buildConf2 = (BuildTypeEx)project.createBuildType("buildConf2", "buildConf2");
+    project.createBuildTypeTemplate("template1", "template1");
+
+    final BuildPromotion build10 = build().in(buildConf1).finish().getBuildPromotion();
+    final BuildPromotion build15 = build().in(buildConf1).finish().getBuildPromotion();
+    final BuildPromotion build20 = build().in(buildConf2).failed().finish().getBuildPromotion();
+    final BuildPromotion build30 = build().in(buildConf1).failed().finish().getBuildPromotion();
+    final BuildPromotion build40 = build().in(buildConf2).finish().getBuildPromotion();
+
+    checkBuilds("strob:(buildType:(project:(id:" + project.getExternalId() + ")))", build30, build40);
+    checkBuilds("strob:(buildType:(project:(id:" + project.getExternalId() + ")),locator:(count:10))", build30, build15, build10, build40, build20);
+    checkBuilds("strob:(buildType:(project:(id:" + project.getExternalId() + ")),locator:(status:SUCCESS))", build15, build40);
+    checkBuilds("strob:(buildType:(project:(id:" + project.getExternalId() + ")),locator:(status:SUCCESS,count:10))", build15, build10, build40);
+
+    ((ProjectImpl)project).setOwnBuildTypesOrder(Arrays.asList(buildConf2.getId(), buildConf1.getId()));
+    checkBuilds("strob:(buildType:(project:(id:" + project.getExternalId() + ")))", build40, build30);
   }
 
   //==================================================

@@ -25,8 +25,10 @@ import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.Constants;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.users.SUser;
@@ -86,6 +88,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected static final String DEFAULT_FILTERING = "defaultFilter";
   protected static final String SINCE_BUILD_ID_LOOK_AHEAD_COUNT = "sinceBuildIdLookAheadCount";  /*experimental*/
   public static final String ORDERED = "ordered"; /*experimental*/
+  public static final String STROB = "strob"; /*experimental*/  //might need a better name
 
   public static final String BY_PROMOTION = "byPromotion";  //used in BuildFinder
   public static final String EQUIVALENT = "equivalent"; /*experimental*/
@@ -924,6 +927,19 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       throw new BadRequestException("Found '" + BY_PROMOTION + "' locator set to 'false' which is not supported");
     }
 
+    final String strob = locator.getSingleDimensionValue(STROB);
+    if (strob != null) {
+      final Locator strobLocator = new Locator(strob, BUILD_TYPE, "locator");
+      String strobItemLocator = strobLocator.getSingleDimensionValue("locator");
+      //consider adding option to get unique results only
+      ItemHolder<BuildPromotion> strobResult = getStrobbedItems(BUILD_TYPE, strobLocator, strobItemLocator, myBuildTypeFinder);
+
+      // add strob by user
+      // add strob processing by branch (nested for buildType)
+      strobLocator.checkLocatorFullyProcessed();
+      return strobResult;
+    }
+
     setLocatorDefaults(locator);
 
     final String equivalent = locator.getSingleDimensionValue(EQUIVALENT);
@@ -1077,6 +1093,23 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         return false;
       }
     };
+  }
+
+  private ItemHolder<BuildPromotion> getStrobbedItems(@NotNull final String strobType, @NotNull final Locator strobLocator, @Nullable final String strobItemLocator,
+                                                      @NotNull final BuildTypeFinder strobTypeFinder) {
+    AggregatingItemHolder<BuildPromotion> result = new AggregatingItemHolder<>();
+    String buildTypeStrob = strobLocator.getSingleDimensionValue(strobType);
+    if (buildTypeStrob != null) {
+      final PagedSearchResult<BuildTypeOrTemplate> items = strobTypeFinder.getBuildTypesPaged(null, buildTypeStrob, true);
+      for (BuildTypeOrTemplate item : items.myEntries) {
+        //todo; extract to method
+        final Locator patchedLocator = strobItemLocator != null ? new Locator(strobItemLocator) : Locator.createEmptyLocator();
+        patchedLocator.setDimensionIfNotPresent(PagerData.COUNT, "1"); //limit to single item per strob item by default
+        patchedLocator.setDimension(strobType, strobTypeFinder.getLocator(item));
+        result.add(getItemHolder(getItems(patchedLocator.getStringRepresentation()).myEntries));
+      }
+    }
+    return result;
   }
 
   private void setLocatorDefaults(@NotNull final Locator locator) {
