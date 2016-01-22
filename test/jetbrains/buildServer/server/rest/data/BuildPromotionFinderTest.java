@@ -818,11 +818,13 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 
     checkBuilds("item:(id:" + build10.getId() + ")", build10);
     checkBuilds("item:(id:" + build10.getId() + "),item:(id:" + build10.getId() + ")", build10, build10);
+    checkBuilds("item:(id:" + build10.getId() + "),item:(id:" + build10.getId() + "),unique:true", build10);
     checkBuilds("item:(id:" + build10.getId() + "),item:(id:" + build20.getId() + ")", build10, build20);
     checkBuilds("item:(id:" + build20.getId() + "),item:(id:" + build10.getId() + ")", build20, build10);
     checkBuilds("item:(id:" + build20.getId() + "),item:(id:" + build10.getId() + "),count:1", build20);
     checkBuilds("item:(id:" + build20.getId() + "),item:(id:" + build10.getId() + "),start:1", build10);
     checkBuilds("item:(status:SUCCESS),item:(status:FAILURE)", build20, build10, build30);
+    checkBuilds("item:(status:SUCCESS),item:(status:FAILURE),item:(id:" + build10.getId() + "),unique:true", build20, build10, build30);
   }
 
   //==================================================

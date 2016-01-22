@@ -18,10 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -48,6 +45,7 @@ public abstract class AbstractFinder<ITEM> {
   public static final String DIMENSION_ID = "id";
   public static final String DIMENSION_LOOKUP_LIMIT = "lookupLimit";
   public static final String DIMENSION_ITEM = "item";
+  public static final String DIMENSION_UNIQUE = "unique";
 
   private final String[] myKnownDimensions;
 
@@ -69,7 +67,7 @@ public abstract class AbstractFinder<ITEM> {
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator result = Locator.createLocator(locatorText, locatorDefaults, myKnownDimensions);
     result.addIgnoreUnusedDimensions(PagerData.COUNT);
-    result.addHiddenDimensions(DIMENSION_ITEM); //experimental
+    result.addHiddenDimensions(DIMENSION_ITEM, DIMENSION_UNIQUE); //experimental
     return result;
   }
 
@@ -238,7 +236,14 @@ public abstract class AbstractFinder<ITEM> {
     if (itemsDimension.isEmpty()) {
       return getPrefilteredItems(locator);
     }
-    final ArrayList<ITEM> result = new ArrayList<>();
+
+    Collection<ITEM> result;
+    Boolean deduplicate = locator.getSingleDimensionValueAsBoolean(DIMENSION_UNIQUE);
+    if (deduplicate!= null && deduplicate){
+      result = new LinkedHashSet<ITEM>();
+    } else{
+      result = new ArrayList<>();
+    }
     for (String itemLocator : itemsDimension) {
       result.addAll(getItems(itemLocator).myEntries);
     }
