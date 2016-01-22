@@ -60,7 +60,7 @@ public class UserRequest {
   public static String getUserHref(final jetbrains.buildServer.users.User user) {
     //todo: investigate why "DOMAIN username" does not work as query parameter
 //    this.href = "/httpAuth/api/users/" + user.getUsername();
-    return API_USERS_URL + "/id:" + user.getId();
+    return API_USERS_URL + "/" + UserFinder.getLocator(user);
   }
 
   public static String getRoleAssignmentHref(final SUser user, final RoleEntry roleEntry, @Nullable final String scopeParam) {
@@ -134,6 +134,7 @@ public class UserRequest {
     return User.setFieldValue(user, fieldName, value);
   }
 
+  //todo: use ParametersSubResource here
   @GET
   @Path("/{userLocator}/properties")
   @Produces({"application/xml", "application/json"})

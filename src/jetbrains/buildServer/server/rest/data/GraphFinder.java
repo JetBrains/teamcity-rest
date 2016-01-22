@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.util.CollectionsUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -42,6 +43,12 @@ public class GraphFinder<T> extends AbstractFinder<T> {
     super(new String[]{DIMENSION_FROM, DIMENSION_TO, DIMENSION_RECURSIVE, DIMENSION_INCLUDE_INITIAL, DIMENSION_STOP});
     myFinder = finder;
     myTraverser = traverser;
+  }
+
+  @NotNull
+  @Override
+  public String getItemLocator(@NotNull final T t) {
+    throw new OperationException("getItemLocator is not implemented in GraphFinder");
   }
 
   @NotNull

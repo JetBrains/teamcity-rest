@@ -69,6 +69,12 @@ public class ProjectFinder extends AbstractFinder<SProject> {
     myServiceLocator = serviceLocator;
   }
 
+  @NotNull
+  @Override
+  public String getItemLocator(@NotNull final SProject project) {
+    return ProjectFinder.getLocator(project);
+  }
+
   public static String getLocator(final BuildProject project) {
     return Locator.getStringLocator(DIMENSION_ID, project.getExternalId());
   }

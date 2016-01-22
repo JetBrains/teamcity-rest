@@ -81,6 +81,12 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     return (long)Constants.getDefaultPageItemsCount();
   }
 
+  @NotNull
+  @Override
+  public String getItemLocator(@NotNull final BuildProblem buildProblem) {
+    return ProblemOccurrenceFinder.getProblemOccurrenceLocator(buildProblem);
+  }
+
   public static String getProblemOccurrenceLocator(final @NotNull BuildProblem problem) {
     final SBuild build = problem.getBuildPromotion().getAssociatedBuild();
     if (build == null) {

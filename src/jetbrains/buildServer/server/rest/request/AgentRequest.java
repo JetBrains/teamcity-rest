@@ -56,7 +56,7 @@ public class AgentRequest {
   }
 
   public static String getAgentHref(@NotNull final SBuildAgent agent) {
-    return API_AGENTS_URL + "/id:" + agent.getId();
+    return API_AGENTS_URL + "/" + AgentFinder.getLocator(agent);
   }
 
   /**

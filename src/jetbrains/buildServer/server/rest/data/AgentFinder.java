@@ -55,6 +55,17 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   }
 
   @NotNull
+  public static String getLocator(@NotNull final SBuildAgent buildAgent) {
+    return Locator.getStringLocator(DIMENSION_ID, String.valueOf(buildAgent.getId()));
+  }
+
+  @NotNull
+  @Override
+  public String getItemLocator(@NotNull final SBuildAgent buildAgent) {
+    return AgentFinder.getLocator(buildAgent);
+  }
+
+  @NotNull
   @Override
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator result = super.createLocator(locatorText, locatorDefaults);
@@ -64,7 +75,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     return result;
   }
 
-   //todo: check view agent details permission before returning unauthorized agents, here and in prefiltering
+  //todo: check view agent details permission before returning unauthorized agents, here and in prefiltering
   @Override
   @Nullable
   protected SBuildAgent findSingleItem(@NotNull final Locator locator) {

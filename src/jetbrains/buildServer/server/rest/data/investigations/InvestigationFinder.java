@@ -101,6 +101,12 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   }
 
   @NotNull
+  @Override
+  public String getItemLocator(@NotNull final InvestigationWrapper investigationWrapper) {
+    return InvestigationFinder.getLocator(investigationWrapper);
+  }
+
+  @NotNull
   public static String getLocator(final InvestigationWrapper investigation) {
     final Locator result = Locator.createEmptyLocator();
     //.setDimension(TYPE, investigation.getType());

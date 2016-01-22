@@ -45,7 +45,6 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.vcs.SVcsModification;
-import jetbrains.buildServer.vcs.VcsModification;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -59,8 +58,8 @@ public class ChangeRequest {
   @Context @NotNull private BeanContext myBeanContext;
   @Context @NotNull private ChangeFinder myChangeFinder;
 
-  public static String getChangeHref(VcsModification modification) {
-    return API_CHANGES_URL + "/id:" + modification.getId() + (modification.isPersonal() ? ",personal:true" : "");
+  public static String getChangeHref(SVcsModification modification) {
+    return API_CHANGES_URL + "/" + ChangeFinder.getLocator(modification);
   }
 
   public static String getChangesHref(@NotNull final BuildPromotion item) {

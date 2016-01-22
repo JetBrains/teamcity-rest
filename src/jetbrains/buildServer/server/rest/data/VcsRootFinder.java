@@ -89,6 +89,12 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
   }
 
   @NotNull
+  @Override
+  public String getItemLocator(@NotNull final SVcsRoot sVcsRoot) {
+    return VcsRootFinder.getLocator(sVcsRoot);
+  }
+
+  @NotNull
   public static String getLocator(@NotNull final SVcsRoot vcsRoot) {
     return Locator.getStringLocator(DIMENSION_ID, String.valueOf(vcsRoot.getExternalId()));
   }

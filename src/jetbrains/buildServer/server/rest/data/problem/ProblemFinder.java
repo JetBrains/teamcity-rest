@@ -62,6 +62,12 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     myProblemMutingService = problemMutingService;
   }
 
+  @NotNull
+  @Override
+  public String getItemLocator(@NotNull final ProblemWrapper problemWrapper) {
+    return ProblemFinder.getLocator(problemWrapper);
+  }
+
   public static String getLocator(final ProblemWrapper problem) {
     return Locator.createEmptyLocator().setDimension(DIMENSION_ID, String.valueOf(problem.getId())).getStringRepresentation();
   }

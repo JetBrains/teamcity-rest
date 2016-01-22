@@ -86,6 +86,12 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   }
 
   @NotNull
+  @Override
+  public String getItemLocator(@NotNull final VcsRootInstance vcsRootInstance) {
+    return VcsRootInstanceFinder.getLocator(vcsRootInstance);
+  }
+
+  @NotNull
   public static String getLocator(@NotNull final VcsRootInstance vcsRootInstance) {
     return Locator.getStringLocator(DIMENSION_ID, String.valueOf(vcsRootInstance.getId()));
   }
@@ -273,6 +279,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
     //todo: (TeamCity) open API is there a better way to do this?
     //if reworked, can use checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, item);
+    // when implemented, can also add to jetbrains.buildServer.usageStatistics.impl.providers.StaticServerUsageStatisticsProvider.publishNumberOfVcsRoots()
     final Set<VcsRootInstance> rootInstancesSet = new LinkedHashSet<VcsRootInstance>();
     for (SBuildType buildType : myProjectManager.getAllBuildTypes()) {
       if (myPermissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, buildType.getProjectId())) {

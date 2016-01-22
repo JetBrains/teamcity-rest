@@ -111,6 +111,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     return Locator.getStringLocator(DIMENSION_ID, String.valueOf(getBuildId(buildPromotion)));
   }
 
+  @NotNull
+  @Override
+  public String getItemLocator(@NotNull final BuildPromotion buildPromotion) {
+    return BuildPromotionFinder.getLocator(buildPromotion);
+  }
+
   public BuildPromotionFinder(final BuildPromotionManager buildPromotionManager,
                               final BuildQueue buildQueue,
                               final BuildsManager buildsManager,
@@ -929,7 +935,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final String strob = locator.getSingleDimensionValue(STROB);
     if (strob != null) {
-      final Locator strobLocator = new Locator(strob, BUILD_TYPE, "locator");
+      final Locator strobLocator = new Locator(strob, BUILD_TYPE, USER, "locator");
       String strobItemLocator = strobLocator.getSingleDimensionValue("locator");
       //consider adding option to get unique results only
       ItemHolder<BuildPromotion> strobResult = getStrobbedItems(BUILD_TYPE, strobLocator, strobItemLocator, myBuildTypeFinder);
@@ -1105,7 +1111,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         //todo; extract to method
         final Locator patchedLocator = strobItemLocator != null ? new Locator(strobItemLocator) : Locator.createEmptyLocator();
         patchedLocator.setDimensionIfNotPresent(PagerData.COUNT, "1"); //limit to single item per strob item by default
-        patchedLocator.setDimension(strobType, strobTypeFinder.getLocator(item));
+        patchedLocator.setDimension(strobType, strobTypeFinder.getItemLocator(item));
         result.add(getItemHolder(getItems(patchedLocator.getStringRepresentation()).myEntries));
       }
     }

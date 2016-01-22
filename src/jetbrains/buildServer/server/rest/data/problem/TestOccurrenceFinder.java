@@ -76,6 +76,12 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     return (long)Constants.getDefaultPageItemsCount();
   }
 
+  @NotNull
+  @Override
+  public String getItemLocator(@NotNull final STestRun sTestRun) {
+    return TestOccurrenceFinder.getTestRunLocator(sTestRun);
+  }
+
   public static String getTestRunLocator(final @NotNull STestRun testRun) {
     return Locator.createEmptyLocator().setDimension(DIMENSION_ID, String.valueOf(testRun.getTestRunId())).
       setDimension(BUILD, BuildRequest.getBuildLocator(testRun.getBuild())).getStringRepresentation();

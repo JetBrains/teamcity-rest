@@ -118,6 +118,20 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   }
 
   @NotNull
+  @Override
+  public String getItemLocator(@NotNull final SVcsModification vcsModification) {
+    return ChangeFinder.getLocator(vcsModification);
+  }
+
+  @NotNull
+  public static String getLocator(@NotNull final SVcsModification vcsModification) {
+    if (vcsModification.isPersonal()){
+      return Locator.getStringLocator(DIMENSION_ID, String.valueOf(vcsModification.getId()), PERSONAL, "true");
+    }
+    return Locator.getStringLocator(DIMENSION_ID, String.valueOf(vcsModification.getId()));
+  }
+
+  @NotNull
   public static String getLocator(@NotNull final BuildPromotion item) {
     return Locator.getStringLocator(BUILD, BuildPromotionFinder.getLocator(item));
   }

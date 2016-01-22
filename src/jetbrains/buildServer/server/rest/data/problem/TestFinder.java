@@ -61,6 +61,12 @@ public class TestFinder extends AbstractFinder<STest> {
     myProblemMutingService = problemMutingService;
   }
 
+  @NotNull
+  @Override
+  public String getItemLocator(@NotNull final STest sTest) {
+    return TestFinder.getTestLocator(sTest);
+  }
+
   public static String getTestLocator(final @NotNull STest test) {
     return getTestLocator(test.getTestNameId());
   }

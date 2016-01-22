@@ -46,6 +46,15 @@ public class TagFinder extends AbstractFinder<TagData> {
     myBuildPromotion = buildPromotion;
   }
 
+  @NotNull
+  @Override
+  public String getItemLocator(@NotNull final TagData tagData) {
+    final Locator result = Locator.createEmptyLocator();
+    result.setDimension(NAME, tagData.getLabel());
+    if (tagData.getOwner() != null) result.setDimension(OWNER, myUserFinder.getItemLocator(tagData.getOwner()));
+    return result.getStringRepresentation();
+  }
+
   public static Locator getDefaultLocator(){
     Locator defaultLocator = Locator.createEmptyLocator();
     defaultLocator.setDimension(TagFinder.PRIVATE, "false");

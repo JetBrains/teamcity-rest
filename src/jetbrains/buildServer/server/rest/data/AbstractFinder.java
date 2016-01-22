@@ -71,6 +71,9 @@ public abstract class AbstractFinder<ITEM> {
     return result;
   }
 
+  @NotNull
+  abstract public String getItemLocator(@NotNull final ITEM item);
+
   @Nullable
   @Contract("null -> null; !null -> !null")
   private Locator getLocatorOrNull(@Nullable final String locatorText) {

@@ -22,6 +22,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -39,6 +40,16 @@ public class UserFinder {
 
   public UserFinder(final @NotNull ServiceLocator serviceLocator) {
     myServiceLocator = serviceLocator;
+  }
+
+  @NotNull
+  public String getItemLocator(@NotNull final SUser user) {
+    return UserFinder.getLocator(user);
+  }
+
+  @NotNull
+  public static String getLocator(final User user) {
+    return Locator.getStringLocator(ID, String.valueOf(user.getId()));
   }
 
   @Nullable
