@@ -105,6 +105,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private final BuildTypeFinder myBuildTypeFinder;
   private final UserFinder myUserFinder;
   private final AgentFinder myAgentFinder;
+  private final BranchFinder myBranchFinder;
 
   @NotNull
   public static String getLocator(@NotNull final BuildPromotion buildPromotion) {
@@ -124,7 +125,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                               final ProjectFinder projectFinder,
                               final BuildTypeFinder buildTypeFinder,
                               final UserFinder userFinder,
-                              final AgentFinder agentFinder) {
+                              final AgentFinder agentFinder,
+                              final BranchFinder branchFinder) {
     super(new String[]{DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, USER, PERSONAL, STATE, TAG, PROPERTY, COMPATIBLE_AGENT,
       NUMBER, STATUS, CANCELED, PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, HANGING,
       DEFAULT_FILTERING, SINCE_BUILD_ID_LOOK_AHEAD_COUNT,
@@ -137,6 +139,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     myBuildTypeFinder = buildTypeFinder;
     myUserFinder = userFinder;
     myAgentFinder = agentFinder;
+    myBranchFinder = branchFinder;
   }
 
   @Override
@@ -176,7 +179,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         //noinspection ConstantConditions
         singleValueAsLong = locator.getSingleValueAsLong();
       } catch (LocatorProcessException e) {
-        throw new BadRequestException("Invalid single value: '" + locator.getSingleValue() + "'. Should be a numeric build id");
+        throw new BadRequestException("Invalid single value: '" + locator.getSingleValue() + "'. Should be a numeric build id", e);
       }
       // difference from 9.0 behavior where we never searched by promotion id in case of single value locators
       return getBuildPromotionById(singleValueAsLong, myBuildPromotionManager, myBuildsManager);
@@ -241,23 +244,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
-    final String branchLocatorValue = locator.getSingleDimensionValue(BRANCH);
-    if (branchLocatorValue != null) {
-      final BranchMatcher branchMatcher;
-      try {
-        branchMatcher = new BranchMatcher(branchLocatorValue);
-      } catch (LocatorProcessException e) {
-        throw new LocatorProcessException("Invalid sub-locator '" + BRANCH + "': " + e.getMessage());
-      }
-      if (!branchMatcher.matchesAnyBranch()) {
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
-            return branchMatcher.matches(item);
-          }
-        });
-      }
-    }
-
     final String projectLocator = locator.getSingleDimensionValue(PROJECT);
     SProject project = null;
     if (projectLocator != null) {
@@ -284,14 +270,33 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
+    SBuildType buildType = null;
     final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
     if (buildTypeLocator != null) {
-      final SBuildType buildType = myBuildTypeFinder.getBuildType(affectedProject, buildTypeLocator, false);
+      buildType = myBuildTypeFinder.getBuildType(affectedProject, buildTypeLocator, false);
+      final SBuildType finalBuildType = buildType;
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
-          return buildType.equals(item.getParentBuildType());
+          return finalBuildType.equals(item.getParentBuildType());
         }
       });
+    }
+
+    final String branchLocatorValue = locator.getSingleDimensionValue(BRANCH);
+    if (branchLocatorValue != null) {
+      BranchFinder.BranchFilterDetails branchFilterDetails;
+      try {
+        branchFilterDetails = myBranchFinder.getBranchFilterDetails(buildType, branchLocatorValue);
+      } catch (LocatorProcessException e) {
+        throw new BadRequestException("Invalid sub-locator '" + BRANCH + "': " + e.getMessage(), e);
+      }
+      if (!branchFilterDetails.isAnyBranch()){
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            return branchFilterDetails.isIncluded(item);
+          }
+        });
+      }
     }
 
     final String agentLocator = locator.getSingleDimensionValue(AGENT);
@@ -1042,26 +1047,25 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
       final String branchLocatorValue = locator.getSingleDimensionValue(BRANCH);
       if (branchLocatorValue != null) {
-        final BranchMatcher branchMatcher;
+        BranchFinder.BranchFilterDetails branchFilterDetails;
         try {
-          branchMatcher = new BranchMatcher(branchLocatorValue);
+          branchFilterDetails = myBranchFinder.getBranchFilterDetails(buildType, branchLocatorValue);
         } catch (LocatorProcessException e) {
-          throw new LocatorProcessException("Invalid sub-locator '" + BRANCH + "': " + e.getMessage());
+          throw new BadRequestException("Invalid sub-locator '" + BRANCH + "': " + e.getMessage(), e);
         }
 
-        if (branchMatcher.matchesAnyBranch()) {
+        if (branchFilterDetails.isAnyBranch()) {
           options.setMatchAllBranches(true);
         } else {
-          if (branchMatcher.matchesDefaultBranchOrNotBranchedBuildsOnly()) {
+          if (branchFilterDetails.isDefaultBranchOrNotBranched()) {
             options.setMatchAllBranches(false);
             options.setBranch(Branch.DEFAULT_BRANCH_NAME);
           }
-          final String singleBranch = branchMatcher.getSingleBranchIfNotDefault();
-          if (singleBranch != null) {
-            //ineffective, but otherwise cannot file a build by display name branch (need support in BuildQueryOptions to get default + named branch)
+          if (branchFilterDetails.getBranchName() != null) {
+            //ineffective, but otherwise cannot find a build by display name branch (need support in BuildQueryOptions to get default + named branch)
             options.setMatchAllBranches(true);
             //options.setMatchAllBranches(false);
-            //options.setBranch(singleBranch);
+            //options.setBranch(branchFilterDetails.getBranchName());
           } else {
             locator.markUnused(BRANCH);
           }
@@ -1131,7 +1135,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
           locator.lookupSingleDimensionValue(EQUIVALENT) == null &&
           locator.lookupSingleDimensionValue(ORDERED) == null) {
         //do not force branch to default for some locators
-        locator.setDimensionIfNotPresent(BRANCH, BranchMatcher.getDefaultBranchLocator());
+        locator.setDimensionIfNotPresent(BRANCH, myBranchFinder.getDefaultBranchLocator());
       }
     }
   }

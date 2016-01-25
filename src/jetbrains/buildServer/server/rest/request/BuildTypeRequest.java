@@ -50,7 +50,6 @@ import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
-import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.VcsLabelingBuildFeature;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -86,6 +85,7 @@ public class BuildTypeRequest {
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
   @Context @NotNull private VcsRootFinder myVcsRootFinder;
   @Context @NotNull private InvestigationFinder myInvestigationFinder;
+  @Context @NotNull private BranchFinder myBranchFinder;
 
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private ServiceLocator myServiceLocator;
@@ -96,6 +96,11 @@ public class BuildTypeRequest {
   public static final String API_BUILD_TYPES_URL = Constants.API_URL + "/buildTypes";
   public static final String VCS_FILES_LATEST = "/vcs/files/latest";
   public static final String PARAMETERS = "/parameters";
+
+  public void setInTests(@NotNull BuildTypeFinder buildTypeFinder, @NotNull BranchFinder branchFinder){
+    myBuildTypeFinder = buildTypeFinder;
+    myBranchFinder = branchFinder;
+  }
 
   public static String getBuildTypeHref(@NotNull final BuildTypeOrTemplate buildType) {
     return buildType.isBuildType() ? getBuildTypeHref(buildType.getBuildType()) : getBuildTypeHref(buildType.getTemplate());
@@ -1372,31 +1377,7 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public Branches serveBranches(@PathParam("btLocator") String buildTypeLocator, @QueryParam("locator") String branchesLocator, @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
-    BranchesPolicy branchesPolicy = BranchesPolicy.ACTIVE_HISTORY_AND_ACTIVE_VCS_BRANCHES;
-    boolean includeBranchesFromDependencies = false;
-
-    if (!StringUtil.isEmpty(branchesLocator)){
-      final String changesFromDependencies = "changesFromDependencies";
-      final String policy = "policy";
-      final Locator locator = new Locator(branchesLocator, changesFromDependencies, policy);
-      final String policyDimension = locator.getSingleDimensionValue(policy);
-      if (policyDimension != null){
-        try {
-          branchesPolicy = BranchesPolicy.valueOf(policyDimension);
-        } catch (IllegalArgumentException e) {
-          throw new BadRequestException("Invalid value '" + policyDimension + "' for '" + policy + "' dimension. Supported values are: " + Arrays.toString(BranchesPolicy.values()));
-        }
-      }
-      final Boolean changesFromDependenciesDimension = locator.getSingleDimensionValueAsBoolean(changesFromDependencies, false);
-      if (changesFromDependenciesDimension == null){
-        throw new BadRequestException("Dimension '" + changesFromDependencies + "' supports only true/false values");
-      }else{
-        includeBranchesFromDependencies = changesFromDependenciesDimension;
-      }
-      locator.checkLocatorFullyProcessed();
-    }
-
-    return new Branches(((BuildTypeImpl)buildType).getBranches(branchesPolicy, includeBranchesFromDependencies), new Fields(fields));
+    return new Branches(myBranchFinder.getItems(buildType, branchesLocator).myEntries, new Fields(fields));
   }
 
   /**

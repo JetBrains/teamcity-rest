@@ -42,17 +42,17 @@ public class Branch {
   }
 
   @XmlAttribute(name = "name")
-  String getName(){
+  public String getName(){
     return ValueWithDefault.decideDefault(myFields.isIncluded("name"), myBranch.getDisplayName());
   }
 
   @XmlAttribute(name = "default")
-  Boolean isDefault(){
+  public Boolean isDefault(){
     return ValueWithDefault.decideDefault(myFields.isIncluded("default"), myBranch.isDefaultBranch());
   }
 
   @XmlAttribute(name = "unspecified")
-  Boolean isUnspecified(){
+  public Boolean isUnspecified(){
     return ValueWithDefault.decideDefault(myFields.isIncluded("unspecified"),
                                           jetbrains.buildServer.serverSide.Branch.UNSPECIFIED_BRANCH_NAME.equals(myBranch.getName()));
   }

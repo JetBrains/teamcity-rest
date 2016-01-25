@@ -31,10 +31,7 @@ import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
 import jetbrains.buildServer.serverSide.impl.*;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectImpl;
 import jetbrains.buildServer.users.SUser;
-import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
-import jetbrains.buildServer.util.Dates;
-import jetbrains.buildServer.util.TestFor;
+import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.SVcsRootEx;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -55,6 +52,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
+    setFinder(myBuildPromotionFinder);
   }
 
 
@@ -769,6 +767,70 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
+  public void testBranchDimension() {
+    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
+
+    final BuildPromotion build10 = build().in(buildConf1).finish().getBuildPromotion();
+    final BuildPromotion build20 = build().in(buildConf1).withBranch("branch").finish().getBuildPromotion();
+
+    MockVcsSupport vcs = vcsSupport().withName("vcs").dagBased(true).register();
+
+    BuildFinderTestBase.MockCollectRepositoryChangesPolicy collectChangesPolicy = new BuildFinderTestBase.MockCollectRepositoryChangesPolicy();
+    vcs.setCollectChangesPolicy(collectChangesPolicy);
+
+    buildConf1.addVcsRoot(buildConf1.getProject().createVcsRoot("vcs", "extId", "name"));
+
+    final VcsRootInstance vcsRootInstance = buildConf1.getVcsRootInstances().get(0);
+    collectChangesPolicy.setCurrentState(vcsRootInstance, createVersionState("master", map("master", "1", "branch1", "2", "branch2", "3")));
+    setBranchSpec(vcsRootInstance, "+:*");
+    buildConf1.forceCheckingForChanges();
+    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+
+    final BuildPromotion build30 = build().in(buildConf1).finish().getBuildPromotion();
+    final BuildPromotion build40 = build().in(buildConf1).withDefaultBranch().finish().getBuildPromotion();
+    final BuildPromotion build50 = build().in(buildConf1).withBranch("branch").finish().getBuildPromotion();
+    final BuildPromotion build60 = build().in(buildConf1).withBranch("branch1").finish().getBuildPromotion();
+
+    final BuildPromotion build65 = build().in(buildConf1).withBranch(Branch.UNSPECIFIED_BRANCH_NAME).finish().getBuildPromotion(); //right way to run unspecified?
+
+    final RunningBuildEx running70 = build().withBranch("branch1").in(buildConf1).run();
+    running70.stop(getOrCreateUser("user1"), "cancel comment");
+    final BuildPromotion build70 = finishBuild(running70, true).getBuildPromotion();
+
+    final BuildPromotion build80 = build().in(buildConf1).withBranch("branch1").run().getBuildPromotion();
+    final BuildPromotion build90 = build().in(buildConf1).withBranch("branch1").addToQueue().getBuildPromotion();
+
+    checkBuilds("defaultFilter:false", build90, build80, build70, build65, build60, build50, build40, build30, build20, build10);
+    checkBuilds(null, build40, build30, build10);
+    checkBuilds("branch:(default:any)", build65, build60, build50, build40, build30, build20, build10);
+    checkBuilds("branch:(default:true)", build40, build30, build10);
+    checkBuilds("branch:(default:false)", build65, build60, build50, build20);
+    checkBuilds("branch:(branched:true)", build65, build60, build50, build40, build30, build20);
+    checkBuilds("branch:(branched:false)",build10);
+    checkBuilds("branch:(unspecified:true)", build65);
+    checkBuilds("branch:(name:<unspecified>)", build65);
+    checkBuilds("branch:(unspecified:false)", build60, build50, build40, build30, build20, build10);
+    checkBuilds("branch:(name:branch1)", build60);
+    checkBuilds("branch:branch1", build60);
+    checkBuilds("branch:(name:master)", build40, build30);
+
+    checkBuilds("branch:(name:<default>)", build40, build30);
+    checkBuilds("branch:<default>", build40, build30);
+    checkBuilds("branch:(name:<any>)", build65, build60, build50, build40, build30, build20, build10);
+    checkBuilds("branch:<any>", build65, build60, build50, build40, build30, build20, build10);
+
+    checkBuilds("branch:(buildType:(id:" + buildConf1.getExternalId() + "),policy:ALL_BRANCHES)", build65, build60, build50, build40, build30, build20);
+    checkBuilds("branch:(buildType:(id:" + buildConf1.getExternalId() + "),policy:VCS_BRANCHES)", build60, build40, build30);
+
+    checkExceptionOnItemsSearch(BadRequestException.class, "branch:(policy:ALL_BRANCHES)"); //policy is not supported for the build's branch locator
+    checkExceptionOnItemsSearch(BadRequestException.class, "branch:(aaa:bbb)");
+
+    // check that no filtering is done when not necessary
+    assertEquals(0, ((MultiCheckerFilter)myBranchFinder.getFilter(new Locator("<any>"))).getSubFiltersCount());
+    assertEquals(0, ((MultiCheckerFilter)myBranchFinder.getFilter(new Locator("default:any"))).getSubFiltersCount());
+  }
+
+  @Test
   public void testOrderDimension() {
     final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
     final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
@@ -791,7 +853,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     final BuildPromotion build10 = build().in(buildConf2).withBranch("branch").finish().getBuildPromotion();
 
     final RunningBuildEx running11 = build().in(buildConf2).withBranch("branch").run();
-    running3.stop(getOrCreateUser("user1"), "cancel comment");
+    running11.stop(getOrCreateUser("user1"), "cancel comment");
     final BuildPromotion build11 = finishBuild(running11, true).getBuildPromotion();
 
     final BuildPromotion runningBuild5 = build().in(buildConf2).withBranch("branch").run().getBuildPromotion();
@@ -803,7 +865,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("ordered:(from:(id:" + build6.getId() + ")),defaultFilter:false", build10, build11, runningBuild5);
     checkBuilds("ordered:(to:(id:" + build6.getId() + "))", build5, build2, build1);
     checkBuilds("ordered:(to:(id:" + build6.getId() + ")),defaultFilter:false", build5, build4, build3, build2, build1);
-    checkBuilds("ordered:(to:(id:" + runningBuild5.getId() + "))", build11, build10, build6, build5, build2, build1);
+    checkBuilds("ordered:(to:(id:" + runningBuild5.getId() + "))", build10, build6, build5, build2, build1);
     checkBuilds("ordered:(to:(id:" + build7.getId() + ")),equivalent:(id:" + build5.getId() + ")");
     checkBuilds("ordered:(to:(id:" + build10.getId() + "))", build6, build5, build2, build1);
     checkBuilds("ordered:(to:(id:" + build10.getId() + ")),equivalent:(id:" + build5.getId() + ")", build6);
@@ -933,9 +995,11 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
       if (exception.isAssignableFrom(e.getClass())) {
         return;
       }
+      final StringBuilder exceptionDetails = new StringBuilder();
+      ExceptionUtil.dumpStacktrace(exceptionDetails, e);
       fail("Wrong exception type is thrown" + details + ".\n" +
            "Expected: " + exception.getName() + "\n" +
-           "Actual  : " + e.toString());
+           "Actual  : " + exceptionDetails.toString());
     }
     fail("No exception is thrown" + details +
          ". Expected: " + exception.getName());

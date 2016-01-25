@@ -61,6 +61,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   protected InvestigationFinder myInvestigationFinder;
   protected AgentPoolsFinder myAgentPoolsFinder;
   protected QueuedBuildFinder myQueuedBuildFinder;
+  protected BranchFinder myBranchFinder;
 
   @Override
   @BeforeMethod
@@ -106,8 +107,10 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myUserFinder = new UserFinder(myFixture);
     myFixture.addService(myUserFinder);
 
+    myBranchFinder = new BranchFinder(myBuildTypeFinder);
+
     myBuildPromotionFinder = new BuildPromotionFinder(myFixture.getBuildPromotionManager(), myFixture.getBuildQueue(), myServer, myVcsRootFinder,
-                                                      myProjectFinder, myBuildTypeFinder, myUserFinder, myAgentFinder);
+                                                      myProjectFinder, myBuildTypeFinder, myUserFinder, myAgentFinder, myBranchFinder);
     myFixture.addService(myBuildPromotionFinder);
 
     myBuildFinder = new BuildFinder(myServer, myBuildTypeFinder, myProjectFinder, myUserFinder, myBuildPromotionFinder, myAgentFinder);

@@ -22,7 +22,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.BranchEx;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
@@ -43,12 +42,12 @@ public class Branches {
   public Branches() {
   }
 
-  public Branches(@NotNull final List<BranchEx> branchesP, @NotNull final Fields fields) {
+  public Branches(@NotNull final List<jetbrains.buildServer.serverSide.Branch> branchesP, @NotNull final Fields fields) {
     branches = ValueWithDefault.decideDefault(fields.isIncluded("branch"), new ValueWithDefault.Value<List<Branch>>() {
       @Nullable
       public List<Branch> get() {
-        return CollectionsUtil.convertCollection(branchesP, new Converter<Branch, BranchEx>() {
-          public Branch createFrom(@NotNull final BranchEx source) {
+        return CollectionsUtil.convertCollection(branchesP, new Converter<Branch, jetbrains.buildServer.serverSide.Branch>() {
+          public Branch createFrom(@NotNull final jetbrains.buildServer.serverSide.Branch source) {
             return new Branch(source, fields.getNestedField("branch"));
           }
         });

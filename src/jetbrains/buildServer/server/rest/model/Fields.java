@@ -273,4 +273,9 @@ public class Fields {
     }
     return myFieldsSpecLocator;
   }
+
+  @NotNull
+  public String getFieldsSpec() {
+    return myFieldsSpec;
+  }
 }

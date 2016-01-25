@@ -19,16 +19,26 @@ package jetbrains.buildServer.server.rest.data;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.PathTransformer;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.build.Branch;
+import jetbrains.buildServer.server.rest.model.build.Branches;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
+import jetbrains.buildServer.server.rest.request.BuildTypeRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
+import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import static jetbrains.buildServer.util.Util.map;
+import static jetbrains.buildServer.vcs.RepositoryStateData.createVersionState;
 
 /**
  * @author Yegor.Yarko
@@ -102,5 +112,94 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     assertEquals(new Integer(0), investigations.count);
     assertEquals("/app/rest/investigations?locator=assignee:(id:" + user2.getId() + "),buildType:(id:testBT)", investigations.href);
     assertNull(investigations.items);
+  }
+
+  @Test
+  public void testBranches() {
+    final BuildTypeEx bt = getRootProject().createProject("Project1", "Project test 1").createBuildType("testBT", "My test build type");
+
+    final BuildTypeRequest buildTypeRequest = new BuildTypeRequest();
+    buildTypeRequest.setInTests(myBuildTypeFinder, myBranchFinder);
+
+    Branches branches = buildTypeRequest.serveBranches("id:testBT", null, null);
+    assertEquals(1, branches.branches.size());
+    Branch branch = branches.branches.get(0);
+    assertEquals("<default>", branch.getName());
+    assertEquals(Boolean.TRUE, branch.isDefault());
+    assertEquals(null, branch.isUnspecified());
+
+    branches = buildTypeRequest.serveBranches("id:testBT", null, Fields.ALL_NESTED.getFieldsSpec());
+    assertEquals(1, branches.branches.size());
+    branch = branches.branches.get(0);
+    assertEquals("<default>", branch.getName());
+    assertEquals(Boolean.TRUE, branch.isDefault());
+    assertEquals(Boolean.FALSE, branch.isUnspecified());
+
+
+    MockVcsSupport vcs = vcsSupport().withName("vcs").dagBased(true).register();
+
+    BuildFinderTestBase.MockCollectRepositoryChangesPolicy collectChangesPolicy = new BuildFinderTestBase.MockCollectRepositoryChangesPolicy();
+    vcs.setCollectChangesPolicy(collectChangesPolicy);
+
+    final SVcsRoot vcsRoot = bt.getProject().createVcsRoot("vcs", "extId", "name");
+    bt.addVcsRoot(vcsRoot);
+
+    final VcsRootInstance vcsRootInstance = bt.getVcsRootInstances().get(0);
+    collectChangesPolicy.setCurrentState(vcsRootInstance, createVersionState("master", map("master", "1", "branch1", "2", "branch2", "3")));
+    setBranchSpec(vcsRootInstance, "+:*");
+
+    branches = buildTypeRequest.serveBranches("id:testBT", null, null);
+    assertEquals(1, branches.branches.size());
+    branch = branches.branches.get(0);
+    assertEquals("<default>", branch.getName()); // why default before checking for changes???
+    assertEquals(Boolean.TRUE, branch.isDefault());
+    assertEquals(null, branch.isUnspecified());
+
+    bt.forceCheckingForChanges();
+    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+
+    branches = buildTypeRequest.serveBranches("id:testBT", null, null);
+    assertEquals(1, branches.branches.size());
+    branch = branches.branches.get(0);
+    assertEquals("master", branch.getName());
+    assertEquals(Boolean.TRUE, branch.isDefault());
+    assertEquals(null, branch.isUnspecified());
+
+    branches = buildTypeRequest.serveBranches("id:testBT", "policy:ALL_BRANCHES", null);
+    assertEquals(3, branches.branches.size());
+    branch = branches.branches.get(0);
+    assertEquals("master", branch.getName());
+    assertEquals(Boolean.TRUE, branch.isDefault());
+    assertEquals(null, branch.isUnspecified());
+    branch = branches.branches.get(1);
+    assertEquals("branch1", branch.getName());
+    assertEquals(null, branch.isDefault());
+    assertEquals(null, branch.isUnspecified());
+    branch = branches.branches.get(2);
+    assertEquals("branch2", branch.getName());
+    assertEquals(null, branch.isDefault());
+    assertEquals(null, branch.isUnspecified());
+
+    branches = buildTypeRequest.serveBranches("id:testBT", "policy:all_branches", null);
+    assertEquals(3, branches.branches.size());
+
+    branches = buildTypeRequest.serveBranches("id:testBT", "default:true", null);
+    assertEquals(1, branches.branches.size());
+    branch = branches.branches.get(0);
+    assertEquals("master", branch.getName());
+    assertEquals(Boolean.TRUE, branch.isDefault());
+    assertEquals(null, branch.isUnspecified());
+
+    BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+      public void run() {
+        buildTypeRequest.serveBranches("id:testBT", "changesFromDependencies:any", null);
+      }
+    }, "searching with wrong changesFromDependencies");
+
+    BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+      public void run() {
+        buildTypeRequest.serveBranches("id:testBT", "policy:INVALID_POLICY", null);
+      }
+    }, "searching with wrong changesFromDependencies");
   }
 }
