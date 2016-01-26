@@ -17,9 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
@@ -63,13 +61,17 @@ public class BranchFinder extends AbstractFinder<Branch> {
     return getBranchFilterDetails(locator).filter;
   }
 
+  @SuppressWarnings("UnnecessaryLocalVariable")
   @NotNull
-  public BranchFilterDetails getBranchFilterDetails(@Nullable final SBuildType buildType, @NotNull final String branchLocator) {
+  public BranchFilterDetails getBranchFilterDetailsWithoutLocatorCheck(@NotNull final String branchLocator) {
     final Locator locator = Locator.createLocator(branchLocator, null, getKnownDimensions());
-    if (buildType != null &&
-        (locator.lookupSingleDimensionValue(POLICY) != null || locator.lookupSingleDimensionValue(CHANGES_FROM_DEPENDENCIES) != null)) { //see alike check below
-      locator.setDimensionIfNotPresent(BUILD_TYPE, myBuildTypeFinder.getItemLocator(new BuildTypeOrTemplate(buildType)));
-    }
+    final BranchFilterDetails branchFilterDetails = getBranchFilterDetails(locator);
+    return branchFilterDetails;
+  }
+
+  @NotNull
+  public BranchFilterDetails getBranchFilterDetails(@NotNull final String branchLocator) {
+    final Locator locator = Locator.createLocator(branchLocator, null, getKnownDimensions());
     final BranchFilterDetails branchFilterDetails = getBranchFilterDetails(locator);
     locator.checkLocatorFullyProcessed();
     return branchFilterDetails;
@@ -143,24 +145,6 @@ public class BranchFinder extends AbstractFinder<Branch> {
       });
     }
 
-    if (locator.getUnusedDimensions().contains(POLICY) || locator.getUnusedDimensions().contains(CHANGES_FROM_DEPENDENCIES)) {  //see alike check above
-      @Nullable final BranchSearchOptions branchSearchOptions = getBranchSearchOptionsIfDefined(locator);
-      if (branchSearchOptions != null) {
-        final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
-        if (buildTypeLocator == null) {
-          throw new BadRequestException("No '" + BUILD_TYPE + "' dimension present but it is mandatory for searching branches by policy.");
-        }
-        final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
-        final Set<Branch> branches = new HashSet<>(getBranches(buildType, branchSearchOptions));
-
-        filter.add(new FilterConditionChecker<Branch>() {
-          @Override
-          public boolean isIncluded(@NotNull final Branch item) {
-            return branches.contains(item);
-          }
-        });
-      }
-    }
     result.matchesAllBranches = filter.getSubFiltersCount() == 0;
     return result;
   }
@@ -245,9 +229,21 @@ public class BranchFinder extends AbstractFinder<Branch> {
 
   @NotNull
   public PagedSearchResult<Branch> getItems(@NotNull SBuildType buildType, @Nullable final String locatorText) {
-    Locator locator = locatorText != null ? new Locator(locatorText) : Locator.createEmptyLocator();
-    locator.setDimension(BUILD_TYPE, myBuildTypeFinder.getItemLocator(new BuildTypeOrTemplate(buildType)));
-    return getItems(locator.getStringRepresentation());
+    return getItems(Locator.setDimensionIfNotPresent(locatorText, BUILD_TYPE, myBuildTypeFinder.getItemLocator(new BuildTypeOrTemplate(buildType))));
+  }
+
+  @Nullable
+  public PagedSearchResult<Branch> getItemsIfValidBranchListLocator(@Nullable SBuildType buildType, @Nullable final String locatorText) {
+    final Locator locator = new Locator(locatorText);
+    if (buildType != null && (locator.getSingleDimensionValue(POLICY) != null || locator.getSingleDimensionValue(CHANGES_FROM_DEPENDENCIES) != null)){
+      locator.setDimensionIfNotPresent(BUILD_TYPE, myBuildTypeFinder.getItemLocator(new BuildTypeOrTemplate(buildType)));
+    }
+    try {
+      return getItems(locator.getStringRepresentation());
+    } catch (BadRequestException e) {
+      // not a valid branches listing locator
+      return null;
+    }
   }
 
   public static class BranchFilterDetails {
@@ -261,11 +257,7 @@ public class BranchFinder extends AbstractFinder<Branch> {
       if (matchesAllBranches) {
         return true;
       }
-      final Branch buildBranch = promotion.getBranch();
-      if (buildBranch == null) {
-        return filter.isIncluded(FAKE_DEFAULT_BRANCH);
-      }
-      return filter.isIncluded(buildBranch);
+      return filter.isIncluded(getBuildBranch(promotion));
     }
 
     public boolean isAnyBranch() {
@@ -284,6 +276,15 @@ public class BranchFinder extends AbstractFinder<Branch> {
     public boolean isUnspecified() {
       return unspecified;
     }
+  }
+
+  @NotNull
+  public static Branch getBuildBranch(@NotNull final BuildPromotion build) {
+    final Branch buildBranch = build.getBranch();
+    if (buildBranch == null) {
+      return FAKE_DEFAULT_BRANCH;
+    }
+    return buildBranch;
   }
 
   protected static final Branch FAKE_DEFAULT_BRANCH = new Branch() {

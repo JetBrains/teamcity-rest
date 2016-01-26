@@ -822,6 +822,10 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("branch:(buildType:(id:" + buildConf1.getExternalId() + "),policy:ALL_BRANCHES)", build65, build60, build50, build40, build30, build20);
     checkBuilds("branch:(buildType:(id:" + buildConf1.getExternalId() + "),policy:VCS_BRANCHES)", build60, build40, build30);
 
+    checkBuilds("buildType:(id:" + buildConf1.getExternalId() + "),branch:(policy:ALL_BRANCHES)", build65, build60, build50, build40, build30, build20);
+    checkBuilds("buildType:(id:" + buildConf1.getExternalId() + "),branch:(policy:VCS_BRANCHES)", build60, build40, build30);
+    checkBuilds("buildType:(id:" + buildConf1.getExternalId() + "),branch:(default:true)", build40, build30, build10);
+
     checkExceptionOnItemsSearch(BadRequestException.class, "branch:(policy:ALL_BRANCHES)"); //policy is not supported for the build's branch locator
     checkExceptionOnItemsSearch(BadRequestException.class, "branch:(aaa:bbb)");
 

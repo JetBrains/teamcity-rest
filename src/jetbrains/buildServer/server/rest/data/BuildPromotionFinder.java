@@ -284,18 +284,32 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final String branchLocatorValue = locator.getSingleDimensionValue(BRANCH);
     if (branchLocatorValue != null) {
-      BranchFinder.BranchFilterDetails branchFilterDetails;
-      try {
-        branchFilterDetails = myBranchFinder.getBranchFilterDetails(buildType, branchLocatorValue);
-      } catch (LocatorProcessException e) {
-        throw new BadRequestException("Invalid sub-locator '" + BRANCH + "': " + e.getMessage(), e);
-      }
-      if (!branchFilterDetails.isAnyBranch()){
+      final PagedSearchResult<Branch> branches = myBranchFinder.getItemsIfValidBranchListLocator(buildType, branchLocatorValue);
+      if (branches != null) {
+        //branches found - use them
+        Set<String> branchNames = getBranchNamesSet(branches.myEntries);
+        Set<String> branchDisplayNames = getBranchDisplayNamesSet(branches.myEntries);
         result.add(new FilterConditionChecker<BuildPromotion>() {
           public boolean isIncluded(@NotNull final BuildPromotion item) {
-            return branchFilterDetails.isIncluded(item);
+            final Branch buildBranch = BranchFinder.getBuildBranch(item);
+            return branchNames.contains(buildBranch.getName()) || branchDisplayNames.contains(buildBranch.getDisplayName());
           }
         });
+      } else {
+        //branches not found by locator - try to use filter
+        BranchFinder.BranchFilterDetails branchFilterDetails;
+        try {
+          branchFilterDetails = myBranchFinder.getBranchFilterDetails(branchLocatorValue);
+        } catch (LocatorProcessException locatorException) {
+          throw new BadRequestException("Invalid sub-locator '" + BRANCH + "': " + locatorException.getMessage(), locatorException);
+        }
+        if (!branchFilterDetails.isAnyBranch()) {
+          result.add(new FilterConditionChecker<BuildPromotion>() {
+            public boolean isIncluded(@NotNull final BuildPromotion item) {
+              return branchFilterDetails.isIncluded(item);
+            }
+          });
+        }
       }
     }
 
@@ -650,6 +664,22 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     }
 
     return getFilterWithProcessingCutOff(result, locator.getSingleDimensionValueAsLong(SINCE_BUILD_ID_LOOK_AHEAD_COUNT), sinceBuildPromotion, sinceBuildId, sinceStartDate);
+  }
+
+  private Set<String> getBranchNamesSet(final List<Branch> branches) {
+    final HashSet<String> result = new HashSet<>(branches.size());
+    for (Branch branch : branches) {
+      result.add(branch.getName());
+    }
+    return result;
+  }
+
+  private Set<String> getBranchDisplayNamesSet(final List<Branch> branches) {
+    final HashSet<String> result = new HashSet<>(branches.size());
+    for (Branch branch : branches) {
+      result.add(branch.getDisplayName());
+    }
+    return result;
   }
 
   private ItemFilter<BuildPromotion> getFilterWithProcessingCutOff(@NotNull final MultiCheckerFilter<BuildPromotion> result,
@@ -1045,30 +1075,29 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         options.setIncludeCanceled(false);
       }
 
-      final String branchLocatorValue = locator.getSingleDimensionValue(BRANCH);
+      final String branchLocatorValue = locator.lookupSingleDimensionValue(BRANCH); // do not mark dimension as used as not all can be used from it
       if (branchLocatorValue != null) {
         BranchFinder.BranchFilterDetails branchFilterDetails;
         try {
-          branchFilterDetails = myBranchFinder.getBranchFilterDetails(buildType, branchLocatorValue);
-        } catch (LocatorProcessException e) {
-          throw new BadRequestException("Invalid sub-locator '" + BRANCH + "': " + e.getMessage(), e);
-        }
-
-        if (branchFilterDetails.isAnyBranch()) {
-          options.setMatchAllBranches(true);
-        } else {
-          if (branchFilterDetails.isDefaultBranchOrNotBranched()) {
-            options.setMatchAllBranches(false);
-            options.setBranch(Branch.DEFAULT_BRANCH_NAME);
-          }
-          if (branchFilterDetails.getBranchName() != null) {
-            //ineffective, but otherwise cannot find a build by display name branch (need support in BuildQueryOptions to get default + named branch)
+          branchFilterDetails = myBranchFinder.getBranchFilterDetailsWithoutLocatorCheck(branchLocatorValue);
+          // parsed OK, setting options
+          if (branchFilterDetails.isAnyBranch()) {
             options.setMatchAllBranches(true);
-            //options.setMatchAllBranches(false);
-            //options.setBranch(branchFilterDetails.getBranchName());
           } else {
-            locator.markUnused(BRANCH);
+            if (branchFilterDetails.isDefaultBranchOrNotBranched()) {
+              options.setMatchAllBranches(false);
+              options.setBranch(Branch.DEFAULT_BRANCH_NAME);
+            }
+            if (branchFilterDetails.getBranchName() != null) {
+              //ineffective, but otherwise cannot find a build by display name branch (need support in BuildQueryOptions to get default + named branch)
+              options.setMatchAllBranches(true);
+              //options.setMatchAllBranches(false);
+              //options.setBranch(branchFilterDetails.getBranchName());
+            }
           }
+        } catch (LocatorProcessException e) {
+          // not parsed, cannot extract name or default status
+          options.setMatchAllBranches(true);
         }
       } else {
         options.setMatchAllBranches(true);

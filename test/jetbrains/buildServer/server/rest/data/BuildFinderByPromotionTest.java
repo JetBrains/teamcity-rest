@@ -298,7 +298,7 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     checkBuilds("branch:(default:any)", build2, build1);
     checkBuilds("branch:(branchName)", build2);
     checkBuilds("branch:(name:branchName)", build2);
-    checkExceptionOnBuildSearch(BadRequestException.class, "branch:(::)"); //invalid branch locator
+    checkExceptionOnBuildSearch(LocatorProcessException.class, "branch:(::)"); //invalid branch locator
   }
 
   @Test
@@ -371,7 +371,7 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     checkBuilds(btLocator + ",branch:(branched:false)", build5);
     checkBuilds(btLocator + ",branch:(name:master,branched:true)", build30, build20, build10);
 
-    checkExceptionOnBuildSearch(BadRequestException.class, "branch:(::)"); //invalid branch locator
+    checkExceptionOnBuildSearch(LocatorProcessException.class, "branch:(::)"); //invalid branch locator
     checkExceptionOnBuildSearch(BadRequestException.class, "branch:(name:branchName,aaa:bbb)");  //unused/unknown dimension
     checkExceptionOnBuildSearch(BadRequestException.class, "branch:(aaa:bbb)");
   }
