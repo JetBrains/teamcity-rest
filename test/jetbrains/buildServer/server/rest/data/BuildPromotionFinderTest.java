@@ -916,6 +916,46 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("strob:(buildType:(project:(id:" + project.getExternalId() + ")))", build40, build30);
   }
 
+  @Test
+  public void testStrobBranchedDimension() {
+    final SProject project = createProject("prj", "project");
+    final BuildTypeEx buildConf1 = (BuildTypeEx)project.createBuildType("buildConf1", "buildConf1");
+    final BuildTypeEx buildConf2 = (BuildTypeEx)project.createBuildType("buildConf2", "buildConf2");
+
+    MockVcsSupport vcs = vcsSupport().withName("vcs").dagBased(true).register();
+
+    BuildFinderTestBase.MockCollectRepositoryChangesPolicy collectChangesPolicy = new BuildFinderTestBase.MockCollectRepositoryChangesPolicy();
+    vcs.setCollectChangesPolicy(collectChangesPolicy);
+
+    buildConf1.addVcsRoot(buildConf1.getProject().createVcsRoot("vcs", "extId", "name"));
+
+    final VcsRootInstance vcsRootInstance = buildConf1.getVcsRootInstances().get(0);
+    collectChangesPolicy.setCurrentState(vcsRootInstance, createVersionState("master", map("master", "1", "branch1", "2", "branch2", "3")));
+    setBranchSpec(vcsRootInstance, "+:*");
+    buildConf1.forceCheckingForChanges();
+    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+
+    final BuildPromotion build10 = build().in(buildConf1).finish().getBuildPromotion();
+    final BuildPromotion build15 = build().in(buildConf1).withDefaultBranch().finish().getBuildPromotion();
+    final BuildPromotion build20 = build().in(buildConf1).withBranch("branch1").finish().getBuildPromotion();
+    final BuildPromotion build25 = build().in(buildConf1).withBranch("branch1").finish().getBuildPromotion();
+    final BuildPromotion build30 = build().in(buildConf1).withBranch("branch").finish().getBuildPromotion();
+    final BuildPromotion build35 = build().in(buildConf1).withBranch("branch").finish().getBuildPromotion();
+    final BuildPromotion build40 = build().in(buildConf1).finish().getBuildPromotion();
+
+    final BuildPromotion build50 = build().in(buildConf2).withBranch("branch1").finish().getBuildPromotion();
+    final BuildPromotion build60 = build().in(buildConf2).withBranch("branch1").finish().getBuildPromotion();
+
+    checkBuilds("strob:(buildType:(project:(id:" + project.getExternalId() + ")))", build40);
+    checkBuilds("strob:(buildType:(project:(id:" + project.getExternalId() + ")),branch:(policy:ALL_BRANCHES))", build40, build35, build25, build60);
+    checkBuilds("strob:(buildType:(project:(id:" + project.getExternalId() + ")),branch:(policy:VCS_BRANCHES))", build40, build25);
+    checkBuilds("strob:(buildType:(project:(id:" + project.getExternalId() + ")),branch:(default:any))", build40, build35, build25, build60);
+    checkBuilds("strob:(branch:(default:any,buildType:(id:" + buildConf1.getExternalId() + ")),locator:(buildType:(id:" + buildConf1.getExternalId() + ")))", build40, build35, build25);
+    checkExceptionOnBuildsSearch(BadRequestException.class, "strob:(branch:(default:any),locator:(buildType:(id:" + buildConf1.getExternalId() + ")))");
+
+    checkBuilds("strob:(branch:(default:any,buildType:(id:" + buildConf2.getExternalId() + ")),locator:(buildType:(id:" + buildConf1.getExternalId() + ")))", build40, build25);
+  }
+
   //==================================================
 
   public void checkBuilds(final String locator, BuildPromotion... builds) {

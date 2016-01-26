@@ -683,10 +683,14 @@ public class Locator {
    *
    * @param locator       existing locator, should be valid!
    * @param dimensionName only alpha-numeric characters are supported! Only numeric vaues withour brackets are supported!
-   * @param value         new value for the dimention, only alpha-numeric characters are supported!
+   * @param value         new value for the dimension, only alpha-numeric characters are supported!
    * @return
    */
-  public static String setDimensionIfNotPresent(@Nullable final String locator, @NotNull final String dimensionName, final String value) {
+  @Nullable
+  public static String setDimensionIfNotPresent(@Nullable final String locator, @NotNull final String dimensionName, @Nullable final String value) {
+    if (value == null){
+      return locator;
+    }
     if (locator == null){
       return Locator.getStringLocator(dimensionName, value);
     }
