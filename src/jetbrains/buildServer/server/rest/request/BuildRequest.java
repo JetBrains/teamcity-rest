@@ -30,6 +30,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
+import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.parameters.ProcessingResult;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
@@ -649,6 +650,21 @@ public class BuildRequest {
   public Response serveAggregatedBuildStatusIcon(@PathParam("buildLocator") String locator, @PathParam("suffix") final String suffix, @Context HttpServletRequest request) {
     final BuildIconStatus stateName = getAggregatedStatus(locator);
     return processIconRequest(stateName.getIconName(), suffix, request);
+  }
+
+  @GET
+  @Path(AGGREGATED + "/{buildLocator}/" + "status")
+  public String serveAggregatedBuildStatus(@PathParam("buildLocator") String locator) {
+    final PagedSearchResult<BuildPromotion> builds = myBuildPromotionFinder.getItems(locator);
+    Status resultingStatus = Status.UNKNOWN;
+    for (BuildPromotion buildPromotion : builds.myEntries) {
+      final SBuild build = buildPromotion.getAssociatedBuild();
+      if (build != null) {
+        final Status status = build.getStatusDescriptor().getStatus();
+        resultingStatus = Status.getWorstStatus(resultingStatus, status);
+      }
+    }
+    return resultingStatus.getText();
   }
 
   @NotNull
