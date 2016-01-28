@@ -31,10 +31,14 @@ public class FileChange {
   public String before;
   @XmlAttribute(name = "after-revision")
   public String after;
+  @XmlAttribute(name = "changeType")
+  public String changeType;
   @XmlAttribute(name = "file")
   public String fileName;
   @XmlAttribute(name = "relative-file")
   public String relativeFileName;
+  @XmlAttribute(name = "directory")
+  public Boolean directory;
 
   FileChange() {
   }
@@ -42,7 +46,10 @@ public class FileChange {
   public FileChange(final @NotNull VcsFileModification vcsFileModification, final @NotNull Fields fields) {
     before = ValueWithDefault.decideDefault(fields.isIncluded("before-revision", true), vcsFileModification.getBeforeChangeRevisionNumber());
     after = ValueWithDefault.decideDefault(fields.isIncluded("after-revision", true), vcsFileModification.getAfterChangeRevisionNumber());
+    changeType = ValueWithDefault.decideDefault(fields.isIncluded("changeType", true), vcsFileModification.getType().getDescription());
     fileName = ValueWithDefault.decideDefault(fields.isIncluded("file", true), vcsFileModification.getFileName());
     relativeFileName = ValueWithDefault.decideDefault(fields.isIncluded("relative-file", true), vcsFileModification.getRelativeFileName());
+    boolean isDirectory = vcsFileModification.getType().isDirectory();
+    directory = ValueWithDefault.decideDefault(fields.isIncluded("directory", isDirectory, isDirectory), isDirectory);
   }
 }
