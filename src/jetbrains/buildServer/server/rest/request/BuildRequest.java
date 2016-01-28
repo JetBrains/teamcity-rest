@@ -50,6 +50,7 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
+import jetbrains.buildServer.server.rest.util.AggregatedBuildArtifactsElementBuilder;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
@@ -665,6 +666,30 @@ public class BuildRequest {
       }
     }
     return resultingStatus.getText();
+  }
+
+  @Path(AGGREGATED + "/{buildLocator}" + ARTIFACTS)
+  public FilesSubResource serveAggregatedBuildArtifacts(@PathParam("buildLocator") final String locator,
+                                                        @QueryParam("logBuildUsage") final Boolean logBuildUsage) {
+    if (logBuildUsage != null && logBuildUsage) {
+      throw new BadRequestException("Logging usage of the artifacts is not supported for aggregated build request");
+    }
+    final PagedSearchResult<BuildPromotion> builds = myBuildPromotionFinder.getItems(locator);
+    final String urlPrefix = Util.concatenatePath(myBeanContext.getApiUrlBuilder().transformRelativePath(API_BUILDS_URL), AGGREGATED, locator, ARTIFACTS); //consider URL-escaping locator here
+    return new FilesSubResource(new FilesSubResource.Provider() {
+      @Override
+      @NotNull
+      public Element getElement(@NotNull final String path) {
+        return AggregatedBuildArtifactsElementBuilder.getBuildAggregatedArtifactElement(path, builds.myEntries);
+      }
+
+      @NotNull
+      @Override
+      public String getArchiveName(@NotNull final String path) {
+        return "aggregated_" + builds.myEntries.size() + "_builds" + "_artifacts";
+      }
+
+    }, urlPrefix, myBeanContext, true);
   }
 
   @NotNull
