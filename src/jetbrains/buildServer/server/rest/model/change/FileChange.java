@@ -33,6 +33,8 @@ public class FileChange {
   public String after;
   @XmlAttribute(name = "changeType")
   public String changeType;
+  @XmlAttribute(name = "changeTypeComment")
+  public String changeTypeComment;
   @XmlAttribute(name = "file")
   public String fileName;
   @XmlAttribute(name = "relative-file")
@@ -46,7 +48,11 @@ public class FileChange {
   public FileChange(final @NotNull VcsFileModification vcsFileModification, final @NotNull Fields fields) {
     before = ValueWithDefault.decideDefault(fields.isIncluded("before-revision", true), vcsFileModification.getBeforeChangeRevisionNumber());
     after = ValueWithDefault.decideDefault(fields.isIncluded("after-revision", true), vcsFileModification.getAfterChangeRevisionNumber());
-    changeType = ValueWithDefault.decideDefault(fields.isIncluded("changeType", true), vcsFileModification.getType().getDescription());
+    String description = vcsFileModification.getType().getDescription();
+    changeType = ValueWithDefault.decideDefault(fields.isIncluded("changeType", true), description);
+
+    boolean commentIsDefault = description != null &&  description.equals(vcsFileModification.getChangeTypeName());
+    changeTypeComment = commentIsDefault ? null : ValueWithDefault.decideDefault(fields.isIncluded("changeTypeComment", false, false), vcsFileModification.getChangeTypeName());
     fileName = ValueWithDefault.decideDefault(fields.isIncluded("file", true), vcsFileModification.getFileName());
     relativeFileName = ValueWithDefault.decideDefault(fields.isIncluded("relative-file", true), vcsFileModification.getRelativeFileName());
     boolean isDirectory = vcsFileModification.getType().isDirectory();
