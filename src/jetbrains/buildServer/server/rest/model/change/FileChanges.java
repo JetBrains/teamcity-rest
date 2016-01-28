@@ -18,24 +18,41 @@ package jetbrains.buildServer.server.rest.model.change;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.vcs.VcsFileModification;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
  *         Date: 21.07.2009
  */
 public class FileChanges {
+  @XmlAttribute public Integer count;
+
   @XmlElement(name = "file")
   public List<FileChange> files;
 
   public FileChanges() {
   }
 
-  public FileChanges(final List<VcsFileModification> fileChanges) {
-    files = new ArrayList<FileChange>(fileChanges.size());
-    for (VcsFileModification file : fileChanges) {
-      files.add(new FileChange(file));
-    }
+  public FileChanges(@NotNull final List<VcsFileModification> fileChanges, final @NotNull Fields fields) {
+    count = ValueWithDefault.decideDefault(fields.isIncluded("count", true), fileChanges.size());
+
+    files = ValueWithDefault.decideDefault(fields.isIncluded("file", true), new ValueWithDefault.Value<List<FileChange>>() {
+      @Nullable
+      @Override
+      public List<FileChange> get() {
+        ArrayList<FileChange> result = new ArrayList<>(files.size());
+        int i = 0;
+        for (VcsFileModification file : fileChanges) {
+          result.add(new FileChange(file, fields.getNestedField("file", Fields.LONG, Fields.LONG).removeRestrictedField("file"))); //Using removeRestrictedField as inside is also a "file"
+        }
+        return result;
+      }
+    });
   }
 }

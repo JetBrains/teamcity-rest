@@ -146,7 +146,7 @@ public class Change {
     return ValueWithDefault.decideDefault(myFields.isIncluded("files", false), new ValueWithDefault.Value<FileChanges>() {
       @Nullable
       public FileChanges get() {
-        return new FileChanges(myModification.getChanges());
+        return new FileChanges(myModification.getChanges(), myFields.getNestedField("files"));
       }
     });
   }

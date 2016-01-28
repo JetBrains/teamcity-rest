@@ -65,7 +65,7 @@ public class File {
   public File(@NotNull final Element element, @Nullable final Element parent, @NotNull final FileApiUrlBuilder builder, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     myFields = fields;
     myBeanContext = beanContext;
-    this.href = ValueWithDefault.decideDefault(fields.isIncluded("href", true), builder.getMetadataHref(element));;
+    this.href = ValueWithDefault.decideDefault(fields.isIncluded("href", true), builder.getMetadataHref(element));
     this.name = ValueWithDefault.decideDefault(fields.isIncluded("name", true), element.getName());
     this.fullName = ValueWithDefault.decideDefault(fields.isIncluded("fullName", false, false), element.getFullName());
 

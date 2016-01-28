@@ -17,7 +17,10 @@
 package jetbrains.buildServer.server.rest.model.change;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.vcs.VcsFileModification;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
@@ -36,10 +39,10 @@ public class FileChange {
   FileChange() {
   }
 
-  public FileChange(final VcsFileModification vcsFileModification) {
-    before = vcsFileModification.getBeforeChangeRevisionNumber();
-    after = vcsFileModification.getAfterChangeRevisionNumber();
-    fileName = vcsFileModification.getFileName();
-    relativeFileName = vcsFileModification.getRelativeFileName();
+  public FileChange(final @NotNull VcsFileModification vcsFileModification, final @NotNull Fields fields) {
+    before = ValueWithDefault.decideDefault(fields.isIncluded("before-revision", true), vcsFileModification.getBeforeChangeRevisionNumber());
+    after = ValueWithDefault.decideDefault(fields.isIncluded("after-revision", true), vcsFileModification.getAfterChangeRevisionNumber());
+    fileName = ValueWithDefault.decideDefault(fields.isIncluded("file", true), vcsFileModification.getFileName());
+    relativeFileName = ValueWithDefault.decideDefault(fields.isIncluded("relative-file", true), vcsFileModification.getRelativeFileName());
   }
 }

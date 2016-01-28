@@ -263,6 +263,13 @@ public class Fields {
     return new Fields(myFieldsSpec, newRestrictedFields, true);
   }
 
+  @NotNull
+  public Fields removeRestrictedField(@NotNull final String fieldName) {
+    final Map<String, Fields> newRestrictedFields = new HashMap<String, Fields>(myRestrictedFields);
+    newRestrictedFields.remove(fieldName);
+    return new Fields(myFieldsSpec, newRestrictedFields, true);
+  }
+
   @Nullable
   Locator getParsedCustomFields() {
     if (myFieldsSpecLocator == null && !StringUtil.isEmpty(myFieldsSpec)){
