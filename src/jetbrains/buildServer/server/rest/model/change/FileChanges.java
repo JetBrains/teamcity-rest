@@ -16,12 +16,14 @@
 
 package jetbrains.buildServer.server.rest.model.change;
 
+import com.intellij.openapi.diagnostic.Logger;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.vcs.VcsFileModification;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -31,6 +33,9 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 21.07.2009
  */
 public class FileChanges {
+  private static final Logger LOG = Logger.getInstance(FileChanges.class.getName());
+  protected static final String REST_BEANS_FILES_NESTED_FILE_ITEMS_LIMIT = "rest.beans.change.files.nestedFileItemsLimit";
+
   @XmlAttribute public Integer count;
 
   @XmlElement(name = "file")
@@ -40,15 +45,22 @@ public class FileChanges {
   }
 
   public FileChanges(@NotNull final List<VcsFileModification> fileChanges, final @NotNull Fields fields) {
-    count = ValueWithDefault.decideDefault(fields.isIncluded("count", true), fileChanges.size());
+    count = ValueWithDefault.decideDefault(fields.isIncluded("count", true), fileChanges.size()); // this can differ from the actual number of sub-elements included
 
     files = ValueWithDefault.decideDefault(fields.isIncluded("file", true), new ValueWithDefault.Value<List<FileChange>>() {
       @Nullable
       @Override
       public List<FileChange> get() {
-        ArrayList<FileChange> result = new ArrayList<>(files.size());
+        final int resultSizeLimit = TeamCityProperties.getInteger(REST_BEANS_FILES_NESTED_FILE_ITEMS_LIMIT, 5000);
+        int resultSize = Math.min(fileChanges.size(), resultSizeLimit);
+        ArrayList<FileChange> result = new ArrayList<>(resultSize);
         int i = 0;
         for (VcsFileModification file : fileChanges) {
+          if (i++ == resultSize) {
+            LOG.info("List of file changes is truncated from the original value " + fileChanges.size() +
+                      " to the limit " + resultSize + " set via '" + REST_BEANS_FILES_NESTED_FILE_ITEMS_LIMIT + "' internal property.");
+            break;
+          }
           result.add(new FileChange(file, fields.getNestedField("file", Fields.LONG, Fields.LONG).removeRestrictedField("file"))); //Using removeRestrictedField as inside is also a "file"
         }
         return result;
