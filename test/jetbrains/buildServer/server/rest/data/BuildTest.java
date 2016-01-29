@@ -18,15 +18,11 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.HashMap;
 import jetbrains.buildServer.AgentRestrictorType;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.PathTransformer;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
-import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SQueuedBuild;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolCannotBeRenamedException;
@@ -34,7 +30,6 @@ import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
 import jetbrains.buildServer.serverSide.impl.AgentRestrictorFactoryImpl;
 import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.users.SUser;
-import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -137,14 +132,4 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     assertEquals(poolId1, queuedBuild.getAgentRestrictor().getId());
   }
 
-  @NotNull
-  private BeanContext getBeanContext() {
-    final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
-      public String transform(final String path) {
-        return path;
-      }
-    });
-    final BeanFactory beanFactory = new BeanFactory(null);
-    return new BeanContext(beanFactory, myFixture, apiUrlBuilder);
-  }
 }

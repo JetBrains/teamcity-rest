@@ -19,14 +19,19 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.log.Loggable;
 import jetbrains.buildServer.responsibility.ResponsibilityFacadeEx;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.PathTransformer;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.CurrentProblemsManager;
 import jetbrains.buildServer.serverSide.TestName2IndexImpl;
 import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
@@ -62,6 +67,17 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   protected AgentPoolsFinder myAgentPoolsFinder;
   protected QueuedBuildFinder myQueuedBuildFinder;
   protected BranchFinder myBranchFinder;
+
+  static BeanContext getBeanContext(final ServiceLocator serviceLocator) {
+    final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
+      public String transform(final String path) {
+        return path;
+      }
+    });
+    final BeanFactory beanFactory = new BeanFactory(null);
+
+    return new BeanContext(beanFactory, serviceLocator, apiUrlBuilder);
+  }
 
   @Override
   @BeforeMethod

@@ -39,7 +39,6 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsModification;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * User: Yegor Yarko
@@ -53,7 +52,7 @@ public class Change {
   @NotNull private Fields myFields;
   @NotNull private BeanContext myBeanContext;
   protected ApiUrlBuilder myApiUrlBuilder;
-  @Autowired protected WebLinks myWebLinks;
+  protected WebLinks myWebLinks;
 
   public Change() {
   }
@@ -63,7 +62,7 @@ public class Change {
     myFields = fields;
     myBeanContext = beanContext;
     myApiUrlBuilder = myBeanContext.getApiUrlBuilder();
-    myBeanContext.autowire(this);
+    myWebLinks = myBeanContext.getSingletonService(WebLinks.class);
   }
 
   @XmlAttribute
