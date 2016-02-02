@@ -49,7 +49,7 @@ public abstract class AbstractFinder<ITEM> {
 
   private final String[] myKnownDimensions;
 
-  public AbstractFinder(@NotNull final String[] knownDimensions) {
+  public AbstractFinder(@NotNull final String... knownDimensions) {
     myKnownDimensions = ArrayUtils.addAll(knownDimensions, PagerData.START, PagerData.COUNT, DIMENSION_LOOKUP_LIMIT);
   }
 
@@ -254,9 +254,7 @@ public abstract class AbstractFinder<ITEM> {
   }
 
   @NotNull
-  protected ItemHolder<ITEM> getPrefilteredItems(@NotNull Locator locator) {
-    throw new OperationException("Incorrect implementation: prefiltered items retrieval is not implemented.");
-  }
+  protected abstract ItemHolder<ITEM> getPrefilteredItems(@NotNull Locator locator);
 
   /**
    *
