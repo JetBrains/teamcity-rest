@@ -65,7 +65,6 @@ public class ServerRequest {
 
   @SuppressWarnings("NullableProblems") @Context @NotNull private BeanContext myBeanContext;
 
-  @SuppressWarnings("NullableProblems") @Context @NotNull private BuildArtifactsFinder myBuildArtifactsFinder;
   @SuppressWarnings("NullableProblems") @Context @NotNull private PermissionChecker myPermissionChecker;
 
   @GET

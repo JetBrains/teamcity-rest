@@ -137,7 +137,7 @@ public class File {
         return new Files(builder.getChildrenHref(element), new ValueWithDefault.Value<List<? extends Element>>() {
           @Nullable
           public List<? extends Element> get() {
-            return myBeanContext.getSingletonService(BuildArtifactsFinder.class).getItems(element, null, nestedFields.getLocator(), builder);
+            return BuildArtifactsFinder.getItems(element, nestedFields.getLocator(), builder);
           }
         }, builder, nestedFields, myBeanContext);
       }

@@ -55,8 +55,6 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   private BuildServerCreator myFixture;
   private final TempFiles myTempFiles = new TempFiles();
 
-  private BuildArtifactsFinder myBuildArtifactsFinder;
-
   private SFinishedBuild myBuildWithArtifacts;
 
   private void createTestFiles(final File targetDir) throws IOException {
@@ -109,8 +107,6 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     artifactsDir.mkdirs();
 
     createTestFiles(artifactsDir);
-
-    myBuildArtifactsFinder = new BuildArtifactsFinder();
   }
 
   @AfterClass
@@ -137,7 +133,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
 
   private List<ArtifactTreeElement> getArtifacts(final String path, final String filesLocator, final String basePath) {
 //    FilesSubResource.fileApiUrlBuilder(filesLocator, BuildRequest.getArtifactsUrlPrefix(myBuildWithArtifacts, urlPrefix));
-    return myBuildArtifactsFinder.getItems(BuildArtifactsFinder.getArtifactElement(myBuildWithArtifacts.getBuildPromotion(), path), basePath, filesLocator, null);
+    return BuildArtifactsFinder.getItems(BuildArtifactsFinder.getArtifactElement(myBuildWithArtifacts.getBuildPromotion(), path), basePath, filesLocator, null);
   }
 
   private List<String> getNames(final List<ArtifactTreeElement> artifacts) {

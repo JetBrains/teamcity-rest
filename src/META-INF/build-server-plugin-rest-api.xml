@@ -49,7 +49,6 @@
   <bean id="restUserFinder" class="jetbrains.buildServer.server.rest.data.UserFinder"/>
   <bean id="restVcsRootFinder" class="jetbrains.buildServer.server.rest.data.VcsRootFinder"/>
   <bean id="restVcsRootInstanceFinder" class="jetbrains.buildServer.server.rest.data.VcsRootInstanceFinder"/>
-  <bean id="restBuildArtifactsFinder" class="jetbrains.buildServer.server.rest.data.BuildArtifactsFinder"/>
   <bean id="restChangeFinder" class="jetbrains.buildServer.server.rest.data.ChangeFinder"/>
   <bean id="restAgentPoolsFinder" class="jetbrains.buildServer.server.rest.data.AgentPoolsFinder"/>
   <bean id="restAgentFinder" class="jetbrains.buildServer.server.rest.data.AgentFinder"/>
@@ -79,7 +78,6 @@
   <bean id="userFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.UserFinderContextProvider"/>
   <bean id="vcsRootFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.VcsRootFinderContextProvider"/>
   <bean id="vcsRootInstanceFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.VcsRootInstanceFinderContextProvider"/>
-  <bean id="buildArtifactsFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.BuildArtifactsFinderContextProvider"/>
   <bean id="changeFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.ChangeFinderContextProvider"/>
   <bean id="restAgentPoolsFinderProvider" class="jetbrains.buildServer.server.rest.jersey.AgentPoolsFinderProvider"/>
   <bean id="restAgentFinderProvider" class="jetbrains.buildServer.server.rest.jersey.AgentFinderProvider"/>

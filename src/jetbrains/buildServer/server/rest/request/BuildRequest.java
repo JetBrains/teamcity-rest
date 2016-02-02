@@ -92,7 +92,6 @@ public class BuildRequest {
   @Context @NotNull public BuildFinder myBuildFinder;
   @Context @NotNull public BuildPromotionFinder myBuildPromotionFinder;
   @Context @NotNull public BuildTypeFinder myBuildTypeFinder;
-  @Context @NotNull public BuildArtifactsFinder myBuildArtifactsFinder;
   @Context @NotNull public PermissionChecker myPermissionChecker;
 
   public static final String BUILDS_ROOT_REQUEST_PATH = "/builds";

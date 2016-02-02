@@ -50,7 +50,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 27.04.13
  */
-public class BuildArtifactsFinder {
+public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
   public static final String ARCHIVES_DIMENSION_NAME = "browseArchives";  //whether archives are treated as directories while browsing
   public static final String HIDDEN_DIMENSION_NAME = "hidden";  //whether .teamcity directory is included and it's children listed (does not affect anything if within .teamcity already)
   public static final String DIRECTORY_DIMENSION_NAME = "directory";  //whether to include entries which have children
@@ -66,6 +66,37 @@ public class BuildArtifactsFinder {
   };
   private static final Pattern SLASHES_OR_SPACE_PATTERN = Pattern.compile("[\\/ ]", Pattern.LITERAL);
 
+
+  @NotNull private final Element myBaseElement;
+
+  public BuildArtifactsFinder(@NotNull final Element baseElement) {
+    super(HIDDEN_DIMENSION_NAME, ARCHIVES_DIMENSION_NAME, DIRECTORY_DIMENSION_NAME, DIMENSION_RECURSIVE, DIMENSION_PATTERNS);
+    myBaseElement = baseElement;
+  }
+
+  @NotNull
+  @Override
+  public String getItemLocator(@NotNull final ArtifactTreeElement element) {
+    throw new OperationException("'getItemLocator' is not implemented in BuildArtifactsFinder");
+  }
+
+  @NotNull
+  @Override
+  protected ItemFilter<ArtifactTreeElement> getFilter(@NotNull final Locator locator) {
+    final MultiCheckerFilter<ArtifactTreeElement> result = new MultiCheckerFilter<ArtifactTreeElement>();
+
+    //add filter by modificationTime here
+
+    return result;
+  }
+
+  private void setLocatorDefaults(@NotNull final Locator locator) {
+    locator.setDimensionIfNotPresent(DIMENSION_RECURSIVE, "false");
+    locator.setDimensionIfNotPresent(HIDDEN_DIMENSION_NAME, "false");
+    locator.setDimensionIfNotPresent(ARCHIVES_DIMENSION_NAME, "false");
+  }
+
+  // =============================================================
   @NotNull
   public static ArtifactTreeElementWrapper getItem(@NotNull final Browser browser, @NotNull final String path, @NotNull final String where) {
     Element element;
@@ -91,10 +122,17 @@ public class BuildArtifactsFinder {
   }
 
   @NotNull
-  public static List<ArtifactTreeElement> getItems(final Element initialElement,
-                                            final @Nullable String basePath,
-                                            final @Nullable String filesLocator,
-                                            final @Nullable FileApiUrlBuilder urlBuilder) {
+  public static List<ArtifactTreeElement> getItems(@NotNull final Element initialElement,
+                                                   final @Nullable String basePath,
+                                                   final @Nullable String filesLocator,
+                                                   final @Nullable FileApiUrlBuilder urlBuilder) {
+    return makeRelativeToBasePath(BuildArtifactsFinder.getItems(initialElement, filesLocator, urlBuilder), basePath);
+  }
+
+  @NotNull
+  public static List<ArtifactTreeElement> getItems(@NotNull final Element initialElement,
+                                                   final @Nullable String filesLocator,
+                                                   final @Nullable FileApiUrlBuilder urlBuilder) {
     if (initialElement.isLeaf()) {
       String additionalMessage = "";
       if (urlBuilder != null) {
@@ -103,72 +141,71 @@ public class BuildArtifactsFinder {
       throw new BadRequestException("Cannot provide children list for file '" + initialElement.getFullName() + "'." + additionalMessage);
     }
 
-    @Nullable final Locator locator = getLocator(filesLocator);
+    return new BuildArtifactsFinder(initialElement).getItems(filesLocator).myEntries;
+  }
+
+  @NotNull
+  @Override
+  protected ItemHolder<ArtifactTreeElement> getPrefilteredItems(@NotNull final Locator locator) {
+    setLocatorDefaults(locator);
+
+    Boolean includeHidden = locator.getSingleDimensionValueAsBoolean(HIDDEN_DIMENSION_NAME);
+    if (isWithinHidden(myBaseElement)) {
+      includeHidden = null;
+    }
+
     List<String> rules = new ArrayList<String>();
-//    rules.add("+:**"); //todo: is this relative path?
-
-    Boolean includeDirectories = null;
-    Boolean includeHidden = false;
-    long childrenNestingLevel = 1;
-    long archiveChildrenNestingLevel = 0;
-    if (locator != null) {
-      includeDirectories = locator.getSingleDimensionValueAsBoolean(DIRECTORY_DIMENSION_NAME);
-      includeHidden = locator.getSingleDimensionValueAsBoolean(HIDDEN_DIMENSION_NAME);
-      if (isWithinHidden(initialElement)) {
-        includeHidden = null;
+    final String filePatterns = locator.getSingleDimensionValue(DIMENSION_PATTERNS);
+    if (filePatterns != null) {
+      final String[] splittedPatterns = filePatterns.split(","); //might consider smarter splitting later
+      if (splittedPatterns.length > 0) {
+        rules.addAll(Arrays.asList(splittedPatterns));
       }
-      final String filePatterns = locator.getSingleDimensionValue(DIMENSION_PATTERNS);
-      if (filePatterns != null) {
-        final String[] splittedPatterns = filePatterns.split(","); //might consider smarter splitting later
-        if (splittedPatterns.length > 0) {
-          rules.addAll(Arrays.asList(splittedPatterns));
-        }
-      } else {
-        rules.add("+:**");
-      }
-
-      final String recursive = locator.getSingleDimensionValue(DIMENSION_RECURSIVE);
-      if (recursive != null) {
-        final Boolean parsedBoolean = Locator.getStrictBoolean(recursive);
-        if (parsedBoolean != null) {
-          if (parsedBoolean) {
-            childrenNestingLevel = -1;
-          } else {
-            childrenNestingLevel = 1;
-          }
-        } else {
-          //treat as nesting number
-          try {
-            childrenNestingLevel = Long.parseLong(recursive);
-          } catch (NumberFormatException e) {
-            throw new BadRequestException("Cannot parse value '" + recursive + "' for dimension '" + DIMENSION_RECURSIVE + "': should be boolean or nesting level number");
-          }
-        }
-      }
-
-      final String listArchives = locator.getSingleDimensionValue(ARCHIVES_DIMENSION_NAME);
-      if (listArchives != null) {
-        final Boolean parsedBoolean = Locator.getStrictBoolean(listArchives);
-        if (parsedBoolean != null) {
-          if (parsedBoolean) {
-            archiveChildrenNestingLevel = 1;
-          } else {
-            archiveChildrenNestingLevel = 0;
-          }
-        } else {
-          //treat as nesting number
-          try {
-            archiveChildrenNestingLevel = Long.parseLong(listArchives);
-          } catch (NumberFormatException e) {
-            throw new BadRequestException("Cannot parse value '" + listArchives + "' for dimension '" + ARCHIVES_DIMENSION_NAME + "': should be boolean or nesting level number");
-          }
-        }
-      }
-
-      locator.checkLocatorFullyProcessed();
     } else {
       rules.add("+:**");
     }
+
+    long childrenNestingLevel = 1;
+    final String recursive = locator.getSingleDimensionValue(DIMENSION_RECURSIVE);
+    if (recursive != null) {
+      final Boolean parsedBoolean = Locator.getStrictBoolean(recursive);
+      if (parsedBoolean != null) {
+        if (parsedBoolean) {
+          childrenNestingLevel = -1;
+        } else {
+          childrenNestingLevel = 1;
+        }
+      } else {
+        //treat as nesting number
+        try {
+          childrenNestingLevel = Long.parseLong(recursive);
+        } catch (NumberFormatException e) {
+          throw new BadRequestException("Cannot parse value '" + recursive + "' for dimension '" + DIMENSION_RECURSIVE + "': should be boolean or nesting level number");
+        }
+      }
+    }
+
+    long archiveChildrenNestingLevel = 0;
+    final String listArchives = locator.getSingleDimensionValue(ARCHIVES_DIMENSION_NAME);
+    if (listArchives != null) {
+      final Boolean parsedBoolean = Locator.getStrictBoolean(listArchives);
+      if (parsedBoolean != null) {
+        if (parsedBoolean) {
+          archiveChildrenNestingLevel = 1;
+        } else {
+          archiveChildrenNestingLevel = 0;
+        }
+      } else {
+        //treat as nesting number
+        try {
+          archiveChildrenNestingLevel = Long.parseLong(listArchives);
+        } catch (NumberFormatException e) {
+          throw new BadRequestException("Cannot parse value '" + listArchives + "' for dimension '" + ARCHIVES_DIMENSION_NAME + "': should be boolean or nesting level number");
+        }
+      }
+    }
+
+    Boolean includeDirectories = locator.getSingleDimensionValueAsBoolean(DIRECTORY_DIMENSION_NAME);
 
     final List<ArtifactTreeElement> result = new ArrayList<ArtifactTreeElement>();
     AntPatternTreeMatcher.ScanOption[] options = {};
@@ -176,21 +213,12 @@ public class BuildArtifactsFinder {
       options = new AntPatternTreeMatcher.ScanOption[]{AntPatternTreeMatcher.ScanOption.LEAFS_ONLY};  // does not seem to have any effect, see TW-41662
     }
 
-    final Node rootNode = new Node(initialElement, childrenNestingLevel, archiveChildrenNestingLevel, includeHidden, true);
+    final Node rootNode = new Node(myBaseElement, childrenNestingLevel, archiveChildrenNestingLevel, includeHidden, true);
     final Collection<Node> rawResult = AntPatternTreeMatcher.scan(rootNode, rules, options);
     final Boolean finalIncludeDirectories = includeDirectories;
     result.addAll(CollectionsUtil.filterAndConvertCollection(rawResult, new Converter<ArtifactTreeElement, Node>() {
       public ArtifactTreeElement createFrom(@NotNull final Node source) {
-        if (StringUtil.isEmpty(basePath)) {
-          return source.getElement();
-        }
-        return new ArtifactTreeElementWrapper(source.getElement()) {
-          @NotNull
-          @Override
-          public String getFullName() {
-            return relativeToBase(super.getFullName(), basePath);
-          }
-        };
+        return source.getElement();
       }
     }, new Filter<Node>() {
       public boolean accept(@NotNull final Node data) {
@@ -206,7 +234,26 @@ public class BuildArtifactsFinder {
     }));
 
     Collections.sort(result, ARTIFACT_COMPARATOR);
-    return result;
+    return getItemHolder(result);
+  }
+
+  @NotNull
+  private static List<ArtifactTreeElement> makeRelativeToBasePath(@NotNull final List<ArtifactTreeElement> items, @Nullable final String basePath) {
+    if (StringUtil.isEmpty(basePath)){
+      return items;
+    }
+    return CollectionsUtil.convertCollection(items, new Converter<ArtifactTreeElement, ArtifactTreeElement>() {
+      @Override
+      public ArtifactTreeElement createFrom(@NotNull final ArtifactTreeElement source) {
+        return new BuildArtifactsFinder.ArtifactTreeElementWrapper(source) {
+          @NotNull
+          @Override
+          public String getFullName() {
+            return relativeToBase(super.getFullName(), basePath);
+          }
+        };
+      }
+    });
   }
 
   @NotNull
@@ -231,22 +278,12 @@ public class BuildArtifactsFinder {
   }
 
   @NotNull
-  private static Locator getLocator(@Nullable final String filesLocator) {
-    Locator defaults = Locator.createEmptyLocator().setDimension(DIMENSION_RECURSIVE, "false").setDimension(HIDDEN_DIMENSION_NAME, "false")
-                              .setDimension(ARCHIVES_DIMENSION_NAME, "false");
-    final String[] supportedDimensions = {HIDDEN_DIMENSION_NAME, ARCHIVES_DIMENSION_NAME, DIRECTORY_DIMENSION_NAME, DIMENSION_RECURSIVE, DIMENSION_PATTERNS};
-    return Locator.createLocator(filesLocator, defaults, supportedDimensions);
-  }
-
-  @NotNull
   public static Element getArtifactElement(@NotNull final BuildPromotion buildPromotion, @NotNull final String path) {
     final BuildPromotionEx buildPromotionEx = (BuildPromotionEx)buildPromotion;
     final BuildArtifacts artifacts = buildPromotionEx.getArtifacts(BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
     final BuildArtifactHolder holder = artifacts.findArtifact(path);
     if (!holder.isAvailable() && !"".equals(path)) { // "".equals(path) is a workaround for no artifact directory case
-      final Element itemByPattern = getSingleItemByPatternPath(path, new ArtifactElement(artifacts.getRootArtifact()), new ArtifactsBrowser(artifacts));
-      if (itemByPattern != null) return itemByPattern;
-      throw new NotFoundException("No artifact with relative path '" + holder.getRelativePath() + "' found in build " + LogUtil.describe(buildPromotionEx));
+      return getItem(new ArtifactsBrowser(artifacts), path, LogUtil.describe(buildPromotionEx));
     }
     if (!holder.isAccessible()) {
       throw new AuthorizationFailedException("Artifact is not accessible with current user permissions. Relative path: '" + holder.getRelativePath() + "'");
@@ -256,8 +293,7 @@ public class BuildArtifactsFinder {
 
   @Nullable
   private static Element getSingleItemByPatternPath(final @NotNull String pathWithPatterns, final @NotNull Element root, final @NotNull Browser browser) {
-    final String locator = getLocator(Locator.getStringLocator(DIMENSION_PATTERNS, pathWithPatterns)).getStringRepresentation();
-    final List<ArtifactTreeElement> items = getItems(root, "", locator, null);
+    final List<ArtifactTreeElement> items = getItems(root, Locator.getStringLocator(DIMENSION_PATTERNS, pathWithPatterns), null);
     if (items.size() > 0){
       final ArtifactTreeElement first = items.get(0);
       //now find it in browser to make sure archive's children can be listed
