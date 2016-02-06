@@ -27,11 +27,15 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 23/11/2015
  */
-public class TimeCondition {
+public class TimeCondition implements Matcher<Date> {
   public static final String DATE_CONDITION_EQUALS = "equals";
   public static final String DATE_CONDITION_BEFORE = "before";
   public static final String DATE_CONDITION_AFTER = "after";
   static final Map<String, Condition<Date>> ourTimeConditions = new HashMap<String, Condition<Date>>();
+  protected static final String DATE = "date";
+  protected static final String BUILD = "build";
+  protected static final String CONDITION = "condition";
+  protected static final String INCLUDE_INITIAL = "includeInitial";
 
   static {
     ourTimeConditions.put(TimeCondition.DATE_CONDITION_EQUALS, new TimeCondition.Condition<Date>() {
@@ -58,64 +62,88 @@ public class TimeCondition {
   }
 
 
-  /**
-   * @return Date if it can be used for cutting builds processing
-   */
-  @Nullable
-  static Date processTimeCondition(@NotNull final String timeLocatorText,
-                                   @NotNull final MultiCheckerFilter<BuildPromotion> result,
-                                   @NotNull final ValueExtractor<BuildPromotion, Date> valueExtractor,
-                                   @NotNull final BuildPromotionFinder finder) {
-    final Locator timeLocator = new Locator(timeLocatorText, "date", "build", "condition", "includeInitial", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+  @NotNull private final String myTimeLocator;
+  @NotNull private final ValueExtractor<BuildPromotion, Date> myValueExtractor;
+  @Nullable private Date myLimitingSinceDate;
+  @Nullable private Date myLimitingDate;
+  private Condition<Date> myCondition;
+
+  public TimeCondition(@NotNull String timeLocator, @NotNull final ValueExtractor<BuildPromotion, Date> valueExtractor, final BuildPromotionFinder buildPromotionFinder) {
+    myTimeLocator = timeLocator;
+    myValueExtractor = valueExtractor;
+    init(buildPromotionFinder);
+  }
+
+  private void init(final BuildPromotionFinder buildPromotionFinder) {
+    final Locator timeLocator = new Locator(myTimeLocator, DATE, BUILD, CONDITION, INCLUDE_INITIAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     String build = null;
-      String time = timeLocator.getSingleValue();
+    String time = timeLocator.getSingleValue();
     if (time == null) {
-      time = timeLocator.getSingleDimensionValue("date");
+      time = timeLocator.getSingleDimensionValue(DATE);
       if (time == null) {
-        build = timeLocator.getSingleDimensionValue("build");
+        build = timeLocator.getSingleDimensionValue(BUILD);
         if (build == null) {
-          throw new BadRequestException("Invalid locator: should contain '" + "date" + "' or '" + "build" + "' dimensions");
+          throw new BadRequestException("Invalid locator: should contain '" + DATE + "' or '" + BUILD + "' dimensions");
         }
       }
     }
-    @Nullable final Date parsedTime = time != null ? DataProvider.parseDate(time) : valueExtractor.get(finder.getItem(build));
+    @Nullable final Date parsedTime = time != null ? DataProvider.parseDate(time) : myValueExtractor.get(buildPromotionFinder.getItem(build));
     final boolean secondsPrecision = time != null; //force rounding to seconds as the passed time does not support more
 
-    final String conditionText = timeLocator.getSingleDimensionValue("condition");
+    final String conditionText = timeLocator.getSingleDimensionValue(CONDITION);
     final String conditionName = conditionText == null ? DATE_CONDITION_AFTER : conditionText; //todo: should it be "equal" instead???
     final Condition<Date> definedCondition = getCondition(conditionName);
     if (definedCondition == null) {
       throw new BadRequestException("Invalid condition name '" + conditionName + "'. Supported names are: " + Arrays.toString(getAllConditions()));
     }
 
-    Boolean includeInitial = timeLocator.getSingleDimensionValueAsBoolean("includeInitial", false);
-    if (includeInitial == null) includeInitial = false;
-    final Condition<Date> resultingCondition = !includeInitial ? definedCondition : new Condition<Date>() {
-      @Override
-      boolean matches(@Nullable final Date refDate, @NotNull final Date tryDate) {
-        final boolean nestedResult = definedCondition.matches(refDate, tryDate);
-        return refDate == null ? nestedResult : nestedResult || refDate.equals(tryDate);
-      }
-    };
+    Boolean includeInitial = timeLocator.getSingleDimensionValueAsBoolean(INCLUDE_INITIAL, false);
+    if (includeInitial == null) {
+      includeInitial = false;
+    }
 
     timeLocator.checkLocatorFullyProcessed();
 
-    result.add(new FilterConditionChecker<BuildPromotion>() {
-      public boolean isIncluded(@NotNull final BuildPromotion item) {
-        Date tryValue = valueExtractor.get(item);
-        if (tryValue == null){
-          return false; //do not include if no date present (e.g. not started build). This can be reworked to treat nulls as "future" instead of "never"
+    Condition<Date> resultingCondition;
+    if (!includeInitial) {
+      resultingCondition = definedCondition;
+    } else {
+      resultingCondition = new Condition<Date>() {
+        @Override
+        boolean matches(@Nullable final Date refDate, @NotNull final Date tryDate) {
+          final boolean nestedResult = definedCondition.matches(refDate, tryDate);
+          return refDate == null ? nestedResult : nestedResult || refDate.equals(tryDate);
         }
-        if (secondsPrecision) {
+      };
+    }
+
+    if (secondsPrecision) {
+      final Condition<Date> currentCondition = resultingCondition;
+      resultingCondition = new Condition<Date>() {
+        @Override
+        boolean matches(@Nullable final Date refDate, @NotNull final Date tryDate) {
           Calendar calendar = Calendar.getInstance();
-          calendar.setTime(tryValue);
+          calendar.setTime(tryDate);
           calendar.set(Calendar.MILLISECOND, 0);
-          tryValue = calendar.getTime();
+
+          return currentCondition.matches(refDate, calendar.getTime());
         }
-        return resultingCondition.matches(parsedTime, tryValue);
-      }
-    });
-    return DATE_CONDITION_AFTER.equals(conditionName) || DATE_CONDITION_EQUALS.equals(conditionName) ? parsedTime : null;
+      };
+    }
+
+    myCondition = resultingCondition;
+    myLimitingDate = parsedTime;
+    myLimitingSinceDate = DATE_CONDITION_AFTER.equals(conditionName) || DATE_CONDITION_EQUALS.equals(conditionName) ? parsedTime : null;
+  }
+
+  @Override
+  public boolean matches(@NotNull final Date date) {
+    return myCondition.matches(myLimitingDate, date);
+  }
+
+  @Nullable
+  public Date getLimitingSinceDate() {
+    return myLimitingSinceDate;
   }
 
   @Nullable

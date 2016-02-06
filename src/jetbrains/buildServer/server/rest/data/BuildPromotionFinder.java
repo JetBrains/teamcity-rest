@@ -752,12 +752,34 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     Date result = null;
     for (String timeLocator : timeLocators) {
       try {
-        result = maxDate(result, TimeCondition.processTimeCondition(timeLocator, filter, valueExtractor, this));
+        result = maxDate(result, processTimeCondition(timeLocator, filter, valueExtractor, this));
       } catch (BadRequestException e) {
         throw new BadRequestException("Error processing '" + locatorDimension + "' locator '" + timeLocator + "': " + e.getMessage(), e);
       }
     }
     return result;
+  }
+
+  /**
+   * @return Date if it can be used for cutting builds processing
+   */
+  @Nullable
+  static Date processTimeCondition(@NotNull final String timeLocatorText,
+                                   @NotNull final MultiCheckerFilter<BuildPromotion> result,
+                                   @NotNull final TimeCondition.ValueExtractor<BuildPromotion, Date> valueExtractor,
+                                   @NotNull final BuildPromotionFinder finder) {
+    TimeCondition matcher = new TimeCondition(timeLocatorText, valueExtractor, finder);
+    result.add(new FilterConditionChecker<BuildPromotion>() {
+      @Override
+      public boolean isIncluded(@NotNull final BuildPromotion item) {
+        final Date tryValue = valueExtractor.get(item);
+        if (tryValue == null) {
+          return false; //do not include if no date present (e.g. not started build). This can be reworked to treat nulls as "future" instead of "never"
+        }
+        return matcher.matches(tryValue);
+      }
+    });
+    return matcher.getLimitingSinceDate();
   }
 
   @NotNull
