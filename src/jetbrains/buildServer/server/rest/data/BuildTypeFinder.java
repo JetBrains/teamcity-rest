@@ -602,6 +602,10 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
   @NotNull
   public PagedSearchResult<BuildTypeOrTemplate> getBuildTypesPaged(final @Nullable SProject project, final @Nullable String buildTypeLocator, final boolean buildType) {
+    if (buildTypeLocator != null && (new Locator(buildTypeLocator)).isSingleValue()){
+      return getItems(buildTypeLocator);
+    }
+
     String actualLocator = Locator.setDimensionIfNotPresent(buildTypeLocator, TEMPLATE_FLAG_DIMENSION_NAME, String.valueOf(!buildType));
 
     if (project != null) {

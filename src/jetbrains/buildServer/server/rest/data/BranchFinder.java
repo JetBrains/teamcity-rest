@@ -233,10 +233,10 @@ public class BranchFinder extends AbstractFinder<Branch> {
   }
 
   @Nullable
-  public PagedSearchResult<Branch> getItemsIfValidBranchListLocator(@Nullable SBuildType buildType, @Nullable final String locatorText) {
+  public PagedSearchResult<Branch> getItemsIfValidBranchListLocator(@Nullable String buildTypesLocator, @Nullable final String locatorText) {
     final Locator locator = new Locator(locatorText);
-    if (buildType != null && (locator.getSingleDimensionValue(POLICY) != null || locator.getSingleDimensionValue(CHANGES_FROM_DEPENDENCIES) != null)){
-      locator.setDimensionIfNotPresent(BUILD_TYPE, myBuildTypeFinder.getItemLocator(new BuildTypeOrTemplate(buildType)));
+    if (buildTypesLocator != null && (locator.getSingleDimensionValue(POLICY) != null || locator.getSingleDimensionValue(CHANGES_FROM_DEPENDENCIES) != null)){
+      locator.setDimensionIfNotPresent(BUILD_TYPE, buildTypesLocator);
     }
     try {
       return getItems(locator.getStringRepresentation());

@@ -270,21 +270,22 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
-    SBuildType buildType = null;
     final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
     if (buildTypeLocator != null) {
-      buildType = myBuildTypeFinder.getBuildType(affectedProject, buildTypeLocator, false);
-      final SBuildType finalBuildType = buildType;
+      final Set<SBuildType> buildTypes = new HashSet<>(myBuildTypeFinder.getBuildTypes(affectedProject, buildTypeLocator));
+      if (buildTypes.isEmpty()){
+        throw new NotFoundException("No build types found for locator '" + buildTypeLocator + "'");
+      }
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
-          return finalBuildType.equals(item.getParentBuildType());
+          return buildTypes.contains(item.getParentBuildType());
         }
       });
     }
 
     final String branchLocatorValue = locator.getSingleDimensionValue(BRANCH);
     if (branchLocatorValue != null) {
-      final PagedSearchResult<Branch> branches = myBranchFinder.getItemsIfValidBranchListLocator(buildType, branchLocatorValue);
+      final PagedSearchResult<Branch> branches = myBranchFinder.getItemsIfValidBranchListLocator(buildTypeLocator, branchLocatorValue);
       if (branches != null) {
         //branches found - use them
         Set<String> branchNames = getBranchNamesSet(branches.myEntries);
@@ -994,11 +995,10 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     if (equivalent != null) {
       final BuildPromotionEx build = (BuildPromotionEx)getItem(equivalent);
       final List<BuildPromotionEx> result = build.getStartedEquivalentPromotions();
-      final List<BuildPromotion> convertedResult = new ArrayList<BuildPromotion>(result.size());
+      final Set<BuildPromotion> convertedResult = new TreeSet<BuildPromotion>(BUILD_PROMOTIONS_COMPARATOR);
       for (BuildPromotionEx item : result) {
         convertedResult.add(item);
       }
-      Collections.sort(convertedResult, BUILD_PROMOTIONS_COMPARATOR);
       return getItemHolder(convertedResult);
     }
 
@@ -1018,9 +1018,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     if (number != null) {
       final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
       if (buildTypeLocator != null) {
-        final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
-        final List<SBuild> builds = myBuildsManager.findBuildInstancesByBuildNumber(buildType.getBuildTypeId(), number);
-        return getItemHolder(BuildFinder.toBuildPromotions(builds));
+        final List<SBuildType> buildTypes = myBuildTypeFinder.getBuildTypes(null, buildTypeLocator);
+        final Set<BuildPromotion> builds = new TreeSet<BuildPromotion>(BUILD_PROMOTIONS_COMPARATOR);
+        for (SBuildType buildType : buildTypes) {
+          builds.addAll(BuildFinder.toBuildPromotions(myBuildsManager.findBuildInstancesByBuildNumber(buildType.getBuildTypeId(), number)));
+        }
+        return getItemHolder(builds);
       } else{
         // if build type is not specified, search by scanning (performance impact)
         locator.markUnused(NUMBER);
@@ -1058,7 +1061,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         if (affectedProjectLocator != null) {
           affectedProject = myProjectFinder.getItem(affectedProjectLocator);
         }
-        buildType = myBuildTypeFinder.getBuildType(affectedProject, buildTypeLocator, false);
+        List<SBuildType> buildTypes = myBuildTypeFinder.getBuildTypes(affectedProject, buildTypeLocator);
+        if (buildTypes.size() == 1) {
+          buildType = buildTypes.get(0);
+        } else {
+          locator.markUnused(BUILD_TYPE, AFFECTED_PROJECT);
+        }
       }
 
       final BuildQueryOptions options = new BuildQueryOptions();

@@ -210,6 +210,25 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
+  public void testMultipleBuildTypes() throws Exception {
+    final BuildTypeImpl buildConf0 = registerBuildType("buildConf0", "project");
+    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project1");
+
+    final BuildPromotion build05 = build().in(buildConf0).number("10").finish().getBuildPromotion();
+    final BuildPromotion build10 = build().in(buildConf1).number("10").finish().getBuildPromotion();
+    final BuildPromotion build20 = build().in(buildConf0).finish().getBuildPromotion();
+    final BuildPromotion build30 = build().in(buildConf0).number("10").finish().getBuildPromotion();
+    final BuildPromotion build40 = build().in(buildConf2).finish().getBuildPromotion();
+
+    check(null, build40, build30, build20, build10, build05);
+    check("buildType:(id:" + buildConf0.getExternalId() + ")", build30, build20, build05);
+    check("buildType:(project:(name:" + "project" + "))", build30, build20, build10, build05);
+    check("buildType:(project:(name:" + "project" + ")),number:10", build30, build10, build05);
+    check("buildType:(item:(id:" + buildConf1.getExternalId() + "),item:(id:(" + buildConf0.getExternalId() + ")))", build30, build20, build10, build05);
+  }
+
+  @Test
   public void testQueuedBuildFinding() throws Exception {
     final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
 
@@ -265,9 +284,12 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     final SFinishedBuild build1 = build().in(buildConf).finish();
     final SFinishedBuild build2 = build().in(buildConf).withBranch("branch1").finish();
     final SFinishedBuild build3 = build().in(buildConf).withBranch("branch1").finish();
+    final SFinishedBuild build4 = build().in(buildConf).withBranch("branch1").finish();
+    final SFinishedBuild build5 = build().in(buildConf).withBranch("branch1").finish();
 
     checkBuilds("equivalent:(id:" + build0.getBuildId() + ")", build1.getBuildPromotion());
-    checkBuilds("equivalent:(id:" + build2.getBuildId() + ")", build3.getBuildPromotion());
+    checkBuilds("equivalent:(id:" + build2.getBuildId() + ")", build5.getBuildPromotion(), build4.getBuildPromotion(), build3.getBuildPromotion());
+    checkBuilds("equivalent:(id:" + build4.getBuildId() + ")", build5.getBuildPromotion(), build3.getBuildPromotion(), build2.getBuildPromotion());
   }
 
 
