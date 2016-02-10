@@ -63,7 +63,7 @@ public class VcsRootInstanceRequest {
   }
 
   public static String getVcsRootInstanceHref(final jetbrains.buildServer.vcs.VcsRootInstance vcsRootInstance) {
-    return API_VCS_ROOT_INSTANCES_URL + "" + VcsRootInstanceFinder.getLocator(vcsRootInstance);
+    return API_VCS_ROOT_INSTANCES_URL + "/" + VcsRootInstanceFinder.getLocator(vcsRootInstance);
   }
 
   public static String getVcsRootInstancesHref(@NotNull final SVcsRoot vcsRoot) {
