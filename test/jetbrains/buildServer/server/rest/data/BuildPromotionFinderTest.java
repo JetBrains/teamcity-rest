@@ -16,9 +16,11 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import jetbrains.buildServer.MockTimeService;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.log.Loggable;
@@ -414,6 +416,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   public void testTimes() {
     final MockTimeService time = new MockTimeService(Dates.now().getTime());
     myServer.setTimeService(time);
+    initFinders(); //recreate finders to let time service sink in
 
     final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
     final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
@@ -474,6 +477,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("finishDate:(build:(id:" + build20.getBuildId() + "),condition:before),state:any", getBuildPromotions(build10));
     checkBuilds("finishDate:(build:(id:" + build20.getBuildId() + "),condition:equals),state:any", getBuildPromotions(build20));
     checkBuilds("finishDate:(build:(id:" + build20.getBuildId() + ")),state:any", getBuildPromotions(build70, build60, build40, build23));
+    checkExceptionOnBuildsSearch(BadRequestException.class, "finishDate:(build:(id:" + queuedBuild110.getItemId() + "))");
 
     checkBuilds("finishDate:(date:" + Util.formatTime(build10.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(build70, build60, build40, build23, build20));
     checkBuilds("finishDate:(date:" + Util.formatTime(build10.getFinishDate()) + ",condition:after),state:any,failedToStart:any", getBuildPromotions(build70, build60, build40, build30, build23, build20));
@@ -482,6 +486,16 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("finishDate:(date:" + Util.formatTime(build20.getFinishDate()) + ",condition:before),state:any", getBuildPromotions(build10));
     checkBuilds("finishDate:(date:" + Util.formatTime(build20.getFinishDate()) + ",condition:equals),state:any", getBuildPromotions(build23, build20));
     checkBuilds("finishDate:(date:" + Util.formatTime(build20.getFinishDate()) + "),state:any", getBuildPromotions(build70, build60, build40));
+
+    checkBuilds("finishDate:(date:" + (new SimpleDateFormat("yyyyMMdd'T'HHmmss.SSSZ", Locale.ENGLISH)).format(build20.getFinishDate()) + "),state:any",
+                getBuildPromotions(build70, build60, build40, build23));
+    checkBuilds("finishDate:(date:" + (new SimpleDateFormat("yyyyMMdd'T'HHmmss.SSSX", Locale.ENGLISH)).format(build20.getFinishDate()) + "),state:any",
+                getBuildPromotions(build70, build60, build40, build23));
+    checkBuilds("finishDate:(date:" + (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.ENGLISH)).format(build20.getFinishDate()) + "),state:any",
+                getBuildPromotions(build70, build60, build40));
+    checkBuilds("finishDate:(date:" + (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.ENGLISH)).format(build20.getFinishDate()) + "),state:any",
+                getBuildPromotions(build70, build60, build40));
+
 
     checkBuilds("startDate:(build:(id:" + build10.getBuildId() + "),condition:after)", getBuildPromotions(build70, build60, build40, build23, build20));
     checkBuilds("startDate:(build:(id:" + build10.getBuildId() + "),condition:after),state:any", getBuildPromotions(build80, build70, build60, build40, build23, build20));
@@ -493,6 +507,31 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("queuedDate:(build:(id:" + build10.getBuildId() + "),condition:after)", getBuildPromotions(build70, build60, build40, build23, build20));
     checkBuilds("queuedDate:(build:(id:" + build10.getBuildId() + "),condition:after),state:any",
                 getBuildPromotions(queuedBuild130, queuedBuild110, queuedBuild120, build80, build70, build60, build40, build23, build20));
+
+    checkBuilds("startDate:(-10m),state:any", getBuildPromotions(build80, build70, build60, build40, build23, build20, build10));
+
+    time.jumpTo(afterBuild30.getTime() + 10 * 60 * 1000 - time.getNow().getTime()); // set time to afterBuild30 + 10 minutes
+    checkBuilds("startDate:(-10m),state:any", getBuildPromotions(build80, build70, build60, build40));
+    time.jumpTo(9);
+    checkBuilds("startDate:(-10m),state:any", getBuildPromotions(build80, build70, build60, build40));
+    time.jumpTo(1);
+    checkBuilds("startDate:(-10m),state:any", getBuildPromotions(build80, build70, build60));
+    time.jumpTo(60*10);
+    checkBuilds("startDate:(-10m),state:any");
+
+    checkBuilds("startDate:(build:(id:" + build60.getBuildId() + "),shift:-11s),state:any", getBuildPromotions(build80, build70, build60, build40));
+    checkBuilds("startDate:(build:(id:" + build60.getBuildId() + "),shift:-10s),state:any", getBuildPromotions(build80, build70, build60));
+    checkBuilds("startDate:(build:(id:" + build60.getBuildId() + "),shift:+9s),state:any", getBuildPromotions(build80, build70));
+    checkBuilds("startDate:(build:(id:" + build60.getBuildId() + "),shift:+10s),state:any", getBuildPromotions(build80));
+    checkBuilds("startDate:(condition:after,build:(id:" + build60.getBuildId() + ")" +
+                ",shift:-11s),startDate:(condition:before,build:(id:" + build60.getBuildId() + "),shift:+11s),state:any",
+                getBuildPromotions(build70, build60, build40));
+    checkBuilds("startDate:(condition:after,build:(id:" + build60.getBuildId() + ")" +
+                ",shift:-9s),startDate:(condition:before,build:(id:" + build60.getBuildId() + "),shift:+9s),state:any",
+                getBuildPromotions(build60));
+    checkBuilds("startDate:(condition:after,build:(id:" + build60.getBuildId() + ")" +
+                ",shift:-10s),startDate:(condition:before,build:(id:" + build60.getBuildId() + "),shift:+10s),state:any",
+                getBuildPromotions(build60));
 
     checkExceptionOnBuildsSearch(BadRequestException.class, "finishDate:(xxx)");
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "finishDate:(time:20150101T000000+0000,build:(id:3))");

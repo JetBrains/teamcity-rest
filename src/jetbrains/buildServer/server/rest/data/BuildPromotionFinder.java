@@ -30,6 +30,7 @@ import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
+import jetbrains.buildServer.serverSide.impl.RunningBuildsManagerEx;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.filters.Filter;
@@ -106,6 +107,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private final UserFinder myUserFinder;
   private final AgentFinder myAgentFinder;
   private final BranchFinder myBranchFinder;
+  private final TimeService myTimeService;
 
   @NotNull
   public static String getLocator(@NotNull final BuildPromotion buildPromotion) {
@@ -126,7 +128,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                               final BuildTypeFinder buildTypeFinder,
                               final UserFinder userFinder,
                               final AgentFinder agentFinder,
-                              final BranchFinder branchFinder) {
+                              final BranchFinder branchFinder,
+                              final RunningBuildsManagerEx timeServiceContainer) {
     super(new String[]{DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, USER, PERSONAL, STATE, TAG, PROPERTY, COMPATIBLE_AGENT,
       NUMBER, STATUS, CANCELED, PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, HANGING,
       DEFAULT_FILTERING, SINCE_BUILD_ID_LOOK_AHEAD_COUNT,
@@ -140,6 +143,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     myUserFinder = userFinder;
     myAgentFinder = agentFinder;
     myBranchFinder = branchFinder;
+    myTimeService = timeServiceContainer.getTimeService();
   }
 
   @Override
@@ -752,7 +756,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     Date result = null;
     for (String timeLocator : timeLocators) {
       try {
-        result = maxDate(result, processTimeCondition(timeLocator, filter, valueExtractor, this));
+        result = maxDate(result, processTimeCondition(timeLocator, filter, valueExtractor, this, myTimeService));
       } catch (BadRequestException e) {
         throw new BadRequestException("Error processing '" + locatorDimension + "' locator '" + timeLocator + "': " + e.getMessage(), e);
       }
@@ -767,8 +771,9 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   static Date processTimeCondition(@NotNull final String timeLocatorText,
                                    @NotNull final MultiCheckerFilter<BuildPromotion> result,
                                    @NotNull final TimeCondition.ValueExtractor<BuildPromotion, Date> valueExtractor,
-                                   @NotNull final BuildPromotionFinder finder) {
-    TimeCondition matcher = new TimeCondition(timeLocatorText, valueExtractor, finder);
+                                   @NotNull final BuildPromotionFinder finder,
+                                   @NotNull final TimeService timeService) {
+    TimeCondition matcher = new TimeCondition(timeLocatorText, valueExtractor, finder, timeService);
     result.add(new FilterConditionChecker<BuildPromotion>() {
       @Override
       public boolean isIncluded(@NotNull final BuildPromotion item) {
