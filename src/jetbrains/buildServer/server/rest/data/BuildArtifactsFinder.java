@@ -41,7 +41,7 @@ import jetbrains.buildServer.util.pathMatcher.AntPatternTreeMatcher;
 import jetbrains.buildServer.util.pathMatcher.PathNode;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactElement;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
-import jetbrains.buildServer.web.artifacts.browser.ArtifactsBrowser;
+import jetbrains.buildServer.web.artifacts.browser.ArtifactsBrowserImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -242,7 +242,7 @@ public class BuildArtifactsFinder {
     final BuildArtifacts artifacts = buildPromotionEx.getArtifacts(BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
     final BuildArtifactHolder holder = artifacts.findArtifact(path);
     if (!holder.isAvailable() && !"".equals(path)) { // "".equals(path) is a workaround for no artifact directory case
-      final Element itemByPattern = getSingleItemByPatternPath(path, new ArtifactElement(artifacts.getRootArtifact()), new ArtifactsBrowser(artifacts));
+      final Element itemByPattern = getSingleItemByPatternPath(path, new ArtifactElement(artifacts.getRootArtifact()), new ArtifactsBrowserImpl(artifacts));
       if (itemByPattern != null) return itemByPattern;
       throw new NotFoundException("No artifact with relative path '" + holder.getRelativePath() + "' found in build " + LogUtil.describe(buildPromotionEx));
     }
