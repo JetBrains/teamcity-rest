@@ -569,29 +569,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     }
 
-    processTimeCondition(QUEUED_TIME, locator, result, new TimeCondition.ValueExtractor<BuildPromotion, Date>() {
-      @Nullable
-      public Date get(@NotNull final BuildPromotion buildPromotion) {
-        return buildPromotion.getQueuedDate();
-      }
-    });
+    processTimeCondition(QUEUED_TIME, locator, result, TimeCondition.QUEUED_BUILD_TIME);
 
-    @Nullable Date sinceStartDate = processTimeCondition(STARTED_TIME, locator, result, new TimeCondition.ValueExtractor<BuildPromotion, Date>() {
-      @Nullable
-      public Date get(@NotNull final BuildPromotion buildPromotion) {
-        final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
-        return associatedBuild == null ? null : associatedBuild.getStartDate();
-      }
-    });
+    @Nullable Date sinceStartDate = processTimeCondition(STARTED_TIME, locator, result, TimeCondition.STARTED_BUILD_TIME);
 
     //todo: add processing cut of based on assumption of max build time (say, a week); for other times as well
-    processTimeCondition(FINISHED_TIME, locator, result, new TimeCondition.ValueExtractor<BuildPromotion, Date>() {
-      @Nullable
-      public Date get(@NotNull final BuildPromotion buildPromotion) {
-        final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
-        return associatedBuild == null ? null : associatedBuild.getFinishDate();
-      }
-    });
+    processTimeCondition(FINISHED_TIME, locator, result, TimeCondition.FINISHED_BULLD_TIME);
 
     final String revisionLocatorText = locator.getSingleDimensionValue(REVISION);
     if (revisionLocatorText != null) {
