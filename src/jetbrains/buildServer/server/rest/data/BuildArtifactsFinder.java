@@ -42,7 +42,7 @@ import jetbrains.buildServer.util.pathMatcher.AntPatternTreeMatcher;
 import jetbrains.buildServer.util.pathMatcher.PathNode;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactElement;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
-import jetbrains.buildServer.web.artifacts.browser.ArtifactsBrowser;
+import jetbrains.buildServer.web.artifacts.browser.ArtifactsBrowserImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -283,12 +283,12 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
     final BuildArtifacts artifacts = buildPromotionEx.getArtifacts(BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
     final BuildArtifactHolder holder = artifacts.findArtifact(path);
     if (!holder.isAvailable() && !"".equals(path)) { // "".equals(path) is a workaround for no artifact directory case
-      return getItem(new ArtifactsBrowser(artifacts), path, LogUtil.describe(buildPromotionEx));
+      return getItem(new ArtifactsBrowserImpl(artifacts), path, LogUtil.describe(buildPromotionEx));
     }
     if (!holder.isAccessible()) {
       throw new AuthorizationFailedException("Artifact is not accessible with current user permissions. Relative path: '" + holder.getRelativePath() + "'");
     }
-    return  new ArtifactElement(holder.getArtifact());
+    return new ArtifactElement(holder.getArtifact(), new ArtifactsBrowserImpl(artifacts));
   }
 
   @Nullable
