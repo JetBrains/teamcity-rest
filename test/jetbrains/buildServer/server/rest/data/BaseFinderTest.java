@@ -40,6 +40,7 @@ import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
 import jetbrains.buildServer.serverSide.problems.BuildProblemManager;
 import jetbrains.buildServer.vcs.impl.VcsManagerImpl;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
 
@@ -67,6 +68,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   protected AgentPoolsFinder myAgentPoolsFinder;
   protected QueuedBuildFinder myQueuedBuildFinder;
   protected BranchFinder myBranchFinder;
+  protected ChangeFinder myChangeFinder;
 
   static BeanContext getBeanContext(final ServiceLocator serviceLocator) {
     final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
@@ -126,7 +128,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myBranchFinder = new BranchFinder(myBuildTypeFinder);
 
     myBuildPromotionFinder = new BuildPromotionFinder(myFixture.getBuildPromotionManager(), myFixture.getBuildQueue(), myServer, myVcsRootFinder,
-                                                      myProjectFinder, myBuildTypeFinder, myUserFinder, myAgentFinder, myBranchFinder);
+                                                      myProjectFinder, myBuildTypeFinder, myUserFinder, myAgentFinder, myBranchFinder, myServer);
     myFixture.addService(myBuildPromotionFinder);
 
     myBuildFinder = new BuildFinder(myServer, myBuildTypeFinder, myProjectFinder, myUserFinder, myBuildPromotionFinder, myAgentFinder);
@@ -155,9 +157,13 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myQueuedBuildFinder =
       new QueuedBuildFinder(myServer.getQueue(), myProjectFinder, myBuildTypeFinder, myUserFinder, myAgentFinder, myFixture.getBuildPromotionManager(), myServer);
     myFixture.addService(myQueuedBuildFinder);
+
+    //myChangeFinder = new ChangeFinder(myProjectFinder, myBuildFinder, myBuildPromotionFinder, myBuildTypeFinder, myVcsRootFinder, myVcsRootInstanceFinder, myUserFinder,
+    //                                  myVcsManager, myFixture.getVcsHistory(), myBranchFinder, myFixture, permissionChecker
+    //);
   }
 
-  public void setFinder(AbstractFinder<T> finder){
+  public void setFinder(@NotNull AbstractFinder<T> finder){
     myFinder = finder;
   }
 
