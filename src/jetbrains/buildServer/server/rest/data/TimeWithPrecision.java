@@ -16,31 +16,27 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import com.intellij.openapi.diagnostic.Logger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Constants;
 import jetbrains.buildServer.util.TimeService;
 import org.jetbrains.annotations.NotNull;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.Days;
+import org.joda.time.LocalTime;
+import org.joda.time.format.ISODateTimeFormat;
 
 /**
  * @author Yegor.Yarko
  *         Date: 15/02/2016
  */
 public class TimeWithPrecision {
-  protected static final List<TimeFormat> TIME_FORMATS;
-
-  static {
-    TIME_FORMATS = new ArrayList<>();
-    TIME_FORMATS.add(new TimeFormat(Constants.TIME_FORMAT, true));  //ISO 8601-like, with RFC 822 timezone - the only used format before TeamCity 10
-    TIME_FORMATS.add(new TimeFormat("yyyyMMdd'T'HHmmssX", true)); //ISO 8601 (the same as above with ISO 8601 time zone)
-    TIME_FORMATS.add(new TimeFormat("yyyyMMdd'T'HHmmss.SSSX", false)); //ms precision
-    TIME_FORMATS.add(new TimeFormat("yyyy-MM-dd'T'HH:mm:ssX", true)); //another variance of ISO 8601
-  }
+  private static Logger LOG = Logger.getInstance(TimeWithPrecision.class.getName());
 
   @NotNull private final Date myTime;
   private final boolean mySecondsPrecision;
@@ -67,28 +63,79 @@ public class TimeWithPrecision {
       return new TimeWithPrecision(new Date(timeService.now() + TimeWithPrecision.getMsFromRelativeTime(timeString.substring("+".length()))), true);
     }
 
-    ParseException firstError = null;
-    for (TimeFormat timeFormat : TIME_FORMATS) {
-      try {
-        return new TimeWithPrecision(new SimpleDateFormat(timeFormat.myTimeFormat, Locale.ENGLISH).parse(timeString), timeFormat.mySecondsPrecision);
-      } catch (ParseException e) {
-        if (firstError == null) firstError = e;
-      }
-    }
-    //todo: consider using ISODateTimeFormat here
+    // try different parsers
+    // the order can be important as SimpleDateFormat will parse the beginning of the string ignoring any unparsed trailing characters
 
-    assert firstError != null;
+    BadRequestException firstError;
+    try {
+      return new TimeWithPrecision(new SimpleDateFormat(Constants.TIME_FORMAT, Locale.ENGLISH).parse(timeString), true);
+    } catch (ParseException e) {
+      firstError = new BadRequestException("Was not able to parse date '" + timeString + "' using format '" + Constants.TIME_FORMAT + "'. Error: " + e.toString(), e);
+    }
+
+    try {
+      DateTime dateTime = ISODateTimeFormat.dateTimeParser().withLocale(Locale.ENGLISH).parseDateTime(timeString);
+      if (Days.daysBetween(new DateTime(0), dateTime).getDays() < 1) {
+        //it probably was time only without date specified, consider it today's time
+        DateTime now = new DateTime(timeService.now());
+        dateTime = dateTime.withDate(now.getYear(), now.getMonthOfYear(), now.getDayOfMonth());
+      }
+      return new TimeWithPrecision(dateTime.toDate(), false);
+    } catch (Exception e) {
+      //ignore
+      if (LOG.isDebugEnabled()) LOG.debug("Was not able to parse date/time '" + timeString + "' using ISODateTimeFormat.dateTimeParser. Error: " + e.toString(), e);
+    }
+
+    try {
+      return new TimeWithPrecision(ISODateTimeFormat.basicDateTime().withLocale(Locale.ENGLISH).parseDateTime(timeString).toDate(), false);
+    } catch (Exception e) {
+      //ignore
+      if (LOG.isDebugEnabled()) LOG.debug("Was not able to parse date/time '" + timeString + "' using ISODateTimeFormat.basicDateTime. Error: " + e.toString(), e);
+    }
+
+    try {
+      return new TimeWithPrecision(ISODateTimeFormat.basicDateTimeNoMillis().withLocale(Locale.ENGLISH).parseDateTime(timeString).toDate(), false);
+    } catch (Exception e) {
+      //ignore
+      if (LOG.isDebugEnabled()) LOG.debug("Was not able to parse date/time '" + timeString + "' using ISODateTimeFormat.basicDateTimeNoMillis. Error: " + e.toString(), e);
+    }
+
+    try {
+      DateTime dateTime = ISODateTimeFormat.localDateOptionalTimeParser().withLocale(Locale.ENGLISH).parseDateTime(timeString).withZoneRetainFields(DateTimeZone.getDefault());
+      return new TimeWithPrecision(dateTime.toDate(), false);
+    } catch (Exception e) {
+      //ignore
+      if (LOG.isDebugEnabled()) LOG.debug("Was not able to parse date/time '" + timeString + "' using ISODateTimeFormat.localDateOptionalTimeParser. Error: " + e.toString(), e);
+    }
+
+    try {
+      return new TimeWithPrecision(LocalTime.parse(timeString).toDateTime(new DateTime(timeService.now()).withMillisOfDay(0)).toDate(), false);
+    } catch (Exception e) {
+      //ignore
+      if (LOG.isDebugEnabled()) LOG.debug("Was not able to parse date/time '" + timeString + "' using LocalTime. Error: " + e.toString(), e);
+    }
+
+    try {
+      return new TimeWithPrecision(new SimpleDateFormat("yyyyMMdd'T'HHmmss.SSS", Locale.ENGLISH).parse(timeString), false);
+    } catch (ParseException e) {
+      //ignore
+      if (LOG.isDebugEnabled()) LOG.debug("Was not able to parse date/time '" + timeString + "' using format '" + "yyyyMMdd'T'HHmmss.SSS" + "'. Error: " + e.toString(), e);
+    }
+
+    try {
+      return new TimeWithPrecision(new SimpleDateFormat("yyyyMMdd'T'HHmmss", Locale.ENGLISH).parse(timeString), false);
+    } catch (ParseException e) {
+      //ignore
+      if (LOG.isDebugEnabled()) LOG.debug("Was not able to parse date/time '" + timeString + "' using format '" + "yyyyMMdd'T'HHmmss" + "'. Error: " + e.toString(), e);
+    }
 
     StringBuilder message = new StringBuilder();
     Date exampleTime = new Date();
     // throwing original error
-    message.append("Could not parse date from value '").append(timeString).append("'. Supported format examples are: ");
-    for (TimeFormat timeFormat : TIME_FORMATS) {
-      message.append(new SimpleDateFormat(timeFormat.myTimeFormat, Locale.ENGLISH).format(exampleTime)).append(", ");
-    }
-    message.delete(message.length() - ", ".length(), message.length());
+    message.append("Could not parse date from value '").append(timeString).append("'. Supported formats are ISO8601 or for example: ");
+    message.append(new SimpleDateFormat(Constants.TIME_FORMAT, Locale.ENGLISH).format(exampleTime));
     message.append(". First reported error: ").append(firstError.getMessage());
-    throw new BadRequestException(message.toString(), firstError);
+    throw firstError;
   }
 
   private static class TimeFormat {
@@ -103,25 +150,16 @@ public class TimeWithPrecision {
 
   public static long getMsFromRelativeTime(@NotNull final String relativeTimeString) {
     ParseResult result = new ParseResult(relativeTimeString);
-    result.processTimeValue("y", 365 * 24 * 60 * 60 * 1000L);
-    result.processTimeValue("w", 7 * 24 * 60 * 60 * 1000L);
-    result.processTimeValue("mo", 30 * 24 * 60 * 60 * 1000L);
-    /* support for "m" for month in case of 5m2h
-    int mIndex = result.myTimeText.indexOf("m");
-    int dIndex = result.myTimeText.indexOf("d");
-    int hIndex = result.myTimeText.indexOf("h");
-    if (mIndex != -1 && (dIndex != -1 || hIndex != -1) && (mIndex < dIndex || mIndex < hIndex)){
-      //treat this "m" as month
-      result.processTimeValue("m", 30 * 24 * 60 * 60 * 1000L);
-    }
-    */
-    result.processTimeValue("d", 24 * 60 * 60 * 1000L);
-    result.processTimeValue("h", 60 * 60 * 1000L);
-    result.processTimeValue("m", 60 * 1000L);
-//    result.processTimeValue("min", 60 * 1000L);
-    result.processTimeValue("s", 1000L);
-    if (!result.myTimeText.isEmpty()) {
-      throw new BadRequestException("Unsupported relative time '" + result.myTimeText + "': supported format example: '-4w2d5h30m5s'");
+    result.processTimeValue("y", 365L * 24 * 60 * 60 * 1000);
+    result.processTimeValue("w", 7L * 24 * 60 * 60 * 1000);
+    result.processTimeValue("mo", 30L * 24 * 60 * 60 * 1000);
+    result.processTimeValue("d", 24L * 60 * 60 * 1000);
+    result.processTimeValue("h", 60L * 60 * 1000);
+    result.processTimeValue("m", 60L * 1000);
+    result.processTimeValue("s", 1000);
+    result.processTimeValue("ms", 1);
+    if (!result.isFullyParsed()) {
+      throw new BadRequestException("Unsupported relative time for the remaining text '" + result.myTimeText + "': supported format example: '-4w2d5h30m5s'");
     }
     return result.myTimeMs;
   }
@@ -129,6 +167,8 @@ public class TimeWithPrecision {
   private static class ParseResult {
     @NotNull private String myTimeText;
     private long myTimeMs;
+    private int myNextUnitStartIndex = -1;
+    private int myNextUnitEndIndex;
 
     public ParseResult(@NotNull String timeText) {
       myTimeText = timeText;
@@ -143,18 +183,70 @@ public class TimeWithPrecision {
      */
     @NotNull
     private ParseResult processTimeValue(@NotNull final String dimension, final long dimensionValue) {
-      int index = myTimeText.indexOf(dimension);
-      if (index >= 0) {
-        Long parsedNumber;
-        try {
-          parsedNumber = Long.valueOf(myTimeText.substring(0, index));
-        } catch (NumberFormatException e) {
-          throw new BadRequestException("Could not parse number from '" + myTimeText.substring(0, index) + "'");
-        }
-        myTimeText = myTimeText.substring(index + dimension.length());
-        myTimeMs = myTimeMs + parsedNumber * dimensionValue;
+      if (isFullyParsed() || !dimension.equals(getNextUnit())) {
+        return this;
       }
+
+      long firstNumber = getNextNumber();
+      removeNextSection();
+      myTimeMs = myTimeMs + firstNumber * dimensionValue;
+
       return this;
+    }
+
+    private long getNextNumber() {
+      if (myNextUnitStartIndex == -1) {
+        parseNext();
+      }
+      String numberSubstring = myTimeText.substring(0, myNextUnitStartIndex);
+      try {
+        return Long.valueOf(numberSubstring);
+      } catch (NumberFormatException e) {
+        throw new BadRequestException("Could not parse number from '" + numberSubstring + "'");
+      }
+    }
+
+    @NotNull
+    private String getNextUnit() {
+      if (myNextUnitStartIndex == -1) {
+        parseNext();
+      }
+      return myTimeText.substring(myNextUnitStartIndex, myNextUnitEndIndex);
+    }
+
+    private void removeNextSection() {
+      myTimeText = myTimeText.substring(myNextUnitEndIndex);
+      myNextUnitStartIndex = -1;
+      myNextUnitEndIndex = -1;
+    }
+
+    private void parseNext() {
+      myNextUnitStartIndex = 0;
+      try {
+        while (Character.isDigit(myTimeText.charAt(myNextUnitStartIndex))) {
+          myNextUnitStartIndex++;
+        }
+      } catch (IndexOutOfBoundsException e) {
+        throw new BadRequestException("Could not parse remaining text '" + myTimeText + "': does not end with a textual unit");
+      }
+      if (myNextUnitStartIndex == 0) {
+        throw new BadRequestException("Could not parse remaining text '" + myTimeText + "': does not start with pattern <digits><letters>");
+      }
+      myNextUnitEndIndex = myNextUnitStartIndex;
+      try {
+        while (Character.isAlphabetic(myTimeText.charAt(myNextUnitEndIndex))) {
+          myNextUnitEndIndex++;
+        }
+      } catch (IndexOutOfBoundsException e) {
+        //ignore
+      }
+      if (myNextUnitEndIndex == myNextUnitStartIndex) {
+        throw new BadRequestException("Could not parse remaining text '" + myTimeText + "': does not start with pattern <digits><letters>");
+      }
+    }
+
+    public boolean isFullyParsed() {
+      return myTimeText.isEmpty();
     }
   }
 }

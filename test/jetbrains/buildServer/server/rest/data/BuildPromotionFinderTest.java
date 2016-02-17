@@ -38,6 +38,8 @@ import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.SVcsRootEx;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -492,9 +494,9 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("finishDate:(date:" + (new SimpleDateFormat("yyyyMMdd'T'HHmmss.SSSX", Locale.ENGLISH)).format(build20.getFinishDate()) + "),state:any",
                 getBuildPromotions(build70, build60, build40, build23));
     checkBuilds("finishDate:(date:" + (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.ENGLISH)).format(build20.getFinishDate()) + "),state:any",
-                getBuildPromotions(build70, build60, build40));
+                getBuildPromotions(build70, build60, build40, build23, build20)); //new time parsing uses ms
     checkBuilds("finishDate:(date:" + (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.ENGLISH)).format(build20.getFinishDate()) + "),state:any",
-                getBuildPromotions(build70, build60, build40));
+                getBuildPromotions(build70, build60, build40, build23, build20));
 
 
     checkBuilds("startDate:(build:(id:" + build10.getBuildId() + "),condition:after)", getBuildPromotions(build70, build60, build40, build23, build20));
@@ -536,6 +538,69 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkExceptionOnBuildsSearch(BadRequestException.class, "finishDate:(xxx)");
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "finishDate:(time:20150101T000000+0000,build:(id:3))");
     checkExceptionOnBuildsSearch(BadRequestException.class, "finishDate:(time:20150101T000000+0000,condition:xxx)");
+  }
+
+  @Test
+  public void testTimesISO() {
+    final MockTimeService time = new MockTimeService(new DateTime(2016, 2, 16, 16, 47, 43, 0, DateTimeZone.forOffsetHours(1)).getMillis());
+    myServer.setTimeService(time);
+    initFinders(); //recreate finders to let time service sink in
+
+    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
+
+    final SFinishedBuild build10 = build().in(buildConf1).finish();  //20160216T164743.000+0100
+    time.jumpTo(7L * 24 * 60 * 60 * 1000); // +1 week
+    time.jumpTo(10);
+    final SFinishedBuild build15 = build().in(buildConf1).finish();  //20160223T164753.000+0100
+    time.jumpTo(24 * 60 * 60);  // +1 day
+    final SFinishedBuild build20 = build().in(buildConf1).finish();  //20160224T164753.000+0100
+    time.jumpTo(10050L);
+    final SFinishedBuild build30 = build().in(buildConf1).finish();  //20160224T164803.050+0100
+    time.jumpTo(100L);
+    final SFinishedBuild build35 = build().in(buildConf1).finish();  //20160224T164803.150+0100
+    time.jumpTo(24 * 60 * 60);  // +1 day
+    time.jumpTo(10);
+    final SFinishedBuild build40 = build().in(buildConf1).finish(); //20160225T164813.050+0100
+
+    checkBuilds(null, getBuildPromotions(build40, build35, build30, build20, build15, build10));
+    checkBuilds("finishDate:(date:20160224T164803.050+0100)", getBuildPromotions(build40, build35));
+    checkBuilds("finishDate:(date:20160224T164803.049+0100)", getBuildPromotions(build40, build35, build30));
+    checkBuilds("finishDate:(date:20160224T154803.049Z)", getBuildPromotions(build40, build35, build30));
+    checkBuilds("finishDate:(date:20160224T154803Z)", getBuildPromotions(build40, build35, build30));
+    checkBuilds("finishDate:(date:2016-02-24T16:48:03.049+0100)", getBuildPromotions(build40, build35, build30));
+    checkBuilds("finishDate:(date:2016-02-24T16:48:03+0100)", getBuildPromotions(build40, build35, build30));
+    checkBuilds("finishDate:(date:2016-02-24T16:48:03.049Z)", getBuildPromotions(build40));
+    checkBuilds("finishDate:(date:2016-02-24T15:48:03.049Z)", getBuildPromotions(build40, build35, build30));
+    checkBuilds("finishDate:(date:2016-02-24T15:48:03Z)", getBuildPromotions(build40, build35, build30));
+    checkBuilds("finishDate:(date:20160224T164803.0+01)", getBuildPromotions(build40, build35, build30));
+    checkBuilds("finishDate:(date:2016-02-24)", getBuildPromotions(build40, build35, build30, build20));
+    checkBuilds("finishDate:(date:2016-2-23)", getBuildPromotions(build40, build35, build30, build20, build15));
+    checkBuilds("finishDate:(date:2016-02-23)", getBuildPromotions(build40, build35, build30, build20, build15));
+    checkBuilds("finishDate:(date:2016-W8)", getBuildPromotions(build40, build35, build30, build20, build15));
+    checkBuilds("finishDate:(shift:-1d)", getBuildPromotions(build40));
+    checkBuilds("finishDate:(shift:-1d10s1ms)", getBuildPromotions(build40, build35));
+    checkBuilds("finishDate:(date:00:00)", getBuildPromotions(build40));
+    checkBuilds("finishDate:(date:00:00,shift:-1d)", getBuildPromotions(build40, build35, build30, build20));
+    checkBuilds("finishDate:(date:00:00,shift:+1m)", getBuildPromotions(build40));
+    checkBuilds("finishDate:(date:0,shift:-48h)", getBuildPromotions(build40, build35, build30, build20, build15));
+  }
+
+  @Test
+  public void testTimesNoTimeZone() {
+    final MockTimeService time = new MockTimeService(new DateTime(2016, 2, 16, 16, 47, 43, 0).getMillis());
+    myServer.setTimeService(time);
+    initFinders(); //recreate finders to let time service sink in
+
+    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
+
+    final SFinishedBuild build10 = build().in(buildConf1).finish();
+    time.jumpTo(120);
+    final SFinishedBuild build15 = build().in(buildConf1).finish();
+    time.jumpTo(120);
+    final SFinishedBuild build20 = build().in(buildConf1).finish();
+
+    checkBuilds("finishDate:(date:2016-02-16T16:47:44)", getBuildPromotions(build20, build15));
+    checkBuilds("finishDate:(date:20160216T164744.0)", getBuildPromotions(build20, build15));
   }
 
   @Test

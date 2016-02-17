@@ -147,5 +147,6 @@
       </library>
     </orderEntry>
     <orderEntry type="module" module-name="federation-server" />
+    <orderEntry type="library" name="JodaTime" level="project" />
   </component>
 </module>
