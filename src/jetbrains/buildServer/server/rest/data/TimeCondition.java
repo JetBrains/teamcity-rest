@@ -21,6 +21,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.TimeService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -220,4 +221,12 @@ public class TimeCondition implements Matcher<Date> {
       return associatedBuild == null ? null : associatedBuild.getFinishDate();
     }
   };
+
+  @Nullable
+  public static Date maxDate(@Nullable final Date date1, @Nullable final Date date2) {
+    if (date1 == null) return date2;
+    if (date2 == null) return date1;
+    if (Dates.isBeforeWithError(date1, date2, 0)) return date2;
+    return date1;
+  }
 }

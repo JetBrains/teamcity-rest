@@ -629,7 +629,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
-    sinceStartDate = maxDate(sinceStartDate, DataProvider.parseDate(locator.getSingleDimensionValue(SINCE_DATE))); //see also filtering in getBuildFilter
+    sinceStartDate = TimeCondition.maxDate(sinceStartDate, DataProvider.parseDate(locator.getSingleDimensionValue(SINCE_DATE))); //see also filtering in getBuildFilter
 
     final Boolean canceled = locator.getSingleDimensionValueAsBoolean(CANCELED);
     if (canceled != null) {
@@ -683,7 +683,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       sinceBuildId = sinceBuildId != null ? Math.max(sinceBuildId, getBuildId(sinceBuildPromotion)) : getBuildId(sinceBuildPromotion);
       final SBuild sinceBuild = sinceBuildPromotion.getAssociatedBuild();
       if (sinceBuild != null) {
-        sinceStartDate = maxDate(sinceStartDate, sinceBuild.getStartDate());
+        sinceStartDate = TimeCondition.maxDate(sinceStartDate, sinceBuild.getStartDate());
       }
     }
 
@@ -717,14 +717,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     };
   }
 
-  @Nullable
-  private Date maxDate(@Nullable final Date date1, @Nullable final Date date2) {
-    if (date1 == null) return date2;
-    if (date2 == null) return date1;
-    if (Dates.isBeforeWithError(date1, date2, 0)) return date2;
-    return date1;
-  }
-
   /**
    * @return Date if it can be used for cutting builds processing
    */
@@ -739,7 +731,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     Date result = null;
     for (String timeLocator : timeLocators) {
       try {
-        result = maxDate(result, processTimeCondition(timeLocator, filter, valueExtractor, this, myTimeService));
+        result = TimeCondition.maxDate(result, processTimeCondition(timeLocator, filter, valueExtractor, this, myTimeService));
       } catch (BadRequestException e) {
         throw new BadRequestException("Error processing '" + locatorDimension + "' locator '" + timeLocator + "': " + e.getMessage(), e);
       }
