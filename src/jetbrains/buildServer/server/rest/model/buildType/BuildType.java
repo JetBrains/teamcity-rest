@@ -55,7 +55,8 @@ import org.jetbrains.annotations.Nullable;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "buildType")
-@XmlType(name = "buildType", propOrder = { "id", "internalId", "name", "templateFlag", "paused", "uuid", "description", "projectName", "projectId", "projectInternalId", "href", "webUrl",
+@XmlType(name = "buildType", propOrder = {"id", "internalId", "name", "templateFlag", "paused", "uuid", "description", "projectName", "projectId", "projectInternalId",
+  "href", "webUrl", "webUrlRelative", "webUrlEdit", "webUrlEditRelative",
   "project", "template", "vcsRootEntries", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
   "artifactDependencies", "agentRequirements", "builds", "investigations"})
 public class BuildType {
@@ -169,7 +170,7 @@ public class BuildType {
   public String getUuid() {
     if (myBuildType != null && myFields.isIncluded("uuid", false, false)) {
       //do not expose uuid to usual users as uuid can be considered secure information, e.g. see https://youtrack.jetbrains.com/issue/TW-38605
-      if (myBeanContext.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.EDIT_PROJECT, myBuildType.getProject().getProjectId())) {
+      if (canEdit()) {
         return ((BuildTypeIdentityEx)myBuildType.getIdentity()).getEntityId().getConfigId();
       } else {
         return null;
@@ -182,10 +183,49 @@ public class BuildType {
   @XmlAttribute
   public String getWebUrl() {
     //template has no user link
-    return  myBuildType == null || myBuildType.getBuildType() == null
-           ? null
-           : ValueWithDefault
-             .decideDefault(myFields.isIncluded("webUrl"), myBeanContext.getSingletonService(WebLinks.class).getConfigurationHomePageUrl(myBuildType.getBuildType()));
+    if (myBuildType == null || myBuildType.getBuildType() == null) {
+      return null;
+    }
+    return ValueWithDefault.decideDefault(myFields.isIncluded("webUrl"), myBeanContext.getSingletonService(WebLinks.class).getConfigurationHomePageUrl(myBuildType.getBuildType()));
+  }
+
+  @XmlAttribute
+  public String getWebUrlRelative() {
+    //template has no user link
+    if (myBuildType == null || myBuildType.getBuildType() == null) {
+      return null;
+    }
+    return ValueWithDefault.decideDefault(myFields.isIncluded("webUrlRelative", false, false), new RelativeWebLinks().getConfigurationHomePageUrl(myBuildType.getBuildType()));
+  }
+
+  @XmlAttribute
+  public String getWebUrlEdit() {
+    if (myBuildType == null || !myFields.isIncluded("webUrlEdit", false, false)) {
+      return null;
+    }
+    return getEditLink(myBeanContext.getSingletonService(WebLinks.class));
+  }
+
+  @XmlAttribute
+  public String getWebUrlEditRelative() {
+    if (myBuildType == null || !myFields.isIncluded("webUrlEditRelative", false, false)) {
+      return null;
+    }
+    return getEditLink(new RelativeWebLinks());
+  }
+
+  @Nullable
+  private String getEditLink(@NotNull RelativeWebLinks links) {
+    if (!canEdit()) {
+      return null;
+    }
+    assert myBuildType != null;
+    if (myBuildType.isBuildType()) return links.getEditConfigurationPageUrl(myExternalId);
+    return links.getEditTemplatePageUrl(myExternalId);
+  }
+
+  private boolean canEdit() {
+    return myBeanContext.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.EDIT_PROJECT, myBuildType.getProject().getProjectId());
   }
 
   @XmlElement(name = "project")
