@@ -288,7 +288,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
     if (!holder.isAccessible()) {
       throw new AuthorizationFailedException("Artifact is not accessible with current user permissions. Relative path: '" + holder.getRelativePath() + "'");
     }
-    return new ArtifactElement(holder.getArtifact(), new ArtifactsBrowserImpl(artifacts));
+    return new ArtifactElement(holder.getArtifact());
   }
 
   @Nullable
