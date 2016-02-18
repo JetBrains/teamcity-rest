@@ -35,9 +35,11 @@ import jetbrains.buildServer.serverSide.artifacts.BuildArtifactHolder;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifacts;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactsViewMode;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.impl.RunningBuildsManagerEx;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.TimeService;
 import jetbrains.buildServer.util.browser.*;
 import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.util.pathMatcher.AntPatternTreeMatcher;
@@ -58,6 +60,8 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
   public static final String DIRECTORY_DIMENSION_NAME = "directory";  //whether to include entries which have children
   public static final String DIMENSION_RECURSIVE = "recursive";  //whether to list direct children or recursive children
   public static final String DIMENSION_PATTERNS = "pattern";
+  public static final String DIMENSION_MODIFIED = "modified";
+
   protected static final Comparator<ArtifactTreeElement> ARTIFACT_COMPARATOR = new Comparator<ArtifactTreeElement>() {
     public int compare(final ArtifactTreeElement o1, final ArtifactTreeElement o2) {
       return ComparisonChain.start()
@@ -70,10 +74,12 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
 
 
   @NotNull private final Element myBaseElement;
+  private final TimeService myTimeService;
 
-  public BuildArtifactsFinder(@NotNull final Element baseElement) {
-    super(HIDDEN_DIMENSION_NAME, ARCHIVES_DIMENSION_NAME, DIRECTORY_DIMENSION_NAME, DIMENSION_RECURSIVE, DIMENSION_PATTERNS);
+  public BuildArtifactsFinder(@NotNull final Element baseElement, final RunningBuildsManagerEx timeServiceContainer) {
+    super(HIDDEN_DIMENSION_NAME, ARCHIVES_DIMENSION_NAME, DIRECTORY_DIMENSION_NAME, DIMENSION_RECURSIVE, DIMENSION_PATTERNS, DIMENSION_MODIFIED);
     myBaseElement = baseElement;
+    myTimeService = timeServiceContainer.getTimeService();
   }
 
   @NotNull
@@ -87,10 +93,64 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
   protected ItemFilter<ArtifactTreeElement> getFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<ArtifactTreeElement> result = new MultiCheckerFilter<ArtifactTreeElement>();
 
-    //add filter by modificationTime here
+    processTimeCondition(DIMENSION_MODIFIED, locator, result, new TimeCondition.ValueExtractor<ArtifactTreeElement, Date>() {
+      @Nullable
+      @Override
+      public Date get(@NotNull final ArtifactTreeElement artifactTreeElement) {
+        Long lastModified = artifactTreeElement.getLastModified();
+        return lastModified == null ? null : new Date(lastModified);
+      }
+    });
 
     return result;
   }
+
+  /**
+   * See also jetbrains.buildServer.server.rest.data.BuildPromotionFinder#processTimeCondition
+   * @return Date if it can be used for stopping older items processing
+   */
+  @Nullable
+  private Date processTimeCondition(@NotNull final String locatorDimension,
+                                    @NotNull final Locator locator,
+                                    @NotNull final MultiCheckerFilter<ArtifactTreeElement> filter,
+                                    @NotNull final TimeCondition.ValueExtractor<ArtifactTreeElement, Date> valueExtractor) {
+    final List<String> timeLocators = locator.getDimensionValue(locatorDimension);
+    if (timeLocators.isEmpty())
+      return null;
+    Date result = null;
+    for (String timeLocator : timeLocators) {
+      try {
+        result = TimeCondition.maxDate(result, processTimeCondition(timeLocator, filter, valueExtractor, myTimeService));
+      } catch (BadRequestException e) {
+        throw new BadRequestException("Error processing '" + locatorDimension + "' locator '" + timeLocator + "': " + e.getMessage(), e);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * See also jetbrains.buildServer.server.rest.data.BuildPromotionFinder#processTimeCondition
+   * @return Date if it can be used for stopping older items processing
+   */
+  @Nullable
+  static Date processTimeCondition(@NotNull final String timeLocatorText,
+                                   @NotNull final MultiCheckerFilter<ArtifactTreeElement> result,
+                                   @NotNull final TimeCondition.ValueExtractor<ArtifactTreeElement, Date> valueExtractor,
+                                   @NotNull final TimeService timeService) {
+    TimeCondition matcher = new TimeCondition(timeLocatorText, timeService);
+    result.add(new FilterConditionChecker<ArtifactTreeElement>() {
+      @Override
+      public boolean isIncluded(@NotNull final ArtifactTreeElement item) {
+        final Date tryValue = valueExtractor.get(item);
+        if (tryValue == null) {
+          return false; //do not include if no date present (e.g. not started build). This can be reworked to treat nulls as "future" instead of "never"
+        }
+        return matcher.matches(tryValue);
+      }
+    });
+    return matcher.getLimitingSinceDate();
+  }
+
 
   private void setLocatorDefaults(@NotNull final Locator locator) {
     locator.setDimensionIfNotPresent(DIMENSION_RECURSIVE, "false");
@@ -147,7 +207,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
       throw new BadRequestException("Cannot provide children list for file '" + initialElement.getFullName() + "'." + additionalMessage);
     }
 
-    return new BuildArtifactsFinder(initialElement).getItems(filesLocator).myEntries;
+    return new BuildArtifactsFinder(initialElement, serviceLocator.getSingletonService(RunningBuildsManagerEx.class)).getItems(filesLocator).myEntries;
   }
 
   @NotNull

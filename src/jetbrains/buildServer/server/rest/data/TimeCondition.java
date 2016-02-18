@@ -67,7 +67,7 @@ public class TimeCondition implements Matcher<Date> {
 
 
   @NotNull private final String myTimeLocator;
-  @NotNull private final ValueExtractor<BuildPromotion, Date> myValueExtractor;
+  @Nullable private final ValueExtractor<BuildPromotion, Date> myValueExtractor;
   @NotNull private final TimeService myTimeService;
   @Nullable private TimeWithPrecision myLimitingSinceDate;
   @NotNull private TimeWithPrecision myLimitingDate;
@@ -83,8 +83,18 @@ public class TimeCondition implements Matcher<Date> {
     init(buildPromotionFinder);
   }
 
-  private void init(final BuildPromotionFinder buildPromotionFinder) {
-    final Locator timeLocator = new Locator(myTimeLocator, DATE, BUILD, CONDITION, INCLUDE_INITIAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+  public TimeCondition(@NotNull String timeLocator, @NotNull final TimeService timeService) {
+    myTimeLocator = timeLocator;
+    myTimeService = timeService;
+    myValueExtractor = null;
+    init(null);
+  }
+
+  private void init(@Nullable final BuildPromotionFinder buildPromotionFinder) {
+    boolean buildIsSupported = buildPromotionFinder != null && myValueExtractor != null;
+    final Locator timeLocator = buildIsSupported ?
+                                new Locator(myTimeLocator, DATE, BUILD, CONDITION, INCLUDE_INITIAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME) :
+                                new Locator(myTimeLocator, DATE, CONDITION, INCLUDE_INITIAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     timeLocator.addHiddenDimensions(SHIFT);
     final String time = timeLocator.getSingleValue();
     if (time != null) {
@@ -95,17 +105,21 @@ public class TimeCondition implements Matcher<Date> {
       if (dateDimension != null) {
         myLimitingDate = TimeWithPrecision.parse(dateDimension, myTimeService);
       } else {
-        String build = timeLocator.getSingleDimensionValue(BUILD);
-        if (build != null) {
-          Date timeFromBuild = myValueExtractor.get(buildPromotionFinder.getItem(build));
-          if (timeFromBuild == null) {
-            throw new BadRequestException("Cannot determine time from build found by locator '" + build + "'");
+        if (buildIsSupported) {
+          String build = timeLocator.getSingleDimensionValue(BUILD);
+          if (build != null) {
+            Date timeFromBuild = myValueExtractor.get(buildPromotionFinder.getItem(build));
+            if (timeFromBuild == null) {
+              throw new BadRequestException("Cannot determine time from build found by locator '" + build + "'");
+            }
+            myLimitingDate = new TimeWithPrecision(timeFromBuild, false);
+          } else if (shift != null) {
+            myLimitingDate = new TimeWithPrecision(new Date(myTimeService.now()), false);
+          } else {
+            throw new BadRequestException("Invalid locator: should contain '" + DATE + "' or '" + BUILD + "' dimensions or be relative time offset starting with '-'.");
           }
-          myLimitingDate = new TimeWithPrecision(timeFromBuild, false);
-        } else if (shift != null){
-          myLimitingDate = new TimeWithPrecision(new Date(myTimeService.now()), false);
-        } else{
-          throw new BadRequestException("Invalid locator: should contain '" + DATE + "' or '" + BUILD + "' dimensions or be relative time offset starting with '-'.");
+        } else {
+          throw new BadRequestException("Invalid locator: should contain '" + DATE + "' dimension or be relative time offset starting with '-'.");
         }
       }
 

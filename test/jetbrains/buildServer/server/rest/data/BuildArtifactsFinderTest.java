@@ -32,6 +32,7 @@ import jetbrains.buildServer.serverSide.SRunningBuild;
 import jetbrains.buildServer.serverSide.db.TestDB;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
+import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
 import jetbrains.buildServer.zip.FileZipFactory;
@@ -56,6 +57,8 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   private final TempFiles myTempFiles = new TempFiles();
 
   private SFinishedBuild myBuildWithArtifacts;
+  private File myFile1;
+  private File myFile2;
 
   private void createTestFiles(final File targetDir) throws IOException {
     final File dotTeamCity = new File(targetDir, ".teamcity");
@@ -67,11 +70,13 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     final File dotTeamCityDirA = new File(dotTeamCity, "dirA");
     dotTeamCityDirA.mkdir();
 
-    new File(targetDir, "file.txt").createNewFile();
+    myFile1 = new File(targetDir, "file.txt");
+    myFile1.createNewFile();
 
     final File dir1 = new File(targetDir, "dir1");
     dir1.mkdir();
-    new File(dir1, "file.txt").createNewFile();
+    myFile2 = new File(dir1, "file.txt");
+    myFile2.createNewFile();
 
     ZipArchiveBuilder.using(new FileZipFactory(true, true)).createArchive(targetDir, "archive.zip").
       addFileWithContent("a/file1.txt", "content1").
@@ -140,7 +145,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   private List<String> getNames(final List<ArtifactTreeElement> artifacts) {
     return CollectionsUtil.convertCollection(artifacts, new Converter<String, ArtifactTreeElement>() {
       public String createFrom(@NotNull final ArtifactTreeElement source) {
-        return source.getName();
+        return source.getFullName();
       }
     });
   }
@@ -188,6 +193,16 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   @Test(expectedExceptions = jetbrains.buildServer.server.rest.errors.NotFoundException.class)
   public void testLocatorHiddenNotFound1() {
     getArtifacts("dir_missing", null);
+  }
+
+  @Test(expectedExceptions = jetbrains.buildServer.server.rest.errors.LocatorProcessException.class)
+  public void testUnknownLocator() {
+    getArtifacts("", "aaa:bbb");
+  }
+
+  @Test(expectedExceptions = jetbrains.buildServer.server.rest.errors.BadRequestException.class)
+  public void testUnknownLocator2() {
+    getArtifacts("", "modified:bbb");
   }
 
   @Test
@@ -606,6 +621,24 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertEquals("archive.zip", getArtifact("archive.*"));
     assertEquals("file.txt", getArtifact("*.txt"));
 //    assertEquals("dir1/file.txt", getArtifact("d*/file.txt")); https://youtrack.jetbrains.com/issue/TW-43015
+  }
+
+  @Test
+  public void testModified() throws Exception {
+    myFile1.setLastModified(Dates.now().getTime() - 10 * 60 * 1000); //file.txt  -10 minutes
+    myFile2.setLastModified(Dates.now().getTime() - 5 * 60 * 1000); //dir1/file.txt  -5 minutes
+
+    List<ArtifactTreeElement> artifacts = getArtifacts("", "modified:-30m");
+    checkOrderedCollection(getNames(artifacts), "dir1", "archive.zip", "archive_nested.zip", "file.txt");
+
+    artifacts = getArtifacts("", "modified:-7m");
+    checkOrderedCollection(getNames(artifacts), "dir1", "archive.zip", "archive_nested.zip");
+
+    artifacts = getArtifacts("", "modified:-30m,modified:(condition:before,date:-4m),recursive:true");
+    checkOrderedCollection(getNames(artifacts), "dir1/file.txt", "file.txt");
+
+    artifacts = getArtifacts("", "modified:-30m,modified:(condition:before,date:-6m),recursive:true");
+    checkOrderedCollection(getNames(artifacts), "file.txt");
   }
 
   @NotNull
