@@ -116,7 +116,7 @@ public class FilesSubResource {
     return new Files(null, new ValueWithDefault.Value<List<? extends Element>>() {
       @Nullable
       public List<? extends Element> get() {
-        return BuildArtifactsFinder.getItems(rootElement, myProvider.preprocess(basePath), locator, builder);
+        return BuildArtifactsFinder.getItems(rootElement, myProvider.preprocess(basePath), locator, builder, myBeanContext.getServiceLocator());
       }
     }, builder, new Fields(fields), myBeanContext);
   }
@@ -189,7 +189,8 @@ public class FilesSubResource {
     actualLocator = Locator.setDimensionIfNotPresent(actualLocator, BuildArtifactsFinder.ARCHIVES_DIMENSION_NAME, "false"); //do not expand archives by default
 
     final FileApiUrlBuilder urlBuilder = fileApiUrlBuilder(locator, myUrlPrefix);
-    final List<ArtifactTreeElement> elements = BuildArtifactsFinder.getItems(myProvider.getElement(processedPath), actualBasePath, actualLocator, urlBuilder);
+    final List<ArtifactTreeElement> elements = BuildArtifactsFinder.getItems(myProvider.getElement(processedPath), actualBasePath, actualLocator, urlBuilder,
+                                                                             myBeanContext.getServiceLocator());
 
     final ArchiveElement archiveElement = new ArchiveElement(elements, finalName);
     final Response.ResponseBuilder builder = getContentByStream(archiveElement, request, new StreamingOutputProvider() {

@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.util.*;
 import java.util.regex.Pattern;
 import jetbrains.buildServer.ArtifactsConstants;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -98,7 +99,8 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
 
   // =============================================================
   @NotNull
-  public static ArtifactTreeElementWrapper getItem(@NotNull final Browser browser, @NotNull final String path, @NotNull final String where) {
+  public static ArtifactTreeElementWrapper getItem(@NotNull final Browser browser, @NotNull final String path, @NotNull final String where,
+                                                   final @NotNull ServiceLocator serviceLocator) {
     Element element;
     if (SLASHES_OR_SPACE_PATTERN.matcher(path).replaceAll("").length() == 0){ //TeamCity API issue: cannot list root of the Browser by empty string or "/"
       element = browser.getRoot();
@@ -106,7 +108,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
       element = browser.getElement(path);
     }
     if (element == null) {
-      element = getSingleItemByPatternPath(path, browser.getRoot(), browser);
+      element = getSingleItemByPatternPath(path, browser.getRoot(), browser, serviceLocator);
       if (element == null)
         throw new NotFoundException("Path '" + path + "' is not found in " + where + " or an error occurred");
       //TeamCity API: or error occurred (related http://youtrack.jetbrains.com/issue/TW-34377)
@@ -115,24 +117,27 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
   }
 
   @NotNull
-  public static ArtifactTreeElement getItem(@NotNull final java.io.File rootPath, @NotNull final String path, @NotNull final String where) {
+  public static ArtifactTreeElement getItem(@NotNull final java.io.File rootPath, @NotNull final String path, @NotNull final String where,
+                                            final @NotNull ServiceLocator serviceLocator) {
     // does not work for archives so far...
     // return getItem(new ZipAwareBrowser(new FileSystemBrowser(rootPath)), path, "");
-    return getItem(new FileSystemBrowser(rootPath), path, where);
+    return getItem(new FileSystemBrowser(rootPath), path, where, serviceLocator);
   }
 
   @NotNull
   public static List<ArtifactTreeElement> getItems(@NotNull final Element initialElement,
                                                    final @Nullable String basePath,
                                                    final @Nullable String filesLocator,
-                                                   final @Nullable FileApiUrlBuilder urlBuilder) {
-    return makeRelativeToBasePath(BuildArtifactsFinder.getItems(initialElement, filesLocator, urlBuilder), basePath);
+                                                   final @Nullable FileApiUrlBuilder urlBuilder,
+                                                   final @NotNull ServiceLocator serviceLocator) {
+    return makeRelativeToBasePath(BuildArtifactsFinder.getItems(initialElement, filesLocator, urlBuilder, serviceLocator), basePath);
   }
 
   @NotNull
   public static List<ArtifactTreeElement> getItems(@NotNull final Element initialElement,
                                                    final @Nullable String filesLocator,
-                                                   final @Nullable FileApiUrlBuilder urlBuilder) {
+                                                   final @Nullable FileApiUrlBuilder urlBuilder,
+                                                   final @NotNull ServiceLocator serviceLocator) {
     if (initialElement.isLeaf()) {
       String additionalMessage = "";
       if (urlBuilder != null) {
@@ -278,12 +283,12 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
   }
 
   @NotNull
-  public static Element getArtifactElement(@NotNull final BuildPromotion buildPromotion, @NotNull final String path) {
+  public static Element getArtifactElement(@NotNull final BuildPromotion buildPromotion, @NotNull final String path, final @NotNull ServiceLocator serviceLocator) {
     final BuildPromotionEx buildPromotionEx = (BuildPromotionEx)buildPromotion;
     final BuildArtifacts artifacts = buildPromotionEx.getArtifacts(BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
     final BuildArtifactHolder holder = artifacts.findArtifact(path);
     if (!holder.isAvailable() && !"".equals(path)) { // "".equals(path) is a workaround for no artifact directory case
-      return getItem(new ArtifactsBrowserImpl(artifacts), path, LogUtil.describe(buildPromotionEx));
+      return getItem(new ArtifactsBrowserImpl(artifacts), path, LogUtil.describe(buildPromotionEx), serviceLocator);
     }
     if (!holder.isAccessible()) {
       throw new AuthorizationFailedException("Artifact is not accessible with current user permissions. Relative path: '" + holder.getRelativePath() + "'");
@@ -292,8 +297,9 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
   }
 
   @Nullable
-  private static Element getSingleItemByPatternPath(final @NotNull String pathWithPatterns, final @NotNull Element root, final @NotNull Browser browser) {
-    final List<ArtifactTreeElement> items = getItems(root, Locator.getStringLocator(DIMENSION_PATTERNS, pathWithPatterns), null);
+  private static Element getSingleItemByPatternPath(final @NotNull String pathWithPatterns, final @NotNull Element root, final @NotNull Browser browser,
+                                                    final @NotNull ServiceLocator serviceLocator) {
+    final List<ArtifactTreeElement> items = getItems(root, Locator.getStringLocator(DIMENSION_PATTERNS, pathWithPatterns), null, serviceLocator);
     if (items.size() > 0){
       final ArtifactTreeElement first = items.get(0);
       //now find it in browser to make sure archive's children can be listed

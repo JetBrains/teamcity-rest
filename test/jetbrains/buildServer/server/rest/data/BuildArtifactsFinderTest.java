@@ -133,7 +133,8 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
 
   private List<ArtifactTreeElement> getArtifacts(final String path, final String filesLocator, final String basePath) {
 //    FilesSubResource.fileApiUrlBuilder(filesLocator, BuildRequest.getArtifactsUrlPrefix(myBuildWithArtifacts, urlPrefix));
-    return BuildArtifactsFinder.getItems(BuildArtifactsFinder.getArtifactElement(myBuildWithArtifacts.getBuildPromotion(), path), basePath, filesLocator, null);
+    return BuildArtifactsFinder.getItems(BuildArtifactsFinder.getArtifactElement(myBuildWithArtifacts.getBuildPromotion(), path, myFixture), basePath, filesLocator,
+                                         null, myFixture);
   }
 
   private List<String> getNames(final List<ArtifactTreeElement> artifacts) {
@@ -609,7 +610,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
 
   @NotNull
   private String getArtifact(final String path) {
-    return BuildArtifactsFinder.getArtifactElement(myBuildWithArtifacts.getBuildPromotion(), path).getFullName();
+    return BuildArtifactsFinder.getArtifactElement(myBuildWithArtifacts.getBuildPromotion(), path, myFixture).getFullName();
   }
 
   private void assertContainsByFullName(final List<ArtifactTreeElement> artifacts, final String fullName) {

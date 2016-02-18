@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -50,12 +51,12 @@ public class AggregatedBuildArtifactsElementBuilder {
   private boolean myHasDirElements = false;
 
   @NotNull
-  public static Element getBuildAggregatedArtifactElement(@NotNull final String path, @NotNull final List<BuildPromotion> builds) {
+  public static Element getBuildAggregatedArtifactElement(@NotNull final String path, @NotNull final List<BuildPromotion> builds, final @NotNull ServiceLocator serviceLocator) {
     final AggregatedBuildArtifactsElementBuilder result = new AggregatedBuildArtifactsElementBuilder();
     int i = 0;
     for (BuildPromotion buildPromotion : builds) {
       try {
-        final Element artifactElement = BuildArtifactsFinder.getArtifactElement(buildPromotion, path);
+        final Element artifactElement = BuildArtifactsFinder.getArtifactElement(buildPromotion, path, serviceLocator);
         LOG.debug("Found artifact file with path '" + path + "' in " + i + "/" + builds.size() + " build: " + LogUtil.describe(buildPromotion));
         result.add(artifactElement);
       } catch (NotFoundException e) {

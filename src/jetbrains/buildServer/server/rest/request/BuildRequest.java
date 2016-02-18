@@ -236,7 +236,7 @@ public class BuildRequest {
       @Override
       @NotNull
       public Element getElement(@NotNull final String path) {
-        return BuildArtifactsFinder.getArtifactElement(buildPromotion, path);
+        return BuildArtifactsFinder.getArtifactElement(buildPromotion, path, myBeanContext.getServiceLocator());
       }
 
       @NotNull
@@ -679,7 +679,7 @@ public class BuildRequest {
       @Override
       @NotNull
       public Element getElement(@NotNull final String path) {
-        return AggregatedBuildArtifactsElementBuilder.getBuildAggregatedArtifactElement(path, builds.myEntries);
+        return AggregatedBuildArtifactsElementBuilder.getBuildAggregatedArtifactElement(path, builds.myEntries, myBeanContext.getServiceLocator());
       }
 
       @NotNull

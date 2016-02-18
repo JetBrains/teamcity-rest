@@ -647,7 +647,7 @@ public class Build {
         return new Files(builder.getChildrenHref(null), new ValueWithDefault.Value<List<? extends Element>>() {
           @Nullable
           public List<? extends Element> get() {
-            return BuildArtifactsFinder.getItems(BuildArtifactsFinder.getArtifactElement(myBuildPromotion, ""), nestedFields.getLocator(), builder);
+            return BuildArtifactsFinder.getItems(BuildArtifactsFinder.getArtifactElement(myBuildPromotion, "", myServiceLocator), nestedFields.getLocator(), builder, myServiceLocator);
           }
         }, builder, nestedFields, myBeanContext);
       }

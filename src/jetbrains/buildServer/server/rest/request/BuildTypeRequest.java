@@ -1410,7 +1410,7 @@ public class BuildTypeRequest {
       @Override
       @NotNull
       public Element getElement(@NotNull final String path) {
-        return BuildArtifactsFinder.getItem(buildType.getVcsFilesBrowser(), path, WHERE_NOTE);
+        return BuildArtifactsFinder.getItem(buildType.getVcsFilesBrowser(), path, WHERE_NOTE, myBeanContext.getServiceLocator());
       }
 
       @NotNull

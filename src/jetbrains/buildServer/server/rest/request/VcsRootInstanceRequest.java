@@ -190,7 +190,7 @@ public class VcsRootInstanceRequest {
       @Override
       @NotNull
       public Element getElement(@NotNull final String path) {
-        return BuildArtifactsFinder.getItem(getVcsWorkspaceAccess(rootInstance).getVcsFilesBrowser(), path, WHERE_NOTE);
+        return BuildArtifactsFinder.getItem(getVcsWorkspaceAccess(rootInstance).getVcsFilesBrowser(), path, WHERE_NOTE, myBeanContext.getServiceLocator());
       }
 
       @NotNull

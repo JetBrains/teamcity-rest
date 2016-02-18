@@ -164,7 +164,7 @@ public class ServerRequest {
       @Override
       @NotNull
       public Element getElement(@NotNull final String path) {
-        return BuildArtifactsFinder.getItem(getAreaRoot(areaId), path, "server " + areaId);
+        return BuildArtifactsFinder.getItem(getAreaRoot(areaId), path, "server " + areaId, myBeanContext.getServiceLocator());
       }
 
       @Override
