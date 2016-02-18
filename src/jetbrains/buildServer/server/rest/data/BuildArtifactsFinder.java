@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.google.common.collect.ComparisonChain;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
@@ -422,6 +423,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
     @NotNull private final Element myElement;
     @Nullable private final ZipElement myZipElement;
     @Nullable private final ArtifactTreeElement myArtifactTreeElement;
+    @Nullable private final File myFile;
 
     public ArtifactTreeElementWrapper(@NotNull final Element element) {
       myElement = element;
@@ -434,6 +436,11 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
         myArtifactTreeElement = (ArtifactTreeElement)myElement;
       } else {
         myArtifactTreeElement = null;
+      }
+      if (myElement instanceof FileSystemBrowser.FileElement) {
+        myFile = ((FileSystemBrowser.FileElement)myElement).getFile();
+      }  else{
+        myFile = null;
       }
     }
 
@@ -486,7 +493,12 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
 
     @Nullable
     public Long getLastModified() {
-      return myArtifactTreeElement != null ? myArtifactTreeElement.getLastModified() : null;
+      if (myArtifactTreeElement != null) {
+        return myArtifactTreeElement.getLastModified();
+      } else if (myFile != null){
+        return myFile.lastModified();
+      }
+      return null;
     }
 
     @Override
