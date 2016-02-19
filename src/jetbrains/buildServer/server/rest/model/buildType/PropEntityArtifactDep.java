@@ -166,11 +166,11 @@ public class PropEntityArtifactDep extends PropEntity {
     } catch (UnsupportedOperationException e) {
       //support revisions like "67999.tcbuildid" for compatibility, see https://youtrack.jetbrains.com/issue/TW-38876
       if (revisionValue == null) {
-        throw new BadRequestException("Cannot create revision for name '" + name + "' and empty revision value: " + e.getMessage());
+        throw new BadRequestException("Cannot create revision for name '" + revisionName + "' and empty revision value: " + e.getMessage());
       }
       final RevisionRule result = RevisionRules.newBranchRevisionRule(revisionValue, revisionBranch);
       if (result == null) {
-        throw new BadRequestException("Cannot create revision for name '" + name + "' and value '" + revisionValue + "'");
+        throw new BadRequestException("Cannot create revision for name '" + revisionName + "' and value '" + revisionValue + "'");
       }
       return result;
     }
