@@ -44,8 +44,6 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
-import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -717,15 +715,10 @@ public class BuildType {
         entity.addSnapshotDependency(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().get(), serviceLocator);
       }
     }
-    if (submittedArtifactDependencies != null && submittedArtifactDependencies.propEntities != null) {
-      final List<SArtifactDependency> dependencyObjects =
-        CollectionsUtil.convertCollection(submittedArtifactDependencies.propEntities, new Converter<SArtifactDependency, PropEntityArtifactDep>() {
-          public SArtifactDependency createFrom(@NotNull final PropEntityArtifactDep source) {
-            return source.createDependency(serviceLocator);
-          }
-        });
+    if (submittedArtifactDependencies != null) {
+      List<SArtifactDependency> artifactDeps = submittedArtifactDependencies.getFromPosted(null, serviceLocator);
       result = true;
-      buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().get().setArtifactDependencies(dependencyObjects);
+      buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().get().setArtifactDependencies(artifactDeps);
     }
     if (submittedAgentRequirements != null && submittedAgentRequirements.propEntities != null) {
       for (PropEntityAgentRequirement entity : submittedAgentRequirements.propEntities) {

@@ -27,6 +27,8 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.AgentRestrictor;
 import jetbrains.buildServer.AgentRestrictorType;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.artifacts.RevisionRule;
+import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
@@ -995,6 +997,7 @@ public class Build {
   private Agent submittedAgent;
   //todo: add support for snapshot dependency options, probably with: private PropEntitiesSnapshotDep submittedCustomBuildSnapshotDependencies;
   private PropEntitiesArtifactDep submittedCustomBuildArtifactDependencies;
+  private Builds submittedBuildArtifactDependencies;
   private Tags submittedTags;
   private Entries submittedAttributes;
 
@@ -1052,6 +1055,10 @@ public class Build {
     this.submittedCustomBuildArtifactDependencies = submittedCustomBuildArtifactDependencies;
   }
 
+  public void setBuildArtifactDependencies(final Builds submittedBuildArtifactDependencies) {
+    this.submittedBuildArtifactDependencies = submittedBuildArtifactDependencies;
+  }
+
   public void setAttributes(final Entries submittedAttributes) {
     this.submittedAttributes = submittedAttributes;
   }
@@ -1087,8 +1094,8 @@ public class Build {
       }
     }
 
-    BuildCustomizer customizer =
-      serviceLocator.getSingletonService(BuildCustomizerFactory.class).createBuildCustomizer(getSubmittedBuildType(serviceLocator, personalChangeToUse, user), user);
+    final SBuildType submittedBuildType = getSubmittedBuildType(serviceLocator, personalChangeToUse, user);
+    final BuildCustomizer customizer = serviceLocator.getSingletonService(BuildCustomizerFactory.class).createBuildCustomizer(submittedBuildType, user);
     if (changeToUse != null) {
       customizer.setChangesUpTo(changeToUse);
     }
@@ -1113,10 +1120,9 @@ public class Build {
       try {
         customizer.setSnapshotDependencyNodes(submittedBuildDependencies.getFromPosted(serviceLocator, buildPromotionIdReplacements));
       } catch (IllegalArgumentException e) {
-        throw new BadRequestException(
-          "Error trying to use specified snapshot dependencies for the submitted build with id '" + getPromotionIdOfSubmittedBuild() + "':" + e.getMessage());
+        throw new BadRequestException("Error trying to use specified snapshot dependencies" + getRelatedBuildDescription() + ":" + e.getMessage());
       } catch (NotFoundException e) {
-        throw new NotFoundException("Error searching for snapshot dependency of submitted build with id '" + getPromotionIdOfSubmittedBuild() + "': " + e.getMessage(), e);
+        throw new BadRequestException("Error searching for snapshot dependency" + getRelatedBuildDescription() + ": " + e.getMessage(), e);
       }
     }
     if (submittedTriggeringOptions != null && submittedTriggeringOptions.rebuildDependencies != null) {
@@ -1131,12 +1137,30 @@ public class Build {
         }
       }));
     }
+
+    List<BuildPromotion> artifactDepsBuildsPosted = null;
+    try {
+      artifactDepsBuildsPosted = submittedBuildArtifactDependencies == null ? null : submittedBuildArtifactDependencies.getFromPosted(serviceLocator, buildPromotionIdReplacements);
+    } catch (NotFoundException e) {
+      throw new BadRequestException("Error searching for artifact dependency" + getRelatedBuildDescription() + ": " + e.getMessage(), e);
+    }
     if (submittedCustomBuildArtifactDependencies != null) {
-      final List<SArtifactDependency> artifactDependencies = submittedCustomBuildArtifactDependencies.getFromPosted(serviceLocator);
-      if (!artifactDependencies.isEmpty()) { //TeamCity API does not allow to set empty depenedencies list
-        customizer.setArtifactDependencies(artifactDependencies); //todo: merge with build type dependencies
+      final List<SArtifactDependency> customDeps = submittedCustomBuildArtifactDependencies.getFromPosted(submittedBuildType.getArtifactDependencies(), serviceLocator);
+      if (artifactDepsBuildsPosted == null) {
+        setDepsWithNullCheck(customizer, customDeps);
+      } else {
+        //patch with "artifact-dependencies"
+        setDepsWithNullCheck(customizer, getBuildPatchedDeps(customDeps, true, serviceLocator, artifactDepsBuildsPosted));
+      }
+    } else {
+      if (artifactDepsBuildsPosted != null) {
+        //use "artifact-dependencies" as the only dependencies as this allows to repeat a build
+        setDepsWithNullCheck(customizer, getBuildPatchedDeps(submittedBuildType.getArtifactDependencies(), false, serviceLocator, artifactDepsBuildsPosted));
+      } else {
+        //no artifact dependencies customizations necessary
       }
     }
+
     if (submittedTags != null){
         customizer.setTagDatas(new HashSet<TagData>(submittedTags.getFromPosted(serviceLocator.getSingletonService(UserFinder.class))));
     }
@@ -1171,6 +1195,69 @@ public class Build {
       }
     }
     return result;
+  }
+
+  @NotNull
+  private String getRelatedBuildDescription() {
+    Long promotionId = getPromotionIdOfSubmittedBuild();
+    return promotionId == null ? "" : " in the submitted build with id '" + promotionId + "'";
+  }
+
+  private void setDepsWithNullCheck(@NotNull final BuildCustomizer customizer, @Nullable final List<SArtifactDependency> newDeps) {
+    if (newDeps == null || newDeps.isEmpty()) {
+      throw new BadRequestException("Attempt to set empty artifact dependencies collection which is not supported by TeamCity API"); //TeamCity API
+    }
+    customizer.setArtifactDependencies(newDeps);
+  }
+
+  @NotNull
+  private List<SArtifactDependency> getBuildPatchedDeps(@NotNull final List<SArtifactDependency> originalDeps,
+                                                        final boolean useAllOriginalDeps,
+                                                        final @NotNull ServiceLocator serviceLocator, @NotNull final List<BuildPromotion> artifactDepsBuilds) {
+    List<SArtifactDependency> originalDepsCopy = useAllOriginalDeps ? new ArrayList<>(originalDeps) : null;
+    Map<String, Integer> processedBuildsByBuildTypeExternalId = new HashMap<>();
+    final ArtifactDependencyFactory artifactDependencyFactory = serviceLocator.getSingletonService(ArtifactDependencyFactory.class);
+    List<SArtifactDependency> result = new ArrayList<>(artifactDepsBuilds.size());
+    for (BuildPromotion source : artifactDepsBuilds) {
+      Integer buildTypeProcessedBuilds = processedBuildsByBuildTypeExternalId.get(source.getBuildTypeExternalId());
+      if (buildTypeProcessedBuilds == null) {
+        buildTypeProcessedBuilds = 0;
+      }
+      final SArtifactDependency originalDep = getArtifactDependency(originalDeps, source.getBuildType(), buildTypeProcessedBuilds);
+      processedBuildsByBuildTypeExternalId.put(source.getBuildTypeExternalId(), buildTypeProcessedBuilds + 1);
+      final SBuild associatedBuild = source.getAssociatedBuild();
+      final RevisionRule revisionRule = RevisionRules.newBuildIdRule(source.getId(), associatedBuild != null ? associatedBuild.getBuildNumber() : null);
+      final SArtifactDependency dep = artifactDependencyFactory.createArtifactDependency(source.getBuildTypeExternalId(), originalDep.getSourcePaths(), revisionRule);
+      dep.setCleanDestinationFolder(originalDep.isCleanDestinationFolder());
+      result.add(dep);
+      if (useAllOriginalDeps) {
+        originalDepsCopy.remove(originalDep);
+      }
+    }
+    if (useAllOriginalDeps && !originalDepsCopy.isEmpty()) {
+      result.addAll(originalDepsCopy);
+    }
+    return result;
+  }
+
+  @NotNull
+  private SArtifactDependency getArtifactDependency(@NotNull final List<SArtifactDependency> originalDeps, @NotNull final SBuildType sourceBuildType, final int index) {
+    int processedBuildsOfSourceBuildType = 0;
+    for (SArtifactDependency dependency : originalDeps) {
+      String dependencyBuildTypeExternalId = dependency.getSourceExternalId();
+      if (sourceBuildType.getExternalId().equals(dependencyBuildTypeExternalId)) {
+        if (index == processedBuildsOfSourceBuildType) {
+          return dependency;
+        }
+        processedBuildsOfSourceBuildType++;
+      }
+    }
+    if (processedBuildsOfSourceBuildType == 0) {
+      throw new BadRequestException("No artifact dependency on build type with id " + sourceBuildType.getExternalId() + " is found" + getRelatedBuildDescription() +
+                                    ". Make sure it is present in the build type settings or submit it in 'custom-artifact-dependencies' node.");
+    }
+    throw new BadRequestException("Only " + processedBuildsOfSourceBuildType + " artifact dependencies on build type with id " + sourceBuildType.getExternalId() +
+                                  " are found" + getRelatedBuildDescription() + ", but at least " + index + " builds of the build type are passed as artifact dependencies.");
   }
 
   /**

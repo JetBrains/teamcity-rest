@@ -65,11 +65,13 @@ public class PropEntitiesArtifactDep implements DefaultValueAware {
   }
 
   @NotNull
-  public List<SArtifactDependency> getFromPosted(@NotNull final ServiceLocator serviceLocator) {
+  public List<SArtifactDependency> getFromPosted(@Nullable final List<SArtifactDependency> originalCollection, @NotNull final ServiceLocator serviceLocator) {
+    boolean replaceOriginal = originalCollection != null && submittedReplace != null ? submittedReplace : true;
     if (propEntities == null){
-      return Collections.emptyList();
+      return replaceOriginal ? Collections.emptyList() : new ArrayList<SArtifactDependency>(originalCollection);
     }
-    final ArrayList<SArtifactDependency> result = new ArrayList<SArtifactDependency>(propEntities.size());
+    final ArrayList<SArtifactDependency> result =
+      replaceOriginal ? new ArrayList<SArtifactDependency>(propEntities.size()) : new ArrayList<SArtifactDependency>(originalCollection);
     for (PropEntityArtifactDep entity : propEntities) {
       result.add(entity.createDependency(serviceLocator));
     }
@@ -78,5 +80,20 @@ public class PropEntitiesArtifactDep implements DefaultValueAware {
 
   public boolean isDefault() {
     return ValueWithDefault.isAllDefault(count, propEntities);
+  }
+
+  /**
+   * This is used only when posting the entity
+   * Whether to patch existing entities with submitted ones or replace them. "true" (replace) by default
+   */
+  @XmlAttribute
+  public String getReplace() {
+    return null;
+  }
+
+  public Boolean submittedReplace;
+
+  public void setReplace(String value) {
+    submittedReplace = Boolean.valueOf(value);
   }
 }
