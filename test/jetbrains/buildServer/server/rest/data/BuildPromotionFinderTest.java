@@ -599,6 +599,12 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     time.jumpTo(120);
     final SFinishedBuild build20 = build().in(buildConf1).finish();
 
+    //tmp debug logging
+      System.out.println("build10.getFinishDate() = " + build10.getFinishDate());
+      System.out.println("build10.getFinishDate().getTime() = " + build10.getFinishDate().getTime());
+      System.out.println("build15.getFinishDate().getTime() = " + build15.getFinishDate().getTime());
+      System.out.println("build20.getFinishDate().getTime() = " + build20.getFinishDate().getTime());
+
     checkBuilds("finishDate:(date:2016-02-16T16:47:44)", getBuildPromotions(build20, build15));
     checkBuilds("finishDate:(date:20160216T164744.0)", getBuildPromotions(build20, build15));
   }
