@@ -98,7 +98,7 @@ import org.springframework.beans.factory.annotation.Autowired;
            "artifacts"/*rf*/, "issues"/*rf*/,
            "properties", "attributes", "statistics"/*rf*/,
            "buildDependencies", "buildArtifactDependencies", "customBuildArtifactDependencies"/*q*/,
-           "settingsHash", "currentSettingsHash", "modificationId", "chainModificationId",
+           "settingsHash", "currentSettingsHash", "modificationId", "chainModificationId", "replacementIds",
            "triggeringOptions"/*only when triggering*/})
 public class Build {
   private static final Logger LOG = Logger.getInstance(Build.class.getName());
@@ -895,6 +895,28 @@ public class Build {
       @Nullable
       public String get() {
         return String.valueOf(((BuildPromotionEx)myBuildPromotion).getChainModificationId());
+      }
+    });
+  }
+
+  /**
+   * Experimental
+   */
+  @XmlElement
+  public Items getReplacementIds() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("replacementIds", false, false), new ValueWithDefault.Value<Items>() {
+      @Nullable
+      public Items get() {
+        final Collection<Long> replacementIds = myServiceLocator.getSingletonService(BuildPromotionReplacement.class).getOriginalPromotionIds(myBuildPromotion.getId());
+        ArrayList<Long> sortedReplacemetIds = new ArrayList<Long>(replacementIds);
+        Collections.sort(sortedReplacemetIds, Collections.reverseOrder());
+
+        return new Items(CollectionsUtil.convertCollection(sortedReplacemetIds, new Converter<String, Long>() {
+          @Override
+          public String createFrom(@NotNull final Long source) {
+            return String.valueOf(source);
+          }
+        }));
       }
     });
   }
