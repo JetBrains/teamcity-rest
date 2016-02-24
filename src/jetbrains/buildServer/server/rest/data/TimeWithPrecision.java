@@ -29,6 +29,7 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Days;
 import org.joda.time.LocalTime;
+import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.ISODateTimeFormat;
 
 /**
@@ -116,15 +117,17 @@ public class TimeWithPrecision {
     }
 
     try {
-      return new TimeWithPrecision(new SimpleDateFormat("yyyyMMdd'T'HHmmss.SSS", Locale.ENGLISH).parse(timeString), false);
-    } catch (ParseException e) {
+      return new TimeWithPrecision(DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withLocale(Locale.ENGLISH).parseLocalDateTime(timeString).toDate(), false);
+//      return new TimeWithPrecision(new SimpleDateFormat("yyyyMMdd'T'HHmmss.SSS", Locale.ENGLISH).parse(timeString), false);
+    } catch (Exception e) {
       //ignore
       if (LOG.isDebugEnabled()) LOG.debug("Was not able to parse date/time '" + timeString + "' using format '" + "yyyyMMdd'T'HHmmss.SSS" + "'. Error: " + e.toString(), e);
     }
 
     try {
-      return new TimeWithPrecision(new SimpleDateFormat("yyyyMMdd'T'HHmmss", Locale.ENGLISH).parse(timeString), false);
-    } catch (ParseException e) {
+      return new TimeWithPrecision(DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss").withLocale(Locale.ENGLISH).parseLocalDateTime(timeString).toDate(), false);
+//      return new TimeWithPrecision(new SimpleDateFormat("yyyyMMdd'T'HHmmss", Locale.ENGLISH).parse(timeString), false);
+    } catch (Exception e) {
       //ignore
       if (LOG.isDebugEnabled()) LOG.debug("Was not able to parse date/time '" + timeString + "' using format '" + "yyyyMMdd'T'HHmmss" + "'. Error: " + e.toString(), e);
     }
