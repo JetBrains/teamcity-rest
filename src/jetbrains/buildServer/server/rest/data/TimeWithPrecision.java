@@ -23,12 +23,10 @@ import java.util.Date;
 import java.util.Locale;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Constants;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.TimeService;
 import org.jetbrains.annotations.NotNull;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-import org.joda.time.Days;
-import org.joda.time.LocalTime;
+import org.joda.time.*;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.ISODateTimeFormat;
 
@@ -68,10 +66,22 @@ public class TimeWithPrecision {
     // the order can be important as SimpleDateFormat will parse the beginning of the string ignoring any unparsed trailing characters
 
     BadRequestException firstError;
-    try {
-      return new TimeWithPrecision(new SimpleDateFormat(Constants.TIME_FORMAT, Locale.ENGLISH).parse(timeString), true);
-    } catch (ParseException e) {
-      firstError = new BadRequestException("Was not able to parse date '" + timeString + "' using format '" + Constants.TIME_FORMAT + "'. Error: " + e.toString(), e);
+    if (TeamCityProperties.getBoolean("rest.compatibilityDateParsing")){
+      try {
+        return new TimeWithPrecision(new SimpleDateFormat(Constants.TIME_FORMAT, Locale.ENGLISH).parse(timeString), true);
+      } catch (ParseException e) {
+        firstError = new BadRequestException("Was not able to parse date '" + timeString + "' using format '" + Constants.TIME_FORMAT + "'." +
+                                             " Supported format example: '" + new SimpleDateFormat(Constants.TIME_FORMAT, Locale.ENGLISH).format(new Date()) + "'." +
+                                             " Error: " + e.toString(), e);
+      }
+    } else {
+      try {
+        return new TimeWithPrecision(DateTimeFormat.forPattern(Constants.TIME_FORMAT).withLocale(Locale.ENGLISH).parseDateTime(timeString).toDate(), true);
+      } catch (Exception e) {
+        firstError = new BadRequestException("Was not able to parse date '" + timeString + "' using format '" + Constants.TIME_FORMAT + "'." +
+                                             " Supported format example: '" + DateTimeFormat.forPattern(Constants.TIME_FORMAT).withLocale(Locale.ENGLISH).print(Instant.now()) + "'." +
+                                             " Error: " + e.toString(), e);
+      }
     }
 
     try {

@@ -563,10 +563,11 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     final SFinishedBuild build40 = build().in(buildConf1).finish(); //20160225T164813.050+0100
 
     checkBuilds(null, getBuildPromotions(build40, build35, build30, build20, build15, build10));
+    checkBuilds("finishDate:(date:20160224T164803.0+0100)", getBuildPromotions(build40, build35, build30));
     checkBuilds("finishDate:(date:20160224T164803.050+0100)", getBuildPromotions(build40, build35));
     checkBuilds("finishDate:(date:20160224T164803.049+0100)", getBuildPromotions(build40, build35, build30));
     checkBuilds("finishDate:(date:20160224T154803.049Z)", getBuildPromotions(build40, build35, build30));
-    checkBuilds("finishDate:(date:20160224T154803Z)", getBuildPromotions(build40, build35, build30));
+    checkBuilds("finishDate:(date:20160224T154803Z)", getBuildPromotions(build40)); //this uses compatibility approach comparing the build time to be strongly > by seconds
     checkBuilds("finishDate:(date:2016-02-24T16:48:03.049+0100)", getBuildPromotions(build40, build35, build30));
     checkBuilds("finishDate:(date:2016-02-24T16:48:03+0100)", getBuildPromotions(build40, build35, build30));
     checkBuilds("finishDate:(date:2016-02-24T16:48:03.049Z)", getBuildPromotions(build40));
@@ -583,6 +584,8 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("finishDate:(date:00:00,shift:-1d)", getBuildPromotions(build40, build35, build30, build20));
     checkBuilds("finishDate:(date:00:00,shift:+1m)", getBuildPromotions(build40));
     checkBuilds("finishDate:(date:0,shift:-48h)", getBuildPromotions(build40, build35, build30, build20, build15));
+
+    checkExceptionOnBuildsSearch(BadRequestException.class, "finishDate:(date:20160224T164803+0100xxx)");
   }
 
   @Test
