@@ -607,6 +607,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
       System.out.println("new TimeCondition(\"(2016-02-16T16:47:44)\", time).getLimitingDate() = " + new TimeCondition("(2016-02-16T16:47:44)", time).getLimitingDate());
       System.out.println("new TimeCondition(\"(2016-02-16T16:47:44)\", time).getLimitingDate().getTime() = " + new TimeCondition("(2016-02-16T16:47:44)", time).getLimitingDate().getTime());
       System.out.println("new TimeCondition(\"20160216T164744.0\", time).getLimitingDate() = " + new TimeCondition("20160216T164744.0", time).getLimitingDate());
+      System.out.println("new TimeCondition(\"20160216T164744.0\", time).getLimitingDate().getTime() = " + new TimeCondition("20160216T164744.0", time).getLimitingDate().getTime());
 
     checkBuilds("finishDate:(date:2016-02-16T16:47:44)", getBuildPromotions(build20, build15));
     checkBuilds("finishDate:(date:20160216T164744.0)", getBuildPromotions(build20, build15));
