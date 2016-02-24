@@ -587,7 +587,9 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 
   @Test
   public void testTimesNoTimeZone() {
-    final MockTimeService time = new MockTimeService(new DateTime(2016, 2, 16, 16, 47, 43, 0).getMillis());
+    //using year 2001 as with 2016 there are not actual tz issues (e.g. MSK with JDK 1.8_05)
+    final MockTimeService time = new MockTimeService(new DateTime(2001, 2, 16, 16, 47, 43, 0).getMillis());
+
     myServer.setTimeService(time);
     initFinders(); //recreate finders to let time service sink in
 
@@ -599,18 +601,8 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     time.jumpTo(120);
     final SFinishedBuild build20 = build().in(buildConf1).finish();
 
-    //tmp debug logging
-      System.out.println("build10.getFinishDate() = " + build10.getFinishDate());
-      System.out.println("build10.getFinishDate().getTime() = " + build10.getFinishDate().getTime());
-      System.out.println("build15.getFinishDate().getTime() = " + build15.getFinishDate().getTime());
-      System.out.println("build20.getFinishDate().getTime() = " + build20.getFinishDate().getTime());
-      System.out.println("new TimeCondition(\"(2016-02-16T16:47:44)\", time).getLimitingDate() = " + new TimeCondition("(2016-02-16T16:47:44)", time).getLimitingDate());
-      System.out.println("new TimeCondition(\"(2016-02-16T16:47:44)\", time).getLimitingDate().getTime() = " + new TimeCondition("(2016-02-16T16:47:44)", time).getLimitingDate().getTime());
-      System.out.println("new TimeCondition(\"20160216T164744.0\", time).getLimitingDate() = " + new TimeCondition("20160216T164744.0", time).getLimitingDate());
-      System.out.println("new TimeCondition(\"20160216T164744.0\", time).getLimitingDate().getTime() = " + new TimeCondition("20160216T164744.0", time).getLimitingDate().getTime());
-
-    checkBuilds("finishDate:(date:2016-02-16T16:47:44)", getBuildPromotions(build20, build15));
-    checkBuilds("finishDate:(date:20160216T164744.0)", getBuildPromotions(build20, build15));
+    checkBuilds("finishDate:(date:2001-02-16T16:47:44)", getBuildPromotions(build20, build15));
+    checkBuilds("finishDate:(date:20010216T164744.0)", getBuildPromotions(build20, build15));
   }
 
   @Test
