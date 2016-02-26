@@ -104,8 +104,8 @@ public class Properties  implements DefaultValueAware {
   }
 
   @Nullable
-  private ParameterCondition getParameterCondition(@NotNull final Fields propertyFields) {
-    final String propertiesLocator = propertyFields.getLocator();
+  public static ParameterCondition getParameterCondition(@NotNull final Fields fields) {
+    final String propertiesLocator = fields.getLocator();
     if (propertiesLocator != null) {
       return ParameterCondition.create(propertiesLocator);
     }

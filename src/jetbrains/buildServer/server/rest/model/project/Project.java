@@ -31,9 +31,7 @@ import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRoots;
 import jetbrains.buildServer.server.rest.request.ProjectRequest;
@@ -41,6 +39,7 @@ import jetbrains.buildServer.server.rest.request.VcsRootRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.RelativeWebLinks;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.WebLinks;
@@ -55,7 +54,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "project")
 @XmlType(name = "project", propOrder = {"id", "internalId", "uuid", "name", "parentProjectId", "parentProjectInternalId", "parentProjectName", "archived", "description", "href", "webUrl",
-  "parentProject", "buildTypes", "templates", "parameters", "vcsRoots", "projects"})
+  "links", "parentProject", "buildTypes", "templates", "parameters", "vcsRoots", "projects"})
 @SuppressWarnings("PublicField")
 public class Project {
   @XmlAttribute
@@ -101,6 +100,9 @@ public class Project {
   @XmlAttribute
   public String webUrl;
 
+  @XmlElement
+  public Links links;
+
   @XmlElement(name = "parentProject")
   public Project parentProject;
 
@@ -138,6 +140,8 @@ public class Project {
 
     href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(project));
     webUrl = ValueWithDefault.decideDefault(fields.isIncluded("webUrl"), beanContext.getSingletonService(WebLinks.class).getProjectPageUrl(project.getExternalId()));
+
+    links = getLinks(project, fields, beanContext);
 
     final SProject actulParentProject = project.getParentProject();
     final String descriptionText = project.getDescription();
@@ -210,6 +214,27 @@ public class Project {
                               ? null
                               : ValueWithDefault.decideDefault(forceParentAttributes || fields.isIncluded("parentProjectInternalId", includeInternal, includeInternal),
                                                                actulParentProject.getProjectId());
+  }
+
+  @Nullable
+  private Links getLinks(@NotNull final SProject project, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+    return ValueWithDefault.decideDefault(fields.isIncluded("links", false, false), new ValueWithDefault.Value<Links>() {
+      @Nullable
+      @Override
+      public Links get() {
+        WebLinks webLinks = beanContext.getSingletonService(WebLinks.class);
+        RelativeWebLinks relativeWebLinks = new RelativeWebLinks();
+        Links.LinksBuilder builder = new Links.LinksBuilder();
+        builder.add(Link.WEB_VIEW_TYPE, webLinks.getProjectPageUrl(project.getExternalId()), relativeWebLinks.getProjectPageUrl(project.getExternalId()));
+        final PermissionChecker permissionChecker = beanContext.getSingletonService(PermissionChecker.class);
+        if (permissionChecker.isPermissionGranted(Permission.EDIT_PROJECT, project.getProjectId())) {
+          builder.add(Link.WEB_EDIT_TYPE, webLinks.getEditProjectPageUrl(project.getExternalId()), relativeWebLinks.getEditProjectPageUrl(project.getExternalId()));
+        } else if (permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, project.getProjectId())) {
+          builder.add(Link.WEB_VIEW_SETTINGS_TYPE, webLinks.getEditProjectPageUrl(project.getExternalId()), relativeWebLinks.getEditProjectPageUrl(project.getExternalId()));
+        }
+        return builder.build(fields.getNestedField("links"));
+      }
+    });
   }
 
   public Project(@Nullable final String externalId, @Nullable final String internalId, @NotNull final ApiUrlBuilder apiUrlBuilder) {

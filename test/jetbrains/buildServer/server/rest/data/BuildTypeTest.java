@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import jetbrains.buildServer.RootUrlHolder;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -27,10 +28,13 @@ import jetbrains.buildServer.server.rest.request.BuildTypeRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
+import jetbrains.buildServer.serverSide.RelativeWebLinks;
+import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
+import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -192,4 +196,45 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
       }
     }, "searching with wrong changesFromDependencies");
   }
+
+  @Test
+  public void testLinks() {
+    final BuildTypeEx bt = getRootProject().createProject("Project1", "Project test 1").createBuildType("testBT", "My test build type");
+    WebLinks webLinks = getWebLinks(myServer.getRootUrl());
+    RelativeWebLinks relativeWebLinks = new RelativeWebLinks();
+    assertEquals("http://localhost/viewType.html?buildTypeId=testBT", webLinks.getConfigurationHomePageUrl(bt));
+    assertEquals("/viewType.html?buildTypeId=testBT", relativeWebLinks.getConfigurationHomePageUrl(bt));
+
+    BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt), Fields.SHORT, myBeanContext);
+
+    assertEquals(webLinks.getConfigurationHomePageUrl(bt), buildType.getWebUrl());
+    assertNull(buildType.getLinks());
+
+    buildType = new BuildType(new BuildTypeOrTemplate(bt), Fields.LONG, myBeanContext);
+    assertEquals(webLinks.getConfigurationHomePageUrl(bt), buildType.getWebUrl());
+    assertNull(buildType.getLinks()); //not present until explicitly requested
+
+    buildType = new BuildType(new BuildTypeOrTemplate(bt), new Fields("links"), myBeanContext);
+    assertNotNull(buildType.getLinks());
+    assertEquals(Integer.valueOf(2), buildType.getLinks().count);
+    assertNotNull(buildType.getLinks().links);
+    assertEquals("webView", buildType.getLinks().links.get(0).type);
+    assertEquals(webLinks.getConfigurationHomePageUrl(bt), buildType.getLinks().links.get(0).url);
+    assertEquals(relativeWebLinks.getConfigurationHomePageUrl(bt), buildType.getLinks().links.get(0).relativeUrl);
+    assertEquals("webEdit", buildType.getLinks().links.get(1).type);
+    assertEquals(webLinks.getEditConfigurationPageUrl(bt.getExternalId()), buildType.getLinks().links.get(1).url);
+    assertEquals(relativeWebLinks.getEditConfigurationPageUrl(bt.getExternalId()), buildType.getLinks().links.get(1).relativeUrl);
+  }
+
+  private static WebLinks getWebLinks(@NotNull final String rootUrl) {
+    return new WebLinks(new RootUrlHolder() {
+      @NotNull
+      public String getRootUrl() {
+        return rootUrl;
+      }
+
+      public void setRootUrl(@NotNull final String rootUrl) {}
+    });
+  }
+
 }

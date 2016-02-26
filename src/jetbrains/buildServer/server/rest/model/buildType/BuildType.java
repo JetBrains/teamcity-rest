@@ -29,10 +29,7 @@ import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.server.rest.model.Property;
+import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.request.BuildTypeRequest;
@@ -54,8 +51,8 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "buildType")
 @XmlType(name = "buildType", propOrder = {"id", "internalId", "name", "templateFlag", "paused", "uuid", "description", "projectName", "projectId", "projectInternalId",
-  "href", "webUrl", "webUrlRelative", "webUrlEdit", "webUrlEditRelative",
-  "project", "template", "vcsRootEntries", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
+  "href", "webUrl",
+  "links", "project", "template", "vcsRootEntries", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
   "artifactDependencies", "agentRequirements", "builds", "investigations"})
 public class BuildType {
   private static final Logger LOG = Logger.getInstance(BuildType.class.getName());
@@ -187,42 +184,39 @@ public class BuildType {
     return ValueWithDefault.decideDefault(myFields.isIncluded("webUrl"), myBeanContext.getSingletonService(WebLinks.class).getConfigurationHomePageUrl(myBuildType.getBuildType()));
   }
 
-  @XmlAttribute
-  public String getWebUrlRelative() {
-    //template has no user link
-    if (myBuildType == null || myBuildType.getBuildType() == null) {
-      return null;
-    }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("webUrlRelative", false, false), new RelativeWebLinks().getConfigurationHomePageUrl(myBuildType.getBuildType()));
-  }
-
-  @XmlAttribute
-  public String getWebUrlEdit() {
-    if (myBuildType == null || !myFields.isIncluded("webUrlEdit", false, false)) {
-      return null;
-    }
-    return getEditLink(myBeanContext.getSingletonService(WebLinks.class));
-  }
-
-  @XmlAttribute
-  public String getWebUrlEditRelative() {
-    if (myBuildType == null || !myFields.isIncluded("webUrlEditRelative", false, false)) {
-      return null;
-    }
-    return getEditLink(new RelativeWebLinks());
-  }
-
-  @Nullable
-  private String getEditLink(@NotNull RelativeWebLinks links) {
-    if (!canEdit()) {
-      return null;
-    }
-    assert myBuildType != null;
-    if (myBuildType.isBuildType()) return links.getEditConfigurationPageUrl(myExternalId);
-    return links.getEditTemplatePageUrl(myExternalId);
+  @XmlElement
+  public Links getLinks() {
+    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("links", false, false), new ValueWithDefault.Value<Links>() {
+      @Nullable
+      @Override
+      public Links get() {
+        WebLinks webLinks = myBeanContext.getSingletonService(WebLinks.class);
+        RelativeWebLinks relativeWebLinks = new RelativeWebLinks();
+        Links.LinksBuilder builder = new Links.LinksBuilder();
+        if (myBuildType.getBuildType() != null) {
+          builder.add(
+            Link.WEB_VIEW_TYPE, webLinks.getConfigurationHomePageUrl(myBuildType.getBuildType()), relativeWebLinks.getConfigurationHomePageUrl(myBuildType.getBuildType()));
+        }
+        if (canEdit()) {
+          if (myBuildType.isBuildType()) {
+            builder.add(Link.WEB_EDIT_TYPE, webLinks.getEditConfigurationPageUrl(myExternalId), relativeWebLinks.getEditConfigurationPageUrl(myExternalId));
+          } else if (myBuildType.isTemplate()) {
+            builder.add(Link.WEB_EDIT_TYPE, webLinks.getEditTemplatePageUrl(myExternalId), relativeWebLinks.getEditTemplatePageUrl(myExternalId));
+          }
+        //} else if (myBeanContext.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, myBuildType.getProject().getProjectId())) {
+        //  if (myBuildType.isBuildType()) {
+        //    builder.add(Link.WEB_VIEW_SETTINGS_TYPE, webLinks.getEditConfigurationPageUrl(myExternalId), relativeWebLinks.getEditConfigurationPageUrl(myExternalId));
+        //  } else if (myBuildType.isTemplate()) {
+        //    builder.add(Link.WEB_VIEW_SETTINGS_TYPE, webLinks.getEditTemplatePageUrl(myExternalId), relativeWebLinks.getEditTemplatePageUrl(myExternalId));
+        //  }
+        }
+        return builder.build(myFields.getNestedField("links"));
+      }
+    });
   }
 
   private boolean canEdit() {
+    assert myBuildType != null;
     return myBeanContext.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.EDIT_PROJECT, myBuildType.getProject().getProjectId());
   }
 
