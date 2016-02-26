@@ -51,7 +51,6 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -296,7 +295,7 @@ public class DataProvider {
     try {
       return new SimpleDateFormat(Constants.TIME_FORMAT, Locale.ENGLISH).parse(dateString);
     } catch (ParseException e) {
-      throw new BadRequestException("Could not parse date from value '" + dateString + "'. Supported format example : " + Util.formatTime(new Date()) + " :", e);
+      throw new BadRequestException("Could not parse date from value '" + dateString + "'. Supported format example: '" + Util.formatTime(new Date()) + "' : " + e.getMessage(), e);
     }
   }
 
@@ -361,16 +360,6 @@ public class DataProvider {
   public void checkProjectPermission(@NotNull final Permission permission, @Nullable final String internalProjectId) throws AuthorizationFailedException{
     myPermissionChecker.checkProjectPermission(permission, internalProjectId);
   }
-
-  // workaround for http://youtrack.jetbrains.com/issue/TW-28306
-  public boolean checkCanView(final SVcsModification change) {
-    final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
-    if (authorityHolder.isPermissionGrantedGlobally(Permission.VIEW_PROJECT)){
-      return true;
-    }
-    return AuthUtil.hasReadAccessTo(authorityHolder, change);
-  }
-
 
   @NotNull
   public VcsManager getVcsManager() {

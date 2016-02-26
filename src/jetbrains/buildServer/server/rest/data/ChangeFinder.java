@@ -64,7 +64,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   public static final String PARENT_CHANGE = "parentChange";
   public static final String DAG_TRAVERSE = "dag";
 
-  @NotNull private final DataProvider myDataProvider;
+  @NotNull private final PermissionChecker myPermissionChecker;
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final BuildFinder myBuildFinder;
   @NotNull private final BuildPromotionFinder myBuildPromotionFinder;
@@ -76,8 +76,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   @NotNull private final VcsModificationHistory myVcsModificationHistory;
   @NotNull private final ServiceLocator myServiceLocator;
 
-  public ChangeFinder(@NotNull final DataProvider dataProvider,
-                      @NotNull final ProjectFinder projectFinder,
+  public ChangeFinder(@NotNull final ProjectFinder projectFinder,
                       @NotNull final BuildFinder buildFinder,
                       @NotNull final BuildPromotionFinder buildPromotionFinder,
                       @NotNull final BuildTypeFinder buildTypeFinder,
@@ -86,10 +85,10 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
                       @NotNull final UserFinder userFinder,
                       @NotNull final VcsManager vcsManager,
                       @NotNull final VcsModificationHistory vcsModificationHistory,
-                      @NotNull final ServiceLocator serviceLocator) {
+                      @NotNull final ServiceLocator serviceLocator, @NotNull final PermissionChecker permissionChecker) {
     super(new String[]{DIMENSION_ID, PROJECT, BUILD_TYPE, BUILD, VCS_ROOT, VCS_ROOT_INSTANCE, USERNAME, USER, VERSION, INTERNAL_VERSION, COMMENT, FILE,
       SINCE_CHANGE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
-    myDataProvider = dataProvider;
+    myPermissionChecker = permissionChecker;
     myProjectFinder = projectFinder;
     myBuildFinder = buildFinder;
     myBuildPromotionFinder = buildPromotionFinder;
@@ -359,7 +358,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     if (TeamCityProperties.getBoolean("rest.request.changes.check.enforceChangeViewPermission")) {
       result.add(new FilterConditionChecker<SVcsModification>() {
         public boolean isIncluded(@NotNull final SVcsModification item) {
-          return myDataProvider.checkCanView(item);
+          return myPermissionChecker.checkCanView(item);
         }
       });
     }

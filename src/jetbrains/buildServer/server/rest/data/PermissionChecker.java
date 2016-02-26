@@ -23,10 +23,12 @@ import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.vcs.SVcsModification;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -95,6 +97,15 @@ public class PermissionChecker {@NotNull private final SecurityContext mySecurit
       throw new AuthorizationFailedException("User " + authorityHolder.getAssociatedUser() + " does not have permission " + permission +
                                              " in project with internal id: '" + internalProjectId + "'" + (!StringUtil.isEmpty(additionalMessage) ? additionalMessage : ""));
     }
+  }
+
+  // workaround for http://youtrack.jetbrains.com/issue/TW-28306
+  public boolean checkCanView(@NotNull final SVcsModification change) {
+    final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
+    if (authorityHolder.isPermissionGrantedGlobally(Permission.VIEW_PROJECT)){
+      return true;
+    }
+    return AuthUtil.hasReadAccessTo(authorityHolder, change);
   }
 
   public boolean isPermissionGranted(@NotNull final Permission permission, @Nullable final String internalProjectId) {
