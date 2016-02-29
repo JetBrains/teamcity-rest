@@ -26,7 +26,10 @@ import jetbrains.buildServer.server.rest.model.Constants;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.TimeService;
 import org.jetbrains.annotations.NotNull;
-import org.joda.time.*;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.Instant;
+import org.joda.time.LocalTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.ISODateTimeFormat;
 
@@ -66,11 +69,11 @@ public class TimeWithPrecision {
     // the order can be important as SimpleDateFormat will parse the beginning of the string ignoring any unparsed trailing characters
 
     BadRequestException firstError;
-    if (TeamCityProperties.getBoolean("rest.compatibilityDateParsing")){
+    if (TeamCityProperties.getBoolean("rest.compatibilityDateParsing")) {
       try {
         return new TimeWithPrecision(new SimpleDateFormat(Constants.TIME_FORMAT, Locale.ENGLISH).parse(timeString), true);
       } catch (ParseException e) {
-        firstError = new BadRequestException("Was not able to parse date '" + timeString + "' using format '" + Constants.TIME_FORMAT + "'." +
+        firstError = new BadRequestException("Was not able to parse date '" + timeString + "' using format '" + Constants.TIME_FORMAT + "' and others." +
                                              " Supported format example: '" + new SimpleDateFormat(Constants.TIME_FORMAT, Locale.ENGLISH).format(new Date()) + "'." +
                                              " Error: " + e.toString(), e);
       }
@@ -78,20 +81,22 @@ public class TimeWithPrecision {
       try {
         return new TimeWithPrecision(DateTimeFormat.forPattern(Constants.TIME_FORMAT).withLocale(Locale.ENGLISH).parseDateTime(timeString).toDate(), true);
       } catch (Exception e) {
-        firstError = new BadRequestException("Was not able to parse date '" + timeString + "' using format '" + Constants.TIME_FORMAT + "'." +
-                                             " Supported format example: '" + DateTimeFormat.forPattern(Constants.TIME_FORMAT).withLocale(Locale.ENGLISH).print(Instant.now()) + "'." +
-                                             " Error: " + e.toString(), e);
+        firstError = new BadRequestException("Was not able to parse date '" + timeString + "' using format '" + Constants.TIME_FORMAT + "' and others." +
+                                             " Supported format example: '" + DateTimeFormat.forPattern(Constants.TIME_FORMAT).withLocale(Locale.ENGLISH).print(Instant.now()) +
+                                             "'. Error: " + e.toString(), e);
       }
     }
 
     try {
-      DateTime dateTime = ISODateTimeFormat.dateTimeParser().withLocale(Locale.ENGLISH).parseDateTime(timeString);
-      if (Days.daysBetween(new DateTime(0), dateTime).getDays() < 1) {
-        //it probably was time only without date specified, consider it today's time
-        DateTime now = new DateTime(timeService.now());
-        dateTime = dateTime.withDate(now.getYear(), now.getMonthOfYear(), now.getDayOfMonth());
-      }
-      return new TimeWithPrecision(dateTime.toDate(), false);
+      return new TimeWithPrecision(ISODateTimeFormat.localTimeParser().withLocale(Locale.ENGLISH).
+        parseLocalTime(timeString).toDateTime(new DateTime(timeService.now())).toDate(), false);
+    } catch (Exception e) {
+      //ignore
+      if (LOG.isDebugEnabled()) LOG.debug("Was not able to parse date/time '" + timeString + "' using ISODateTimeFormat.localTimeParser. Error: " + e.toString(), e);
+    }
+
+    try {
+      return new TimeWithPrecision(ISODateTimeFormat.dateTimeParser().withLocale(Locale.ENGLISH).parseDateTime(timeString).toDate(), false);
     } catch (Exception e) {
       //ignore
       if (LOG.isDebugEnabled()) LOG.debug("Was not able to parse date/time '" + timeString + "' using ISODateTimeFormat.dateTimeParser. Error: " + e.toString(), e);
