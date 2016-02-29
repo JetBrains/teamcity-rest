@@ -531,7 +531,7 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded("custom-artifact-dependencies", false), new ValueWithDefault.Value<PropEntitiesArtifactDep>() {
       public PropEntitiesArtifactDep get() {
         final List<SArtifactDependency> artifactDependencies = ((BuildPromotionEx)myBuildPromotion).getCustomArtifactDependencies(); //TeamCity API: cast
-        return new PropEntitiesArtifactDep(artifactDependencies, myFields.getNestedField("custom-artifact-dependencies", Fields.NONE, Fields.LONG), myBeanContext);
+        return new PropEntitiesArtifactDep(artifactDependencies, null, myFields.getNestedField("custom-artifact-dependencies", Fields.NONE, Fields.LONG), myBeanContext);
       }
     });
   }
@@ -1167,6 +1167,7 @@ public class Build {
       throw new BadRequestException("Error searching for artifact dependency" + getRelatedBuildDescription() + ": " + e.getMessage(), e);
     }
     if (submittedCustomBuildArtifactDependencies != null) {
+      //todo: investigate if OK: here new dependencies are created and set into the build. Custom run build dialog onthe contrary, sets artifact deps with the same IDs into the build
       final List<SArtifactDependency> customDeps = submittedCustomBuildArtifactDependencies.getFromPosted(submittedBuildType.getArtifactDependencies(), serviceLocator);
       if (artifactDepsBuildsPosted == null) {
         setDepsWithNullCheck(customizer, customDeps);

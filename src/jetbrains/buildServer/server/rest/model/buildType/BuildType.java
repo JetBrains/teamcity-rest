@@ -38,7 +38,6 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
 import jetbrains.buildServer.util.StringUtil;
@@ -331,16 +330,16 @@ public class BuildType {
 
   @XmlElement(name = "artifact-dependencies")
   public PropEntitiesArtifactDep getArtifactDependencies() {
-    return myBuildType == null ? null : ValueWithDefault
-                                                .decideIncludeByDefault(myFields.isIncluded("artifact-dependencies", false),
-                                                                        check(new ValueWithDefault.Value<PropEntitiesArtifactDep>() {
-                                                                          public PropEntitiesArtifactDep get() {
-                                                                            return new PropEntitiesArtifactDep(myBuildType.get().getArtifactDependencies(),
-                                                                                                               myFields
-                                                                                                                 .getNestedField("artifact-dependencies", Fields.NONE, Fields.LONG),
-                                                                                                               myBeanContext);
-                                                                          }
-                                                                        }));
+    if (myBuildType == null) {
+      return null;
+    } else {
+      ValueWithDefault.Value<PropEntitiesArtifactDep> value = new ValueWithDefault.Value<PropEntitiesArtifactDep>() {
+        public PropEntitiesArtifactDep get() {
+          return new PropEntitiesArtifactDep(myBuildType.get(), myFields.getNestedField("artifact-dependencies", Fields.NONE, Fields.LONG), myBeanContext);
+        }
+      };
+      return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("artifact-dependencies", false), check(value));
+    }
   }
 
   @XmlElement(name = "agent-requirements")
@@ -679,40 +678,40 @@ public class BuildType {
         BuildTypeRequest.addVcsRoot(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate(), entity, serviceLocator.getSingletonService(VcsRootFinder.class));
       }
     }
+    BuildTypeSettings buildTypeSettings = buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().get();
     if (submittedParameters != null && submittedParameters.properties != null) {
       for (Property p : submittedParameters.properties) {
         result = true;
-        BuildTypeUtil.changeParameter(p.name, p.value, buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().get(), serviceLocator);
+        BuildTypeUtil.changeParameter(p.name, p.value, buildTypeSettings, serviceLocator);
       }
     }
     if (submittedSteps != null && submittedSteps.propEntities != null) {
       for (PropEntityStep entity : submittedSteps.propEntities) {
         result = true;
-        entity.addStep(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().get());
+        entity.addStep(buildTypeSettings);
       }
     }
     if (submittedFeatures != null && submittedFeatures.propEntities != null) {
       for (PropEntityFeature entity : submittedFeatures.propEntities) {
         result = true;
-        entity.addFeature(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().get(), serviceLocator.getSingletonService(BuildFeatureDescriptorFactory.class));
+        entity.addFeature(buildTypeSettings, serviceLocator.getSingletonService(BuildFeatureDescriptorFactory.class));
       }
     }
     if (submittedTriggers != null && submittedTriggers.propEntities != null) {
       for (PropEntityTrigger entity : submittedTriggers.propEntities) {
         result = true;
-        entity.addTrigger(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().get(), serviceLocator.getSingletonService(BuildTriggerDescriptorFactory.class));
+        entity.addTrigger(buildTypeSettings, serviceLocator.getSingletonService(BuildTriggerDescriptorFactory.class));
       }
     }
     if (submittedSnapshotDependencies != null && submittedSnapshotDependencies.propEntities != null) {
       for (PropEntitySnapshotDep entity : submittedSnapshotDependencies.propEntities) {
         result = true;
-        entity.addSnapshotDependency(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().get(), serviceLocator);
+        entity.addSnapshotDependency(buildTypeSettings, serviceLocator);
       }
     }
-    if (submittedArtifactDependencies != null) {
-      List<SArtifactDependency> artifactDeps = submittedArtifactDependencies.getFromPosted(null, serviceLocator);
-      result = true;
-      buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().get().setArtifactDependencies(artifactDeps);
+    if (submittedArtifactDependencies != null && submittedArtifactDependencies.propEntities != null) {
+      boolean updated = submittedArtifactDependencies.setToBuildType(buildTypeSettings, serviceLocator);
+      result = result || updated;
     }
     if (submittedAgentRequirements != null && submittedAgentRequirements.propEntities != null) {
       for (PropEntityAgentRequirement entity : submittedAgentRequirements.propEntities) {

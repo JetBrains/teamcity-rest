@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -50,7 +51,6 @@ import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
-import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.VcsLabelingBuildFeature;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -75,6 +75,7 @@ import org.jetbrains.annotations.Nullable;
 @Path(BuildTypeRequest.API_BUILD_TYPES_URL)
 @Api
 public class BuildTypeRequest {
+  private static final Logger LOG = Logger.getInstance(BuildTypeRequest.class.getName());
 
   private static final Pattern WHITESPACE_PATTERN = Pattern.compile(" ");
   private static final Pattern PROJECT_PATH_SEPARATOR_PATTERN = Pattern.compile("::");
@@ -796,7 +797,7 @@ public class BuildTypeRequest {
                                   @PathParam("name") String name) {
     final BuildTypeSettings buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true).get();
     final SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType, featureId);
-    return PropEntityStep.getSetting(buildType, feature, name);
+    return PropEntityStep.getSetting(buildType, feature.getId(), name);
   }
 
   @PUT
@@ -807,9 +808,9 @@ public class BuildTypeRequest {
                                    @PathParam("name") String name, String newValue) {
     final BuildTypeSettings buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true).get();
     final SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType, featureId);
-    PropEntityStep.setSetting(buildType, feature, name, newValue);
+    PropEntityStep.setSetting(buildType, feature.getId(), name, newValue);
     buildType.persist();
-    return PropEntityStep.getSetting(buildType, BuildTypeUtil.getBuildTypeFeature(buildType, featureId), name);
+    return PropEntityStep.getSetting(buildType, BuildTypeUtil.getBuildTypeFeature(buildType, featureId).getId(), name);
   }
 
 
@@ -818,7 +819,7 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntitiesArtifactDep getArtifactDeps(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    return new PropEntitiesArtifactDep(buildType.get().getArtifactDependencies(), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new PropEntitiesArtifactDep(buildType.get(), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   /**
@@ -831,44 +832,32 @@ public class BuildTypeRequest {
   public PropEntitiesArtifactDep replaceArtifactDeps(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields, PropEntitiesArtifactDep deps) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
 
-    final List<SArtifactDependency> originalDependencies = buildType.get().getArtifactDependencies();
+    PropEntitiesArtifactDep.Storage original = new PropEntitiesArtifactDep.Storage(buildType.get());
     try {
-      if (deps.propEntities != null){
-        final List<SArtifactDependency> dependencyObjects =
-          CollectionsUtil.convertCollection(deps.propEntities, new Converter<SArtifactDependency, PropEntityArtifactDep>() {
-            public SArtifactDependency createFrom(@NotNull final PropEntityArtifactDep source) {
-              return source.createDependency(myServiceLocator);
-            }
-          });
-        buildType.get().setArtifactDependencies(dependencyObjects);
-      }else{
-        buildType.get().setArtifactDependencies(Collections.EMPTY_LIST);
-      }
+      deps.setToBuildType(buildType.get(), myServiceLocator);
       buildType.get().persist();
     } catch (Exception e) {
       //restore previous state
-      buildType.get().setArtifactDependencies(originalDependencies);
+      original.apply(buildType.get());
       buildType.get().persist();
       throw new BadRequestException("Error setting artifact dependencies", e);
     }
-    return new PropEntitiesArtifactDep(buildType.get().getArtifactDependencies(), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new PropEntitiesArtifactDep(buildType.get(), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @POST
   @Path("/{btLocator}/artifact-dependencies")
   @Produces({"application/xml", "application/json"})
   public PropEntityArtifactDep addArtifactDep(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields, PropEntityArtifactDep description) {
-    //todo: change order-based locator as it is not reliable
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
 
     final List<SArtifactDependency> dependencies = new ArrayList<SArtifactDependency>(buildType.get().getArtifactDependencies());
-    final SArtifactDependency newDependency = description.createDependency(myServiceLocator);
-    dependencies.add(newDependency);
+    final PropEntityArtifactDep.ArtifactDependency newDependency = description.createDependency(myServiceLocator);
+    dependencies.add(newDependency.dep);
     buildType.get().setArtifactDependencies(dependencies);
+    buildType.get().setEnabled(newDependency.id, newDependency.enabled);
     buildType.get().persist();
-    //todo: might need to retrieve just added dependency instead of using the initial object
-    int orderNum = buildType.get().getArtifactDependencies().indexOf(newDependency);
-    return new PropEntityArtifactDep(newDependency, orderNum, new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new PropEntityArtifactDep(newDependency.dep, buildType.get(), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @GET
@@ -878,7 +867,7 @@ public class BuildTypeRequest {
                                               @PathParam("artifactDepLocator") String artifactDepLocator,
                                               @QueryParam("fields") String fields) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    final SArtifactDependency artifactDependency = DataProvider.getArtifactDep(buildType.get(), artifactDepLocator);
+    final SArtifactDependency artifactDependency = getArtifactDependency(buildType, artifactDepLocator);
     return new PropEntityArtifactDep(artifactDependency, buildType.get(), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
@@ -887,7 +876,7 @@ public class BuildTypeRequest {
   public void deleteArtifactDep(@PathParam("btLocator") String buildTypeLocator,
                                 @PathParam("artifactDepLocator") String artifactDepLocator) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    final SArtifactDependency artifactDependency = DataProvider.getArtifactDep(buildType.get(), artifactDepLocator);
+    final SArtifactDependency artifactDependency = getArtifactDependency(buildType, artifactDepLocator);
     final List<SArtifactDependency> dependencies = buildType.get().getArtifactDependencies();
     if (!dependencies.remove(artifactDependency)) {
       throw new NotFoundException("Specified artifact dependency is not found in the build type.");
@@ -903,23 +892,102 @@ public class BuildTypeRequest {
                                                   @PathParam("artifactDepLocator") String artifactDepLocator,
                                                   @QueryParam("fields") String fields,
                                                   PropEntityArtifactDep description) {
-    //todo: change order-based locator as it is not reliable
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
+    final SArtifactDependency originalDependency = getArtifactDependency(buildType, artifactDepLocator);
+    final PropEntityArtifactDep.ArtifactDependency newDependency = description.createDependency(myServiceLocator);
 
-    final SArtifactDependency newDependency = description.createDependency(myServiceLocator);
-    final List<SArtifactDependency> dependencies = buildType.get().getArtifactDependencies();
-
-    final int orderNum = DataProvider.getArtifactDepOrderNum(buildType.get(), artifactDepLocator);
-    try {
-      dependencies.set(orderNum, newDependency);
-    } catch (IndexOutOfBoundsException e) {
-      throw new InvalidStateException("Cannot find dependency with order number " + orderNum + " in build type " + LogUtil.describe(buildType.get()), e);
+    PropEntitiesArtifactDep.Storage original = new PropEntitiesArtifactDep.Storage(buildType.get());
+    final List<SArtifactDependency> newDependencies = new ArrayList<>(original.deps.size());
+    for (SArtifactDependency currentDependency : original.deps) {
+      if (currentDependency.equals(originalDependency)) {
+        newDependencies.add(newDependency.dep);
+      } else {
+        newDependencies.add(currentDependency);
+      }
     }
-    buildType.get().setArtifactDependencies(dependencies);
+    try {
+      buildType.get().setArtifactDependencies(newDependencies);
+      buildType.get().setEnabled(newDependency.id, newDependency.enabled);
+      buildType.get().persist();
+    } catch (Exception e) {
+      //restore
+      original.apply(buildType.get());
+      buildType.get().persist();
+      throw new BadRequestException("Error updating artifact dependencies: " + e.toString(), e);
+    }
 
+    return new PropEntityArtifactDep(newDependency.dep, buildType.get(), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+  }
+
+
+  public static SArtifactDependency getArtifactDependency(@NotNull final BuildTypeOrTemplate buildType, @NotNull final String artifactDepLocator) {
+    if (StringUtil.isEmpty(artifactDepLocator)) {
+      throw new BadRequestException("Empty artifact dependency locator is not supported.");
+    }
+
+    final Locator locator = new Locator(artifactDepLocator, "id", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+
+    final String artifactDepId;
+    if (locator.isSingleValue()) {
+      artifactDepId = locator.getSingleValue();
+    } else {
+      artifactDepId = locator.getSingleDimensionValue("id");
+    }
+    locator.checkLocatorFullyProcessed();
+
+    if (StringUtil.isEmpty(artifactDepId)) {
+      throw new BadRequestException("Cannot find id in artifact dependency locator '" + artifactDepLocator + "'");
+    }
+
+    for (SArtifactDependency dep : buildType.get().getArtifactDependencies()) {
+      if (artifactDepId.equals(dep.getId())) {
+        return dep;
+      }
+    }
+
+    //may be it is a number: use obsolete pre-TeamCity 10 logic
+
+    try {
+      final Integer orderNumber = Integer.parseInt(artifactDepId);
+      try {
+        SArtifactDependency result = buildType.get().getArtifactDependencies().get(orderNumber);
+        LOG.debug(
+          "Found artifact dependency by order number " + orderNumber + " instead of id. This behavior is obsolete, use id (" + result.getId() + ") instead of order number.");
+        return result;
+      } catch (IndexOutOfBoundsException e) {
+        throw new NotFoundException("Could not find artifact dependency by id '" + artifactDepId + "' in " + buildType.getText() + " with id '" + buildType.getId() + "'");
+      }
+    } catch (NumberFormatException e) {
+      //not a number either: report error:
+      throw new NotFoundException("Could not find artifact dependency by id '" + artifactDepId + "' in " + buildType.getText() + " with id '" + buildType.getId() + "'");
+    }
+  }
+
+  //todo: list and allow changing parameters of the dependency
+  // like for features, steps (otherwise there is no way to update dependency in a template not resetting enabled/disabled in usages)
+  // Note: on adding editing should test editing of a dependnecy when inherited form a tempalte
+
+  @GET
+  @Path("/{btLocator}/artifact-dependencies/{artifactDepLocator}/{fieldName}")
+  @Produces({"text/plain"})
+  public String getArtifactDepSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("artifactDepLocator") String artifactDepLocator,
+                                      @PathParam("fieldName") String name) {
+    final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
+    final SArtifactDependency dep = getArtifactDependency(buildType, artifactDepLocator);
+    return PropEntityArtifactDep.getSetting(buildType.get(), dep.getId(), name);
+  }
+
+  @PUT
+  @Path("/{btLocator}/artifact-dependencies/{artifactDepLocator}/{fieldName}")
+  @Consumes({"text/plain"})
+  @Produces({"text/plain"})
+  public String changeArtifactDepSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("artifactDepLocator") String artifactDepLocator,
+                                         @PathParam("fieldName") String name, String newValue) {
+    final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
+    final SArtifactDependency dep = getArtifactDependency(buildType, artifactDepLocator);
+    PropEntityArtifactDep.setSetting(buildType.get(), dep.getId(), name, newValue);
     buildType.get().persist();
-
-    return new PropEntityArtifactDep(newDependency, orderNum, new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return PropEntityArtifactDep.getSetting(buildType.get(), dep.getId(), name);
   }
 
   @GET
@@ -980,8 +1048,7 @@ public class BuildTypeRequest {
   public PropEntitySnapshotDep addSnapshotDep(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields, PropEntitySnapshotDep description) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
 
-    Dependency createdDependency =
-      description.addSnapshotDependency(buildType.get(), myServiceLocator);
+    Dependency createdDependency = description.addSnapshotDependency(buildType.get(), myServiceLocator);
     buildType.get().persist();
     return new PropEntitySnapshotDep(createdDependency, new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
@@ -1144,7 +1211,7 @@ public class BuildTypeRequest {
                                   @PathParam("fieldName") String name) {
     final BuildTypeSettings buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true).get();
     final BuildTriggerDescriptor trigger = DataProvider.getTrigger(buildType, triggerLocator);
-    return PropEntityStep.getSetting(buildType, trigger, name);
+    return PropEntityStep.getSetting(buildType, trigger.getId(), name);
   }
 
   @PUT
@@ -1155,9 +1222,9 @@ public class BuildTypeRequest {
                                    @PathParam("fieldName") String name, String newValue) {
     final BuildTypeSettings buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true).get();
     final BuildTriggerDescriptor trigger = DataProvider.getTrigger(buildType, triggerLocator);
-    PropEntityStep.setSetting(buildType, trigger, name, newValue);
+    PropEntityStep.setSetting(buildType, trigger.getId(), name, newValue);
     buildType.persist();
-    return PropEntityStep.getSetting(buildType, DataProvider.getTrigger(buildType, triggerLocator), name);
+    return PropEntityStep.getSetting(buildType, DataProvider.getTrigger(buildType, triggerLocator).getId(), name);
   }
 
 

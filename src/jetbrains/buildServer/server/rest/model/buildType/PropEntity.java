@@ -84,16 +84,16 @@ public class PropEntity {
     disabled = enabled == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("disabled"), !enabled);
   }
 
-  public static String getSetting(final BuildTypeSettings buildType, final ParametersDescriptor descriptor, final String name) {
+  public static String getSetting(@NotNull final BuildTypeSettings buildType, @NotNull final String id, final String name) {
     if ("disabled".equals(name)) {
-      return String.valueOf(!buildType.isEnabled(descriptor.getId()));
+      return String.valueOf(!buildType.isEnabled(id));
     }
     throw new BadRequestException("Only 'disabled' setting names is supported. '" + name + "' unknown.");
   }
 
-  public static void setSetting(final BuildTypeSettings buildType, final ParametersDescriptor descriptor, final String name, final String value) {
+  public static void setSetting(@NotNull final BuildTypeSettings buildType, @NotNull final String id, final String name, final String value) {
     if ("disabled".equals(name)) {
-      buildType.setEnabled(descriptor.getId(), !Boolean.parseBoolean(value));
+      buildType.setEnabled(id, !Boolean.parseBoolean(value));
     } else {
       throw new BadRequestException("Only 'disabled' setting names is supported. '" + name + "' unknown.");
     }

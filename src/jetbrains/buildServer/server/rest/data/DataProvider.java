@@ -41,7 +41,6 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
-import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.db.DBFunctionsProvider;
 import jetbrains.buildServer.serverSide.impl.VcsModificationChecker;
@@ -177,42 +176,6 @@ public class DataProvider {
     return result;
   }
 
-  @NotNull
-  public static SArtifactDependency getArtifactDep(final BuildTypeSettings buildType, final String artifactDepLocator) {
-    final int order = getArtifactDepOrderNum(buildType, artifactDepLocator);
-    try {
-      return buildType.getArtifactDependencies().get(order);
-    } catch (IndexOutOfBoundsException e) {
-      throw new NotFoundException("No artifact dependency found by locator '" + artifactDepLocator + "'. There is no dependency with order " + order + ".");
-    }
-  }
-
-  public static int getArtifactDepOrderNum(final BuildTypeSettings buildType, final String artifactDepLocator) {
-    final Long result;
-    if (StringUtil.isEmpty(artifactDepLocator)) {
-      throw new BadRequestException("Empty artifact dependency locator is not supported.");
-    }
-
-    final Locator locator = new Locator(artifactDepLocator);
-
-    if (locator.isSingleValue()) {
-      // no dimensions found, assume it's an result number
-      result = locator.getSingleValueAsLong();
-      if (result == null) {
-        throw new NotFoundException("No artifact dependency found by locator '" + artifactDepLocator +
-                                    ". Locator should be result number of the dependency in the build configuration.");
-      }
-
-      if (result >= buildType.getArtifactDependencies().size()) {
-        throw new NotFoundException("No artifact dependency found by locator '" + artifactDepLocator + "'. There is no dependency at position " + result + ".");
-      }
-      return result.intValue();
-    }
-
-    throw new BadRequestException("No artifact dependency found by locator '" + artifactDepLocator +
-                                  "'. Locator should be result number of the dependency in the build configuration.");
-  }
-
 
   public static BuildTriggerDescriptor getTrigger(final BuildTypeSettings buildType, final String triggerLocator) {
     if (StringUtil.isEmpty(triggerLocator)) {
@@ -282,6 +245,7 @@ public class DataProvider {
     return myWebLinks.getConfigurationHomePageUrl(buildType);
   }
 
+  //todo: replace usages with TimeWithPrecision.parse
   @Nullable
   public static Date parseDate(@Nullable final String dateString) {
     if (dateString == null) {
@@ -472,19 +436,5 @@ public class DataProvider {
           throw new NotFoundException("No agent pool is found by id '" + agentPoolId + "'.");
         }
       }
-  }
-
-  /**
-   * methods to cover missing URLs form TeamCity open API (TeamCity API issue)
-   */
-  public String getBuildQueueUrl() {
-    return makeUrl("queue.html");
-  }
-
-  @NotNull
-  private String makeUrl(@NotNull String relativePart) {
-    String baseUrl = myRootUrlHolder.getRootUrl();
-    if (!baseUrl.endsWith("/")) baseUrl += "/";
-    return baseUrl + relativePart;
   }
 }

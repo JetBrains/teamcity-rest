@@ -16,9 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -27,6 +25,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -47,21 +46,30 @@ public class PropEntitiesArtifactDep implements DefaultValueAware {
   public PropEntitiesArtifactDep() {
   }
 
-  public PropEntitiesArtifactDep(@NotNull final List<SArtifactDependency> artifactDependencies, @NotNull final Fields fields, @NotNull final BeanContext context) {
+  /**
+   * @param artifactDependencies
+   * @param buildType            null if enabled/disabled is not applicable
+   * @param fields
+   * @param context
+   */
+  public PropEntitiesArtifactDep(@NotNull final List<SArtifactDependency> artifactDependencies, @Nullable final BuildTypeSettings buildType,
+                                 @NotNull final Fields fields, @NotNull final BeanContext context) {
     propEntities = ValueWithDefault.decideDefault(fields.isIncluded("artifact-dependency", true), new ValueWithDefault.Value<List<PropEntityArtifactDep>>() {
       @Nullable
       public List<PropEntityArtifactDep> get() {
         final ArrayList<PropEntityArtifactDep> result = new ArrayList<PropEntityArtifactDep>(artifactDependencies.size());
-        int orderNumber = 0;
         for (SArtifactDependency dependency : artifactDependencies) {
-          result.add(new PropEntityArtifactDep(dependency, orderNumber, fields.getNestedField("artifact-dependency", Fields.NONE, Fields.LONG), context));
-          orderNumber++;
+          result.add(new PropEntityArtifactDep(dependency, buildType, fields.getNestedField("artifact-dependency", Fields.NONE, Fields.LONG), context));
         }
         ;
         return result;
       }
     });
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), artifactDependencies.size());
+  }
+
+  public PropEntitiesArtifactDep(@NotNull final BuildTypeSettings buildType, @NotNull final Fields fields, @NotNull final BeanContext context) {
+    this(buildType.getArtifactDependencies(), buildType, fields, context);
   }
 
   @NotNull
@@ -73,7 +81,7 @@ public class PropEntitiesArtifactDep implements DefaultValueAware {
     final ArrayList<SArtifactDependency> result =
       replaceOriginal ? new ArrayList<SArtifactDependency>(propEntities.size()) : new ArrayList<SArtifactDependency>(originalCollection);
     for (PropEntityArtifactDep entity : propEntities) {
-      result.add(entity.createDependency(serviceLocator));
+      result.add(entity.createDependency(serviceLocator).dep);
     }
     return result;
   }
@@ -95,5 +103,42 @@ public class PropEntitiesArtifactDep implements DefaultValueAware {
 
   public void setReplace(String value) {
     submittedReplace = Boolean.valueOf(value);
+  }
+
+  /**
+   * @return true if buildTypeSettings is modified
+   */
+  public boolean setToBuildType(final @NotNull BuildTypeSettings buildTypeSettings, final @NotNull ServiceLocator serviceLocator) {
+    List<PropEntityArtifactDep.ArtifactDependency> wrappers = new ArrayList<>();
+    List<SArtifactDependency> deps = new ArrayList<>();
+    for (PropEntityArtifactDep entity : propEntities) {
+      PropEntityArtifactDep.ArtifactDependency dep = entity.createDependency(serviceLocator);
+      wrappers.add(dep);
+      deps.add(dep.dep);
+    }
+    buildTypeSettings.setArtifactDependencies(deps);
+    for (PropEntityArtifactDep.ArtifactDependency wrapper : wrappers) {
+      buildTypeSettings.setEnabled(wrapper.id, wrapper.enabled);
+    }
+    return propEntities.size() > 0;
+  }
+
+  public static class Storage{
+    public final List<SArtifactDependency> deps = new ArrayList<>();
+    public final Map<String, Boolean> enabledData = new HashMap<>();
+
+    public Storage(final @NotNull BuildTypeSettings buildTypeSettings) {
+      for (SArtifactDependency dependency : buildTypeSettings.getArtifactDependencies()) {
+        deps.add(dependency);
+        enabledData.put(dependency.getId(), buildTypeSettings.isEnabled(dependency.getId()));
+      }
+    }
+
+    public void apply(final @NotNull BuildTypeSettings buildTypeSettings){
+      buildTypeSettings.setArtifactDependencies(deps);
+      for (Map.Entry<String, Boolean> entry : enabledData.entrySet()) {
+        buildTypeSettings.setEnabled(entry.getKey(), entry.getValue());
+      }
+    }
   }
 }

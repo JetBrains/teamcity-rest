@@ -18,7 +18,6 @@ package jetbrains.buildServer.server.rest.model.buildType;
 
 import com.intellij.openapi.util.text.StringUtil;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -44,6 +43,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 05.01.12
  */
+@SuppressWarnings("PublicField")
 @XmlRootElement(name = "artifact-dependency")
 @XmlType
 public class PropEntityArtifactDep extends PropEntity {
@@ -62,12 +62,15 @@ public class PropEntityArtifactDep extends PropEntity {
   public PropEntityArtifactDep() {
   }
 
-  public PropEntityArtifactDep(final SArtifactDependency dependency, final int orderNum, @NotNull final Fields fields, @NotNull final BeanContext context) {
-    init(dependency, orderNum, fields, context);
-
-  }
-
-  private void init(final SArtifactDependency dependency, final int orderNum, @NotNull final Fields fields, @NotNull final BeanContext context) {
+  /**
+   *
+   * @param dependency
+   * @param buildType null is enabled/disabled is not applicable
+   * @param fields
+   * @param context
+   */
+  public PropEntityArtifactDep(@NotNull final SArtifactDependency dependency, @Nullable final BuildTypeSettings buildType,
+                               @NotNull final Fields fields, @NotNull final BeanContext context) {
     HashMap<String, String> properties = new HashMap<String, String>();
     if (TeamCityProperties.getBoolean(PropEntitySnapshotDep.REST_COMPATIBILITY_INCLUDE_BUILD_TYPE_IN_PROPERTIES)) {
       properties.put(NAME_SOURCE_BUILD_TYPE_ID, dependency.getSourceExternalId());
@@ -92,11 +95,9 @@ public class PropEntityArtifactDep extends PropEntity {
     if (!StringUtil.isEmpty(branch)){
       properties.put(NAME_REVISION_BRANCH, branch);
     }
-    //todo: add support for "Clean destination paths after build finishes"
     properties.put(NAME_CLEAN_DESTINATION_DIRECTORY, Boolean.toString(dependency.isCleanDestinationFolder()));
 
-    //todo: review id, type here
-    init(Integer.toString(orderNum), null, ARTIFACT_DEPENDENCY_TYPE_NAME, null, properties, fields);
+    init(dependency.getId(), null, ARTIFACT_DEPENDENCY_TYPE_NAME, buildType == null ? null : buildType.isEnabled(dependency.getId()), properties, fields);
 
     sourceBuildType = ValueWithDefault.decideDefault(fields.isIncluded(PropEntitySnapshotDep.SOURCE_BUILD_TYPE, false, true), new ValueWithDefault.Value<BuildType>() {
       @Nullable
@@ -117,24 +118,7 @@ public class PropEntityArtifactDep extends PropEntity {
     });
   }
 
-  public PropEntityArtifactDep(final SArtifactDependency artifactDependency,
-                               final BuildTypeSettings buildType,
-                               @NotNull final Fields fields,
-                               @NotNull final BeanContext context) {
-    final List<SArtifactDependency> artifactDependencies = buildType.getArtifactDependencies();
-
-    int orderNumber = 0;
-    for (SArtifactDependency dependency : artifactDependencies) {
-      if (dependency.equals(artifactDependency)) {
-        init(artifactDependency, orderNumber, fields, context);
-        return;
-      }
-      orderNumber++;
-    }
-    throw new IllegalArgumentException("Specified build type does not have specified artifact dependency.");
-  }
-
-  public SArtifactDependency createDependency(@NotNull final ServiceLocator serviceLocator) {
+  public ArtifactDependency createDependency(@NotNull final ServiceLocator serviceLocator) {
     if (!ARTIFACT_DEPENDENCY_TYPE_NAME.equals(type)){
       throw new BadRequestException("Artifact dependency should have type '" + ARTIFACT_DEPENDENCY_TYPE_NAME + "'.");
     }
@@ -156,7 +140,8 @@ public class PropEntityArtifactDep extends PropEntity {
     if (cleanDir != null) {
       artifactDependency.setCleanDestinationFolder(Boolean.parseBoolean(cleanDir));
     }
-    return artifactDependency;
+    //noinspection SimplifiableConditionalExpression
+    return new ArtifactDependency(artifactDependency, disabled == null ? true : !disabled);
   }
 
   @NotNull
@@ -173,6 +158,18 @@ public class PropEntityArtifactDep extends PropEntity {
         throw new BadRequestException("Cannot create revision for name '" + revisionName + "' and value '" + revisionValue + "'");
       }
       return result;
+    }
+  }
+
+  public static class ArtifactDependency {
+    @NotNull public SArtifactDependency dep;
+    public boolean enabled;
+    public String id;
+
+    public ArtifactDependency(@NotNull final SArtifactDependency dep, final boolean enabled) {
+      this.dep = dep;
+      this.id = dep.getId();
+      this.enabled = enabled;
     }
   }
 }
