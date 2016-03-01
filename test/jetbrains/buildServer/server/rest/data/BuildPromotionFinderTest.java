@@ -857,8 +857,8 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 
     final SFinishedBuild finishedBuild05 = build().in(buildConf1).finish();
     final SFinishedBuild finishedBuild10 = build().in(buildConf1).parameter("a", "10").parameter("b", "10").parameter("aa", "15").finish();
-    final SFinishedBuild finishedBuild20 = build().in(buildConf1).parameter("b", "20").finish();
-    final SFinishedBuild finishedBuild30 = build().in(buildConf1).parameter("c", "20").finish();
+    final SFinishedBuild finishedBuild20 = build().in(buildConf1).parameter("b", "20").parameter("myProp1", "randomValue#mPWh1dEHNVHVPhE17nwzYJng").finish();
+    final SFinishedBuild finishedBuild30 = build().in(buildConf1).parameter("c", "20").parameter("myProp2", "randomValue#mPWh1dEHNVHVPhE17nwzYJng").finish();
     final SFinishedBuild finishedBuild35 = build().in(buildConf1).parameter("c", "10").finish();
     final SFinishedBuild finishedBuild40 = build().in(buildConf1).parameter("zzz", "30").finish();
     final SFinishedBuild finishedBuild50 = build().in(buildConf1).parameter("aa", "10").parameter("aaa", "10").finish();
@@ -866,7 +866,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("property:(name:a)", getBuildPromotions(finishedBuild10));
     checkBuilds("property:(name:b)", getBuildPromotions(finishedBuild20, finishedBuild10));
     checkBuilds("property:(name:b,value:20)", getBuildPromotions(finishedBuild20));
-    checkBuilds("property:(value:20)", getBuildPromotions(finishedBuild30, finishedBuild20));
+    checkBuilds("property:(value:randomValue#mPWh1dEHNVHVPhE17nwzYJng)", getBuildPromotions(finishedBuild30, finishedBuild20));
 
     //"contains" by default
     checkBuilds("property:(value:0)", getBuildPromotions(finishedBuild50, finishedBuild40, finishedBuild35, finishedBuild30, finishedBuild20, finishedBuild10, finishedBuild05));
@@ -875,7 +875,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("property:(value:" + buildConf1.getExternalId() + ")",
                 getBuildPromotions(finishedBuild50, finishedBuild40, finishedBuild35, finishedBuild30, finishedBuild20, finishedBuild10, finishedBuild05));
 
-    checkBuilds("property:(value:10,matchType:equals)", getBuildPromotions(finishedBuild50, finishedBuild35, finishedBuild10));
+    checkBuilds("property:(value:randomValue#mPWh1dEHNVHVPhE17nwzYJng,matchType:equals)", getBuildPromotions(finishedBuild30, finishedBuild20));
     checkBuilds("property:(value:15,matchType:more-than)", getBuildPromotions(finishedBuild40, finishedBuild30, finishedBuild20));
     checkBuilds("property:(name:b,value:15,matchType:more-than)", getBuildPromotions(finishedBuild20));
 //this is not reported anyhow from the core (Requirement)    checkExceptionOnBuildsSearch(BadRequestException.class, "property:(value:[,matchType:matches)");
@@ -888,6 +888,8 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 //this does not work as all build params are checked, not only custom    checkBuilds("property:(matchScope:all,value:10,matchType:equals)", getBuildPromotions(finishedBuild50, finishedBuild35));
     checkBuilds("property:(name:(a*),nameMatchType:matches,matchScope:all,value:10,matchType:equals)", getBuildPromotions(finishedBuild50));
     checkBuilds("property:(name:(.),nameMatchType:matches,matchScope:any,value:10,matchType:equals)", getBuildPromotions(finishedBuild35, finishedBuild10));
+    checkBuilds("property:(name:zzz)", getBuildPromotions(finishedBuild40));
+    checkBuilds("property:(name:z.z)");
 
     //builds with at least one param not equal to 10
     checkBuilds("property:(value:10,matchType:does-not-match)",
