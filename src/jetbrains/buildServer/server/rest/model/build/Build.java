@@ -64,6 +64,8 @@ import jetbrains.buildServer.serverSide.buildDistribution.WaitReason;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl;
+import jetbrains.buildServer.serverSide.metadata.BuildMetadataEntry;
+import jetbrains.buildServer.serverSide.metadata.impl.MetadataStorageEx;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
 import jetbrains.buildServer.users.SUser;
@@ -96,7 +98,7 @@ import org.springframework.beans.factory.annotation.Autowired;
            "agent", "compatibleAgents"/*q*/,
            "testOccurrences"/*rf*/, "problemOccurrences"/*rf*/,
            "artifacts"/*rf*/, "issues"/*rf*/,
-           "properties", "attributes", "statistics"/*rf*/,
+           "properties", "attributes", "statistics", "metadata"/*rf*/,
            "buildDependencies", "buildArtifactDependencies", "customBuildArtifactDependencies"/*q*/,
            "settingsHash", "currentSettingsHash", "modificationId", "chainModificationId", "replacementIds",
            "triggeringOptions"/*only when triggering*/})
@@ -429,6 +431,39 @@ public class Build {
                                   statisticsHref, nestedField);
           }
         });
+    }
+  }
+
+  @XmlElement
+  public NamedDatas getMetadata() {
+    if (myBuild == null) {
+      return null;
+    } else {
+      return ValueWithDefault.decideDefault(myFields.isIncluded("metadata", false, false), new ValueWithDefault.Value<NamedDatas>() {
+        public NamedDatas get() {
+          HashMap<String, Map<String, String>> result = new HashMap<>();
+          MetadataStorageEx metadataStorage = myServiceLocator.getSingletonService(MetadataStorageEx.class);
+          for (String providerId : metadataStorage.getProviderIds()) {
+            Iterator<BuildMetadataEntry> metadataEntryIterator = metadataStorage.getBuildEntry(myBuild.getBuildId(), providerId);
+            while (metadataEntryIterator.hasNext()) {
+              BuildMetadataEntry metadataEntry = metadataEntryIterator.next();
+              HashMap<String, String> properties = new HashMap<>(metadataEntry.getMetadata());
+              if (properties.get(".providerId") == null) {
+                properties.put(".providerId", providerId);
+              } else {
+                properties.put(".teamcity.rest.providerId", providerId); // assume clash here does not happen
+              }
+              if (properties.get(".key") == null) {
+                properties.put(".key", metadataEntry.getKey());
+              } else {
+                properties.put(".teamcity.rest.key", metadataEntry.getKey());  // assume clash here does not happen
+              }
+              result.put(providerId + "_" + metadataEntry.getKey(), properties);
+            }
+          }
+          return new NamedDatas(result, myFields.getNestedField("metadata"));
+        }
+      });
     }
   }
 

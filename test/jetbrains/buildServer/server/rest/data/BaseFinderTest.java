@@ -128,7 +128,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myBranchFinder = new BranchFinder(myBuildTypeFinder);
 
     myBuildPromotionFinder = new BuildPromotionFinder(myFixture.getBuildPromotionManager(), myFixture.getBuildQueue(), myServer, myVcsRootFinder,
-                                                      myProjectFinder, myBuildTypeFinder, myUserFinder, myAgentFinder, myBranchFinder, myServer);
+                                                      myProjectFinder, myBuildTypeFinder, myUserFinder, myAgentFinder, myBranchFinder, myServer, null);
     myFixture.addService(myBuildPromotionFinder);
 
     myBuildFinder = new BuildFinder(myServer, myBuildTypeFinder, myProjectFinder, myUserFinder, myBuildPromotionFinder, myAgentFinder);
@@ -159,8 +159,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myFixture.addService(myQueuedBuildFinder);
 
     //myChangeFinder = new ChangeFinder(myProjectFinder, myBuildFinder, myBuildPromotionFinder, myBuildTypeFinder, myVcsRootFinder, myVcsRootInstanceFinder, myUserFinder,
-    //                                  myVcsManager, myFixture.getVcsHistory(), myBranchFinder, myFixture, permissionChecker
-    //);
+    //                                  myVcsManager, myFixture.getVcsHistory(), myBranchFinder, myFixture, permissionChecker);
   }
 
   public void setFinder(@NotNull AbstractFinder<T> finder){

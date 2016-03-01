@@ -31,6 +31,8 @@ import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.serverSide.impl.RunningBuildsManagerEx;
+import jetbrains.buildServer.serverSide.metadata.BuildMetadataEntry;
+import jetbrains.buildServer.serverSide.metadata.impl.MetadataStorageEx;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.filters.Filter;
@@ -92,6 +94,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   public static final String BY_PROMOTION = "byPromotion";  //used in BuildFinder
   public static final String EQUIVALENT = "equivalent"; /*experimental*/
+  public static final String METADATA = "metadata"; /*experimental*/
 
   public static final String REVISION = "revision"; /*experimental*/
   public static final BuildPromotionComparator BUILD_PROMOTIONS_COMPARATOR = new BuildPromotionComparator();
@@ -107,6 +110,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private final UserFinder myUserFinder;
   private final AgentFinder myAgentFinder;
   private final BranchFinder myBranchFinder;
+  private final MetadataStorageEx myMetadataStorage;
   private final TimeService myTimeService;
 
   @NotNull
@@ -129,7 +133,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                               final UserFinder userFinder,
                               final AgentFinder agentFinder,
                               final BranchFinder branchFinder,
-                              final RunningBuildsManagerEx timeServiceContainer) {
+                              final RunningBuildsManagerEx timeServiceContainer,
+                              final MetadataStorageEx metadataStorage) {
     super(new String[]{DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, USER, PERSONAL, STATE, TAG, PROPERTY, COMPATIBLE_AGENT,
       NUMBER, STATUS, CANCELED, PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, HANGING,
       DEFAULT_FILTERING, SINCE_BUILD_ID_LOOK_AHEAD_COUNT,
@@ -143,6 +148,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     myUserFinder = userFinder;
     myAgentFinder = agentFinder;
     myBranchFinder = branchFinder;
+    myMetadataStorage = metadataStorage;
     myTimeService = timeServiceContainer.getTimeService();
   }
 
@@ -167,7 +173,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     result.addHiddenDimensions(AGENT_NAME, TAGS, RUNNING); //compatibility
     result.addHiddenDimensions(BY_PROMOTION); //switch for legacy behavior
     result.addHiddenDimensions(COMPATIBLE_AGENTS_COUNT); //experimental for queued builds only
-    result.addHiddenDimensions(EQUIVALENT, REVISION, PROMOTION_ID_ALIAS, BUILD_ID);
+    result.addHiddenDimensions(EQUIVALENT, REVISION, PROMOTION_ID_ALIAS, BUILD_ID, METADATA);
     result.addHiddenDimensions(STATISTIC_VALUE); //experimental
     result.addHiddenDimensions(SINCE_BUILD_ID_LOOK_AHEAD_COUNT); //experimental
     result.addHiddenDimensions(ORDERED); //experimental
@@ -365,7 +371,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     }
 
-    final String tag = locator.getSingleDimensionValue(TAG);
+    final String tag = locator.getSingleDimensionValue(TAG); //support multiple dimensions here, https://youtrack.jetbrains.com/issue/TW-44203
     if (tag != null) {
       if (tag.startsWith("format:extended")) { //pre-9.1 compatibility
         //todo: log this?
@@ -472,6 +478,23 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         result.add(new FilterConditionChecker<BuildPromotion>() {
           public boolean isIncluded(@NotNull final BuildPromotion item) {
             return filter.contains(item);
+          }
+        });
+      }
+    }
+
+    if (locator.getUnusedDimensions().contains(METADATA)) { //performance optimization: do not filter if already processed
+      final String metadata = locator.getSingleDimensionValue(METADATA);
+      if (metadata != null) {
+        final Iterator<BuildMetadataEntry> metadataEntries = getBuildMetadataEntryIterator(metadata);
+        final Set<Long> buildIds = new HashSet<Long>();
+        while (metadataEntries.hasNext()) {
+          BuildMetadataEntry metadataEntry = metadataEntries.next();
+          buildIds.add(metadataEntry.getBuildId());
+        }
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            return buildIds.contains(item.getAssociatedBuildId());
           }
         });
       }
@@ -1004,6 +1027,26 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       return getItemHolder(convertedResult);
     }
 
+    final String metadata = locator.getSingleDimensionValue(METADATA);
+    if (metadata != null) {
+      final Iterator<BuildMetadataEntry> metadataEntries = getBuildMetadataEntryIterator(metadata);
+      return new ItemHolder<BuildPromotion>() {
+        @Override
+        public boolean process(@NotNull final ItemProcessor<BuildPromotion> processor) {
+          while (metadataEntries.hasNext()) {
+            BuildMetadataEntry metadataEntry = metadataEntries.next();
+            SBuild build = myBuildsManager.findBuildInstanceById(metadataEntry.getBuildId());
+            if (build != null) {
+              if (!processor.processItem(build.getBuildPromotion())) {
+                return false;
+              }
+            }
+          }
+          return true;
+        }
+      };
+    }
+
     final String graphLocator = locator.getSingleDimensionValue(ORDERED);
     if (graphLocator != null) {
       final GraphFinder<BuildPromotion> graphFinder = new BuildPromotionOrderedFinder(this);
@@ -1149,6 +1192,19 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         return false;
       }
     };
+  }
+
+  @NotNull
+  private Iterator<BuildMetadataEntry> getBuildMetadataEntryIterator(@NotNull final String metadataLocatorText) {
+    Locator metadataLocator = new Locator(metadataLocatorText, "providerId", "key");
+    String providerId = metadataLocator.getSingleDimensionValue("providerId");
+    if (providerId == null) {
+      throw new BadRequestException("Metadata locator '" + metadataLocatorText + "' should contain '" + "providerId" + "' dimension.");
+    }
+    String key = metadataLocator.getSingleDimensionValue("key");
+    metadataLocator.checkLocatorFullyProcessed();
+
+    return key == null ? myMetadataStorage.getAllEntries(providerId) : myMetadataStorage.getEntriesByKey(providerId, key);
   }
 
   @NotNull
