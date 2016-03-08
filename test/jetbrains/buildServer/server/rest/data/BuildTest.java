@@ -43,7 +43,6 @@ import jetbrains.buildServer.serverSide.impl.AgentRestrictorFactoryImpl;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.users.SUser;
-import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
@@ -496,11 +495,6 @@ public class BuildTest extends BaseFinderTest<SBuild> {
       this.sourcePaths = sourcePaths;
       this.cleanDestination = cleanDestination;
       this.revisionRule = revisionRule;
-    }
-
-    @Override
-    public void writeTo(final Element parentElement) {
-      throw new UnsupportedOperationException();
     }
 
     @NotNull
