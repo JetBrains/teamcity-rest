@@ -16,6 +16,8 @@
 
 package jetbrains.buildServer.server.rest.model.debug;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Ordering;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -104,7 +106,12 @@ public class Sessions {
                              creationTimestamp == null ? null : new Date(creationTimestamp), lastAccessedTimestamp == null ? null : new Date(lastAccessedTimestamp),
                              fields, beanContext));
     }
-    return result;  //todo: sort!
+    Ordering<Session> ordering = Ordering.natural().nullsLast().onResultOf(new Function<Session, String>() {
+      public String apply(Session item) {
+        return item.user != null ? item.user.getUsername() : null;
+      }
+    });
+    return ordering.sortedCopy(result);
   }
 
   private Object getBeanOperationResult(final MBeanServer serverBean, final ObjectName managerBean, final String sessionId, final String operationName) {
