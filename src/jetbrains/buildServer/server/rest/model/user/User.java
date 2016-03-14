@@ -38,6 +38,7 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.users.PropertyHolder;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -50,37 +51,49 @@ import org.jetbrains.annotations.Nullable;
 @XmlType(name = "user", propOrder = {"username", "name", "id", "email", "lastLogin", "password", "href",
   "properties", "roles", "groups"})
 public class User {
+  @Nullable
   private SUser myUser;
+  @NotNull
+  private final Long myUserId;
   private Fields myFields;
   private BeanContext myContext;
 
   public User() {
+    myUserId = 0L;
+  }
+
+  public User(long userId, @NotNull final Fields fields, @NotNull final BeanContext context) {
+    myUserId = userId;
+    myUser = context.getSingletonService(UserModel.class).findUserById(userId);
+    myFields = fields;
+    myContext = context;
   }
 
   public User(@NotNull jetbrains.buildServer.users.User user, @NotNull final Fields fields, @NotNull final BeanContext context) {
-    this.myUser = (SUser)user;
+    myUser = (SUser)user;
+    myUserId = myUser.getId();
     myFields = fields;
     myContext = context;
   }
 
   @XmlAttribute
   public Long getId() {
-    return  ValueWithDefault.decideDefault(myFields.isIncluded("id"), myUser.getId());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("id"), myUserId);
   }
 
   @XmlAttribute
   public String getName() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("name"), StringUtil.isEmpty(myUser.getName()) ? null : myUser.getName());
+    return myUser == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("name"), StringUtil.isEmpty(myUser.getName()) ? null : myUser.getName());
   }
 
   @XmlAttribute
   public String getUsername() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("username"), myUser.getUsername());
+    return myUser == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("username"), myUser.getUsername());
   }
 
   @XmlAttribute
   public String getLastLogin() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("lastLogin", false), new ValueWithDefault.Value<String>() {
+    return myUser == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("lastLogin", false), new ValueWithDefault.Value<String>() {
       public String get() {
         Date lastLoginTimestamp = myUser.getLastLoginTimestamp();
         if (lastLoginTimestamp != null) {
@@ -93,12 +106,12 @@ public class User {
 
   @XmlAttribute
   public String getHref() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("href"), myContext.getContextService(ApiUrlBuilder.class).getHref(myUser));
+    return myUser == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("href"), myContext.getContextService(ApiUrlBuilder.class).getHref(myUser));
   }
 
   @XmlAttribute
   public String getEmail() {
-    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("email", false), new ValueWithDefault.Value<String>() {
+    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("email", false), new ValueWithDefault.Value<String>() {
       public String get() {
         return StringUtil.isEmpty(myUser.getEmail()) ? null : myUser.getEmail();
       }
@@ -107,7 +120,7 @@ public class User {
 
   @XmlElement(name = "roles")
   public RoleAssignments getRoles() {
-    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("roles", false), new ValueWithDefault.Value<RoleAssignments>() {
+    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("roles", false), new ValueWithDefault.Value<RoleAssignments>() {
       public RoleAssignments get() {
         myContext.getSingletonService(UserFinder.class).checkViewUserPermission(myUser); //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
         return new RoleAssignments(myUser.getRoles(), myUser, myContext);
@@ -117,7 +130,7 @@ public class User {
 
   @XmlElement(name = "groups")
   public Groups getGroups() {
-    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("groups", false), new ValueWithDefault.Value<Groups>() {
+    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("groups", false), new ValueWithDefault.Value<Groups>() {
       public Groups get() {
         myContext.getSingletonService(UserFinder.class).checkViewUserPermission(myUser); //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
         return new Groups(myUser.getUserGroups(), myFields.getNestedField("groups", Fields.NONE, Fields.LONG), myContext);
@@ -127,12 +140,12 @@ public class User {
 
   @XmlAttribute
   public String getRealm() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("realm", false), myUser.getRealm());
+    return myUser == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("realm", false), myUser.getRealm());
   }
 
   @XmlElement(name = "properties")
   public Properties getProperties() {
-    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
+    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
         return new Properties(getProperties(myUser), UserRequest.getPropertiesHref(myUser),myFields.getNestedField("properties", Fields.NONE, Fields.LONG));
       }

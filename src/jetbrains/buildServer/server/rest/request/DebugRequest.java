@@ -43,6 +43,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
+import jetbrains.buildServer.server.rest.model.debug.Sessions;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.serverSide.*;
@@ -56,7 +57,6 @@ import jetbrains.buildServer.serverSide.db.queries.GenericQuery;
 import jetbrains.buildServer.serverSide.db.queries.QueryOptions;
 import jetbrains.buildServer.serverSide.impl.RunningBuildsManagerEx;
 import jetbrains.buildServer.users.SUser;
-import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -221,47 +221,28 @@ public class DebugRequest {
    * Experimental use only!
    */
   @GET
-  @Path("/sessions/summary")
-  @Produces({"text/plain"})
-  public String getSessions(@Context HttpServletRequest request) {
+  @Path("/sessions")
+  @Produces({"application/xml", "application/json"})
+  public Sessions getSessions(@Context HttpServletRequest request, @QueryParam("manager") final Long managerNum,
+                              @QueryParam("fields") final String fields, @Context @NotNull final BeanContext beanContext) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
-    StringBuilder result = new StringBuilder();
     try {
       MBeanServer serverBean = ManagementFactory.getPlatformMBeanServer();
       Set<ObjectName> managerBeans = serverBean.queryNames(new ObjectName("Catalina:type=Manager,*"), null);
-      for (ObjectName managerBean : managerBeans) {
-        String activeSessions = String.valueOf(serverBean.getAttribute(managerBean, "activeSessions"));
-        String maxActive = String.valueOf(serverBean.getAttribute(managerBean, "maxActive"));
-        if (result.length() > 0) {
-          result.append(", ");
-        }
-        result.append("activeSessions: ").append(activeSessions).append(", maxActive: ").append(maxActive);
-
-        result.append("\nDetails:\n");
-        String sessionsListRaw = String.valueOf(serverBean.invoke(managerBean, "listSessionIds", null, null));
-        final String[] sessionsIds = sessionsListRaw.split(" ");
-        final String signature[] = {String.class.getName(), String.class.getName()};
-        final String user_key = "USER_KEY"; //see jetbrains.buildServer.web.util.SessionUser.DEFAULT_USER_KEY
-        final UserModel userModel = myServiceLocator.getSingletonService(UserModel.class);
-        for (String sessionsId : sessionsIds) {
-          result.append(sessionsId.length() > 10 ? sessionsId.substring(0, sessionsId.length() - 10) + "..." : sessionsId).append(": ");
-          final String userKeyAttribute = (String)serverBean.invoke(managerBean, "getSessionAttribute", new Object[]{sessionsId, user_key}, signature);
-          if (!StringUtil.isEmpty(userKeyAttribute)) {
-            final int index = userKeyAttribute.lastIndexOf("{id=");
-            if (userKeyAttribute.endsWith("}") && index >= 0) {
-              final String userId = userKeyAttribute.substring(index + "{id=".length(), userKeyAttribute.length() - "}".length());
-              final SUser user = userModel.findUserById(Long.valueOf(userId)); //catch parsing error
-              result.append("user ").append(user == null ? "user with id " + userId : user.describe(false)).append("\n");
-            } else {
-              result.append("unparsable: ").append(userKeyAttribute).append("\n");
-            }
-          } else {
-            result.append("no ").append(user_key).append(" session attribute found").append("\n");
-          }
+      if (managerBeans.isEmpty()) {
+        throw new OperationException("No manager beans found. Not a Tomcat server or not a supported version of Tomcat?");
+      }
+      if (managerBeans.size() > 1 && managerNum == null) {
+        throw new OperationException("Several manager beans found (" + managerBeans.size() + "). Specify '" + "manager" + "' query parameter with the 0-based number.");
+      }
+      final Iterator<ObjectName> it = managerBeans.iterator();
+      if (managerNum != null) {
+        for (int i = 0; i < managerNum; i++) {
+          it.next();
         }
       }
-
-      return result.toString();
+      ObjectName managerBean = it.next();
+      return new Sessions(serverBean, managerBean, new Fields(fields), beanContext);
     } catch (Exception e) {
       throw new OperationException("Could not get sessions data: " + e.toString(), e);
     }
