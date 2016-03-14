@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest;
 
+import com.google.common.base.Stopwatch;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.ArrayUtil;
 import com.sun.jersey.api.core.ResourceConfig;
@@ -26,7 +27,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
@@ -57,6 +57,7 @@ import jetbrains.buildServer.serverSide.SecurityContextEx;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.FuncThrow;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.TimePrinter;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
 import jetbrains.buildServer.web.util.SessionUser;
@@ -374,7 +375,7 @@ public class APIController extends BaseController implements ServletContextAware
       return null;
     }
 
-    final long requestStartProcessing = System.nanoTime();
+    final Stopwatch requestStart = new Stopwatch().start();
     if (LOG.isDebugEnabled()) {
       LOG.debug("REST API request received: " + WebUtil.getRequestDump(request) + ", " + getPluginIdentifyingText());
     }
@@ -454,9 +455,7 @@ public class APIController extends BaseController implements ServletContextAware
       //todo: process exception mappers here to use correct error presentation in the log
     } finally{
       if (LOG.isDebugEnabled()) {
-        final long requestFinishProcessing = System.nanoTime();
-        LOG.debug("REST API request processing finished in " +
-                  TimeUnit.MILLISECONDS.convert(requestFinishProcessing - requestStartProcessing, TimeUnit.NANOSECONDS) + " ms, status code: " +
+        LOG.debug("REST API request processing finished in " + TimePrinter.createMillisecondsFormatter().formatTime(requestStart.elapsedMillis()) + ", status code: " +
                   getStatus(response) + ", " + getPluginIdentifyingText());
       }
     }
