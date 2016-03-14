@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.request;
 import com.sun.jersey.spi.resource.Singleton;
 import io.swagger.annotations.Api;
 import java.io.File;
+import java.io.IOException;
 import java.lang.management.LockInfo;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MonitorInfo;
@@ -35,13 +36,12 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.diagnostic.web.ThreadDumpsController;
-import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.data.PagedSearchResult;
-import jetbrains.buildServer.server.rest.data.VcsRootInstanceFinder;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
@@ -54,6 +54,7 @@ import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
 import jetbrains.buildServer.serverSide.db.*;
 import jetbrains.buildServer.serverSide.db.queries.GenericQuery;
 import jetbrains.buildServer.serverSide.db.queries.QueryOptions;
+import jetbrains.buildServer.serverSide.impl.RunningBuildsManagerEx;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.*;
@@ -62,6 +63,10 @@ import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
 /**
  * Provides some debug abilities for the server. Experimental only. Should be used with caution or better not used if not advised by JetBrains
@@ -170,7 +175,45 @@ public class DebugRequest {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     StringBuilder result = new StringBuilder();
     result.append("Remote address: " ).append(request.getRemoteAddr()).append("\n");
-    result.append("Refined remote address: " ).append(WebUtil.getRemoteAddress(request) + ":" + request.getRemotePort()).append("\n");
+    result.append("Refined remote address and port: ").append(WebUtil.getRemoteAddress(request)).append(" ").append(request.getRemotePort()).append("\n");
+    result.append("Local address and port: ").append(request.getLocalAddr()).append(" ").append(request.getLocalPort()).append("\n");
+    if (request.getLocalPort() != request.getServerPort()) {
+      result.append("Server port: ").append(request.getServerPort()).append("\n");
+    }
+    result.append("Method: ").append(request.getMethod()).append("\n");
+    result.append("Scheme: ").append(request.getScheme()).append("\n");
+    result.append("Session id: ").append(request.getSession().getId()).append("\n");
+    result.append("\n");
+    SUser currentUser = myDataProvider.getCurrentUser();
+    if (currentUser != null) {
+      result.append("Current TeamCity user: ").append(currentUser.describe(false)).append("\n");
+    } else {
+      result.append("No current TeamCity user\n");
+    }
+    result.append("\n");
+    result.append("Headers:\n");
+    Enumeration<String> headerNames = request.getHeaderNames();
+    while (headerNames.hasMoreElements()) {
+      String headerName = headerNames.nextElement();
+      Enumeration<String> headers = request.getHeaders(headerName);
+      while (headers.hasMoreElements()) {
+        String header = headers.nextElement();
+        result.append(headerName).append(": ").append(header).append("\n");
+      }
+    }
+    result.append("\n");
+    try {
+      //consider using byte-to-byte copy method
+      StringUtil.processLines(request.getInputStream(), new StringUtil.LineProcessor() {
+        @Override
+        public boolean processLine(final String line) {
+          result.append(line);
+          return true;
+        }
+      });
+    } catch (IOException e) {
+      throw new OperationException("Error reading request body: " + e.getMessage(), e);
+    }
     return result.toString();
   }
 
@@ -243,18 +286,71 @@ public class DebugRequest {
   /**
    * Experimental use only!
    */
+  @GET
+  @Path("/jvm/environmentVariables")
+  @Produces({"application/xml", "application/json"})
+  public Properties getEnvironmentVariables(@Context HttpServletRequest request, @QueryParam("fields") final String fields) {
+    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    return new Properties(System.getenv(), null, new Fields(fields));
+  }
+
+  /**
+   * Experimental use only!
+   */
+  @GET
+  @Path("/date/{dateLocator}")
+  @Produces({"text/plain"})
+  public String getDate(@PathParam("dateLocator") String dateLocator, @QueryParam("format") String format, @QueryParam("timezone") final String timezone) {
+    Date limitingDate;
+    try {
+      limitingDate = new Date(Long.valueOf(dateLocator));
+    } catch (NumberFormatException e) {
+      limitingDate = new TimeCondition(dateLocator, TimeCondition.STARTED_BUILD_TIME,
+                                       myServiceLocator.getSingletonService(BuildPromotionFinder.class),
+                                       myServiceLocator.getSingletonService(RunningBuildsManagerEx.class).getTimeService()).getLimitingDate();
+    }
+
+    if (format != null) {
+      myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+      if (StringUtil.isEmpty(format)) {
+        format = jetbrains.buildServer.server.rest.model.Constants.TIME_FORMAT;
+      }
+      DateTimeFormatter formatter = DateTimeFormat.forPattern(format).withLocale(Locale.ENGLISH);
+      if (timezone != null) {
+        try {
+          formatter = formatter.withZone(DateTimeZone.forID(timezone));
+        } catch (IllegalArgumentException e) {
+          throw new BadRequestException("Wrong timezone '" + timezone + "' specified. Error: " + e.getMessage() +
+                                        ". Supported are:\n" + StringUtil.join("\n", DateTimeZone.getAvailableIDs()), e);
+        }
+      }
+      return formatter.print(new DateTime(limitingDate));
+    }
+    return Util.formatTime(limitingDate);
+  }
+
+  /**
+   * Experimental use only!
+   */
   @POST
   @Path("/emptyTask")
   @Produces({"text/plain"})
-  public String emptyTask(@QueryParam("time") Integer totalTime, @QueryParam("load") Integer load) {
+  public String emptyTask(@QueryParam("time") String totalTime, @QueryParam("load") Integer loadPercentage) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
-    if (totalTime == null) totalTime = 0;
-    if (load == null) load = 0;
-    long loadMsInSecond = Math.round((Math.max(Math.min(load, 100),0)/100.0)*1000);
+    long totalTimeMs = 0;
+    if (totalTime != null) {
+      try {
+        totalTimeMs = Long.valueOf(totalTime);
+      } catch (NumberFormatException e) {
+        totalTimeMs = TimeWithPrecision.getMsFromRelativeTime(totalTime);
+      }
+    }
+    if (loadPercentage == null) loadPercentage = 0;
+    long loadMsInSecond = Math.round((Math.max(Math.min(loadPercentage, 100), 0) / 100.0) * 1000);
 
     final long startTime = System.currentTimeMillis();
     try {
-      while(System.currentTimeMillis() - startTime < totalTime){
+      while (System.currentTimeMillis() - startTime < totalTimeMs) {
         if (loadMsInSecond > 0){
           final long secondPeriodStart = System.currentTimeMillis();
           int i=0;
@@ -263,7 +359,7 @@ public class DebugRequest {
           }
           Thread.sleep(1000 - loadMsInSecond);
         } else{
-          Thread.sleep(totalTime);
+          Thread.sleep(totalTimeMs);
         }
       }
       return "Request time: " + (System.currentTimeMillis() - startTime) + "ms";
