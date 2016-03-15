@@ -288,12 +288,12 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     final SFinishedBuild build1 = build().in(buildConf).finish();
     final SFinishedBuild build2 = build().in(buildConf).withBranch("branch1").finish();
     final SFinishedBuild build3 = build().in(buildConf).withBranch("branch1").finish();
-    final SFinishedBuild build4 = build().in(buildConf).withBranch("branch1").finish();
+    final SFinishedBuild build4 = build().in(buildConf).withBranch("branch2").finish();
     final SFinishedBuild build5 = build().in(buildConf).withBranch("branch1").finish();
 
     checkBuilds("equivalent:(id:" + build0.getBuildId() + ")", build1.getBuildPromotion());
-    checkBuilds("equivalent:(id:" + build2.getBuildId() + ")", build5.getBuildPromotion(), build4.getBuildPromotion(), build3.getBuildPromotion());
-    checkBuilds("equivalent:(id:" + build4.getBuildId() + ")", build5.getBuildPromotion(), build3.getBuildPromotion(), build2.getBuildPromotion());
+    checkBuilds("equivalent:(id:" + build2.getBuildId() + ")", build5.getBuildPromotion(), build3.getBuildPromotion(), build1.getBuildPromotion(), build0.getBuildPromotion());
+    checkBuilds("equivalent:(id:" + build4.getBuildId() + ")", build1.getBuildPromotion(), build0.getBuildPromotion());
   }
 
 
@@ -1003,9 +1003,9 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("ordered:(to:(id:" + build6.getId() + "))", build5, build2, build1);
     checkBuilds("ordered:(to:(id:" + build6.getId() + ")),defaultFilter:false", build5, build4, build3, build2, build1);
     checkBuilds("ordered:(to:(id:" + runningBuild5.getId() + "))", build10, build6, build5, build2, build1);
-    checkBuilds("ordered:(to:(id:" + build7.getId() + ")),equivalent:(id:" + build5.getId() + ")");
+    checkBuilds("ordered:(to:(id:" + build7.getId() + ")),equivalent:(id:" + build5.getId() + ")", build2, build1);
     checkBuilds("ordered:(to:(id:" + build10.getId() + "))", build6, build5, build2, build1);
-    checkBuilds("ordered:(to:(id:" + build10.getId() + ")),equivalent:(id:" + build5.getId() + ")", build6);
+    checkBuilds("ordered:(to:(id:" + build10.getId() + ")),equivalent:(id:" + build5.getId() + ")", build6, build2, build1);
   }
 
   @Test
