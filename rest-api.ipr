@@ -451,6 +451,7 @@
     <library name="TeamCity Open API common">
       <CLASSES>
         <root url="jar://$TeamCityDistribution$/devPackage/common-api.jar!/" />
+        <root url="jar://$TeamCityDistribution$/devPackage/serviceMessages.jar!/" />
       </CLASSES>
       <JAVADOC>
         <root url="jar://$TeamCityDistribution$/devPackage/javadoc/openApi-help.jar!/" />
