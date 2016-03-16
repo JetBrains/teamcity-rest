@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model;
 
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.containers.SortedList;
 import java.util.*;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -40,6 +41,8 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "properties")
 public class Properties  implements DefaultValueAware {
+  private static final Logger LOG = Logger.getInstance(Properties.class.getName());
+
   protected static final String PROPERTY = "property";
   @XmlAttribute
   public Integer count;
@@ -103,11 +106,19 @@ public class Properties  implements DefaultValueAware {
     this.href = ValueWithDefault.decideDefault(fields.isIncluded("href"), href);
   }
 
+  /**
+   * Ignores any errors in the syntax: they will be logged but null will be returned as in the current usages it is already too late to report errors
+   */
   @Nullable
   public static ParameterCondition getParameterCondition(@NotNull final Fields fields) {
     final String propertiesLocator = fields.getLocator();
     if (propertiesLocator != null) {
-      return ParameterCondition.create(propertiesLocator);
+      try {
+        return ParameterCondition.create(propertiesLocator);
+      } catch (RuntimeException e) {
+        // ignore
+        LOG.debug("Encountered and ignored error while processing fields '" + fields.getFieldsSpec() + "': " + e.toString());
+      }
     }
     return null;
   }
