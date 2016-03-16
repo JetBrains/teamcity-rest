@@ -60,6 +60,7 @@ import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.buildDistribution.WaitReason;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -98,7 +99,7 @@ import org.springframework.beans.factory.annotation.Autowired;
            "agent", "compatibleAgents"/*q*/,
            "testOccurrences"/*rf*/, "problemOccurrences"/*rf*/,
            "artifacts"/*rf*/, "issues"/*rf*/,
-           "properties", "attributes", "statistics", "metadata"/*rf*/,
+           "properties", "resultingProperties", "attributes", "statistics", "metadata"/*rf*/,
            "buildDependencies", "buildArtifactDependencies", "customBuildArtifactDependencies"/*q*/,
            "settingsHash", "currentSettingsHash", "modificationId", "chainModificationId", "replacementIds",
            "triggeringOptions"/*only when triggering*/})
@@ -393,6 +394,27 @@ public class Build {
         final Collection<Parameter> parameters = Properties.convertToSimpleParameters(myBuildPromotion.getParameters());
         final Collection<Parameter> customParameters = Properties.convertToSimpleParameters(Build.this.myBuildPromotion.getCustomParameters());
         return new Properties(parameters, customParameters, null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myServiceLocator);
+      }
+    });
+  }
+
+  /**
+   * Experimental
+   */
+  @XmlElement
+  public Properties getResultingProperties() {
+    if (myBuild == null) {
+      return null;
+    }
+    return ValueWithDefault.decideDefault(myFields.isIncluded("resultingProperties", false, false), new ValueWithDefault.Value<Properties>() {
+      public Properties get() {
+        try {
+          //noinspection ConstantConditions
+          myBeanContext.getServiceLocator().findSingletonService(PermissionChecker.class).checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, myBuildPromotion);
+        } catch (Exception e) {
+          return null;
+        }
+        return new Properties(myBuild.getParametersProvider().getAll(), null, myFields.getNestedField("resultingProperties", Fields.NONE, Fields.LONG));
       }
     });
   }
