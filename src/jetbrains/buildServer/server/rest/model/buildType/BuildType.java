@@ -342,6 +342,7 @@ public class BuildType {
     }
   }
 
+  //todo: consider exposing implicit requirements as well
   @XmlElement(name = "agent-requirements")
   public PropEntitiesAgentRequirement getAgentRequirements() {
     return myBuildType == null
@@ -616,12 +617,18 @@ public class BuildType {
 
     final BuildTypeOrTemplate resultingBuildType = createEmptyBuildTypeOrTemplate(serviceLocator, project, submittedName);
 
-    fillBuildTypeOrTemplate(new BuildTypeOrTemplatePatcher() {
-      @NotNull
-      public BuildTypeOrTemplate getBuildTypeOrTemplate() {
-        return resultingBuildType;
-      }
-    }, serviceLocator);
+    try {
+      fillBuildTypeOrTemplate(new BuildTypeOrTemplatePatcher() {
+        @NotNull
+        public BuildTypeOrTemplate getBuildTypeOrTemplate() {
+          return resultingBuildType;
+        }
+      }, serviceLocator);
+    } catch (Exception e) {
+      //error on filling the build type, should not preserve the created empty build type
+      resultingBuildType.remove();
+      throw e;
+    }
 
     return resultingBuildType;
   }
