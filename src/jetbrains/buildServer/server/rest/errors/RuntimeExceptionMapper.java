@@ -22,6 +22,7 @@ import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.identifiers.DuplicateExternalIdException;
 
 /**
  * User: Yegor Yarko
@@ -37,6 +38,7 @@ public class RuntimeExceptionMapper extends ExceptionMapperUtil implements Excep
         exception instanceof InvalidIdentifierException ||
         exception instanceof DuplicateBuildTypeIdException ||
         exception instanceof DuplicateBuildTypeNameException ||
+        exception instanceof DuplicateExternalIdException ||
         exception instanceof DuplicateIdException ||
         exception instanceof DuplicateTemplateNameException ||
         exception instanceof InvalidNameException){
