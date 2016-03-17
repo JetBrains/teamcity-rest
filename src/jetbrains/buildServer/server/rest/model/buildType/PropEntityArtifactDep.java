@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import com.intellij.openapi.util.text.StringUtil;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlElement;
@@ -123,7 +124,7 @@ public class PropEntityArtifactDep extends PropEntity {
       throw new BadRequestException("Artifact dependency should have type '" + ARTIFACT_DEPENDENCY_TYPE_NAME + "'.");
     }
 
-    final Map<String,String> propertiesMap = properties.getMap();
+    final Map<String,String> propertiesMap = properties == null ? Collections.emptyMap() : properties.getMap();
     final String buildTypeIdFromProperty = propertiesMap.get(NAME_SOURCE_BUILD_TYPE_ID); //compatibility mode with pre-8.0
     String buildTypeIdDependOn = PropEntitySnapshotDep.getBuildTypeExternalIdForDependency(sourceBuildType, buildTypeIdFromProperty, serviceLocator);
     BuildTypeUtil.checkCanUseBuildTypeAsDependency(buildTypeIdDependOn, serviceLocator);

@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlElement;
@@ -103,8 +104,8 @@ public class PropEntitySnapshotDep extends PropEntity {
       throw new BadRequestException("Snapshot dependency should have type '" + SNAPSHOT_DEPENDENCY_TYPE_NAME + "'.");
     }
 
-    final Map<String, String> propertiesMap = properties == null ? null : properties.getMap();
-    final String buildTypeIdFromProperty = propertiesMap == null ? null : propertiesMap.get(NAME_SOURCE_BUILD_TYPE_ID); //compatibility mode with pre-8.0
+    final Map<String, String> propertiesMap = properties == null ? Collections.emptyMap() : properties.getMap();
+    final String buildTypeIdFromProperty = propertiesMap.get(NAME_SOURCE_BUILD_TYPE_ID); //compatibility mode with pre-8.0
     String buildTypeIdDependOn = getBuildTypeExternalIdForDependency(sourceBuildType, buildTypeIdFromProperty, serviceLocator);
     BuildTypeUtil.checkCanUseBuildTypeAsDependency(buildTypeIdDependOn, serviceLocator);
 
@@ -114,11 +115,9 @@ public class PropEntitySnapshotDep extends PropEntity {
     }
 
     final Dependency result = serviceLocator.getSingletonService(DependencyFactory.class).createDependency(buildTypeIdDependOn);
-    if (propertiesMap != null){
-      for (Map.Entry<String, String> property : propertiesMap.entrySet()) {
-        if (!NAME_SOURCE_BUILD_TYPE_ID.equals(property.getKey())) {
-          setDependencyOption(property.getKey(), property.getValue(), result);
-        }
+    for (Map.Entry<String, String> property : propertiesMap.entrySet()) {
+      if (!NAME_SOURCE_BUILD_TYPE_ID.equals(property.getKey())) {
+        setDependencyOption(property.getKey(), property.getValue(), result);
       }
     }
     try {

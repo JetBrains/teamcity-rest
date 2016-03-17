@@ -66,7 +66,7 @@ public class PropEntityFeature extends PropEntity {
     if (!type.equals(feature.getType())) {
       throw new BadRequestException("Cannot change type of existing build feature.");
     }
-    if (!buildType.updateBuildFeature(feature.getId(), type, properties.getMap())) {
+    if (properties != null && !buildType.updateBuildFeature(feature.getId(), type, properties.getMap())) {
       throw new InvalidStateException("Update failed");
     }
     if (disabled != null) {

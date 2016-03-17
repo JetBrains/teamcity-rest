@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
+import java.util.Collections;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptorFactory;
@@ -44,7 +45,7 @@ public class PropEntityTrigger extends PropEntity {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Build trigger cannot have empty 'type'.");
     }
-    final BuildTriggerDescriptor triggerToAdd = descriptorFactory.createTriggerDescriptor(type, properties.getMap());
+    final BuildTriggerDescriptor triggerToAdd = descriptorFactory.createTriggerDescriptor(type, properties == null ? Collections.emptyMap() : properties.getMap());
 
     if (!buildType.addBuildTrigger(triggerToAdd)) {
       String additionalMessage = getDetails(buildType, triggerToAdd);
@@ -63,7 +64,7 @@ public class PropEntityTrigger extends PropEntity {
     if (!type.equals(trigger.getType())) {
       throw new BadRequestException("Cannot change type of existing trigger.");
     }
-    if (!buildType.updateBuildTrigger(trigger.getId(), type, properties.getMap())) {
+    if (properties != null && !buildType.updateBuildTrigger(trigger.getId(), type, properties.getMap())) {
       throw new OperationException("Update failed");
     }
     if (disabled != null) {
