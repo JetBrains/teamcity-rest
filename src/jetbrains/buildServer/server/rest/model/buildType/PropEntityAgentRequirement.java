@@ -75,14 +75,14 @@ public class PropEntityAgentRequirement extends PropEntity {
     }
     final Requirement requirementToAdd = requirementFactory.createRequirement(propertyName, propertiesMap.get(NAME_PROPERTY_VALUE), getSubmittedType());
 
-    buildType.get().addRequirement(requirementToAdd);
     String requirementId = requirementToAdd.getId();
+    if (requirementId == null && disabled != null) {
+      //throw exception before adding requirement to the model
+      throw new OperationException("Cannot set disabled state for an entity without id");
+    }
+    buildType.get().addRequirement(requirementToAdd);
     if (disabled != null) {
-      if (requirementId != null) {
-        buildType.get().setEnabled(requirementId, !disabled);
-      } else {
-        throw new OperationException("Cannot disable an entity without id");
-      }
+      buildType.get().setEnabled(requirementId, !disabled);
     }
     return requirementToAdd;
   }
