@@ -723,7 +723,7 @@ public class BuildType {
     if (submittedAgentRequirements != null && submittedAgentRequirements.propEntities != null) {
       for (PropEntityAgentRequirement entity : submittedAgentRequirements.propEntities) {
         result = true;
-        entity.addRequirement(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate());
+        entity.addRequirement(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate(), serviceLocator.getSingletonService(RequirementFactory.class));
       }
     }
     if (submittedSettings != null && submittedSettings.properties != null) {

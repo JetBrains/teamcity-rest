@@ -52,7 +52,7 @@ public class PropEntitiesAgentRequirement {
       public List<PropEntityAgentRequirement> get() {
         return CollectionsUtil.convertCollection(requirements, new Converter<PropEntityAgentRequirement, Requirement>() {
                   public PropEntityAgentRequirement createFrom(@NotNull final Requirement source) {
-                    return new PropEntityAgentRequirement(source, fields.getNestedField("agent-requirement", Fields.NONE, Fields.LONG));
+                    return new PropEntityAgentRequirement(source, buildType, fields.getNestedField("agent-requirement", Fields.NONE, Fields.LONG));
                   }
                 });
       }

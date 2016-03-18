@@ -28,7 +28,6 @@ import jetbrains.buildServer.maintenance.StartupContext;
 import jetbrains.buildServer.plugins.PluginManager;
 import jetbrains.buildServer.plugins.bean.PluginInfo;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
-import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -198,40 +197,6 @@ public class DataProvider {
     }
     throw new BadRequestException(
       "No trigger can be found by locator '" + triggerLocator + "'. Locator should be trigger id.");
-  }
-
-
-  public static Requirement getAgentRequirement(final BuildTypeSettings buildType, final String agentRequirementLocator) {
-    if (StringUtil.isEmpty(agentRequirementLocator)) {
-      throw new BadRequestException("Empty agent requirement locator is not supported.");
-    }
-
-    final Locator locator = new Locator(agentRequirementLocator);
-
-    if (locator.isSingleValue()) {
-      // no dimensions found, assume it's requirement parameter name
-      final String parameterName = locator.getSingleValue();
-      if (StringUtil.isEmpty(parameterName)){
-        throw new BadRequestException("Agent requirement property name cannot be empty.");
-      }
-      Requirement result = getAgentRequirementOrNull(buildType, parameterName);
-      if (result == null){
-        throw new NotFoundException("No agent requirement for build parameter '" + parameterName +"' is found in the build type.");
-      }
-      return result;
-    }
-    throw new BadRequestException(
-      "No agent requirement can be found by locator '" + agentRequirementLocator + "'. Locator should be property name.");
-  }
-
-  public static Requirement getAgentRequirementOrNull(final BuildTypeSettings buildType, final String parameterName) {
-    final List<Requirement> requirements = buildType.getRequirements();
-    for (Requirement requirement : requirements) {
-      if (parameterName.equals(requirement.getPropertyName())) {
-        return requirement;
-      }
-    }
-    return null;
   }
 
 

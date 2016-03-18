@@ -1248,31 +1248,25 @@ public class BuildTypeRequest {
                                                                PropEntitiesAgentRequirement suppliedEntities) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
 
-    final List<Requirement> originals = buildType.get().getRequirements();
-    removeRequirements(buildType, originals);
+    PropEntityAgentRequirement.Storage original = new PropEntityAgentRequirement.Storage(buildType.get());
+    for (Requirement entry : original.getItems()) {
+      buildType.get().removeRequirement(entry);
+    }
     try {
       if (suppliedEntities.propEntities != null) {
+        RequirementFactory requirementFactory = myBeanContext.getSingletonService(RequirementFactory.class);
         for (PropEntityAgentRequirement entity : suppliedEntities.propEntities) {
-          entity.addRequirement(buildType);
+          entity.addRequirement(buildType, requirementFactory);
         }
       }
       buildType.get().persist();
     } catch (Exception e) {
       //restore original settings
-      removeRequirements(buildType, buildType.get().getRequirements());
-      for (Requirement entry : originals) {
-        buildType.get().addRequirement(entry);
-      }
+      original.apply(buildType.get());
       buildType.get().persist();
       throw new BadRequestException("Error replacing items", e);
     }
     return new PropEntitiesAgentRequirement(buildType.get(), new Fields(fields));
-  }
-
-  private void removeRequirements(final BuildTypeOrTemplate buildType, final List<Requirement> requirements) {
-    for (Requirement entry : requirements) {
-      buildType.get().removeRequirement(entry.getPropertyName());  //todo: (TeamCity API): why srtring and not Requirement?
-    }
   }
 
   /**
@@ -1288,9 +1282,9 @@ public class BuildTypeRequest {
                                                         PropEntityAgentRequirement description) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
 
-    final Requirement result = description.addRequirement(buildType);
+    final Requirement result = description.addRequirement(buildType, myBeanContext.getSingletonService(RequirementFactory.class));
     buildType.get().persist();
-    return new PropEntityAgentRequirement(result, new Fields(fields));
+    return new PropEntityAgentRequirement(result, buildType.get(), new Fields(fields));
   }
 
   @GET
@@ -1300,8 +1294,8 @@ public class BuildTypeRequest {
                                                         @PathParam("agentRequirementLocator") String agentRequirementLocator,
                                                         @QueryParam("fields") String fields) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    final Requirement requirement = DataProvider.getAgentRequirement(buildType.get(), agentRequirementLocator);
-    return new PropEntityAgentRequirement(requirement, new Fields(fields));
+    final Requirement requirement = getAgentRequirement(buildType, agentRequirementLocator);
+    return new PropEntityAgentRequirement(requirement, buildType.get(), new Fields(fields));
   }
 
   @DELETE
@@ -1309,8 +1303,8 @@ public class BuildTypeRequest {
   public void deleteAgentRequirement(@PathParam("btLocator") String buildTypeLocator,
                                      @PathParam("agentRequirementLocator") String agentRequirementLocator) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    final Requirement requirement = DataProvider.getAgentRequirement(buildType.get(), agentRequirementLocator);
-    buildType.get().removeRequirement(requirement.getPropertyName());
+    final Requirement requirement = getAgentRequirement(buildType, agentRequirementLocator);
+    buildType.get().removeRequirement(requirement);
     buildType.get().persist();
   }
 
@@ -1324,20 +1318,91 @@ public class BuildTypeRequest {
                                                             PropEntityAgentRequirement description) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
 
-    final Requirement requirement = DataProvider.getAgentRequirement(buildType.get(), agentRequirementLocator);
-    buildType.get().removeRequirement(requirement.getPropertyName());
+    PropEntityAgentRequirement.Storage original = new PropEntityAgentRequirement.Storage(buildType.get());
+    final Requirement requirement = getAgentRequirement(buildType, agentRequirementLocator);
+    buildType.get().removeRequirement(requirement);
 
     final Requirement result;
     try {
-      result = description.addRequirement(buildType);
+      result = description.addRequirement(buildType, myBeanContext.getSingletonService(RequirementFactory.class));
       buildType.get().persist();
     } catch (Exception e) {
       //restore
-      buildType.get().addRequirement(requirement);
+      original.apply(buildType.get());
       buildType.get().persist();
       throw new BadRequestException("Error setting new agent requirement", e);
     }
-    return new PropEntityAgentRequirement(result, new Fields(fields));
+    return new PropEntityAgentRequirement(result, buildType.get(), new Fields(fields));
+  }
+
+
+  @GET
+  @Path("/{btLocator}/agent-requirements/{agentRequirementLocator}/{fieldName}")
+  @Produces({"text/plain"})
+  public String getRequirementSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("agentRequirementLocator") String agentRequirementLocator,
+                                      @PathParam("fieldName") String name) {
+    final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
+    final Requirement requirement = getAgentRequirement(buildType, agentRequirementLocator);
+    String id = requirement.getId();
+    if (id == null) {
+      throw new BadRequestException("Could not get field of a requirement which does not have id");
+    }
+    return PropEntityStep.getSetting(buildType.get(), id, name);
+  }
+
+  @PUT
+  @Path("/{btLocator}/agent-requirements/{agentRequirementLocator}/{fieldName}")
+  @Consumes({"text/plain"})
+  @Produces({"text/plain"})
+  public String changeRequirementSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("agentRequirementLocator") String agentRequirementLocator,
+                                         @PathParam("fieldName") String name, String newValue) {
+    final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
+    final Requirement requirement = getAgentRequirement(buildType, agentRequirementLocator);
+    String id = requirement.getId();
+    if (id == null) {
+      throw new BadRequestException("Could not get field of a requirement which does not have id");
+    }
+    PropEntityStep.setSetting(buildType.get(), id, name, newValue);
+    buildType.get().persist();
+    return PropEntityStep.getSetting(buildType.get(), id, name);
+  }
+
+  public static Requirement getAgentRequirement(@NotNull final BuildTypeOrTemplate buildType, @Nullable final String agentRequirementLocator) {
+    if (StringUtil.isEmpty(agentRequirementLocator)) {
+      throw new BadRequestException("Empty agent requirement locator is not supported.");
+    }
+
+    final Locator locator = new Locator(agentRequirementLocator);
+
+    final String requirementId;
+    if (locator.isSingleValue()) {
+      requirementId = locator.getSingleValue();
+    } else {
+      requirementId = locator.getSingleDimensionValue("id");
+    }
+    locator.checkLocatorFullyProcessed();
+
+    if (StringUtil.isEmpty(requirementId)) {
+      throw new BadRequestException("Cannot find id in agent requirement locator '" + agentRequirementLocator + "'");
+    }
+
+    for (Requirement requirement : buildType.get().getRequirements()) {
+      String id = requirement.getId();
+      if (requirementId.equals(id != null ? id : requirement.getPropertyName())) {
+        return requirement;
+      }
+    }
+
+    //may be it is a property name: use obsolete pre-TeamCity 10 logic
+    for (Requirement requirement : buildType.get().getRequirements()) {
+      if (requirementId.equals(requirement.getPropertyName())) {
+        LOG.debug("Found agent requirement by parameter name '" + requirementId + "' instead of id." +
+                  (requirement.getId() != null ? " This behavior is obsolete, use id (" + requirement.getId() + ") instead of parameter name." : ""));
+        return requirement;
+      }
+    }
+
+    throw new NotFoundException("Could not find agent requirement by id '" + requirementId + "' in " + buildType.getText() + " with id '" + buildType.getId() + "'");
   }
 
   @GET

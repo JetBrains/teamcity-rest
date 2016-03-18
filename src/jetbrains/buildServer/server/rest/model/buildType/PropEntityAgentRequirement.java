@@ -16,16 +16,16 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.requirements.RequirementType;
-import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
+import jetbrains.buildServer.serverSide.RequirementFactory;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -42,21 +42,18 @@ public class PropEntityAgentRequirement extends PropEntity {
   public PropEntityAgentRequirement() {
   }
 
-  public PropEntityAgentRequirement(final Requirement requirement, @NotNull final Fields fields) {
+  public PropEntityAgentRequirement(@NotNull final Requirement requirement, @NotNull final BuildTypeSettings buildType, @NotNull final Fields fields) {
     HashMap<String, String> propertiesMap = new HashMap<String, String>(2);
     propertiesMap.put(NAME_PROPERTY_NAME, requirement.getPropertyName());
     if (requirement.getPropertyValue() != null) {
       propertiesMap.put(NAME_PROPERTY_VALUE, requirement.getPropertyValue());
     }
-    init(requirement.getPropertyName(), null, requirement.getType().getName(), null, propertiesMap, fields);
-  }
-
-  private String getSubmittedId() {
-    final String nameProperty = properties.getMap().get(NAME_PROPERTY_NAME);
-    if (StringUtil.isEmpty(nameProperty)) {
-      throw new BadRequestException("Prperty " + NAME_PROPERTY_NAME + " with the parameter name should be specified for a requirement.");
+    String id = requirement.getId();
+    if (id == null) {
+      init(requirement.getPropertyName(), null, requirement.getType().getName(), null, propertiesMap, fields);
+    } else {
+      init(id, null, requirement.getType().getName(), buildType.isEnabled(id), propertiesMap, fields);
     }
-    return nameProperty;
   }
 
   private RequirementType getSubmittedType() {
@@ -65,30 +62,60 @@ public class PropEntityAgentRequirement extends PropEntity {
     }
     final RequirementType foundType = RequirementType.findByName(type);
     if (foundType == null) {
-      throw new BadRequestException("Could not create Requirement type by type '" + type + ". Check it is a valid type.");
+      throw new BadRequestException("Could not create Requirement type by type '" + type + "'. Check it is one of: " + Arrays.toString(RequirementType.values()));
     }
     return foundType;
   }
 
-  public Requirement addRequirement(@NotNull final BuildTypeOrTemplate buildType) {
-    final Map<String, String> propertiesMap = properties.getMap();
-    final Requirement requirementToAdd = new Requirement(getSubmittedId(), propertiesMap.get(NAME_PROPERTY_VALUE), getSubmittedType());
+  public Requirement addRequirement(@NotNull final BuildTypeOrTemplate buildType, @NotNull final RequirementFactory requirementFactory) {
+    final Map<String, String> propertiesMap = properties == null ? Collections.emptyMap() : properties.getMap();
+    String propertyName = propertiesMap.get(NAME_PROPERTY_NAME);
+    if (StringUtil.isEmpty(propertyName)) {
+      throw new BadRequestException("No name is specified. Make sure '" + NAME_PROPERTY_NAME + "' property is present and has not empty value");
+    }
+    final Requirement requirementToAdd = requirementFactory.createRequirement(propertyName, propertiesMap.get(NAME_PROPERTY_VALUE), getSubmittedType());
 
-    //todo: (TeamCity) API allows to add several requirements, but we will limit it as it is not supported duly
-    final String requirementPropertyName = requirementToAdd.getPropertyName();
-    final BuildTypeSettings buildTypeSettings = buildType.get();
-
-    final Requirement requirement = DataProvider.getAgentRequirementOrNull(buildTypeSettings, requirementPropertyName);
-    if (requirement != null){
-      if (buildType.isBuildType() && buildTypeSettings.getTemplate() != null &&
-          DataProvider.getAgentRequirementOrNull(buildTypeSettings.getTemplate(), requirementPropertyName) != null) {
-        buildTypeSettings.removeRequirement(requirementPropertyName); //todo (TeamCity) not clear how not present is handled
-      }else{
-        throw new BadRequestException("Requirement for parameter with name '" + getSubmittedId() + "' already exists.");
+    buildType.get().addRequirement(requirementToAdd);
+    String requirementId = requirementToAdd.getId();
+    if (disabled != null) {
+      if (requirementId != null) {
+        buildType.get().setEnabled(requirementId, !disabled);
+      } else {
+        throw new OperationException("Cannot disable an entity without id");
       }
     }
-    buildTypeSettings.addRequirement(requirementToAdd);
+    return requirementToAdd;
+  }
 
-    return DataProvider.getAgentRequirementOrNull(buildTypeSettings, requirementPropertyName);
+  public static class Storage {
+    private final List<Requirement> deps = new ArrayList<>();
+    private final Map<String, Boolean> enabledData = new HashMap<>();
+
+    public Storage(final @NotNull BuildTypeSettings buildTypeSettings) {
+      for (Requirement item : buildTypeSettings.getRequirements()) {
+        deps.add(item);
+        String id = item.getId();
+        if (id != null) {
+          enabledData.put(id, buildTypeSettings.isEnabled(id));
+        }
+      }
+    }
+
+    public List<Requirement> getItems() {
+      return deps;
+    }
+
+    public void apply(final @NotNull BuildTypeSettings buildTypeSettings) {
+      for (Requirement item : buildTypeSettings.getRequirements()) {
+        buildTypeSettings.removeRequirement(item);
+      }
+      for (Requirement item : deps) {
+        buildTypeSettings.addRequirement(item);
+        String id = item.getId();
+        if (id != null) {
+          buildTypeSettings.setEnabled(id, enabledData.get(id));
+        }
+      }
+    }
   }
 }
