@@ -358,13 +358,13 @@ public class Locator {
         if (unusedDimensions.size() > 1) {
           message.append("Locator dimensions ");
           if (!ignoredDimensions.isEmpty()) {
-            message.append(ignoredDimensions).append(" are ignored");
+            message.append(ignoredDimensions).append(" ").append(ignoredDimensions.size() == 1 ? "is" : "are").append(" ignored");
           }
           if (!unknownDimensions.isEmpty()) {
             if (!ignoredDimensions.isEmpty()) {
               message.append(" and ");
             }
-            message.append(unknownDimensions).append(" are unknown");
+            message.append(unknownDimensions).append(" ").append(unknownDimensions.size() == 1 ? "is" : "are").append(" unknown");
           }
           message.append(".");
         } else {
