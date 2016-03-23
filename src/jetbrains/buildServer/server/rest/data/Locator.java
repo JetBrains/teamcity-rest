@@ -351,8 +351,8 @@ public class Locator {
       }
       final Set<String> unusedDimensions = getUnusedDimensions();
       if (unusedDimensions.size() > 0) {
-        Set<String> ignoredDimensions =
-          mySupportedDimensions == null ? Collections.<String>emptySet() : CollectionsUtil.intersect(unusedDimensions, Arrays.asList(mySupportedDimensions));
+        Set<String> ignoredDimensions = mySupportedDimensions == null ? Collections.<String>emptySet() :
+                                        CollectionsUtil.intersect(unusedDimensions, CollectionsUtil.join(Arrays.asList(mySupportedDimensions), myHddenSupportedDimensions));
         Set<String> unknownDimensions = CollectionsUtil.minus(unusedDimensions, ignoredDimensions);
         String message;
         if (unusedDimensions.size() > 1) {
@@ -362,7 +362,7 @@ public class Locator {
           if (!unusedDimensions.contains(LOCATOR_SINGLE_VALUE_UNUSED_NAME)) {
             if (mySupportedDimensions != null) {
               message = "Locator dimension " + unusedDimensions + " is " +
-                        (Arrays.asList(mySupportedDimensions).contains(unusedDimensions.iterator().next()) ? "known but was ignored during processing. Try omitting the dimension." : "unknown.");
+                        (!ignoredDimensions.isEmpty() ? "known but was ignored during processing. Try omitting the dimension." : "unknown.");
             } else {
               message = "Locator dimension " + unusedDimensions + " is ignored or unknown.";
             }
