@@ -354,32 +354,45 @@ public class Locator {
         Set<String> ignoredDimensions = mySupportedDimensions == null ? Collections.<String>emptySet() :
                                         CollectionsUtil.intersect(unusedDimensions, CollectionsUtil.join(Arrays.asList(mySupportedDimensions), myHddenSupportedDimensions));
         Set<String> unknownDimensions = CollectionsUtil.minus(unusedDimensions, ignoredDimensions);
-        String message;
+        StringBuilder message = new StringBuilder();
         if (unusedDimensions.size() > 1) {
-          message = "Locator dimensions " + (!ignoredDimensions.isEmpty() ? ignoredDimensions + " are ignored" : "") +
-                    (!unknownDimensions.isEmpty() ? (!ignoredDimensions.isEmpty() ? " and " : "") + unknownDimensions + " are unknown" : "") + ".";
+          message.append("Locator dimensions ");
+          if (!ignoredDimensions.isEmpty()) {
+            message.append(ignoredDimensions).append(" are ignored");
+          }
+          if (!unknownDimensions.isEmpty()) {
+            if (!ignoredDimensions.isEmpty()) {
+              message.append(" and ");
+            }
+            message.append(unknownDimensions).append(" are unknown");
+          }
+          message.append(".");
         } else {
           if (!unusedDimensions.contains(LOCATOR_SINGLE_VALUE_UNUSED_NAME)) {
             if (mySupportedDimensions != null) {
-              message = "Locator dimension " + unusedDimensions + " is " +
-                        (!ignoredDimensions.isEmpty() ? "known but was ignored during processing. Try omitting the dimension." : "unknown.");
+              message.append("Locator dimension ").append(unusedDimensions).append(" is ");
+              if (!ignoredDimensions.isEmpty()) {
+                message.append("known but was ignored during processing. Try omitting the dimension.");
+              } else {
+                message.append("unknown.");
+              }
             } else {
-              message = "Locator dimension " + unusedDimensions + " is ignored or unknown.";
+              message.append("Locator dimension ").append(unusedDimensions).append(" is ignored or unknown.");
             }
           } else {
-            message = "Single value locator is not supported (actual value '" + mySingleValue + "').";
+            message.append("Single value locator is not supported (actual value '").append(mySingleValue).append("').");
           }
         }
-        if (mySupportedDimensions != null && mySupportedDimensions.length > 0) message += " Supported dimensions are: " + Arrays.toString(mySupportedDimensions);
+        if (mySupportedDimensions != null && mySupportedDimensions.length > 0) message.append(" Supported dimensions are: ").append(Arrays.toString(mySupportedDimensions));
         if (reportKindString.contains("log")) {
           if (reportKindString.contains("log-warn")) {
-            LOG.warn(message);
+            LOG.warn(message.toString());
           } else {
-            LOG.debug(message);
+            LOG.debug(message.toString());
           }
         }
         if (reportKindString.contains("error")) {
-          throw new LocatorProcessException(message);
+          throw new LocatorProcessException(message.toString());
         }
       }
     }
