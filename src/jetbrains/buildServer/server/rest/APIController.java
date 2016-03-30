@@ -403,6 +403,7 @@ public class APIController extends BaseController implements ServletContextAware
       }
     }
 
+    boolean errorEncountered = false;
     final boolean runAsSystemActual = runAsSystem;
     try {
 
@@ -449,14 +450,15 @@ public class APIController extends BaseController implements ServletContextAware
       });
 
     } catch (Throwable throwable) {
+      errorEncountered = true;
       // Sometimes Jersey throws IllegalArgumentException and probably other without utilizing ExceptionMappers
       // forcing plain text error reporting
       reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, Level.WARN, request);
       //todo: process exception mappers here to use correct error presentation in the log
     } finally{
       if (LOG.isDebugEnabled()) {
-        LOG.debug("REST API request processing finished in " + TimePrinter.createMillisecondsFormatter().formatTime(requestStart.elapsedMillis()) + ", status code: " +
-                  getStatus(response) + ", " + getPluginIdentifyingText());
+        LOG.debug("REST API request processing finished in " + TimePrinter.createMillisecondsFormatter().formatTime(requestStart.elapsedMillis()) +
+                  (errorEncountered ? " with errors, original " : ", ") + "status code: " + getStatus(response) + ", " + getPluginIdentifyingText());
       }
     }
     return null;
@@ -583,8 +585,10 @@ public class APIController extends BaseController implements ServletContextAware
     try {
       response.getWriter().print(responseText);
     } catch (Throwable nestedException) {
-      final String message1 = "Error while adding error description into response: " + nestedException.getMessage();
-      LOG.warn(message1);
+      final String message1 = "Error while adding error description into response: " + nestedException.toString();
+      if (!ExceptionMapperUtil.isCommonExternalError(nestedException)) {
+        LOG.warn(message1);
+      }
       LOG.debug(message1, nestedException);
     }
   }

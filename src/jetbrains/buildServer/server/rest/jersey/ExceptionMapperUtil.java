@@ -77,22 +77,27 @@ public class ExceptionMapperUtil {
     } catch (Error error) {
       LOG.warn("Critical error encountered while reporting an error", error);
     }
-    final String statusDescription = (status != null) ? status.toString() : Integer.toString(statusCode);
     StringBuffer responseText = new StringBuffer();
-    responseText.append("Error has occurred during request processing (").append(statusDescription).append(").");
+    if (statusCode >= 500){
+      responseText.append("Error has occurred during request processing");
+    } else {
+      responseText.append("Invalid request");
+    }
+    responseText.append(", status code: ").append(Integer.toString(statusCode));
+    if (status != null) responseText.append(" (").append(status.toString()).append(")");
+    responseText.append(".");
 
     //provide user-friendly message on missing or wrong Content-Type header
     if (statusCode == 415) { //Response.Status.UNSUPPORTED_MEDIA_TYPE.getStatusCode()
       //todo: response with supported content-types instead
       responseText.append("\nMake sure you have supplied correct Content-Type header.");
-    }else{
-      responseText.append("\nError: ");
+    } else {
+      responseText.append("\nDetails: ");
       responseText.append(getMessageWithCauses(e));
       if (message != null) responseText.append("\n").append(message);
     }
     String result = responseText.toString();
-    final String singleLineMessageStep1 = StringUtil.replace(result, ".\n", ". ");
-    final String singleLineMessage = singleLineMessageStep1 == null ? "" : StringUtil.replace(singleLineMessageStep1, "\n", ". ");
+    final String singleLineMessage = StringUtil.replace(StringUtil.replace(result, ".\n", ". "), "\n", ". ");
     String logMessage;
     if (TeamCityProperties.getBooleanOrTrue(REST_INCLUDE_REQUEST_DETAILS_INTO_ERRORS)){
       logMessage = singleLineMessage + " Request: " + WebUtil.getRequestDump(request) + ".";
@@ -120,10 +125,18 @@ public class ExceptionMapperUtil {
     return result;
   }
 
-  private static boolean isCommonExternalError(@Nullable Throwable e) {
+  public static boolean isCommonExternalError(@Nullable Throwable e) {
     if (e == null) return false;
+    if (e.getClass().getName().endsWith(".IllegalStateException") && e.getMessage().equals("Cannot call sendError() after the response has been committed")){
+      //Jersey 1.19 (as opposed to Jersey 1.16) reports this error in case of ClientAbortException
+      return true;
+    }
+    if (e.getClass().getName().endsWith(".IllegalStateException") && e.getMessage().equals("getOutputStream() has already been called for this response")){
+      //this is thrown on attempt to report erorr in already written response in APIController.reportRestErrorResponse()
+      return true;
+    }
     while (true) {
-      if (e.getClass().getName().equals("ClientAbortException")) return true;
+      if (e.getClass().getName().endsWith(".ClientAbortException")) return true;
       final Throwable cause = e.getCause();
       if (cause == null || cause == e) break;
       e = cause;
