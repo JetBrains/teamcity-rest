@@ -51,7 +51,7 @@ public class PropEntityFeature extends PropEntity {
       buildType.addBuildFeature(newBuildFeature);
     } catch (DuplicateIdException e) {
       final String details = getDetails(buildType, newBuildFeature, e);
-      throw new BadRequestException("Error adding feature." + (details != null ? " " + details : ""));
+      throw new BadRequestException("Error adding feature." + (details != null ? " " + details : ""), e);
     }
     if (disabled != null) {
       buildType.setEnabled(newBuildFeature.getId(), !disabled);

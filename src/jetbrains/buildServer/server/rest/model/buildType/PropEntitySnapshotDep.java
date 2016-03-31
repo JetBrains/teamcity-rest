@@ -123,7 +123,7 @@ public class PropEntitySnapshotDep extends PropEntity {
     try {
       buildType.addDependency(result);
     } catch (CyclicDependencyFoundException e) {
-      throw new BadRequestException("Error adding dependnecy", e);
+      throw new BadRequestException("Error adding dependency", e);
     }
     return getSnapshotDep(buildType, result.getDependOnExternalId(), serviceLocator.getSingletonService(BuildTypeFinder.class));
   }
@@ -146,7 +146,7 @@ public class PropEntitySnapshotDep extends PropEntity {
     }
 
     if (buildTypeRef == null) {
-      throw new BadRequestException("Dependency properties should contian '" + SOURCE_BUILD_TYPE + "' element" +
+      throw new BadRequestException("Dependency properties should contain '" + SOURCE_BUILD_TYPE + "' element" +
                                     (TeamCityProperties.getBoolean(REST_COMPATIBILITY_INCLUDE_BUILD_TYPE_IN_PROPERTIES)
                                      ? " or '" + NAME_SOURCE_BUILD_TYPE_ID + "' property."
                                      : "."));

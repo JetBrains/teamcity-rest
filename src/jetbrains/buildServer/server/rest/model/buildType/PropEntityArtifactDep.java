@@ -133,9 +133,12 @@ public class PropEntityArtifactDep extends PropEntity {
       throw new BadRequestException("Missing or empty artifact dependency property '" + NAME_REVISION_NAME + "'. Should contain one of supported values.");
     }
 
+    String sourcePaths = propertiesMap.get(NAME_PATH_RULES);
+    if (sourcePaths == null) {
+      throw new BadRequestException("Missing source path property '" + NAME_PATH_RULES + "'. Should be specified.");
+    }
     final SArtifactDependency artifactDependency = serviceLocator.getSingletonService(ArtifactDependencyFactory.class).
-      createArtifactDependency(buildTypeIdDependOn,
-                               propertiesMap.get(NAME_PATH_RULES),
+      createArtifactDependency(buildTypeIdDependOn, sourcePaths,
                                getRevisionRule(revisionName, propertiesMap.get(NAME_REVISION_VALUE), propertiesMap.get(NAME_REVISION_BRANCH)));
     final String cleanDir = propertiesMap.get(NAME_CLEAN_DESTINATION_DIRECTORY);
     if (cleanDir != null) {
@@ -152,7 +155,8 @@ public class PropEntityArtifactDep extends PropEntity {
     } catch (UnsupportedOperationException e) {
       //support revisions like "67999.tcbuildid" for compatibility, see https://youtrack.jetbrains.com/issue/TW-38876
       if (revisionValue == null) {
-        throw new BadRequestException("Cannot create revision for name '" + revisionName + "' and empty revision value: " + e.getMessage());
+        throw new BadRequestException("Cannot create revision for name '" + revisionName + "' and empty revision value (read from '" + NAME_REVISION_VALUE + "' element): "
+                                      + e.getMessage());
       }
       final RevisionRule result = RevisionRules.newBranchRevisionRule(revisionValue, revisionBranch);
       if (result == null) {
