@@ -135,10 +135,10 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                               final BranchFinder branchFinder,
                               final RunningBuildsManagerEx timeServiceContainer,
                               final MetadataStorageEx metadataStorage) {
-    super(new String[]{DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, USER, PERSONAL, STATE, TAG, PROPERTY, COMPATIBLE_AGENT,
-      NUMBER, STATUS, CANCELED, PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, HANGING,
-      DEFAULT_FILTERING, SINCE_BUILD_ID_LOOK_AHEAD_COUNT,
-      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+    super(DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, USER, PERSONAL, STATE, TAG, PROPERTY, COMPATIBLE_AGENT,
+          NUMBER, STATUS, CANCELED, PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, HANGING,
+          DEFAULT_FILTERING, SINCE_BUILD_ID_LOOK_AHEAD_COUNT,
+          Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     myBuildPromotionManager = buildPromotionManager;
     myBuildQueue = buildQueue;
     myBuildsManager = buildsManager;
@@ -177,6 +177,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     result.addHiddenDimensions(STATISTIC_VALUE); //experimental
     result.addHiddenDimensions(SINCE_BUILD_ID_LOOK_AHEAD_COUNT); //experimental
     result.addHiddenDimensions(ORDERED); //experimental
+    result.addHiddenDimensions(STROB); //experimental
     return result;
   }
 

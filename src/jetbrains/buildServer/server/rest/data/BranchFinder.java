@@ -47,8 +47,16 @@ public class BranchFinder extends AbstractFinder<Branch> {
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
 
   public BranchFinder(@NotNull final BuildTypeFinder buildTypeFinder) {
-    super(new String[]{NAME, DEFAULT, UNSPECIFIED, BUILD_TYPE, POLICY, CHANGES_FROM_DEPENDENCIES, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME}); //see also getBranchFilterDetails
+    super(NAME, DEFAULT, UNSPECIFIED, BUILD_TYPE, POLICY, CHANGES_FROM_DEPENDENCIES, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME); //see also getBranchFilterDetails
     myBuildTypeFinder = buildTypeFinder;
+  }
+
+  @NotNull
+  @Override
+  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
+    final Locator result = super.createLocator(locatorText, locatorDefaults);
+    result.addHiddenDimensions(BRANCHED);
+    return result;
   }
 
   public String getDefaultBranchLocator() {
@@ -71,7 +79,7 @@ public class BranchFinder extends AbstractFinder<Branch> {
 
   @NotNull
   public BranchFilterDetails getBranchFilterDetails(@NotNull final String branchLocator) {
-    final Locator locator = Locator.createLocator(branchLocator, null, getKnownDimensions());
+    final Locator locator = createLocator(branchLocator, null);
     final BranchFilterDetails branchFilterDetails = getBranchFilterDetails(locator);
     locator.checkLocatorFullyProcessed();
     return branchFilterDetails;

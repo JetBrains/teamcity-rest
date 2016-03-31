@@ -407,8 +407,9 @@ public class Locator {
 
       //noinspection ThrowableInstanceNeverThrown
       final Exception exception = new Exception("Helper exception to get stacktrace");
-      LOG.info("Locator dimensions " + usedDimensions + " are actually used but not declared as such in the message to the user (" +
-               Arrays.toString(mySupportedDimensions) + ").", exception);
+      LOG.info("Locator " + StringUtil.pluralize("dimension", usedDimensions.size()) + " " + usedDimensions + (usedDimensions.size() > 1 ? " are" : " is") +
+               " actually used but not declared as supported. Declared as supported are: " + Arrays.toString(mySupportedDimensions) + "." +
+               (!myHddenSupportedDimensions.isEmpty() ? " Hidden supported are: " + Arrays.toString(myHddenSupportedDimensions.toArray()) : ""), exception);
     }
   }
 
@@ -666,8 +667,8 @@ public class Locator {
    * The structure of the returned locator might be diffeent from the passed one, while the same dimensions and values are present.
    *
    * @param locator       existing locator (should be valid), or null to create new locator
-   * @param dimensionName only alpha-numeric characters are supported! Only numeric vaues withour brackets are supported!
-   * @param value         new value for the dimention, only alpha-numeric characters are supported!
+   * @param dimensionName only alpha-numeric characters are supported! Only numeric values without brackets are supported!
+   * @param value         new value for the dimension, only alpha-numeric characters are supported!
    * @return
    */
   public static String setDimension(@Nullable final String locator, @NotNull final String dimensionName, final String value) {
@@ -695,7 +696,7 @@ public class Locator {
    * Same as "setDimension" but only modifies the locator if the dimension was not present already.
    *
    * @param locator       existing locator, should be valid!
-   * @param dimensionName only alpha-numeric characters are supported! Only numeric vaues withour brackets are supported!
+   * @param dimensionName only alpha-numeric characters are supported! Only numeric values without brackets are supported!
    * @param value         new value for the dimension, only alpha-numeric characters are supported!
    * @return
    */
