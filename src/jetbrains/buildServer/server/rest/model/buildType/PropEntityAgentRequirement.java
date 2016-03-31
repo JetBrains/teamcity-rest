@@ -16,14 +16,16 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.RequirementFactory;
 import jetbrains.buildServer.util.StringUtil;
@@ -67,7 +69,7 @@ public class PropEntityAgentRequirement extends PropEntity {
     return foundType;
   }
 
-  public Requirement addRequirement(@NotNull final BuildTypeOrTemplate buildType, @NotNull final RequirementFactory requirementFactory) {
+  public Requirement addRequirement(@NotNull final BuildTypeSettings buildTypeSettings, @NotNull final RequirementFactory requirementFactory) {
     final Map<String, String> propertiesMap = properties == null ? Collections.emptyMap() : properties.getMap();
     String propertyName = propertiesMap.get(NAME_PROPERTY_NAME);
     if (StringUtil.isEmpty(propertyName)) {
@@ -80,42 +82,10 @@ public class PropEntityAgentRequirement extends PropEntity {
       //throw exception before adding requirement to the model
       throw new OperationException("Cannot set disabled state for an entity without id");
     }
-    buildType.get().addRequirement(requirementToAdd);
+    buildTypeSettings.addRequirement(requirementToAdd);
     if (disabled != null) {
-      buildType.get().setEnabled(requirementId, !disabled);
+      buildTypeSettings.setEnabled(requirementId, !disabled);
     }
     return requirementToAdd;
-  }
-
-  public static class Storage {
-    private final List<Requirement> deps = new ArrayList<>();
-    private final Map<String, Boolean> enabledData = new HashMap<>();
-
-    public Storage(final @NotNull BuildTypeSettings buildTypeSettings) {
-      for (Requirement item : buildTypeSettings.getRequirements()) {
-        deps.add(item);
-        String id = item.getId();
-        if (id != null) {
-          enabledData.put(id, buildTypeSettings.isEnabled(id));
-        }
-      }
-    }
-
-    public List<Requirement> getItems() {
-      return deps;
-    }
-
-    public void apply(final @NotNull BuildTypeSettings buildTypeSettings) {
-      for (Requirement item : buildTypeSettings.getRequirements()) {
-        buildTypeSettings.removeRequirement(item);
-      }
-      for (Requirement item : deps) {
-        buildTypeSettings.addRequirement(item);
-        String id = item.getId();
-        if (id != null) {
-          buildTypeSettings.setEnabled(id, enabledData.get(id));
-        }
-      }
-    }
   }
 }

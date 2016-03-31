@@ -21,8 +21,11 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.BuildFeatureDescriptorFactory;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -59,5 +62,31 @@ public class PropEntitiesFeature {
       }
     });
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), buildFeatures.size());
+  }
+
+  public boolean setToBuildType(@NotNull final BuildTypeSettings buildTypeSettings, @NotNull final ServiceLocator serviceLocator) {
+    final Collection<SBuildFeatureDescriptor> originals = buildTypeSettings.getBuildFeatures();    //todo: process enabled
+    removeAllFeatures(buildTypeSettings);
+    try {
+      if (propEntities != null) {
+        for (PropEntityFeature entity : propEntities) {
+          entity.addFeature(buildTypeSettings, serviceLocator.getSingletonService(BuildFeatureDescriptorFactory.class));
+        }
+      }
+      return true;
+    } catch (Exception e) {
+      //restore original settings
+      removeAllFeatures(buildTypeSettings);
+      for (SBuildFeatureDescriptor entry : originals) {
+        buildTypeSettings.addBuildFeature(entry);
+      }
+      throw new BadRequestException("Error replacing items", e);
+    }
+  }
+
+  private void removeAllFeatures(@NotNull final BuildTypeSettings buildType) {
+    for (SBuildFeatureDescriptor entry : buildType.getBuildFeatures()) {
+      buildType.removeBuildFeature(entry.getId());  //todo: (TeamCity API): why string and not object?
+    }
   }
 }

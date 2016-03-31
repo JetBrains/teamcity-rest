@@ -20,6 +20,8 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -59,5 +61,34 @@ public class PropEntitiesSnapshotDep {
       }
     });
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), dependencies.size());
+  }
+
+  /**
+   * @return true if buildTypeSettings is modified
+   */
+  public boolean setToBuildType(final @NotNull BuildTypeSettings buildTypeSettings, final @NotNull ServiceLocator serviceLocator) {
+    final List<Dependency> originalDependencies = buildTypeSettings.getDependencies();
+    try {
+      removeAllDependencies(buildTypeSettings);
+      if (propEntities != null) {
+        for (PropEntitySnapshotDep entity : propEntities) {
+          entity.addSnapshotDependency(buildTypeSettings, serviceLocator);
+        }
+      }
+      return true; // cannot actually determine if modified or not
+    } catch (Exception e) {
+      //restore original settings
+      removeAllDependencies(buildTypeSettings);
+      for (Dependency dependency : originalDependencies) {
+        buildTypeSettings.addDependency(dependency);
+      }
+      throw new BadRequestException("Error setting snapshot dependencies", e);
+    }
+  }
+
+  public static void removeAllDependencies(@NotNull final BuildTypeSettings buildType) {
+    for (Dependency originalDependency : buildType.getDependencies()) {
+      buildType.removeDependency(originalDependency);
+    }
   }
 }

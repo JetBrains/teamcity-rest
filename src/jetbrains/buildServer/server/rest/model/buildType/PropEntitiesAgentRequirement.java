@@ -16,14 +16,20 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.requirements.Requirement;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
+import jetbrains.buildServer.serverSide.RequirementFactory;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
@@ -58,5 +64,60 @@ public class PropEntitiesAgentRequirement {
       }
     });
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), requirements.size());
+  }
+
+  public boolean setToBuildType(@NotNull final BuildTypeSettings buildTypeSettings, @NotNull final ServiceLocator serviceLocator) {
+    Storage original = new Storage(buildTypeSettings);
+    try {
+      removeAll(buildTypeSettings);
+      if (propEntities != null) {
+        RequirementFactory requirementFactory = serviceLocator.getSingletonService(RequirementFactory.class);
+        for (PropEntityAgentRequirement entity : propEntities) {
+          entity.addRequirement(buildTypeSettings, requirementFactory);
+        }
+      }
+      return true;
+    } catch (Exception e) {
+      //restore original settings
+      original.apply(buildTypeSettings);
+      throw new BadRequestException("Error replacing items", e);
+    }
+  }
+
+  private static void removeAll(final @NotNull BuildTypeSettings buildTypeSettings) {
+    for (Requirement entry : buildTypeSettings.getRequirements()) {
+      buildTypeSettings.removeRequirement(entry);
+    }
+  }
+
+
+  public static class Storage {
+    private final List<Requirement> deps = new ArrayList<>();
+    private final Map<String, Boolean> enabledData = new HashMap<>();
+
+    public Storage(final @NotNull BuildTypeSettings buildTypeSettings) {
+      for (Requirement item : buildTypeSettings.getRequirements()) {
+        deps.add(item);
+        String id = item.getId();
+        if (id != null) {
+          enabledData.put(id, buildTypeSettings.isEnabled(id));
+        }
+      }
+    }
+
+    public List<Requirement> getItems() {
+      return deps;
+    }
+
+    public void apply(final @NotNull BuildTypeSettings buildTypeSettings) {
+      removeAll(buildTypeSettings);
+      for (Requirement item : deps) {
+        buildTypeSettings.addRequirement(item);
+        String id = item.getId();
+        if (id != null) {
+          buildTypeSettings.setEnabled(id, enabledData.get(id));
+        }
+      }
+    }
   }
 }

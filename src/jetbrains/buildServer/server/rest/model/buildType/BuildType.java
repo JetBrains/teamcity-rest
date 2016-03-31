@@ -23,7 +23,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptorFactory;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
@@ -692,39 +691,29 @@ public class BuildType {
         BuildTypeUtil.changeParameter(p.name, p.value, buildTypeSettings, serviceLocator);
       }
     }
-    if (submittedSteps != null && submittedSteps.propEntities != null) {
-      for (PropEntityStep entity : submittedSteps.propEntities) {
-        result = true;
-        entity.addStep(buildTypeSettings);
-      }
+    if (submittedSteps != null) {
+      boolean updated = submittedSteps.setToBuildType(buildTypeSettings, serviceLocator);
+      result = result || updated;
     }
-    if (submittedFeatures != null && submittedFeatures.propEntities != null) {
-      for (PropEntityFeature entity : submittedFeatures.propEntities) {
-        result = true;
-        entity.addFeature(buildTypeSettings, serviceLocator.getSingletonService(BuildFeatureDescriptorFactory.class));
-      }
+    if (submittedFeatures != null) {
+      boolean updated = submittedFeatures.setToBuildType(buildTypeSettings, serviceLocator);
+      result = result || updated;
     }
-    if (submittedTriggers != null && submittedTriggers.propEntities != null) {
-      for (PropEntityTrigger entity : submittedTriggers.propEntities) {
-        result = true;
-        entity.addTrigger(buildTypeSettings, serviceLocator.getSingletonService(BuildTriggerDescriptorFactory.class));
-      }
+    if (submittedTriggers != null) {
+      boolean updated = submittedTriggers.setToBuildType(buildTypeSettings, serviceLocator);
+      result = result || updated;
     }
-    if (submittedSnapshotDependencies != null && submittedSnapshotDependencies.propEntities != null) {
-      for (PropEntitySnapshotDep entity : submittedSnapshotDependencies.propEntities) {
-        result = true;
-        entity.addSnapshotDependency(buildTypeSettings, serviceLocator);
-      }
+    if (submittedSnapshotDependencies != null) {
+      boolean updated = submittedSnapshotDependencies.setToBuildType(buildTypeSettings, serviceLocator);
+      result = result || updated;
     }
-    if (submittedArtifactDependencies != null && submittedArtifactDependencies.propEntities != null) {
+    if (submittedArtifactDependencies != null) {
       boolean updated = submittedArtifactDependencies.setToBuildType(buildTypeSettings, serviceLocator);
       result = result || updated;
     }
-    if (submittedAgentRequirements != null && submittedAgentRequirements.propEntities != null) {
-      for (PropEntityAgentRequirement entity : submittedAgentRequirements.propEntities) {
-        result = true;
-        entity.addRequirement(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate(), serviceLocator.getSingletonService(RequirementFactory.class));
-      }
+    if (submittedAgentRequirements != null) {
+      boolean updated = submittedAgentRequirements.setToBuildType(buildTypeSettings, serviceLocator);
+      result = result || updated;
     }
     if (submittedSettings != null && submittedSettings.properties != null) {
       for (Property property : submittedSettings.properties) {

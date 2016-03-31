@@ -21,6 +21,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
@@ -109,18 +110,27 @@ public class PropEntitiesArtifactDep implements DefaultValueAware {
    * @return true if buildTypeSettings is modified
    */
   public boolean setToBuildType(final @NotNull BuildTypeSettings buildTypeSettings, final @NotNull ServiceLocator serviceLocator) {
-    List<PropEntityArtifactDep.ArtifactDependency> wrappers = new ArrayList<>();
-    List<SArtifactDependency> deps = new ArrayList<>();
-    for (PropEntityArtifactDep entity : propEntities) {
-      PropEntityArtifactDep.ArtifactDependency dep = entity.createDependency(serviceLocator);
-      wrappers.add(dep);
-      deps.add(dep.dep);
+    PropEntitiesArtifactDep.Storage original = new PropEntitiesArtifactDep.Storage(buildTypeSettings);
+    try {
+      List<PropEntityArtifactDep.ArtifactDependency> wrappers = new ArrayList<>();
+      List<SArtifactDependency> deps = new ArrayList<>();
+      if (propEntities != null) {
+        for (PropEntityArtifactDep entity : propEntities) {
+          PropEntityArtifactDep.ArtifactDependency dep = entity.createDependency(serviceLocator);
+          wrappers.add(dep);
+          deps.add(dep.dep);
+        }
+      }
+      buildTypeSettings.setArtifactDependencies(deps);
+      for (PropEntityArtifactDep.ArtifactDependency wrapper : wrappers) {
+        buildTypeSettings.setEnabled(wrapper.id, wrapper.enabled);
+      }
+      return true; // cannot actually determine if modified or not
+    } catch (Exception e) {
+      //restore previous state
+      original.apply(buildTypeSettings);
+      throw new BadRequestException("Error setting artifact dependencies", e);
     }
-    buildTypeSettings.setArtifactDependencies(deps);
-    for (PropEntityArtifactDep.ArtifactDependency wrapper : wrappers) {
-      buildTypeSettings.setEnabled(wrapper.id, wrapper.enabled);
-    }
-    return propEntities.size() > 0;
   }
 
   public static class Storage{

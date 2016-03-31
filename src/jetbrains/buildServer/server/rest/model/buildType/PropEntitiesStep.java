@@ -16,10 +16,13 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
+import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
@@ -61,4 +64,29 @@ public class PropEntitiesStep {
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), buildRunners.size());
   }
 
+  public boolean setToBuildType(@NotNull final BuildTypeSettings buildTypeSettings, @NotNull final ServiceLocator serviceLocator) {
+    final Collection<SBuildRunnerDescriptor> originals = buildTypeSettings.getBuildRunners();    //todo: process enabled
+    removeAllSteps(buildTypeSettings);
+    try {
+      if (propEntities != null) {
+        for (PropEntityStep entity : propEntities) {
+          entity.addStep(buildTypeSettings);
+        }
+      }
+      return true;
+    } catch (Exception e) {
+      //restore original settings
+      removeAllSteps(buildTypeSettings);
+      for (SBuildRunnerDescriptor entry : originals) {
+        buildTypeSettings.addBuildRunner(entry);
+      }
+      throw new BadRequestException("Error replacing items", e);
+    }
+  }
+
+  public static void removeAllSteps(@NotNull final BuildTypeSettings buildType) {
+    for (SBuildRunnerDescriptor entry : buildType.getBuildRunners()) {
+      buildType.removeBuildRunner(entry.getId());  //todo: (TeamCity API): why string and not object?
+    }
+  }
 }

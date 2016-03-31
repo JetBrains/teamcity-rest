@@ -21,7 +21,10 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
+import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptorFactory;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
@@ -58,5 +61,31 @@ public class PropEntitiesTrigger {
       }
     });
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), buildTriggersCollection.size());
+  }
+
+  public boolean setToBuildType(final BuildTypeSettings buildTypeSettings, final ServiceLocator serviceLocator) {
+    final Collection<BuildTriggerDescriptor> originals = buildTypeSettings.getBuildTriggersCollection();   //todo: process enabled
+    try {
+      removeAllTriggers(buildTypeSettings);
+        if (propEntities != null) {
+          for (PropEntityTrigger entity : propEntities) {
+            entity.addTrigger(buildTypeSettings, serviceLocator.getSingletonService(BuildTriggerDescriptorFactory.class));
+          }
+        }
+     return true;
+    } catch (Exception e) {
+      //restore original settings
+      PropEntitiesTrigger.removeAllTriggers(buildTypeSettings);
+      for (BuildTriggerDescriptor entry : originals) {
+        buildTypeSettings.addBuildTrigger(entry);
+      }
+      throw new BadRequestException("Error setting triggers", e);
+    }
+  }
+
+  public static void removeAllTriggers(final BuildTypeSettings buildType) {
+    for (BuildTriggerDescriptor entry : buildType.getBuildTriggersCollection()) {
+      buildType.removeBuildTrigger(entry);
+    }
   }
 }

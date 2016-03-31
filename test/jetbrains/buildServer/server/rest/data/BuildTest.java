@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import jetbrains.buildServer.AgentRestrictorType;
@@ -24,6 +25,8 @@ import jetbrains.buildServer.artifacts.ArtifactDependency;
 import jetbrains.buildServer.artifacts.RevisionRule;
 import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.parameters.ValueResolver;
+import jetbrains.buildServer.requirements.Requirement;
+import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -31,9 +34,7 @@ import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
-import jetbrains.buildServer.server.rest.model.buildType.BuildType;
-import jetbrains.buildServer.server.rest.model.buildType.PropEntitiesArtifactDep;
-import jetbrains.buildServer.server.rest.model.buildType.PropEntityArtifactDep;
+import jetbrains.buildServer.server.rest.model.buildType.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolCannotBeRenamedException;
 import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
@@ -42,6 +43,7 @@ import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.impl.AgentRestrictorFactoryImpl;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
+import jetbrains.buildServer.serverSide.impl.SBuildStepDescriptor;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -253,6 +255,196 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     build.setCustomBuildArtifactDependencies(propEntitiesArtifactDep2);
     result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
     assertEquals(3, result.getBuildPromotion().getArtifactDependencies().size());
+  }
+
+  @Test
+  public void testBuildTriggeringWithCustomSteps() {
+    BuildTypeImpl buildType1 = registerBuildType("buildType1", "projectName");
+
+    buildType1.addBuildRunner("stepName", "runner", createMap("a", "b"));
+
+    final SUser user = getOrCreateUser("user");
+
+    // end of setup
+
+    {
+      final Build build = new Build();
+      final BuildType buildTypeEntity = new BuildType();
+      buildTypeEntity.setId(buildType1.getExternalId());
+      build.setBuildType(buildTypeEntity);
+
+      SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
+      //noinspection ConstantConditions
+      assertEquals(1, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildRunners().size());
+    }
+
+    {
+      final Build build = new Build();
+      final BuildType buildTypeEntity = new BuildType();
+      buildTypeEntity.setId(buildType1.getExternalId());
+      PropEntitiesStep steps = new PropEntitiesStep();
+      PropEntityStep step = new PropEntityStep();
+      step.type = "runner2";
+      step.properties = new Properties(createMap("x", "y"), null, Fields.ALL);
+      steps.propEntities = Arrays.asList(step);
+      buildTypeEntity.setSteps(steps);
+      build.setBuildType(buildTypeEntity);
+
+      SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
+      //noinspection ConstantConditions
+      Collection<? extends SBuildStepDescriptor> actualSteps = ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildRunners();
+      assertEquals(1, actualSteps.size());
+      assertEquals("runner2", actualSteps.iterator().next().getType());
+    }
+
+    {
+      final Build build = new Build();
+      final BuildType buildTypeEntity = new BuildType();
+      buildTypeEntity.setId(buildType1.getExternalId());
+      PropEntitiesStep steps = new PropEntitiesStep();
+      PropEntityStep step = new PropEntityStep();
+      step.type = "runner2";
+      step.properties = new Properties(createMap("x", "y"), null, Fields.ALL);
+      steps.propEntities = Arrays.asList(step);
+      step.disabled = true;
+      buildTypeEntity.setSteps(steps);
+      build.setBuildType(buildTypeEntity);
+
+      SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
+      //noinspection ConstantConditions
+      assertEquals(0, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildRunners().size());
+    }
+  }
+
+  @Test
+  public void testBuildTriggeringWithCustomFeatures() {
+    BuildTypeImpl buildType1 = registerBuildType("buildType1", "projectName");
+
+    buildType1.addBuildFeature("featureType", createMap("a", "b"));
+
+    //add other settings: requirements, features and check that they can be reset
+
+    final SUser user = getOrCreateUser("user");
+
+    // end of setup
+
+    {
+      final Build build = new Build();
+      final BuildType buildTypeEntity = new BuildType();
+      buildTypeEntity.setId(buildType1.getExternalId());
+      build.setBuildType(buildTypeEntity);
+
+      SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
+      //noinspection ConstantConditions
+      assertEquals(1, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildFeatures().size());
+    }
+
+    {
+      final Build build = new Build();
+      final BuildType buildTypeEntity = new BuildType();
+      buildTypeEntity.setId(buildType1.getExternalId());
+      PropEntitiesFeature features = new PropEntitiesFeature();
+      PropEntityFeature feature = new PropEntityFeature();
+      feature.type = "feature2";
+      feature.properties = new Properties(createMap("x", "y"), null, Fields.ALL);
+      features.propEntities = Arrays.asList(feature);
+      buildTypeEntity.setFeatures(features);
+      build.setBuildType(buildTypeEntity);
+
+      SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
+      //noinspection ConstantConditions
+      Collection<? extends SBuildFeatureDescriptor> actualFeatures = ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildFeatures();
+      assertEquals(1, actualFeatures.size());
+      assertEquals("feature2", actualFeatures.iterator().next().getType());
+    }
+  }
+
+  @Test
+  public void testBuildTriggeringWithCustomRequirements() {
+    BuildTypeImpl buildType1 = registerBuildType("buildType1", "projectName");
+
+    buildType1.addRequirement(new Requirement("id1", "propName", "value", RequirementType.EQUALS));
+
+    final SUser user = getOrCreateUser("user");
+
+    // end of setup
+
+    {
+      final Build build = new Build();
+      final BuildType buildTypeEntity = new BuildType();
+      buildTypeEntity.setId(buildType1.getExternalId());
+      build.setBuildType(buildTypeEntity);
+
+      SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
+      //noinspection ConstantConditions
+      assertEquals(1, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getRequirements().size());
+    }
+
+    {
+      final Build build = new Build();
+      final BuildType buildTypeEntity = new BuildType();
+      buildTypeEntity.setId(buildType1.getExternalId());
+      PropEntitiesAgentRequirement agentRequirements = new PropEntitiesAgentRequirement();
+      PropEntityAgentRequirement agentRequirement = new PropEntityAgentRequirement();
+      agentRequirement.type = RequirementType.EQUALS.getName();
+      agentRequirement.properties = new Properties(createMap("property-name", "propName2", "property-value", "value2"), null, Fields.ALL);
+      agentRequirements.propEntities = Arrays.asList(agentRequirement);
+      buildTypeEntity.setAgentRequirements(agentRequirements);
+      build.setBuildType(buildTypeEntity);
+      build.setProperties(new Properties(createMap("disableBuildMerging", "See TW-44714"), null, Fields.ALL)); //this line can be removed after TW-44714 fix
+      SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
+      List<Requirement> actualAgentRequirements = ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getRequirements();
+      assertEquals(1, actualAgentRequirements.size());
+      assertEquals("propName2", actualAgentRequirements.iterator().next().getPropertyName());
+    }
+  }
+
+  @Test
+  public void testBuildTriggeringWithEmptySets() {
+    BuildTypeImpl buildType1 = registerBuildType("buildType1", "projectName");
+    BuildTypeImpl buildType2 = registerBuildType("buildType2", "projectName");
+
+    ArtifactDependencyFactory depsFactory = myFixture.getSingletonService(ArtifactDependencyFactory.class);
+    SArtifactDependency dep2 = depsFactory.createArtifactDependency(buildType2, "path", RevisionRules.LAST_FINISHED_RULE);
+    buildType1.setArtifactDependencies(Arrays.asList(dep2));
+
+    buildType1.addBuildRunner("stepName", "runner", createMap("a", "b"));
+    buildType1.addBuildFeature("featureType", createMap("a", "b"));
+    buildType1.addParameter(new SimpleParameter("name", "value"));
+
+    final SUser user = getOrCreateUser("user");
+
+    // end of setup
+
+    {
+      final Build build = new Build();
+      final BuildType buildTypeEntity = new BuildType();
+      buildTypeEntity.setId(buildType1.getExternalId());
+      build.setBuildType(buildTypeEntity);
+
+      SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
+      assertEquals(1, result.getBuildPromotion().getArtifactDependencies().size());
+      assertEquals(1, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildRunners().size());
+      assertEquals(1, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildFeatures().size());
+      assertEquals(1, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getUserDefinedParameters().size());
+    }
+
+    {
+      final Build build = new Build();
+      final BuildType buildTypeEntity = new BuildType();
+      buildTypeEntity.setId(buildType1.getExternalId());
+      buildTypeEntity.setArtifactDependencies(new PropEntitiesArtifactDep());
+      buildTypeEntity.setSteps(new PropEntitiesStep());
+      buildTypeEntity.setFeatures(new PropEntitiesFeature());
+      buildTypeEntity.setParameters(new Properties());
+      build.setBuildType(buildTypeEntity);
+
+      SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
+      assertEquals(0, result.getBuildPromotion().getArtifactDependencies().size());
+      assertEquals(0, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildRunners().size());
+      assertEquals(0, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildFeatures().size());
+      assertEquals(0, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getUserDefinedParameters().size());
+    }
   }
 
   @Test

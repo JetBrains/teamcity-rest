@@ -489,31 +489,9 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntitiesStep replaceSteps(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields, PropEntitiesStep suppliedEntities) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    final Collection<SBuildRunnerDescriptor> originals = buildType.get().getBuildRunners();
-    removeSteps(buildType, originals);
-    try {
-      if (suppliedEntities.propEntities != null) {
-        for (PropEntityStep entity : suppliedEntities.propEntities) {
-          entity.addStep(buildType.get());
-        }
-      }
-      buildType.get().persist();
-    }catch (Exception e){
-      //restore original settings
-      removeSteps(buildType, buildType.get().getBuildRunners());
-      for (SBuildRunnerDescriptor entry : originals) {
-        buildType.get().addBuildRunner(entry);
-      }
-      buildType.get().persist();
-      throw new BadRequestException("Error replacing items", e);
-    }
+    suppliedEntities.setToBuildType(buildType.get(), myServiceLocator);
+    buildType.get().persist();
     return new PropEntitiesStep(buildType.get(), new Fields(fields));
-  }
-
-  private void removeSteps(final BuildTypeOrTemplate buildType, final Collection<SBuildRunnerDescriptor> runners) {
-    for (SBuildRunnerDescriptor entry : runners) {
-      buildType.get().removeBuildRunner(entry.getId());  //todo: (TeamCity API): why srting and not ojbect?
-    }
   }
 
   @POST
@@ -665,32 +643,9 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntitiesFeature replaceFeatures(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields, PropEntitiesFeature suppliedEntities) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-
-    final Collection<SBuildFeatureDescriptor> originals = buildType.get().getBuildFeatures();
-    removeFeatures(buildType, originals);
-    try {
-      if (suppliedEntities.propEntities != null) {
-        for (PropEntityFeature entity : suppliedEntities.propEntities) {
-          entity.addFeature(buildType.get(), myServiceLocator.getSingletonService(BuildFeatureDescriptorFactory.class));
-        }
-      }
-      buildType.get().persist();
-    }catch (Exception e){
-      //restore original settings
-      removeFeatures(buildType, buildType.get().getBuildFeatures());
-      for (SBuildFeatureDescriptor entry : originals) {
-        buildType.get().addBuildFeature(entry);
-      }
-      buildType.get().persist();
-      throw new BadRequestException("Error replacing items", e);
-    }
+    suppliedEntities.setToBuildType(buildType.get(), myServiceLocator);
+    buildType.get().persist();
     return new PropEntitiesFeature(buildType.get(), new Fields(fields));
-  }
-
-  private void removeFeatures(final BuildTypeOrTemplate buildType, final Collection<SBuildFeatureDescriptor> features) {
-    for (SBuildFeatureDescriptor entry : features) {
-      buildType.get().removeBuildFeature(entry.getId());  //todo: (TeamCity API): why srting and not ojbect?
-    }
   }
 
   @POST
@@ -831,17 +786,8 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntitiesArtifactDep replaceArtifactDeps(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields, PropEntitiesArtifactDep deps) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-
-    PropEntitiesArtifactDep.Storage original = new PropEntitiesArtifactDep.Storage(buildType.get());
-    try {
-      deps.setToBuildType(buildType.get(), myServiceLocator);
-      buildType.get().persist();
-    } catch (Exception e) {
-      //restore previous state
-      original.apply(buildType.get());
-      buildType.get().persist();
-      throw new BadRequestException("Error setting artifact dependencies", e);
-    }
+    deps.setToBuildType(buildType.get(), myServiceLocator);
+    buildType.get().persist();
     return new PropEntitiesArtifactDep(buildType.get(), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
@@ -1008,33 +954,9 @@ public class BuildTypeRequest {
   public PropEntitiesSnapshotDep replaceSnapshotDeps(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields,
                                                      PropEntitiesSnapshotDep suppliedEntities) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-
-    final List<Dependency> originalDependencies = buildType.get().getDependencies();
-    removeDependencies(buildType, originalDependencies);
-
-    try {
-      if (suppliedEntities.propEntities != null) {
-        for (PropEntitySnapshotDep entity : suppliedEntities.propEntities) {
-          entity.addSnapshotDependency(buildType.get(), myServiceLocator);
-        }
-      }
-      buildType.get().persist();
-    } catch (Exception e) {
-      //restore original settings
-      removeDependencies(buildType, buildType.get().getDependencies());
-      for (Dependency dependency : originalDependencies) {
-        buildType.get().addDependency(dependency);
-      }
-      buildType.get().persist();
-      throw new BadRequestException("Error setting snapshot dependencies", e);
-    }
+    suppliedEntities.setToBuildType(buildType.get(), myServiceLocator);
+    buildType.get().persist();
     return new PropEntitiesSnapshotDep(buildType.get(), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
-  }
-
-  private void removeDependencies(final BuildTypeOrTemplate buildType, final List<Dependency> dependencies) {
-    for (Dependency originalDependency : dependencies) {
-      buildType.get().removeDependency(originalDependency);
-    }
   }
 
   /**
@@ -1119,32 +1041,9 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntitiesTrigger replaceTriggers(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields, PropEntitiesTrigger suppliedEntities) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-
-    final Collection<BuildTriggerDescriptor> originals = buildType.get().getBuildTriggersCollection();
-    removeTriggers(buildType, originals);
-    try {
-      if (suppliedEntities.propEntities != null) {
-        for (PropEntityTrigger entity : suppliedEntities.propEntities) {
-          entity.addTrigger(buildType.get(), myServiceLocator.getSingletonService(BuildTriggerDescriptorFactory.class));
-        }
-      }
-      buildType.get().persist();
-    } catch (Exception e) {
-      //restore original settings
-      removeTriggers(buildType, buildType.get().getBuildTriggersCollection());
-      for (BuildTriggerDescriptor entry : originals) {
-        buildType.get().addBuildTrigger(entry);
-      }
-      buildType.get().persist();
-      throw new BadRequestException("Error setting triggers", e);
-    }
+    suppliedEntities.setToBuildType(buildType.get(), myServiceLocator);
+    buildType.get().persist();
     return new PropEntitiesTrigger(buildType.get(), new Fields(fields));
-  }
-
-  private void removeTriggers(final BuildTypeOrTemplate buildType, final Collection<BuildTriggerDescriptor> triggers) {
-    for (BuildTriggerDescriptor entry : triggers) {
-      buildType.get().removeBuildTrigger(entry);
-    }
   }
 
   /**
@@ -1247,25 +1146,8 @@ public class BuildTypeRequest {
                                                                @QueryParam("fields") String fields,
                                                                PropEntitiesAgentRequirement suppliedEntities) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-
-    PropEntityAgentRequirement.Storage original = new PropEntityAgentRequirement.Storage(buildType.get());
-    for (Requirement entry : original.getItems()) {
-      buildType.get().removeRequirement(entry);
-    }
-    try {
-      if (suppliedEntities.propEntities != null) {
-        RequirementFactory requirementFactory = myBeanContext.getSingletonService(RequirementFactory.class);
-        for (PropEntityAgentRequirement entity : suppliedEntities.propEntities) {
-          entity.addRequirement(buildType, requirementFactory);
-        }
-      }
-      buildType.get().persist();
-    } catch (Exception e) {
-      //restore original settings
-      original.apply(buildType.get());
-      buildType.get().persist();
-      throw new BadRequestException("Error replacing items", e);
-    }
+    suppliedEntities.setToBuildType(buildType.get(), myServiceLocator);
+    buildType.get().persist();
     return new PropEntitiesAgentRequirement(buildType.get(), new Fields(fields));
   }
 
@@ -1282,7 +1164,7 @@ public class BuildTypeRequest {
                                                         PropEntityAgentRequirement description) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
 
-    final Requirement result = description.addRequirement(buildType, myBeanContext.getSingletonService(RequirementFactory.class));
+    final Requirement result = description.addRequirement(buildType.get(), myBeanContext.getSingletonService(RequirementFactory.class));
     buildType.get().persist();
     return new PropEntityAgentRequirement(result, buildType.get(), new Fields(fields));
   }
@@ -1318,13 +1200,13 @@ public class BuildTypeRequest {
                                                             PropEntityAgentRequirement description) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
 
-    PropEntityAgentRequirement.Storage original = new PropEntityAgentRequirement.Storage(buildType.get());
+    PropEntitiesAgentRequirement.Storage original = new PropEntitiesAgentRequirement.Storage(buildType.get());
     final Requirement requirement = getAgentRequirement(buildType, agentRequirementLocator);
     buildType.get().removeRequirement(requirement);
 
     final Requirement result;
     try {
-      result = description.addRequirement(buildType, myBeanContext.getSingletonService(RequirementFactory.class));
+      result = description.addRequirement(buildType.get(), myBeanContext.getSingletonService(RequirementFactory.class));
       buildType.get().persist();
     } catch (Exception e) {
       //restore
