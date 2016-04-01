@@ -16,9 +16,9 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.requirements.Requirement;
@@ -28,6 +28,8 @@ import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.RequirementFactory;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -64,7 +66,13 @@ public class PropEntityAgentRequirement extends PropEntity {
     }
     final RequirementType foundType = RequirementType.findByName(type);
     if (foundType == null) {
-      throw new BadRequestException("Could not create Requirement type by type '" + type + "'. Check it is one of: " + Arrays.toString(RequirementType.values()));
+      List<String> supportedNames = CollectionsUtil.convertCollection(RequirementType.ALL_REQUIREMENT_TYPES, new Converter<String, RequirementType>() {
+        @Override
+        public String createFrom(@NotNull final RequirementType source) {
+          return source.getName();
+        }
+      });
+      throw new BadRequestException("Could not create Requirement type by type '" + type + "'. Check it is one of: [" + StringUtil.join(", ", supportedNames) + "]");
     }
     return foundType;
   }
