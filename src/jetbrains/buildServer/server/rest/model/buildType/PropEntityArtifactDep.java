@@ -17,9 +17,7 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import com.intellij.openapi.util.text.StringUtil;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
@@ -27,6 +25,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.artifacts.RevisionRule;
 import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
@@ -47,7 +46,7 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "artifact-dependency")
 @XmlType
-public class PropEntityArtifactDep extends PropEntity {
+public class PropEntityArtifactDep extends PropEntity implements PropEntityEdit<SArtifactDependency> {
 
   private static final String ARTIFACT_DEPENDENCY_TYPE_NAME = "artifact_dependency";
   private static final String NAME_SOURCE_BUILD_TYPE_ID = "source_buildTypeId";
@@ -119,6 +118,54 @@ public class PropEntityArtifactDep extends PropEntity {
     });
   }
 
+  @NotNull
+  public SArtifactDependency addTo(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
+    final ArtifactDependency newDependency;
+    try {
+      final List<SArtifactDependency> dependencies = new ArrayList<SArtifactDependency>(buildType.getArtifactDependencies());
+      newDependency = createDependency(serviceLocator);
+      dependencies.add(newDependency.dep);
+      buildType.setArtifactDependencies(dependencies);
+      buildType.setEnabled(newDependency.id, newDependency.enabled);
+    } catch (Exception e) {
+      throw new BadRequestException("Error adding artifact dependency: " + e.toString(), e);
+    }
+    return newDependency.dep;
+  }
+
+  @NotNull
+  public SArtifactDependency replaceIn(@NotNull final BuildTypeSettings buildType, @NotNull final SArtifactDependency originalDep, @NotNull final ServiceLocator serviceLocator) {
+    final PropEntityArtifactDep.ArtifactDependency newDependency = createDependency(serviceLocator);
+
+    PropEntitiesArtifactDep.Storage original = new PropEntitiesArtifactDep.Storage(buildType);
+    final List<SArtifactDependency> newDependencies = new ArrayList<>(original.deps.size());
+    for (SArtifactDependency currentDependency : original.deps) {
+      if (currentDependency.equals(originalDep)) {
+        newDependencies.add(newDependency.dep);
+      } else {
+        newDependencies.add(currentDependency);
+      }
+    }
+    try {
+      buildType.setArtifactDependencies(newDependencies);
+      buildType.setEnabled(newDependency.id, newDependency.enabled);
+    } catch (Exception e) {
+      //restore
+      original.apply(buildType);
+      throw new BadRequestException("Error updating artifact dependencies: " + e.toString(), e);
+    }
+    return newDependency.dep;
+  }
+
+  public static void removeFrom(@NotNull final BuildTypeSettings buildType, @NotNull final SArtifactDependency artifactDependency) {
+    final List<SArtifactDependency> dependencies = buildType.getArtifactDependencies();
+    if (!dependencies.remove(artifactDependency)) {
+      throw new NotFoundException("Specified artifact dependency is not found in the build type.");
+    }
+    buildType.setArtifactDependencies(dependencies);
+  }
+
+  @NotNull
   public ArtifactDependency createDependency(@NotNull final ServiceLocator serviceLocator) {
     if (!ARTIFACT_DEPENDENCY_TYPE_NAME.equals(type)){
       throw new BadRequestException("Artifact dependency should have type '" + ARTIFACT_DEPENDENCY_TYPE_NAME + "'.");

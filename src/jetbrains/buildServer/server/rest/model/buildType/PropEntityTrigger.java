@@ -18,9 +18,11 @@ package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.Collections;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptorFactory;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
@@ -32,7 +34,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 05.01.12
  */
 @XmlRootElement(name = "trigger")
-public class PropEntityTrigger extends PropEntity {
+public class PropEntityTrigger extends PropEntity implements PropEntityEdit<BuildTriggerDescriptor> {
 
   public PropEntityTrigger() {
   }
@@ -41,11 +43,13 @@ public class PropEntityTrigger extends PropEntity {
     super(descriptor, buildTypeSettings, fields);
   }
 
-  public BuildTriggerDescriptor addTrigger(final BuildTypeSettings buildType, final BuildTriggerDescriptorFactory descriptorFactory) {
+  @NotNull
+  public BuildTriggerDescriptor addTo(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Build trigger cannot have empty 'type'.");
     }
-    final BuildTriggerDescriptor triggerToAdd = descriptorFactory.createTriggerDescriptor(type, properties == null ? Collections.emptyMap() : properties.getMap());
+    final BuildTriggerDescriptor triggerToAdd = serviceLocator
+      .getSingletonService(BuildTriggerDescriptorFactory.class).createTriggerDescriptor(type, properties == null ? Collections.emptyMap() : properties.getMap());
 
     if (!buildType.addBuildTrigger(triggerToAdd)) {
       String additionalMessage = getDetails(buildType, triggerToAdd);
@@ -54,10 +58,15 @@ public class PropEntityTrigger extends PropEntity {
     if (disabled != null) {
       buildType.setEnabled(triggerToAdd.getId(), !disabled);
     }
-    return buildType.findTriggerById(triggerToAdd.getId());
+    BuildTriggerDescriptor result = buildType.findTriggerById(triggerToAdd.getId());
+    if (result == null){
+      throw new OperationException("Cannot find just added trigger with id '" + triggerToAdd.getId() + "'");
+    }
+    return result;
   }
 
-  public BuildTriggerDescriptor updateTrigger(@NotNull final BuildTypeSettings buildType, @NotNull final BuildTriggerDescriptor trigger) {
+  @NotNull
+  public BuildTriggerDescriptor replaceIn(@NotNull final BuildTypeSettings buildType, @NotNull final BuildTriggerDescriptor trigger, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Build trigger cannot have empty 'type'.");
     }
@@ -70,7 +79,17 @@ public class PropEntityTrigger extends PropEntity {
     if (disabled != null) {
       buildType.setEnabled(trigger.getId(), !disabled);
     }
-    return buildType.findTriggerById(trigger.getId());
+    BuildTriggerDescriptor result = buildType.findTriggerById(trigger.getId());
+    if (result == null){
+      throw new OperationException("Cannot find just added trigger with id '" + trigger.getId() + "'");
+    }
+    return result;
+  }
+
+  public static void removeFrom(final BuildTypeSettings buildType, final BuildTriggerDescriptor trigger) {
+    if (!buildType.removeBuildTrigger(trigger)) {
+      throw new InvalidStateException("Build trigger removal failed");
+    }
   }
 
   private String getDetails(final BuildTypeSettings buildType, final BuildTriggerDescriptor triggerToAdd) {

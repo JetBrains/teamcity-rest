@@ -70,7 +70,7 @@ public class PropEntitiesStep {
     try {
       if (propEntities != null) {
         for (PropEntityStep entity : propEntities) {
-          entity.addStep(buildTypeSettings);
+          entity.addTo(buildTypeSettings, serviceLocator);
         }
       }
       return true;

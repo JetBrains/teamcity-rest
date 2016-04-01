@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -38,7 +39,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 05.01.12
  */
 @XmlRootElement(name = "agent-requirement")
-public class PropEntityAgentRequirement extends PropEntity {
+public class PropEntityAgentRequirement extends PropEntity implements PropEntityEdit<Requirement> {
 
   public static final String NAME_PROPERTY_VALUE = "property-value";
   public static final String NAME_PROPERTY_NAME = "property-name";
@@ -77,13 +78,14 @@ public class PropEntityAgentRequirement extends PropEntity {
     return foundType;
   }
 
-  public Requirement addRequirement(@NotNull final BuildTypeSettings buildTypeSettings, @NotNull final RequirementFactory requirementFactory) {
+  @NotNull
+  public Requirement addTo(@NotNull final BuildTypeSettings buildTypeSettings, @NotNull final ServiceLocator serviceLocator) {
     final Map<String, String> propertiesMap = properties == null ? Collections.emptyMap() : properties.getMap();
     String propertyName = propertiesMap.get(NAME_PROPERTY_NAME);
     if (StringUtil.isEmpty(propertyName)) {
       throw new BadRequestException("No name is specified. Make sure '" + NAME_PROPERTY_NAME + "' property is present and has not empty value");
     }
-    final Requirement requirementToAdd = requirementFactory.createRequirement(propertyName, propertiesMap.get(NAME_PROPERTY_VALUE), getSubmittedType());
+    final Requirement requirementToAdd = serviceLocator.getSingletonService(RequirementFactory.class).createRequirement(propertyName, propertiesMap.get(NAME_PROPERTY_VALUE), getSubmittedType());
 
     String requirementId = requirementToAdd.getId();
     if (requirementId == null && disabled != null) {
@@ -95,5 +97,24 @@ public class PropEntityAgentRequirement extends PropEntity {
       buildTypeSettings.setEnabled(requirementId, !disabled);
     }
     return requirementToAdd;
+  }
+
+  @NotNull
+  @Override
+  public Requirement replaceIn(@NotNull final BuildTypeSettings buildType, @NotNull final Requirement entityToReplace, @NotNull final ServiceLocator serviceLocator) {
+    PropEntitiesAgentRequirement.Storage original = new PropEntitiesAgentRequirement.Storage(buildType);
+    buildType.removeRequirement(entityToReplace);
+
+    try {
+      return addTo(buildType, serviceLocator);
+    } catch (Exception e) {
+      //restore
+      original.apply(buildType);
+      throw new BadRequestException("Error setting new agent requirement", e);
+    }
+  }
+
+  public static void removeFrom(@NotNull final BuildTypeSettings buildType, @NotNull final Requirement requirement) {
+    buildType.removeRequirement(requirement);
   }
 }

@@ -72,7 +72,7 @@ public class PropEntitiesSnapshotDep {
       removeAllDependencies(buildTypeSettings);
       if (propEntities != null) {
         for (PropEntitySnapshotDep entity : propEntities) {
-          entity.addSnapshotDependency(buildTypeSettings, serviceLocator);
+          entity.addTo(buildTypeSettings, serviceLocator);
         }
       }
       return true; // cannot actually determine if modified or not

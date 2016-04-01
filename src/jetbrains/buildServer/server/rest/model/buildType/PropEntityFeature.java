@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.HashMap;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -34,7 +35,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 05.01.12
  */
 @XmlRootElement(name = "feature")
-public class PropEntityFeature extends PropEntity {
+public class PropEntityFeature extends PropEntity implements PropEntityEdit<SBuildFeatureDescriptor>{
   public PropEntityFeature() {
   }
 
@@ -42,11 +43,12 @@ public class PropEntityFeature extends PropEntity {
     super(descriptor, buildType, fields);
   }
 
-  public SBuildFeatureDescriptor addFeature(final BuildTypeSettings buildType, final BuildFeatureDescriptorFactory factory) {
+  @NotNull
+  public SBuildFeatureDescriptor addTo(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Created build feature cannot have empty 'type'.");
     }
-    final SBuildFeatureDescriptor newBuildFeature = factory.createNewBuildFeature(type, properties != null ? properties.getMap() : new HashMap<String, String>());
+    final SBuildFeatureDescriptor newBuildFeature = serviceLocator.getSingletonService(BuildFeatureDescriptorFactory.class).createNewBuildFeature(type, properties != null ? properties.getMap() : new HashMap<String, String>());
     try {
       buildType.addBuildFeature(newBuildFeature);
     } catch (DuplicateIdException e) {
@@ -59,7 +61,8 @@ public class PropEntityFeature extends PropEntity {
     return BuildTypeUtil.getBuildTypeFeatureOrNull(buildType, newBuildFeature.getId());
   }
 
-  public SBuildFeatureDescriptor updateFeature(@NotNull final BuildTypeSettings buildType, @NotNull final SBuildFeatureDescriptor feature) {
+  @NotNull
+  public SBuildFeatureDescriptor replaceIn(@NotNull final BuildTypeSettings buildType, @NotNull final SBuildFeatureDescriptor feature, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Build feature cannot have empty 'type'.");
     }
@@ -73,6 +76,10 @@ public class PropEntityFeature extends PropEntity {
       buildType.setEnabled(feature.getId(), !disabled);
     }
     return BuildTypeUtil.getBuildTypeFeatureOrNull(buildType, feature.getId());
+  }
+
+  public static void removeFrom(final BuildTypeSettings buildType, final SBuildFeatureDescriptor feature) {
+    buildType.removeBuildFeature(feature.getId());
   }
 
   private String getDetails(final BuildTypeSettings buildType, final SBuildFeatureDescriptor newBuildFeature, final Exception e) {

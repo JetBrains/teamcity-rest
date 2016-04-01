@@ -23,7 +23,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
-import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptorFactory;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -69,7 +68,7 @@ public class PropEntitiesTrigger {
       removeAllTriggers(buildTypeSettings);
         if (propEntities != null) {
           for (PropEntityTrigger entity : propEntities) {
-            entity.addTrigger(buildTypeSettings, serviceLocator.getSingletonService(BuildTriggerDescriptorFactory.class));
+            entity.addTo(buildTypeSettings, serviceLocator);
           }
         }
      return true;

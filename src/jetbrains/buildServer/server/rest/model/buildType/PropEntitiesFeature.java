@@ -25,7 +25,6 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.BuildFeatureDescriptorFactory;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -70,7 +69,7 @@ public class PropEntitiesFeature {
     try {
       if (propEntities != null) {
         for (PropEntityFeature entity : propEntities) {
-          entity.addFeature(buildTypeSettings, serviceLocator.getSingletonService(BuildFeatureDescriptorFactory.class));
+          entity.addTo(buildTypeSettings, serviceLocator);
         }
       }
       return true;

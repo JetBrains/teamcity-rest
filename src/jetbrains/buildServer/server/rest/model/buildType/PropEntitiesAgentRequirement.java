@@ -29,7 +29,6 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
-import jetbrains.buildServer.serverSide.RequirementFactory;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
@@ -71,9 +70,8 @@ public class PropEntitiesAgentRequirement {
     try {
       removeAll(buildTypeSettings);
       if (propEntities != null) {
-        RequirementFactory requirementFactory = serviceLocator.getSingletonService(RequirementFactory.class);
         for (PropEntityAgentRequirement entity : propEntities) {
-          entity.addRequirement(buildTypeSettings, requirementFactory);
+          entity.addTo(buildTypeSettings, serviceLocator);
         }
       }
       return true;

@@ -18,8 +18,10 @@ package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.Collections;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.serverSide.BuildRunnerDescriptor;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
@@ -32,7 +34,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 05.01.12
  */
 @XmlRootElement(name = "step")
-public class PropEntityStep extends PropEntity {
+public class PropEntityStep extends PropEntity implements PropEntityEdit<SBuildRunnerDescriptor>{
   public PropEntityStep() {
   }
 
@@ -40,7 +42,8 @@ public class PropEntityStep extends PropEntity {
     super(descriptor.getId(), descriptor.getName(), descriptor.getType(), buildType.isEnabled(descriptor.getId()), descriptor.getParameters(), fields);
   }
 
-  public SBuildRunnerDescriptor addStep(final BuildTypeSettings buildType) {
+  @NotNull
+  public SBuildRunnerDescriptor addTo(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Created step cannot have empty 'type'.");
     }
@@ -54,7 +57,8 @@ public class PropEntityStep extends PropEntity {
     return runnerToCreate;
   }
 
-  public SBuildRunnerDescriptor updateStep(@NotNull final BuildTypeSettings buildType, @NotNull SBuildRunnerDescriptor step) {
+  @NotNull
+  public SBuildRunnerDescriptor replaceIn(@NotNull final BuildTypeSettings buildType, @NotNull SBuildRunnerDescriptor step, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Created step cannot have empty 'type'.");
     }
@@ -65,9 +69,16 @@ public class PropEntityStep extends PropEntity {
     if (disabled != null) {
       buildType.setEnabled(step.getId(), !disabled);
     }
-    return buildType.findBuildRunnerById(step.getId());
+    SBuildRunnerDescriptor result = buildType.findBuildRunnerById(step.getId());
+    if (result == null){
+      throw new OperationException("Cannot find build step by id '" + step.getId() + "' after successful addition");
+    }
+    return result;
   }
 
+  public static void removeFrom(@NotNull final BuildTypeSettings buildTypeSettings, @NotNull final SBuildRunnerDescriptor step) {
+    buildTypeSettings.removeBuildRunner(step.getId());
+  }
 
   public static String getSetting(final BuildTypeSettings buildType, final BuildRunnerDescriptor step, final String name) {
     if ("name".equals(name)) { //todo: move to PropEntity...

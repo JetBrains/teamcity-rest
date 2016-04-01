@@ -50,7 +50,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "snapshot-dependency")
 @XmlType
-public class PropEntitySnapshotDep extends PropEntity {
+public class PropEntitySnapshotDep extends PropEntity implements PropEntityEdit<Dependency> {
 
   public static final String SOURCE_BUILD_TYPE = "source-buildType";
   public static final String REST_COMPATIBILITY_INCLUDE_BUILD_TYPE_IN_PROPERTIES =
@@ -99,7 +99,8 @@ public class PropEntitySnapshotDep extends PropEntity {
     });
   }
 
-  public Dependency addSnapshotDependency(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
+  @NotNull
+  public Dependency addTo(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
     if (!SNAPSHOT_DEPENDENCY_TYPE_NAME.equals(type)) {
       throw new BadRequestException("Snapshot dependency should have type '" + SNAPSHOT_DEPENDENCY_TYPE_NAME + "'.");
     }
@@ -126,6 +127,24 @@ public class PropEntitySnapshotDep extends PropEntity {
       throw new BadRequestException("Error adding dependency", e);
     }
     return getSnapshotDep(buildType, result.getDependOnExternalId(), serviceLocator.getSingletonService(BuildTypeFinder.class));
+  }
+
+  @NotNull
+  @Override
+  public Dependency replaceIn(@NotNull final BuildTypeSettings buildType, @NotNull final Dependency entityToReplace, @NotNull final ServiceLocator serviceLocator) {
+    buildType.removeDependency(entityToReplace);
+
+    try {
+      return addTo(buildType, serviceLocator);
+    } catch (Exception e) {
+      //restore
+      buildType.addDependency(entityToReplace);
+      throw new BadRequestException("Error updating snapshot dependency", e);
+    }
+  }
+
+  public static void removeFrom(final BuildTypeSettings buildType, final Dependency dependency) {
+    buildType.removeDependency(dependency);
   }
 
   @NotNull
@@ -157,7 +176,7 @@ public class PropEntitySnapshotDep extends PropEntity {
       return externalIdFromPosted;
     }
     throw new NotFoundException(
-      "Cound not find id of the build configuration defined by '" + SOURCE_BUILD_TYPE + "' element. Make sure to specify existing build configuration 'id' or 'internalId'.");
+      "Could not find id of the build configuration defined by '" + SOURCE_BUILD_TYPE + "' element. Make sure to specify existing build configuration 'id' or 'internalId'.");
   }
 
   private void addOptionToProperty(final HashMap<String, String> properties, final Dependency dependency,
