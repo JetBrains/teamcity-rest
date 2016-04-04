@@ -311,4 +311,3 @@ public class User {
     throw new BadRequestException("Submitted user should have 'id', 'username' or 'locator' attributes");
   }
 }
-
