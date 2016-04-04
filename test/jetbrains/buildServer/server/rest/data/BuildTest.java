@@ -408,6 +408,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     SArtifactDependency dep2 = depsFactory.createArtifactDependency(buildType2, "path", RevisionRules.LAST_FINISHED_RULE);
     buildType1.setArtifactDependencies(Arrays.asList(dep2));
 
+    buildType1.addVcsRoot(createVcsRoot("aaa", null));
     buildType1.addBuildRunner("stepName", "runner", createMap("a", "b"));
     buildType1.addBuildFeature("featureType", createMap("a", "b"));
     buildType1.addParameter(new SimpleParameter("name", "value"));
@@ -424,16 +425,19 @@ public class BuildTest extends BaseFinderTest<SBuild> {
 
       SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
       assertEquals(1, result.getBuildPromotion().getArtifactDependencies().size());
+      assertEquals(1, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getVcsRootEntries().size());
       assertEquals(1, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildRunners().size());
       assertEquals(1, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildFeatures().size());
       assertEquals(1, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getUserDefinedParameters().size());
     }
 
+    //this test will actually test something only with option to copy the current settings from the build type. As so far empty build type is created, these checks check nothing
     {
       final Build build = new Build();
       final BuildType buildTypeEntity = new BuildType();
       buildTypeEntity.setId(buildType1.getExternalId());
       buildTypeEntity.setArtifactDependencies(new PropEntitiesArtifactDep());
+      buildTypeEntity.setVcsRootEntries(new VcsRootEntries());
       buildTypeEntity.setSteps(new PropEntitiesStep());
       buildTypeEntity.setFeatures(new PropEntitiesFeature());
       buildTypeEntity.setParameters(new Properties());
@@ -441,6 +445,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
 
       SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
       assertEquals(0, result.getBuildPromotion().getArtifactDependencies().size());
+      assertEquals(1, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getVcsRootEntries().size()); //these cannot be overriden so far, should actually throw exception on triggering
       assertEquals(0, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildRunners().size());
       assertEquals(0, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildFeatures().size());
       assertEquals(0, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getUserDefinedParameters().size());

@@ -45,6 +45,18 @@ public class PropEntityTrigger extends PropEntity implements PropEntityEdit<Buil
 
   @NotNull
   public BuildTriggerDescriptor addTo(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
+    PropEntitiesTrigger.Storage original = new PropEntitiesTrigger.Storage(buildType);
+    try {
+      return addToInternal(buildType, serviceLocator);
+    } catch (Exception e) {
+      //restore original settings
+      original.apply(buildType);
+      throw new BadRequestException("Error replacing items", e);
+    }
+  }
+
+  @NotNull
+  public BuildTriggerDescriptor addToInternal(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Build trigger cannot have empty 'type'.");
     }

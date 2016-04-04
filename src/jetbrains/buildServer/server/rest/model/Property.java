@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model;
 
 import java.text.ParseException;
+import java.util.Collection;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -24,6 +25,7 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.ControlDescription;
 import jetbrains.buildServer.serverSide.InheritableUserParametersHolder;
@@ -71,7 +73,7 @@ public class Property {
     if (!isSecure(parameter, serviceLocator)) {
       value = !fields.isIncluded("value", true, true) ? null : parameter.getValue();
     }
-    this.own = ValueWithDefault.decideDefault(fields.isIncluded("own"), own);
+    this.own = ValueWithDefault.decideDefault(fields.isIncluded("own"), own); //consider renaming to "inherited" and including only if true
     final ControlDescription parameterSpec = parameter.getControlDescription();
     if (parameterSpec != null) {
       type = ValueWithDefault
@@ -131,6 +133,23 @@ public class Property {
       throw new NotFoundException("No parameter with name '" + parameterName + "' is found.");
     }
     return new Property(parameter, entity.getOwnParameters().containsKey(parameterName), fields, serviceLocator);
+  }
+
+  @NotNull
+  public Parameter addTo(@NotNull final InheritableUserParametersHolder entity, @NotNull final ServiceLocator serviceLocator){
+    Collection<Parameter> original = entity.getParametersCollection(); //todo: use holder.getOwnParametersCollection() ?
+    try {
+      Parameter fromPosted = getFromPosted(serviceLocator);
+      entity.addParameter(fromPosted);
+      return fromPosted;
+    } catch (Exception e) {
+      //restore
+      BuildTypeUtil.removeAllParameters(entity);
+      for (Parameter p : original) {
+        entity.addParameter(p);
+      }
+      throw new BadRequestException("Cannot set parameters: " + e.toString(), e);
+    }
   }
 }
 

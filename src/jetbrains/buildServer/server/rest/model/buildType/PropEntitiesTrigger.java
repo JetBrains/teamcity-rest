@@ -17,7 +17,9 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -63,21 +65,18 @@ public class PropEntitiesTrigger {
   }
 
   public boolean setToBuildType(final BuildTypeSettings buildTypeSettings, final ServiceLocator serviceLocator) {
-    final Collection<BuildTriggerDescriptor> originals = buildTypeSettings.getBuildTriggersCollection();   //todo: process enabled
+    Storage original = new Storage(buildTypeSettings);
     try {
       removeAllTriggers(buildTypeSettings);
-        if (propEntities != null) {
-          for (PropEntityTrigger entity : propEntities) {
-            entity.addTo(buildTypeSettings, serviceLocator);
-          }
+      if (propEntities != null) {
+        for (PropEntityTrigger entity : propEntities) {
+          entity.addToInternal(buildTypeSettings, serviceLocator);
         }
-     return true;
+      }
+      return true;
     } catch (Exception e) {
       //restore original settings
-      PropEntitiesTrigger.removeAllTriggers(buildTypeSettings);
-      for (BuildTriggerDescriptor entry : originals) {
-        buildTypeSettings.addBuildTrigger(entry);
-      }
+      original.apply(buildTypeSettings);
       throw new BadRequestException("Error setting triggers", e);
     }
   }
@@ -85,6 +84,24 @@ public class PropEntitiesTrigger {
   public static void removeAllTriggers(final BuildTypeSettings buildType) {
     for (BuildTriggerDescriptor entry : buildType.getBuildTriggersCollection()) {
       buildType.removeBuildTrigger(entry);
+    }
+  }
+
+  public static class Storage {
+    public final Map<BuildTriggerDescriptor, Boolean> deps = new LinkedHashMap<>();
+
+    public Storage(final @NotNull BuildTypeSettings buildTypeSettings) {
+      for (BuildTriggerDescriptor entity : buildTypeSettings.getBuildTriggersCollection()) {
+        deps.put(entity, buildTypeSettings.isEnabled(entity.getId()));
+      }
+    }
+
+    public void apply(final @NotNull BuildTypeSettings buildTypeSettings) {
+      removeAllTriggers(buildTypeSettings);
+      for (Map.Entry<BuildTriggerDescriptor, Boolean> entry : deps.entrySet()) {
+        buildTypeSettings.addBuildTrigger(entry.getKey());
+        buildTypeSettings.setEnabled(entry.getKey().getId(), entry.getValue());
+      }
     }
   }
 }

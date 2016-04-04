@@ -352,16 +352,8 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public VcsRootEntries replaceVcsRootEntries(@PathParam("btLocator") String buildTypeLocator, VcsRootEntries suppliedEntities, @QueryParam("fields") String fields) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    for (jetbrains.buildServer.vcs.VcsRootEntry entry : buildType.get().getVcsRootEntries()) {
-      buildType.get().removeVcsRoot((SVcsRoot)entry.getVcsRoot());
-    }
-    if (suppliedEntities.vcsRootAssignments != null) {
-      for (VcsRootEntry entity : suppliedEntities.vcsRootAssignments) {
-        addVcsRoot(buildType, entity, myVcsRootFinder);
-      }
-    }
+    suppliedEntities.setToBuildType(buildType.get(), myServiceLocator);
     buildType.get().persist();
-    // not handlingsetting errors... a bit complex here
     return new VcsRootEntries(buildType, new Fields(fields), myBeanContext);
   }
 
@@ -371,26 +363,10 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public VcsRootEntry addVcsRootEntry(@PathParam("btLocator") String buildTypeLocator, VcsRootEntry description, @QueryParam("fields") String fields) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    final SVcsRoot vcsRoot = addVcsRoot(buildType, description, myVcsRootFinder);
+    final SVcsRoot vcsRoot = description.addTo(buildType.get(), myVcsRootFinder);
     buildType.get().persist();
 
     return new VcsRootEntry(vcsRoot, buildType, new Fields(fields), myBeanContext);
-  }
-
-  public static SVcsRoot addVcsRoot(@NotNull final BuildTypeOrTemplate buildType, @NotNull final VcsRootEntry description, @NotNull final VcsRootFinder vcsRootFinder) {
-    if (description.vcsRoot == null){
-      throw new BadRequestException("Element vcs-root should be specified.");
-    }
-    final SVcsRoot vcsRoot = description.vcsRoot.getVcsRoot(vcsRootFinder);
-
-    try {
-      buildType.get().addVcsRoot(vcsRoot);
-    } catch (InvalidVcsRootScopeException e) {
-      throw new BadRequestException("Could not attach VCS root with id '" + vcsRoot.getExternalId() + "' because of scope issues. Error: " + e.getMessage());
-    }
-    buildType.get().setCheckoutRules(vcsRoot, new CheckoutRules(description.checkoutRules != null ? description.checkoutRules : ""));
-
-    return vcsRoot;
   }
 
   @GET
@@ -415,19 +391,8 @@ public class BuildTypeRequest {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
     final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
 
-    if (!buildType.get().containsVcsRoot(vcsRoot.getId())) {
-      throw new NotFoundException("VCS root with id '" + vcsRoot.getExternalId() + "' is not attached to the build type.");
-    }
-    if (entry == null){
-      throw new BadRequestException("No VCS root entry description is posted (Use GET request to get an example).");
-    }
-    if (entry.vcsRoot == null){
-      throw new BadRequestException("No VCS root is specified in the entry description.");
-    }
-    buildType.get().removeVcsRoot(vcsRoot);
-    final SVcsRoot resultVcsRoot = addVcsRoot(buildType, entry, myVcsRootFinder);
+    final SVcsRoot resultVcsRoot = entry.replaceIn(buildType.get(), vcsRoot, myVcsRootFinder);
     buildType.get().persist();
-    //not handling setting errors...
     return new VcsRootEntry(resultVcsRoot, buildType, new Fields(fields), myBeanContext);
   }
 

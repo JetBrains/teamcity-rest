@@ -26,7 +26,6 @@ import jetbrains.buildServer.serverSide.BuildFeatureDescriptorFactory;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.ParametersDescriptor;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
-import jetbrains.buildServer.serverSide.impl.DuplicateIdException;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -44,21 +43,32 @@ public class PropEntityFeature extends PropEntity implements PropEntityEdit<SBui
   }
 
   @NotNull
-  public SBuildFeatureDescriptor addTo(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
+  public SBuildFeatureDescriptor addToInternal(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Created build feature cannot have empty 'type'.");
     }
     final SBuildFeatureDescriptor newBuildFeature = serviceLocator.getSingletonService(BuildFeatureDescriptorFactory.class).createNewBuildFeature(type, properties != null ? properties.getMap() : new HashMap<String, String>());
     try {
       buildType.addBuildFeature(newBuildFeature);
-    } catch (DuplicateIdException e) {
+    } catch (Exception e) {
       final String details = getDetails(buildType, newBuildFeature, e);
-      throw new BadRequestException("Error adding feature." + (details != null ? " " + details : ""), e);
+      throw new BadRequestException("Error adding feature: " + details, e);
     }
     if (disabled != null) {
       buildType.setEnabled(newBuildFeature.getId(), !disabled);
     }
     return BuildTypeUtil.getBuildTypeFeatureOrNull(buildType, newBuildFeature.getId());
+  }
+
+  @NotNull
+  public SBuildFeatureDescriptor addTo(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
+    PropEntitiesFeature.Storage original = new PropEntitiesFeature.Storage(buildType);
+    try {
+      return addToInternal(buildType, serviceLocator);
+    } catch (Exception e) {
+      original.apply(buildType);
+      throw e;
+    }
   }
 
   @NotNull
@@ -87,6 +97,6 @@ public class PropEntityFeature extends PropEntity implements PropEntityEdit<SBui
     if (existingFeature != null) {
       return "Feature with id '" + newBuildFeature.getId() + "' already exists.";
     }
-    return e.getClass().getName() + (e.getMessage() != null ? ": " + e.getMessage() : "");
+    return e.toString();
   }
 }

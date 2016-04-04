@@ -678,13 +678,11 @@ public class BuildType {
       result = true;
       buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType().attachToTemplate(templateFromPosted.getTemplate());
     }
-    if (submittedVcsRootEntries != null && submittedVcsRootEntries.vcsRootAssignments != null) {
-      for (VcsRootEntry entity : submittedVcsRootEntries.vcsRootAssignments) {
-        result = true;
-        BuildTypeRequest.addVcsRoot(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate(), entity, serviceLocator.getSingletonService(VcsRootFinder.class));
-      }
-    }
     BuildTypeSettings buildTypeSettings = buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().get();
+    if (submittedVcsRootEntries != null) {
+      boolean updated = submittedVcsRootEntries.setToBuildType(buildTypeSettings, serviceLocator);
+      result = result || updated;
+    }
     if (submittedParameters != null && submittedParameters.properties != null) {
       for (Property p : submittedParameters.properties) {
         result = true;

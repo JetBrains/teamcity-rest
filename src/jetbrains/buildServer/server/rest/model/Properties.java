@@ -25,8 +25,11 @@ import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.FilterUtil;
 import jetbrains.buildServer.server.rest.data.ParameterCondition;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.InheritableUserParametersHolder;
 import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.util.CaseInsensitiveStringComparator;
@@ -165,5 +168,24 @@ public class Properties  implements DefaultValueAware {
       result.add(parameter.getFromPosted(serviceLocator));
     }
     return result;
+  }
+
+  public boolean setTo(@NotNull final InheritableUserParametersHolder holder, @NotNull final ServiceLocator serviceLocator) {
+    Collection<Parameter> original = holder.getOwnParametersCollection();
+    final List<Parameter> fromPosted = getFromPosted(serviceLocator);
+    try {
+      BuildTypeUtil.removeAllParameters(holder);
+      for (Parameter p : fromPosted) {
+        holder.addParameter(p);
+      }
+      return true;
+    } catch (Exception e) {
+      //restore
+      BuildTypeUtil.removeAllParameters(holder);
+      for (Parameter p : original) {
+        holder.addParameter(p);
+      }
+      throw new BadRequestException("Cannot set parameters: " + e.toString(), e);
+    }
   }
 }

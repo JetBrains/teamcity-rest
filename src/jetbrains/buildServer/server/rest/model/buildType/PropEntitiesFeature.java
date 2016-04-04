@@ -17,7 +17,9 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -64,28 +66,42 @@ public class PropEntitiesFeature {
   }
 
   public boolean setToBuildType(@NotNull final BuildTypeSettings buildTypeSettings, @NotNull final ServiceLocator serviceLocator) {
-    final Collection<SBuildFeatureDescriptor> originals = buildTypeSettings.getBuildFeatures();    //todo: process enabled
+    Storage original = new Storage(buildTypeSettings);
     removeAllFeatures(buildTypeSettings);
     try {
       if (propEntities != null) {
         for (PropEntityFeature entity : propEntities) {
-          entity.addTo(buildTypeSettings, serviceLocator);
+          entity.addToInternal(buildTypeSettings, serviceLocator);
         }
       }
       return true;
     } catch (Exception e) {
-      //restore original settings
-      removeAllFeatures(buildTypeSettings);
-      for (SBuildFeatureDescriptor entry : originals) {
-        buildTypeSettings.addBuildFeature(entry);
-      }
+      original.apply(buildTypeSettings);
       throw new BadRequestException("Error replacing items", e);
     }
   }
 
-  private void removeAllFeatures(@NotNull final BuildTypeSettings buildType) {
+  private static void removeAllFeatures(@NotNull final BuildTypeSettings buildType) {
     for (SBuildFeatureDescriptor entry : buildType.getBuildFeatures()) {
       buildType.removeBuildFeature(entry.getId());  //todo: (TeamCity API): why string and not object?
+    }
+  }
+
+  public static class Storage{
+    public final Map<SBuildFeatureDescriptor, Boolean> deps = new LinkedHashMap<>();
+
+    public Storage(final @NotNull BuildTypeSettings buildTypeSettings) {
+      for (SBuildFeatureDescriptor dependency : buildTypeSettings.getBuildFeatures()) {
+        deps.put(dependency, buildTypeSettings.isEnabled(dependency.getId()));
+      }
+    }
+
+    public void apply(final @NotNull BuildTypeSettings buildTypeSettings){
+      removeAllFeatures(buildTypeSettings);
+      for (Map.Entry<SBuildFeatureDescriptor, Boolean> entry : deps.entrySet()) {
+        buildTypeSettings.addBuildFeature(entry.getKey());
+        buildTypeSettings.setEnabled(entry.getKey().getId(), entry.getValue());
+      }
     }
   }
 }

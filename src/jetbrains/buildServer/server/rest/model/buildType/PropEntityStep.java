@@ -44,6 +44,18 @@ public class PropEntityStep extends PropEntity implements PropEntityEdit<SBuildR
 
   @NotNull
   public SBuildRunnerDescriptor addTo(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
+    PropEntitiesStep.Storage original = new PropEntitiesStep.Storage(buildType);
+    try {
+      return addToInternal(buildType, serviceLocator);
+    } catch (Exception e) {
+      //restore original settings
+      original.apply(buildType);
+      throw new BadRequestException("Error replacing items", e);
+    }
+  }
+
+  @NotNull
+  public SBuildRunnerDescriptor addToInternal(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Created step cannot have empty 'type'.");
     }

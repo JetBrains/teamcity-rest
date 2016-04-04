@@ -16,8 +16,9 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
-import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -65,21 +66,18 @@ public class PropEntitiesStep {
   }
 
   public boolean setToBuildType(@NotNull final BuildTypeSettings buildTypeSettings, @NotNull final ServiceLocator serviceLocator) {
-    final Collection<SBuildRunnerDescriptor> originals = buildTypeSettings.getBuildRunners();    //todo: process enabled
+    Storage original = new Storage(buildTypeSettings);
     removeAllSteps(buildTypeSettings);
     try {
       if (propEntities != null) {
         for (PropEntityStep entity : propEntities) {
-          entity.addTo(buildTypeSettings, serviceLocator);
+          entity.addToInternal(buildTypeSettings, serviceLocator);
         }
       }
       return true;
     } catch (Exception e) {
       //restore original settings
-      removeAllSteps(buildTypeSettings);
-      for (SBuildRunnerDescriptor entry : originals) {
-        buildTypeSettings.addBuildRunner(entry);
-      }
+      original.apply(buildTypeSettings);
       throw new BadRequestException("Error replacing items", e);
     }
   }
@@ -89,4 +87,23 @@ public class PropEntitiesStep {
       buildType.removeBuildRunner(entry.getId());  //todo: (TeamCity API): why string and not object?
     }
   }
+
+  public static class Storage{
+    public final Map<SBuildRunnerDescriptor, Boolean> deps = new LinkedHashMap<>();
+
+    public Storage(final @NotNull BuildTypeSettings buildTypeSettings) {
+      for (SBuildRunnerDescriptor entity : buildTypeSettings.getBuildRunners()) {
+        deps.put(entity, buildTypeSettings.isEnabled(entity.getId()));
+      }
+    }
+
+    public void apply(final @NotNull BuildTypeSettings buildTypeSettings){
+      removeAllSteps(buildTypeSettings);
+      for (Map.Entry<SBuildRunnerDescriptor, Boolean> entry : deps.entrySet()) {
+        buildTypeSettings.addBuildRunner(entry.getKey());
+        buildTypeSettings.setEnabled(entry.getKey().getId(), entry.getValue());
+      }
+    }
+  }
+
 }

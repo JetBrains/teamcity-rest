@@ -70,7 +70,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   protected BranchFinder myBranchFinder;
   protected ChangeFinder myChangeFinder;
 
-  static BeanContext getBeanContext(final ServiceLocator serviceLocator) {
+  static public BeanContext getBeanContext(final ServiceLocator serviceLocator) {
     final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
       public String transform(final String path) {
         return path;

@@ -18,7 +18,6 @@ package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import javax.ws.rs.*;
 import jetbrains.buildServer.ServiceLocator;
@@ -79,7 +78,7 @@ public class ParametersSubResource {
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Property setParameter(Property parameter, @QueryParam("fields") String fields) {
-    myEntityWithParameters.addParameter(parameter.getFromPosted(myServiceLocator));
+    parameter.addTo(myEntityWithParameters, myServiceLocator);
     myEntityWithParameters.persist();
     return Property.createFrom(parameter.name, myEntityWithParameters, new Fields(fields), myServiceLocator);
   }
@@ -88,11 +87,7 @@ public class ParametersSubResource {
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Properties setParameters(Properties properties, @QueryParam("fields") String fields) {
-    final List<Parameter> fromPosted = properties.getFromPosted(myServiceLocator); //get them first so that no modifications are made if there are parsing errors
-    BuildTypeUtil.removeAllParameters(myEntityWithParameters);
-    for (Parameter p : fromPosted) {
-      myEntityWithParameters.addParameter(p);
-    }
+    properties.setTo(myEntityWithParameters, myServiceLocator);
     myEntityWithParameters.persist();
     return new Properties(myEntityWithParameters.getParametersCollection(), myEntityWithParameters.getOwnParametersCollection(), myParametersHref,
                           new Fields(fields), myServiceLocator);

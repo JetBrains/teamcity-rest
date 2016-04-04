@@ -38,6 +38,7 @@ import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.SVcsRootEx;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.testng.annotations.BeforeMethod;
@@ -1164,13 +1165,14 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     }), false, "\n", "", "");
   }
 
-  public static <E extends Throwable> void checkException(final Class<E> exception, final Runnable runnnable, final String operationDescription) {
+  @Nullable
+  public static <E extends Throwable> E checkException(final Class<E> exception, final Runnable runnable, final String operationDescription) {
     final String details = operationDescription != null ? " while " + operationDescription : "";
     try {
-      runnnable.run();
+      runnable.run();
     } catch (Throwable e) {
       if (exception.isAssignableFrom(e.getClass())) {
-        return;
+        return (E)e;
       }
       final StringBuilder exceptionDetails = new StringBuilder();
       ExceptionUtil.dumpStacktrace(exceptionDetails, e);
@@ -1180,6 +1182,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     }
     fail("No exception is thrown" + details +
          ". Expected: " + exception.getName());
+    return null;
   }
 
   public <E extends Throwable> void checkExceptionOnBuildSearch(final Class<E> exception, final String singleBuildLocator) {

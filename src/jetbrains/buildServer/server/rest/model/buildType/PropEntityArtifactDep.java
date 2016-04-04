@@ -120,6 +120,7 @@ public class PropEntityArtifactDep extends PropEntity implements PropEntityEdit<
 
   @NotNull
   public SArtifactDependency addTo(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
+    PropEntitiesArtifactDep.Storage original = new PropEntitiesArtifactDep.Storage(buildType);
     final ArtifactDependency newDependency;
     try {
       final List<SArtifactDependency> dependencies = new ArrayList<SArtifactDependency>(buildType.getArtifactDependencies());
@@ -128,6 +129,7 @@ public class PropEntityArtifactDep extends PropEntity implements PropEntityEdit<
       buildType.setArtifactDependencies(dependencies);
       buildType.setEnabled(newDependency.id, newDependency.enabled);
     } catch (Exception e) {
+      original.apply(buildType);
       throw new BadRequestException("Error adding artifact dependency: " + e.toString(), e);
     }
     return newDependency.dep;
