@@ -214,7 +214,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
     final String userLocator = locator.getSingleDimensionValue(USER);
     if (userLocator != null) {
-      final SUser user = myUserFinder.getUser(userLocator);
+      final SUser user = myUserFinder.getItem(userLocator);
       result.add(new FilterConditionChecker<SVcsModification>() {
         public boolean isIncluded(@NotNull final SVcsModification item) {
           return item.getCommitters().contains(user);
@@ -430,7 +430,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
     final String userLocator = locator.getSingleDimensionValue(USER);
     if (userLocator != null) {
-      final SUser user = myUserFinder.getUser(userLocator);
+      final SUser user = myUserFinder.getItem(userLocator);
       return getItemHolder(myServiceLocator.getSingletonService(UserChangesFacade.class).getAllVcsModifications(user));
     }
 
