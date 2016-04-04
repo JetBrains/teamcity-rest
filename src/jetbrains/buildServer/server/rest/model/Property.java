@@ -81,8 +81,8 @@ public class Property {
     }
   }
 
-  private static boolean isSecure(final Parameter parameter, @NotNull final ServiceLocator serviceLocator) {
-    if (serviceLocator.getSingletonService(PasswordType.class).isPassword(parameter.getControlDescription())) {
+  public static boolean isSecure(@NotNull final Parameter parameter, @NotNull final ServiceLocator serviceLocator) {
+    if (serviceLocator.getSingletonService(PasswordType.class).isPassword(parameter.getControlDescription()) && !TeamCityProperties.getBoolean("rest.listSecureProperties")) {
       return true;
     }
     return isPropertyToExclude(parameter.getName());

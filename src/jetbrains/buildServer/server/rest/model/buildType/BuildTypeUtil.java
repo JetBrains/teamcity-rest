@@ -123,8 +123,24 @@ public class BuildTypeUtil {
   public static String getParameter(@Nullable final String parameterName,
                                     @NotNull final UserParametersHolder parametrizedEntity,
                                     final boolean checkSecure,
-                                    final boolean nameItProperty) {
-    return getParameter(parameterName, parametrizedEntity.getParameters(), checkSecure, nameItProperty);
+                                    final boolean nameItProperty,
+                                    @NotNull final ServiceLocator serviceLocator) {
+    if (StringUtil.isEmpty(parameterName)) {
+      throw new BadRequestException(nameItProperty ? "Property" : "Parameter" + " name cannot be empty.");
+    }
+    Parameter parameter = getParameter(parametrizedEntity, parameterName, nameItProperty);
+    if (checkSecure && Property.isSecure(parameter, serviceLocator)) {
+      throw new BadRequestException("Secure " + (nameItProperty ? "properties" : "parameters") + " cannot be retrieved via remote API by default.");
+    }
+    return parameter.getValue();
+  }
+
+  @NotNull
+  private static Parameter getParameter(@NotNull final UserParametersHolder parametrizedEntity, @NotNull final String parameterName, final boolean nameItProperty) {
+    for (Parameter parameter : parametrizedEntity.getParametersCollection()) { //TeamCity API issue: no way to get parameter object by name
+      if (parameterName.equals(parameter.getName())) return parameter;
+    }
+    throw new NotFoundException((nameItProperty ? "No property" : "No parameter") + " with name '" + parameterName + "' is found.");
   }
 
   public static String getParameter(@Nullable final String parameterName, @NotNull final Map<String, String> parameters, final boolean checkSecure, final boolean nameItProperty) {

@@ -110,7 +110,7 @@ public class ParametersSubResource {
   @Path("/{name}/value")
   @Produces("text/plain")
   public String getParameterValueLong(@PathParam("name") String parameterName) {
-    return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, true, false);
+    return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, true, false, myServiceLocator);
   }
 
   @PUT
@@ -120,7 +120,7 @@ public class ParametersSubResource {
   public String setParameterValueLong(@PathParam("name") String parameterName, String newValue) {
     BuildTypeUtil.changeParameter(parameterName, newValue, myEntityWithParameters, myServiceLocator);
     myEntityWithParameters.persist();
-    return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, false, false);
+    return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, false, false, myServiceLocator);
   }
 
   @GET
@@ -166,7 +166,7 @@ public class ParametersSubResource {
   @Path("/{name}")
   @Produces("text/plain")
   public String getParameterValue(@PathParam("name") String parameterName) {
-    return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, true, false);
+    return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, true, false, myServiceLocator);
   }
 
   /**
@@ -179,7 +179,7 @@ public class ParametersSubResource {
   public String setParameterValue(@PathParam("name") String parameterName, String newValue) {
     BuildTypeUtil.changeParameter(parameterName, newValue, myEntityWithParameters, myServiceLocator);
     myEntityWithParameters.persist();
-    return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, false, false);
+    return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, false, false, myServiceLocator);
   }
 
   @PUT

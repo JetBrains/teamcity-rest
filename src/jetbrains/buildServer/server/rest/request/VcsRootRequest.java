@@ -230,7 +230,7 @@ public class VcsRootRequest {
   @Produces("text/plain")
   public String serveProperty(@PathParam("vcsRootLocator") String vcsRootLocator, @PathParam("name") String parameterName) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
-    return BuildTypeUtil.getParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot), true, true);
+    return BuildTypeUtil.getParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot), true, true, myServiceLocator);
   }
 
   @PUT
@@ -244,7 +244,7 @@ public class VcsRootRequest {
     BuildTypeUtil.changeParameter(parameterName, newValue, VcsRoot.getUserParametersHolder(vcsRoot),
                                   myServiceLocator);
     vcsRoot.persist();
-    return BuildTypeUtil.getParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot), false, true);
+    return BuildTypeUtil.getParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot), false, true, myServiceLocator);
   }
 
   @DELETE
