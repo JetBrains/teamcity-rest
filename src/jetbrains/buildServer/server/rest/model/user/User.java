@@ -49,7 +49,8 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "user")
 @XmlType(name = "user", propOrder = {"username", "name", "id", "email", "lastLogin", "password", "href",
-  "properties", "roles", "groups"})
+  "properties", "roles", "groups",
+  "locator"/*only when triggering*/})
 public class User {
   @Nullable
   private SUser myUser;
@@ -205,6 +206,14 @@ public class User {
     return null;
   }
 
+  /**
+   * Is only used for posting
+   */
+  @XmlAttribute
+  public String getLocator() {
+    return null;
+  }
+
   // These are necessary for allowing to submit the same class
   private Long id;
   private String name;
@@ -214,6 +223,7 @@ public class User {
   private RoleAssignments roles;
   private Groups groups;
   private Properties properties;
+  private String submittedLocator;
 
   public void setId(final Long id) {
     this.id = id;
@@ -247,6 +257,10 @@ public class User {
     this.properties = properties;
   }
 
+  public void setLocator(final String locator) {
+    submittedLocator = locator;
+  }
+
   public String getSubmittedName() {
     return name;
   }
@@ -276,7 +290,17 @@ public class User {
   }
 
   @NotNull
-  public jetbrains.buildServer.users.SUser getFromPosted(final UserFinder userFinder) {
+  public SUser getFromPosted(final UserFinder userFinder) {
+    if (submittedLocator != null) {
+      if (id != null) {
+        throw new BadRequestException("Both 'locator' and '" + "id" + "' attributes are specified. Only one should be present.");
+      }
+      if (username != null) {
+        throw new BadRequestException("Both 'locator' and '" + "username" + "' attributes are specified. Only one should be present.");
+      }
+      return userFinder.getItem(submittedLocator);
+    }
+
     if (id != null){
       return userFinder.getItem(Locator.getStringLocator(UserFinder.DIMENSION_ID, String.valueOf(id)));
     }
@@ -284,7 +308,7 @@ public class User {
       return userFinder.getItem(Locator.getStringLocator(UserFinder.USERNAME, username));
     }
 
-    throw new BadRequestException("Submitted user should have either 'id; or 'username' attributes");
+    throw new BadRequestException("Submitted user should have 'id', 'username' or 'locator' attributes");
   }
 }
 
