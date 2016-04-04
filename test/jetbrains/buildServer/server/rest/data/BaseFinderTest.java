@@ -39,6 +39,7 @@ import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
 import jetbrains.buildServer.serverSide.problems.BuildProblemManager;
+import jetbrains.buildServer.util.ExceptionUtil;
 import jetbrains.buildServer.vcs.impl.VcsManagerImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -215,7 +216,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   }
 
   public <E extends Throwable> void checkExceptionOnItemsSearch(final Class<E> exception, final String multipleSearchLocator) {
-    BuildPromotionFinderTest.checkException(exception, new Runnable() {
+    checkException(exception, new Runnable() {
       public void run() {
         myFinder.getItems(multipleSearchLocator);
       }
@@ -223,11 +224,31 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   }
 
   public <E extends Throwable> void checkExceptionOnItemSearch(final Class<E> exception, final String singleSearchLocator) {
-    BuildPromotionFinderTest.checkException(exception, new Runnable() {
+    checkException(exception, new Runnable() {
       public void run() {
         myFinder.getItem(singleSearchLocator);
       }
     }, "searching for item with locator \"" + singleSearchLocator + "\"");
+  }
+
+  @Nullable
+  public static <E extends Throwable> E checkException(final Class<E> exception, final Runnable runnable, final String operationDescription) {
+    final String details = operationDescription != null ? " while " + operationDescription : "";
+    try {
+      runnable.run();
+    } catch (Throwable e) {
+      if (exception.isAssignableFrom(e.getClass())) {
+        return (E)e;
+      }
+      final StringBuilder exceptionDetails = new StringBuilder();
+      ExceptionUtil.dumpStacktrace(exceptionDetails, e);
+      fail("Wrong exception type is thrown" + details + ".\n" +
+           "Expected: " + exception.getName() + "\n" +
+           "Actual  : " + exceptionDetails.toString());
+    }
+    fail("No exception is thrown" + details +
+         ". Expected: " + exception.getName());
+    return null;
   }
 
   public String getDescription(final List<T> result) {

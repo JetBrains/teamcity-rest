@@ -60,13 +60,13 @@ public class InvestigationFinderTest extends BaseFinderTest<InvestigationWrapper
     myFixture.getResponsibilityFacadeEx().setBuildTypeResponsibility(myBuildType, createRespEntry(ResponsibilityEntry.State.TAKEN, myUser));
 
 
-    BuildPromotionFinderTest.checkException(LocatorProcessException.class, new Runnable() {
+    checkException(LocatorProcessException.class, new Runnable() {
       public void run() {
         myInvestigationFinder.getItem("No_match");
       }
     }, "searching for item with locator \"" + "No_match" + "\"");
 
-    BuildPromotionFinderTest.checkException(LocatorProcessException.class, new Runnable() {
+    checkException(LocatorProcessException.class, new Runnable() {
       public void run() {
         myInvestigationFinder.getItems("No_match");
       }

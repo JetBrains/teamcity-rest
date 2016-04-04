@@ -23,7 +23,6 @@ import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
-import jetbrains.buildServer.server.rest.data.BuildPromotionFinderTest;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -78,7 +77,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       Properties submitted = new Properties();
       submitted.properties = Arrays.asList(new Property("n1", null, Fields.LONG));
 
-      BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+      checkException(BadRequestException.class, new Runnable() {
         public void run() {
           myBuildTypeRequest.getParametersSubResource(btLocator).setParameters(submitted, "$long");
         }
@@ -103,7 +102,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       Properties submitted = new Properties();
       submitted.properties = Arrays.asList(new Property("n1", "v1", Fields.LONG));
 
-      BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+      checkException(BadRequestException.class, new Runnable() {
         public void run() {
           myBuildTypeRequest.getParametersSubResource(btLocator).setParameters(submitted, "$long");
         }
@@ -124,7 +123,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       }
     });
 
-    BuildPromotionFinderTest.checkException(RuntimeException.class, new Runnable() {
+    checkException(RuntimeException.class, new Runnable() {
       public void run() {
         myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property("n1", "v1", Fields.LONG), "$long");
       }
@@ -202,7 +201,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       Properties submitted = new Properties();
       submitted.properties = Arrays.asList(new Property("n1", "v1", Fields.LONG));
 
-      BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+      checkException(BadRequestException.class, new Runnable() {
         public void run() {
           myBuildTypeRequest.getParametersSubResource(btLocator).setParameters(submitted, "$long");
         }
@@ -223,7 +222,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       }
     });
 
-    BuildPromotionFinderTest.checkException(RuntimeException.class, new Runnable() {
+    checkException(RuntimeException.class, new Runnable() {
       public void run() {
         myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property("n1", "v1", Fields.LONG), "$long");
       }
@@ -281,7 +280,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted2.type = "b";
       submitted.propEntities = Arrays.asList(submitted1, submitted2);
 
-      BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+      checkException(BadRequestException.class, new Runnable() {
         public void run() {
           myBuildTypeRequest.replaceSteps(btLocator, "$long", submitted);
         }
@@ -307,7 +306,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       PropEntityStep submitted = new PropEntityStep();
       submitted.type = "a";
 
-      BuildPromotionFinderTest.checkException(RuntimeException.class, new Runnable() {
+      checkException(RuntimeException.class, new Runnable() {
         public void run() {
           myBuildTypeRequest.addStep(btLocator, "$long", submitted);
         }
@@ -366,7 +365,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted1.vcsRoot.id = newRootId;
       submitted.vcsRootAssignments = Arrays.asList(submitted1);
 
-      BuildPromotionFinderTest.checkException(RuntimeException.class, new Runnable() {
+      checkException(RuntimeException.class, new Runnable() {
         public void run() {
           myBuildTypeRequest.replaceVcsRootEntries(btLocator, submitted, "$long");
         }
@@ -392,7 +391,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted.vcsRoot = new VcsRoot();
       submitted.vcsRoot.id = newRootId;
 
-      BuildPromotionFinderTest.checkException(RuntimeException.class, new Runnable() {
+      checkException(RuntimeException.class, new Runnable() {
         public void run() {
           myBuildTypeRequest.addVcsRootEntry(btLocator, submitted, "$long");
         }
@@ -441,7 +440,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted2.type = buildFeature.getType();
       submitted.propEntities = Arrays.asList(submitted1, submitted2); // two features of the type with isMultipleFeaturesPerBuildTypeAllowed==false will produce error on adding
 
-      BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+      checkException(BadRequestException.class, new Runnable() {
         public void run() {
           myBuildTypeRequest.replaceFeatures(btLocator, "$long", submitted);
         }
@@ -467,7 +466,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       PropEntityFeature submitted = new PropEntityFeature();
       submitted.type = buildFeature.getType();
 
-      BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+      checkException(BadRequestException.class, new Runnable() {
         public void run() {
           myBuildTypeRequest.addFeature(btLocator, "$long", submitted);
         }
@@ -522,7 +521,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted2.type = "triggerType1";
       submitted.propEntities = Arrays.asList(submitted1, submitted2);
 
-      BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+      checkException(BadRequestException.class, new Runnable() {
         public void run() {
           myBuildTypeRequest.replaceTriggers(btLocator, "$long", submitted);
         }
@@ -549,7 +548,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       PropEntityTrigger submitted = new PropEntityTrigger();
       submitted.type = "triggerType1";
 
-      BuildPromotionFinderTest.checkException(RuntimeException.class, new Runnable() {
+      checkException(RuntimeException.class, new Runnable() {
         public void run() {
           myBuildTypeRequest.addTrigger(btLocator, "$long", submitted);
         }
@@ -597,7 +596,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted2.type = "agentRequirementType1";
       submitted.propEntities = Arrays.asList(submitted1, submitted2);
 
-      BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+      checkException(BadRequestException.class, new Runnable() {
         public void run() {
           myBuildTypeRequest.replaceAgentRequirements(btLocator, "$long",
                                                     submitted); // error will be reported: BadRequestException: No name is specified. Make sure 'property-name' property is present and has not empty value
@@ -612,7 +611,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     {
       PropEntityAgentRequirement submitted = new PropEntityAgentRequirement();
       submitted.type = "agentRequirementType1";
-      BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+      checkException(BadRequestException.class, new Runnable() {
         public void run() {
           myBuildTypeRequest.addAgentRequirement(btLocator, "$long", submitted);
         }
@@ -684,7 +683,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
                                                        new Property("pathRules", "aaa", Fields.LONG));
       submitted.propEntities = Arrays.asList(submitted1);
 
-      BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+      checkException(BadRequestException.class, new Runnable() {
         public void run() {
           myBuildTypeRequest.replaceArtifactDeps(btLocator, "$long", submitted);
         }
@@ -716,7 +715,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted.properties.properties = Arrays.asList(new Property("revisionName", "aaa", Fields.LONG),
                                                       new Property("revisionValue", "aaa", Fields.LONG),
                                                       new Property("pathRules", "aaa", Fields.LONG));
-      BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+      checkException(BadRequestException.class, new Runnable() {
         public void run() {
           myBuildTypeRequest.addArtifactDep(btLocator, "$long", submitted);
         }
@@ -766,7 +765,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted1.sourceBuildType.setId(buildType1.getExternalId());
       submitted.propEntities = Arrays.asList(submitted1);
 
-      BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+      checkException(BadRequestException.class, new Runnable() {
         public void run() {
           myBuildTypeRequest.replaceSnapshotDeps(btLocator, "$long", submitted);
         }
@@ -783,7 +782,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted.sourceBuildType = new BuildType();
       submitted.sourceBuildType.setId(buildType1.getExternalId());
 
-      BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+      checkException(BadRequestException.class, new Runnable() {
         public void run() {
           myBuildTypeRequest.addSnapshotDep(btLocator, "$long", submitted);
         }

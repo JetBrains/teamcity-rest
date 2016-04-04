@@ -18,8 +18,6 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Pair;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -147,26 +145,6 @@ public class BuildFinderTestBase extends BaseFinderTest<SBuild> {
         };
       }
     }), false, "\n", "", "");
-  }
-
-  public static <E extends Throwable> void checkException(final Class<E> exception, final Runnable runnnable, final String operationDescription) {
-    final String details = operationDescription != null ? " while " + operationDescription : "";
-    try {
-      runnnable.run();
-    } catch (Throwable e) {
-      if (exception.isAssignableFrom(e.getClass())) {
-        return;
-      }
-      LOG.debug(e);
-      StringWriter stacktraceWriter = new StringWriter();
-      e.printStackTrace(new PrintWriter(stacktraceWriter));
-      fail("Wrong exception type is thrown" + details + ".\n" +
-           "Expected: " + exception.getName() + "\n" +
-           "Actual  : " + e.toString() + "\n" +
-           stacktraceWriter.toString());
-    }
-    fail("No exception is thrown" + details +
-         ". Expected: " + exception.getName());
   }
 
   public <E extends Throwable> void checkExceptionOnBuildSearch(final Class<E> exception, final String singleBuildLocator) {

@@ -203,7 +203,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     build2.setLocator("buildType:(id:" + buildType4.getExternalId() + "),number:" + build4_1.getBuildNumber());
     builds2.builds = Arrays.asList(build2);
     build.setBuildArtifactDependencies(builds2);
-    BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+    checkException(BadRequestException.class, new Runnable() {
       public void run() {
         build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
       }
@@ -231,7 +231,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     propEntitiesArtifactDep2.propEntities = Arrays.asList(propEntityArtifactDep1);
     build.setCustomBuildArtifactDependencies(propEntitiesArtifactDep2);
 
-    BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+    checkException(BadRequestException.class, new Runnable() {
       public void run() {
         build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
       }
@@ -560,7 +560,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     builds1.builds = Arrays.asList(build2, build3, build1);
     build.setBuildArtifactDependencies(builds1);
 
-    BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+    checkException(BadRequestException.class, new Runnable() {
       public void run() {
         build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
       }
@@ -588,7 +588,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     customDeps.propEntities = Arrays.asList(dep1);
     build.setCustomBuildArtifactDependencies(customDeps);
 
-    BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+    checkException(BadRequestException.class, new Runnable() {
       public void run() {
         build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
       }

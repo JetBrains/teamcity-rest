@@ -33,12 +33,14 @@ import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
 import jetbrains.buildServer.serverSide.impl.*;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectImpl;
 import jetbrains.buildServer.users.SUser;
-import jetbrains.buildServer.util.*;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
+import jetbrains.buildServer.util.Dates;
+import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.SVcsRootEx;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.testng.annotations.BeforeMethod;
@@ -1163,26 +1165,6 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
         };
       }
     }), false, "\n", "", "");
-  }
-
-  @Nullable
-  public static <E extends Throwable> E checkException(final Class<E> exception, final Runnable runnable, final String operationDescription) {
-    final String details = operationDescription != null ? " while " + operationDescription : "";
-    try {
-      runnable.run();
-    } catch (Throwable e) {
-      if (exception.isAssignableFrom(e.getClass())) {
-        return (E)e;
-      }
-      final StringBuilder exceptionDetails = new StringBuilder();
-      ExceptionUtil.dumpStacktrace(exceptionDetails, e);
-      fail("Wrong exception type is thrown" + details + ".\n" +
-           "Expected: " + exception.getName() + "\n" +
-           "Actual  : " + exceptionDetails.toString());
-    }
-    fail("No exception is thrown" + details +
-         ". Expected: " + exception.getName());
-    return null;
   }
 
   public <E extends Throwable> void checkExceptionOnBuildSearch(final Class<E> exception, final String singleBuildLocator) {

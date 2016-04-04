@@ -184,13 +184,13 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     assertEquals(Boolean.TRUE, branch.isDefault());
     assertEquals(null, branch.isUnspecified());
 
-    BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+    checkException(BadRequestException.class, new Runnable() {
       public void run() {
         buildTypeRequest.serveBranches("id:testBT", "changesFromDependencies:any", null);
       }
     }, "searching with wrong changesFromDependencies");
 
-    BuildPromotionFinderTest.checkException(BadRequestException.class, new Runnable() {
+    checkException(BadRequestException.class, new Runnable() {
       public void run() {
         buildTypeRequest.serveBranches("id:testBT", "policy:INVALID_POLICY", null);
       }
