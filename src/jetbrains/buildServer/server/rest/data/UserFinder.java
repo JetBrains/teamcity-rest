@@ -16,15 +16,12 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import com.intellij.openapi.diagnostic.Logger;
-import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
-import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,45 +29,50 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 23.03.13
  */
-public class UserFinder {
-  private static final Logger LOG = Logger.getInstance(UserFinder.class.getName());
-  public static final String ID = "id";
+public class UserFinder extends AbstractFinder<SUser>{
   public static final String USERNAME = "username";
-  @NotNull private final ServiceLocator myServiceLocator;
 
-  public UserFinder(final @NotNull ServiceLocator serviceLocator) {
-    myServiceLocator = serviceLocator;
+  @NotNull private final UserModel myUserModel;
+  @NotNull private final PermissionChecker myPermissionChecker;
+  @NotNull private final SecurityContext mySecurityContext;
+
+  public UserFinder(@NotNull final UserModel userModel,
+                    @NotNull final PermissionChecker permissionChecker,
+                    @NotNull final SecurityContext securityContext) {
+    super(DIMENSION_ID, USERNAME, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    myUserModel = userModel;
+    myPermissionChecker = permissionChecker;
+    mySecurityContext = securityContext;
   }
 
+  //@NotNull
+  //@Override
+  //public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
+  //  final Locator result = super.createLocator(locatorText, locatorDefaults);
+  //  result.addHiddenDimensions("password"); //experimental
+  //  return result;
+  //}
+  //
   @NotNull
   public String getItemLocator(@NotNull final SUser user) {
     return UserFinder.getLocator(user);
   }
 
   @NotNull
-  public static String getLocator(final User user) {
-    return Locator.getStringLocator(ID, String.valueOf(user.getId()));
+  public static String getLocator(@NotNull final User user) {
+    return Locator.getStringLocator(DIMENSION_ID, String.valueOf(user.getId()));
   }
 
   @Nullable
-  public SUser getUserIfNotNull(@Nullable final String userLocator) {
-    return userLocator == null ? null : getUser(userLocator);
-  }
-
-  @NotNull
-  public SUser getUser(String userLocator) {
-    if (StringUtil.isEmpty(userLocator)) {
-      throw new BadRequestException("Empty user locator is not supported.");
-    }
-
-    final UserModel userModel = myServiceLocator.getSingletonService(UserModel.class);
-    final Locator locator = new Locator(userLocator);
+  @Override
+  protected SUser findSingleItem(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's username
-      SUser user = userModel.findUserAccount(null, userLocator);
+      @SuppressWarnings("ConstantConditions") @NotNull String singleValue = locator.getSingleValue();
+      SUser user = myUserModel.findUserAccount(null, singleValue);
       if (user == null) {
-        if (!"current".equals(userLocator)) {
-          throw new NotFoundException("No user can be found by username '" + userLocator + "'.");
+        if (!"current".equals(singleValue)) {
+          throw new NotFoundException("No user can be found by username '" + singleValue + "'.");
         }
         // support for predefined "current" keyword to get current user
         final SUser currentUser = getCurrentUser();
@@ -83,38 +85,76 @@ public class UserFinder {
       return user;
     }
 
-    Long id = locator.getSingleDimensionValueAsLong(ID);
+    Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (id != null) {
-      SUser user = userModel.findUserById(id);
+      SUser user = myUserModel.findUserById(id);
       if (user == null) {
         throw new NotFoundException("No user can be found by id '" + id + "'.");
-      }
-      if (locator.getDimensionsCount() > 1) {
-        LOG.info("User locator '" + userLocator + "' has '" + ID + "' dimension and others. Others are ignored.");
       }
       return user;
     }
 
     String username = locator.getSingleDimensionValue(USERNAME);
     if (username != null) {
-      SUser user = userModel.findUserAccount(null, username);
+      SUser user = myUserModel.findUserAccount(null, username);
       if (user == null) {
         throw new NotFoundException("No user can be found by username '" + username + "'.");
       }
       return user;
     }
-    throw new NotFoundException("User locator '" + userLocator + "' is not supported.");
+
+    return null;
+  }
+
+  @NotNull
+  @Override
+  protected ItemFilter<SUser> getFilter(@NotNull final Locator locator) {
+    final MultiCheckerFilter<SUser> result = new MultiCheckerFilter<SUser>();
+
+    Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
+    if (id != null) {
+      result.add(new FilterConditionChecker<SUser>() {
+        public boolean isIncluded(@NotNull final SUser item) {
+          return id.equals(item.getId());
+        }
+      });
+    }
+
+    String username = locator.getSingleDimensionValue(USERNAME);
+    if (username != null) {
+      result.add(new FilterConditionChecker<SUser>() {
+         public boolean isIncluded(@NotNull final SUser item) {
+           return username.equalsIgnoreCase(item.getUsername());
+         }
+       });
+    }
+
+    return result;
+  }
+
+  @NotNull
+  @Override
+  protected ItemHolder<SUser> getPrefilteredItems(@NotNull final Locator locator) {
+    return getItemHolder(myUserModel.getAllUsers().getUsers());
   }
 
   @Nullable
   public SUser getCurrentUser() {
-    return DataProvider.getCurrentUser(myServiceLocator);
+    //also related API: SessionUser.getUser(request)
+    final User associatedUser = mySecurityContext.getAuthorityHolder().getAssociatedUser();
+    if (associatedUser == null){
+      return null;
+    }
+    if (SUser.class.isAssignableFrom(associatedUser.getClass())){
+      return (SUser)associatedUser;
+    }
+    return myUserModel.findUserAccount(null, associatedUser.getUsername());
   }
 
   public void checkViewUserPermission(String userLocator) {
     SUser user;
     try {
-      user = getUser(userLocator);
+      user = getItem(userLocator);
     } catch (RuntimeException e) { // ensuring user without permissions could not get details on existing users by error messages
       checkViewAllUsersPermission();
       return;
@@ -124,7 +164,7 @@ public class UserFinder {
   }
 
   public void checkViewUserPermission(final @NotNull SUser user) {
-    final jetbrains.buildServer.users.User currentUser = myServiceLocator.getSingletonService(DataProvider.class).getCurrentUser();
+    final jetbrains.buildServer.users.User currentUser = getCurrentUser();
     if (currentUser != null && currentUser.getId() == user.getId()) {
       return;
     }
@@ -132,6 +172,6 @@ public class UserFinder {
   }
 
   public void checkViewAllUsersPermission() {
-    myServiceLocator.getSingletonService(DataProvider.class).checkGlobalPermissionAnyOf(new Permission[]{Permission.VIEW_USER_PROFILE, Permission.CHANGE_USER});
+    myPermissionChecker.checkGlobalPermissionAnyOf(new Permission[]{Permission.VIEW_USER_PROFILE, Permission.CHANGE_USER});
   }
 }

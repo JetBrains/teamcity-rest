@@ -134,7 +134,7 @@ public class TagFinder extends AbstractFinder<TagData> {
 
     final String ownerLocator = locator.getSingleDimensionValue(OWNER);
     if (ownerLocator != null) {
-      final SUser user = myUserFinder.getUser(ownerLocator);
+      final SUser user = myUserFinder.getItem(ownerLocator);
       result.add(new FilterConditionChecker<TagData>() {
         public boolean isIncluded(@NotNull final TagData item) {
           final SUser owner = item.getOwner();

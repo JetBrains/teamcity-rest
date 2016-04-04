@@ -17,12 +17,12 @@
 package jetbrains.buildServer.server.rest.data;
 
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.SecurityContextEx;
 import jetbrains.buildServer.serverSide.impl.auth.SecurityContextImpl;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.ExceptionUtil;
-import jetbrains.buildServer.vcs.SVcsRoot;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -30,14 +30,12 @@ import org.testng.annotations.Test;
  * @author Yegor.Yarko
  *         Date: 04/04/2016
  */
-public class UserFinderTest extends BaseFinderTest<SVcsRoot> {
-  private UserFinder myFinder;
-
+public class UserFinderTest extends BaseFinderTest<SUser> {
   @Override
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    myFinder = new UserFinder(myFixture);
+    setFinder(myUserFinder);
   }
 
   @Test
@@ -46,13 +44,13 @@ public class UserFinderTest extends BaseFinderTest<SVcsRoot> {
 
     BaseFinderTest.checkException(BadRequestException.class, new Runnable() {
       public void run() {
-        myFinder.getUser(null);
+        myUserFinder.getItem(null);
       }
     }, "searching for users with null locator");
 
     BaseFinderTest.checkException(BadRequestException.class, new Runnable() {
       public void run() {
-        myFinder.getUser("");
+        myUserFinder.getItem("");
       }
     }, "searching for users with empty locator");
   }
@@ -62,14 +60,14 @@ public class UserFinderTest extends BaseFinderTest<SVcsRoot> {
     final SUser user1 = createUser("user1");
 
     {
-      SUser result = myFinder.getUser("user1");
+      SUser result = myUserFinder.getItem("user1");
       assertNotNull(result);
       assertEquals(user1.getId(), result.getId());
     }
 
     BaseFinderTest.checkException(NotFoundException.class, new Runnable() {
       public void run() {
-        myFinder.getUser("user1" + "2");
+        myUserFinder.getItem("user1" + "2");
       }
     }, null);
   }
@@ -80,46 +78,58 @@ public class UserFinderTest extends BaseFinderTest<SVcsRoot> {
     final SUser user2 = createUser(String.valueOf(user1.getId()));
 
     {
-      SUser result = myFinder.getUser("id:" + user1.getId());
+      SUser result = myUserFinder.getItem("id:" + user1.getId());
       assertNotNull(result);
       assertEquals(user1.getId(), result.getId());
     }
 
     BaseFinderTest.checkException(NotFoundException.class, new Runnable() {
       public void run() {
-        myFinder.getUser("id:" + user1.getId() + "1");
+        myUserFinder.getItem("id:" + user1.getId() + "1");
       }
     }, null);
 
     {
-      SUser result = myFinder.getUser("username:" + user2.getUsername());
+      SUser result = myUserFinder.getItem("username:" + user2.getUsername());
       assertNotNull(result);
       assertEquals(user2.getId(), result.getId());
     }
 
-    BaseFinderTest.checkException(NotFoundException.class, new Runnable() {
-      public void run() {
-        myFinder.getUser("username:" + user2.getUsername() + "1");
-      }
-    }, null);
-
     {
-      SUser result = myFinder.getUser("id:" + user1.getId() + ",username:" + "user1");
+      SUser result = myUserFinder.getItem("username:" + "user1");
       assertNotNull(result);
       assertEquals(user1.getId(), result.getId());
     }
 
-    //BuildPromotionFinderTest.checkException(BadLocationException.class, new Runnable() {
-    //  public void run() {
-    //    myFinder.getUser("id:" + user1.getId() + ",username:" + "user1" + "x");
-    //  }
-    //}, null);
+    {
+      SUser result = myUserFinder.getItem("username:" + "USER1");
+      assertNotNull(result);
+      assertEquals(user1.getId(), result.getId());
+    }
 
-    //BaseFinderTest.checkException(BadLocationException.class, new Runnable() {
-    //  public void run() {
-    //    myFinder.getUser("xxx:yyy");
-    //  }
-    //}, null);
+    BaseFinderTest.checkException(NotFoundException.class, new Runnable() {
+      public void run() {
+        myUserFinder.getItem("username:" + user2.getUsername() + "1");
+      }
+    }, null);
+
+    {
+      SUser result = myUserFinder.getItem("id:" + user1.getId() + ",username:" + "user1");
+      assertNotNull(result);
+      assertEquals(user1.getId(), result.getId());
+    }
+
+    BuildPromotionFinderTest.checkException(NotFoundException.class, new Runnable() {
+      public void run() {
+        myUserFinder.getItem("id:" + user1.getId() + ",username:" + "user1" + "x");
+      }
+    }, null);
+
+    BaseFinderTest.checkException(LocatorProcessException.class, new Runnable() {
+      public void run() {
+        myUserFinder.getItem("xxx:yyy");
+      }
+    }, null);
   }
 
   @Test
@@ -128,7 +138,7 @@ public class UserFinderTest extends BaseFinderTest<SVcsRoot> {
 
     BaseFinderTest.checkException(NotFoundException.class, new Runnable() {
       public void run() {
-        myFinder.getUser("current");
+        myUserFinder.getItem("current");
       }
     }, "getting current user");
 
@@ -136,7 +146,7 @@ public class UserFinderTest extends BaseFinderTest<SVcsRoot> {
     securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
-        SUser result = myFinder.getUser("current");
+        SUser result = myUserFinder.getItem("current");
         assertNotNull(result);
         assertEquals(user1.getId(), result.getId());
       }
@@ -148,7 +158,7 @@ public class UserFinderTest extends BaseFinderTest<SVcsRoot> {
           securityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
             @Override
             public void run() throws Throwable {
-              myFinder.getUser("current");
+              myUserFinder.getItem("current");
             }
           });
         } catch (Throwable throwable) {
@@ -164,7 +174,7 @@ public class UserFinderTest extends BaseFinderTest<SVcsRoot> {
     final SUser user2 = createUser("user1");
 
     {
-      SUser result = myFinder.getUser("current");
+      SUser result = myUserFinder.getItem("current");
       assertNotNull(result);
       assertEquals(user1.getId(), result.getId());
     }
@@ -173,7 +183,7 @@ public class UserFinderTest extends BaseFinderTest<SVcsRoot> {
     securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
-        SUser result = myFinder.getUser("current");
+        SUser result = myUserFinder.getItem("current");
         assertNotNull(result);
         assertEquals(user1.getId(), result.getId());
       }
@@ -182,7 +192,7 @@ public class UserFinderTest extends BaseFinderTest<SVcsRoot> {
     securityContext.runAs(user2, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
-        SUser result = myFinder.getUser("current");
+        SUser result = myUserFinder.getItem("current");
         assertNotNull(result);
         assertEquals(user1.getId(), result.getId());
       }
@@ -191,7 +201,7 @@ public class UserFinderTest extends BaseFinderTest<SVcsRoot> {
     securityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
-        SUser result = myFinder.getUser("current");
+        SUser result = myUserFinder.getItem("current");
         assertNotNull(result);
         assertEquals(user1.getId(), result.getId());
       }

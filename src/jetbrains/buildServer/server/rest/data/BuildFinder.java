@@ -375,7 +375,7 @@ public class BuildFinder {
                                    project,
                                    buildLocator.getSingleDimensionValue("status"),
                                    buildLocator.getSingleDimensionValue("number"),
-                                   myUserFinder.getUserIfNotNull(userLocator),
+                                   userLocator == null ? null : myUserFinder.getItem(userLocator),
                                    buildLocator.getSingleDimensionValueAsBoolean("personal", false),
                                    buildLocator.getSingleDimensionValueAsBoolean("canceled", false),
                                    buildLocator.getSingleDimensionValueAsBoolean("running", false),

@@ -123,7 +123,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
     myFixture.addService(permissionChecker);
 
-    myUserFinder = new UserFinder(myFixture);
+    myUserFinder = new UserFinder(getUserModelEx(), permissionChecker, myServer.getSecurityContext());
     myFixture.addService(myUserFinder);
 
     myBranchFinder = new BranchFinder(myBuildTypeFinder);

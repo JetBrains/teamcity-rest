@@ -282,10 +282,6 @@ public class DataProvider {
     myPermissionChecker.checkGlobalPermission(permission);
   }
 
-  public void checkGlobalPermissionAnyOf(final Permission[] permissions) throws AuthorizationFailedException{
-    myPermissionChecker.checkGlobalPermissionAnyOf(permissions);
-  }
-
   public void checkProjectPermission(@NotNull final Permission permission, @Nullable final String internalProjectId) throws AuthorizationFailedException{
     myPermissionChecker.checkProjectPermission(permission, internalProjectId);
   }
@@ -316,28 +312,15 @@ public class DataProvider {
 
   @Nullable
   public SUser getCurrentUser() {
-    return getCurrentUser(mySecurityContext, myUserModel);
-  }
-
-  @Nullable
-  public static SUser getCurrentUser(@NotNull final ServiceLocator serviceLocator) {
-    return getCurrentUser(serviceLocator.getSingletonService(SecurityContext.class), serviceLocator.getSingletonService(UserModel.class));
-  }
-
-  /**
-   * Use UserFinder.getCurrentUser instead
-   */
-  @Nullable
-  private static SUser getCurrentUser(@NotNull final SecurityContext securityContext, @NotNull final UserModel userModel) {
     //also related API: SessionUser.getUser(request)
-    final User associatedUser = securityContext.getAuthorityHolder().getAssociatedUser();
+    final User associatedUser = mySecurityContext.getAuthorityHolder().getAssociatedUser();
     if (associatedUser == null){
       return null;
     }
     if (SUser.class.isAssignableFrom(associatedUser.getClass())){
       return (SUser)associatedUser;
     }
-    return userModel.findUserAccount(null, associatedUser.getUsername());
+    return myUserModel.findUserAccount(null, associatedUser.getUsername());
   }
 
   @NotNull

@@ -140,7 +140,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
     final String investigatorDimension = locator.getSingleDimensionValue(ASSIGNEE);
     if (investigatorDimension != null) {
-      @NotNull final User user = myUserFinder.getUser(investigatorDimension);
+      @NotNull final User user = myUserFinder.getItem(investigatorDimension);
       result.add(new FilterConditionChecker<InvestigationWrapper>() {
         public boolean isIncluded(@NotNull final InvestigationWrapper item) {
           return user.equals(item.getResponsibleUser());
@@ -150,7 +150,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
     final String reporterDimension = locator.getSingleDimensionValue(REPORTER);
     if (reporterDimension != null) {
-      @NotNull final User user = myUserFinder.getUser(reporterDimension);
+      @NotNull final User user = myUserFinder.getItem(reporterDimension);
       result.add(new FilterConditionChecker<InvestigationWrapper>() {
         public boolean isIncluded(@NotNull final InvestigationWrapper item) {
           return user.equals(item.getReporterUser());
@@ -247,7 +247,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     @Nullable User user = null;
     final String investigatorDimension = locator.getSingleDimensionValue(ASSIGNEE);
     if (investigatorDimension != null) {
-      user = myUserFinder.getUser(investigatorDimension);
+      user = myUserFinder.getItem(investigatorDimension);
     }
 
     final String assignmentProjectDimension = locator.getSingleDimensionValue(ASSIGNMENT_PROJECT);

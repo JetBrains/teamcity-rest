@@ -432,7 +432,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final String userDimension = locator.getSingleDimensionValue(USER);
     if (userDimension != null) {
-      final SUser user = myUserFinder.getUser(userDimension);
+      final SUser user = myUserFinder.getItem(userDimension);
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
           SUser actualUser = null;
@@ -1123,7 +1123,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       final Boolean personal = locator.lookupSingleDimensionValueAsBoolean(PERSONAL);
       if (personal == null || personal) {
         final String userDimension = locator.getSingleDimensionValue(USER);
-        options.setIncludePersonal(true, userDimension == null ? null : myUserFinder.getUser(userDimension));
+        options.setIncludePersonal(true, userDimension == null ? null : myUserFinder.getItem(userDimension));
       } else {
         options.setIncludePersonal(false, null);
       }

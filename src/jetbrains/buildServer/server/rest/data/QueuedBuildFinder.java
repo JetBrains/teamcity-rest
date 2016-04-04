@@ -182,7 +182,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
 
     final String userDimension = locator.getSingleDimensionValue(USER);
     if (userDimension != null) {
-      final SUser user = myUserFinder.getUser(userDimension);
+      final SUser user = myUserFinder.getItem(userDimension);
       result.add(new FilterConditionChecker<SQueuedBuild>() {
         public boolean isIncluded(@NotNull final SQueuedBuild item) {
           final SUser actualUser = item.getTriggeredBy().getUser();

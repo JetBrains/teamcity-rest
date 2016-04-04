@@ -235,7 +235,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
     //this should be the first one as the order returned here is important!
     final String selectedForUser = locator.getSingleDimensionValue(DIMENSION_SELECTED);
     if (selectedForUser != null) {
-      final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getUser(selectedForUser);
+      final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getItem(selectedForUser);
       return getItemHolder(getSelectedProjects(user));
     }
 

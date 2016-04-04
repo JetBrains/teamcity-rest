@@ -278,13 +278,13 @@ public class User {
   @NotNull
   public jetbrains.buildServer.users.SUser getFromPosted(final UserFinder userFinder) {
     if (id != null){
-      return userFinder.getUser(Locator.getStringLocator(UserFinder.ID, String.valueOf(id)));
+      return userFinder.getItem(Locator.getStringLocator(UserFinder.DIMENSION_ID, String.valueOf(id)));
     }
     if (username != null){
-      return userFinder.getUser(Locator.getStringLocator(UserFinder.USERNAME, username));
+      return userFinder.getItem(Locator.getStringLocator(UserFinder.USERNAME, username));
     }
 
-    throw new BadRequestException("Submitted user should have wither 'id; or 'username' attributes");
+    throw new BadRequestException("Submitted user should have either 'id; or 'username' attributes");
   }
 }
 
