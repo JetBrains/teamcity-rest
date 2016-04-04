@@ -23,8 +23,8 @@ import jetbrains.buildServer.AgentRestrictorType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
+import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -38,6 +38,7 @@ import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.agent.DeadAgent;
 import jetbrains.buildServer.serverSide.impl.agent.PollingRemoteAgentConnection;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -200,23 +201,24 @@ public class Agent {
   public static void setFieldValue(@NotNull final SBuildAgent agent,
                                    @Nullable final String name,
                                    @NotNull final String value,
-                                   @NotNull final DataProvider dataProvider) {
+                                   @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Field name cannot be empty");
     }
+    SUser currentUser = serviceLocator.getSingletonService(UserFinder.class).getCurrentUser();
     if ("enabled".equals(name)) {
-      agent.setEnabled(Boolean.valueOf(value), dataProvider.getCurrentUser(), getActualActionComment(null));
+      agent.setEnabled(Boolean.valueOf(value), currentUser, getActualActionComment(null));
       //todo (TeamCity) why not use current user by default?
       return;
     } else if ("authorized".equals(name)) {
-      agent.setAuthorized(Boolean.valueOf(value), dataProvider.getCurrentUser(), getActualActionComment(null));
+      agent.setAuthorized(Boolean.valueOf(value), currentUser, getActualActionComment(null));
       //todo (TeamCity) why not use current user by default?
       return;
     } else if ("enabledInfoCommentText".equals(name)) {
-      agent.setEnabled(agent.isEnabled(), dataProvider.getCurrentUser(), value);
+      agent.setEnabled(agent.isEnabled(), currentUser, value);
       return;
     } else if ("authorizedInfoCommentText".equals(name)) {
-      agent.setAuthorized(agent.isAuthorized(), dataProvider.getCurrentUser(), value);
+      agent.setAuthorized(agent.isAuthorized(), currentUser, value);
       return;
     }
     throw new BadRequestException("Changing field '" + name + "' is not supported. Supported fields are: enabled, authorized");

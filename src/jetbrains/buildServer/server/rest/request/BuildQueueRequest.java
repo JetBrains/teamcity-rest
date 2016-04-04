@@ -61,7 +61,6 @@ public class BuildQueueRequest {
 
   public static final String API_BUILD_QUEUE_URL = Constants.API_URL + "/buildQueue";
   public static final String COMPATIBLE_AGENTS = "/compatibleAgents";
-  @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private QueuedBuildFinder myQueuedBuildFinder;
   @Context @NotNull private BuildPromotionFinder myBuildPromotionFinder;
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
@@ -125,7 +124,7 @@ public class BuildQueueRequest {
         return source.getItemId();
       }
     });
-    buildQueue.removeItems(itemIds, myDataProvider.getCurrentUser(), null);
+    buildQueue.removeItems(itemIds, myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser(), null);
 
     //TeamCity API issue: TW-34143
     for (String itemId : itemIds) {
@@ -170,7 +169,7 @@ public class BuildQueueRequest {
         return source.getItemId();
       }
     });
-    buildQueue.removeItems(queuedBuildIds, myDataProvider.getCurrentUser(), null); //todo: consider providing comment here
+    buildQueue.removeItems(queuedBuildIds, myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser(), null); //todo: consider providing comment here
 
     //TeamCity API issue: TW-34143
     if (!buildQueue.isQueueEmpty()) {
@@ -188,7 +187,7 @@ public class BuildQueueRequest {
 
     // now queue
 
-    final SUser user = myDataProvider.getCurrentUser();
+    final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser();
     final Map<Long, Long> buildPromotionIdReplacements = new HashMap<Long, Long>();
     List<Build> buildsToTrigger = builds.builds;
     Map<Build, Exception> buildsWithErrors;
@@ -295,7 +294,7 @@ public class BuildQueueRequest {
   private void cancelQueuedBuild(@NotNull final SQueuedBuild build, @Nullable final String comment) {
     final jetbrains.buildServer.serverSide.BuildQueue buildQueue = myServiceLocator.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class);
     final String itemId = build.getItemId();
-    buildQueue.removeItems(Collections.singleton(itemId), myDataProvider.getCurrentUser(), comment);
+    buildQueue.removeItems(Collections.singleton(itemId), myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser(), comment);
 
     //TeamCity API issue: TW-34143
     if (buildQueue.findQueued(itemId) != null) {
@@ -398,7 +397,7 @@ public class BuildQueueRequest {
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Build queueNewBuild(Build build, @Context HttpServletRequest request){
-    final SUser user = myDataProvider.getCurrentUser();
+    final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser();
     SQueuedBuild queuedBuild = build.triggerBuild(user, myServiceLocator, new HashMap<Long, Long>());
     return new Build(queuedBuild.getBuildPromotion(), Fields.LONG, myBeanContext);
   }

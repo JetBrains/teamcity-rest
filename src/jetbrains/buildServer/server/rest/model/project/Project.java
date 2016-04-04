@@ -23,12 +23,13 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.BuildProject;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
+import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.*;
@@ -269,7 +270,9 @@ public class Project {
     throw new NotFoundException("Field '" + field + "' is not supported.  Supported are: id, name, description, archived, internalId.");
   }
 
-  public static void setFieldValueAndPersist(final SProject project, final String field, final String value, @NotNull final DataProvider dataProvider) {
+  public static void setFieldValueAndPersist(final SProject project,
+                                             final String field,
+                                             final String value, @NotNull final ServiceLocator serviceLocator) {
     if ("name".equals(field)) {
       if (StringUtil.isEmpty(value)){
         throw new BadRequestException("Project name cannot be empty.");
@@ -288,7 +291,7 @@ public class Project {
       project.persist();
       return;
     } else if ("archived".equals(field)) {
-      project.setArchived(Boolean.valueOf(value), dataProvider.getCurrentUser());
+      project.setArchived(Boolean.valueOf(value), serviceLocator.getSingletonService(UserFinder.class).getCurrentUser());
       return;
     }
     throw new BadRequestException("Setting field '" + field + "' is not supported. Supported are: name, description, archived");

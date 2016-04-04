@@ -81,7 +81,6 @@ public class BuildTypeRequest {
   private static final Pattern PROJECT_PATH_SEPARATOR_PATTERN = Pattern.compile("::");
   private static final Pattern NON_ALPHA_NUM_PATTERN = Pattern.compile("[^a-zA-Z0-9-#.]+");
 
-  @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private BuildFinder myBuildFinder;
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
   @Context @NotNull private VcsRootFinder myVcsRootFinder;
@@ -196,7 +195,7 @@ public class BuildTypeRequest {
   @Produces("text/plain")
   public String setBuildTypeField(@PathParam("btLocator") String buildTypeLocator, @PathParam("field") String fieldName, String newValue) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, false); //todo: support multiple locator here to pause many in one request
-    buildType.setFieldValueAndPersist(fieldName, newValue, myDataProvider);
+    buildType.setFieldValueAndPersist(fieldName, newValue, myServiceLocator);
     return buildType.getFieldValue(fieldName);
   }
 
@@ -1310,7 +1309,7 @@ public class BuildTypeRequest {
   public FilesSubResource getVcsFilesSubResource(@PathParam("btLocator") String buildTypeLocator,
                                                  @QueryParam("resolveParameters") final Boolean resolveParameters) {
     final BuildTypeEx buildType = (BuildTypeEx)myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
-    myDataProvider.checkProjectPermission(Permission.VIEW_FILE_CONTENT, buildType.getProjectId());
+    myPermissionChecker.checkProjectPermission(Permission.VIEW_FILE_CONTENT, buildType.getProjectId());
 
     final String urlPrefix = getUrlPrefix(buildType);
 

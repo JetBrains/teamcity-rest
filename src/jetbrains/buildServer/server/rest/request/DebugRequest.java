@@ -184,7 +184,7 @@ public class DebugRequest {
     result.append("Scheme: ").append(request.getScheme()).append("\n");
     result.append("Session id: ").append(request.getSession().getId()).append("\n");
     result.append("\n");
-    SUser currentUser = myDataProvider.getCurrentUser();
+    SUser currentUser = myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser();
     if (currentUser != null) {
       result.append("Current TeamCity user: ").append(currentUser.describe(false)).append("\n");
     } else {

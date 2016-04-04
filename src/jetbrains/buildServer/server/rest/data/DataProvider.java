@@ -282,10 +282,6 @@ public class DataProvider {
     myPermissionChecker.checkGlobalPermission(permission);
   }
 
-  public void checkProjectPermission(@NotNull final Permission permission, @Nullable final String internalProjectId) throws AuthorizationFailedException{
-    myPermissionChecker.checkProjectPermission(permission, internalProjectId);
-  }
-
   @NotNull
   public VcsManager getVcsManager() {
     return myVcsManager;
@@ -308,19 +304,6 @@ public class DataProvider {
   @NotNull
   public ValueProviderRegistry getValueProviderRegistry() {
     return myValueProviderRegistry;
-  }
-
-  @Nullable
-  public SUser getCurrentUser() {
-    //also related API: SessionUser.getUser(request)
-    final User associatedUser = mySecurityContext.getAuthorityHolder().getAssociatedUser();
-    if (associatedUser == null){
-      return null;
-    }
-    if (SUser.class.isAssignableFrom(associatedUser.getClass())){
-      return (SUser)associatedUser;
-    }
-    return myUserModel.findUserAccount(null, associatedUser.getUsername());
   }
 
   @NotNull

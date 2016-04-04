@@ -17,8 +17,9 @@
 package jetbrains.buildServer.server.rest.util;
 
 import java.util.List;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.log.Loggable;
-import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.*;
@@ -133,7 +134,7 @@ public class BuildTypeOrTemplate implements Loggable {
     myBuildTypeIdentity.remove();
   }
 
-  public void setFieldValueAndPersist(@NotNull final String field, @Nullable final String value, @NotNull final DataProvider dataProvider) {
+  public void setFieldValueAndPersist(@NotNull final String field, @Nullable final String value, @NotNull final ServiceLocator serviceLocator) {
     if ("id".equals(field)) {
       if (value != null){
         myBuildTypeIdentity.setExternalId(value);
@@ -157,7 +158,8 @@ public class BuildTypeOrTemplate implements Loggable {
     if (myBuildType!=null){
       if ("paused".equals(field)){
         //TeamCity API: why not use current user by default?
-        myBuildType.setPaused(Boolean.valueOf(value), dataProvider.getCurrentUser(), TeamCityProperties.getProperty("rest.defaultActionComment"));
+        myBuildType.setPaused(Boolean.valueOf(value), serviceLocator.getSingletonService(UserFinder.class).getCurrentUser(),
+                              TeamCityProperties.getProperty("rest.defaultActionComment"));
         myBuildType.persist();
         return;
       }

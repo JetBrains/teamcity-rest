@@ -109,7 +109,7 @@ public class AgentRequest {
   @Path("/{agentLocator}")
   public void deleteAgent(@PathParam("agentLocator") String agentLocator) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    myServiceLocator.getSingletonService(BuildAgentManager.class).removeAgent(agent, myDataProvider.getCurrentUser());
+    myServiceLocator.getSingletonService(BuildAgentManager.class).removeAgent(agent, myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser());
   }
 
   @GET
@@ -150,7 +150,7 @@ public class AgentRequest {
     String commentText = enabledInfo.getCommentTextFromPosted();
     Boolean value = enabledInfo.getValueFromPosted();
     if (value == null && commentText == null) throw new BadRequestException("Neither value nor comment are provided, nothing to change");
-    agent.setEnabled(value != null ? value : agent.isEnabled(), myDataProvider.getCurrentUser(), Agent.getActualActionComment(commentText));
+    agent.setEnabled(value != null ? value : agent.isEnabled(), myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser(), Agent.getActualActionComment(commentText));
 
     return new AgentEnabledInfo(agent.isEnabled(), agent.getStatusComment(), new Fields(fields), myBeanContext);
   }
@@ -173,7 +173,7 @@ public class AgentRequest {
     String commentText = authorizedInfo.getCommentTextFromPosted();
     Boolean value = authorizedInfo.getValueFromPosted();
     if (value == null && commentText == null) throw new BadRequestException("Neither value nor comment are provided, nothing to change");
-    agent.setAuthorized(value != null ? value : agent.isAuthorized(), myDataProvider.getCurrentUser(), Agent.getActualActionComment(commentText));
+    agent.setAuthorized(value != null ? value : agent.isAuthorized(), myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser(), Agent.getActualActionComment(commentText));
 
     return new AgentAuthorizedInfo(agent.isAuthorized(), agent.getAuthorizeComment(), new Fields(fields), myBeanContext);
   }
@@ -213,7 +213,7 @@ public class AgentRequest {
   @Produces("text/plain")
   public String setAgentField(@PathParam("agentLocator") String agentLocator, @PathParam("field") String fieldName, String value) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    Agent.setFieldValue(agent, fieldName, value, myDataProvider);
+    Agent.setFieldValue(agent, fieldName, value, myServiceLocator);
     return Agent.getFieldValue(agent, fieldName, myServiceLocator);
   }
 }
