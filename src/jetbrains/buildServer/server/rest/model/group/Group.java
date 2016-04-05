@@ -27,6 +27,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroupManager;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -92,7 +93,7 @@ public class Group {
     });
     users = ValueWithDefault.decideDefault(fields.isIncluded("users", false), new ValueWithDefault.Value<Users>() {
       public Users get() {
-        return new Users(userGroup.getDirectUsers(), fields.getNestedField("users", Fields.NONE, Fields.LONG), context);
+        return new Users(UserFinder.convert(userGroup.getDirectUsers()), fields.getNestedField("users", Fields.NONE, Fields.LONG), context);
       }
     });
     roleAssignments = ValueWithDefault.decideDefault(fields.isIncluded("roles", false), new ValueWithDefault.Value<RoleAssignments>() {

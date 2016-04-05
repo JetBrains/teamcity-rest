@@ -46,7 +46,6 @@ import jetbrains.buildServer.serverSide.impl.VcsModificationChecker;
 import jetbrains.buildServer.serverSide.statistics.ValueProviderRegistry;
 import jetbrains.buildServer.serverSide.statistics.build.BuildDataStorage;
 import jetbrains.buildServer.users.SUser;
-import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsManager;
@@ -165,16 +164,6 @@ public class DataProvider {
     }
     return role;
   }
-
-  public Collection<User> getAllUsers() {
-    final Collection<SUser> serverUsers = myUserModel.getAllUsers().getUsers();
-    final Collection<User> result = new ArrayList<User>(serverUsers.size());
-    for (SUser group : serverUsers) {
-      result.add(group);
-    }
-    return result;
-  }
-
 
   public static BuildTriggerDescriptor getTrigger(final BuildTypeSettings buildType, final String triggerLocator) {
     if (StringUtil.isEmpty(triggerLocator)) {

@@ -73,11 +73,11 @@ public class UserRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
-  public Users serveUsers(@QueryParam("fields") String fields) {
+  public Users serveUsers(@QueryParam("locator") String locator, @QueryParam("fields") String fields) {
     if (TeamCityProperties.getBooleanOrTrue(REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
       myUserFinder.checkViewAllUsersPermission();
     }
-    return new Users(myDataProvider.getAllUsers(),  new Fields(fields), myBeanContext);
+    return new Users(myUserFinder.getItems(locator).myEntries,  new Fields(fields), myBeanContext);
   }
 
   @POST

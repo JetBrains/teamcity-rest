@@ -16,6 +16,10 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import com.intellij.openapi.diagnostic.Logger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
@@ -30,6 +34,8 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 23.03.13
  */
 public class UserFinder extends AbstractFinder<SUser>{
+  private static final Logger LOG = Logger.getInstance(UserFinder.class.getName());
+
   public static final String USERNAME = "username";
 
   @NotNull private final UserModel myUserModel;
@@ -173,5 +179,18 @@ public class UserFinder extends AbstractFinder<SUser>{
 
   public void checkViewAllUsersPermission() {
     myPermissionChecker.checkGlobalPermissionAnyOf(new Permission[]{Permission.VIEW_USER_PROFILE, Permission.CHANGE_USER});
+  }
+
+  @NotNull
+  public static List<SUser> convert(Collection<User> users){
+    ArrayList<SUser> result = new ArrayList<>(users.size());
+    for (User user : users) {
+      if (SUser.class.isAssignableFrom(user.getClass())){
+        result.add((SUser)user);
+      } else{
+        LOG.info("Got User which is not SUser (skipping): " + user.describe(true));
+      }
+    }
+    return result;
   }
 }

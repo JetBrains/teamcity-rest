@@ -27,6 +27,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -46,12 +47,12 @@ public class Users {
   public Users() {
   }
 
-  public Users(Collection<jetbrains.buildServer.users.User> userObjects, @NotNull final Fields fields, @NotNull final BeanContext context) {
+  public Users(Collection<SUser> userObjects, @NotNull final Fields fields, @NotNull final BeanContext context) {
     if (fields.isIncluded("user", false, true)) {
       users = new ArrayList<User>(userObjects.size());
       final Fields nestedFields = fields.getNestedField("user");
-      for (jetbrains.buildServer.users.User user : userObjects) {
-        users.add(new User(user, fields.getNestedField("user"), context));
+      for (jetbrains.buildServer.users.SUser user : userObjects) {
+        users.add(new User(user, nestedFields, context));
       }
     }
     count = userObjects == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), userObjects.size());
