@@ -61,7 +61,7 @@ public class GroupRequest {
 
 
   public static String getGroupHref(UserGroup userGroup) {
-    return API_USER_GROUPS_URL + "/key:" + userGroup.getKey();
+    return API_USER_GROUPS_URL + "/" + UserGroupFinder.getLocator(userGroup);
   }
 
   public static String getRoleAssignmentHref(final UserGroup group, final RoleEntry roleEntry, @Nullable final String scopeParam) {
@@ -230,5 +230,11 @@ public class GroupRequest {
     }
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
     return DebugRequest.getRolesStringPresentation(group, myBeanContext.getSingletonService(ProjectManager.class));
+  }
+
+  public void initForTests(@NotNull final BeanContext beanContext) {
+    myBeanContext = beanContext;
+    myUserGroupFinder = myBeanContext.getSingletonService(UserGroupFinder.class);
+    myUserFinder = myBeanContext.getSingletonService(UserFinder.class);
   }
 }

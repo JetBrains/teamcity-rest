@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -206,5 +207,27 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
         assertEquals(user1.getId(), result.getId());
       }
     });
+  }
+
+  @Test
+  public void testGroupLocator() throws Throwable {
+    SUserGroup group1 = myFixture.createUserGroup("key1", "name1", "description");
+    final SUser user1 = createUser("user1");
+    final SUser user2 = createUser("user2");
+    group1.addUser(user1);
+    group1.addUser(user2);
+
+    SUserGroup group2 = myFixture.createUserGroup("key2", "name2", "description");
+    final SUser user3 = createUser("user3");
+    group2.addUser(user3);
+
+    check("group:(key:" + "key1" + ")", user1, user2);
+    check("group:(key:" + "key2" + ")", user3);
+    check("group:(key:" + getUserGroupManager().getAllUsersGroup().getKey() + ")", user1, user2, user3);
+
+    check("group:(key:" + "key1" + "),username:user1", user1);
+
+    checkExceptionOnItemSearch(NotFoundException.class, "group:(key:XXX)");
+    checkExceptionOnItemsSearch(NotFoundException.class, "group:(key:XXX)");
   }
 }

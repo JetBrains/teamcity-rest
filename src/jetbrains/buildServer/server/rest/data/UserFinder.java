@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
@@ -37,16 +38,21 @@ public class UserFinder extends AbstractFinder<SUser>{
   private static final Logger LOG = Logger.getInstance(UserFinder.class.getName());
 
   public static final String USERNAME = "username";
+  public static final String GROUP = "group";
+
+  @NotNull private final UserGroupFinder myGroupFinder;
 
   @NotNull private final UserModel myUserModel;
   @NotNull private final PermissionChecker myPermissionChecker;
   @NotNull private final SecurityContext mySecurityContext;
 
   public UserFinder(@NotNull final UserModel userModel,
+                    @NotNull final UserGroupFinder groupFinder,
                     @NotNull final PermissionChecker permissionChecker,
                     @NotNull final SecurityContext securityContext) {
-    super(DIMENSION_ID, USERNAME, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    super(DIMENSION_ID, USERNAME, GROUP, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     myUserModel = userModel;
+    myGroupFinder = groupFinder;
     myPermissionChecker = permissionChecker;
     mySecurityContext = securityContext;
   }
@@ -135,12 +141,28 @@ public class UserFinder extends AbstractFinder<SUser>{
        });
     }
 
+    if (locator.isUnused(GROUP)){
+      final String group = locator.getSingleDimensionValue(GROUP);
+      if (group != null) {
+        SUserGroup userGroup = myGroupFinder.getGroup(group);
+        result.add(new FilterConditionChecker<SUser>() {
+           public boolean isIncluded(@NotNull final SUser item) {
+             return userGroup.containsUserDirectly(item);
+           }
+         });
+      }
+    }
+
     return result;
   }
 
   @NotNull
   @Override
   protected ItemHolder<SUser> getPrefilteredItems(@NotNull final Locator locator) {
+    final String group = locator.getSingleDimensionValue(GROUP);
+    if (group != null) {
+      return getItemHolder(convert(myGroupFinder.getGroup(group).getDirectUsers()));
+    }
     return getItemHolder(myUserModel.getAllUsers().getUsers());
   }
 

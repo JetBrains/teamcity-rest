@@ -27,7 +27,10 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroupManager;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.UserFinder;
+import jetbrains.buildServer.server.rest.data.UserGroupFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -38,6 +41,7 @@ import jetbrains.buildServer.server.rest.request.GroupRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.users.PropertyKey;
+import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -93,7 +97,10 @@ public class Group {
     });
     users = ValueWithDefault.decideDefault(fields.isIncluded("users", false), new ValueWithDefault.Value<Users>() {
       public Users get() {
-        return new Users(UserFinder.convert(userGroup.getDirectUsers()), fields.getNestedField("users", Fields.NONE, Fields.LONG), context);
+        final String usersLocator = Locator.getStringLocator(UserFinder.GROUP, UserGroupFinder.getLocator(userGroup));
+        //improvement: it is better to force the group to the current one (and support several ANDed groups in the userFinder)
+        final PagedSearchResult<SUser> items = context.getSingletonService(UserFinder.class).getItems(fields.getLocator(), new Locator(usersLocator));
+        return new Users(items.myEntries, fields.getNestedField("users", Fields.NONE, Fields.LONG), context);
       }
     });
     roleAssignments = ValueWithDefault.decideDefault(fields.isIncluded("roles", false), new ValueWithDefault.Value<RoleAssignments>() {

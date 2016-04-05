@@ -70,6 +70,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   protected QueuedBuildFinder myQueuedBuildFinder;
   protected BranchFinder myBranchFinder;
   protected ChangeFinder myChangeFinder;
+  private UserGroupFinder myGroupFinder;
 
   static public BeanContext getBeanContext(final ServiceLocator serviceLocator) {
     final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
@@ -123,7 +124,9 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
     myFixture.addService(permissionChecker);
 
-    myUserFinder = new UserFinder(getUserModelEx(), permissionChecker, myServer.getSecurityContext());
+    myGroupFinder = new UserGroupFinder(getUserGroupManager());
+    myFixture.addService(myGroupFinder);
+    myUserFinder = new UserFinder(getUserModelEx(), myGroupFinder, permissionChecker, myServer.getSecurityContext());
     myFixture.addService(myUserFinder);
 
     myBranchFinder = new BranchFinder(myBuildTypeFinder);

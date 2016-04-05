@@ -39,6 +39,11 @@ public class UserGroupFinder {
   }
 
   @NotNull
+  public static String getLocator(@NotNull final UserGroup userGroup) {
+    return "key:" + userGroup.getKey();
+  }
+
+  @NotNull
   public SUserGroup getGroup(final String groupLocator) {
     if (StringUtil.isEmpty(groupLocator)) {
       throw new BadRequestException("Empty group locator is not supported.");
