@@ -237,7 +237,20 @@ public abstract class AbstractFinder<ITEM> {
   private ItemHolder<ITEM> getPrefilteredItemsWithItemsSupport(@NotNull Locator locator) {
     final List<String> itemsDimension = locator.getDimensionValue(DIMENSION_ITEM);
     if (itemsDimension.isEmpty()) {
-      return getPrefilteredItems(locator);
+      Boolean deduplicate = locator.getSingleDimensionValueAsBoolean(DIMENSION_UNIQUE);
+      if (deduplicate != null && deduplicate) {
+        Collection<ITEM> result = new LinkedHashSet<ITEM>();
+        getPrefilteredItems(locator).process(new ItemProcessor<ITEM>() {
+          @Override
+          public boolean processItem(final ITEM item) {
+            result.add(item);
+            return true;
+          }
+        });
+        return getItemHolder(result);
+      } else {
+        return getPrefilteredItems(locator);
+      }
     }
 
     Collection<ITEM> result;
