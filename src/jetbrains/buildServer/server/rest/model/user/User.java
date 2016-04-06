@@ -80,8 +80,9 @@ public class User {
 
   @XmlAttribute
   public String getLastLogin() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("lastLogin", false), new ValueWithDefault.Value<String>() {
+    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("lastLogin", false), new ValueWithDefault.Value<String>() {
       public String get() {
+        myContext.getSingletonService(UserFinder.class).checkViewUserPermission(myUser);
         Date lastLoginTimestamp = myUser.getLastLoginTimestamp();
         if (lastLoginTimestamp != null) {
           return Util.formatTime(lastLoginTimestamp);
