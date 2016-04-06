@@ -903,4 +903,12 @@ public class BuildRequest {
     FileSecurityUtil.checkInsideDirectory(new File(realPath), new File(servletContext.getRealPath("/")));
     return realPath;
   }
+
+  void initForTests(@NotNull final BeanContext beanContext) {
+    myBeanContext = beanContext;
+    myBuildFinder = myBeanContext.getSingletonService(BuildFinder.class);
+    myBuildPromotionFinder = myBeanContext.getSingletonService(BuildPromotionFinder.class);
+    myBuildTypeFinder = myBeanContext.getSingletonService(BuildTypeFinder.class);
+    myPermissionChecker = myBeanContext.getSingletonService(PermissionChecker.class);
+  }
 }
