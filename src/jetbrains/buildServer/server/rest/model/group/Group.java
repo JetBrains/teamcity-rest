@@ -25,6 +25,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroupManager;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -32,7 +33,10 @@ import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.server.rest.model.user.Users;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
+
+import static jetbrains.buildServer.server.rest.request.UserRequest.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS;
 
 /**
  * @author Yegor.Yarko
@@ -82,8 +86,11 @@ public class Group {
         return new Groups(userGroup.getDirectSubgroups(), fields.getNestedField("child-groups", Fields.NONE, Fields.LONG), context);
       }
     });
-    users = ValueWithDefault.decideDefault(fields.isIncluded("users", false), new ValueWithDefault.Value<Users>() {
+    users = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("users", false), new ValueWithDefault.Value<Users>() {
       public Users get() {
+        if (TeamCityProperties.getBooleanOrTrue(REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
+          context.getSingletonService(UserFinder.class).checkViewAllUsersPermission();
+        }
         return new Users(userGroup.getDirectUsers(), fields.getNestedField("users", Fields.NONE, Fields.LONG), context);
       }
     });
