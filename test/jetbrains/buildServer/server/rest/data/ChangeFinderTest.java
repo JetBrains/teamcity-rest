@@ -17,18 +17,21 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.Date;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.change.Change;
 import jetbrains.buildServer.server.rest.model.change.FileChange;
 import jetbrains.buildServer.server.rest.model.change.FileChanges;
+import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.MockVcsModification;
 import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
-import jetbrains.buildServer.vcs.SVcsModification;
-import jetbrains.buildServer.vcs.VcsChange;
-import jetbrains.buildServer.vcs.VcsChangeInfo;
-import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.util.Util;
+import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.SVcsRootImpl;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import static jetbrains.buildServer.buildTriggers.vcs.ModificationDataBuilder.modification;
 
 /**
  * @author Yegor.Yarko
@@ -36,7 +39,68 @@ import org.testng.annotations.Test;
  */
 public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
+  @Override
+  @BeforeMethod
+  public void setUp() throws Exception {
+    super.setUp();
+    setFinder(myChangeFinder);
+  }
 
+  @Test
+  public void testBranches1() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    vcs.setDAGBased(true);
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    SVcsRootEx parentRoot2 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
+    VcsRootInstance root2 = buildConf.getVcsRootInstanceForParent(parentRoot2);
+    assert root1 != null;
+    assert root2 != null;
+
+    setBranchSpec(root1,
+                  "+:*\n" +
+                  "+:prefix/*"
+    );
+
+    final BuildFinderTestBase.MockCollectRepositoryChangesPolicy changesPolicy = new BuildFinderTestBase.MockCollectRepositoryChangesPolicy();
+    vcs.setCollectChangesPolicy(changesPolicy);
+
+    SVcsModification m20 = myFixture.addModification(modification().in(root1).version("20").parentVersions("10"));
+    SVcsModification m30 = myFixture.addModification(modification().in(root1).version("30").parentVersions("20"));
+    SVcsModification m40 = myFixture.addModification(modification().in(root1).version("40").parentVersions("10"));
+    SVcsModification m50 = myFixture.addModification(modification().in(root1).version("50").parentVersions("40"));
+    SVcsModification m60 = myFixture.addModification(modification().in(root1).version("60").parentVersions("15"));
+    SVcsModification m70 = myFixture.addModification(modification().in(root1).version("70").parentVersions("10"));
+
+    changesPolicy.setCurrentState(root1, RepositoryStateData.createVersionState("master", Util.map("master", "30",
+                                                                                                   "branch1", "40",
+                                                                                                   "branch2", "50",
+                                                                                                   "branch3", "60",
+                                                                                                   "prefix/aaa", "70",
+                                                                                                   "branch10", "100")));
+
+    buildConf.forceCheckingForChanges();
+    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+
+    check(null, m70, m60, m50, m40, m30, m20);
+    checkExceptionOnItemsSearch(BadRequestException.class, "branch:(default:true)");
+    checkExceptionOnItemsSearch(BadRequestException.class, "branch:(name:branch1)");
+    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(name:master)", m30, m20);
+    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(name:<default>)", m30, m20);
+    checkExceptionOnItemsSearch(BadRequestException.class, "branch:(branch1)");
+    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(master)", m30, m20);
+    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(<default>)", m30, m20);
+    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(name:aaa)", m70);
+    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(aaa)", m70);
+//    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(name:<any>)", m70, m60, m50, m40, m30, m20);
+//    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(default:true)", m30, m20);
+//    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(default:false)", m70, m60, m50, m40);
+//    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(prefix/aaa)", m70);
+    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(name:branch1)", m40);
+  }
 
   @Test
   public void testChangeBean() {
