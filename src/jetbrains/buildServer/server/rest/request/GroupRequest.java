@@ -75,7 +75,7 @@ public class GroupRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public Groups serveGroups(@QueryParam("fields") String fields) {
-    if (TeamCityProperties.getBooleanOrTrue(UserRequest.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
+    if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
       myUserFinder.checkViewAllUsersPermission();
     }
     return new Groups(myUserGroupFinder.getAllGroups(), new Fields(fields), myBeanContext);
@@ -93,7 +93,7 @@ public class GroupRequest {
   @Path("/{groupLocator}")
   @Produces({"application/xml", "application/json"})
   public Group serveGroup(@PathParam("groupLocator") String groupLocator, @QueryParam("fields") String fields) {
-    if (TeamCityProperties.getBooleanOrTrue(UserRequest.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
+    if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
       myUserFinder.checkViewAllUsersPermission();
     }
     return new Group(myUserGroupFinder.getGroup(groupLocator),  new Fields(fields), myBeanContext);
@@ -109,7 +109,7 @@ public class GroupRequest {
   @Path("/{groupLocator}/roles")
   @Produces({"application/xml", "application/json"})
   public RoleAssignments listRoles(@PathParam("groupLocator") String groupLocator) {
-    if (TeamCityProperties.getBooleanOrTrue(UserRequest.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
+    if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
       myUserFinder.checkViewAllUsersPermission();
     }
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
@@ -150,7 +150,7 @@ public class GroupRequest {
   @Produces({"application/xml", "application/json"})
   public RoleAssignment listRole(@PathParam("groupLocator") String groupLocator, @PathParam("roleId") String roleId,
                                  @PathParam("scope") String scopeValue) {
-    if (TeamCityProperties.getBooleanOrTrue(UserRequest.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
+    if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
       myUserFinder.checkViewAllUsersPermission();
     }
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);

@@ -21,12 +21,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import jetbrains.buildServer.groups.SUserGroup;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,6 +39,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class UserFinder extends AbstractFinder<SUser>{
   private static final Logger LOG = Logger.getInstance(UserFinder.class.getName());
+  public static final String REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS = "rest.request.checkAdditionalPermissionsForUsersAndGroups";
 
   public static final String USERNAME = "username";
   public static final String GROUP = "group";
@@ -73,6 +77,14 @@ public class UserFinder extends AbstractFinder<SUser>{
   @NotNull
   public static String getLocator(@NotNull final User user) {
     return Locator.getStringLocator(DIMENSION_ID, String.valueOf(user.getId()));
+  }
+
+  @NotNull
+  public SUser getItem(@Nullable final String locatorText, boolean checkViewPermission) {
+    if (checkViewPermission) {
+      return ensureViewUserPermissionEnforced(super.getItem(locatorText));
+    }
+    return super.getItem(locatorText);
   }
 
   @Nullable
@@ -159,6 +171,8 @@ public class UserFinder extends AbstractFinder<SUser>{
   @NotNull
   @Override
   protected ItemHolder<SUser> getPrefilteredItems(@NotNull final Locator locator) {
+    checkViewAllUsersPermissionEnforced();
+
     final String group = locator.getSingleDimensionValue(GROUP);
     if (group != null) {
       return getItemHolder(convert(myGroupFinder.getGroup(group).getDirectUsers()));
@@ -179,19 +193,7 @@ public class UserFinder extends AbstractFinder<SUser>{
     return myUserModel.findUserAccount(null, associatedUser.getUsername());
   }
 
-  public void checkViewUserPermission(String userLocator) {
-    SUser user;
-    try {
-      user = getItem(userLocator);
-    } catch (RuntimeException e) { // ensuring user without permissions could not get details on existing users by error messages
-      checkViewAllUsersPermission();
-      return;
-    }
-
-    checkViewUserPermission(user);
-  }
-
-  public void checkViewUserPermission(final @NotNull SUser user) {
+  public void checkViewUserPermission(final @NotNull SUser user) throws AuthorizationFailedException {
     final jetbrains.buildServer.users.User currentUser = getCurrentUser();
     if (currentUser != null && currentUser.getId() == user.getId()) {
       return;
@@ -199,8 +201,24 @@ public class UserFinder extends AbstractFinder<SUser>{
     checkViewAllUsersPermission();
   }
 
-  public void checkViewAllUsersPermission() {
+  //related to http://youtrack.jetbrains.net/issue/TW-20071 and other cases
+  @Nullable
+  @Contract("!null -> !null; null -> null")
+  public SUser ensureViewUserPermissionEnforced(final @Nullable SUser user) throws AuthorizationFailedException {
+    if (user != null && TeamCityProperties.getBooleanOrTrue(REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
+      checkViewUserPermission(user);
+    }
+    return user;
+  }
+
+  public void checkViewAllUsersPermission() throws AuthorizationFailedException {
     myPermissionChecker.checkGlobalPermissionAnyOf(new Permission[]{Permission.VIEW_USER_PROFILE, Permission.CHANGE_USER});
+  }
+
+  public void checkViewAllUsersPermissionEnforced() throws AuthorizationFailedException {
+    if (TeamCityProperties.getBooleanOrTrue(REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
+      checkViewAllUsersPermission();
+    }
   }
 
   @NotNull

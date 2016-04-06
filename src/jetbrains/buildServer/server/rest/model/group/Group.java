@@ -95,7 +95,7 @@ public class Group {
         return new Groups(userGroup.getDirectSubgroups(), fields.getNestedField("child-groups", Fields.NONE, Fields.LONG), context);
       }
     });
-    users = ValueWithDefault.decideDefault(fields.isIncluded("users", false), new ValueWithDefault.Value<Users>() {
+    users = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("users", false), new ValueWithDefault.Value<Users>() {
       public Users get() {
         final String usersLocator = Locator.getStringLocator(UserFinder.GROUP, UserGroupFinder.getLocator(userGroup));
         //improvement: it is better to force the group to the current one (and support several ANDed groups in the userFinder)

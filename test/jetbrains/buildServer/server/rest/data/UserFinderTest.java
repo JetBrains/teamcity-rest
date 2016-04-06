@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import jetbrains.buildServer.groups.SUserGroup;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -229,5 +230,31 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
 
     checkExceptionOnItemSearch(NotFoundException.class, "group:(key:XXX)");
     checkExceptionOnItemsSearch(NotFoundException.class, "group:(key:XXX)");
+  }
+
+  @Test
+  public void testSecurity() throws Throwable {
+    final SUser user1 = createUser("user1");
+    final SUser user2 = createUser("user2");
+
+    final SecurityContextImpl securityContext = new SecurityContextImpl();
+
+    securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
+      @Override
+      public void run() throws Throwable {
+        checkExceptionOnItemsSearch(AuthorizationFailedException.class, null);
+        check("user2", user2); // this works as this is single item search actually
+        checkExceptionOnItemsSearch(AuthorizationFailedException.class, "group:ALL_USERS_GROUP");
+
+        check("user1", user1);
+
+        checkException(AuthorizationFailedException.class, new Runnable() {
+          @Override
+          public void run() {
+            ((UserFinder)getFinder()).getItem("user2", true);
+          }
+        }, null);
+      }
+    });
   }
 }

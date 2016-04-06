@@ -24,6 +24,7 @@
       <class name="jetbrains.buildServer.server.rest.model.PagerDataTest"/>
 
       <class name="jetbrains.buildServer.server.rest.request.BuildTypeRequestTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.UserRequestTest"/>
       <class name="jetbrains.buildServer.server.rest.request.GroupRequestTest"/>
     </classes>
   </test>

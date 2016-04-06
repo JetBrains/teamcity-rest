@@ -21,7 +21,9 @@ import java.util.Collections;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
+import jetbrains.buildServer.serverSide.impl.auth.SecurityContextImpl;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -216,7 +218,7 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
   }
 
   @Test
-  public void testUserSelectedDimension() throws Exception {
+  public void testUserSelectedDimension() throws Throwable {
     myFixture.getServerSettings().setPerProjectPermissionsEnabled(true);
 
     myBuildType.remove();
@@ -278,6 +280,44 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
     checkBuildTypes("selectedByUser:(username:user1),project:(id:"+ project10.getExternalId() + ")", p10_bt30, p10_bt10);
     checkBuildTypes("selectedByUser:(username:user1),project:(id:"+ project30.getExternalId() + ")", p30_bt10, p30_bt30, p30_bt20);
+
+    SecurityContextImpl securityContext = new SecurityContextImpl();
+
+    securityContext.runAs(user2, new SecurityContextEx.RunAsAction() {
+      @Override
+      public void run() throws Throwable {
+        checkException(AccessDeniedException.class, new Runnable() {
+          @Override
+          public void run() {
+            checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
+          }
+        }, null);
+      }
+    });
+
+    securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
+      @Override
+      public void run() throws Throwable {
+        checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
+      }
+    });
+
+    securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
+      @Override
+      public void run() throws Throwable {
+        checkBuildTypes("selectedByUser:(current)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
+      }
+    });
+
+    user2.addRole(RoleScope.globalScope(), getProjectAdminRole());
+    securityContext.runAs(user2, new SecurityContextEx.RunAsAction() {
+      @Override
+      public void run() throws Throwable {
+        checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
+      }
+    });
+
+    //add checks after    ProjectEx.setOwnProjectsOrder / setOwnBuildTypesOrder
   }
 
   @Test
