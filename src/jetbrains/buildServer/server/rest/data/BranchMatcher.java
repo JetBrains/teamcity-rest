@@ -17,8 +17,6 @@
 package jetbrains.buildServer.server.rest.data;
 
 import jetbrains.buildServer.server.rest.data.build.GenericBuildsFilter;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.util.StringUtil;
@@ -27,6 +25,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Specifies branch locator.
+ * @deprected see {@link BranchFinder}
  * @author Yegor.Yarko
  *         Date: 18.01.12
  */
@@ -60,10 +59,6 @@ public class BranchMatcher {
       myBranched = myLocator.getSingleDimensionValueAsBoolean(BRANCHED);
       myLocator.checkLocatorFullyProcessed(); //might need checking that the values retrieved are actually used
     }
-  }
-
-  public static String getDefaultBranchLocator(){
-    return Locator.getStringLocator(DEFAULT, "true");
   }
 
   public boolean isDefined(){
@@ -140,72 +135,4 @@ public class BranchMatcher {
     return (myLocator == null ? "<empty>" : myLocator.toString());
   }
 
-  //see also BranchMatcher#matchesBranch
-  public boolean matchesDefaultBranchOrNotBranchedBuildsOnly() {
-    if (myLocator == null) return false;
-    if (mySingleValue != null) {
-      return Branch.DEFAULT_BRANCH_NAME.equals(mySingleValue);  //do not mark this as used, review other getSingleValue usages
-    }
-
-    if (myUnspecifiedBranch != null && myUnspecifiedBranch) {
-      return false;
-    }
-
-    if (myBranchName != null && !Branch.DEFAULT_BRANCH_NAME.equals(myBranchName)) {
-      return false;
-    }
-
-    if (myDefaultBranch != null && myDefaultBranch) {
-      return true;
-    }
-
-    //noinspection RedundantIfStatement
-    if (myDefaultBranch == null && myBranched != null && !myBranched) {
-      return true;
-    }
-
-    return false;
-  }
-
-  @Nullable
-  public String getSingleBranchIfNotDefault() {
-    //refactor and reuse code
-    if (myLocator == null) {
-      return null;
-    }
-    if (mySingleValue != null && !GenericBuildsFilter.BRANCH_NAME_ANY.equals(mySingleValue)) {
-      return mySingleValue;
-    }
-
-    if (myBranchName != null &&
-        (myDefaultBranch == null || !myDefaultBranch) &&
-        myUnspecifiedBranch == null &&
-        (myBranched == null || myBranched)){
-      return myBranchName;
-    }
-
-    return null;
-  }
-
-  @Nullable
-  public static String getBranchName(@Nullable final String branchLocatorText) {
-    if (branchLocatorText == null) {
-      return null;
-    }
-    final Locator branchLocator;
-    try {
-      String result;
-      branchLocator = new Locator(branchLocatorText, NAME, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-      final String singleValue = branchLocator.getSingleValue();
-      if (singleValue != null) {
-        result = singleValue;
-      } else {
-        result = branchLocator.getSingleDimensionValue(NAME);
-      }
-      branchLocator.checkLocatorFullyProcessed();
-      return result;
-    } catch (LocatorProcessException e) {
-      throw new BadRequestException("Error processing branch locator '" + branchLocatorText + "'", e);
-    }
-  }
 }

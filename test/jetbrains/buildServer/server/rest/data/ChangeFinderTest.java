@@ -86,20 +86,69 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
 
     check(null, m70, m60, m50, m40, m30, m20);
-    checkExceptionOnItemsSearch(BadRequestException.class, "branch:(default:true)");
+    String btLocator = "buildType:(id:" + buildConf.getExternalId() + ")";
+    check(btLocator, m70, m60, m50, m40, m30, m20);
+    checkExceptionOnItemsSearch(BadRequestException.class, "branch:(aaa:bbb)");
+    checkExceptionOnItemsSearch(BadRequestException.class, "branch:(default:true)"); //no buildType is not supported
     checkExceptionOnItemsSearch(BadRequestException.class, "branch:(name:branch1)");
-    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(name:master)", m30, m20);
-    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(name:<default>)", m30, m20);
+    checkExceptionOnItemsSearch(BadRequestException.class, btLocator + ",branch:(name:master,aaa:bbb)");
+    check(btLocator + ",branch:(name:master,default:false)");  //no branches match here
+    check(btLocator + ",branch:(name:master)", m30, m20);
+    check(btLocator + ",branch:(name:<default>)", m30, m20);
     checkExceptionOnItemsSearch(BadRequestException.class, "branch:(branch1)");
-    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(master)", m30, m20);
-    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(<default>)", m30, m20);
-    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(name:aaa)", m70);
-    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(aaa)", m70);
-//    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(name:<any>)", m70, m60, m50, m40, m30, m20);
-//    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(default:true)", m30, m20);
-//    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(default:false)", m70, m60, m50, m40);
-//    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(prefix/aaa)", m70);
-    check("buildType:(id:" + buildConf.getExternalId() + "),branch:(name:branch1)", m40);
+    check(btLocator + ",branch:(master)", m30, m20);
+    check(btLocator + ",branch:(<default>)", m30, m20);
+    check(btLocator + ",branch:(name:aaa)", m70);
+    check(btLocator + ",branch:(aaa)", m70);
+    check(btLocator + ",branch:(name:<any>)", m70, m60, m50, m40, m30, m20);
+    check(btLocator + ",branch:(default:any)", m70, m60, m50, m40, m30, m20);
+    check(btLocator + ",branch:(<any>)", m70, m60, m50, m40, m30, m20);
+    check(btLocator + ",branch:(name:bbb)");
+    check(btLocator + ",branch:(prefix/aaa)");
+    check(btLocator + ",branch:(name:branch1)", m40);
+
+    check(btLocator + ",branch:(default:true)", m30, m20);
+    check(btLocator + ",branch:(default:false)", m70, m40, m50, m40, m60);
+
+    //test pending
+
+    check(btLocator + ",branch:(name:master),pending:true", m30, m20);
+    check(btLocator + ",branch:(name:<default>),pending:true", m30, m20);
+    check(btLocator + ",branch:(name:branch1),pending:true", m40);
+    check(btLocator + ",branch:(name:master),pending:false");
+    check(btLocator + ",branch:(name:<default>),pending:false");
+    check(btLocator + ",branch:(name:branch1),pending:false");
+    check(btLocator + ",branch:(name:branch1),pending:any", m40);
+
+    changesPolicy.setCurrentState(root2, RepositoryStateData.createVersionState("master", Util.map("master", "11")));
+    build().in(buildConf).withDefaultBranch().finish();
+    build().in(buildConf).withBranch("branch1").finish();
+
+    SVcsModification m80 = myFixture.addModification(modification().in(root1).version("80").parentVersions("30"));
+    SVcsModification m90 = myFixture.addModification(modification().in(root1).version("90").parentVersions("40"));
+
+    changesPolicy.setCurrentState(root1, RepositoryStateData.createVersionState("master", Util.map("master", "80",
+                                                                                                   "branch1", "90",
+                                                                                                   "branch2", "50",
+                                                                                                   "branch3", "60",
+                                                                                                   "prefix/aaa", "70",
+                                                                                                   "branch10", "100")));
+
+    buildConf.forceCheckingForChanges();
+    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+
+    check(null,  m90, m80, m70, m60, m50, m40, m30, m20);
+    check(btLocator + ",branch:(name:master)", m80, m30, m20);
+    check(btLocator + ",branch:(name:<default>)", m80, m30, m20);
+    check(btLocator + ",branch:(name:branch1)", m90, m40);
+
+    check(btLocator + ",branch:(name:master),pending:true", m80);
+    check(btLocator + ",branch:(name:<default>),pending:true", m80);
+    check(btLocator + ",branch:(name:branch1),pending:true", m90);
+    check(btLocator + ",branch:(name:master),pending:false", m30, m20);
+    check(btLocator + ",branch:(name:<default>),pending:false", m30, m20);
+    check(btLocator + ",branch:(name:branch1),pending:false", m40);
+    check(btLocator + ",branch:(name:branch1),pending:any", m90, m40);
   }
 
   @Test

@@ -163,7 +163,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myFixture.addService(myQueuedBuildFinder);
 
     myChangeFinder = new ChangeFinder(myProjectFinder, myBuildFinder, myBuildPromotionFinder, myBuildTypeFinder, myVcsRootFinder, myVcsRootInstanceFinder, myUserFinder,
-                                      myVcsManager, myFixture.getVcsHistory(), myFixture, permissionChecker);
+                                      myVcsManager, myFixture.getVcsHistory(), myBranchFinder, myFixture, permissionChecker);
   }
 
   public void setFinder(@NotNull AbstractFinder<T> finder){

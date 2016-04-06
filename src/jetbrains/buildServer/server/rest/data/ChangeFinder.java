@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
@@ -75,6 +76,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   @NotNull private final VcsManager myVcsManager;
   @NotNull private final VcsModificationHistory myVcsModificationHistory;
   @NotNull private final ServiceLocator myServiceLocator;
+  @NotNull private final BranchFinder myBranchFinder;
 
   public ChangeFinder(@NotNull final ProjectFinder projectFinder,
                       @NotNull final BuildFinder buildFinder,
@@ -85,6 +87,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
                       @NotNull final UserFinder userFinder,
                       @NotNull final VcsManager vcsManager,
                       @NotNull final VcsModificationHistory vcsModificationHistory,
+                      @NotNull final BranchFinder branchFinder,
                       @NotNull final ServiceLocator serviceLocator, @NotNull final PermissionChecker permissionChecker) {
     super(new String[]{DIMENSION_ID, PROJECT, BUILD_TYPE, BUILD, VCS_ROOT, VCS_ROOT_INSTANCE, USERNAME, USER, VERSION, INTERNAL_VERSION, COMMENT, FILE,
       SINCE_CHANGE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
@@ -99,6 +102,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     myVcsManager = vcsManager;
     myVcsModificationHistory = vcsModificationHistory;
     myServiceLocator = serviceLocator;
+    myBranchFinder = branchFinder;
   }
 
   @Nullable
@@ -321,9 +325,9 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
     final Boolean pending = locator.getSingleDimensionValueAsBoolean(PENDING);
     if (pending != null) {
-      final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
+      final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE); //todo: support multiple buildTypes here
       final SBuildType buildType = buildTypeLocator == null ? null : myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
-      final List<SVcsModification> pendingChanges = getPendingChanges(BranchMatcher.getBranchName(locator.getSingleDimensionValue(BRANCH)), buildType);
+      final List<SVcsModification> pendingChanges = getPendingChanges(buildType, getFilterBranches(locator, buildType));
       result.add(new FilterConditionChecker<SVcsModification>() {
         public boolean isIncluded(@NotNull final SVcsModification item) {
           return FilterUtil.isIncludedByBooleanFilter(pending, pendingChanges.contains(item));
@@ -404,29 +408,27 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   @Override
   protected ItemHolder<SVcsModification> getPrefilteredItems(@NotNull final Locator locator) {
 
-    Boolean pending = locator.getSingleDimensionValueAsBoolean(PENDING);
-    String branchName = BranchMatcher.getBranchName(locator.getSingleDimensionValue(BRANCH));
-
     SBuildType buildType = null;
-    final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
+    final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE); //todo: support multiple buildTypes here
     if (buildTypeLocator != null) {
       buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
     }
 
+    @Nullable List<Branch> filterBranches = getFilterBranches(locator, buildType);
+
+    Boolean pending = locator.getSingleDimensionValueAsBoolean(PENDING);
     if (pending != null) {
       if (pending) {
-        return getItemHolder(getPendingChanges(branchName, buildType));
-      } else{
+        return getItemHolder(getPendingChanges(buildType, filterBranches));
+      } else {
         locator.markUnused(PENDING);
       }
     }
 
-    if (branchName != null) {
-      if (buildType == null) {
-        throw new BadRequestException("Filtering changes by branch is only supported when buildType is specified.");
-      }
-      return getItemHolder(getBranchChanges(buildType, branchName, SelectPrevBuildPolicy.SINCE_FIRST_BUILD));
+    if (filterBranches != null) {
+      return getItemHolder(getBranchChanges(buildType, filterBranches, SelectPrevBuildPolicy.SINCE_FIRST_BUILD));
     }
+
 
     final String userLocator = locator.getSingleDimensionValue(USER);
     if (userLocator != null) {
@@ -539,6 +541,26 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     return getItemHolder(myVcsModificationHistory.getAllModifications());
   }
 
+  @Nullable
+  private List<Branch> getFilterBranches(@NotNull final Locator locator, @Nullable final SBuildType buildType) {
+    String branchDimension = locator.getSingleDimensionValue(BRANCH);
+    if (branchDimension != null) {
+      if (buildType == null) {
+        throw new BadRequestException("Filtering changes by branch is only supported when buildType is specified.");
+      }
+      try {
+        //optimize if all branches are matched
+        if (myBranchFinder.isAnyBranch(branchDimension)) {
+          return null;
+        }
+        return myBranchFinder.getItems(buildType, branchDimension).myEntries;
+      } catch (LocatorProcessException e) {
+        throw new BadRequestException("Error in branch locator '" + branchDimension + "': " + e.getMessage(), e);
+      }
+    }
+    return null;
+  }
+
   private static List<SVcsModification> getModificationsByIds(final List<Long> ids, final VcsManager vcsManager) {
     return CollectionsUtil.convertAndFilterNulls(ids, new Converter<SVcsModification, Long>() {
       @Override
@@ -549,12 +571,12 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   }
 
   @NotNull
-  private List<SVcsModification> getPendingChanges(@Nullable final String branchName, @Nullable final SBuildType buildType) {
+  private List<SVcsModification> getPendingChanges(@Nullable final SBuildType buildType, @Nullable final List<Branch> filterBranches) {
     if (buildType == null) {
       throw new BadRequestException("Getting pending changes is only supported when buildType is specified.");
     }
-    if (branchName != null) {
-      return getBranchChanges(buildType, branchName, SelectPrevBuildPolicy.SINCE_LAST_BUILD);
+    if (filterBranches != null) {
+      return getBranchChanges(buildType, filterBranches, SelectPrevBuildPolicy.SINCE_LAST_BUILD);
     }
     return buildType.getPendingChanges();
   }
@@ -595,12 +617,15 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   }
 
 
-  private List<SVcsModification> getBranchChanges(@NotNull final SBuildType buildType, @NotNull final String branchName, @NotNull final SelectPrevBuildPolicy policy) {
+  @NotNull
+  private List<SVcsModification> getBranchChanges(@NotNull final SBuildType buildType, @NotNull final List<Branch> filterBranches, @NotNull final SelectPrevBuildPolicy policy) {
     //todo: buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES) == false => do not include???
     //todo: 2 - allow to set the option in request
     final boolean includeDependencyChanges = TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) || !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES);
-    final List<ChangeDescriptor> changes =
-      ((BuildTypeEx)buildType).getBranchByDisplayName(branchName).getDetectedChanges(policy, includeDependencyChanges);
+    final List<ChangeDescriptor> changes = new ArrayList<>();
+    for (Branch branch : filterBranches) {
+      changes.addAll(((BranchEx)branch).getDetectedChanges(policy, includeDependencyChanges)); //TeamCity API issue: cast
+    }
     return convertChanges(changes);
   }
 
@@ -646,6 +671,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     return convertChanges(changes);
   }
 
+  @NotNull
   private static ArrayList<SVcsModification> convertChanges(final List<ChangeDescriptor> changes) {
     final ArrayList<SVcsModification> result = new ArrayList<SVcsModification>();
     for (ChangeDescriptor change : changes) {

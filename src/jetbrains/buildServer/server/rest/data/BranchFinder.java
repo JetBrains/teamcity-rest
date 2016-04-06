@@ -72,9 +72,12 @@ public class BranchFinder extends AbstractFinder<Branch> {
   @SuppressWarnings("UnnecessaryLocalVariable")
   @NotNull
   public BranchFilterDetails getBranchFilterDetailsWithoutLocatorCheck(@NotNull final String branchLocator) {
-    final Locator locator = Locator.createLocator(branchLocator, null, getKnownDimensions());
-    final BranchFilterDetails branchFilterDetails = getBranchFilterDetails(locator);
-    return branchFilterDetails;
+    return getBranchFilterDetails(createLocator(branchLocator, null));
+  }
+
+  public boolean isAnyBranch(@Nullable final String branchLocator) {
+    if (branchLocator == null) return true;
+    return getBranchFilterDetailsWithoutLocatorCheck(branchLocator).isAnyBranch();
   }
 
   @NotNull
@@ -153,7 +156,8 @@ public class BranchFinder extends AbstractFinder<Branch> {
       });
     }
 
-    result.matchesAllBranches = filter.getSubFiltersCount() == 0;
+    result.matchesAllBranches = filter.getSubFiltersCount() == 0 &&
+                                locator.getUnusedDimensions().isEmpty(); //e.g. "count" or "item" dimension is present
     return result;
   }
 
@@ -169,7 +173,7 @@ public class BranchFinder extends AbstractFinder<Branch> {
   protected ItemHolder<Branch> getPrefilteredItems(@NotNull final Locator locator) {
     final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
     if (buildTypeLocator == null) {
-      throw new BadRequestException("No '" + BUILD_TYPE + "' dimension present but it is mandatory for searching branches by policy.");
+      throw new BadRequestException("No '" + BUILD_TYPE + "' dimension is present but it is required for searching branches. Locator: '" + locator.getStringRepresentation() + "'");
     }
     final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
 
@@ -237,7 +241,11 @@ public class BranchFinder extends AbstractFinder<Branch> {
 
   @NotNull
   public PagedSearchResult<Branch> getItems(@NotNull SBuildType buildType, @Nullable final String locatorText) {
-    return getItems(Locator.setDimensionIfNotPresent(locatorText, BUILD_TYPE, myBuildTypeFinder.getItemLocator(new BuildTypeOrTemplate(buildType))));
+    String baseLocator = locatorText;
+    if (locatorText != null && new Locator(locatorText).isSingleValue()) {
+      baseLocator = Locator.getStringLocator(NAME, locatorText);
+    }
+    return getItems(Locator.setDimensionIfNotPresent(baseLocator, BUILD_TYPE, myBuildTypeFinder.getItemLocator(new BuildTypeOrTemplate(buildType))));
   }
 
   @Nullable
