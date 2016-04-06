@@ -48,7 +48,7 @@ import org.jetbrains.annotations.Nullable;
  * Date: 12.04.2009
  */
 @XmlRootElement(name = "user")
-@XmlType(name = "user", propOrder = {"username", "name", "id", "email", "lastLogin", "password", "href",
+@XmlType(name = "user", propOrder = {"username", "name", "id", "email", "lastLogin", "password", "realm" /*obsolete*/, "href",
   "properties", "roles", "groups",
   "locator"/*only when triggering*/})
 public class User {
@@ -94,8 +94,9 @@ public class User {
 
   @XmlAttribute
   public String getLastLogin() {
-    return myUser == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("lastLogin", false), new ValueWithDefault.Value<String>() {
+    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("lastLogin", false), new ValueWithDefault.Value<String>() {
       public String get() {
+        myContext.getSingletonService(UserFinder.class).checkViewUserPermission(myUser);
         Date lastLoginTimestamp = myUser.getLastLoginTimestamp();
         if (lastLoginTimestamp != null) {
           return Util.formatTime(lastLoginTimestamp);
