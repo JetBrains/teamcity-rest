@@ -36,6 +36,9 @@ public class BeanContext {
     myApiUrlBuilder = apiUrlBuilder;
   }
 
+  /**
+   * @deprecated let's not use this at all
+   */
   public <T> void autowire(T t){
     myFactory.autowire(t);
   }

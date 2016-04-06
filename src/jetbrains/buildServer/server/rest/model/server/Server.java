@@ -37,7 +37,6 @@ import jetbrains.buildServer.serverSide.ServerSettings;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author Yegor.Yarko
@@ -47,12 +46,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 @XmlType(name = "server", propOrder={"version", "versionMajor", "versionMinor", "startTime", "currentTime", "buildNumber", "buildDate", "internalId", "webUrl",
 "projects", "vcsRoots", "builds", "users", "userGroups", "agents", "buildQueue", "agentPools"})
 public class Server {
-  @Autowired
   private SBuildServer myServer;
-  @Autowired
   private ServerSettings myServerSettings;
-  @Autowired
-  private DataProvider myDataProvider;
 
   private BeanContext myBeanContext;
   private ApiUrlBuilder myApiUrlBuilder;
@@ -62,7 +57,8 @@ public class Server {
 
   public Server(final BeanContext beanContext) {
     myBeanContext = beanContext;
-    beanContext.autowire(this);
+    myServer = beanContext.getSingletonService(SBuildServer.class);
+    myServerSettings = beanContext.getSingletonService(ServerSettings.class);
     myApiUrlBuilder = beanContext.getContextService(ApiUrlBuilder.class);
   }
 

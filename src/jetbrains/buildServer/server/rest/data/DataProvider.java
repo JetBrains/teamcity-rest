@@ -189,16 +189,6 @@ public class DataProvider {
   }
 
 
-  @NotNull
-  public String getBuildUrl(SBuild build) {
-    return myWebLinks.getViewResultsUrl(build);
-  }
-
-  @NotNull
-  public String getBuildTypeUrl(SBuildType buildType) {
-    return myWebLinks.getConfigurationHomePageUrl(buildType);
-  }
-
   //todo: replace usages with TimeWithPrecision.parse
   @Nullable
   public static Date parseDate(@Nullable final String dateString) {

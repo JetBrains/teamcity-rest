@@ -79,7 +79,6 @@ import jetbrains.buildServer.vcs.VcsModificationHistory;
 import org.apache.commons.codec.binary.Hex;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * User: Yegor Yarko
@@ -116,8 +115,7 @@ public class Build {
 
   @NotNull final protected Fields myFields;
   @NotNull final private BeanContext myBeanContext;
-  @Autowired @NotNull private DataProvider myDataProvider;
-  @Autowired @NotNull private ServiceLocator myServiceLocator;
+  @NotNull private ServiceLocator myServiceLocator;
 
   @SuppressWarnings("ConstantConditions")
   public Build() {
@@ -127,7 +125,6 @@ public class Build {
 
     myFields = null;
     myBeanContext = null;
-    myDataProvider = null;
     myServiceLocator = null;
   }
 
@@ -137,7 +134,7 @@ public class Build {
     myQueuedBuild = null;
 
     myBeanContext = beanContext;
-    beanContext.autowire(this);
+    myServiceLocator = beanContext.getServiceLocator();
     myFields = fields;
   }
 
@@ -157,7 +154,7 @@ public class Build {
     }
 
     myBeanContext = beanContext;
-    beanContext.autowire(this);
+    myServiceLocator = beanContext.getServiceLocator();
     myFields = fields;
   }
 
@@ -264,7 +261,7 @@ public class Build {
   public String getWebUrl() {
     String result = null;
     if (myBuild != null) {
-      result = myDataProvider.getBuildUrl(myBuild);
+      result = myServiceLocator.getSingletonService(WebLinks.class).getViewResultsUrl(myBuild);
     } else if (myQueuedBuild != null) {
       result = myServiceLocator.getSingletonService(WebLinks.class).getQueuedBuildUrl(myQueuedBuild);
     }
