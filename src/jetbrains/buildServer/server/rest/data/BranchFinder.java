@@ -38,6 +38,8 @@ public class BranchFinder extends AbstractFinder<Branch> {
   protected static final String DEFAULT = "default";
   protected static final String UNSPECIFIED = "unspecified";
   protected static final String BRANCHED = "branched";
+  private static final String NAME_CONDITION = "nameCondition";
+  private static final String DISPLAY_NAME_CONDITION = "displayNameCondition";
 
   protected static final String POLICY = "policy";
   protected static final String CHANGES_FROM_DEPENDENCIES = "changesFromDependencies";   //todo: revise naming
@@ -56,6 +58,8 @@ public class BranchFinder extends AbstractFinder<Branch> {
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator result = super.createLocator(locatorText, locatorDefaults);
     result.addHiddenDimensions(BRANCHED);
+    result.addHiddenDimensions(NAME_CONDITION); /*experimental*/
+    result.addHiddenDimensions(DISPLAY_NAME_CONDITION); /*experimental*/
     return result;
   }
 
@@ -118,6 +122,26 @@ public class BranchFinder extends AbstractFinder<Branch> {
         @Override
         public boolean isIncluded(@NotNull final Branch item) {
           return nameDimension.equalsIgnoreCase(item.getDisplayName()) || nameDimension.equalsIgnoreCase(item.getName());
+        }
+      });
+    }
+
+    final String nameCondition = locator.getSingleDimensionValue(NAME_CONDITION);
+    if (nameCondition != null) {
+      final ParameterCondition parameterCondition = ParameterCondition.create(nameCondition);
+      filter.add(new FilterConditionChecker<Branch>() {
+        public boolean isIncluded(@NotNull final Branch item) {
+          return parameterCondition.matches(item.getName());
+        }
+      });
+    }
+
+    final String displayNameCondition = locator.getSingleDimensionValue(DISPLAY_NAME_CONDITION);
+    if (displayNameCondition != null) {
+      final ParameterCondition parameterCondition = ParameterCondition.create(displayNameCondition);
+      filter.add(new FilterConditionChecker<Branch>() {
+        public boolean isIncluded(@NotNull final Branch item) {
+          return parameterCondition.matches(item.getDisplayName());
         }
       });
     }
