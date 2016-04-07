@@ -17,9 +17,11 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.*;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.impl.RunningBuildsManagerEx;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.TimeService;
@@ -30,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 23/11/2015
  */
-public class TimeCondition implements Matcher<Date> {
+public class TimeCondition {
   public static final String DATE_CONDITION_EQUALS = "equals";
   public static final String DATE_CONDITION_BEFORE = "before";
   public static final String DATE_CONDITION_AFTER = "after";
@@ -65,40 +67,45 @@ public class TimeCondition implements Matcher<Date> {
     });
   }
 
-
-  @NotNull private final String myTimeLocator;
-  @Nullable private final ValueExtractor<BuildPromotion, Date> myBuildValueExtractor;
   @NotNull private final TimeService myTimeService;
-  @Nullable private TimeWithPrecision myLimitingSinceDate;
-  @NotNull private TimeWithPrecision myLimitingDate;
-  private Condition<Date> myCondition;
+  @NotNull private final ServiceLocator myServiceLocator;
+  @Nullable private final ValueExtractor<BuildPromotion, Date> myDefaultBuildValueExtractor;
 
-  public TimeCondition(@NotNull String timeLocator,
-                       @NotNull final ValueExtractor<BuildPromotion, Date> buildValueExtractor,
-                       @NotNull final BuildPromotionFinder buildPromotionFinder,
-                       @NotNull final TimeService timeService) {
-    myTimeLocator = timeLocator;
-    myBuildValueExtractor = buildValueExtractor;
-    myTimeService = timeService;
-    init(buildPromotionFinder);
+  public TimeCondition(@NotNull final ServiceLocator serviceLocator) {
+    //need BuildPromotionFinder, but do not use that because of the cyclic dependency
+    myServiceLocator = serviceLocator;
+    myDefaultBuildValueExtractor = STARTED_BUILD_TIME;
+    myTimeService = serviceLocator.getSingletonService(RunningBuildsManagerEx.class).getTimeService();
   }
 
-  public TimeCondition(@NotNull String timeLocator, @NotNull final TimeService timeService) {
-    myTimeLocator = timeLocator;
-    myTimeService = timeService;
-    myBuildValueExtractor = null;
-    init(null);
+  private BuildPromotionFinder myBuildPromotionFinder;
+
+  @NotNull
+  private BuildPromotionFinder getBuildPromotionFinder() {
+    if (myBuildPromotionFinder == null) {
+      myBuildPromotionFinder = myServiceLocator.getSingletonService(BuildPromotionFinder.class);
+    }
+    return myBuildPromotionFinder;
   }
+
+  /**
+    * @return Date is included if it can be used for cutting processing. 'null' if no dimension is defined
+    */
+   @Nullable
+   <T> FilterAndLimitingDate<T> processTimeConditions(@NotNull final String locatorDimension,
+                                                      @NotNull final Locator locator,
+                                                      @NotNull final ValueExtractor<T, Date> valueExtractor) {
+     return processTimeConditions(locatorDimension, locator, valueExtractor, null);
+   }
 
   /**
    * @return Date is included if it can be used for cutting processing. 'null' if no dimension is defined
    */
   @Nullable
-  static <T> FilterAndLimitingDate<T> processTimeConditions(@NotNull final String locatorDimension,
-                                                            @NotNull final Locator locator,
-                                                            @NotNull final ValueExtractor<T, Date> valueExtractor,
-                                                            @Nullable final ValueExtractor<BuildPromotion, Date> buildValueExtractor, @Nullable final BuildPromotionFinder finder,
-                                                            @NotNull final TimeService timeService) {
+  <T> FilterAndLimitingDate<T> processTimeConditions(@NotNull final String locatorDimension,
+                                                     @NotNull final Locator locator,
+                                                     @NotNull final ValueExtractor<T, Date> valueExtractor,
+                                                     @Nullable final ValueExtractor<BuildPromotion, Date> buildValueExtractor) {
     final List<String> timeLocators = locator.getDimensionValue(locatorDimension);
     if (timeLocators.isEmpty())
       return null;
@@ -106,7 +113,7 @@ public class TimeCondition implements Matcher<Date> {
     Date resultDate = null;
     for (String timeLocator : timeLocators) {
       try {
-        FilterAndLimitingDate<T> filterAndLimitingDate = processTimeCondition(timeLocator, valueExtractor, buildValueExtractor, finder, timeService);
+        FilterAndLimitingDate<T> filterAndLimitingDate = processTimeCondition(timeLocator, valueExtractor, buildValueExtractor);
         resultFilter.add(filterAndLimitingDate.getFilter());
         resultDate = maxDate(resultDate, filterAndLimitingDate.getLimitingDate());
       } catch (BadRequestException e) {
@@ -120,16 +127,14 @@ public class TimeCondition implements Matcher<Date> {
    * @return Date if it can be used for cutting builds processing
    */
   @NotNull
-  private static <T> FilterAndLimitingDate<T> processTimeCondition(@NotNull final String timeLocatorText,
-                                                                   @NotNull final ValueExtractor<T, Date> valueExtractor,
-                                                                   @Nullable final ValueExtractor<BuildPromotion, Date> buildValueExtractor,
-                                                                   @Nullable final BuildPromotionFinder finder,
-                                                                   @NotNull final TimeService timeService) {
-    TimeCondition matcher;
-    if (buildValueExtractor == null || finder == null){
-      matcher = new TimeCondition(timeLocatorText, timeService);
+  private <T> FilterAndLimitingDate<T> processTimeCondition(@NotNull final String timeLocatorText,
+                                                            @NotNull final ValueExtractor<T, Date> valueExtractor,
+                                                            @Nullable final ValueExtractor<BuildPromotion, Date> buildValueExtractor) {
+    ParsedTimeCondition matcher;
+    if (buildValueExtractor == null) {
+      matcher = getTimeCondition(timeLocatorText);
     }else{
-      matcher = new TimeCondition(timeLocatorText, buildValueExtractor, finder, timeService);
+      matcher = getTimeCondition(timeLocatorText, buildValueExtractor);
     }
     FilterConditionChecker<T> filter = new FilterConditionChecker<T>() {
       @Override
@@ -144,31 +149,39 @@ public class TimeCondition implements Matcher<Date> {
     return new FilterAndLimitingDate<T>(filter, matcher.getLimitingSinceDate());
   }
 
-  private void init(@Nullable final BuildPromotionFinder buildPromotionFinder) {
-    boolean buildIsSupported = buildPromotionFinder != null && myBuildValueExtractor != null;
+  @NotNull
+  public ParsedTimeCondition getTimeCondition(@NotNull final String timeLocatorText) {
+    return getTimeCondition(timeLocatorText, myDefaultBuildValueExtractor);
+  }
+
+  @NotNull
+  private ParsedTimeCondition getTimeCondition(@NotNull final String timeLocatorText, @Nullable final ValueExtractor<BuildPromotion, Date> buildValueExtractor) {
+    @NotNull TimeWithPrecision limitingDate;
+
+    boolean buildIsSupported = buildValueExtractor != null;
     final Locator timeLocator = buildIsSupported ?
-                                new Locator(myTimeLocator, DATE, BUILD, CONDITION, INCLUDE_INITIAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME) :
-                                new Locator(myTimeLocator, DATE, CONDITION, INCLUDE_INITIAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+                                new Locator(timeLocatorText, DATE, BUILD, CONDITION, INCLUDE_INITIAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME) :
+                                new Locator(timeLocatorText, DATE, CONDITION, INCLUDE_INITIAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     timeLocator.addHiddenDimensions(SHIFT);
     final String time = timeLocator.getSingleValue();
     if (time != null) {
-      myLimitingDate = TimeWithPrecision.parse(time, myTimeService);
+      limitingDate = TimeWithPrecision.parse(time, myTimeService);
     } else {
       final String shift = timeLocator.getSingleDimensionValue(SHIFT);
       final String dateDimension = timeLocator.getSingleDimensionValue(DATE);
       if (dateDimension != null) {
-        myLimitingDate = TimeWithPrecision.parse(dateDimension, myTimeService);
+        limitingDate = TimeWithPrecision.parse(dateDimension, myTimeService);
       } else {
         if (buildIsSupported) {
           String build = timeLocator.getSingleDimensionValue(BUILD);
           if (build != null) {
-            Date timeFromBuild = myBuildValueExtractor.get(buildPromotionFinder.getItem(build));
+            Date timeFromBuild = buildValueExtractor.get(getBuildPromotionFinder().getItem(build));
             if (timeFromBuild == null) {
               throw new BadRequestException("Cannot determine time from build found by locator '" + build + "'");
             }
-            myLimitingDate = new TimeWithPrecision(timeFromBuild, false);
+            limitingDate = new TimeWithPrecision(timeFromBuild, false);
           } else if (shift != null) {
-            myLimitingDate = new TimeWithPrecision(new Date(myTimeService.now()), false);
+            limitingDate = new TimeWithPrecision(new Date(myTimeService.now()), false);
           } else {
             throw new BadRequestException("Invalid locator: should contain '" + DATE + "' or '" + BUILD + "' dimensions or be relative time offset starting with '-'.");
           }
@@ -179,11 +192,11 @@ public class TimeCondition implements Matcher<Date> {
 
       if (shift != null) {
         if (shift.startsWith("-")) {
-          myLimitingDate = new TimeWithPrecision(new Date(myLimitingDate.getTime().getTime() - TimeWithPrecision.getMsFromRelativeTime(shift.substring("-".length()))),
-                                                 myLimitingDate.isSecondsPrecision());
+          limitingDate = new TimeWithPrecision(new Date(limitingDate.getTime().getTime() - TimeWithPrecision.getMsFromRelativeTime(shift.substring("-".length()))),
+                                               limitingDate.isSecondsPrecision());
         } else if (shift.startsWith("+")) {
-          myLimitingDate = new TimeWithPrecision(new Date(myLimitingDate.getTime().getTime() + TimeWithPrecision.getMsFromRelativeTime(shift.substring("+".length()))),
-                                                 myLimitingDate.isSecondsPrecision());
+          limitingDate = new TimeWithPrecision(new Date(limitingDate.getTime().getTime() + TimeWithPrecision.getMsFromRelativeTime(shift.substring("+".length()))),
+                                               limitingDate.isSecondsPrecision());
         } else {
           throw new BadRequestException("Wrong value '" + shift + "' for '" + SHIFT + "' dimension: should start with '+' or '-'.");
         }
@@ -217,7 +230,7 @@ public class TimeCondition implements Matcher<Date> {
       };
     }
 
-    if (myLimitingDate.isSecondsPrecision()) {
+    if (limitingDate.isSecondsPrecision()) {
       final Condition<Date> currentCondition = resultingCondition;
       resultingCondition = new Condition<Date>() {
         @Override
@@ -231,23 +244,37 @@ public class TimeCondition implements Matcher<Date> {
       };
     }
 
-    myCondition = resultingCondition;
-    myLimitingSinceDate = DATE_CONDITION_AFTER.equals(conditionName) || DATE_CONDITION_EQUALS.equals(conditionName) ? myLimitingDate : null;
+    @Nullable TimeWithPrecision limitingSinceDate = DATE_CONDITION_AFTER.equals(conditionName) || DATE_CONDITION_EQUALS.equals(conditionName) ? limitingDate : null;
+    return new ParsedTimeCondition(limitingSinceDate, limitingDate, resultingCondition);
   }
 
-  @Override
-  public boolean matches(@NotNull final Date date) {
-    return myCondition.matches(myLimitingDate.getTime(), date);
-  }
+  public class ParsedTimeCondition implements Matcher<Date> {
+    @Nullable private final TimeWithPrecision myLimitingSinceDate;
+    @NotNull private final TimeWithPrecision myLimitingDate;
+    @NotNull private final Condition<Date> myCondition;
 
-  @NotNull
-  public Date getLimitingDate() {
-    return myLimitingDate.getTime();
-  }
+    public ParsedTimeCondition(@Nullable final TimeWithPrecision limitingSinceDate,
+                               @NotNull final TimeWithPrecision limitingDate,
+                               @NotNull final Condition<Date> condition) {
+      myLimitingSinceDate = limitingSinceDate;
+      myLimitingDate = limitingDate;
+      myCondition = condition;
+    }
 
-  @Nullable
-  public Date getLimitingSinceDate() {
-    return myLimitingSinceDate == null ? null : myLimitingSinceDate.getTime();
+    @Override
+    public boolean matches(@NotNull final Date date) {
+      return myCondition.matches(myLimitingDate.getTime(), date);
+    }
+
+    @NotNull
+    public Date getLimitingDate() {
+      return myLimitingDate.getTime();
+    }
+
+    @Nullable
+    public Date getLimitingSinceDate() {
+      return myLimitingSinceDate == null ? null : myLimitingSinceDate.getTime();
+    }
   }
 
   @Nullable
@@ -282,7 +309,7 @@ public class TimeCondition implements Matcher<Date> {
       return associatedBuild == null ? null : associatedBuild.getStartDate();
     }
   };
-  public static final ValueExtractor<BuildPromotion, Date> FINISHED_BULLD_TIME = new ValueExtractor<BuildPromotion, Date>() {
+  public static final ValueExtractor<BuildPromotion, Date> FINISHED_BUILD_TIME = new ValueExtractor<BuildPromotion, Date>() {
     @Nullable
     public Date get(@NotNull final BuildPromotion buildPromotion) {
       final SBuild associatedBuild = buildPromotion.getAssociatedBuild();

@@ -35,11 +35,9 @@ import jetbrains.buildServer.serverSide.artifacts.BuildArtifactHolder;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifacts;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactsViewMode;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
-import jetbrains.buildServer.serverSide.impl.RunningBuildsManagerEx;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.util.TimeService;
 import jetbrains.buildServer.util.browser.*;
 import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.util.pathMatcher.AntPatternTreeMatcher;
@@ -74,12 +72,12 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
 
 
   @NotNull private final Element myBaseElement;
-  private final TimeService myTimeService;
+  @NotNull private final TimeCondition myTimeCondition;
 
-  public BuildArtifactsFinder(@NotNull final Element baseElement, final RunningBuildsManagerEx timeServiceContainer) {
+  public BuildArtifactsFinder(@NotNull final Element baseElement, @NotNull final TimeCondition timeCondition) {
     super(HIDDEN_DIMENSION_NAME, ARCHIVES_DIMENSION_NAME, DIRECTORY_DIMENSION_NAME, DIMENSION_RECURSIVE, DIMENSION_PATTERNS, DIMENSION_MODIFIED);
     myBaseElement = baseElement;
-    myTimeService = timeServiceContainer.getTimeService();
+    myTimeCondition = timeCondition;
   }
 
   @NotNull
@@ -94,14 +92,14 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
     final MultiCheckerFilter<ArtifactTreeElement> result = new MultiCheckerFilter<ArtifactTreeElement>();
 
     TimeCondition.FilterAndLimitingDate<ArtifactTreeElement> dateFiltering =
-      TimeCondition.processTimeConditions(DIMENSION_MODIFIED, locator, new TimeCondition.ValueExtractor<ArtifactTreeElement, Date>() {
+      myTimeCondition.processTimeConditions(DIMENSION_MODIFIED, locator, new TimeCondition.ValueExtractor<ArtifactTreeElement, Date>() {
         @Nullable
         @Override
         public Date get(@NotNull final ArtifactTreeElement artifactTreeElement) {
           Long lastModified = artifactTreeElement.getLastModified();
           return lastModified == null ? null : new Date(lastModified);
         }
-      }, null, null, myTimeService);
+      }, null);
 
     if (dateFiltering != null){
       result.add(dateFiltering.getFilter());
@@ -165,7 +163,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
       throw new BadRequestException("Cannot provide children list for file '" + initialElement.getFullName() + "'." + additionalMessage);
     }
 
-    return new BuildArtifactsFinder(initialElement, serviceLocator.getSingletonService(RunningBuildsManagerEx.class)).getItems(filesLocator).myEntries;
+    return new BuildArtifactsFinder(initialElement, serviceLocator.getSingletonService(TimeCondition.class)).getItems(filesLocator).myEntries;
   }
 
   @NotNull

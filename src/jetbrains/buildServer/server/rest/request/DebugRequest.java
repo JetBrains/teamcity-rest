@@ -55,7 +55,6 @@ import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
 import jetbrains.buildServer.serverSide.db.*;
 import jetbrains.buildServer.serverSide.db.queries.GenericQuery;
 import jetbrains.buildServer.serverSide.db.queries.QueryOptions;
-import jetbrains.buildServer.serverSide.impl.RunningBuildsManagerEx;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.filters.Filter;
@@ -286,9 +285,7 @@ public class DebugRequest {
     try {
       limitingDate = new Date(Long.valueOf(dateLocator));
     } catch (NumberFormatException e) {
-      limitingDate = new TimeCondition(dateLocator, TimeCondition.STARTED_BUILD_TIME,
-                                       myServiceLocator.getSingletonService(BuildPromotionFinder.class),
-                                       myServiceLocator.getSingletonService(RunningBuildsManagerEx.class).getTimeService()).getLimitingDate();
+      limitingDate = myServiceLocator.getSingletonService(TimeCondition.class).getTimeCondition(dateLocator).getLimitingSinceDate();
     }
 
     if (format != null) {

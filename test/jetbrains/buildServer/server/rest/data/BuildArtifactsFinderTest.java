@@ -105,6 +105,9 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     myFixture.createNewServer();
     myFixture.loadConfigurationFromDiskAndFireStartup();
 
+    TimeCondition timeCondition = new TimeCondition(myFixture);
+    myFixture.addService(timeCondition);
+
     final SRunningBuild runningBuild = myFixture.startBuild();
     myBuildWithArtifacts = myFixture.finishBuild(runningBuild, false);
 

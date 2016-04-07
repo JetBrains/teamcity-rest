@@ -124,6 +124,9 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
     myFixture.addService(permissionChecker);
 
+    TimeCondition timeCondition = new TimeCondition(myFixture);
+    myFixture.addService(timeCondition);
+
     myGroupFinder = new UserGroupFinder(getUserGroupManager());
     myFixture.addService(myGroupFinder);
     myUserFinder = new UserFinder(getUserModelEx(), myGroupFinder, permissionChecker, myServer.getSecurityContext());
@@ -132,7 +135,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myBranchFinder = new BranchFinder(myBuildTypeFinder);
 
     myBuildPromotionFinder = new BuildPromotionFinder(myFixture.getBuildPromotionManager(), myFixture.getBuildQueue(), myServer, myVcsRootFinder,
-                                                      myProjectFinder, myBuildTypeFinder, myUserFinder, myAgentFinder, myBranchFinder, myServer, null);
+                                                      myProjectFinder, myBuildTypeFinder, myUserFinder, myAgentFinder, myBranchFinder, timeCondition, null);
     myFixture.addService(myBuildPromotionFinder);
 
     myBuildFinder = new BuildFinder(myServer, myBuildTypeFinder, myProjectFinder, myUserFinder, myBuildPromotionFinder, myAgentFinder);

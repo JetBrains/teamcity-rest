@@ -30,11 +30,13 @@ import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
-import jetbrains.buildServer.serverSide.impl.RunningBuildsManagerEx;
 import jetbrains.buildServer.serverSide.metadata.BuildMetadataEntry;
 import jetbrains.buildServer.serverSide.metadata.impl.MetadataStorageEx;
 import jetbrains.buildServer.users.SUser;
-import jetbrains.buildServer.util.*;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
+import jetbrains.buildServer.util.ItemProcessor;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
@@ -111,7 +113,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private final AgentFinder myAgentFinder;
   private final BranchFinder myBranchFinder;
   private final MetadataStorageEx myMetadataStorage;
-  private final TimeService myTimeService;
+  private final TimeCondition myTimeCondition;
 
   @NotNull
   public static String getLocator(@NotNull final BuildPromotion buildPromotion) {
@@ -133,7 +135,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                               final UserFinder userFinder,
                               final AgentFinder agentFinder,
                               final BranchFinder branchFinder,
-                              final RunningBuildsManagerEx timeServiceContainer,
+                              final TimeCondition timeCondition,
                               final MetadataStorageEx metadataStorage) {
     super(DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, USER, PERSONAL, STATE, TAG, PROPERTY, COMPATIBLE_AGENT,
           NUMBER, STATUS, CANCELED, PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, HANGING,
@@ -149,7 +151,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     myAgentFinder = agentFinder;
     myBranchFinder = branchFinder;
     myMetadataStorage = metadataStorage;
-    myTimeService = timeServiceContainer.getTimeService();
+    myTimeCondition = timeCondition;
   }
 
   @Override
@@ -594,11 +596,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     }
 
     TimeCondition.FilterAndLimitingDate<BuildPromotion> queuedFiltering =
-      TimeCondition.processTimeConditions(QUEUED_TIME, locator, TimeCondition.QUEUED_BUILD_TIME, TimeCondition.QUEUED_BUILD_TIME, this, myTimeService);
+      myTimeCondition.processTimeConditions(QUEUED_TIME, locator, TimeCondition.QUEUED_BUILD_TIME, TimeCondition.QUEUED_BUILD_TIME);
     if (queuedFiltering != null) result.add(queuedFiltering.getFilter());
 
     TimeCondition.FilterAndLimitingDate<BuildPromotion> startedFiltering =
-      TimeCondition.processTimeConditions(STARTED_TIME, locator, TimeCondition.STARTED_BUILD_TIME, TimeCondition.STARTED_BUILD_TIME, this, myTimeService);
+      myTimeCondition.processTimeConditions(STARTED_TIME, locator, TimeCondition.STARTED_BUILD_TIME, TimeCondition.STARTED_BUILD_TIME);
     @Nullable Date sinceStartDate = null;
     if (startedFiltering != null) {
       result.add(startedFiltering.getFilter());
@@ -607,7 +609,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     //todo: add processing cut of based on assumption of max build time (say, a week); for other times as well
     TimeCondition.FilterAndLimitingDate<BuildPromotion> finishFiltering =
-      TimeCondition.processTimeConditions(FINISHED_TIME, locator, TimeCondition.FINISHED_BULLD_TIME, TimeCondition.FINISHED_BULLD_TIME, this, myTimeService);
+      myTimeCondition.processTimeConditions(FINISHED_TIME, locator, TimeCondition.FINISHED_BUILD_TIME, TimeCondition.FINISHED_BUILD_TIME);
     if (finishFiltering != null) result.add(finishFiltering.getFilter());
 
     final String revisionLocatorText = locator.getSingleDimensionValue(REVISION);
