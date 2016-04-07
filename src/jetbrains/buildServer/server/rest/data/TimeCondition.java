@@ -97,7 +97,7 @@ public class TimeCondition implements Matcher<Date> {
   static <T> FilterAndLimitingDate<T> processTimeConditions(@NotNull final String locatorDimension,
                                                             @NotNull final Locator locator,
                                                             @NotNull final ValueExtractor<T, Date> valueExtractor,
-                                                            @NotNull final ValueExtractor<BuildPromotion, Date> buildValueExtractor, @NotNull final BuildPromotionFinder finder,
+                                                            @Nullable final ValueExtractor<BuildPromotion, Date> buildValueExtractor, @Nullable final BuildPromotionFinder finder,
                                                             @NotNull final TimeService timeService) {
     final List<String> timeLocators = locator.getDimensionValue(locatorDimension);
     if (timeLocators.isEmpty())
@@ -122,10 +122,15 @@ public class TimeCondition implements Matcher<Date> {
   @NotNull
   private static <T> FilterAndLimitingDate<T> processTimeCondition(@NotNull final String timeLocatorText,
                                                                    @NotNull final ValueExtractor<T, Date> valueExtractor,
-                                                                   @NotNull final ValueExtractor<BuildPromotion, Date> buildValueExtractor,
-                                                                   @NotNull final BuildPromotionFinder finder,
+                                                                   @Nullable final ValueExtractor<BuildPromotion, Date> buildValueExtractor,
+                                                                   @Nullable final BuildPromotionFinder finder,
                                                                    @NotNull final TimeService timeService) {
-    TimeCondition matcher = new TimeCondition(timeLocatorText, buildValueExtractor, finder, timeService);
+    TimeCondition matcher;
+    if (buildValueExtractor == null || finder == null){
+      matcher = new TimeCondition(timeLocatorText, timeService);
+    }else{
+      matcher = new TimeCondition(timeLocatorText, buildValueExtractor, finder, timeService);
+    }
     FilterConditionChecker<T> filter = new FilterConditionChecker<T>() {
       @Override
       public boolean isIncluded(@NotNull final T item) {

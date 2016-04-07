@@ -93,64 +93,22 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
   protected ItemFilter<ArtifactTreeElement> getFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<ArtifactTreeElement> result = new MultiCheckerFilter<ArtifactTreeElement>();
 
-    processTimeCondition(DIMENSION_MODIFIED, locator, result, new TimeCondition.ValueExtractor<ArtifactTreeElement, Date>() {
-      @Nullable
-      @Override
-      public Date get(@NotNull final ArtifactTreeElement artifactTreeElement) {
-        Long lastModified = artifactTreeElement.getLastModified();
-        return lastModified == null ? null : new Date(lastModified);
-      }
-    });
-
-    return result;
-  }
-
-  /**
-   * See also jetbrains.buildServer.server.rest.data.BuildPromotionFinder#processTimeCondition
-   * @return Date if it can be used for stopping older items processing
-   */
-  @Nullable
-  private Date processTimeCondition(@NotNull final String locatorDimension,
-                                    @NotNull final Locator locator,
-                                    @NotNull final MultiCheckerFilter<ArtifactTreeElement> filter,
-                                    @NotNull final TimeCondition.ValueExtractor<ArtifactTreeElement, Date> valueExtractor) {
-    final List<String> timeLocators = locator.getDimensionValue(locatorDimension);
-    if (timeLocators.isEmpty())
-      return null;
-    Date result = null;
-    for (String timeLocator : timeLocators) {
-      try {
-        result = TimeCondition.maxDate(result, processTimeCondition(timeLocator, filter, valueExtractor, myTimeService));
-      } catch (BadRequestException e) {
-        throw new BadRequestException("Error processing '" + locatorDimension + "' locator '" + timeLocator + "': " + e.getMessage(), e);
-      }
-    }
-    return result;
-  }
-
-  /**
-   * See also jetbrains.buildServer.server.rest.data.BuildPromotionFinder#processTimeCondition
-   * @return Date if it can be used for stopping older items processing
-   */
-  @Nullable
-  static Date processTimeCondition(@NotNull final String timeLocatorText,
-                                   @NotNull final MultiCheckerFilter<ArtifactTreeElement> result,
-                                   @NotNull final TimeCondition.ValueExtractor<ArtifactTreeElement, Date> valueExtractor,
-                                   @NotNull final TimeService timeService) {
-    TimeCondition matcher = new TimeCondition(timeLocatorText, timeService);
-    result.add(new FilterConditionChecker<ArtifactTreeElement>() {
-      @Override
-      public boolean isIncluded(@NotNull final ArtifactTreeElement item) {
-        final Date tryValue = valueExtractor.get(item);
-        if (tryValue == null) {
-          return false; //do not include if no date present (e.g. not started build). This can be reworked to treat nulls as "future" instead of "never"
+    TimeCondition.FilterAndLimitingDate<ArtifactTreeElement> dateFiltering =
+      TimeCondition.processTimeConditions(DIMENSION_MODIFIED, locator, new TimeCondition.ValueExtractor<ArtifactTreeElement, Date>() {
+        @Nullable
+        @Override
+        public Date get(@NotNull final ArtifactTreeElement artifactTreeElement) {
+          Long lastModified = artifactTreeElement.getLastModified();
+          return lastModified == null ? null : new Date(lastModified);
         }
-        return matcher.matches(tryValue);
-      }
-    });
-    return matcher.getLimitingSinceDate();
-  }
+      }, null, null, myTimeService);
 
+    if (dateFiltering != null){
+      result.add(dateFiltering.getFilter());
+    }
+
+    return result;
+  }
 
   private void setLocatorDefaults(@NotNull final Locator locator) {
     locator.setDimensionIfNotPresent(DIMENSION_RECURSIVE, "false");
