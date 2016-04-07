@@ -67,18 +67,18 @@ public class TimeCondition implements Matcher<Date> {
 
 
   @NotNull private final String myTimeLocator;
-  @Nullable private final ValueExtractor<BuildPromotion, Date> myValueExtractor;
+  @Nullable private final ValueExtractor<BuildPromotion, Date> myBuildValueExtractor;
   @NotNull private final TimeService myTimeService;
   @Nullable private TimeWithPrecision myLimitingSinceDate;
   @NotNull private TimeWithPrecision myLimitingDate;
   private Condition<Date> myCondition;
 
   public TimeCondition(@NotNull String timeLocator,
-                       @NotNull final ValueExtractor<BuildPromotion, Date> valueExtractor,
+                       @NotNull final ValueExtractor<BuildPromotion, Date> buildValueExtractor,
                        @NotNull final BuildPromotionFinder buildPromotionFinder,
                        @NotNull final TimeService timeService) {
     myTimeLocator = timeLocator;
-    myValueExtractor = valueExtractor;
+    myBuildValueExtractor = buildValueExtractor;
     myTimeService = timeService;
     init(buildPromotionFinder);
   }
@@ -86,12 +86,61 @@ public class TimeCondition implements Matcher<Date> {
   public TimeCondition(@NotNull String timeLocator, @NotNull final TimeService timeService) {
     myTimeLocator = timeLocator;
     myTimeService = timeService;
-    myValueExtractor = null;
+    myBuildValueExtractor = null;
     init(null);
   }
 
+  /**
+   * @return Date is included if it can be used for cutting processing. 'null' if no dimension is defined
+   */
+  @Nullable
+  static <T> FilterAndLimitingDate<T> processTimeConditions(@NotNull final String locatorDimension,
+                                                            @NotNull final Locator locator,
+                                                            @NotNull final ValueExtractor<T, Date> valueExtractor,
+                                                            @NotNull final ValueExtractor<BuildPromotion, Date> buildValueExtractor, @NotNull final BuildPromotionFinder finder,
+                                                            @NotNull final TimeService timeService) {
+    final List<String> timeLocators = locator.getDimensionValue(locatorDimension);
+    if (timeLocators.isEmpty())
+      return null;
+    AndedFilter<T> resultFilter = new AndedFilter<>();
+    Date resultDate = null;
+    for (String timeLocator : timeLocators) {
+      try {
+        FilterAndLimitingDate<T> filterAndLimitingDate = processTimeCondition(timeLocator, valueExtractor, buildValueExtractor, finder, timeService);
+        resultFilter.add(filterAndLimitingDate.getFilter());
+        resultDate = maxDate(resultDate, filterAndLimitingDate.getLimitingDate());
+      } catch (BadRequestException e) {
+        throw new BadRequestException("Error processing '" + locatorDimension + "' locator '" + timeLocator + "': " + e.getMessage(), e);
+      }
+    }
+    return new FilterAndLimitingDate<T>(resultFilter, resultDate);
+  }
+
+  /**
+   * @return Date if it can be used for cutting builds processing
+   */
+  @NotNull
+  private static <T> FilterAndLimitingDate<T> processTimeCondition(@NotNull final String timeLocatorText,
+                                                                   @NotNull final ValueExtractor<T, Date> valueExtractor,
+                                                                   @NotNull final ValueExtractor<BuildPromotion, Date> buildValueExtractor,
+                                                                   @NotNull final BuildPromotionFinder finder,
+                                                                   @NotNull final TimeService timeService) {
+    TimeCondition matcher = new TimeCondition(timeLocatorText, buildValueExtractor, finder, timeService);
+    FilterConditionChecker<T> filter = new FilterConditionChecker<T>() {
+      @Override
+      public boolean isIncluded(@NotNull final T item) {
+        final Date tryValue = valueExtractor.get(item);
+        if (tryValue == null) {
+          return false; //do not include if no date present (e.g. not started build). This can be reworked to treat nulls as "future" instead of "never"
+        }
+        return matcher.matches(tryValue);
+      }
+    };
+    return new FilterAndLimitingDate<T>(filter, matcher.getLimitingSinceDate());
+  }
+
   private void init(@Nullable final BuildPromotionFinder buildPromotionFinder) {
-    boolean buildIsSupported = buildPromotionFinder != null && myValueExtractor != null;
+    boolean buildIsSupported = buildPromotionFinder != null && myBuildValueExtractor != null;
     final Locator timeLocator = buildIsSupported ?
                                 new Locator(myTimeLocator, DATE, BUILD, CONDITION, INCLUDE_INITIAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME) :
                                 new Locator(myTimeLocator, DATE, CONDITION, INCLUDE_INITIAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
@@ -108,7 +157,7 @@ public class TimeCondition implements Matcher<Date> {
         if (buildIsSupported) {
           String build = timeLocator.getSingleDimensionValue(BUILD);
           if (build != null) {
-            Date timeFromBuild = myValueExtractor.get(buildPromotionFinder.getItem(build));
+            Date timeFromBuild = myBuildValueExtractor.get(buildPromotionFinder.getItem(build));
             if (timeFromBuild == null) {
               throw new BadRequestException("Cannot determine time from build found by locator '" + build + "'");
             }
@@ -242,5 +291,44 @@ public class TimeCondition implements Matcher<Date> {
     if (date2 == null) return date1;
     if (Dates.isBeforeWithError(date1, date2, 0)) return date2;
     return date1;
+  }
+
+  static class FilterAndLimitingDate<T> {
+    @NotNull private final FilterConditionChecker<T> filter;
+    @Nullable private final Date limitingDate;
+
+    public FilterAndLimitingDate(@NotNull final FilterConditionChecker<T> filter, @Nullable final Date limitingDate) {
+      this.filter = filter;
+      this.limitingDate = limitingDate;
+    }
+
+    @NotNull
+    public FilterConditionChecker<T> getFilter() {
+      return filter;
+    }
+
+    @Nullable
+    public Date getLimitingDate() {
+      return limitingDate;
+    }
+  }
+
+  private static class AndedFilter<T> implements FilterConditionChecker<T> {
+    @NotNull private final List<FilterConditionChecker<T>> myFilters = new ArrayList<>();
+
+    public void add(@NotNull final FilterConditionChecker<T> filter) {
+      myFilters.add(filter);
+    }
+
+    @Override
+    public boolean isIncluded(@NotNull final T item) {
+      for (FilterConditionChecker<T> filter : myFilters) {
+        if (!filter.isIncluded(item)){
+          return false;
+        }
+      }
+      return true;
+    }
+
   }
 }

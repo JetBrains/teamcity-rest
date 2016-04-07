@@ -593,12 +593,22 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     }
 
-    processTimeCondition(QUEUED_TIME, locator, result, TimeCondition.QUEUED_BUILD_TIME);
+    TimeCondition.FilterAndLimitingDate<BuildPromotion> queuedFiltering =
+      TimeCondition.processTimeConditions(QUEUED_TIME, locator, TimeCondition.QUEUED_BUILD_TIME, TimeCondition.QUEUED_BUILD_TIME, this, myTimeService);
+    if (queuedFiltering != null) result.add(queuedFiltering.getFilter());
 
-    @Nullable Date sinceStartDate = processTimeCondition(STARTED_TIME, locator, result, TimeCondition.STARTED_BUILD_TIME);
+    TimeCondition.FilterAndLimitingDate<BuildPromotion> startedFiltering =
+      TimeCondition.processTimeConditions(STARTED_TIME, locator, TimeCondition.STARTED_BUILD_TIME, TimeCondition.STARTED_BUILD_TIME, this, myTimeService);
+    @Nullable Date sinceStartDate = null;
+    if (startedFiltering != null) {
+      result.add(startedFiltering.getFilter());
+      sinceStartDate = startedFiltering.getLimitingDate();
+    }
 
     //todo: add processing cut of based on assumption of max build time (say, a week); for other times as well
-    processTimeCondition(FINISHED_TIME, locator, result, TimeCondition.FINISHED_BULLD_TIME);
+    TimeCondition.FilterAndLimitingDate<BuildPromotion> finishFiltering =
+      TimeCondition.processTimeConditions(FINISHED_TIME, locator, TimeCondition.FINISHED_BULLD_TIME, TimeCondition.FINISHED_BULLD_TIME, this, myTimeService);
+    if (finishFiltering != null) result.add(finishFiltering.getFilter());
 
     final String revisionLocatorText = locator.getSingleDimensionValue(REVISION);
     if (revisionLocatorText != null) {
@@ -739,51 +749,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         return false;
       }
     };
-  }
-
-  /**
-   * @return Date if it can be used for cutting builds processing
-   */
-  @Nullable
-  private Date processTimeCondition(@NotNull final String locatorDimension,
-                                    @NotNull final Locator locator,
-                                    @NotNull final MultiCheckerFilter<BuildPromotion> filter,
-                                    @NotNull final TimeCondition.ValueExtractor<BuildPromotion, Date> valueExtractor) {
-    final List<String> timeLocators = locator.getDimensionValue(locatorDimension);
-    if (timeLocators.isEmpty())
-      return null;
-    Date result = null;
-    for (String timeLocator : timeLocators) {
-      try {
-        result = TimeCondition.maxDate(result, processTimeCondition(timeLocator, filter, valueExtractor, this, myTimeService));
-      } catch (BadRequestException e) {
-        throw new BadRequestException("Error processing '" + locatorDimension + "' locator '" + timeLocator + "': " + e.getMessage(), e);
-      }
-    }
-    return result;
-  }
-
-  /**
-   * @return Date if it can be used for cutting builds processing
-   */
-  @Nullable
-  static Date processTimeCondition(@NotNull final String timeLocatorText,
-                                   @NotNull final MultiCheckerFilter<BuildPromotion> result,
-                                   @NotNull final TimeCondition.ValueExtractor<BuildPromotion, Date> valueExtractor,
-                                   @NotNull final BuildPromotionFinder finder,
-                                   @NotNull final TimeService timeService) {
-    TimeCondition matcher = new TimeCondition(timeLocatorText, valueExtractor, finder, timeService);
-    result.add(new FilterConditionChecker<BuildPromotion>() {
-      @Override
-      public boolean isIncluded(@NotNull final BuildPromotion item) {
-        final Date tryValue = valueExtractor.get(item);
-        if (tryValue == null) {
-          return false; //do not include if no date present (e.g. not started build). This can be reworked to treat nulls as "future" instead of "never"
-        }
-        return matcher.matches(tryValue);
-      }
-    });
-    return matcher.getLimitingSinceDate();
   }
 
   @NotNull
