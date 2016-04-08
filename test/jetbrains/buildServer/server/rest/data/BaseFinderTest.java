@@ -129,7 +129,8 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
 
     myGroupFinder = new UserGroupFinder(getUserGroupManager());
     myFixture.addService(myGroupFinder);
-    myUserFinder = new UserFinder(getUserModelEx(), myGroupFinder, permissionChecker, myServer.getSecurityContext());
+    myUserFinder = new UserFinder(getUserModelEx(), myGroupFinder, myProjectFinder, timeCondition,
+                                  myFixture.getRolesManager(), permissionChecker, myServer.getSecurityContext());
     myFixture.addService(myUserFinder);
 
     myBranchFinder = new BranchFinder(myBuildTypeFinder);

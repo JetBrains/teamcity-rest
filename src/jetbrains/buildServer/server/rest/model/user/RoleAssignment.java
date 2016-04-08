@@ -71,6 +71,7 @@ public class RoleAssignment {
     return "p:" + scopeParam;
   }
 
+  // See also jetbrains.buildServer.server.rest.data.UserFinder.RoleEntryDatas.getScope()
   @NotNull
   public static RoleScope getScope(@NotNull String scopeData, @NotNull final BeanContext context) {
     if ("g".equalsIgnoreCase(scopeData)) {

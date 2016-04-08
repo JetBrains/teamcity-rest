@@ -211,10 +211,11 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     BuildRequest buildRequest = new BuildRequest();
     buildRequest.initForTests(BaseFinderTest.getBeanContext(myFixture));
 
-    assertEquals(12, getSubEntitiesNames(User.class).size()); //if changed, the checks below should be changed
+    assertEquals(13, getSubEntitiesNames(User.class).size()); //if changed, the checks below should be changed
 
+    final String fields = "triggered(user($long,hasPassword))";
     {
-      Build build = buildRequest.serveBuild("id:" + build10.getBuildId(), "triggered(user($long))");
+      Build build = buildRequest.serveBuild("id:" + build10.getBuildId(), fields);
       // check that all is present
       User user = build.getTriggered().user;
       assertNotNull(user.getUsername());
@@ -226,13 +227,14 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
       assertNotNull(user.getProperties());
       assertNotNull(user.getRoles());
       assertNotNull(user.getGroups());
+      assertNotNull(user.getHasPassword());
       assertNull(user.getPassword());  //not included in response
       assertNull(user.getLocator());  //submit-only
       assertNull(user.getRealm()); //obsolete
     }
 
     {
-      Build build = buildRequest.serveBuild("id:" + build20.getBuildId(), "triggered(user($long))");
+      Build build = buildRequest.serveBuild("id:" + build20.getBuildId(), fields);
       // check that all is present
       User user = build.getTriggered().user;
       assertNotNull(user.getUsername());
@@ -244,6 +246,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
       assertNotNull(user.getProperties());
       assertNotNull(user.getRoles());
       assertNotNull(user.getGroups());
+      assertNotNull(user.getHasPassword());
       assertNull(user.getPassword());  //not included in response
       assertNull(user.getLocator());  //submit-only
       assertNull(user.getRealm()); //obsolete
@@ -252,7 +255,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
-        Build build = buildRequest.serveBuild("id:" + build10.getBuildId(), "triggered(user($long))");
+        Build build = buildRequest.serveBuild("id:" + build10.getBuildId(), fields);
         // check that all is present
         User user = build.getTriggered().user;
         assertNotNull(user.getUsername());
@@ -264,6 +267,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
         assertNotNull(user.getProperties());
         assertNotNull(user.getRoles());
         assertNotNull(user.getGroups());
+        assertNotNull(user.getHasPassword());
         assertNull(user.getPassword());
       }
     });
@@ -271,7 +275,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     securityContext.runAs(user2, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
-        Build build = buildRequest.serveBuild("id:" + build10.getBuildId(), "triggered(user($long))");
+        Build build = buildRequest.serveBuild("id:" + build10.getBuildId(), fields);
         // check that all is present
         User user = build.getTriggered().user;
         assertNotNull(user.getUsername());
@@ -283,6 +287,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
         assertNotNull(user.getProperties());
         assertNotNull(user.getRoles());
         assertNotNull(user.getGroups());
+        assertNotNull(user.getHasPassword());
         assertNull(user.getPassword());
       }
     });
@@ -290,7 +295,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
-        Build build = buildRequest.serveBuild("id:" + build20.getBuildId(), "triggered(user($long))");
+        Build build = buildRequest.serveBuild("id:" + build20.getBuildId(), fields);
         // check that all is present
         User user = build.getTriggered().user;
         assertNotNull(user.getUsername());
@@ -302,6 +307,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
         assertNull(user.getProperties());
         assertNull(user.getRoles());
         assertNull(user.getGroups());
+        assertNull(user.getHasPassword());
         assertNull(user.getPassword());
       }
     });

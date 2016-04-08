@@ -22,6 +22,11 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.SecurityContextEx;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.auth.Permissions;
+import jetbrains.buildServer.serverSide.auth.RoleScope;
+import jetbrains.buildServer.serverSide.impl.ProjectEx;
+import jetbrains.buildServer.serverSide.impl.auth.RoleImpl;
 import jetbrains.buildServer.serverSide.impl.auth.SecurityContextImpl;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.ExceptionUtil;
@@ -256,5 +261,55 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
         }, null);
       }
     });
+  }
+
+  @Test
+  public void testSearchByRoles() throws Throwable {
+    myFixture.getServerSettings().setPerProjectPermissionsEnabled(true);
+
+    final SUser user10 = createUser("user10");
+    final SUser user20 = createUser("user20");
+    final SUser user30 = createUser("user30");
+    final SUser user40 = createUser("user40");
+    final SUser user50 = createUser("user50");
+    final SUser user60 = createUser("user60");
+    final SUser user70 = createUser("user70");
+    final SUser user100 = createUser("user100");
+
+    final SUserGroup group10 = myFixture.createUserGroup("group1", "group 1", "");
+    final SUserGroup group20 = myFixture.createUserGroup("group1.1", "group 1.1", "");
+    group10.addSubgroup(group20);
+    group10.addUser(user60);
+    group20.addUser(user70);
+
+    ProjectEx prj1 = createProject("prj1");
+    ProjectEx prj1_1 = prj1.createProject("prj1_1", "prj1.1");
+    ProjectEx prj3 = createProject("prj3");
+
+    RoleImpl role10 = new RoleImpl("role10", "custom role", new Permissions(Permission.LABEL_BUILD), null);
+    myFixture.getRolesManager().addRole(role10);
+    RoleImpl role20 = new RoleImpl("role20", "custom role", new Permissions(Permission.PIN_UNPIN_BUILD), myFixture.getRolesManager());
+    role20.addIncludedRole(role10);
+    myFixture.getRolesManager().addRole(role20);
+
+    user10.addRole(RoleScope.globalScope(), getSysAdminRole());
+    user20.addRole(RoleScope.globalScope(), getProjectAdminRole());
+    user30.addRole(RoleScope.projectScope(prj1.getProjectId()), getProjectViewerRole());
+    user40.addRole(RoleScope.projectScope(prj1_1.getProjectId()), getProjectViewerRole());
+    user50.addRole(RoleScope.projectScope(prj3.getProjectId()), getProjectViewerRole());
+    user50.addRole(RoleScope.globalScope(), getTestRoles().getAgentManagerRole());
+    group10.addRole(RoleScope.projectScope(prj1.getProjectId()), role20);
+    group10.addRole(RoleScope.projectScope(getRootProject().getProjectId()), getTestRoles().getProjectViewerRole());
+
+    check(null, user10, user20, user30, user40, user50, user60, user70, user100);
+    check("role:(scope:(project:(" + prj1_1.getExternalId() + ")),role:(id:" + getProjectAdminRole().getId() + "))", user20);
+    check("role:(scope:(project:(" + prj1_1.getExternalId() + ")),role:(id:role10))", user60, user70);
+    check("role:(item:(scope:(project:(" + prj1_1.getExternalId() + ")),role:(id:role10)),method:effective)", user60, user70);
+    check("role:(item:(scope:(project:(" + prj1_1.getExternalId() + ")),role:(id:role10)))", user60, user70);
+    check("role:(item:(scope:(project:(" + prj1_1.getExternalId() + ")),role:(id:role10)),method:byPermission)", user10, user20, user50, user60, user70);
+    check("role:(scope:global)", user10, user20, user50);
+
+    //todo: error locators
+    checkExceptionOnItemsSearch(BadRequestException.class, "role:(aaa)");
   }
 }

@@ -39,6 +39,7 @@ import jetbrains.buildServer.users.PropertyHolder;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
+import jetbrains.buildServer.users.impl.UserImpl;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -48,7 +49,7 @@ import org.jetbrains.annotations.Nullable;
  * Date: 12.04.2009
  */
 @XmlRootElement(name = "user")
-@XmlType(name = "user", propOrder = {"username", "name", "id", "email", "lastLogin", "password", "realm" /*obsolete*/, "href",
+@XmlType(name = "user", propOrder = {"username", "name", "id", "email", "lastLogin", "password", "hasPassword", "realm" /*obsolete*/, "href",
   "properties", "roles", "groups",
   "locator"/*only when triggering*/})
 public class User {
@@ -116,6 +117,17 @@ public class User {
     return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("email", false), new ValueWithDefault.Value<String>() {
       public String get() {
         return StringUtil.isEmpty(myUser.getEmail()) ? null : myUser.getEmail();
+      }
+    });
+  }
+
+  @XmlAttribute
+  public Boolean getHasPassword() {
+    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("hasPassword", false, false), new ValueWithDefault.Value<Boolean>() {
+      @Nullable
+      @Override
+      public Boolean get() {
+        return ((UserImpl)myUser).hasPassword();
       }
     });
   }
