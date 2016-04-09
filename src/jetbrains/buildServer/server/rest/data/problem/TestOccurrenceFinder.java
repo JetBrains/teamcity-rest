@@ -152,7 +152,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   protected ItemHolder<STestRun> getPrefilteredItems(@NotNull final Locator locator) {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
-      SBuild build = myBuildFinder.getBuild(null, buildDimension);
+      SBuild build = myBuildFinder.getBuild(null, buildDimension); //todo: support multiple builds here (and for problems)
       return getItemHolder(build.getFullStatistics().getAllTests());
     }
 

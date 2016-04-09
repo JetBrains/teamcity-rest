@@ -232,6 +232,11 @@ public class LocatorTest {
       new Locator("a:(a)b)");
   }
 
+  @Test(expectedExceptions = LocatorProcessException.class)
+  public void testEscaped9() {
+      new Locator("(a)b");
+  }
+
   @SuppressWarnings("ConstantConditions")
   @Test
   public void testBooleanDimensions() {

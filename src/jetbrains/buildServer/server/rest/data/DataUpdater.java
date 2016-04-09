@@ -23,7 +23,6 @@ import jetbrains.buildServer.server.rest.errors.PartialUpdateError;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.group.Group;
-import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -95,7 +94,7 @@ public class DataUpdater {
     }
 
     if (errors.size() != 0) {
-      throw new PartialUpdateError("Parial error updating user " + user.describe(false), errors);
+      throw new PartialUpdateError("Partial error updating user " + user.describe(false), errors);
     }
   }
 

@@ -17,12 +17,8 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.Arrays;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.PathTransformer;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.project.Project;
-import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.users.SUser;
@@ -178,6 +174,8 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
     user1.setProjectsOrder(Arrays.asList(project30.getProjectId(), project10_10_20.getProjectId(), project10_10_10.getProjectId()));
     check("selectedByUser:(username:user1)", project30, project10_10_20, project10_10_10);
     check("selectedByUser:(username:user1),project:(id:_Root)", project30);
+
+    //add checks after    ProjectEx.setOwnProjectsOrder / setOwnBuildTypesOrder
   }
 
   @Test
@@ -189,14 +187,7 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
     final SProject project10_10_10 = project10_10.createProject("p10_10_10", "xxx");
     final SProject project30 = createProject(project10.getProjectId(), "p3");
 
-    final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
-      public String transform(final String path) {
-        return path;
-      }
-    });
-    final BeanFactory beanFactory = new BeanFactory(null);
-
-    Project project = new Project(project10, new Fields("projects($long)"), new BeanContext(beanFactory, myServer, apiUrlBuilder));
+    Project project = new Project(project10, new Fields("projects($long)"), getBeanContext(myServer));
     assertNotNull(project.projects.projects);
     checkOrderedCollection(CollectionsUtil.convertCollection(project.projects.projects, new Converter<String, Project>() {
       public String createFrom(@NotNull final Project source) {
@@ -204,7 +195,7 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
       }
     }), project10_10.getExternalId(), project10_20.getExternalId());
 
-    project = new Project(project10, new Fields("projects($long,$locator(name:xxx))"), new BeanContext(beanFactory, myServer, apiUrlBuilder));
+    project = new Project(project10, new Fields("projects($long,$locator(name:xxx))"), getBeanContext(myServer));
     assertNotNull(project.projects.projects);
     checkOrderedCollection(CollectionsUtil.convertCollection(project.projects.projects, new Converter<String, Project>() {
       public String createFrom(@NotNull final Project source) {
@@ -212,8 +203,7 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
       }
     }), project10_20.getExternalId());
 
-    project = new Project(project10, new Fields("projects($long,$locator(project:$any,affectedProject:(" + project10.getExternalId() + ")))"),
-                          new BeanContext(beanFactory, myServer, apiUrlBuilder));
+    project = new Project(project10, new Fields("projects($long,$locator(project:$any,affectedProject:(" + project10.getExternalId() + ")))"), getBeanContext(myServer));
     assertNotNull(project.projects.projects);
     checkOrderedCollection(CollectionsUtil.convertCollection(project.projects.projects, new Converter<String, Project>() {
       public String createFrom(@NotNull final Project source) {
