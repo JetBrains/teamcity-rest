@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -272,11 +273,14 @@ public class Fields {
 
   @Nullable
   Locator getParsedCustomFields() {
-    if (myFieldsSpecLocator == null && !StringUtil.isEmpty(myFieldsSpec)){
-      myFieldsSpecLocator =
-        new Locator(myFieldsSpec, true,
-                    NONE_FIELDS_PATTERN, DEFAULT_FIELDS_SHORT_PATTERN_ALTERNATIVE, DEFAULT_FIELDS_LONG_PATTERN, ALL_FIELDS_PATTERN, ALL_NESTED_FIELDS_PATTERN,
-                    LOCATOR_CUSTOM_NAME);
+    if (myFieldsSpecLocator == null && !StringUtil.isEmpty(myFieldsSpec)) {
+      try {
+        myFieldsSpecLocator = new Locator(myFieldsSpec, true,
+                                          NONE_FIELDS_PATTERN, DEFAULT_FIELDS_SHORT_PATTERN_ALTERNATIVE, DEFAULT_FIELDS_LONG_PATTERN, ALL_FIELDS_PATTERN, ALL_NESTED_FIELDS_PATTERN,
+                                          LOCATOR_CUSTOM_NAME);
+      } catch (LocatorProcessException e) {
+        throw new LocatorProcessException("Error parsing fields specification: " + e.getMessage(), e);
+      }
     }
     return myFieldsSpecLocator;
   }

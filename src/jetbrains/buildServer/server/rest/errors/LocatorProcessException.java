@@ -28,4 +28,8 @@ public class LocatorProcessException extends RuntimeException {
   public LocatorProcessException(final String message) {
     super(message);
   }
+
+  public LocatorProcessException(final String message, final Throwable cause) {
+    super(message, cause);
+  }
 }
