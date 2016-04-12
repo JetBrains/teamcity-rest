@@ -208,7 +208,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       }, null);
 
       assertEquals(4, buildType1.getParameters().size());
-      assertEquals(2, buildType1.getOwnParameters().size()); //should be 3, but one is inlined on restore...
+      assertEquals(3, buildType1.getOwnParameters().size());
     }
 
     buildType1.getSettings().addListener(new BuildTypeSettingsAdapter() {
@@ -229,7 +229,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     }, null);
 
     assertEquals(4, buildType1.getParameters().size());
-    assertEquals(2, buildType1.getOwnParameters().size());   //should be 3, but one is inlined on restore...
+    assertEquals(3, buildType1.getOwnParameters().size());
 
     myBuildTypeRequest.getParametersSubResource(btLocator).setParameters(new Properties(), "$long");
     assertEquals(3, buildType1.getParameters().size());

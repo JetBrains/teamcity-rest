@@ -137,7 +137,7 @@ public class Property {
 
   @NotNull
   public Parameter addTo(@NotNull final InheritableUserParametersHolder entity, @NotNull final ServiceLocator serviceLocator){
-    Collection<Parameter> original = entity.getParametersCollection(); //todo: use holder.getOwnParametersCollection() ?
+    Collection<Parameter> original = entity.getOwnParametersCollection();
     try {
       Parameter fromPosted = getFromPosted(serviceLocator);
       entity.addParameter(fromPosted);
