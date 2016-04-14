@@ -38,6 +38,7 @@ import jetbrains.buildServer.server.rest.model.buildType.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolCannotBeRenamedException;
 import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
+import jetbrains.buildServer.serverSide.agentPools.PoolQuotaExceededException;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.impl.AgentRestrictorFactoryImpl;
@@ -106,7 +107,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
   }
 
   @Test
-  public void testBuildOnAgentPoolTriggering() throws NoSuchAgentPoolException, AgentPoolCannotBeRenamedException {
+  public void testBuildOnAgentPoolTriggering() throws NoSuchAgentPoolException, AgentPoolCannotBeRenamedException, PoolQuotaExceededException {
 
     final MockBuildAgent agent2 = myFixture.createEnabledAgent("agent2", "Ant");
     final int poolId1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1");

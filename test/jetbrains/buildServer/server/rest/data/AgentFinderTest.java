@@ -21,6 +21,7 @@ import jetbrains.buildServer.serverSide.BuildAgentEx;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolCannotBeRenamedException;
 import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
+import jetbrains.buildServer.serverSide.agentPools.PoolQuotaExceededException;
 import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.util.StringUtil;
 import org.testng.annotations.BeforeMethod;
@@ -91,7 +92,7 @@ public class AgentFinderTest extends BaseFinderTest<SBuildAgent> {
   }
 
   @Test
-  public void testLocatorPool() throws AgentPoolCannotBeRenamedException, NoSuchAgentPoolException {
+  public void testLocatorPool() throws AgentPoolCannotBeRenamedException, NoSuchAgentPoolException, PoolQuotaExceededException {
     final int poolId1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1");
     myFixture.getAgentPoolManager().moveAgentTypesToPool(poolId1, createSet(myAgent3.getId()));
 
