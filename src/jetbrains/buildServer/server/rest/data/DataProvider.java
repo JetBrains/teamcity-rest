@@ -41,6 +41,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
+import jetbrains.buildServer.serverSide.agentPools.PoolQuotaExceededException;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.db.DBFunctionsProvider;
@@ -463,6 +464,8 @@ public class DataProvider {
       agentPoolManager.moveAgentTypesToPool(agentPoolId, Collections.singleton(postedAgent.getId()));
     } catch (NoSuchAgentPoolException e) {
       throw new IllegalStateException("Agent pool with id \'" + agentPoolId + "' is not found.");
+    } catch (PoolQuotaExceededException e) {
+      throw new IllegalStateException(e.getMessage());
     }
   }
 
