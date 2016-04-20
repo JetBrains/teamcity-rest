@@ -211,6 +211,23 @@ public class User {
     throw new BadRequestException("Changing field '" + name + "' is not supported. Supported fields are: username, name, email, password");
   }
 
+  public static void deleteField(@NotNull final SUser user, @Nullable final String name) {
+    if (StringUtil.isEmpty(name)) {
+      throw new BadRequestException("Field name cannot be empty");
+    }
+    if ("name".equals(name)) {
+      user.updateUserAccount(user.getUsername(), null, user.getEmail());
+      return;
+    } else if ("email".equals(name)) {
+      user.updateUserAccount(user.getUsername(), user.getName(), null);
+      return;
+    } else if ("password".equals(name)) {
+      user.setPassword(null);
+      return;
+    }
+    throw new BadRequestException("Setting field '" + name + "' to 'null' is not supported. Supported fields are: name, email, password");
+  }
+
   /**
    * Is only used for posting
    */

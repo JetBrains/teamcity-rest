@@ -124,6 +124,13 @@ public class UserRequest {
     return User.setFieldValue(user, fieldName, value);
   }
 
+  @DELETE
+  @Path("/{userLocator}/{field}")
+  public void deleteUserField(@PathParam("userLocator") String userLocator, @PathParam("field") String fieldName) {
+    final SUser user = myUserFinder.getItem(userLocator, true);
+    User.deleteField(user, fieldName);
+  }
+
   //todo: use ParametersSubResource here
   @GET
   @Path("/{userLocator}/properties")
