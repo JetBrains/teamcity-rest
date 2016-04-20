@@ -39,11 +39,12 @@ import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "testOccurrence")
-@XmlType(name = "testOccurrence", propOrder = {"id", "name", "status", "ignored", "duration", "muted", "currentlyMuted", "currentlyInvestigated", "href",
+@XmlType(name = "testOccurrence", propOrder = {"id", "name", "status", "ignored", "duration", "runOrder"/*experimental*/, "muted", "currentlyMuted", "currentlyInvestigated", "href",
   "ignoreDetails", "details", "test", "mute", "build", "firstFailed", "nextFixed"})
 public class TestOccurrence {
   @XmlAttribute public String id;
   @XmlAttribute public String name;
+  @XmlAttribute public String runOrder; /*experimental*/
   @XmlAttribute public String status;
   @XmlAttribute public Boolean ignored;
   @XmlAttribute public String href;
@@ -87,7 +88,8 @@ public class TestOccurrence {
     href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(TestOccurrenceRequest.getHref(testRun)));
 
     duration = ValueWithDefault.decideDefault(fields.isIncluded("duration"), testRun.getDuration());
-    //testRun.getOrderId();
+
+    runOrder = ValueWithDefault.decideDefault(fields.isIncluded("runOrder", false, false), String.valueOf(testRun.getOrderId()));
 
     ignored = ValueWithDefault.decideDefault(fields.isIncluded("ignored"), testRun.isIgnored());
 
