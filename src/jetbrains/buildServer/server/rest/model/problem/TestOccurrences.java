@@ -29,6 +29,7 @@ import jetbrains.buildServer.server.rest.model.build.OccurrencesSummary;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.STestRun;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -72,7 +73,9 @@ public class TestOccurrences extends OccurrencesSummary {
         @Nullable
         public List<TestOccurrence> get() {
           final List<STestRun> sortedItems = new ArrayList<STestRun>(itemsP);
-          Collections.sort(sortedItems, STestRun.NEW_FIRST_NAME_COMPARATOR);
+          if (TeamCityProperties.getBoolean("rest.beans.testOccurrences.sortByNameAndNew")){
+            Collections.sort(sortedItems, STestRun.NEW_FIRST_NAME_COMPARATOR); //if we are to support customizable order, this should be done in the TestOccurrenceFinder
+          }
           final ArrayList<TestOccurrence> result = new ArrayList<TestOccurrence>(sortedItems.size());
           for (STestRun item : sortedItems) {
             result.add(new TestOccurrence(item, beanContext, fields.getNestedField("testOccurrence")));
