@@ -55,6 +55,7 @@ public class UserFinder extends AbstractFinder<SUser>{
   public static final String EMAIL = "email";
   public static final String NAME = "name";
   public static final String HAS_PASSWORD = "hasPassword";
+  public static final String PASSWORD = "password";
   public static final String LAST_LOGIN_TIME = "lastLogin";
   public static final String ROLE = "role";
 
@@ -88,7 +89,7 @@ public class UserFinder extends AbstractFinder<SUser>{
   @Override
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(HAS_PASSWORD);
+    result.addHiddenDimensions(HAS_PASSWORD, PASSWORD);
     return result;
   }
 
@@ -225,6 +226,23 @@ public class UserFinder extends AbstractFinder<SUser>{
       result.add(new FilterConditionChecker<SUser>() {
         public boolean isIncluded(@NotNull final SUser item) {
           return FilterUtil.isIncludedByBooleanFilter(hasPassword, ((UserImpl)item).hasPassword());
+        }
+      });
+    }
+
+    final String password = locator.getSingleDimensionValue(PASSWORD);
+    if (password != null) {
+      if (!myPermissionChecker.isPermissionGranted(Permission.CHANGE_SERVER_SETTINGS, null)){
+        throw new AuthorizationFailedException("Only system admin can query users for passwords");
+      }
+      try {
+        Thread.sleep(5*1000); //inapt attempt to prevent bruteforcing
+      } catch (InterruptedException e) {
+        //ignore
+      }
+      result.add(new FilterConditionChecker<SUser>() {
+        public boolean isIncluded(@NotNull final SUser item) {
+          return myUserModel.findUserAccount(item.getRealm(), item.getUsername(), password) != null;
         }
       });
     }
