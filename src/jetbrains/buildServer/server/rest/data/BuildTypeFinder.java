@@ -747,8 +747,11 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   public static List<SBuildType> getBuildTypesByInternalIds(@NotNull final Collection<String> buildTypeIds, @NotNull final ProjectManager projectManager) {
     final ArrayList<SBuildType> result = new ArrayList<SBuildType>(buildTypeIds.size());
     for (String buildTypeId : buildTypeIds) {
-      final SBuildType buildType = getBuildTypeByInternalId(buildTypeId, projectManager);
-      result.add(buildType);
+      try {
+        result.add(getBuildTypeByInternalId(buildTypeId, projectManager));
+      } catch (NotFoundException e) {
+        LOG.debug("No build type is found by internal id '" + buildTypeId + "', ignoring");
+      }
     }
     return result;
   }
