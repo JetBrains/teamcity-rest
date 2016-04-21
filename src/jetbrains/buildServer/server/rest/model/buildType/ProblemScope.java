@@ -99,7 +99,7 @@ public class ProblemScope {
         });
         break;
       case IN_PROJECT:
-        project = ValueWithDefault.decideDefault(fields.isIncluded("projects"), new ValueWithDefault.Value<Project>() {
+        project = ValueWithDefault.decideDefault(fields.isIncluded("project"), new ValueWithDefault.Value<Project>() {
           public Project get() {
             final String projectId = scope.getProjectId();
             return projectId == null
