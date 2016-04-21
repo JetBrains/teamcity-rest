@@ -58,6 +58,7 @@ import jetbrains.buildServer.serverSide.db.queries.QueryOptions;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.filters.Filter;
+import jetbrains.buildServer.vcs.OperationRequestor;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
@@ -160,7 +161,7 @@ public class DebugRequest {
                                                      @Context @NotNull final BeanContext beanContext) {
     //todo: check whether permission checks are necessary
     final PagedSearchResult<VcsRootInstance> vcsRootInstances = myVcsRootInstanceFinder.getItems(vcsRootInstancesLocator);
-    myDataProvider.getVcsModificationChecker().forceCheckingFor(vcsRootInstances.myEntries);
+    myDataProvider.getVcsModificationChecker().forceCheckingFor(vcsRootInstances.myEntries, OperationRequestor.WEB);
     return new VcsRootInstances(CachingValue.simple(((Collection<VcsRootInstance>)vcsRootInstances.myEntries)), null, new Fields(fields), beanContext);
   }
 
