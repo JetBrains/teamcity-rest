@@ -16,10 +16,12 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
+import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -42,10 +44,116 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
   public void testBasic() throws Exception {
     final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
     final SFinishedBuild build10 = build().in(buildType).withTest("aaa", true).finish();
-//todo: why error?    final SFinishedBuild build10 = build().in(myBuildType).withTest("aaa", true).finish();
 
     checkExceptionOnItemSearch(BadRequestException.class, "No_match");
     checkExceptionOnItemsSearch(BadRequestException.class, "No_match");
     check("build:(id:" + build10.getBuildId() + ")", build10.getFullStatistics().getAllTests().get(0));
+    check("build:(id:" + build10.getBuildId() + ")", TEST_MATCHER, t("aaa", Status.NORMAL, 1));
+
+    int testRunId = build10.getFullStatistics().getAllTests().get(0).getTestRunId();
+    check("build:(id:" + build10.getBuildId() + "),id:" + testRunId, TEST_MATCHER, t("aaa", Status.NORMAL, 1));
+    check("build:(id:" + build10.getBuildId() + "),id:" + testRunId + 1);
+
+    check("build:(id:" + build10.getBuildId() + "),test:(name:aaa)", TEST_MATCHER, t("aaa", Status.NORMAL, 1));
+    check("build:(id:" + build10.getBuildId() + "),test:(name:bbb)");
+  }
+
+  @Test
+  public void testByTest() throws Exception {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build10 = build().in(buildType)
+                                          .withTest("aaa", false)
+                                          .withTest("bbb", true)
+                                          .withTest("ccc", false)
+                                          .finish();
+
+    check("build:(id:" + build10.getBuildId() + ")", TEST_MATCHER, t("aaa", Status.FAILURE, 1), t("bbb", Status.NORMAL, 2), t("ccc", Status.FAILURE, 3));
+    check("build:(id:" + build10.getBuildId() + "),test:(name:missingTest)", TEST_MATCHER);
+    check("build:(id:" + build10.getBuildId() + "),test:(name:bbb)", TEST_MATCHER, t("bbb", Status.NORMAL, 2));
+    check("build:(id:" + build10.getBuildId() + "),test:(currentlyFailing:true)", TEST_MATCHER, t("aaa", Status.FAILURE, 1), t("ccc", Status.FAILURE, 3));
+  }
+
+  @Test
+  public void testSeveralInvocations() throws Exception {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build10 = build().in(buildType)
+                                          .withTest("aaa", true)
+                                          .withTest("aaa", true)
+                                          .withTest("bbb", true)
+                                          .withTest("ccc", false)
+                                          .withTest("bbb", true)
+                                          .withTest("aaa", false)
+                                          .withTest("aaa", true)
+                                          .withTest("ddd", true)
+                                          .finish();
+
+    check("build:(id:" + build10.getBuildId() + ")", TEST_MATCHER,
+          t("aaa", Status.FAILURE, 1),
+          t("bbb", Status.NORMAL, 3),
+          t("ccc", Status.FAILURE, 4),
+          t("ddd", Status.NORMAL, 8));
+
+    {
+      int testRunId = myTestOccurrenceFinder.getItems("build:(id:" + build10.getBuildId() + ")").myEntries.get(0).getTestRunId();
+      check("build:(id:" + build10.getBuildId() + "),id:(" + testRunId + ")", TEST_MATCHER, t("aaa", Status.FAILURE, 1));
+      assertEquals(testRunId, myTestOccurrenceFinder.getItems("build:(id:" + build10.getBuildId() + "),id:(" + testRunId + ")").myEntries.get(0).getTestRunId());
+      assertEquals(testRunId, myTestOccurrenceFinder.getItem("build:(id:" + build10.getBuildId() + "),id:(" + testRunId + ")").getTestRunId());
+    }
+
+    check("build:(id:" + build10.getBuildId() + "),expandInvocations:true", TEST_MATCHER,
+          t("aaa", Status.NORMAL, 1),
+          t("aaa", Status.NORMAL, 2),
+          t("aaa", Status.FAILURE, 6), //ordering so far is grouped by test
+          t("aaa", Status.NORMAL, 7),
+          t("bbb", Status.NORMAL, 3),
+          t("bbb", Status.NORMAL, 5),
+          t("ccc", Status.FAILURE, 4),
+          t("ddd", Status.NORMAL, 8));
+
+    {
+      int testRunId = myTestOccurrenceFinder.getItems("build:(id:" + build10.getBuildId() + "),expandInvocations:true").myEntries.get(2).getTestRunId();
+      check("build:(id:" + build10.getBuildId() + "),id:(" + testRunId + ")", TEST_MATCHER, t("aaa", Status.FAILURE, 6));
+      assertEquals(testRunId, myTestOccurrenceFinder.getItems("build:(id:" + build10.getBuildId() + "),id:(" + testRunId + ")").myEntries.get(0).getTestRunId());
+      assertEquals(testRunId, myTestOccurrenceFinder.getItem("build:(id:" + build10.getBuildId() + "),id:(" + testRunId + ")").getTestRunId());
+    }
+
+    check("build:(id:" + build10.getBuildId() + "),test:(name:aaa)", TEST_MATCHER,
+          t("aaa", Status.FAILURE, 1));
+
+    check("build:(id:" + build10.getBuildId() + "),test:(name:aaa),expandInvocations:true", TEST_MATCHER,
+          t("aaa", Status.NORMAL, 1),
+          t("aaa", Status.NORMAL, 2),
+          t("aaa", Status.FAILURE, 6),
+          t("aaa", Status.NORMAL, 7));
+  }
+
+  private static final Matcher<TestRunData, STestRun> TEST_MATCHER = new Matcher<TestRunData, STestRun>() {
+    @Override
+    public boolean matches(@NotNull final TestRunData data, @NotNull final STestRun sTestRun) {
+      return data.testName.equals(sTestRun.getTest().getName().getAsString()) &&
+             data.status.equals(sTestRun.getStatus()) &&
+             data.orderId == sTestRun.getOrderId();
+    }
+  };
+
+  private static TestRunData t(final String testName, final Status status, final int orderId) {
+    return new TestRunData(testName, status, orderId);
+  }
+
+  private static class TestRunData {
+    private final String testName;
+    private final Status status;
+    private final int orderId;
+
+    private TestRunData(final String testName, final Status status, final int orderId) {
+      this.testName = testName;
+      this.status = status;
+      this.orderId = orderId;
+    }
+
+    @Override
+    public String toString() {
+      return "{" + testName + ", " + status.getText() + ", " + orderId + "}";
+    }
   }
 }

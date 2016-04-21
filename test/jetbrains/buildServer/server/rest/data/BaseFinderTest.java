@@ -179,6 +179,15 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   }
 
   public void check(@Nullable final String locator, T... items) {
+    check(locator, new Matcher<T, T>() {
+      @Override
+      public boolean matches(@NotNull final T o1, @NotNull final T o2) {
+        return o1.equals(o2);
+      }
+    }, items);
+  }
+
+  public <S> void check(@Nullable final String locator, @NotNull Matcher<S, T> matcher, S... items) {
     final List<T> result = myFinder.getItems(locator).myEntries;
     final String expected = getDescription(Arrays.asList(items));
     final String actual = getDescription(result);
@@ -187,7 +196,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
                  "Actual:\n" + actual, items.length, result.size());
 
     for (int i = 0; i < items.length; i++) {
-      if (!items[i].equals(result.get(i))) {
+      if (!matcher.matches(items[i], result.get(i))) {
         fail("Wrong item found for locator \"" + locator + "\" at position " + (i + 1) + "/" + items.length + "\n" +
              "Expected:\n" + expected + "\n" +
              "\nActual:\n" + actual);
@@ -205,8 +214,8 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
         }
       } else {
         T singleResult = myFinder.getItem(locator);
-        final T item = items[0];
-        if (!item.equals(singleResult)) {
+        final S item = items[0];
+        if (!matcher.matches(item, singleResult)) {
           fail("While searching for single item with locator \"" + locator + "\"\n" +
                "Expected: " + getDescription(item) + "\n" +
                "Actual: " + getDescription(singleResult));
@@ -215,7 +224,11 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     }
   }
 
-  private String getDescription(final T singleResult) {
+  public static interface Matcher<S, T>{
+    boolean matches(@NotNull S s, @NotNull T t);
+  }
+
+  private <U> String getDescription(final U singleResult) {
     if (singleResult instanceof Loggable){
       return LogUtil.describeInDetail(((Loggable)singleResult));
     }

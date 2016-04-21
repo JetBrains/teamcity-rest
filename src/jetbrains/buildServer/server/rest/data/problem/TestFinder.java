@@ -16,10 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data.problem;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -154,8 +151,8 @@ public class TestFinder extends AbstractFinder<STest> {
   }
 
   private List<STest> getCurrentlyFailingTests(@NotNull final SProject affectedProject) {
-    final List<STestRun> failingTestOccurrences = TestOccurrenceFinder.getCurrentOccurences(affectedProject, myCurrentProblemsManager);
-    final HashSet<STest> result = new HashSet<STest>(failingTestOccurrences.size());
+    final List<STestRun> failingTestOccurrences = TestOccurrenceFinder.getCurrentOccurrences(affectedProject, myCurrentProblemsManager);
+    final LinkedHashSet<STest> result = new LinkedHashSet<STest>(failingTestOccurrences.size());
     for (STestRun testOccurrence : failingTestOccurrences) {
       result.add(testOccurrence.getTest());
     }

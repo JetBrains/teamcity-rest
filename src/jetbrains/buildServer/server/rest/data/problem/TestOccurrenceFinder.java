@@ -147,22 +147,6 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       throw new BadRequestException("Cannot find test by " + DIMENSION_ID + " only, make sure to specify " + BUILD + " locator.");
     }
 
-    String testDimension = locator.getSingleDimensionValue(TEST);
-    if (testDimension != null) {
-      STest test = myTestFinder.getItem(testDimension);
-
-      String buildDimension = locator.getSingleDimensionValue(BUILD);
-      if (buildDimension != null) {
-        SBuild build = myBuildFinder.getBuild(null, buildDimension);
-        STestRun item = findTest(test.getTestNameId(), build);
-        if (item == null) {
-          throw new NotFoundException("No run for test " + test.getName() + ", id: " + test.getTestNameId() + " can be found in build with id " + build.getBuildId());
-        }
-        return processInvocationExpansion(item, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
-      } else{
-        locator.markUnused(TEST, BUILD);
-      }
-    }
     return null;
   }
 
@@ -172,7 +156,21 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
       SBuild build = myBuildFinder.getBuild(null, buildDimension); //todo: support multiple builds here (and for problems)
-      return getPossibleExpandedTestsHolder(build.getFullStatistics().getAllTests(), locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
+
+      String testDimension = locator.getSingleDimensionValue(TEST);
+      if (testDimension == null) {
+        return getPossibleExpandedTestsHolder(build.getFullStatistics().getAllTests(), locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
+      }
+
+      final PagedSearchResult<STest> tests = myTestFinder.getItems(testDimension);
+      final ArrayList<STestRun> result = new ArrayList<STestRun>();
+      for (STest test : tests.myEntries) {
+        STestRun item = findTest(test.getTestNameId(), build);
+        if (item != null) {
+          result.add(item);
+        }
+      }
+      return getPossibleExpandedTestsHolder(result, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
     }
 
     String testDimension = locator.getSingleDimensionValue(TEST);
@@ -199,7 +197,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
     Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
     if (currentDimension != null && currentDimension) {
-      return getPossibleExpandedTestsHolder(getCurrentOccurences(getAffectedProject(locator), myCurrentProblemsManager),
+      return getPossibleExpandedTestsHolder(getCurrentOccurrences(getAffectedProject(locator), myCurrentProblemsManager),
                                             locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
     }
 
@@ -276,11 +274,11 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   @NotNull
-  public static List<STestRun> getCurrentOccurences(@NotNull final SProject affectedProject, @NotNull final CurrentProblemsManager currentProblemsManager) {
+  public static List<STestRun> getCurrentOccurrences(@NotNull final SProject affectedProject, @NotNull final CurrentProblemsManager currentProblemsManager) {
     final CurrentProblems currentProblems = currentProblemsManager.getProblemsForProject(affectedProject);
     final Map<TestName, List<STestRun>> failingTests = currentProblems.getFailingTests();
     final Map<TestName, List<STestRun>> mutedTestFailures = currentProblems.getMutedTestFailures();
-    final Set<STestRun> result = new java.util.HashSet<STestRun>(failingTests.size() + mutedTestFailures.size());
+    final Set<STestRun> result = new java.util.LinkedHashSet<STestRun>(failingTests.size() + mutedTestFailures.size());
     //todo: check whether STestRun is OK to put into the set
     for (List<STestRun> testRuns : failingTests.values()) {
       result.addAll(testRuns);
@@ -288,7 +286,9 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     for (List<STestRun> testRuns : mutedTestFailures.values()) {
       result.addAll(testRuns);
     }
-    return new ArrayList<STestRun>(result);
+    ArrayList<STestRun> sortedResult = new ArrayList<>(result);
+    Collections.sort(sortedResult, STestRun.NEW_FIRST_NAME_COMPARATOR); //TeamCity API issue: seems like the API should return the entries i the fixed order all the time
+    return sortedResult;
   }
 
   @NotNull
