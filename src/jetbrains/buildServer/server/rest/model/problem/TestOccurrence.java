@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
+import java.util.ArrayList;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -26,6 +27,7 @@ import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.CompositeTestRun;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.STestRun;
@@ -40,7 +42,7 @@ import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "testOccurrence")
 @XmlType(name = "testOccurrence", propOrder = {"id", "name", "status", "ignored", "duration", "runOrder"/*experimental*/, "muted", "currentlyMuted", "currentlyInvestigated", "href",
-  "ignoreDetails", "details", "test", "mute", "build", "firstFailed", "nextFixed"})
+  "ignoreDetails", "details", "test", "mute", "build", "firstFailed", "nextFixed", "invocations"})
 public class TestOccurrence {
   @XmlAttribute public String id;
   @XmlAttribute public String name;
@@ -72,6 +74,7 @@ public class TestOccurrence {
   @XmlElement public Build build;
   @XmlElement public TestOccurrence firstFailed;
   @XmlElement public TestOccurrence nextFixed;
+  @XmlElement public TestOccurrences invocations;
 
   public TestOccurrence() {
   }
@@ -149,6 +152,15 @@ public class TestOccurrence {
       public TestOccurrence get() {
         final SBuild fixedInBuild = testRun.getFixedIn();
         return fixedInBuild == null ? null : new TestOccurrence(getTestRun(fixedInBuild, testRun), beanContext, fields.getNestedField("firstFailed"));
+      }
+    });
+
+    invocations = ValueWithDefault.decideDefault(fields.isIncluded("invocations", false, false), new ValueWithDefault.Value<TestOccurrences>() {
+      public TestOccurrences get() {
+        if (!(testRun instanceof CompositeTestRun)) return null;
+        CompositeTestRun compositeRun = (CompositeTestRun)testRun;
+        return new TestOccurrences(new ArrayList<STestRun>(compositeRun.getTestRuns()), testRun.getInvocationCount(), null, testRun.getFailedInvocationCount(),
+                                   null, null, null, null, null, fields.getNestedField("invocations"), beanContext);
       }
     });
   }

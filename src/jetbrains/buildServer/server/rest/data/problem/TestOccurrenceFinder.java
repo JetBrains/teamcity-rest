@@ -26,6 +26,7 @@ import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import jetbrains.buildServer.tests.TestName;
+import jetbrains.buildServer.util.ItemProcessor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -47,6 +48,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
   public static final String MUTED = "muted";
   public static final String CURRENTLY_MUTED = "currentlyMuted";
+  protected static final String EXPAND_INVOCATIONS = "expandInvocations"; //experimental
 
   @NotNull private final TestFinder myTestFinder;
   @NotNull private final BuildFinder myBuildFinder;
@@ -69,6 +71,14 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     myProjectFinder = projectFinder;
     myBuildHistory = buildHistory;
     myCurrentProblemsManager = currentProblemsManager;
+  }
+
+  @NotNull
+  @Override
+  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
+    final Locator result = super.createLocator(locatorText, locatorDefaults);
+    result.addHiddenDimensions(EXPAND_INVOCATIONS); //experimental
+    return result;
   }
 
   @Override
@@ -121,7 +131,16 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         SBuild build = myBuildFinder.getBuild(null, buildDimension);
         STestRun item = findTestByTestRunId(idDimension, build);
         if (item != null) {
-          return item;
+          if ((long)item.getTestRunId() == idDimension) {
+            return processInvocationExpansion(item, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
+          }
+          if (!(item instanceof CompositeTestRun)) return null;
+          CompositeTestRun compositeRun = (CompositeTestRun)item;
+          for (STestRun testRun : compositeRun.getTestRuns()) {
+            if ((long)testRun.getTestRunId() == idDimension) {
+              return processInvocationExpansion(testRun, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
+            }
+          }
         }
         throw new NotFoundException("No test run with id '" + idDimension + "' found in build with id " + build.getBuildId());
       }
@@ -139,7 +158,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         if (item == null) {
           throw new NotFoundException("No run for test " + test.getName() + ", id: " + test.getTestNameId() + " can be found in build with id " + build.getBuildId());
         }
-        return item;
+        return processInvocationExpansion(item, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
       } else{
         locator.markUnused(TEST, BUILD);
       }
@@ -153,7 +172,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
       SBuild build = myBuildFinder.getBuild(null, buildDimension); //todo: support multiple builds here (and for problems)
-      return getItemHolder(build.getFullStatistics().getAllTests());
+      return getPossibleExpandedTestsHolder(build.getFullStatistics().getAllTests(), locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
     }
 
     String testDimension = locator.getSingleDimensionValue(TEST);
@@ -167,7 +186,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         for (STest test : tests.myEntries) {
           result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), 0, getBranch(locator))); //no personal builds
         }
-        return getItemHolder(result);
+        return getPossibleExpandedTestsHolder(result, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
       }
 
       final ArrayList<STestRun> result = new ArrayList<STestRun>();
@@ -175,12 +194,13 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       for (STest test : tests.myEntries) {
         result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), affectedProject, 0, getBranch(locator))); //no personal builds
       }
-      return getItemHolder(result);
+      return getPossibleExpandedTestsHolder(result, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
     }
 
     Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
     if (currentDimension != null && currentDimension) {
-      return getItemHolder(getCurrentOccurences(getAffectedProject(locator), myCurrentProblemsManager));
+      return getPossibleExpandedTestsHolder(getCurrentOccurences(getAffectedProject(locator), myCurrentProblemsManager),
+                                            locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
     }
 
     Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
@@ -191,7 +211,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       for (STest test : currentlyMutedTests) {
         result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), affectedProject, 0, getBranch(locator)));  //no personal builds
       }
-      return getItemHolder(result);
+      return getPossibleExpandedTestsHolder(result, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
     }
 
     ArrayList<String> exampleLocators = new ArrayList<String>();
@@ -201,6 +221,43 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
     exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
     throw new BadRequestException("Unsupported test occurrence locator '" + locator.getStringRepresentation() + "'. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
+  }
+
+  @NotNull
+  private STestRun processInvocationExpansion(@NotNull final STestRun item, @Nullable final Boolean expandInvocations) {
+    if (expandInvocations == null || !expandInvocations) {
+      return item;
+    }
+    if (!(item instanceof CompositeTestRun)) return item;
+    CompositeTestRun compositeRun = (CompositeTestRun)item;
+    return compositeRun.getTestRuns().iterator().next();
+  }
+
+  @NotNull
+  private ItemHolder<STestRun> getPossibleExpandedTestsHolder(@NotNull final List<STestRun> tests, @Nullable final Boolean expandInvocations) {
+    if (expandInvocations == null || !expandInvocations) {
+      return getItemHolder(tests);
+    }
+    return new ItemHolder<STestRun>() {
+      @Override
+      public boolean process(@NotNull final ItemProcessor<STestRun> processor) {
+        for (STestRun entry : tests) {
+          if (!(entry instanceof CompositeTestRun)) {
+            if (!processor.processItem(entry)) {
+              return false;
+            }
+          } else {
+            CompositeTestRun compositeRun = (CompositeTestRun)entry;
+            for (STestRun nestedTestRun : compositeRun.getTestRuns()) {
+              if (!processor.processItem(nestedTestRun)) {
+                return false;
+              }
+            }
+          }
+        }
+        return true;
+      }
+    };
   }
 
   @Nullable
