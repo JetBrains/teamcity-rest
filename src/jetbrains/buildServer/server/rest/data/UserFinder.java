@@ -44,7 +44,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 23.03.13
  */
-public class UserFinder extends AbstractFinder<SUser>{
+public class UserFinder extends AbstractFinder<SUser> {
   private static final Logger LOG = Logger.getInstance(UserFinder.class.getName());
   public static final String REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS = "rest.request.checkAdditionalPermissionsForUsersAndGroups";
 
@@ -157,159 +157,152 @@ public class UserFinder extends AbstractFinder<SUser>{
   @NotNull
   @Override
   protected ItemFilter<SUser> getFilter(@NotNull final Locator locator) {
-    final MultiCheckerFilter<SUser> result = new MultiCheckerFilter<SUser>();
+    final LocatorBasedFilterBuilder<SUser> result = new LocatorBasedFilterBuilder<SUser>(locator);
 
-    Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
-    if (id != null) {
-      result.add(new FilterConditionChecker<SUser>() {
-        public boolean isIncluded(@NotNull final SUser item) {
-          return id.equals(item.getId());
+    result.addLongFilter(DIMENSION_ID, new LocatorBasedFilterBuilder.ValueChecker<SUser, Long>() {
+      @Override
+      public boolean isIncluded(@NotNull final Long value, @NotNull final SUser item) {
+        return value.equals(item.getId());
+      }
+    });
+
+    result.addStringFilter(USERNAME, new LocatorBasedFilterBuilder.ValueChecker<SUser, String>() {
+      @Override
+      public boolean isIncluded(@NotNull final String value, @NotNull final SUser item) {
+        return value.equalsIgnoreCase(item.getUsername());
+      }
+    });
+
+    result.addSingleValueFilter(GROUP, new LocatorBasedFilterBuilder.ValueFromString<SUserGroup>() {
+      @Override
+      public SUserGroup get(@NotNull final String valueText) {
+        return myGroupFinder.getGroup(valueText);
+      }
+    }, new LocatorBasedFilterBuilder.ValueChecker<SUser, SUserGroup>() {
+      @Override
+      public boolean isIncluded(@NotNull final SUserGroup value, @NotNull final SUser item) {
+        return value.containsUserDirectly(item);
+      }
+    });
+
+    result.addSingleValueFilter(AFFECTED_GROUP, new LocatorBasedFilterBuilder.ValueFromString<SUserGroup>() {
+      @Override
+      public SUserGroup get(@NotNull final String valueText) {
+        return myGroupFinder.getGroup(valueText);
+      }
+    }, new LocatorBasedFilterBuilder.ValueChecker<SUser, SUserGroup>() {
+      @Override
+      public boolean isIncluded(@NotNull final SUserGroup value, @NotNull final SUser item) {
+        return item.getAllUserGroups().contains(value);
+      }
+    });
+
+    result.addParameterConditionFilter(EMAIL, new LocatorBasedFilterBuilder.NullableValue<String, SUser>() {
+      @Override
+      public String get(@NotNull final SUser source) {
+        return source.getEmail();
+      }
+    });
+
+    result.addParameterConditionFilter(NAME, new LocatorBasedFilterBuilder.NullableValue<String, SUser>() {
+      @Override
+      public String get(@NotNull final SUser source) {
+        return source.getName();
+      }
+    });
+
+    result.addBooleanMatchFilter(HAS_PASSWORD, new LocatorBasedFilterBuilder.NotNullValue<Boolean, SUser>() {
+      @NotNull
+      @Override
+      public Boolean get(@NotNull final SUser source) {
+        return ((UserImpl)source).hasPassword();
+      }
+    });
+
+    result.addSingleValueFilter(PASSWORD, new LocatorBasedFilterBuilder.ValueFromString<String>() {
+      @Override
+      public String get(@NotNull final String valueText) {
+        if (!myPermissionChecker.isPermissionGranted(Permission.CHANGE_SERVER_SETTINGS, null)) {
+          throw new AuthorizationFailedException("Only system admin can query users for passwords");
         }
-      });
-    }
-
-    String username = locator.getSingleDimensionValue(USERNAME);
-    if (username != null) {
-      result.add(new FilterConditionChecker<SUser>() {
-         public boolean isIncluded(@NotNull final SUser item) {
-           return username.equalsIgnoreCase(item.getUsername());
-         }
-       });
-    }
-
-    if (locator.isUnused(GROUP)){
-      final String group = locator.getSingleDimensionValue(GROUP);
-      if (group != null) {
-        SUserGroup userGroup = myGroupFinder.getGroup(group);
-        result.add(new FilterConditionChecker<SUser>() {
-           public boolean isIncluded(@NotNull final SUser item) {
-             return userGroup.containsUserDirectly(item);
-           }
-         });
-      }
-    }
-
-    if (locator.isUnused(AFFECTED_GROUP)) {
-      final String affectedGroup = locator.getSingleDimensionValue(AFFECTED_GROUP);
-      if (affectedGroup != null) {
-        SUserGroup userGroup = myGroupFinder.getGroup(affectedGroup);
-        result.add(new FilterConditionChecker<SUser>() {
-          public boolean isIncluded(@NotNull final SUser item) {
-            return item.getAllUserGroups().contains(userGroup);
-          }
-        });
-      }
-    }
-
-    final String email = locator.getSingleDimensionValue(EMAIL);
-    if (email != null) {
-      ParameterCondition parameterCondition = ParameterCondition.create(email);
-      result.add(new FilterConditionChecker<SUser>() {
-        public boolean isIncluded(@NotNull final SUser item) {
-          return parameterCondition.matches(item.getEmail());
+        try {
+          Thread.sleep(5 * 1000); //inapt attempt to prevent brute-forcing
+        } catch (InterruptedException e) {
+          //ignore
         }
-      });
-    }
+        return valueText;
+      }
+    }, new LocatorBasedFilterBuilder.ValueChecker<SUser, String>() {
+      @Override
+      public boolean isIncluded(@NotNull final String value, @NotNull final SUser item) {
+        return myUserModel.findUserAccount(item.getRealm(), item.getUsername(), value) != null;
+      }
+    });
 
-    final String name = locator.getSingleDimensionValue(NAME);
-    if (name != null) {
-      ParameterCondition parameterCondition = ParameterCondition.create(name);
-      result.add(new FilterConditionChecker<SUser>() {
-        public boolean isIncluded(@NotNull final SUser item) {
-          return parameterCondition.matches(item.getName());
+    result.addParametersConditionFilter(PROPERTY, new LocatorBasedFilterBuilder.NotNullValue<ParametersProvider, SUser>() {
+      @NotNull
+      @Override
+      public ParametersProvider get(@NotNull final SUser item) {
+        return getUserPropertiesProvider(item);
+      }
+    });
+
+    result.addFilter(ROLE, new LocatorBasedFilterBuilder.ValueFromString<FilterConditionChecker<SUser>>() {
+      @Override
+      public FilterConditionChecker<SUser> get(@NotNull final String valueText) {
+        Locator roleLocator = new Locator(valueText, "item", "method", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+        List<String> roleAssignmentsLocatorTexts;
+        String method = null;
+        if (roleLocator.isSingleValue()) {
+          roleAssignmentsLocatorTexts = Collections.singletonList(roleLocator.getSingleValue());
+        } else {
+          roleAssignmentsLocatorTexts = roleLocator.getDimensionValue("item");
+          method = roleLocator.getSingleDimensionValue("method");
         }
-      });
-    }
-
-    final Boolean hasPassword = locator.getSingleDimensionValueAsBoolean(HAS_PASSWORD);
-    if (hasPassword != null) {
-      result.add(new FilterConditionChecker<SUser>() {
-        public boolean isIncluded(@NotNull final SUser item) {
-          return FilterUtil.isIncludedByBooleanFilter(hasPassword, ((UserImpl)item).hasPassword());
+        if (method == null && roleAssignmentsLocatorTexts.isEmpty()) {
+          roleAssignmentsLocatorTexts = Collections.singletonList(valueText);
+        } else {
+          roleLocator.checkLocatorFullyProcessed();
         }
-      });
-    }
 
-    final String password = locator.getSingleDimensionValue(PASSWORD);
-    if (password != null) {
-      if (!myPermissionChecker.isPermissionGranted(Permission.CHANGE_SERVER_SETTINGS, null)){
-        throw new AuthorizationFailedException("Only system admin can query users for passwords");
-      }
-      try {
-        Thread.sleep(5*1000); //inapt attempt to prevent bruteforcing
-      } catch (InterruptedException e) {
-        //ignore
-      }
-      result.add(new FilterConditionChecker<SUser>() {
-        public boolean isIncluded(@NotNull final SUser item) {
-          return myUserModel.findUserAccount(item.getRealm(), item.getUsername(), password) != null;
+        if (method == null) method = "effective";
+
+        RoleEntryDatas roleDatas = new RoleEntryDatas(roleAssignmentsLocatorTexts, myRolesManager, myProjectFinder, myPermissionChecker);
+        if ("effective".equals(method)) {
+          return new FilterConditionChecker<SUser>() {
+            public boolean isIncluded(@NotNull final SUser item) {
+              return roleDatas.containsAllRolesEffectively(item);
+            }
+          };
+        } else if ("byPermission".equals(method)) {
+          return new FilterConditionChecker<SUser>() {
+            public boolean isIncluded(@NotNull final SUser item) {
+              return roleDatas.containsAllRolesByPermissions(item);
+            }
+          };
+        } else {
+          //at some point can add locator dimensions to search direct roles or selectively considering projects, roles, groups nesting
+          throw new BadRequestException("Unknown '" + "method" + "' role dimension value '" + method + "'. Supported are: " + "effective" + ", " + "byPermission");
         }
-      });
-    }
-
-    final List<String> properties = locator.getDimensionValue(PROPERTY);
-    if (!properties.isEmpty()) {
-      final Matcher<ParametersProvider> parameterCondition = ParameterCondition.create(properties);
-      result.add(new FilterConditionChecker<SUser>() {
-        public boolean isIncluded(@NotNull final SUser item) {
-          return parameterCondition.matches(getUserPropertiesProvider(item));
-        }
-      });
-    }
-
-    final String roleLocatorText = locator.getSingleDimensionValue(ROLE);
-    if (roleLocatorText != null) {
-      Locator roleLocator = new Locator(roleLocatorText, "item", "method", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-      List<String> roleAssignmentsLocatorTexts;
-      String method = null;
-      if (roleLocator.isSingleValue()) {
-        roleAssignmentsLocatorTexts = Collections.singletonList(roleLocator.getSingleValue());
-      } else {
-        roleAssignmentsLocatorTexts = roleLocator.getDimensionValue("item");
-        method = roleLocator.getSingleDimensionValue("method");
       }
-      if (method == null && roleAssignmentsLocatorTexts.isEmpty()){
-        roleAssignmentsLocatorTexts = Collections.singletonList(roleLocatorText);
-      } else{
-        roleLocator.checkLocatorFullyProcessed();
-      }
-
-      if (method == null) method = "effective";
-
-      RoleEntryDatas roleDatas = new RoleEntryDatas(roleAssignmentsLocatorTexts, myRolesManager, myProjectFinder, myPermissionChecker);
-      if ("effective".equals(method)) {
-        result.add(new FilterConditionChecker<SUser>() {
-          public boolean isIncluded(@NotNull final SUser item) {
-            return roleDatas.containsAllRolesEffectively(item);
-          }
-        });
-      } else if ("byPermission".equals(method)) {
-        result.add(new FilterConditionChecker<SUser>() {
-          public boolean isIncluded(@NotNull final SUser item) {
-            return roleDatas.containsAllRolesByPermissions(item);
-          }
-        });
-      } else {
-        //at some point can add locator dimensions to search direct roles or selectively considering projects, roles, groups nesting
-        throw new BadRequestException("Unknown '" + "method" + "' role dimension value '" + method + "'. Supported are: " + "effective" + ", " + "byPermission");
-      }
-    }
+    });
 
     //todo: add PERMISSION
 
-    TimeCondition.FilterAndLimitingDate<SUser> lastLoginFilter =
-      myTimeCondition.processTimeConditions(LAST_LOGIN_TIME, locator, new TimeCondition.ValueExtractor<SUser, Date>() {
-        @Nullable
-        @Override
-        public Date get(@NotNull final SUser sUser) {
-          return sUser.getLastLoginTimestamp();
-        }
-      });
-    if (lastLoginFilter != null) {
-      result.add(lastLoginFilter.getFilter());
-    }
+    result.addFilter(LAST_LOGIN_TIME, new LocatorBasedFilterBuilder.ValueFromString<FilterConditionChecker<SUser>>() {
+      @Override
+      public FilterConditionChecker<SUser> get(@NotNull final String valueText) {
+        return myTimeCondition.processTimeCondition(valueText, new TimeCondition.ValueExtractor<SUser, Date>() {
+          @Nullable
+          @Override
+          public Date get(@NotNull final SUser sUser) {
+            return sUser.getLastLoginTimestamp();
+          }
+        }, null).getFilter();
+      }
+    });
 
-    return result;
+    return result.getFilter();
   }
 
   @NotNull
@@ -334,7 +327,7 @@ public class UserFinder extends AbstractFinder<SUser>{
 
     final String affectedGroup = locator.getSingleDimensionValue(AFFECTED_GROUP);
     if (affectedGroup != null) {
-      return getItemHolder(convert(myGroupFinder.getGroup(group).getAllUsers()));
+      return getItemHolder(convert(myGroupFinder.getGroup(affectedGroup).getAllUsers()));
     }
 
     return getItemHolder(myUserModel.getAllUsers().getUsers());
@@ -344,10 +337,10 @@ public class UserFinder extends AbstractFinder<SUser>{
   public SUser getCurrentUser() {
     //also related API: SessionUser.getUser(request)
     final User associatedUser = mySecurityContext.getAuthorityHolder().getAssociatedUser();
-    if (associatedUser == null){
+    if (associatedUser == null) {
       return null;
     }
-    if (SUser.class.isAssignableFrom(associatedUser.getClass())){
+    if (SUser.class.isAssignableFrom(associatedUser.getClass())) {
       return (SUser)associatedUser;
     }
     return myUserModel.findUserAccount(null, associatedUser.getUsername());
@@ -382,12 +375,12 @@ public class UserFinder extends AbstractFinder<SUser>{
   }
 
   @NotNull
-  public static List<SUser> convert(Collection<User> users){
+  public static List<SUser> convert(Collection<User> users) {
     ArrayList<SUser> result = new ArrayList<>(users.size());
     for (User user : users) {
-      if (SUser.class.isAssignableFrom(user.getClass())){
+      if (SUser.class.isAssignableFrom(user.getClass())) {
         result.add((SUser)user);
-      } else{
+      } else {
         LOG.info("Got User which is not SUser (skipping): " + user.describe(true));
       }
     }
@@ -475,7 +468,7 @@ public class UserFinder extends AbstractFinder<SUser>{
       if (!holderGlobalPermissions.containsAll(globalPermissions)) return false;
       for (Map.Entry<String, Permissions> requiredPermissions : projectsPermissions.entrySet()) {
         Permissions actualPermissions = holderProjectsPermissions.get(requiredPermissions.getKey());
-        if (actualPermissions == null){
+        if (actualPermissions == null) {
           return holderGlobalPermissions.containsAll(requiredPermissions.getValue());
         }
         if (!getCombined(actualPermissions, holderGlobalPermissions).containsAll(requiredPermissions.getValue())) return false;

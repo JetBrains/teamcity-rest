@@ -310,6 +310,6 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
     check("role:(scope:global)", user10, user20, user50);
 
     //todo: error locators
-    checkExceptionOnItemsSearch(BadRequestException.class, "role:(aaa)");
+    checkExceptionOnItemsSearch(LocatorProcessException.class, "role:(aaa)");
   }
 }

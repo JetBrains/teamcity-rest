@@ -22,8 +22,6 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 01/12/2015
  */
-public interface ItemFilter<T> {
-  boolean isIncluded(@NotNull T item);
-
+public interface ItemFilter<T> extends FilterConditionChecker<T>{
   boolean shouldStop(@NotNull T item);
 }

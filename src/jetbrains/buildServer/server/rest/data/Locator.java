@@ -380,7 +380,7 @@ public class Locator {
               message.append("Locator dimension ").append(unusedDimensions).append(" is ignored or unknown.");
             }
           } else {
-            message.append("Single value locator is not supported (actual value '").append(mySingleValue).append("').");
+            message.append("Single value locator '").append(mySingleValue).append("' was ignored.");
           }
         }
         if (mySupportedDimensions != null && mySupportedDimensions.length > 0) message.append(" Supported dimensions are: ").append(Arrays.toString(mySupportedDimensions));
@@ -423,6 +423,11 @@ public class Locator {
   @Nullable
   public String getSingleValue() {
     myUsedDimensions.add(LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    return lookupSingleValue();
+  }
+
+  @Nullable
+  public String lookupSingleValue() {
     return mySingleValue;
   }
 
@@ -464,7 +469,11 @@ public class Locator {
    */
   @Nullable
   public Boolean getSingleDimensionValueAsBoolean(@NotNull final String dimensionName) {
-    return getBooleanByValue(dimensionName, getSingleDimensionValue(dimensionName));
+    try {
+      return getBooleanByValue(getSingleDimensionValue(dimensionName));
+    } catch (LocatorProcessException e) {
+      throw new LocatorProcessException("Invalid value of dimension '" + dimensionName + "': " + e.getMessage(), e);
+    }
   }
 
   /**
@@ -472,28 +481,35 @@ public class Locator {
    */
   @Nullable
   public Boolean lookupSingleDimensionValueAsBoolean(@NotNull final String dimensionName) {
-    return getBooleanByValue(dimensionName, lookupSingleDimensionValue(dimensionName));
+    try {
+      return getBooleanByValue(lookupSingleDimensionValue(dimensionName));
+    } catch (LocatorProcessException e) {
+      throw new LocatorProcessException("Invalid value of dimension '" + dimensionName + "': " + e.getMessage(), e);
+    }
   }
 
-  private static Boolean getBooleanByValue(final @NotNull String dimensionName, @Nullable final String value) {
-    if (value == null || "all".equalsIgnoreCase(value) || "any".equalsIgnoreCase(value) || isAny(value)) {
+  public static Boolean getBooleanByValue(@Nullable final String value) {
+    if (value == null || "all".equalsIgnoreCase(value) || BOOLEAN_ANY.equalsIgnoreCase(value) || isAny(value)) {
       return null;
     }
     final Boolean result = getStrictBoolean(value);
     if (result != null) return result;
-    throw new LocatorProcessException("Invalid value of dimension '" + dimensionName + "': '" + value + "'. Should be 'true', 'false' or 'any'.");
+    throw new LocatorProcessException("Invalid boolean value '" + value + "'. Should be 'true', 'false' or 'any'.");
   }
 
+  public static final String BOOLEAN_TRUE = "true";
+  public static final String BOOLEAN_FALSE = "false";
+  public static final String BOOLEAN_ANY = "any";
   /**
    * "any" is not supported
    * @return "null" if cannot be parsed as boolean
    */
   @Nullable
   public static Boolean getStrictBoolean(final @Nullable String value) {
-    if ("true".equalsIgnoreCase(value) || "on".equalsIgnoreCase(value) || "yes".equalsIgnoreCase(value) || "in".equalsIgnoreCase(value)) {
+    if (BOOLEAN_TRUE.equalsIgnoreCase(value) || "on".equalsIgnoreCase(value) || "yes".equalsIgnoreCase(value) || "in".equalsIgnoreCase(value)) {
       return true;
     }
-    if ("false".equalsIgnoreCase(value) || "off".equalsIgnoreCase(value) || "no".equalsIgnoreCase(value) || "out".equalsIgnoreCase(value)) {
+    if (BOOLEAN_FALSE.equalsIgnoreCase(value) || "off".equalsIgnoreCase(value) || "no".equalsIgnoreCase(value) || "out".equalsIgnoreCase(value)) {
       return false;
     }
     return null;

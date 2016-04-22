@@ -109,7 +109,7 @@ public class TimeCondition {
     final List<String> timeLocators = locator.getDimensionValue(locatorDimension);
     if (timeLocators.isEmpty())
       return null;
-    AndedFilter<T> resultFilter = new AndedFilter<>();
+    MultiCheckerFilter<T> resultFilter = new MultiCheckerFilter<>();
     Date resultDate = null;
     for (String timeLocator : timeLocators) {
       try {
@@ -127,7 +127,7 @@ public class TimeCondition {
    * @return Date if it can be used for cutting builds processing
    */
   @NotNull
-  private <T> FilterAndLimitingDate<T> processTimeCondition(@NotNull final String timeLocatorText,
+  public <T> FilterAndLimitingDate<T> processTimeCondition(@NotNull final String timeLocatorText,
                                                             @NotNull final ValueExtractor<T, Date> valueExtractor,
                                                             @Nullable final ValueExtractor<BuildPromotion, Date> buildValueExtractor) {
     ParsedTimeCondition matcher;
@@ -343,24 +343,5 @@ public class TimeCondition {
     public Date getLimitingDate() {
       return limitingDate;
     }
-  }
-
-  private static class AndedFilter<T> implements FilterConditionChecker<T> {
-    @NotNull private final List<FilterConditionChecker<T>> myFilters = new ArrayList<>();
-
-    public void add(@NotNull final FilterConditionChecker<T> filter) {
-      myFilters.add(filter);
-    }
-
-    @Override
-    public boolean isIncluded(@NotNull final T item) {
-      for (FilterConditionChecker<T> filter : myFilters) {
-        if (!filter.isIncluded(item)){
-          return false;
-        }
-      }
-      return true;
-    }
-
   }
 }
