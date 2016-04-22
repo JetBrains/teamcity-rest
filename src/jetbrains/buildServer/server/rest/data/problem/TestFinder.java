@@ -136,13 +136,14 @@ public class TestFinder extends AbstractFinder<STest> {
       return getItemHolder(getCurrentlyMutedTests(affectedProject));
     }
 
-    //todo: TeamCity API: find a way to do this
+    //todo: TeamCity API: find a way to support more cases
+
     ArrayList<String> exampleLocators = new ArrayList<String>();
     exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "XXX"));
     exampleLocators.add(Locator.getStringLocator(NAME, "XXX"));
     exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
     exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
-    throw new BadRequestException("Unsupported test locator '" + locator.getStringRepresentation() + "'. Try locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
+    throw new BadRequestException("Unsupported test locator '" + locator.getStringRepresentation() + "'. Try locators: " + DataProvider.dumpQuoted(exampleLocators));
   }
 
   List<STest> getCurrentlyMutedTests(final SProject affectedProject) {
