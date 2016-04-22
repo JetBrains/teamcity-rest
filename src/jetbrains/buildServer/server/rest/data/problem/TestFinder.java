@@ -37,22 +37,26 @@ public class TestFinder extends AbstractFinder<STest> {
   private static final String CURRENT = "currentlyFailing";
   public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
   public static final String CURRENTLY_MUTED = "currentlyMuted";
+  public static final String MUTE_AFFECTED = "muteAffected";
 
   @NotNull private final ProjectFinder myProjectFinder;
+  @NotNull private final BuildTypeFinder myBuildTypeFinder;
   @NotNull private final STestManager myTestManager;
   @NotNull private final TestName2IndexImpl myTestName2Index; //TeamCIty open API issue
   @NotNull private final CurrentProblemsManager myCurrentProblemsManager;
   @NotNull private final ProblemMutingService myProblemMutingService;
 
   public TestFinder(final @NotNull ProjectFinder projectFinder,
+                    final @NotNull BuildTypeFinder buildTypeFinder,
                     final @NotNull STestManager testManager,
                     final @NotNull TestName2IndexImpl testName2Index,
                     final @NotNull CurrentProblemsManager currentProblemsManager,
                     final @NotNull ProblemMutingService problemMutingService) {
-    super(new String[]{DIMENSION_ID, NAME, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED,
+    super(new String[]{DIMENSION_ID, NAME, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED, MUTE_AFFECTED,
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myTestManager = testManager;
     myProjectFinder = projectFinder;
+    myBuildTypeFinder = buildTypeFinder;
     myTestName2Index = testName2Index;
     myCurrentProblemsManager = currentProblemsManager;
     myProblemMutingService = problemMutingService;
@@ -191,6 +195,49 @@ public class TestFinder extends AbstractFinder<STest> {
           return FilterUtil.isIncludedByBooleanFilter(currentlyMutedDimension, item.getCurrentMuteInfo() != null);
         }
       });
+    }
+
+    final String muteAffectedLocatorText = locator.getSingleDimensionValue(MUTE_AFFECTED);
+    if (muteAffectedLocatorText != null) {
+      Locator muteAffectedLocator = new Locator(muteAffectedLocatorText, "buildType", "project");
+      String muteAffectedBuildTypeLocatorText = muteAffectedLocator.getSingleDimensionValue("buildType");
+      if (muteAffectedBuildTypeLocatorText != null) {
+        final List<SBuildType> buildTypes = myBuildTypeFinder.getBuildTypes(null, muteAffectedBuildTypeLocatorText);
+        result.add(new FilterConditionChecker<STest>() {
+          public boolean isIncluded(@NotNull final STest item) {
+            CurrentMuteInfo muteInfo = item.getCurrentMuteInfo();
+            if (muteInfo == null) return false;
+            Set<SProject> mutedInProjects = muteInfo.getProjectsMuteInfo().keySet();
+            Set<SBuildType> mutedInBuildTypes = muteInfo.getBuildTypeMuteInfo().keySet();
+            for (SBuildType buildType : buildTypes) {
+              if (buildType == null) continue;
+              if (mutedInBuildTypes.contains(buildType)) return true;
+              for (SProject mutedInProject : mutedInProjects) {
+                if (ProjectFinder.isSameOrParent(mutedInProject, buildType.getProject())) return true;
+              }
+            }
+            return false;
+          }
+        });
+      }
+      String muteAffectedProjectLocatorText = muteAffectedLocator.getSingleDimensionValue("project");
+      if (muteAffectedProjectLocatorText != null) {
+        List<SProject> projects = myProjectFinder.getItems(muteAffectedProjectLocatorText).myEntries;
+        result.add(new FilterConditionChecker<STest>() {
+          public boolean isIncluded(@NotNull final STest item) {
+            CurrentMuteInfo muteInfo = item.getCurrentMuteInfo();
+            if (muteInfo == null) return false;
+            Set<SProject> mutedInProjects = muteInfo.getProjectsMuteInfo().keySet();
+            for (SProject project : projects) {
+              for (SProject mutedInProject : mutedInProjects) {
+                if (ProjectFinder.isSameOrParent(mutedInProject, project)) return true;
+              }
+            }
+            return false;
+          }
+        });
+      }
+      muteAffectedLocator.checkLocatorFullyProcessed();
     }
 
     return result;
