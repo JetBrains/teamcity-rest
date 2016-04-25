@@ -26,7 +26,7 @@ import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 /**
  * @author Yegor.Yarko
