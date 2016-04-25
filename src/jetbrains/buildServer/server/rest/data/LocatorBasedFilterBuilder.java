@@ -176,14 +176,14 @@ public class LocatorBasedFilterBuilder<T> {
   }
 
   public LocatorBasedFilterBuilder<T> addParameterConditionFilter(@NotNull final String dimensionName, @NotNull final NullableValue<String, T> valueRetriever) {
-    return addSingleValueFilter(dimensionName, new ValueFromString<ParameterCondition>() {
+    return addSingleValueFilter(dimensionName, new ValueFromString<ValueCondition>() {
       @Override
-      public ParameterCondition get(@NotNull final String valueText) {
-        return ParameterCondition.create(valueText);
+      public ValueCondition get(@NotNull final String valueText) {
+        return ParameterCondition.createValueCondition(valueText);
       }
-    }, new ValueChecker<T, ParameterCondition>() {
+    }, new ValueChecker<T, ValueCondition>() {
       @Override
-      public boolean isIncluded(@NotNull final ParameterCondition value, @NotNull final T item) {
+      public boolean isIncluded(@NotNull final ValueCondition value, @NotNull final T item) {
         return value.matches(valueRetriever.get(item));
       }
     });

@@ -22,7 +22,9 @@
       <class name="jetbrains.buildServer.server.rest.data.UserFinderTest"/>
       <class name="jetbrains.buildServer.server.rest.data.BuildTest"/>
       <class name="jetbrains.buildServer.server.rest.data.BuildTypeTest"/>
+
       <class name="jetbrains.buildServer.server.rest.model.PagerDataTest"/>
+      <class name="jetbrains.buildServer.server.rest.model.PropertiesTest"/>
 
       <class name="jetbrains.buildServer.server.rest.request.BuildTypeRequestTest"/>
       <class name="jetbrains.buildServer.server.rest.request.UserRequestTest"/>

@@ -149,7 +149,7 @@ public class TagFinder extends AbstractFinder<TagData> {
 
     final String condition = locator.getSingleDimensionValue(CONDITION);
     if (condition != null) {
-      final ParameterCondition parameterCondition = ParameterCondition.create(condition);
+      final ValueCondition parameterCondition = ParameterCondition.createValueCondition(condition);
       result.add(new FilterConditionChecker<TagData>() {
         public boolean isIncluded(@NotNull final TagData item) {
           return parameterCondition.matches(item.getLabel());

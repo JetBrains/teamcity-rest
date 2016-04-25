@@ -72,7 +72,6 @@ public class Properties  implements DefaultValueAware {
       this.count = null;
       this.properties = null;
     } else {
-      this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), properties.size());
       if (fields.isIncluded(PROPERTY, false, true)){
         final Fields propertyFields = fields.getNestedField(PROPERTY, Fields.NONE, Fields.LONG);
         final ParameterCondition parameterCondition = getParameterCondition(fields);
@@ -82,6 +81,7 @@ public class Properties  implements DefaultValueAware {
           }
         }
       }
+      this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), this.properties != null ? this.properties.size() : properties.size());
     }
     this.href = ValueWithDefault.decideDefault(fields.isIncluded("href"), href);
   }
@@ -95,7 +95,6 @@ public class Properties  implements DefaultValueAware {
       this.count = null;
       this.properties = null;
     } else {
-      this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), parameters.size());
       if (fields.isIncluded(PROPERTY, false, true)) {
         final Fields propertyFields = fields.getNestedField(PROPERTY, Fields.NONE, Fields.LONG);
         final ParameterCondition parameterCondition = getParameterCondition(fields);
@@ -105,6 +104,7 @@ public class Properties  implements DefaultValueAware {
           }
         }
       }
+      this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), this.properties != null ? this.properties.size() : parameters.size());
     }
     this.href = ValueWithDefault.decideDefault(fields.isIncluded("href"), href);
   }

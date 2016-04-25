@@ -29,7 +29,7 @@ import org.testng.annotations.Test;
  * @author Yegor.Yarko
  *         Date: 22/04/2016
  */
-public class ParameterConditionTest extends BaseServerTestCase { //need to externd BaseServerTestCase at least to get TeamCityProperties
+public class ParameterConditionTest extends BaseServerTestCase { //need to extend BaseServerTestCase at least to get TeamCityProperties
   @Test
   public void testBasic() {
     assertNull(ParameterCondition.create((String)null));
@@ -172,14 +172,19 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exter
     exception(BadRequestException.class, "name:xxx,value:aaa,matchType:equals,nameMatchType:contains,matchScope:aaa");
     exception(BadRequestException.class, "name:xxx,value:aaa,matchType:equals,nameMatchType:Contains,matchScope:aaa");
     exception(BadRequestException.class, "name:xxx,value:aaa,matchType:equals,nameMatchType:bbb,matchScope:aaa");
+//    exception(BadRequestException.class, "value:aaa,matchType:equals,nameMatchType:contains");
+//    exception(BadRequestException.class, "value:aaa,matchType:equals,nameMatchType:contains,matchScope:all");
+
+    matchesFalse("value:aaa,matchScope:all", "xxx", "aaa", "xxxy", "bbb");
+    matchesTrue("value:aaa,matchScope:all", "xxx", "aaa", "xxxy", "bbaaab");
   }
 
   @Test
-  public void testSingleNameMatchType() {
-//   matchSingleTrue("aaa", "aaa");
-//   matchSingleFalse("aaa", "aaaa");
-//   matchSingleFalse("aaa", "bbb");
-    
+  public void testSingleValueMatching() {
+    matchesSingleTrue("aaa", "aaa");
+    matchesSingleFalse("aaa", "aaaa");
+    matchesSingleFalse("aaa", "bbb");
+
     matchesSingleFalse("value:aaa", null);
     matchesSingleTrue("value:aaa", "aaa");
     matchesSingleTrue("value:aaa", "xxaaayy"); //contains by default ???
@@ -241,7 +246,7 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exter
   }
 
   private static boolean matchesSingle(@NotNull final String propertyConditionLocator, @Nullable String value) {
-    return ParameterCondition.create(propertyConditionLocator).matches(value);
+    return ParameterCondition.createValueCondition(propertyConditionLocator).matches(value);
   }
 
 

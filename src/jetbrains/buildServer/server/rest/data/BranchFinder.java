@@ -128,7 +128,7 @@ public class BranchFinder extends AbstractFinder<Branch> {
 
     final String nameCondition = locator.getSingleDimensionValue(NAME_CONDITION);
     if (nameCondition != null) {
-      final ParameterCondition parameterCondition = ParameterCondition.create(nameCondition);
+      final ValueCondition parameterCondition = ParameterCondition.createValueCondition(nameCondition);
       filter.add(new FilterConditionChecker<Branch>() {
         public boolean isIncluded(@NotNull final Branch item) {
           return parameterCondition.matches(item.getName());
@@ -138,7 +138,7 @@ public class BranchFinder extends AbstractFinder<Branch> {
 
     final String displayNameCondition = locator.getSingleDimensionValue(DISPLAY_NAME_CONDITION);
     if (displayNameCondition != null) {
-      final ParameterCondition parameterCondition = ParameterCondition.create(displayNameCondition);
+      final ValueCondition parameterCondition = ParameterCondition.createValueCondition(displayNameCondition);
       filter.add(new FilterConditionChecker<Branch>() {
         public boolean isIncluded(@NotNull final Branch item) {
           return parameterCondition.matches(item.getDisplayName());

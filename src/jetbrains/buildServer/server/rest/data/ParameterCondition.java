@@ -26,6 +26,7 @@ import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,29 +39,40 @@ public class ParameterCondition {
   public static final String NAME = "name";
   public static final String VALUE = "value";
   public static final String TYPE = "matchType";
+  //todo: rework nameMatchType to use syntax instead: name:(value:aaa,matchType:contains),value:...,matchType:...
   protected static final String NAME_MATCH_TYPE = "nameMatchType"; // condition to restrict parameters by name before checking value with "matchType"
   protected static final String NAME_MATCH_CHECK = "matchScope"; // when "nameMatchType" is specified, can be set to:
   // "all" to require all the name-matched params to match using "matchType"
   // "any" to require at least one of the name-matched params to match using "matchType"
 
-  @Nullable private final String myParameterName;
-  @Nullable private final String myParameterValue;
-  @NotNull private final RequirementType myRequirementType;
-  @Nullable private RequirementType myNameRequirementType;
-  private boolean myNameCheckShouldMatchAll;
+  @NotNull private final ValueCondition myNameCondition;
+  @NotNull private final ValueCondition myValueCondition;
+  private final boolean myNameCheckShouldMatchAll;
 
-  public ParameterCondition(@Nullable final String name,
-                            @Nullable final String value,
-                            final @NotNull RequirementType requirementType,
-                            @Nullable final RequirementType nameRequirementType,
-                            final boolean nameCheckShouldMatchAll) {
-    myParameterName = name;
-    myParameterValue = value;
-    myRequirementType = requirementType;
-    myNameRequirementType = nameRequirementType;
+  private ParameterCondition(@Nullable final String name,
+                             @Nullable final String value,
+                             @NotNull final RequirementType requirementType,
+                             @Nullable final RequirementType nameRequirementType,
+                             final boolean nameCheckShouldMatchAll) {
+    myValueCondition = new ValueCondition(requirementType, value);
     myNameCheckShouldMatchAll = nameCheckShouldMatchAll;
+    if (nameRequirementType != null) {
+      try {
+        myNameCondition = new ValueCondition(nameRequirementType, name);
+      } catch (BadRequestException e) {
+        throw new BadRequestException("Wrong name condition: " + e.getMessage(), e);
+      }
+    } else {
+      if (name == null) {
+        myNameCondition = new ValueCondition(RequirementType.ANY, name);
+      } else {
+        myNameCondition = new ValueCondition(RequirementType.EQUALS, name);
+      }
+    }
   }
 
+  @Nullable
+  @Contract("!null -> !null, null -> null")
   public static ParameterCondition create(@Nullable final String propertyConditionLocator) {
     if (propertyConditionLocator == null){
       return null;
@@ -102,6 +114,42 @@ public class ParameterCondition {
     return result;
   }
 
+  @Nullable
+  @Contract("!null -> !null, null -> null")
+  public static ValueCondition createValueCondition(@Nullable final String propertyConditionLocator) {
+    if (propertyConditionLocator == null) {
+      return null;
+    }
+
+    final Locator locator = new Locator(propertyConditionLocator, VALUE, TYPE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+
+    final String value = locator.isSingleValue() ? locator.getSingleValue() : locator.getSingleDimensionValue(VALUE);
+
+    //todo: add ignoreCase=true
+
+
+    RequirementType requirement;
+    final String type = locator.getSingleDimensionValue(TYPE);
+    if (type != null) {
+      requirement = RequirementType.findByName(type);
+      if (requirement == null) {
+        throw new BadRequestException("Unsupported value for '" + TYPE + "'. Supported are: " + getAllRequirementTypes());
+      }
+    } else {
+      //todo: review!
+      if (locator.isSingleValue()) {
+        requirement = RequirementType.EQUALS;
+      } else {
+        requirement = RequirementType.CONTAINS; //todo: make it equals by default?
+      }
+    }
+
+
+    final ValueCondition result = new ValueCondition(requirement, value);
+    locator.checkLocatorFullyProcessed();
+    return result;
+  }
+
   @NotNull
   public static Matcher<ParametersProvider> create(@Nullable final List<String> propertyConditionLocators) {
     if (propertyConditionLocators == null || propertyConditionLocators.isEmpty()) {
@@ -136,74 +184,48 @@ public class ParameterCondition {
   }
 
   public boolean matches(@NotNull final ParametersProvider parametersProvider) {
-    if (myRequirementType.isParameterRequired() && myParameterValue == null) {
-      return false;
+    if (myValueCondition.isInvalid()) {
+      return false; //todo: throw
     }
-    if (myNameRequirementType == null && !StringUtil.isEmpty(myParameterName)) {
-      final String value = parametersProvider.get(myParameterName);
-      return matches(myRequirementType, myParameterValue, value);
+    String constantValueIfSimpleEqualsCondition = myNameCondition.getConstantValueIfSimpleEqualsCondition();
+    if (!StringUtil.isEmpty(constantValueIfSimpleEqualsCondition)) {
+      final String value = parametersProvider.get(constantValueIfSimpleEqualsCondition);
+      return myValueCondition.matches(value);
     }
     boolean matched = false;
     for (Map.Entry<String, String> parameter : parametersProvider.getAll().entrySet()) {
-      if (myNameRequirementType != null) {
-        if (!matches(myNameRequirementType, myParameterName, parameter.getKey())) continue;
-      }
+      if (!myNameCondition.matches(parameter.getKey())) continue;
       if (myNameCheckShouldMatchAll) {
-        if (matches(myRequirementType, myParameterValue, parameter.getValue())) {
+        if (myValueCondition.matches(parameter.getValue())) {
           matched = true;
         } else {
           return false;
         }
       } else {
-        if (matches(myRequirementType, myParameterValue, parameter.getValue())) return true;
+        if (myValueCondition.matches(parameter.getValue())) return true;
       }
     }
     return matched;
   }
 
   public boolean parameterMatches(@NotNull final Parameter parameter) {
-    if (myRequirementType.isParameterRequired() && myParameterValue == null) {
+    if (myValueCondition.isInvalid()) {
       return false;
     }
-    if (!StringUtil.isEmpty(myParameterName)) {
-      if (myParameterName.equals(parameter.getName())) {
-        return matches(myRequirementType, myParameterValue, parameter.getValue());
-      } else {
-        return false;
-      }
-    } else {
-      return matches(myRequirementType, myParameterValue, parameter.getValue());
-    }
-  }
-
-  private static boolean matches(final RequirementType requirementType, final String requirementValue, @Nullable final String actualValue) {
-    if (requirementType.isParameterRequired() && requirementValue == null) {
-      return false;
-    }
-    if (requirementType.isActualValueRequired() && actualValue == null) {
-      return false;
-    }
-    if (!requirementType.isActualValueCanBeEmpty() && (actualValue == null || actualValue.length() == 0)) {
-      return false;
-    }
-    try {
-      return requirementType.matchValues(requirementValue, actualValue);
-    } catch (Exception e) {
-      //e.g. more-than can throw NumberFormatException for non-number
-      return false;
-    }
-  }
-
-  public boolean matches(@Nullable final String value) {
-    return matches(myRequirementType, myParameterValue, value);
+    return myNameCondition.matches(parameter.getName()) && myValueCondition.matches(parameter.getValue());
   }
 
   @Override
   public String toString() {
     final StringBuilder result = new StringBuilder();
     result.append("Parameter condition (");
-    result.append("name:").append(myParameterName).append(", ");
-    if (myParameterValue!= null) result.append("value:").append(myParameterValue).append(", ");
+    result.append("name: ");
+    if (myNameCondition.getConstantValueIfSimpleEqualsCondition() != null) {
+      result.append(myNameCondition.getConstantValueIfSimpleEqualsCondition());
+    } else {
+      result.append(myNameCondition.toString());
+    }
+    result.append(", ").append("value condition: ").append(myValueCondition.toString());
     result.append(")");
     return result.toString();
   }
