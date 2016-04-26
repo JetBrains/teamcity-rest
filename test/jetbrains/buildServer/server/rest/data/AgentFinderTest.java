@@ -24,7 +24,6 @@ import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
 import jetbrains.buildServer.serverSide.agentPools.PoolQuotaExceededException;
 import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
-import org.assertj.core.util.Arrays;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -163,7 +162,7 @@ public class AgentFinderTest extends BaseFinderTest<SBuildAgent> {
     agent30.addConfigParameter("a", "b");
     agent30.pushAgentTypeData();
     myFixture.getAgentTypeManager().setRunConfigurationPolicy(agent30.getAgentTypeId(), BuildAgentManager.RunConfigurationPolicy.SELECTED_COMPATIBLE_CONFIGURATIONS);
-    myFixture.getAgentTypeManager().excludeRunConfigurationsFromAllowed(agent30.getAgentTypeId(), Arrays.array(bt10.getInternalId(), bt20.getInternalId()));
+    myFixture.getAgentTypeManager().excludeRunConfigurationsFromAllowed(agent30.getAgentTypeId(), new String[]{bt10.getInternalId(), bt20.getInternalId()});
 
     MockBuildAgent agent40 = myFixture.createEnabledAgent("agent40", "Ant");
 
