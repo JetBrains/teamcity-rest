@@ -181,6 +181,24 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exten
   }
 
   @Test
+  public void testIgnoreCase() {
+    matchesFalse("name:A,value:x,matchType:equals", "a", "x", "A", "X");
+    matchesTrue("name:A,value:x,matchType:equals,ignoreCase:true", "a", "x", "A", "X");
+
+    matchesTrue("name:(value:a,matchType:equals),value:x,matchType:equals,matchScope:all", "a", "x", "A", "X");
+    matchesFalse("name:(value:a,matchType:equals,ignoreCase:true),value:x,matchType:equals,matchScope:all", "a", "x", "A", "X");
+
+    matchesTrue("name:(value:a,matchType:contains),value:x,matchType:equals,matchScope:all", "a", "x", "A", "X");
+    matchesFalse("name:(value:a,matchType:contains,ignoreCase:true),value:x,matchType:equals,matchScope:all", "a", "x", "A", "X");
+
+    matchesFalse("name:(matchType:any),value:x,matchType:equals,matchScope:all", "a", "x", "A", "X");
+    matchesTrue("name:(matchType:any),value:x,matchType:equals,matchScope:all,ignoreCase:true", "a", "x", "A", "X");
+
+    matchesSingleFalse("value:x", "X");
+    matchesSingleTrue("value:x,ignoreCase:true", "X");
+  }
+
+  @Test
   public void testSingleValueMatching() {
     matchesSingleTrue("aaa", "aaa");
     matchesSingleFalse("aaa", "aaaa");

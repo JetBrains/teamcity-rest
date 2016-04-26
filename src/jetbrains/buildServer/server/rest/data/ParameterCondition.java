@@ -39,6 +39,7 @@ public class ParameterCondition {
   public static final String NAME = "name";
   public static final String VALUE = "value";
   public static final String TYPE = "matchType";
+  public static final String IGNORE_CASE = "ignoreCase";
   protected static final String NAME_MATCH_CHECK = "matchScope"; // can be set to:
   // "all" to require all the name-matched params to match using "matchType"
   // "any" to require at least one of the name-matched params to match using "matchType"
@@ -59,11 +60,11 @@ public class ParameterCondition {
     if (propertyConditionLocator == null){
       return null;
     }
-    final Locator locator = new Locator(propertyConditionLocator, NAME, VALUE, TYPE, NAME_MATCH_CHECK);
+    final Locator locator = new Locator(propertyConditionLocator, NAME, VALUE, TYPE, IGNORE_CASE, NAME_MATCH_CHECK);
 
     final String value = locator.getSingleDimensionValue(VALUE);
 
-    RequirementType requirement = value != null ? RequirementType.CONTAINS : RequirementType.EXISTS;
+    RequirementType requirement;
 
     final String type = locator.getSingleDimensionValue(TYPE);
     if (type != null){
@@ -71,12 +72,14 @@ public class ParameterCondition {
       if (requirement == null){
         throw new BadRequestException("Unsupported value for '" + TYPE + "'. Supported are: " + getAllRequirementTypes());
       }
+    } else{
+      requirement = value != null ? RequirementType.CONTAINS : RequirementType.EXISTS;
     }
 
     ValueCondition nameCondition;
     final String name = locator.getSingleDimensionValue(NAME);
     if (name == null) {
-      nameCondition = new ValueCondition(RequirementType.ANY, name);
+      nameCondition = new ValueCondition(RequirementType.ANY, name, null);
     } else {
       try {
         nameCondition = createValueCondition(name);
@@ -95,8 +98,9 @@ public class ParameterCondition {
       throw new BadRequestException("Unsupported value for '" + NAME_MATCH_CHECK + "'. Supported are: " + "any, all");
     }
 
+    Boolean ignoreCase = locator.getSingleDimensionValueAsBoolean(IGNORE_CASE);
     locator.checkLocatorFullyProcessed();
-    return new ParameterCondition(nameCondition, new ValueCondition(requirement, value), nameCheckShouldMatchAll);
+    return new ParameterCondition(nameCondition, new ValueCondition(requirement, value, ignoreCase), nameCheckShouldMatchAll);
   }
 
   @Nullable
@@ -106,12 +110,9 @@ public class ParameterCondition {
       return null;
     }
 
-    final Locator locator = new Locator(propertyConditionLocator, VALUE, TYPE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    final Locator locator = new Locator(propertyConditionLocator, VALUE, TYPE, IGNORE_CASE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
 
     final String value = locator.isSingleValue() ? locator.getSingleValue() : locator.getSingleDimensionValue(VALUE);
-
-    //todo: add ignoreCase=true
-
 
     RequirementType requirement;
     final String type = locator.getSingleDimensionValue(TYPE);
@@ -131,8 +132,9 @@ public class ParameterCondition {
       }
     }
 
+    Boolean ignoreCase = locator.getSingleDimensionValueAsBoolean(IGNORE_CASE);
     locator.checkLocatorFullyProcessed();
-    return new ValueCondition(requirement, value);
+    return new ValueCondition(requirement, value, ignoreCase);
   }
 
   @NotNull

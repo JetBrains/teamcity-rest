@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,40 +29,48 @@ import org.jetbrains.annotations.Nullable;
 public class ValueCondition {
   @Nullable private final String myParameterValue;
   @NotNull private final RequirementType myRequirementType;
+  private final boolean myIgnoreCase;
 
-  public ValueCondition(@NotNull final RequirementType requirementType, @Nullable final String value) {
+  public ValueCondition(@NotNull final RequirementType requirementType, @Nullable final String value, @Nullable final Boolean ignoreCase) {
     myParameterValue = value;
     myRequirementType = requirementType;
+    myIgnoreCase = ignoreCase == null ? false : ignoreCase;
     if (myRequirementType.isParameterRequired() && myParameterValue == null) {
       throw new BadRequestException("Wrong parameter condition: requirement type '" + requirementType.getName() + "' requires specification of the value");
     }
   }
 
-  private static boolean matches(@NotNull final RequirementType requirementType, @Nullable final String requirementValue, @Nullable final String actualValue) {
-    if (requirementType.isParameterRequired() && requirementValue == null) {
+  public boolean matches(@Nullable final String value) {
+    if (myRequirementType.isParameterRequired() && myParameterValue == null) {
       return false;
     }
-    if (requirementType.isActualValueRequired() && actualValue == null) {
+    if (myRequirementType.isActualValueRequired() && value == null) {
       return false;
     }
-    if (!requirementType.isActualValueCanBeEmpty() && (actualValue == null || actualValue.length() == 0)) {
+    if (!myRequirementType.isActualValueCanBeEmpty() && (value == null || value.length() == 0)) {
       return false;
     }
     try {
-      return requirementType.matchValues(requirementValue, actualValue);
+      if (myIgnoreCase) {
+        return myRequirementType.matchValues(toLower(myParameterValue), toLower(value));
+      } else {
+        return myRequirementType.matchValues(myParameterValue, value);
+      }
     } catch (Exception e) {
       //e.g. more-than can throw NumberFormatException for non-number
       return false;
     }
   }
 
-  public boolean matches(@Nullable final String value) {
-    return matches(myRequirementType, myParameterValue, value);
+  @Nullable
+  @Contract("!null -> !null; null -> null")
+  private String toLower(@Nullable final String value) {
+    return value == null ? null : value.toLowerCase();
   }
 
   @Nullable
   public String getConstantValueIfSimpleEqualsCondition() {
-    if (RequirementType.EQUALS.equals(myRequirementType)) return myParameterValue;
+    if (RequirementType.EQUALS.equals(myRequirementType) && !myIgnoreCase) return myParameterValue;
     return null;
   }
 
