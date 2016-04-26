@@ -271,15 +271,15 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     return null;
   }
 
-  public String getDescription(final List<T> result) {
+  public <S> String getDescription(final List<S> result) {
     if (result == null) {
       return LogUtil.describe((Object)null);
     }
 
     final StringBuilder result1 = new StringBuilder();
-    final Iterator<T> it = result.iterator();
+    final Iterator<S> it = result.iterator();
     while(it.hasNext()) {
-      T item = it.next();
+      S item = it.next();
       if (item != null) {
         result1.append("").append(LogUtil.describe(item)).append("");
         if (it.hasNext()) {
