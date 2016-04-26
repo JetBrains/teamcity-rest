@@ -39,9 +39,7 @@ public class ParameterCondition {
   public static final String NAME = "name";
   public static final String VALUE = "value";
   public static final String TYPE = "matchType";
-  //todo: rework nameMatchType to use syntax instead: name:(value:aaa,matchType:contains),value:...,matchType:...
-  protected static final String NAME_MATCH_TYPE = "nameMatchType"; // condition to restrict parameters by name before checking value with "matchType"
-  protected static final String NAME_MATCH_CHECK = "matchScope"; // when "nameMatchType" is specified, can be set to:
+  protected static final String NAME_MATCH_CHECK = "matchScope"; // can be set to:
   // "all" to require all the name-matched params to match using "matchType"
   // "any" to require at least one of the name-matched params to match using "matchType"
 
@@ -49,26 +47,10 @@ public class ParameterCondition {
   @NotNull private final ValueCondition myValueCondition;
   private final boolean myNameCheckShouldMatchAll;
 
-  private ParameterCondition(@Nullable final String name,
-                             @Nullable final String value,
-                             @NotNull final RequirementType requirementType,
-                             @Nullable final RequirementType nameRequirementType,
-                             final boolean nameCheckShouldMatchAll) {
-    myValueCondition = new ValueCondition(requirementType, value);
+  private ParameterCondition(@NotNull final ValueCondition nameCondition, @NotNull final ValueCondition valueCondition, final boolean nameCheckShouldMatchAll) {
+    myValueCondition = valueCondition;
+    myNameCondition = nameCondition;
     myNameCheckShouldMatchAll = nameCheckShouldMatchAll;
-    if (nameRequirementType != null) {
-      try {
-        myNameCondition = new ValueCondition(nameRequirementType, name);
-      } catch (BadRequestException e) {
-        throw new BadRequestException("Wrong name condition: " + e.getMessage(), e);
-      }
-    } else {
-      if (name == null) {
-        myNameCondition = new ValueCondition(RequirementType.ANY, name);
-      } else {
-        myNameCondition = new ValueCondition(RequirementType.EQUALS, name);
-      }
-    }
   }
 
   @Nullable
@@ -77,9 +59,8 @@ public class ParameterCondition {
     if (propertyConditionLocator == null){
       return null;
     }
-    final Locator locator = new Locator(propertyConditionLocator, NAME, VALUE, TYPE, NAME_MATCH_TYPE, NAME_MATCH_CHECK);
+    final Locator locator = new Locator(propertyConditionLocator, NAME, VALUE, TYPE, NAME_MATCH_CHECK);
 
-    final String name = locator.getSingleDimensionValue(NAME);
     final String value = locator.getSingleDimensionValue(VALUE);
 
     RequirementType requirement = value != null ? RequirementType.CONTAINS : RequirementType.EXISTS;
@@ -92,14 +73,18 @@ public class ParameterCondition {
       }
     }
 
-    RequirementType nameRequirement = null;
-    final String nameType = locator.getSingleDimensionValue(NAME_MATCH_TYPE);
-    if (nameType != null) {
-      nameRequirement = RequirementType.findByName(nameType);
-      if (nameRequirement == null) {
-        throw new BadRequestException("Unsupported value for '" + NAME_MATCH_TYPE + "'. Supported are: " + getAllRequirementTypes());
+    ValueCondition nameCondition;
+    final String name = locator.getSingleDimensionValue(NAME);
+    if (name == null) {
+      nameCondition = new ValueCondition(RequirementType.ANY, name);
+    } else {
+      try {
+        nameCondition = createValueCondition(name);
+      } catch (BadRequestException e) {
+        throw new BadRequestException("Wrong name condition: " + e.getMessage(), e);
       }
     }
+
     final String nameRequirementCheck = locator.getSingleDimensionValue(NAME_MATCH_CHECK);
     final boolean nameCheckShouldMatchAll;
     if (StringUtil.isEmpty(nameRequirementCheck) || "any".equals(nameRequirementCheck) || "or".equals(nameRequirementCheck)) {
@@ -109,13 +94,13 @@ public class ParameterCondition {
     } else {
       throw new BadRequestException("Unsupported value for '" + NAME_MATCH_CHECK + "'. Supported are: " + "any, all");
     }
-    final ParameterCondition result = new ParameterCondition(name, value, requirement, nameRequirement, nameCheckShouldMatchAll);
+
     locator.checkLocatorFullyProcessed();
-    return result;
+    return new ParameterCondition(nameCondition, new ValueCondition(requirement, value), nameCheckShouldMatchAll);
   }
 
   @Nullable
-  @Contract("!null -> !null, null -> null")
+  @Contract("!null -> !null; null -> null")
   public static ValueCondition createValueCondition(@Nullable final String propertyConditionLocator) {
     if (propertyConditionLocator == null) {
       return null;
@@ -132,11 +117,13 @@ public class ParameterCondition {
     final String type = locator.getSingleDimensionValue(TYPE);
     if (type != null) {
       requirement = RequirementType.findByName(type);
-      if (requirement == null) {
-        throw new BadRequestException("Unsupported value for '" + TYPE + "'. Supported are: " + getAllRequirementTypes());
+      if (requirement == null || RequirementType.EXISTS.equals(requirement) || RequirementType.NOT_EXISTS.equals(requirement)) {
+        List<String> supportedSingleValueRequirementTypes = new ArrayList<>(getAllRequirementTypes());
+        supportedSingleValueRequirementTypes.remove(RequirementType.EXISTS.getName());
+        supportedSingleValueRequirementTypes.remove(RequirementType.NOT_EXISTS.getName());
+        throw new BadRequestException("Unsupported value '" + type + "' for '" + TYPE + "' for single value condition. Supported are: " + supportedSingleValueRequirementTypes);
       }
     } else {
-      //todo: review!
       if (locator.isSingleValue()) {
         requirement = RequirementType.EQUALS;
       } else {
@@ -144,10 +131,8 @@ public class ParameterCondition {
       }
     }
 
-
-    final ValueCondition result = new ValueCondition(requirement, value);
     locator.checkLocatorFullyProcessed();
-    return result;
+    return new ValueCondition(requirement, value);
   }
 
   @NotNull
@@ -184,9 +169,6 @@ public class ParameterCondition {
   }
 
   public boolean matches(@NotNull final ParametersProvider parametersProvider) {
-    if (myValueCondition.isInvalid()) {
-      return false; //todo: throw
-    }
     String constantValueIfSimpleEqualsCondition = myNameCondition.getConstantValueIfSimpleEqualsCondition();
     if (!StringUtil.isEmpty(constantValueIfSimpleEqualsCondition)) {
       final String value = parametersProvider.get(constantValueIfSimpleEqualsCondition);
@@ -209,9 +191,6 @@ public class ParameterCondition {
   }
 
   public boolean parameterMatches(@NotNull final Parameter parameter) {
-    if (myValueCondition.isInvalid()) {
-      return false;
-    }
     return myNameCondition.matches(parameter.getName()) && myValueCondition.matches(parameter.getValue());
   }
 

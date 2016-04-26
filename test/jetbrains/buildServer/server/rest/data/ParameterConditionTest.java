@@ -84,14 +84,16 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exten
     matchesTrue("matchType:exists", "a", "b"); //todo ?
     matchesFalse("matchType:not-exists");  //todo ?
 
-    matchesFalse("matchType:matches"); //todo ?
-    matchesFalse("matchType:matches", "a", "b"); //todo ?
-    matchesFalse("matchType:does-not-match");  //todo ?
+    exception(BadRequestException.class, "matchType:matches");
+    exception(BadRequestException.class, "matchType:does-not-match");
 
-    //todo
-    //exception(BadRequestException.class, "matchType:equals");
-    //exception(LocatorProcessException.class, "name:xxx,matchType:matches");
-    //exception(LocatorProcessException.class, "value:xxx,matchType:matches");
+    exception(BadRequestException.class, "matchType:equals");
+    exception(BadRequestException.class, "name:xxx,matchType:matches");
+    matchesFalse("value:x.x,matchType:matches", "a", "z", "b", "zzz"); //at least some parameter should match
+    matchesTrue("value:x.x,matchType:matches", "a", "x", "b", "xxx");
+    matchesFalse("value:x.x,matchType:matches,matchScope:all", "a", "x", "b", "xxx");
+    matchesTrue("value:x.x,matchType:matches,matchScope:all", "a", "xXx", "b", "xxx");
+
 
     matchesFalse("name:xxx,value:aaa,matchType:matches");
     matchesTrue("name:xxx,value:aaa,matchType:matches", "xxx", "aaa");
@@ -123,8 +125,7 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exten
     matchesFalse("name:xxx,value:abc,matchType:does-not-equal", "xxx", "abc", "yyy", "ccc");
     matchesTrue("name:xxx,value:abc,matchType:does-not-equal", "xxx", "abcc", "yyy", "abc");
 
-    matchesFalse("name:xxx,matchType:more-than", "xxx", "abc", "yyy", "ccc"); //should report error?
-    matchesFalse("name:xxx,matchType:more-than", "xxx", "5", "yyy", "ccc"); //should report error?
+    exception(BadRequestException.class, "name:xxx,matchType:more-than");
     matchesFalse("name:xxx,value:a,matchType:more-than", "xxx", "b", "yyy", "ccc");  //should report error?
     matchesTrue("name:xxx,value:1.5,matchType:more-than", "xxx", "1.5005", "yyy", "ccc");
     matchesFalse("name:xxx,value:1.5,matchType:more-than", "xxx", "1.4995", "yyy", "ccc");
@@ -148,32 +149,32 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exten
 
   @Test
   public void testNameMatchType() {
-    matchesFalse("name:xxx,value:aaa,matchType:equals,nameMatchType:contains", "xx", "aaa", "xxy", "bbb");
-    matchesTrue("name:xxx,value:aaa,matchType:equals,nameMatchType:contains", "xxx", "aaa", "xxy", "bbb");
-    matchesTrue("name:xxx,value:aaa,matchType:equals,nameMatchType:contains", "xxy", "bbb", "xxx", "aaa");
-    matchesFalse("name:xxx,value:aaa,matchType:equals,nameMatchType:contains", "xxx", "bbb", "xxy", "bbb");
-    matchesFalse("name:xxx,value:aaa,matchType:equals,nameMatchType:contains", "xxx", "bbb", "xxy", "bbb");
-    matchesTrue("name:xxx,value:aaa,matchType:equals,nameMatchType:contains", "xxx", "bbb", "xxxy", "aaa");
-    matchesTrue("name:xxx,value:aaa,matchType:equals,nameMatchType:contains", "xxx", "aaa", "xxxy", "aaa");
-    matchesTrue("name:xxx,value:aaa,matchType:equals,nameMatchType:contains,matchScope:any", "xxx", "aaa", "xxxy", "aaa");
-    matchesTrue("name:xxx,value:aaa,matchType:equals,nameMatchType:contains,matchScope:all", "xxx", "aaa", "xxy", "aaa");
-    matchesTrue("name:xxx,value:aaa,matchType:equals,nameMatchType:contains", "xxx", "aaa", "xxy", "aaa", "xxxy", "bbb");
-    matchesTrue("name:xxx,value:aaa,matchType:equals,nameMatchType:contains,matchScope:any", "xxx", "aaa", "xxy", "aaa", "xxxy", "bbb");
-    matchesFalse("name:xxx,value:aaa,matchType:equals,nameMatchType:contains,matchScope:all", "xxx", "aaa", "xxy", "aaa", "xxxy", "bbb");
-    matchesTrue("name:xxx,value:aaa,matchType:equals,nameMatchType:contains,matchScope:all", "xxx", "aaa", "xxxy", "aaa");
-    matchesFalse("name:xxx,value:aaa,matchType:equals,nameMatchType:contains,matchScope:all", "xxx", "aaa", "xxxy", "bbb");
+    matchesFalse("name:(value:xxx,matchType:contains),value:aaa,matchType:equals", "xx", "aaa", "xxy", "bbb");
+    matchesTrue("name:(value:xxx,matchType:contains),value:aaa,matchType:equals", "xxx", "aaa", "xxy", "bbb");
+    matchesTrue("name:(value:xxx,matchType:contains),value:aaa,matchType:equals", "xxy", "bbb", "xxx", "aaa");
+    matchesFalse("name:(value:xxx,matchType:contains),value:aaa,matchType:equals", "xxx", "bbb", "xxy", "bbb");
+    matchesFalse("name:(value:xxx,matchType:contains),value:aaa,matchType:equals", "xxx", "bbb", "xxy", "bbb");
+    matchesTrue("name:(value:xxx,matchType:contains),value:aaa,matchType:equals", "xxx", "bbb", "xxxy", "aaa");
+    matchesTrue("name:(value:xxx,matchType:contains),value:aaa,matchType:equals", "xxx", "aaa", "xxxy", "aaa");
+    matchesTrue("name:(value:xxx,matchType:contains),value:aaa,matchType:equals,matchScope:any", "xxx", "aaa", "xxxy", "aaa");
+    matchesTrue("name:(value:xxx,matchType:contains),value:aaa,matchType:equals,matchScope:all", "xxx", "aaa", "xxy", "aaa");
+    matchesTrue("name:(value:xxx,matchType:contains),value:aaa,matchType:equals", "xxx", "aaa", "xxy", "aaa", "xxxy", "bbb");
+    matchesTrue("name:(value:xxx,matchType:contains),value:aaa,matchType:equals,matchScope:any", "xxx", "aaa", "xxy", "aaa", "xxxy", "bbb");
+    matchesFalse("name:(value:xxx,matchType:contains),value:aaa,matchType:equals,matchScope:all", "xxx", "aaa", "xxy", "aaa", "xxxy", "bbb");
+    matchesTrue("name:(value:xxx,matchType:contains),value:aaa,matchType:equals,matchScope:all", "xxx", "aaa", "xxxy", "aaa");
+    matchesFalse("name:(value:xxx,matchType:contains),value:aaa,matchType:equals,matchScope:all", "xxx", "aaa", "xxxy", "bbb");
 
     matchesTrue("name:xxx,value:aaa,matchScope:all", "xxx", "aaa", "xxxy", "bbb"); //or should report error?
 
-    matchesTrue("name:.*,value:aaa,matchType:equals,nameMatchType:matches,matchScope:all", "xxx", "aaa", "xxxy", "aaa");
-    matchesFalse("name:.*,value:aaa,matchType:equals,nameMatchType:matches,matchScope:all", "xxx", "aaa", "xxxy", "aaab");
-    matchesFalse("name:.*,value:aaa,matchType:equals,nameMatchType:matches,matchScope:all", "xxx", "aaa", "xxxy", "aaaB");
+    matchesTrue("name:(value:.*,matchType:matches),value:aaa,matchType:equals,matchScope:all", "xxx", "aaa", "xxxy", "aaa");
+    matchesFalse("name:(value:.*,matchType:matches),value:aaa,matchType:equals,matchScope:all", "xxx", "aaa", "xxxy", "aaab");
+    matchesFalse("name:(value:.*,matchType:matches),value:aaa,matchType:equals,matchScope:all", "xxx", "aaa", "xxxy", "aaaB");
 
-    exception(BadRequestException.class, "name:xxx,value:aaa,matchType:equals,nameMatchType:contains,matchScope:aaa");
-    exception(BadRequestException.class, "name:xxx,value:aaa,matchType:equals,nameMatchType:Contains,matchScope:aaa");
-    exception(BadRequestException.class, "name:xxx,value:aaa,matchType:equals,nameMatchType:bbb,matchScope:aaa");
-//    exception(BadRequestException.class, "value:aaa,matchType:equals,nameMatchType:contains");
-//    exception(BadRequestException.class, "value:aaa,matchType:equals,nameMatchType:contains,matchScope:all");
+    exception(BadRequestException.class, "name:(value:xxx,matchType:contains),value:aaa,matchType:equals,matchScope:aaa");
+    exception(BadRequestException.class, "name:(value:xxx,matchType:Contains),value:aaa,matchType:equals,matchScope:aaa");
+    exception(BadRequestException.class, "name:(value:xxx,matchType:bbb),value:aaa,matchType:equals,matchScope:aaa");
+    exception(BadRequestException.class, "name:(matchType:contains),value:aaa,matchType:equals");
+    exception(BadRequestException.class, "name:(matchType:contains),value:aaa,matchType:equals,matchScope:all");
 
     matchesFalse("value:aaa,matchScope:all", "xxx", "aaa", "xxxy", "bbb");
     matchesTrue("value:aaa,matchScope:all", "xxx", "aaa", "xxxy", "bbaaab");
@@ -191,14 +192,12 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exten
     matchesSingleFalse("value:aaa", "AAA");
     matchesSingleFalse("value:aaa", "aa");
 
-    matchesSingleFalse("matchType:exists", null); //todo ?
-    matchesSingleTrue("matchType:exists", "a"); //todo ?
-    matchesSingleTrue("matchType:not-exists", null);  //todo ?
-    matchesSingleFalse("matchType:not-exists", "a");  //todo ?
+    exceptionSingle(BadRequestException.class, "matchType:exists");
+    exceptionSingle(BadRequestException.class, "matchType:exists,value:a");
+    exceptionSingle(BadRequestException.class, "matchType:not-exists");
 
-    matchesSingleFalse("matchType:matches", null); //todo ?
-    matchesSingleFalse("matchType:matches", "a"); //todo ?
-    matchesSingleFalse("matchType:does-not-match", null);  //todo ?
+    exceptionSingle(BadRequestException.class, "matchType:matches");
+    exceptionSingle(BadRequestException.class, "matchType:does-not-match");
 
     matchesSingleFalse("value:aaa,matchType:equals", null);
     matchesSingleTrue("value:aaa,matchType:equals", "aaa");
@@ -209,18 +208,18 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exten
     matchesSingleTrue("value:.,matchType:matches", ".");
     matchesSingleFalse("value:.,matchType:matches", "aa");
 
-    //exceptionSingle("value:aaa,matchType:exists");
-    //exceptionSingle("value:aaa,matchType:not-exists");
-    //assertNull(ParameterCondition.createSingle((String)null));
-    //exceptionSingle(LocatorProcessException.class, "");
-    //exceptionSingle(LocatorProcessException.class, "name:a,some:b");
-    //exceptionSingle(LocatorProcessException.class, "name:a");
-    //exceptionSingle(LocatorProcessException.class, "some:b");
-    //exceptionSingle(LocatorProcessException.class, "name:xxx,value:aaa");
-    //exceptionSingle(BadRequestException.class, "name:a,value:b,matchType:contains");
-    //exceptionSingle(BadRequestException.class, "name:a,value:b,matchType:abra");
-    //exceptionSingle("name:xxx,value:aaa,matchType:equals,nameMatchType:contains");
-    //exceptionSingle("name:xxx,value:aaa,matchType:equals,matchScope:any");
+    exceptionSingle(BadRequestException.class, "value:aaa,matchType:exists");
+    exceptionSingle(BadRequestException.class, "value:aaa,matchType:not-exists");
+    assertNull(ParameterCondition.createValueCondition((String)null));
+    exceptionSingle(LocatorProcessException.class, "");
+    exceptionSingle(LocatorProcessException.class, "name:a,some:b");
+    exceptionSingle(LocatorProcessException.class, "name:a");
+    exceptionSingle(LocatorProcessException.class, "some:b");
+    exceptionSingle(LocatorProcessException.class, "name:xxx,value:aaa");
+    exceptionSingle(LocatorProcessException.class, "name:a,value:b,matchType:contains");
+    exceptionSingle(BadRequestException.class, "name:a,value:b,matchType:abra");
+    exceptionSingle(LocatorProcessException.class, "name:xxx,value:aaa,matchType:equals,nameMatchType:contains");
+    exceptionSingle(LocatorProcessException.class, "name:xxx,value:aaa,matchType:equals,matchScope:any");
   }
 
   // ==============================
@@ -256,6 +255,16 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exten
       @Override
       public void run() {
         ParameterCondition.create(propertyConditionLocator);
+      }
+    }, null);
+  }
+
+  private static <E extends Throwable> void exceptionSingle(final Class<E> exception, @NotNull final String propertyConditionLocator) {
+    //noinspection ThrowableResultOfMethodCallIgnored
+    BaseFinderTest.checkException(exception, new Runnable() {
+      @Override
+      public void run() {
+        ParameterCondition.createValueCondition(propertyConditionLocator);
       }
     }, null);
   }

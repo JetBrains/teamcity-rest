@@ -885,12 +885,12 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkExceptionOnBuildsSearch(BadRequestException.class, "property:(value:10,matchType:Equals)");
     checkExceptionOnBuildsSearch(BadRequestException.class, "property:(value:10,matchType:AAA)");
 
-    checkBuilds("property:(name:([b,c]),nameMatchType:matches)", getBuildPromotions(finishedBuild35, finishedBuild30, finishedBuild20, finishedBuild10));
-    checkBuilds("property:(name:.,nameMatchType:matches,value:15,matchType:more-than)", getBuildPromotions(finishedBuild30, finishedBuild20));
+    checkBuilds("property:(name:(value:([b,c]),matchType:matches))", getBuildPromotions(finishedBuild35, finishedBuild30, finishedBuild20, finishedBuild10));
+    checkBuilds("property:(name:(value:.,matchType:matches),value:15,matchType:more-than)", getBuildPromotions(finishedBuild30, finishedBuild20));
     checkBuilds("property:(matchScope:any,value:10,matchType:equals)", getBuildPromotions(finishedBuild50, finishedBuild35, finishedBuild10));
 //this does not work as all build params are checked, not only custom    checkBuilds("property:(matchScope:all,value:10,matchType:equals)", getBuildPromotions(finishedBuild50, finishedBuild35));
-    checkBuilds("property:(name:(a*),nameMatchType:matches,matchScope:all,value:10,matchType:equals)", getBuildPromotions(finishedBuild50));
-    checkBuilds("property:(name:(.),nameMatchType:matches,matchScope:any,value:10,matchType:equals)", getBuildPromotions(finishedBuild35, finishedBuild10));
+    checkBuilds("property:(name:(value:(a*),matchType:matches),matchScope:all,value:10,matchType:equals)", getBuildPromotions(finishedBuild50));
+    checkBuilds("property:(name:(value:(.),matchType:matches),matchScope:any,value:10,matchType:equals)", getBuildPromotions(finishedBuild35, finishedBuild10));
     checkBuilds("property:(name:zzz)", getBuildPromotions(finishedBuild40));
     checkBuilds("property:(name:z.z)");
 
@@ -898,7 +898,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("property:(value:10,matchType:does-not-match)",
                 getBuildPromotions(finishedBuild50, finishedBuild40, finishedBuild35, finishedBuild30, finishedBuild20, finishedBuild10, finishedBuild05));
     //builds with no param equal to 10
-    checkBuilds("property:(nameMatchType:exists,matchScope:all,value:10,matchType:does-not-equal)",
+    checkBuilds("property:(matchScope:all,value:10,matchType:does-not-equal)",
                 getBuildPromotions(finishedBuild40, finishedBuild30, finishedBuild20, finishedBuild05));
   }
 

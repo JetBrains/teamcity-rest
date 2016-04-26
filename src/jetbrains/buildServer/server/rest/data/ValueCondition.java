@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import jetbrains.buildServer.requirements.RequirementType;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,10 +32,9 @@ public class ValueCondition {
   public ValueCondition(@NotNull final RequirementType requirementType, @Nullable final String value) {
     myParameterValue = value;
     myRequirementType = requirementType;
-    //todo: use this code  and drop isInvalid()
-    //if (myRequirementType.isParameterRequired() && myParameterValue == null) {
-    //  throw new BadRequestException("Wrong parameter condition: requirement type '" + requirementType.getName() + "' requires specification of the value");
-    //}
+    if (myRequirementType.isParameterRequired() && myParameterValue == null) {
+      throw new BadRequestException("Wrong parameter condition: requirement type '" + requirementType.getName() + "' requires specification of the value");
+    }
   }
 
   private static boolean matches(@NotNull final RequirementType requirementType, @Nullable final String requirementValue, @Nullable final String actualValue) {
@@ -63,10 +63,6 @@ public class ValueCondition {
   public String getConstantValueIfSimpleEqualsCondition() {
     if (RequirementType.EQUALS.equals(myRequirementType)) return myParameterValue;
     return null;
-  }
-
-  public boolean isInvalid() {
-    return myRequirementType.isParameterRequired() && myParameterValue == null;
   }
 
   @Override

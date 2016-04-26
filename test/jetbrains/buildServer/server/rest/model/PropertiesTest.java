@@ -24,7 +24,7 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 /**
  * @author Yegor.Yarko
@@ -47,7 +47,7 @@ public class PropertiesTest extends BaseServerTestCase {
           CollectionsUtil.asMap("aaa", "xxx"));
 
     check(CollectionsUtil.asMap("a", "b", "aaaa", "xxx", "bbb", "xXx", "aAaaa", "xxx", "aa", "xxx.", "aaa", "xxx"),
-          "$long,$locator(name:a.*a,nameMatchType:matches,value:xxx,matchType:equals)", 3,
+          "$long,$locator(name:(value:a.*a,matchType:matches),value:xxx,matchType:equals)", 3,
           CollectionsUtil.asMap("aaa", "xxx", "aaaa", "xxx", "aAaaa", "xxx"));
   }
 
