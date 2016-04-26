@@ -16,15 +16,17 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import java.util.Collection;
+import java.util.Collections;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.BuildTypeTemplate;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SimpleParameter;
+import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.vcs.CheckoutRules;
-import jetbrains.buildServer.vcs.SVcsRoot;
-import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcs.*;
+import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -121,9 +123,61 @@ public class VcsRootInstanceFinderTest extends BaseFinderTest<VcsRootInstance> {
     check("property:(name:aaa,value:RESOLVED)", vInstance20);
     check("property:(name:aaa,value:2,matchType:more-than)", vInstance30, vInstance80);
     check("property:(name:aaa,value:4,matchType:more-than)", vInstance30);
+  }
 
-    //need to provide implementation for PersonalSupportService for the VCS support to be able to test this
-    //check("repositoryIdString:xxx", vInstance30);
+  @SuppressWarnings("ConstantConditions")
+  @Test
+  public void testRepositoryIdString() throws Exception {
+    MockVcsSupport svn = myFixture.registerVcsSupport("svn");
+    svn.addCustomVcsExtension(VcsPersonalSupport.class, new VcsPersonalSupport() {
+      @NotNull
+      @Override
+      public Collection<String> mapFullPath(@NotNull final VcsRootEntry rootEntry, @NotNull final String fullPath) throws VcsException {
+        String prefix = rootEntry.getProperties().get("prefix");
+        if (prefix != null && fullPath.startsWith(prefix))  return Collections.singletonList(fullPath.substring(prefix.length()));
+        return Collections.emptyList();
+      }
+    });
+    svn.addCustomVcsExtension(VcsClientMappingProvider.class, new VcsRootBasedMappingProvider() {
+
+      @Override
+      public Collection<VcsClientMapping> getClientMapping(@NotNull final VcsRoot vcsRoot) throws VcsException {
+        String prefix = vcsRoot.getProperties().get("prefix");
+        if (prefix != null) return Collections.singletonList(new VcsClientMapping(prefix, ""));
+        return Collections.emptyList();
+      }
+    });
+
+    myFixture.registerVcsSupport("custom");
+
+    final ProjectEx project10 = getRootProject().createProject("project10", "Project name 10");
+
+    final SVcsRoot vcsRoot10 = project10.createVcsRoot("svn", "id10", "VCS root 10 name");
+    vcsRoot10.setProperties(CollectionsUtil.asMap("url", "22", "prefix", "000000-0000-1111-000000000001|trunk/path1"));
+    final SVcsRoot vcsRoot12 = project10.createVcsRoot("svn", "id12", "VCS root 12 name");
+    vcsRoot12.setProperties(CollectionsUtil.asMap("url", "", "prefix", "000000-0000-1111-000000000001|trunk/path2"));
+    final SVcsRoot vcsRoot15 = project10.createVcsRoot("custom", "id15", "VCS root 15 name");
+    vcsRoot15.setProperties(CollectionsUtil.asMap("url", "", "aaa", "3"));
+
+    final SBuildType bt10 = project10.createBuildType("id10", "name 10");
+    VcsRootInstance vInstance10 = attachVcsRoot(bt10, vcsRoot10);
+    VcsRootInstance vInstance20 = attachVcsRoot(bt10, vcsRoot12);
+    bt10.setCheckoutRules(vcsRoot10, new CheckoutRules("+:aaa=>bbb"));
+
+    check("repositoryIdString:xxx");
+    check("repositoryIdString:000000-0000-1111-000000000001|trunk/path1", vInstance10); //pre-TeamCity 10 behavior
+    check("repositoryIdString:000000-0000-1111-000000000001|trunk/path1/aaa", vInstance10);  //pre-TeamCity 10 behavior
+    check("repositoryIdString:svn://000000-0000-1111-000000000001|trunk/path1", vInstance10);
+    check("repositoryIdString:svn://000000-0000-1111-000000000001|trunk/path1/aaa", vInstance10);
+    check("repositoryIdString:svn://000000-0000-1111-000000000001|trunk/path2/aaa", vInstance20);
+
+    check("repositoryIdString:svn://000000-0000-1111-000000000001|trunk2");
+    check("repositoryIdString:svn://000000-0000-1111-000000000001|trunk/path9");
+    check("repositoryIdString:svn://000000-0000-1111-000000000002|trunk/path1");
+
+//does not work for now    check("repositoryIdString:svn://000000-0000-1111-000000000001|", vInstance10, vInstance20);
+    check("repositoryIdString:svn://000000-0000-1111-000000000001|trunk", vInstance10, vInstance20);
+    check("repositoryIdString:svn://000000-0000-1111-000000000001|trunk/path");
   }
 
   @SuppressWarnings("ConstantConditions")

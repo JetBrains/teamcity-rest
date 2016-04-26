@@ -27,10 +27,8 @@ import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.request.VcsRootInstanceRequest;
@@ -39,6 +37,7 @@ import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.vcs.api.VcsSettings;
@@ -47,13 +46,15 @@ import jetbrains.vcs.api.services.tc.VcsMappingElement;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static jetbrains.buildServer.serverSide.impl.projectSources.SmallPatchCache.LOG;
+
 /**
  * @author Yegor.Yarko
  *         Date: 16.04.2009
  */
 @XmlRootElement(name = "vcs-root")
 @XmlType(name = "vcs-root", propOrder = { "id", "internalId", "uuid", "name","vcsName", "modificationCheckInterval", "status", "lastChecked", "href",
-  "project", "properties", "vcsRootInstances"})  //todo: add webUrl
+  "project", "properties", "vcsRootInstances" , "repositoryIdStrings"})  //todo: add webUrl
 @SuppressWarnings("PublicField")
 public class VcsRoot {
   @XmlAttribute
@@ -100,6 +101,9 @@ public class VcsRoot {
 
   @XmlElement
   public VcsRootInstances vcsRootInstances;
+
+  @XmlElement
+  public Items repositoryIdStrings;
 
   /**
    * This is used only when posting a link
@@ -163,10 +167,29 @@ public class VcsRoot {
           }, new PagerData(VcsRootInstanceRequest.getVcsRootInstancesHref(root)), fields.getNestedField("vcsRootInstances"), beanContext);
         }
       });
+      repositoryIdStrings = ValueWithDefault.decideDefault(fields.isIncluded("repositoryIdStrings", false, false), new ValueWithDefault.Value<Items>() {
+        @Nullable
+        @Override
+        public Items get() {
+          ArrayList<String> result = new ArrayList<>();
+          try {
+            Collection<VcsMappingElement> vcsMappingElements = VcsRoot.getRepositoryMappings(root, beanContext.getSingletonService(VcsManager.class));
+            for (VcsMappingElement vcsMappingElement : vcsMappingElements) {
+              result.add(vcsMappingElement.getTo());
+            }
+            return new Items(result);
+          } catch (Exception e) {
+            LOG.debug("Error while retrieving mapping for VCS root " + LogUtil.describe(root) + ", skipping " + "repositoryIdStrings" + " in root details", e);
+            //ignore
+          }
+          return null;
+        }
+      });
     } else {
       properties = null;
       modificationCheckInterval = null;
       vcsRootInstances = null;
+      repositoryIdStrings = null;
     }
 
     final VcsRootStatus rootStatus = beanContext.getSingletonService(VcsManager.class).getStatus(root);

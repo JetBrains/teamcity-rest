@@ -17,10 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
@@ -270,21 +267,35 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
   static boolean repositoryIdStringMatches(@NotNull final jetbrains.buildServer.vcs.VcsRoot root,
                                            @NotNull final String repositoryIdString,
                                            final VcsManager vcsManager) {
+    String repositoryIdStringWithoutType;
+    //see also PersonalPatchUtil.mapPathEx()
+    final int index = repositoryIdString.indexOf(VcsMappingElement.SEPARATOR);
+    if (index >= 0) {
+      final String vcsName = repositoryIdString.substring(0, index);
+      if (!vcsName.equals(root.getVcsName())) return false;
+      repositoryIdStringWithoutType = repositoryIdString.substring(index + VcsMappingElement.SEPARATOR.length());
+    } else {
+      repositoryIdStringWithoutType = repositoryIdString; //pre-TeamCity 10 compatibility
+    }
+
     try {
       final VcsSupportCore vcsSupport = vcsManager.findVcsByName(root.getVcsName());
       if (vcsSupport != null) {
         final PersonalSupportBatchService personalSupportService = vcsManager.getGenericService(root.getVcsName(), PersonalSupportBatchService.class);
 
         if (personalSupportService != null) {
-          if (null != personalSupportService.mapPath(Arrays.asList(new VcsSettings(root, "")), repositoryIdString, true).getMappedPath())
-            return true;
+//          if (null != personalSupportService.mapPath(Arrays.asList(new VcsSettings(root, "")), repositoryIdStringWithoutType, true).getMappedPath())
+//          return true;
+          List<Boolean> canAffectList = personalSupportService.canAffect(Arrays.asList(new VcsSettings(root, "")), Collections.singletonList(repositoryIdStringWithoutType), true);
+          for (Boolean aBoolean : canAffectList) {
+            if (aBoolean) return true;
+          }
+          return false;
         } else {
           LOG.debug("No personal support for VCS root " + LogUtil.describe(root) + " found, ignoring root in search");
-          return false;
         }
       } else {
         LOG.debug("No VCS support for VCS root " + LogUtil.describe(root) + " found, ignoring root in search");
-        return false;
       }
     } catch (Exception e) {
       LOG.debug("Error while retrieving mapping for VCS root " + LogUtil.describe(root) + " via mapFullPath, ignoring", e);
@@ -293,7 +304,8 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
     try {
       Collection<VcsMappingElement> vcsMappingElements = VcsRoot.getRepositoryMappings(root, vcsManager);
       for (VcsMappingElement vcsMappingElement : vcsMappingElements) {
-        if (repositoryIdString.equals(vcsMappingElement.getTo())) {
+        if (vcsMappingElement.getTo().startsWith(repositoryIdString) || repositoryIdString.startsWith(vcsMappingElement.getTo())) {
+//        if (repositoryIdString.equals(vcsMappingElement.getTo())) {
           return true;
         }
       }

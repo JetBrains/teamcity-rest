@@ -17,6 +17,8 @@
 package jetbrains.buildServer.server.rest.model.change;
 
 import com.intellij.openapi.util.text.StringUtil;
+import java.util.ArrayList;
+import java.util.Collection;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -27,6 +29,7 @@ import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.Items;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -34,13 +37,14 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.RepositoryVersion;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
-import jetbrains.buildServer.vcs.SingleVersionRepositoryStateAdapter;
-import jetbrains.buildServer.vcs.VcsException;
-import jetbrains.buildServer.vcs.VcsRootInstanceEx;
-import jetbrains.buildServer.vcs.VcsRootStatus;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.RepositoryStateManager;
+import jetbrains.vcs.api.services.tc.VcsMappingElement;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import static jetbrains.buildServer.serverSide.impl.projectSources.SmallPatchCache.LOG;
 
 /**
  * @author Yegor.Yarko
@@ -48,7 +52,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "vcs-root-instance")
 @XmlType(name = "vcs-root-instance", propOrder = {"id", "vcsRootId", "vcsRootInternalId", "name","vcsName", "status", "lastChecked", "lastVersion", "lastVersionInternal", "href",
-  "parent", "properties"})
+  "parent", "properties", "repositoryIdStrings"})
 @SuppressWarnings("PublicField")
 public class VcsRootInstance {
   public static final String LAST_VERSION_INTERNAL = "lastVersionInternal";
@@ -152,6 +156,28 @@ public class VcsRootInstance {
   public Properties getProperties() {
     return check(ValueWithDefault.decideDefault(myFields.isIncluded("properties", false),
                                                 new Properties(myRoot.getProperties(), null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG))));
+  }
+
+  @XmlElement
+  public Items getRepositoryIdStrings() {
+    return check(ValueWithDefault.decideDefault(myFields.isIncluded("repositoryIdStrings", false, false), new ValueWithDefault.Value<Items>() {
+      @Nullable
+      @Override
+      public Items get() {
+        ArrayList<String> result = new ArrayList<>();
+        try {
+          Collection<VcsMappingElement> vcsMappingElements = VcsRoot.getRepositoryMappings(myRoot, myBeanContext.getSingletonService(VcsManager.class));
+          for (VcsMappingElement vcsMappingElement : vcsMappingElements) {
+            result.add(vcsMappingElement.getTo());
+          }
+          return new Items(result);
+        } catch (Exception e) {
+          LOG.debug("Error while retrieving mapping for VCS root " + LogUtil.describe(myRoot) + ", skipping " + "repositoryIdStrings" + " in root details", e);
+          //ignore
+        }
+        return null;
+      }
+    }));
   }
 
   public static String getFieldValue(final jetbrains.buildServer.vcs.VcsRootInstance rootInstance,
