@@ -25,6 +25,7 @@ import jetbrains.buildServer.serverSide.agentPools.PoolQuotaExceededException;
 import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import org.jetbrains.annotations.NotNull;
+import org.testng.SkipException;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -134,6 +135,58 @@ public class AgentFinderTest extends BaseFinderTest<SBuildAgent> {
   }
 
   @Test
+  public void testLocatorCompatible3AgentLimit() throws Exception {
+    ProjectEx project10 = createProject("project10", "project 10");
+    BuildTypeEx bt10 = project10.createBuildType("bt10", "bt 10");
+    bt10.addRequirement(myFixture.findSingletonService(RequirementFactory.class).createRequirement("a", null, RequirementType.EXISTS));
+    BuildTypeEx bt20 = project10.createBuildType("bt20", "bt 20");
+    BuildTypeEx bt30 = project10.createBuildType("bt30", "bt 30");
+    bt30.addRequirement(myFixture.findSingletonService(RequirementFactory.class).createRequirement("x", "1", RequirementType.EQUALS));
+
+    myAgent1.addConfigParameter("x", "1");
+    myAgent1.pushAgentTypeData();
+
+    myAgent1.setAuthorized(false, null, "");
+    myAgent2.setAuthorized(false, null, "");
+
+    MockBuildAgent agent10 = myFixture.createEnabledAgent("agent10", "Ant");
+    agent10.addConfigParameter("a", "b");
+    agent10.addConfigParameter("x", "1");
+    agent10.pushAgentTypeData();
+    MockBuildAgent agent15 = myFixture.createEnabledAgent("agent15", "Ant");
+    agent15.addConfigParameter("a", "b");
+    agent15.pushAgentTypeData();
+    MockBuildAgent agent20 = myFixture.createEnabledAgent("agent20", "Ant");
+    agent20.addConfigParameter("a", "b");
+    agent20.pushAgentTypeData();
+    agent20.setAuthorized(false, null, "");
+    final int poolId1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1");
+    myFixture.getAgentPoolManager().moveAgentTypesToPool(poolId1, createSet(agent20.getId()));
+
+    MockBuildAgent agent30 = myFixture.createEnabledAgent("agent30", "Ant");
+    agent30.addConfigParameter("a", "b");
+    agent30.pushAgentTypeData();
+    agent30.setAuthorized(false, null, "");
+    myFixture.getAgentTypeManager().setRunConfigurationPolicy(agent30.getAgentTypeId(), BuildAgentManager.RunConfigurationPolicy.SELECTED_COMPATIBLE_CONFIGURATIONS);
+    myFixture.getAgentTypeManager().excludeRunConfigurationsFromAllowed(agent30.getAgentTypeId(), new String[]{bt10.getInternalId(), bt20.getInternalId()});
+
+    MockBuildAgent agent40 = myFixture.createEnabledAgent("agent40", "Ant");
+    agent40.setAuthorized(false, null, "");
+
+    checkAgents("defaultFilter:false", myAgent1, myAgent2, myAgent3, myAgent4, agent10, agent15, agent20, agent30, agent40);
+    checkAgents(null, agent10, agent15);
+    checkAgents("compatible:(buildType:(id:" + bt10.getExternalId() + ")),authorized:any", agent10, agent15);
+    checkAgents("compatible:(buildType:(id:" + bt30.getExternalId() + ")),authorized:any", agent10);
+    checkAgents("compatible:(buildType:(item:(id:" + bt10.getExternalId() + "),item:(id:" + bt30.getExternalId() + "))),authorized:any", agent10, agent15);
+
+    checkAgents("incompatible:(buildType:(id:" + bt10.getExternalId() + ")),authorized:any", myAgent1, myAgent2, myAgent3, myAgent4, agent20, agent30, agent40);
+    checkAgents("incompatible:(buildType:(item:(id:" + bt10.getExternalId() + "),item:(id:" + bt30.getExternalId() + "))),authorized:any",
+                myAgent1, myAgent2, myAgent3, myAgent4, agent15, agent20, agent30, agent40);
+
+    checkAgents("compatible:(buildType:(id:" + bt30.getExternalId() + ")),incompatible:(buildType:(id:" + bt10.getExternalId() + ")),authorized:any");
+  }
+
+  @Test
   public void testLocatorCompatible() throws Exception {
     ProjectEx project10 = createProject("project10", "project 10");
     BuildTypeEx bt10 = project10.createBuildType("bt10", "bt 10");
@@ -149,6 +202,11 @@ public class AgentFinderTest extends BaseFinderTest<SBuildAgent> {
     agent10.addConfigParameter("a", "b");
     agent10.addConfigParameter("x", "1");
     agent10.pushAgentTypeData();
+
+    if (myServer.getLicensingPolicy().getMaxNumberOfAuthorizedAgents() < 4){
+      throw new SkipException("Cannot execute test logic when there is not enough agent licenses (only works in internal dev environment tests)");
+    }
+
     MockBuildAgent agent15 = myFixture.createEnabledAgent("agent15", "Ant");
     agent15.addConfigParameter("a", "b");
     agent15.pushAgentTypeData();
