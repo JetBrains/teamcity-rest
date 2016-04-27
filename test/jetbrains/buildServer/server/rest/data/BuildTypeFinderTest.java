@@ -18,11 +18,15 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.Arrays;
 import java.util.Collections;
+import jetbrains.LicenseTestUtil;
+import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
+import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
+import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.auth.SecurityContextImpl;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -31,6 +35,7 @@ import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.testng.SkipException;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -489,6 +494,65 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
 
     checkBuildTypes("filterByBuilds:(search:(count:1))", buildConf10, buildConf20, buildConf30);
     checkBuildTypes("filterByBuilds:(search:(count:100),match:(status:SUCCESS))", buildConf30);
+  }
+
+  @Test
+  public void testCompatibleAgent() throws Exception {
+    myBuildType.remove();
+
+    if (!LicenseTestUtil.hasLicenseGenerator() && myServer.getLicensingPolicy().getMaxNumberOfAuthorizedAgents() < 6){
+      throw new SkipException("Cannot execute test logic when there is not enough agent licenses (only works in internal dev environment tests)");
+    }
+
+    ProjectEx project10 = createProject("project10", "project 10");
+    BuildTypeEx bt10 = project10.createBuildType("bt10", "bt 10");
+    bt10.addRequirement(myFixture.findSingletonService(RequirementFactory.class).createRequirement("a", null, RequirementType.EXISTS));
+    BuildTypeEx bt20 = project10.createBuildType("bt20", "bt 20");
+    BuildTypeEx bt30 = project10.createBuildType("bt30", "bt 30");
+    bt30.addRequirement(myFixture.findSingletonService(RequirementFactory.class).createRequirement("x", "1", RequirementType.EQUALS));
+
+    MockBuildAgent agent10 = myFixture.createEnabledAgent("agent10", "Ant"); // not compatible
+    MockBuildAgent agent20 = myFixture.createEnabledAgent("agent20", "Ant"); //compatible
+    agent20.addConfigParameter("a", "b");
+    agent20.addConfigParameter("x", "1");
+    agent20.pushAgentTypeData();
+
+    MockBuildAgent agent30 = myFixture.createEnabledAgent("agent30", "Ant"); //compatible, but in another pool
+    agent30.addConfigParameter("a", "b");
+    agent30.addConfigParameter("x", "2");
+    agent30.pushAgentTypeData();
+
+    final int poolId1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1");
+    myFixture.getAgentPoolManager().moveAgentTypesToPool(poolId1, createSet(agent30.getId()));
+
+    MockBuildAgent agent40 = myFixture.createEnabledAgent("agent40", "Ant");  //compatible, but excluded by policy
+    agent40.addConfigParameter("a", "b");
+    agent40.addConfigParameter("x", "1");
+    agent40.pushAgentTypeData();
+    myFixture.getAgentTypeManager().setRunConfigurationPolicy(agent40.getAgentTypeId(), BuildAgentManager.RunConfigurationPolicy.SELECTED_COMPATIBLE_CONFIGURATIONS);
+    myFixture.getAgentTypeManager().includeRunConfigurationsToAllowed(agent40.getAgentTypeId(), new String[]{bt30.getInternalId()});
+    myFixture.getAgentTypeManager().excludeRunConfigurationsFromAllowed(agent40.getAgentTypeId(), new String[]{bt10.getInternalId(), bt20.getInternalId()});
+
+    MockBuildAgent agent50 = myFixture.createEnabledAgent("agent50", "Ant"); //compatible, but unauthorized
+    agent50.addConfigParameter("a", "b");
+    agent50.addConfigParameter("x", "2");
+    agent50.pushAgentTypeData();
+    agent50.setAuthorized(false, null, "");
+
+    MockBuildAgent agent60 = myFixture.createEnabledAgent("agent60", "Ant"); //compatible, but disabled
+    agent60.addConfigParameter("a", "b");
+    agent60.addConfigParameter("x", "2");
+    agent60.pushAgentTypeData();
+    agent60.setEnabled(false, null, "");
+
+    checkBuildTypes(null, bt10, bt20, bt30);
+    checkBuildTypes("compatibleAgent:(id:" + agent10.getId() + ")", bt20);
+    checkBuildTypes("compatibleAgent:(id:" + agent20.getId() + ")", bt10, bt20, bt30);
+    checkBuildTypes("compatibleAgent:(id:" + agent30.getId() + ")");
+    checkBuildTypes("compatibleAgent:(id:" + agent40.getId() + ")", bt30);
+    checkBuildTypes("compatibleAgent:(id:" + agent50.getId() + ")", bt10, bt20);
+
+    checkBuildTypes("compatibleAgent:(item:(id:" + agent40.getId() + "),item:(id:" + +agent10.getId() + "))", bt20, bt30);
   }
 
   private void checkBuildTypes(@Nullable final String locator, BuildTypeSettings... items) {

@@ -29,8 +29,10 @@ import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.*;
+import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.project.Project;
+import jetbrains.buildServer.server.rest.request.AgentRequest;
 import jetbrains.buildServer.server.rest.request.BuildTypeRequest;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -51,7 +53,8 @@ import org.jetbrains.annotations.Nullable;
 @XmlType(name = "buildType", propOrder = {"id", "internalId", "name", "templateFlag", "paused", "uuid", "description", "projectName", "projectId", "projectInternalId",
   "href", "webUrl",
   "links", "project", "template", "vcsRootEntries", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
-  "artifactDependencies", "agentRequirements", "builds", "investigations"})
+  "artifactDependencies", "agentRequirements",
+  "builds", "investigations", "compatibleAgents"})
 public class BuildType {
   private static final Logger LOG = Logger.getInstance(BuildType.class.getName());
 
@@ -386,6 +389,26 @@ public class BuildType {
         }
         final List<InvestigationWrapper> result = Investigations.isDataNecessary(nestedFields) ? finder.getItems(actualLocatorText).myEntries : null;
         return new Investigations(result, new PagerData(InvestigationRequest.getHref(actualLocatorText)), nestedFields, myBeanContext);
+      }
+    });
+  }
+
+  @XmlElement(name = "compatibleAgents")
+  public Agents getCompatibleAgents() {
+    if (myBuildType == null || myBuildType.getBuildType() == null) {
+      return null;
+    }
+    return ValueWithDefault.decideDefault(myFields.isIncluded("compatibleAgents", false, true), new ValueWithDefault.Value<Agents>() {
+      @Nullable
+      public Agents get() {
+        final Fields nestedFields = myFields.getNestedField("compatibleAgents");
+        final AgentFinder finder = myBeanContext.getSingletonService(AgentFinder.class);
+        final String nestedLocator = nestedFields.getLocator();
+        String actualLocatorText = AgentFinder.getCompatibleAgentsLocator(myBuildType.getBuildType());
+        if (nestedLocator != null) {
+          actualLocatorText = finder.createLocator(nestedLocator, new Locator(actualLocatorText)).getStringRepresentation();
+        }
+        return new Agents(actualLocatorText, new PagerData(AgentRequest.getItemsHref(actualLocatorText)), nestedFields, myBeanContext);
       }
     });
   }

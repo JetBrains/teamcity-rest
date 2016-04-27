@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -56,6 +57,22 @@ public class Agents {
   }
 
   public Agents(@Nullable final Collection<SBuildAgent> agentObjects, @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    init(agentObjects, pagerData, fields, beanContext);
+  }
+
+  public Agents(@Nullable final String agentsLocatorText, @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    AgentFinder finder = beanContext.getSingletonService(AgentFinder.class);
+    List<SBuildAgent> result = null;
+    if (fields.isIncluded(AGENT, false, true) || fields.isIncluded(COUNT, false, true)){ //todo: is decision on count OK?
+      result = finder.getItems(agentsLocatorText).myEntries; //todo: make it effective
+    }
+    init(result, pagerData, fields, beanContext);
+  }
+
+  private void init(final @Nullable Collection<SBuildAgent> agentObjects,
+                    final @Nullable PagerData pagerData,
+                    final @NotNull Fields fields,
+                    final @NotNull BeanContext beanContext) {
     if (agentObjects != null) {
       agents = ValueWithDefault.decideDefault(fields.isIncluded(AGENT, false, true), new ValueWithDefault.Value<List<Agent>>() {
         @Nullable

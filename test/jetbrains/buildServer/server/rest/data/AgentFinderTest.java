@@ -225,15 +225,21 @@ public class AgentFinderTest extends BaseFinderTest<SBuildAgent> {
 
     MockBuildAgent agent40 = myFixture.createEnabledAgent("agent40", "Ant");
 
-    checkAgents("defaultFilter:false", myAgent1, myAgent2, myAgent3, myAgent4, agent10, agent15, agent20, agent30, agent40);
-    checkAgents(null, myAgent1, myAgent2, agent10, agent15, agent20, agent30, agent40);
-    checkAgents("compatible:(buildType:(id:" + bt10.getExternalId() + "))", agent10, agent15);
+    MockBuildAgent agent50 = myFixture.createEnabledAgent("agent50", "Ant");
+    agent50.addConfigParameter("a", "b");
+    agent50.pushAgentTypeData();
+    agent50.setEnabled(false, null, "");
+
+    checkAgents("defaultFilter:false", myAgent1, myAgent2, myAgent3, myAgent4, agent10, agent15, agent20, agent30, agent40, agent50);
+    checkAgents(null, myAgent1, myAgent2, agent10, agent15, agent20, agent30, agent40, agent50);
+    checkAgents("compatible:(buildType:(id:" + bt10.getExternalId() + "))", agent10, agent15, agent50);
     checkAgents("compatible:(buildType:(id:" + bt30.getExternalId() + "))", myAgent1, agent10);
-    checkAgents("compatible:(buildType:(item:(id:" + bt10.getExternalId() + "),item:(id:" + bt30.getExternalId() + ")))", myAgent1, agent10, agent15);
+    checkAgents("compatible:(buildType:(item:(id:" + bt10.getExternalId() + "),item:(id:" + bt30.getExternalId() + ")))", myAgent1, agent10, agent15, agent50);
 //    checkAgents("compatible:(buildType:(id:" + bt10.getExternalId() + ")),compatible:(buildType:(id:" + bt30.getExternalId() + "))", agent10);
 
     checkAgents("incompatible:(buildType:(id:" + bt10.getExternalId() + "))", myAgent1, myAgent2, agent20, agent30, agent40);
-    checkAgents("incompatible:(buildType:(item:(id:" + bt10.getExternalId() + "),item:(id:" + bt30.getExternalId() + ")))", myAgent1, myAgent2, agent15, agent20, agent30, agent40);
+    checkAgents("incompatible:(buildType:(item:(id:" + bt10.getExternalId() + "),item:(id:" + bt30.getExternalId() + ")))",
+                myAgent1, myAgent2, agent15, agent20, agent30, agent40, agent50);
 
     checkAgents("compatible:(buildType:(id:" + bt30.getExternalId() + ")),incompatible:(buildType:(id:" + bt10.getExternalId() + "))", myAgent1);
   }

@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model;
 
 import jetbrains.buildServer.RootUrlHolder;
+import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
 import jetbrains.buildServer.server.rest.data.BuildFinderTestBase;
@@ -30,8 +31,11 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.RelativeWebLinks;
+import jetbrains.buildServer.serverSide.RequirementFactory;
 import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
+import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -225,6 +229,53 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     assertEquals("webEdit", buildType.getLinks().links.get(1).type);
     assertEquals(webLinks.getEditConfigurationPageUrl(bt.getExternalId()), buildType.getLinks().links.get(1).url);
     assertEquals(relativeWebLinks.getEditConfigurationPageUrl(bt.getExternalId()), buildType.getLinks().links.get(1).relativeUrl);
+  }
+
+  @Test
+  public void testAgents() {
+    myBuildAgent.setAuthorized(false, null, ""); //we will need the agent license
+
+    ProjectEx project10 = createProject("project10", "project 10");
+    BuildTypeEx bt10 = project10.createBuildType("bt10", "bt 10");
+    bt10.addRequirement(myFixture.findSingletonService(RequirementFactory.class).createRequirement("a", null, RequirementType.EXISTS));
+    BuildTypeEx bt20 = project10.createBuildType("bt20", "bt 20");
+
+    MockBuildAgent agent10 = myFixture.createEnabledAgent("agent10", "Ant"); // not compatible
+    MockBuildAgent agent20 = myFixture.createEnabledAgent("agent20", "Ant"); //compatible
+    agent20.addConfigParameter("a", "b");
+    agent20.pushAgentTypeData();
+
+    MockBuildAgent agent30 = myFixture.createEnabledAgent("agent30", "Ant"); //compatible
+    agent30.addConfigParameter("a", "b");
+    agent30.pushAgentTypeData();
+    agent30.setAuthorized(false, null, "");
+
+    {
+      BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), Fields.LONG, myBeanContext);
+      assertNotNull(buildType.getCompatibleAgents());
+      assertNull(buildType.getCompatibleAgents().count);
+      assertNotNull(buildType.getCompatibleAgents().href);
+      assertContains(buildType.getCompatibleAgents().href, "compatible:(buildType:(id:" + bt10.getExternalId() + "))");
+      assertNull(buildType.getCompatibleAgents().agents);
+    }
+
+    {
+      BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("compatibleAgents($long)"), myBeanContext);
+      assertNotNull(buildType.getCompatibleAgents());
+      assertEquals(Integer.valueOf(1), buildType.getCompatibleAgents().count);
+      assertContains(buildType.getCompatibleAgents().href, "compatible:(buildType:(id:" + bt10.getExternalId() + "))");
+      assertNotNull(buildType.getCompatibleAgents().agents);
+      assertEquals(1, buildType.getCompatibleAgents().agents.size());
+    }
+
+    {
+      BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("compatibleAgents($long,$locator(authorized:any))"), myBeanContext);
+      assertNotNull(buildType.getCompatibleAgents());
+      assertEquals(Integer.valueOf(2), buildType.getCompatibleAgents().count);
+//      assertContains(buildType.getCompatibleAgents().href, "compatible:(buildType:(id:" + bt10.getExternalId() + ")),authorized:any");
+      assertNotNull(buildType.getCompatibleAgents().agents);
+      assertEquals(2, buildType.getCompatibleAgents().agents.size());
+    }
   }
 
   private static WebLinks getWebLinks(@NotNull final String rootUrl) {

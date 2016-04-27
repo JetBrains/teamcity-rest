@@ -179,16 +179,25 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   }
 
   public void check(@Nullable final String locator, T... items) {
-    check(locator, new Matcher<T, T>() {
+    check(locator, getEqualsMatcher(), myFinder, items);
+  }
+
+  @NotNull
+  public<S> Matcher<S, S> getEqualsMatcher() {
+    return new Matcher<S, S>() {
       @Override
-      public boolean matches(@NotNull final T o1, @NotNull final T o2) {
+      public boolean matches(@NotNull final S o1, @NotNull final S o2) {
         return o1.equals(o2);
       }
-    }, items);
+    };
   }
 
   public <S> void check(@Nullable final String locator, @NotNull Matcher<S, T> matcher, S... items) {
-    final List<T> result = myFinder.getItems(locator).myEntries;
+    check(locator, matcher, getFinder(), items);
+  }
+
+  public static <S, R> void check(@Nullable final String locator, @NotNull Matcher<S, R> matcher, @NotNull final AbstractFinder<R> finder, S... items) {
+    final List<R> result = finder.getItems(locator).myEntries;
     final String expected = getDescription(Arrays.asList(items));
     final String actual = getDescription(result);
     assertEquals("For itemS locator \"" + locator + "\"\n" +
@@ -207,13 +216,13 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     if (locator != null) {
       if (items.length == 0) {
         try {
-          T singleResult = myFinder.getItem(locator);
+          R singleResult = finder.getItem(locator);
           fail("No items should be found by locator \"" + locator + "\", but found: " + getDescription(singleResult));
         } catch (NotFoundException e) {
           //exception is expected
         }
       } else {
-        T singleResult = myFinder.getItem(locator);
+        R singleResult = finder.getItem(locator);
         final S item = items[0];
         if (!matcher.matches(item, singleResult)) {
           fail("While searching for single item with locator \"" + locator + "\"\n" +
@@ -228,7 +237,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     boolean matches(@NotNull S s, @NotNull T t);
   }
 
-  private <U> String getDescription(final U singleResult) {
+  private static <U> String getDescription(final U singleResult) {
     if (singleResult instanceof Loggable){
       return LogUtil.describeInDetail(((Loggable)singleResult));
     }
@@ -271,7 +280,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     return null;
   }
 
-  public <S> String getDescription(final List<S> result) {
+  public static <S> String getDescription(final List<S> result) {
     if (result == null) {
       return LogUtil.describe((Object)null);
     }

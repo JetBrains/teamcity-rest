@@ -55,6 +55,10 @@ public class AgentRequest {
     return API_AGENTS_URL;
   }
 
+  public static String getItemsHref(final String locatorText) {
+    return API_AGENTS_URL + "?locator=" + locatorText;
+  }
+
   public static String getAgentHref(@NotNull final SBuildAgent agent) {
     return API_AGENTS_URL + "/" + AgentFinder.getLocator(agent);
   }
