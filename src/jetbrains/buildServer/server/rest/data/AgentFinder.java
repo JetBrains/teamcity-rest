@@ -51,6 +51,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   protected static final String COMPATIBLE = "compatible";
   protected static final String INCOMPATIBLE = "incompatible";
   protected static final String COMPATIBLE_BUILD_TYPE = "buildType";
+  protected static final String COMPATIBLE_BUILD = "build";
 
   protected static final Comparator<SBuildAgent> AGENTS_COMPARATOR = new Comparator<SBuildAgent>() {
     @Override
@@ -201,37 +202,80 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
 
     final String compatible = locator.getSingleDimensionValue(COMPATIBLE); //compatible with at least with one of the buildTypes
     if (compatible != null) {
-      final List<SBuildType> buildTypes = getBuildTypesFromCompatibleDimension(compatible);
-      result.add(new FilterConditionChecker<SBuildAgent>() {
-        public boolean isIncluded(@NotNull final SBuildAgent item) {
-          return isCompatibleWithAny(item, buildTypes);
-        }
-      });
+      final CompatibleLocatorParseResult compatibleData = getBuildTypesFromCompatibleDimension(compatible);
+      if (compatibleData.buildTypes != null) {
+        result.add(new FilterConditionChecker<SBuildAgent>() {
+          public boolean isIncluded(@NotNull final SBuildAgent item) {
+            return isCompatibleWithAny(item, compatibleData.buildTypes);
+          }
+        });
+      } else {
+        result.add(new FilterConditionChecker<SBuildAgent>() {
+          public boolean isIncluded(@NotNull final SBuildAgent item) {
+            assert compatibleData.buildPromotions != null;
+            return isCompatibleWithAnyBuild(item, compatibleData.buildPromotions);
+          }
+        });
+      }
     }
 
     final String incompatible = locator.getSingleDimensionValue(INCOMPATIBLE); //incompatible with at least with one of the buildTypes
     if (incompatible != null) {
-      final List<SBuildType> buildTypes = getBuildTypesFromCompatibleDimension(incompatible);
-      result.add(new FilterConditionChecker<SBuildAgent>() {
-        public boolean isIncluded(@NotNull final SBuildAgent item) {
-          return !isCompatibleWithAll(item, buildTypes);
-        }
-      });
+      final CompatibleLocatorParseResult compatibleData = getBuildTypesFromCompatibleDimension(incompatible);
+       if (compatibleData.buildTypes != null) {
+         result.add(new FilterConditionChecker<SBuildAgent>() {
+           public boolean isIncluded(@NotNull final SBuildAgent item) {
+             return !isCompatibleWithAll(item, compatibleData.buildTypes);
+           }
+         });
+       } else {
+         result.add(new FilterConditionChecker<SBuildAgent>() {
+           public boolean isIncluded(@NotNull final SBuildAgent item) {
+             assert compatibleData.buildPromotions != null;
+             return !isCompatibleWithAllBuild(item, compatibleData.buildPromotions);
+           }
+         });
+       }
     }
 
     return result;
   }
 
   @NotNull
-  private List<SBuildType> getBuildTypesFromCompatibleDimension(@NotNull final String compatibleDimensionValue) {
+  private CompatibleLocatorParseResult getBuildTypesFromCompatibleDimension(@NotNull final String compatibleDimensionValue) {
     Locator compatibleLocator = new Locator(compatibleDimensionValue, COMPATIBLE_BUILD_TYPE);
-    String compatibleBuildType = compatibleLocator.getSingleDimensionValue(COMPATIBLE_BUILD_TYPE);
-    compatibleLocator.checkLocatorFullyProcessed();
-    if (compatibleBuildType != null) {
-      BuildTypeFinder buildTypeFinder = myServiceLocator.getSingletonService(BuildTypeFinder.class);
-      return buildTypeFinder.getBuildTypes(null, compatibleBuildType);
-    } else {
-      throw new BadRequestException("Wrong '" + COMPATIBLE + "' dimension: no '" + COMPATIBLE_BUILD_TYPE + "' dimension present");
+    try {
+      compatibleLocator.addHiddenDimensions(COMPATIBLE_BUILD);
+      String compatibleBuildType = compatibleLocator.getSingleDimensionValue(COMPATIBLE_BUILD_TYPE);
+      if (compatibleBuildType != null) {
+        BuildTypeFinder buildTypeFinder = myServiceLocator.getSingletonService(BuildTypeFinder.class);
+        return CompatibleLocatorParseResult.fromBuildTypes(buildTypeFinder.getBuildTypes(null, compatibleBuildType));
+      }
+      String compatibleBuild = compatibleLocator.getSingleDimensionValue(COMPATIBLE_BUILD);
+      if (compatibleBuild != null) {
+        return CompatibleLocatorParseResult.fromBuilds(myServiceLocator.getSingletonService(BuildPromotionFinder.class).getItems(compatibleBuild).myEntries);
+      }
+    } finally {
+      compatibleLocator.checkLocatorFullyProcessed();
+    }
+    throw new BadRequestException("Invalid compatible locator: should contain '" + COMPATIBLE_BUILD_TYPE + "' dimension");
+  }
+
+  private static class CompatibleLocatorParseResult {
+    @Nullable final List<SBuildType> buildTypes;
+    @Nullable final List<BuildPromotion> buildPromotions;
+
+    private CompatibleLocatorParseResult(final List<SBuildType> buildTypes, final List<BuildPromotion> buildPromotions) {
+      this.buildTypes = buildTypes;
+      this.buildPromotions = buildPromotions;
+    }
+
+    public static CompatibleLocatorParseResult fromBuildTypes(@NotNull final List<SBuildType> buildTypes) {
+      return new CompatibleLocatorParseResult(buildTypes, null);
+    }
+
+    public static CompatibleLocatorParseResult fromBuilds(@NotNull final List<BuildPromotion> builds) {
+      return new CompatibleLocatorParseResult(null, builds);
     }
   }
 
@@ -251,10 +295,41 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     return true;
   }
 
+  private boolean isCompatibleWithAnyBuild(final @NotNull SBuildAgent agent, final List<BuildPromotion> buildPromotions) {
+    SAgentType agentType = getAgentType(agent);
+    for (BuildPromotion buildPromotion : buildPromotions) {
+      if (canActuallyRun(agentType, buildPromotion)) return true;
+    }
+    return false;
+  }
+
+  private boolean isCompatibleWithAllBuild(final @NotNull SBuildAgent agent, final List<BuildPromotion> buildPromotions) {
+    SAgentType agentType = getAgentType(agent);
+    for (BuildPromotion buildPromotion : buildPromotions) {
+      if (!canActuallyRun(agentType, buildPromotion)) return false;
+    }
+    return true;
+  }
+
   public static boolean canActuallyRun(@NotNull final SAgentType agentType, @NotNull final SBuildType buildType) {
     if (agentType.getPolicy().isBuildTypeAllowed(buildType.getBuildTypeId())) {
       final AgentCompatibility compatibility = ((BuildTypeEx)buildType).getAgentTypeCompatibility(agentType);
       if (compatibility.isActive() && compatibility.isCompatible()) return true;
+    }
+    return false;
+  }
+
+  public static boolean canActuallyRun(@NotNull final SAgentType agentType, @NotNull final BuildPromotion build) {
+    if (agentType.getPolicy().isBuildTypeAllowed(build.getBuildTypeId())) {
+      return !build.getCompatibleAgents(Collections.singletonList(agentType.getRealAgent())).isEmpty();
+    }
+    return false;
+  }
+
+  private boolean canActuallyRun(@NotNull final SBuildAgent agent, @NotNull final BuildPromotion build, @NotNull final CompatibilityResult compatibilityResult) {
+    AgentType agentType = getAgentType(agent);
+    if (agentType.getPolicy().isBuildTypeAllowed(build.getBuildTypeId())) {
+      if (compatibilityResult.isCompatible()) return true;
     }
     return false;
   }
@@ -296,19 +371,28 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       final String compatible = locator.getSingleDimensionValue(COMPATIBLE); //compatible with at least with one of the buildTypes
       assert compatible != null;
       TreeSet<SBuildAgent> result = new TreeSet<>(AGENTS_COMPARATOR);
-      List<SBuildType> buildTypes = getBuildTypesFromCompatibleDimension(compatible);
-      for (SBuildType buildType : buildTypes) {
-        List<AgentCompatibility> agentCompatibilities = buildType.getAgentCompatibilities();
-        for (AgentCompatibility compatibility : agentCompatibilities) {
-          if (canActuallyRun(compatibility)) {
-            AgentDescription agentDescription = compatibility.getAgentDescription();
-            if (agentDescription instanceof SBuildAgent) {
-              result.add((SBuildAgent)agentDescription);
-            } else {
-              LOG.debug("Cloud agents are not supported in REST API, skipping " + LogUtil.describe(agentDescription));
-              //todo: support
+      CompatibleLocatorParseResult compatibleData = getBuildTypesFromCompatibleDimension(compatible);
+      if (compatibleData.buildTypes != null) {
+        for (SBuildType buildType : compatibleData.buildTypes) {
+          List<AgentCompatibility> agentCompatibilities = buildType.getAgentCompatibilities();
+          for (AgentCompatibility compatibility : agentCompatibilities) {
+            if (canActuallyRun(compatibility)) {
+              AgentDescription agentDescription = compatibility.getAgentDescription();
+              if (agentDescription instanceof SBuildAgent) {
+                result.add((SBuildAgent)agentDescription);
+              } else {
+                LOG.debug("Cloud agents are not supported in REST API, skipping " + LogUtil.describe(agentDescription));
+                //todo: support
+              }
             }
           }
+        }
+      } else {
+        ArrayList<SBuildAgent> allAgents = new ArrayList<>(myAgentManager.getRegisteredAgents(true));
+        allAgents.addAll(myAgentManager.getUnregisteredAgents());
+        assert compatibleData.buildPromotions != null;
+        for (BuildPromotion build : compatibleData.buildPromotions) {
+          result.addAll(build.getCompatibleAgents(allAgents));
         }
       }
       return getItemHolder(result);
@@ -318,17 +402,31 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       final String incompatible = locator.getSingleDimensionValue(INCOMPATIBLE); //incompatible with at least with one of the buildTypes
       assert incompatible != null;
       TreeSet<SBuildAgent> result = new TreeSet<>(AGENTS_COMPARATOR);
-      List<SBuildType> buildTypes = getBuildTypesFromCompatibleDimension(incompatible);
-      for (SBuildType buildType : buildTypes) {
-        List<AgentCompatibility> agentCompatibilities = buildType.getAgentCompatibilities();
-        for (AgentCompatibility compatibility : agentCompatibilities) {
-          if (!canActuallyRun(compatibility)) {
-            AgentDescription agentDescription = compatibility.getAgentDescription();
-            if (agentDescription instanceof SBuildAgent) {
-              result.add((SBuildAgent)agentDescription);
-            } else {
-              LOG.debug("Cloud agents are not supported in REST API, skipping " + LogUtil.describe(agentDescription));
-              //todo: support
+      CompatibleLocatorParseResult compatibleData = getBuildTypesFromCompatibleDimension(incompatible);
+      if (compatibleData.buildTypes != null){
+        for (SBuildType buildType : compatibleData.buildTypes) {
+          List<AgentCompatibility> agentCompatibilities = buildType.getAgentCompatibilities();
+          for (AgentCompatibility compatibility : agentCompatibilities) {
+            if (!canActuallyRun(compatibility)) {
+              AgentDescription agentDescription = compatibility.getAgentDescription();
+              if (agentDescription instanceof SBuildAgent) {
+                result.add((SBuildAgent)agentDescription);
+              } else {
+                LOG.debug("Cloud agents are not supported in REST API, skipping " + LogUtil.describe(agentDescription));
+                //todo: support
+              }
+            }
+          }
+        }
+      } else {
+        ArrayList<SBuildAgent> allAgents = new ArrayList<>(myAgentManager.getRegisteredAgents(true));
+        allAgents.addAll(myAgentManager.getUnregisteredAgents());
+        assert compatibleData.buildPromotions != null;
+        for (BuildPromotion build : compatibleData.buildPromotions) {
+          Map<SBuildAgent, CompatibilityResult> agentCompatibilities = build.getCompatibilityMap(allAgents);
+          for (Map.Entry<SBuildAgent, CompatibilityResult> compatibility : agentCompatibilities.entrySet()) {
+            if (!canActuallyRun(compatibility.getKey(), build, compatibility.getValue())) {
+                result.add(compatibility.getKey());
             }
           }
         }
