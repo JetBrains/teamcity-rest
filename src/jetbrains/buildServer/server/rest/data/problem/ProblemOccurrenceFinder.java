@@ -331,8 +331,8 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   @NotNull
   static List<BuildProblem> getProblemOccurrences(@NotNull final Long problemId, @NotNull final ServiceLocator serviceLocator, @NotNull final BuildFinder buildFinder) {
     //todo: TeamCity API (VB): how to do this?
-    final ArrayList<BuildProblem> result = new ArrayList<BuildProblem>();
     try {
+      final ArrayList<Long> buildIds = new ArrayList<Long>();
       //final SQLRunner sqlRunner = myServiceLocator.getSingletonService(SQLRunner.class);
       //workaround for http://youtrack.jetbrains.com/issue/TW-25260
       final SQLRunnerEx sqlRunner = serviceLocator.getSingletonService(BuildServerEx.class).getSQLRunner();
@@ -341,27 +341,35 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
           dbf.queryForTuples(new Object() {
             public void getBuildProblem(String build_state_id) throws IOException {
               try {
-                final BuildPromotion buildByPromotionId = buildFinder.getBuildByPromotionId(Long.valueOf(build_state_id));
-                if (buildByPromotionId.getBuildType() == null) {
-                  //missing build type, skip. Workaround for http://youtrack.jetbrains.com/issue/TW-34733
-                } else {
-                  final BuildProblem problem = findProblem(buildByPromotionId, problemId);
-                  if (problem != null) result.add(problem);
-                }
-              } catch (RuntimeException e) {
-                //addressing TW-41636
-                LOG.infoAndDebugDetails(
-                  "Error getting problems for build promotion with id " + build_state_id + ", problemId: " + problemId + ", ignoring. Cause", e);
+                //do nothing within database connection
+                buildIds.add(Long.valueOf(build_state_id));
+              } catch (NumberFormatException e) {
+                LOG.infoAndDebugDetails("Non-number build promotion id " + build_state_id + " retrieved from the database for problemId: " + problemId + ", ignoring.", e);
               }
             }
           }, "getBuildProblem", "select build_state_id from build_problem where problem_id = " + problemId);
         }
       });
+
+      final ArrayList<BuildProblem> result = new ArrayList<BuildProblem>();
+      for (Long buildId : buildIds) {
+        try {
+          final BuildPromotion buildByPromotionId = buildFinder.getBuildByPromotionId(Long.valueOf(buildId));
+          if (buildByPromotionId.getBuildType() == null) {
+            //missing build type, skip. Workaround for http://youtrack.jetbrains.com/issue/TW-34733
+          } else {
+            final BuildProblem problem = findProblem(buildByPromotionId, problemId);
+            if (problem != null) result.add(problem);
+          }
+        } catch (RuntimeException e) {
+          //addressing TW-41636
+          LOG.infoAndDebugDetails("Error getting problems for build promotion with id " + buildId + ", problemId: " + problemId + ", ignoring. Cause", e);
+        }
+      }
+      return result;
     } catch (Exception e) {
       throw new OperationException("Error performing database query: " + e.toString(), e);
     }
-
-    return result;
   }
 
   @NotNull
