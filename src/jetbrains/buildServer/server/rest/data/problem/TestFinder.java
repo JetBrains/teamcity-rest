@@ -24,6 +24,8 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
 import jetbrains.buildServer.tests.TestName;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,9 +40,11 @@ public class TestFinder extends AbstractFinder<STest> {
   public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
   public static final String CURRENTLY_MUTED = "currentlyMuted";
   public static final String MUTE_AFFECTED = "muteAffected";
+  public static final String BUILD = "build";
 
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
+  @NotNull private final BuildPromotionFinder myBuildPromotionFinder;
   @NotNull private final STestManager myTestManager;
   @NotNull private final TestName2IndexImpl myTestName2Index; //TeamCIty open API issue
   @NotNull private final CurrentProblemsManager myCurrentProblemsManager;
@@ -48,12 +52,14 @@ public class TestFinder extends AbstractFinder<STest> {
 
   public TestFinder(final @NotNull ProjectFinder projectFinder,
                     final @NotNull BuildTypeFinder buildTypeFinder,
+                    final @NotNull BuildPromotionFinder buildPromotionFinder,
                     final @NotNull STestManager testManager,
                     final @NotNull TestName2IndexImpl testName2Index,
                     final @NotNull CurrentProblemsManager currentProblemsManager,
                     final @NotNull ProblemMutingService problemMutingService) {
     super(new String[]{DIMENSION_ID, NAME, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED, MUTE_AFFECTED,
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+    myBuildPromotionFinder = buildPromotionFinder;
     myTestManager = testManager;
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;
@@ -74,6 +80,14 @@ public class TestFinder extends AbstractFinder<STest> {
 
   public static String getTestLocator(final long testNameId) {
     return Locator.createEmptyLocator().setDimension(DIMENSION_ID, String.valueOf(testNameId)).getStringRepresentation();
+  }
+
+  @NotNull
+  @Override
+  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
+    Locator result = super.createLocator(locatorText, locatorDefaults);
+    result.addHiddenDimensions(BUILD); //not effective
+    return result;
   }
 
   @Override
@@ -118,6 +132,11 @@ public class TestFinder extends AbstractFinder<STest> {
   @NotNull
   @Override
   protected ItemHolder<STest> getPrefilteredItems(@NotNull final Locator locator) {
+    String buildLocator = locator.getSingleDimensionValue(BUILD);
+    if (buildLocator != null){
+      return getItemHolder(getTestsByBuilds(buildLocator));
+    }
+
     final SProject affectedProject;
     String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null) {
@@ -144,6 +163,24 @@ public class TestFinder extends AbstractFinder<STest> {
     exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
     exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
     throw new BadRequestException("Unsupported test locator '" + locator.getStringRepresentation() + "'. Try locators: " + DataProvider.dumpQuoted(exampleLocators));
+  }
+
+  @NotNull
+  private TreeSet<STest> getTestsByBuilds(@NotNull final String buildLocator) {
+    TreeSet<STest> result = new TreeSet<>();
+    List<BuildPromotion> builds = myBuildPromotionFinder.getItems(buildLocator).myEntries;
+    for (BuildPromotion build : builds) {
+      SBuild associatedBuild = build.getAssociatedBuild();
+      if (associatedBuild != null){
+        result.addAll(CollectionsUtil.convertCollection(associatedBuild.getFullStatistics().getAllTests(), new Converter<STest, STestRun>() {
+          @Override
+          public STest createFrom(@NotNull final STestRun source) {
+            return source.getTest();
+          }
+        }));
+      }
+    }
+    return result;
   }
 
   List<STest> getCurrentlyMutedTests(final SProject affectedProject) {
@@ -239,6 +276,19 @@ public class TestFinder extends AbstractFinder<STest> {
         });
       }
       muteAffectedLocator.checkLocatorFullyProcessed();
+    }
+
+    if (locator.isUnused(BUILD)) {
+      String buildLocator = locator.getSingleDimensionValue(BUILD);
+      if (buildLocator != null) {
+        final TreeSet<STest> tests = getTestsByBuilds(buildLocator);
+        result.add(new FilterConditionChecker<STest>() {
+          @Override
+          public boolean isIncluded(@NotNull final STest item) {
+            return tests.contains(item);
+          }
+        });
+      }
     }
 
     return result;

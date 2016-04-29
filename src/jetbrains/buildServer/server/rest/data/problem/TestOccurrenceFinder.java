@@ -128,7 +128,14 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
       String buildDimension = locator.getSingleDimensionValue(BUILD);
       if (buildDimension != null) {
-        SBuild build = myBuildFinder.getBuild(null, buildDimension);
+        List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
+        if (builds.size() != 1) {
+          return null;
+        }
+        SBuild build = builds.get(0).getAssociatedBuild();
+        if (build == null) {
+          throw new NotFoundException("No running/finished build found by locator '" + buildDimension + "'");
+        }
         STestRun item = findTestByTestRunId(idDimension, build);
         if (item != null) {
           if ((long)item.getTestRunId() == idDimension) {
@@ -155,19 +162,31 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   protected ItemHolder<STestRun> getPrefilteredItems(@NotNull final Locator locator) {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
-      SBuild build = myBuildFinder.getBuild(null, buildDimension); //todo: support multiple builds here (and for problems)
+      List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
 
       String testDimension = locator.getSingleDimensionValue(TEST);
       if (testDimension == null) {
-        return getPossibleExpandedTestsHolder(build.getFullStatistics().getAllTests(), locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
+        AggregatingItemHolder<STestRun> result = new AggregatingItemHolder<>();
+        for (BuildPromotion build : builds) {
+          SBuild associatedBuild = build.getAssociatedBuild();
+          if (associatedBuild != null) {
+            result.add(getPossibleExpandedTestsHolder(associatedBuild.getFullStatistics().getAllTests(), locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS)));
+          }
+        }
+        return result;
       }
 
       final PagedSearchResult<STest> tests = myTestFinder.getItems(testDimension);
       final ArrayList<STestRun> result = new ArrayList<STestRun>();
-      for (STest test : tests.myEntries) {
-        STestRun item = findTest(test.getTestNameId(), build);
-        if (item != null) {
-          result.add(item);
+      for (BuildPromotion build : builds) {
+        SBuild associatedBuild = build.getAssociatedBuild();
+        if (associatedBuild != null) {
+          for (STest test : tests.myEntries) {
+            STestRun item = findTest(test.getTestNameId(), associatedBuild);
+            if (item != null) {
+              result.add(item);
+            }
+          }
         }
       }
       return getPossibleExpandedTestsHolder(result, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
@@ -331,13 +350,13 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       }
     }
 
-    if (locator.getUnusedDimensions().contains(BUILD)) {
-      final String buildDimension = locator.getSingleDimensionValue(BUILD);
+    if (locator.isUnused(BUILD)) {
+      String buildDimension = locator.getSingleDimensionValue(BUILD);
       if (buildDimension != null) {
-        final SBuild build = myBuildFinder.getBuild(null, buildDimension);
+        List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
         result.add(new FilterConditionChecker<STestRun>() {
           public boolean isIncluded(@NotNull final STestRun item) {
-            return build.getBuildId() == item.getBuild().getBuildId();
+            return builds.contains(item.getBuild().getBuildPromotion());
           }
         });
       }

@@ -144,7 +144,8 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
 
     final TestName2IndexImpl testName2Index = myFixture.getSingletonService(TestName2IndexImpl.class);
     final ProblemMutingService problemMutingService = myFixture.getSingletonService(ProblemMutingService.class);
-    myTestFinder = new TestFinder(myProjectFinder, myBuildTypeFinder, myFixture.getTestManager(), testName2Index, myFixture.getCurrentProblemsManager(), problemMutingService);
+    myTestFinder = new TestFinder(myProjectFinder, myBuildTypeFinder, myBuildPromotionFinder,
+                                  myFixture.getTestManager(), testName2Index, myFixture.getCurrentProblemsManager(), problemMutingService);
     myFixture.addService(myTestFinder);
 
     final CurrentProblemsManager currentProblemsManager = myServer.getSingletonService(CurrentProblemsManager.class);
@@ -152,7 +153,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myFixture.addService(myTestOccurrenceFinder);
 
     final BuildProblemManager buildProblemManager = myFixture.getSingletonService(BuildProblemManager.class);
-    myProblemFinder = new ProblemFinder(myProjectFinder, buildProblemManager, myProjectManager, myFixture, problemMutingService);
+    myProblemFinder = new ProblemFinder(myProjectFinder, myBuildPromotionFinder, buildProblemManager, myProjectManager, myFixture, problemMutingService);
     myFixture.addService(myProblemFinder);
     myProblemOccurrenceFinder = new ProblemOccurrenceFinder(myProjectFinder, myBuildFinder, myProblemFinder, buildProblemManager, myProjectManager, myFixture);
     myFixture.addService(myProblemOccurrenceFinder);

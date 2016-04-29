@@ -127,6 +127,40 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
           t("aaa", Status.NORMAL, 7));
   }
 
+  @Test
+  public void testBuildDimension() throws Exception {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build10 = build().in(buildType)
+                                          .withTest("aaa", true)
+                                          .withTest("aaa", true)
+                                          .withTest("bbb", true)
+                                          .withTest("ccc", false)
+                                          .withTest("bbb", true)
+                                          .withTest("aaa", false)
+                                          .withTest("aaa", true)
+                                          .withTest("ddd", true)
+                                          .finish();
+
+    final SFinishedBuild build20 = build().in(buildType)
+                                          .withTest("xxx", true)
+                                          .withTest("aaa", true)
+                                          .finish();
+
+    check("build:(id:" + build10.getBuildId() + ")", TEST_WITH_BUILD_MATCHER,
+          t("aaa", Status.FAILURE, 1, build10.getBuildId()),
+          t("bbb", Status.NORMAL, 3, build10.getBuildId()),
+          t("ccc", Status.FAILURE, 4, build10.getBuildId()),
+          t("ddd", Status.NORMAL, 8, build10.getBuildId()));
+
+    check("build:(item:(id:" + build10.getBuildId() + "),item:(id:" + build20.getBuildId() + "))", TEST_WITH_BUILD_MATCHER,
+          t("aaa", Status.FAILURE, 1, build10.getBuildId()),
+          t("bbb", Status.NORMAL, 3, build10.getBuildId()),
+          t("ccc", Status.FAILURE, 4, build10.getBuildId()),
+          t("ddd", Status.NORMAL, 8, build10.getBuildId()),
+          t("xxx", Status.NORMAL, 1, build20.getBuildId()),
+          t("aaa", Status.NORMAL, 2, build20.getBuildId()));
+  }
+
   private static final Matcher<TestRunData, STestRun> TEST_MATCHER = new Matcher<TestRunData, STestRun>() {
     @Override
     public boolean matches(@NotNull final TestRunData data, @NotNull final STestRun sTestRun) {
@@ -141,9 +175,9 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
   }
 
   private static class TestRunData {
-    private final String testName;
-    private final Status status;
-    private final int orderId;
+    protected final String testName;
+    protected final Status status;
+    protected final int orderId;
 
     private TestRunData(final String testName, final Status status, final int orderId) {
       this.testName = testName;
@@ -154,6 +188,31 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     @Override
     public String toString() {
       return "{" + testName + ", " + status.getText() + ", " + orderId + "}";
+    }
+  }
+
+  private static final Matcher<TestRunDataWithBuild, STestRun> TEST_WITH_BUILD_MATCHER = new Matcher<TestRunDataWithBuild, STestRun>() {
+    @Override
+    public boolean matches(@NotNull final TestRunDataWithBuild data, @NotNull final STestRun sTestRun) {
+      return TEST_MATCHER.matches(data, sTestRun) && sTestRun.getBuildId() == data.buildId;
+    }
+  };
+
+  private static TestRunDataWithBuild t(final String testName, final Status status, final int orderId, final long buildId) {
+    return new TestRunDataWithBuild(testName, status, orderId, buildId);
+  }
+
+  private static class TestRunDataWithBuild extends TestRunData {
+    private final long buildId;
+
+    private TestRunDataWithBuild(final String testName, final Status status, final int orderId, final long buildId) {
+      super(testName, status, orderId);
+      this.buildId = buildId;
+    }
+
+    @Override
+    public String toString() {
+      return "{" + testName + ", " + status.getText() + ", " + orderId + ", " + buildId + "}";
     }
   }
 }

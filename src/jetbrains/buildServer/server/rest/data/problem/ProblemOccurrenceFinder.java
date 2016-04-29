@@ -116,8 +116,11 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
-      @NotNull BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildDimension);
-
+      List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
+      if (builds.size() != 1) {
+        return null;
+      }
+      final BuildPromotion build = builds.get(0);
       String problemDimension = locator.getSingleDimensionValue(PROBLEM);
       if (problemDimension != null) {
         Long problemId = ProblemFinder.getProblemIdByLocator(new Locator(problemDimension));
@@ -141,8 +144,13 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   protected ItemHolder<BuildProblem> getPrefilteredItems(@NotNull final Locator locator) {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
-      BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildDimension);
-      return getItemHolder(getProblemOccurrences(build));
+      List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
+      AggregatingItemHolder<BuildProblem> result = new AggregatingItemHolder<>();
+      for (BuildPromotion build : builds) {
+        List<BuildProblem> buildProblemOccurrences = getProblemOccurrences(build);
+        if (!buildProblemOccurrences.isEmpty()) result.add(getItemHolder(buildProblemOccurrences));
+      }
+      return result;
     }
 
     Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
@@ -217,14 +225,16 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       });
     }
 
-    final String buildDimension = locator.getSingleDimensionValue(BUILD);
-    if (buildDimension != null) {
-      final BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildDimension);
-      result.add(new FilterConditionChecker<BuildProblem>() {
-        public boolean isIncluded(@NotNull final BuildProblem item) {
-          return build.getId() == item.getBuildPromotion().getId();
-        }
-      });
+    if (locator.isUnused(BUILD)) {
+      String buildDimension = locator.getSingleDimensionValue(BUILD);
+      if (buildDimension != null) {
+        List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
+        result.add(new FilterConditionChecker<BuildProblem>() {
+          public boolean isIncluded(@NotNull final BuildProblem item) {
+            return builds.contains(item.getBuildPromotion());
+          }
+        });
+      }
     }
 
     final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);

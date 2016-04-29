@@ -20,12 +20,15 @@ import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.serverSide.problems.BuildProblemManager;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -40,15 +43,18 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   public static final String AFFECTED_PROJECT = "affectedProject";
   public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
   public static final String CURRENTLY_MUTED = "currentlyMuted";
+  public static final String BUILD = "build";
 
   @NotNull private final ProjectFinder myProjectFinder;
 
+  @NotNull private final BuildPromotionFinder myBuildPromotionFinder;
   @NotNull private final BuildProblemManager myBuildProblemManager;
   @NotNull private final ProjectManager myProjectManager;
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final ProblemMutingService myProblemMutingService;
 
   public ProblemFinder(final @NotNull ProjectFinder projectFinder,
+                       final @NotNull BuildPromotionFinder buildPromotionFinder,
                        final @NotNull BuildProblemManager buildProblemManager,
                        final @NotNull ProjectManager projectManager,
                        final @NotNull ServiceLocator serviceLocator,
@@ -56,6 +62,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     super(new String[]{DIMENSION_ID, IDENTITY, TYPE, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED,
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myProjectFinder = projectFinder;
+    myBuildPromotionFinder = buildPromotionFinder;
     myBuildProblemManager = buildProblemManager;
     myProjectManager = projectManager;
     myServiceLocator = serviceLocator;
@@ -74,6 +81,14 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
 
   public static String getLocator(final int problemId) {
     return Locator.createEmptyLocator().setDimension(DIMENSION_ID, String.valueOf(problemId)).getStringRepresentation();
+  }
+
+  @NotNull
+  @Override
+  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
+    Locator result = super.createLocator(locatorText, locatorDefaults);
+    result.addHiddenDimensions(BUILD); //not effective
+    return result;
   }
 
   @Override
@@ -109,6 +124,11 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   @NotNull
   @Override
   protected ItemHolder<ProblemWrapper> getPrefilteredItems(@NotNull final Locator locator) {
+    String buildLocator = locator.getSingleDimensionValue(BUILD);
+    if (buildLocator != null) {
+      return getItemHolder(getProblemsByBuilds(buildLocator));
+    }
+
     final SProject affectedProject;
     String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null) {
@@ -202,6 +222,19 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
       }
     }
 
+    if (locator.isUnused(BUILD)) {
+      String buildLocator = locator.getSingleDimensionValue(BUILD);
+      if (buildLocator != null) {
+        final TreeSet<ProblemWrapper> problems = getProblemsByBuilds(buildLocator);
+        result.add(new FilterConditionChecker<ProblemWrapper>() {
+          @Override
+          public boolean isIncluded(@NotNull final ProblemWrapper item) {
+            return problems.contains(item);
+          }
+        });
+      }
+    }
+
     return result;
   }
 
@@ -218,6 +251,21 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     }
 
     return new ArrayList<ProblemWrapper>(resultSet);
+  }
+
+  @NotNull
+  private TreeSet<ProblemWrapper> getProblemsByBuilds(@NotNull final String buildLocator) {
+    TreeSet<ProblemWrapper> result = new TreeSet<>();
+    List<BuildPromotion> builds = myBuildPromotionFinder.getItems(buildLocator).myEntries;
+    for (BuildPromotion build : builds) {
+      result.addAll(CollectionsUtil.convertCollection(ProblemOccurrenceFinder.getProblemOccurrences(build), new Converter<ProblemWrapper, BuildProblem>() {
+        @Override
+        public ProblemWrapper createFrom(@NotNull final BuildProblem buildProblem) {
+          return new ProblemWrapper(buildProblem.getId(), buildProblem.getBuildProblemData(), myServiceLocator);
+        }
+      }));
+    }
+    return result;
   }
 
   public List<ProblemWrapper> getCurrentlyMutedProblems(final SProject affectedProject) {
