@@ -551,6 +551,11 @@ public class Locator {
   @NotNull
   public List<String> getDimensionValue(@NotNull final String dimensionName) {
     myUsedDimensions.add(dimensionName);
+    return lookupDimensionValue(dimensionName);
+  }
+
+  @NotNull
+  public List<String> lookupDimensionValue(@NotNull final String dimensionName) {
     Collection<String> idDimension = myDimensions.get(dimensionName);
     return idDimension != null ? new ArrayList<String>(idDimension) : Collections.<String>emptyList();
   }
@@ -679,8 +684,8 @@ public class Locator {
   }
 
   /**
-   * Returns a locator based on the supplied one replacing the numeric value of the dimention specified with the passed number.
-   * The structure of the returned locator might be diffeent from the passed one, while the same dimensions and values are present.
+   * Returns a locator based on the supplied one replacing the numeric value of the dimension specified with the passed number.
+   * The structure of the returned locator might be different from the passed one, while the same dimensions and values are present.
    *
    * @param locator       existing locator (should be valid), or null to create new locator
    * @param dimensionName only alpha-numeric characters are supported! Only numeric values without brackets are supported!
@@ -692,16 +697,19 @@ public class Locator {
       return Locator.getStringLocator(dimensionName, value);
     }
 
-    final Matcher matcher = Pattern.compile(dimensionName + DIMENSION_NAME_VALUE_DELIMITER + "\\d+").matcher(locator);
-    String result = matcher.replaceFirst(dimensionName + DIMENSION_NAME_VALUE_DELIMITER + value);
     try {
-      matcher.end();
-    } catch (IllegalStateException e) {
-      final Locator actualLocator = new Locator(locator);
-      actualLocator.setDimension(dimensionName, value);
-      result = actualLocator.getStringRepresentation();
+      return new Locator(locator).setDimension(dimensionName, value).getStringRepresentation();
+    } catch (LocatorProcessException e) {
+      //not a valid locator... try replacing in the string, but might actually need to throw an error here
+      final Matcher matcher = Pattern.compile(dimensionName + DIMENSION_NAME_VALUE_DELIMITER + "\\d+").matcher(locator);
+      String result = matcher.replaceFirst(dimensionName + DIMENSION_NAME_VALUE_DELIMITER + value);
+      try {
+        matcher.end();
+      } catch (IllegalStateException ex) {
+        throw new LocatorProcessException("Cannot replace locator values: invalid locator '" + locator + "'");
+      }
+      return result;
     }
-    return result;
   }
 
   public static String setDimension(@Nullable final String locator, @NotNull final String dimensionName, final long value) {

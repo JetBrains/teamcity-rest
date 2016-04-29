@@ -171,6 +171,8 @@ public class LocatorTest {
     assertEquals("a:b,x:y,aa:z", Locator.setDimensionIfNotPresent("a:b,x:y", "aa","z"));
     assertEquals("a:b,x:y", Locator.setDimensionIfNotPresent("a:b,x:y", "a","z"));
     assertEquals("a:$any,x:y", Locator.setDimensionIfNotPresent("a:$any,x:y", "a","z"));
+
+    assertEquals("a:(b:10),b:20", Locator.setDimension("a:(b:10)", "b","20"));
   }
 
   @Test
