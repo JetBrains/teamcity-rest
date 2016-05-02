@@ -223,7 +223,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
     if (currentlyMutedDimension != null && currentlyMutedDimension) {
       final SProject affectedProject = getAffectedProject(locator);
-      final List<STest> currentlyMutedTests = myTestFinder.getCurrentlyMutedTests(affectedProject);
+      final Set<STest> currentlyMutedTests = myTestFinder.getCurrentlyMutedTests(affectedProject);
       final ArrayList<STestRun> result = new ArrayList<STestRun>();
       for (STest test : currentlyMutedTests) {
         result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), affectedProject, 0, getBranch(locator)));  //no personal builds
@@ -251,7 +251,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   @NotNull
-  private ItemHolder<STestRun> getPossibleExpandedTestsHolder(@NotNull final List<STestRun> tests, @Nullable final Boolean expandInvocations) {
+  private ItemHolder<STestRun> getPossibleExpandedTestsHolder(@NotNull final Iterable<STestRun> tests, @Nullable final Boolean expandInvocations) {
     if (expandInvocations == null || !expandInvocations) {
       return getItemHolder(tests);
     }
@@ -293,11 +293,11 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   @NotNull
-  public static List<STestRun> getCurrentOccurrences(@NotNull final SProject affectedProject, @NotNull final CurrentProblemsManager currentProblemsManager) {
+  public static Set<STestRun> getCurrentOccurrences(@NotNull final SProject affectedProject, @NotNull final CurrentProblemsManager currentProblemsManager) {
     final CurrentProblems currentProblems = currentProblemsManager.getProblemsForProject(affectedProject);
     final Map<TestName, List<STestRun>> failingTests = currentProblems.getFailingTests();
     final Map<TestName, List<STestRun>> mutedTestFailures = currentProblems.getMutedTestFailures();
-    final Set<STestRun> result = new java.util.LinkedHashSet<STestRun>(failingTests.size() + mutedTestFailures.size());
+    final TreeSet<STestRun> result = new TreeSet<STestRun>(STestRun.NEW_FIRST_NAME_COMPARATOR);
     //todo: check whether STestRun is OK to put into the set
     for (List<STestRun> testRuns : failingTests.values()) {
       result.addAll(testRuns);
@@ -305,9 +305,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     for (List<STestRun> testRuns : mutedTestFailures.values()) {
       result.addAll(testRuns);
     }
-    ArrayList<STestRun> sortedResult = new ArrayList<>(result);
-    Collections.sort(sortedResult, STestRun.NEW_FIRST_NAME_COMPARATOR); //TeamCity API issue: seems like the API should return the entries i the fixed order all the time
-    return sortedResult;
+    return result;
   }
 
   @NotNull

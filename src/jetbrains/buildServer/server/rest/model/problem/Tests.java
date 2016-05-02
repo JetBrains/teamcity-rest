@@ -16,7 +16,8 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -50,13 +51,7 @@ public class Tests implements DefaultValueAware {
     if (itemsP != null) {
       items = ValueWithDefault.decideDefault(fields.isIncluded("test", false), new ValueWithDefault.Value<List<Test>>() {
         public List<Test> get() {
-          final List<STest> sortedItems = new ArrayList<STest>(itemsP);
-          Collections.sort(sortedItems, new Comparator<STest>() {
-            public int compare(final STest o1, final STest o2) {
-              return o1.getName().compareTo(o2.getName());
-            }
-          });
-          return CollectionsUtil.convertCollection(sortedItems, new Converter<Test, STest>() {
+          return CollectionsUtil.convertCollection(itemsP, new Converter<Test, STest>() {
             public Test createFrom(@NotNull final STest source) {
               return new Test(source, beanContext, fields.getNestedField("test"));
             }

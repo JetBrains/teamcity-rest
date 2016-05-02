@@ -183,22 +183,22 @@ public class TestFinder extends AbstractFinder<STest> {
     return result;
   }
 
-  List<STest> getCurrentlyMutedTests(final SProject affectedProject) {
+  Set<STest> getCurrentlyMutedTests(final SProject affectedProject) {
     final Map<Long,CurrentMuteInfo> currentMutes = myProblemMutingService.getCurrentMuteInfoForProject(affectedProject);
-    final HashSet<STest> result = new HashSet<STest>(currentMutes.size());
+    final TreeSet<STest> result = new TreeSet<STest>();
     for (Map.Entry<Long, CurrentMuteInfo> mutedTestData : currentMutes.entrySet()) {
       result.add(findTest(mutedTestData.getKey()));
     }
-    return new ArrayList<STest>(result);
+    return result;
   }
 
-  private List<STest> getCurrentlyFailingTests(@NotNull final SProject affectedProject) {
-    final List<STestRun> failingTestOccurrences = TestOccurrenceFinder.getCurrentOccurrences(affectedProject, myCurrentProblemsManager);
-    final LinkedHashSet<STest> result = new LinkedHashSet<STest>(failingTestOccurrences.size());
+  private Set<STest> getCurrentlyFailingTests(@NotNull final SProject affectedProject) {
+    final Set<STestRun> failingTestOccurrences = TestOccurrenceFinder.getCurrentOccurrences(affectedProject, myCurrentProblemsManager);
+    final TreeSet<STest> result = new TreeSet<STest>();
     for (STestRun testOccurrence : failingTestOccurrences) {
       result.add(testOccurrence.getTest());
     }
-    return new ArrayList<STest>(result);
+    return result;
   }
 
   @NotNull

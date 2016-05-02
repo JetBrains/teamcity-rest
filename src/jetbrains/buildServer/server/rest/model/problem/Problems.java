@@ -16,9 +16,6 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -55,14 +52,8 @@ public class Problems implements DefaultValueAware {
                   @NotNull final BeanContext beanContext) {
     items = ValueWithDefault.decideDefault(fields.isIncluded("problem", false),new ValueWithDefault.Value<List<Problem>>() {
       public List<Problem> get() {
-        final List<ProblemWrapper> sortedItems = new ArrayList<ProblemWrapper>(itemsP);
-        Collections.sort(sortedItems, new Comparator<ProblemWrapper>() {
-          public int compare(final ProblemWrapper o1, final ProblemWrapper o2) {
-            return o1.getId().compareTo(o2.getId());
-          }
-        });
         final Fields nestedField = fields.getNestedField("problem");
-        return CollectionsUtil.convertCollection(sortedItems, new Converter<Problem, ProblemWrapper>() {
+        return CollectionsUtil.convertCollection(itemsP, new Converter<Problem, ProblemWrapper>() {
           public Problem createFrom(@NotNull final ProblemWrapper source) {
             return new Problem(source, nestedField, beanContext);
           }

@@ -180,7 +180,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   }
 
   @NotNull
-  private ItemHolder<BuildProblem> getProblemOccurrences(@NotNull final List<ProblemWrapper> problems) {
+  private ItemHolder<BuildProblem> getProblemOccurrences(@NotNull final Iterable<ProblemWrapper> problems) {
     final AggregatingItemHolder<BuildProblem> result = new AggregatingItemHolder<BuildProblem>();
     for (ProblemWrapper problem : problems) {
       result.add(getProblemOccurrences(problem.getId(), myServiceLocator, myBuildFinder));

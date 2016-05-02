@@ -104,6 +104,37 @@ public class ProblemOccurrenceFinderTest extends BaseFinderTest<BuildProblem> {
   }
 
   @Test
+  public void testPaging() throws Exception {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final BuildPromotionEx build10 = (BuildPromotionEx)build().in(buildType)
+                                          .withProblem(BuildProblemData.createBuildProblem("id1", "type1", "descr"))
+                                          .withProblem(BuildProblemData.createBuildProblem("id1", "type2", "descr"))
+                                          .withProblem(BuildProblemData.createBuildProblem("id1", "type3", "descr")).finish().getBuildPromotion();
+    final BuildPromotionEx build15 = (BuildPromotionEx)build().in(buildType).finish().getBuildPromotion();
+    final BuildPromotionEx build20 = (BuildPromotionEx)build().in(buildType).withProblem(BuildProblemData.createBuildProblem("id1", "type1", "descr")).finish().getBuildPromotion();
+    final BuildPromotionEx build30 = (BuildPromotionEx)build().in(buildType)
+                                                              .withProblem(BuildProblemData.createBuildProblem("id2", "type1", "descr"))
+                                                              .withProblem(BuildProblemData.createBuildProblem("id1", "type2", "descr")).finish().getBuildPromotion();
+    final BuildPromotionEx build40 = (BuildPromotionEx)build().in(buildType).withProblem(BuildProblemData.createBuildProblem("id1", "type2", "descr")).finish().getBuildPromotion();
+
+    checkProblem("build:(item:(id:" + build10.getId() + "),item:(id:" + build30.getId() + "))",
+                 pd(1, "id1", "type1", build10.getId()),
+                 pd(2, "id1", "type2", build10.getId()),
+                 pd(3, "id1", "type3", build10.getId()),
+                 pd(2, "id1", "type2", build30.getId()),
+                 pd(4, "id2", "type1", build30.getId()));
+
+    checkProblem("build:(item:(id:" + build10.getId() + "),item:(id:" + build30.getId() + ")),count:2",
+                 pd(1, "id1", "type1", build10.getId()),
+                 pd(2, "id1", "type2", build10.getId()));
+
+    checkProblem("build:(item:(id:" + build10.getId() + "),item:(id:" + build30.getId() + ")),start:2,count:3",
+                 pd(3, "id1", "type3", build10.getId()),
+                 pd(2, "id1", "type2", build30.getId()),
+                 pd(4, "id2", "type1", build30.getId()));
+  }
+
+  @Test
   public void testByIdentity() throws Exception {
     final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
     final BuildPromotionEx build10 = (BuildPromotionEx)build().in(buildType)

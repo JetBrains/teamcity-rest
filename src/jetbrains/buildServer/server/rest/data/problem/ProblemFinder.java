@@ -181,7 +181,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null) {
       @NotNull final SProject project = myProjectFinder.getItem(affectedProjectDimension);
-      final Set<ProblemWrapper> currentProjectProblems = new TreeSet<ProblemWrapper>(getCurrentProblemsList(project));
+      final Set<ProblemWrapper> currentProjectProblems = getCurrentProblemsList(project);
       //todo: bug: searches only inside current problems: non-current problems are not returned
       result.add(new FilterConditionChecker<ProblemWrapper>() {
         public boolean isIncluded(@NotNull final ProblemWrapper item) {
@@ -213,7 +213,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     if (locator.getUnusedDimensions().contains(CURRENT)) {
       final String currentDimension = locator.getSingleDimensionValue(CURRENT);
       if (currentDimension != null) {
-        final Set<ProblemWrapper> currentProblems = new TreeSet<ProblemWrapper>(getCurrentProblemsList(null));
+        final Set<ProblemWrapper> currentProblems = getCurrentProblemsList(null);
         result.add(new FilterConditionChecker<ProblemWrapper>() {
           public boolean isIncluded(@NotNull final ProblemWrapper item) {
             return currentProblems.contains(item);
@@ -225,7 +225,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     if (locator.isUnused(BUILD)) {
       String buildLocator = locator.getSingleDimensionValue(BUILD);
       if (buildLocator != null) {
-        final TreeSet<ProblemWrapper> problems = getProblemsByBuilds(buildLocator);
+        final Set<ProblemWrapper> problems = getProblemsByBuilds(buildLocator);
         result.add(new FilterConditionChecker<ProblemWrapper>() {
           @Override
           public boolean isIncluded(@NotNull final ProblemWrapper item) {
@@ -239,7 +239,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   }
 
   @NotNull
-  private List<ProblemWrapper> getCurrentProblemsList(@Nullable SProject project) {
+  private Set<ProblemWrapper> getCurrentProblemsList(@Nullable SProject project) {
     if (project == null){
       project = myProjectManager.getRootProject();
     }
@@ -250,12 +250,12 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
       resultSet.add(new ProblemWrapper(buildProblem.getId(), buildProblem.getBuildProblemData(), myServiceLocator));
     }
 
-    return new ArrayList<ProblemWrapper>(resultSet);
+    return resultSet;
   }
 
   @NotNull
-  private TreeSet<ProblemWrapper> getProblemsByBuilds(@NotNull final String buildLocator) {
-    TreeSet<ProblemWrapper> result = new TreeSet<>();
+  private Set<ProblemWrapper> getProblemsByBuilds(@NotNull final String buildLocator) {
+    LinkedHashSet<ProblemWrapper> result = new LinkedHashSet<>();
     List<BuildPromotion> builds = myBuildPromotionFinder.getItems(buildLocator).myEntries;
     for (BuildPromotion build : builds) {
       result.addAll(CollectionsUtil.convertCollection(ProblemOccurrenceFinder.getProblemOccurrences(build), new Converter<ProblemWrapper, BuildProblem>() {
@@ -268,17 +268,17 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     return result;
   }
 
-  public List<ProblemWrapper> getCurrentlyMutedProblems(final SProject affectedProject) {
+  public Set<ProblemWrapper> getCurrentlyMutedProblems(final SProject affectedProject) {
     final Map<Integer,CurrentMuteInfo> currentMutes = myProblemMutingService.getBuildProblemCurrentMuteInfos(affectedProject);
-    final HashSet<ProblemWrapper> result = new HashSet<ProblemWrapper>(currentMutes.size());
+    final TreeSet<ProblemWrapper> result = new TreeSet<ProblemWrapper>();
     for (Map.Entry<Integer, CurrentMuteInfo> mutedData : currentMutes.entrySet()) {
       result.add(new ProblemWrapper(mutedData.getKey(), myServiceLocator));
     }
-    return new ArrayList<ProblemWrapper>(result);
+    return result;
   }
 
   public static List<ProblemWrapper> getProblemWrappers(@NotNull Collection<Integer> problemIds, @NotNull final ServiceLocator serviceLocator) {
-    final HashSet<ProblemWrapper> result = new HashSet<ProblemWrapper>(problemIds.size());
+    final TreeSet<ProblemWrapper> result = new TreeSet<ProblemWrapper>();
     for (Integer problemId : problemIds) {
       result.add(new ProblemWrapper(problemId, serviceLocator));
     }

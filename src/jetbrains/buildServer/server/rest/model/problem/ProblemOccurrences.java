@@ -17,8 +17,6 @@
 package jetbrains.buildServer.server.rest.model.problem;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -74,14 +72,8 @@ public class ProblemOccurrences extends OccurrencesSummary {
       items = ValueWithDefault.decideDefault(fields.isIncluded("problemOccurrence", false), new ValueWithDefault.Value<List<ProblemOccurrence>>() {
         @Nullable
         public List<ProblemOccurrence> get() {
-          final List<BuildProblem> sortedItems = new ArrayList<BuildProblem>(itemsP);
-          Collections.sort(sortedItems, new Comparator<BuildProblem>() {
-            public int compare(final BuildProblem o1, final BuildProblem o2) {
-              return o1.getId() - o2.getId();
-            }
-          });
-          final ArrayList<ProblemOccurrence> result = new ArrayList<ProblemOccurrence>(sortedItems.size());
-          for (BuildProblem item : sortedItems) {
+          final ArrayList<ProblemOccurrence> result = new ArrayList<ProblemOccurrence>(itemsP.size());
+          for (BuildProblem item : itemsP) {
             result.add(new ProblemOccurrence(item, beanContext, fields.getNestedField("problemOccurrence")));
           }
           return result;
