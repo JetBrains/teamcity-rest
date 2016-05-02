@@ -34,6 +34,7 @@ import jetbrains.buildServer.serverSide.db.DBFunctions;
 import jetbrains.buildServer.serverSide.db.SQLRunnerEx;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.serverSide.problems.BuildProblemManager;
+import jetbrains.buildServer.util.ItemProcessor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -160,23 +161,13 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
     String problemDimension = locator.getSingleDimensionValue(PROBLEM);
     if (problemDimension != null) {
-      final PagedSearchResult<ProblemWrapper> problems = myProblemFinder.getItems(problemDimension);
-      final ArrayList<BuildProblem> result = new ArrayList<BuildProblem>();
-      for (ProblemWrapper problem : problems.myEntries) {
-        result.addAll(getProblemOccurrences(problem));
-      }
-      return getItemHolder(result);
+      return getProblemOccurrences(myProblemFinder.getItems(problemDimension).myEntries);
     }
 
     Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
     if (currentlyMutedDimension != null && currentlyMutedDimension) {
       final SProject affectedProject = getAffectedProject(locator);
-      final List<ProblemWrapper> currentlyMutedProblems = myProblemFinder.getCurrentlyMutedProblems(affectedProject);
-      final ArrayList<BuildProblem> result = new ArrayList<BuildProblem>();
-      for (ProblemWrapper problem : currentlyMutedProblems) {
-        result.addAll(getProblemOccurrences(Long.valueOf(problem.getId()), myServiceLocator, myBuildFinder));
-      }
-      return getItemHolder(result);
+      return getProblemOccurrences(myProblemFinder.getCurrentlyMutedProblems(affectedProject));
     }
 
     ArrayList<String> exampleLocators = new ArrayList<String>();
@@ -189,22 +180,33 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   }
 
   @NotNull
+  private ItemHolder<BuildProblem> getProblemOccurrences(@NotNull final List<ProblemWrapper> problems) {
+    final AggregatingItemHolder<BuildProblem> result = new AggregatingItemHolder<BuildProblem>();
+    for (ProblemWrapper problem : problems) {
+      result.add(getProblemOccurrences(problem.getId(), myServiceLocator, myBuildFinder));
+    }
+    return result;
+  }
+
+  @NotNull
   @Override
   protected ItemFilter<BuildProblem> getFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<BuildProblem> result = new MultiCheckerFilter<BuildProblem>();
 
-    String problemDimension = locator.getSingleDimensionValue(PROBLEM);
-    if (problemDimension != null) {
-      final PagedSearchResult<ProblemWrapper> problems = myProblemFinder.getItems(problemDimension);
-      final HashSet<Integer> problemIds = new HashSet<Integer>();
-      for (ProblemWrapper problem : problems.myEntries) {
-        problemIds.add(problem.getId().intValue());
-      }
-      result.add(new FilterConditionChecker<BuildProblem>() {
-        public boolean isIncluded(@NotNull final BuildProblem item) {
-          return problemIds.contains(item.getId());
+    if (locator.isUnused(PROBLEM)) {
+      String problemDimension = locator.getSingleDimensionValue(PROBLEM);
+      if (problemDimension != null) {
+        final PagedSearchResult<ProblemWrapper> problems = myProblemFinder.getItems(problemDimension);
+        final HashSet<Integer> problemIds = new HashSet<Integer>();
+        for (ProblemWrapper problem : problems.myEntries) {
+          problemIds.add(problem.getId().intValue());
         }
-      });
+        result.add(new FilterConditionChecker<BuildProblem>() {
+          public boolean isIncluded(@NotNull final BuildProblem item) {
+            return problemIds.contains(item.getId());
+          }
+        });
+      }
     }
 
     final String identityDimension = locator.getSingleDimensionValue(IDENTITY);
@@ -324,15 +326,11 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     return null;
   }
 
-  private List<BuildProblem> getProblemOccurrences(final ProblemWrapper problem) {
-    return getProblemOccurrences(problem.getId(), myServiceLocator, myBuildFinder);
-  }
-
   @NotNull
-  static List<BuildProblem> getProblemOccurrences(@NotNull final Long problemId, @NotNull final ServiceLocator serviceLocator, @NotNull final BuildFinder buildFinder) {
+  private static ItemHolder<BuildProblem> getProblemOccurrences(@NotNull final Long problemId, @NotNull final ServiceLocator serviceLocator, @NotNull final BuildFinder buildFinder) {
     //todo: TeamCity API (VB): how to do this?
+    final ArrayList<Long> buildIds = new ArrayList<Long>();
     try {
-      final ArrayList<Long> buildIds = new ArrayList<Long>();
       //final SQLRunner sqlRunner = myServiceLocator.getSingletonService(SQLRunner.class);
       //workaround for http://youtrack.jetbrains.com/issue/TW-25260
       final SQLRunnerEx sqlRunner = serviceLocator.getSingletonService(BuildServerEx.class).getSQLRunner();
@@ -351,25 +349,32 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
         }
       });
 
-      final ArrayList<BuildProblem> result = new ArrayList<BuildProblem>();
-      for (Long buildId : buildIds) {
-        try {
-          final BuildPromotion buildByPromotionId = buildFinder.getBuildByPromotionId(Long.valueOf(buildId));
-          if (buildByPromotionId.getBuildType() == null) {
-            //missing build type, skip. Workaround for http://youtrack.jetbrains.com/issue/TW-34733
-          } else {
-            final BuildProblem problem = findProblem(buildByPromotionId, problemId);
-            if (problem != null) result.add(problem);
-          }
-        } catch (RuntimeException e) {
-          //addressing TW-41636
-          LOG.infoAndDebugDetails("Error getting problems for build promotion with id " + buildId + ", problemId: " + problemId + ", ignoring. Cause", e);
-        }
-      }
-      return result;
     } catch (Exception e) {
       throw new OperationException("Error performing database query: " + e.toString(), e);
     }
+
+    return new ItemHolder<BuildProblem>() {
+      @Override
+      public boolean process(@NotNull final ItemProcessor<BuildProblem> processor) {
+        for (Long buildId : buildIds) {
+          try {
+            final BuildPromotion buildByPromotionId = buildFinder.getBuildByPromotionId(Long.valueOf(buildId));
+            if (buildByPromotionId.getBuildType() == null) {
+              //missing build type, skip. Workaround for http://youtrack.jetbrains.com/issue/TW-34733
+            } else {
+              final BuildProblem problem = findProblem(buildByPromotionId, problemId);
+              if (problem != null) {
+                if (!processor.processItem(problem)) return false;
+              }
+            }
+          } catch (RuntimeException e) {
+            //addressing TW-41636
+            LOG.infoAndDebugDetails("Error getting problems for build promotion with id " + buildId + ", problemId: " + problemId + ", ignoring. Cause", e);
+          }
+          }
+        return true;
+        }
+    };
   }
 
   @NotNull
