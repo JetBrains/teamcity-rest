@@ -17,12 +17,14 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Date;
 import jetbrains.buildServer.MockTimeService;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
 import jetbrains.buildServer.serverSide.impl.*;
@@ -680,6 +682,11 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     final SRunningBuild build80 = build().in(buildConf1).run();
     time.jumpTo(10);
     final SQueuedBuild build90 = build().in(buildConf1).addToQueue();
+
+    //add debugging data as the test can fail occasionally
+    for (SBuild build : Arrays.asList(build10, build20, build30, build40, build60, build70, build80)) {
+      System.out.println("build id=" + build.getBuildId() + ", formatted start time=" + Util.formatTime(build.getStartDate()) + ", start time=" + build.getStartDate().getTime());
+    }
 
     checkBuilds("sinceBuild:(id:" + build10.getBuildId() + ")", build70, build60, build40, build20);
     checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),failedToStart:any", build70, build60, build40, build30, build20);
