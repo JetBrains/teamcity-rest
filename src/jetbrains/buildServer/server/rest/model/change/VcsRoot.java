@@ -232,6 +232,16 @@ public class VcsRoot {
         return result;
       }
 
+      @Nullable
+      @Override
+      public Parameter getParameter(@NotNull final String paramName) {
+        final String value = getParameters().get(paramName);
+        if (value != null) {
+          return new SimpleParameter(paramName, value);
+        }
+        return null;
+      }
+
       @NotNull
       public Map<String, String> getParameters() {
         return root.getProperties();
