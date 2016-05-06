@@ -116,12 +116,7 @@ public class Properties  implements DefaultValueAware {
   public static ParameterCondition getParameterCondition(@NotNull final Fields fields) {
     final String propertiesLocator = fields.getLocator();
     if (propertiesLocator != null) {
-      try {
-        return ParameterCondition.create(propertiesLocator);
-      } catch (RuntimeException e) {
-        // ignore
-        LOG.debug("Encountered and ignored error while processing fields '" + fields.getFieldsSpec() + "': " + e.toString());
-      }
+      return ParameterCondition.create(propertiesLocator);
     }
     return null;
   }
