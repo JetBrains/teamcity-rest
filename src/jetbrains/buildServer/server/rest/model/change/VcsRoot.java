@@ -158,6 +158,15 @@ public class VcsRoot {
         return result;
       }
 
+      @Nullable
+      public Parameter getParameter(@NotNull final String paramName) {
+        final Collection<Parameter> all = getParametersCollection();
+        for (Parameter p : all) {
+          if (p.getName().equals(paramName)) return p;
+        }
+        return null;
+      }
+
       @NotNull
       public Map<String, String> getParameters() {
         return root.getProperties();
