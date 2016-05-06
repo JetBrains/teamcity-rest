@@ -234,6 +234,15 @@ public class ParametersSubResource {
       return myBuildTypeOrTemplate.get().getParametersCollection();
     }
 
+    @Nullable
+    public Parameter getParameter(@NotNull final String paramName) {
+      final Collection<Parameter> all = getParametersCollection();
+      for (Parameter p : all) {
+        if (p.getName().equals(paramName)) return p;
+      }
+      return null;
+    }
+
     @NotNull
     public Map<String, String> getParameters() {
       return myBuildTypeOrTemplate.get().getParameters();
@@ -277,6 +286,15 @@ public class ParametersSubResource {
     @NotNull
     public Collection<Parameter> getParametersCollection() {
       return myProject.getParametersCollection();
+    }
+
+    @Nullable
+    public Parameter getParameter(@NotNull final String paramName) {
+      final Collection<Parameter> all = getParametersCollection();
+      for (Parameter p : all) {
+        if (p.getName().equals(paramName)) return p;
+      }
+      return null;
     }
 
     @NotNull
