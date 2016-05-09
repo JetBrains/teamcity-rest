@@ -30,7 +30,6 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.UserFinder;
-import jetbrains.buildServer.server.rest.data.UserGroupFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -97,9 +96,8 @@ public class Group {
     });
     users = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("users", false), new ValueWithDefault.Value<Users>() {
       public Users get() {
-        final String usersLocator = Locator.getStringLocator(UserFinder.GROUP, UserGroupFinder.getLocator(userGroup));
         //improvement: it is better to force the group to the current one (and support several ANDed groups in the userFinder)
-        final PagedSearchResult<SUser> items = context.getSingletonService(UserFinder.class).getItems(fields.getLocator(), new Locator(usersLocator));
+        final PagedSearchResult<SUser> items = context.getSingletonService(UserFinder.class).getItems(fields.getLocator(), new Locator(UserFinder.getLocatorByGroup(userGroup)));
         return new Users(items.myEntries, fields.getNestedField("users", Fields.NONE, Fields.LONG), context);
       }
     });

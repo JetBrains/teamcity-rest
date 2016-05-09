@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2015 JetBrains s.r.o.
+ * Copyright 2000-2016 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
@@ -44,26 +45,25 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 23.03.13
  */
-public class UserFinder extends AbstractFinder<SUser> {
-  private static final Logger LOG = Logger.getInstance(UserFinder.class.getName());
+public class UserFinder extends AbstractTypedFinder<SUser> {
+  private static final Logger LOG = Logger.getInstance(jetbrains.buildServer.serverSide.impl.audit.finders.UserFinder.class.getName());
   public static final String REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS = "rest.request.checkAdditionalPermissionsForUsersAndGroups";
 
-  public static final String USERNAME = "username";
-  public static final String GROUP = "group";
-  public static final String AFFECTED_GROUP = "affectedGroup";
-  public static final String PROPERTY = "property";
-  public static final String EMAIL = "email";
-  public static final String NAME = "name";
-  public static final String HAS_PASSWORD = "hasPassword";
-  public static final String PASSWORD = "password";
-  public static final String LAST_LOGIN_TIME = "lastLogin";
-  public static final String ROLE = "role";
-
-  @NotNull private final UserGroupFinder myGroupFinder;
+  private static final Dimension<Long> ID = new Dimension<>("id");
+  private static final Dimension<String> USERNAME = new Dimension<>("username");
+  private static final Dimension<SUserGroup> GROUP = new Dimension<>("group");
+  private static final Dimension<SUserGroup> AFFECTED_GROUP = new Dimension<>("affectedGroup");
+  private static final Dimension<ParameterCondition> PROPERTY = new Dimension<>("property");
+  private static final Dimension<ValueCondition> EMAIL = new Dimension<>("email");
+  private static final Dimension<ValueCondition> NAME = new Dimension<>("name");
+  private static final Dimension<Boolean> HAS_PASSWORD = new Dimension<>("hasPassword");
+  private static final Dimension<String> PASSWORD = new Dimension<>("password");
+  private static final Dimension<TimeCondition.ParsedTimeCondition> LAST_LOGIN_TIME = new Dimension<>("lastLogin");
+  private static final Dimension<RoleEntryDatas> ROLE = new Dimension<>("role");
 
   @NotNull private final UserModel myUserModel;
+  @NotNull private final UserGroupFinder myGroupFinder;
   @NotNull private final ProjectFinder myProjectFinder;
-  @NotNull private final TimeCondition myTimeCondition;
   @NotNull private final RolesManager myRolesManager;
   @NotNull private final PermissionChecker myPermissionChecker;
   @NotNull private final SecurityContext mySecurityContext;
@@ -75,262 +75,126 @@ public class UserFinder extends AbstractFinder<SUser> {
                     @NotNull final RolesManager rolesManager,
                     @NotNull final PermissionChecker permissionChecker,
                     @NotNull final SecurityContext securityContext) {
-    super(DIMENSION_ID, USERNAME, EMAIL, NAME, GROUP, AFFECTED_GROUP, PROPERTY, ROLE, LAST_LOGIN_TIME, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     myUserModel = userModel;
     myGroupFinder = groupFinder;
     myProjectFinder = projectFinder;
-    myTimeCondition = timeCondition;
     myRolesManager = rolesManager;
     myPermissionChecker = permissionChecker;
     mySecurityContext = securityContext;
-  }
 
-  @NotNull
-  @Override
-  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(HAS_PASSWORD, PASSWORD);
-    return result;
-  }
-
-  @NotNull
-  public String getItemLocator(@NotNull final SUser user) {
-    return UserFinder.getLocator(user);
-  }
-
-  @NotNull
-  public static String getLocator(@NotNull final User user) {
-    return Locator.getStringLocator(DIMENSION_ID, String.valueOf(user.getId()));
-  }
-
-  @NotNull
-  public SUser getItem(@Nullable final String locatorText, boolean checkViewPermission) {
-    if (checkViewPermission) {
-      return ensureViewUserPermissionEnforced(super.getItem(locatorText));
-    }
-    return super.getItem(locatorText);
-  }
-
-  @Nullable
-  @Override
-  protected SUser findSingleItem(@NotNull final Locator locator) {
-    if (locator.isSingleValue()) {
+    singleDimension(dimension -> {
       // no dimensions found, assume it's username
-      @SuppressWarnings("ConstantConditions") @NotNull String singleValue = locator.getSingleValue();
-      SUser user = myUserModel.findUserAccount(null, singleValue);
+      SUser user = myUserModel.findUserAccount(null, dimension);
       if (user == null) {
-        if (!"current".equals(singleValue)) {
-          throw new NotFoundException("No user can be found by username '" + singleValue + "'.");
+        if (!"current".equals(dimension)) {
+          throw new NotFoundException("No user can be found by username '" + dimension + "'.");
         }
         // support for predefined "current" keyword to get current user
         final SUser currentUser = getCurrentUser();
         if (currentUser == null) {
           throw new NotFoundException("No current user.");
         } else {
-          return currentUser;
+          return Collections.singletonList(currentUser);
         }
       }
-      return user;
-    }
-
-    Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
-    if (id != null) {
-      SUser user = myUserModel.findUserById(id);
-      if (user == null) {
-        throw new NotFoundException("No user can be found by id '" + id + "'.");
-      }
-      return user;
-    }
-
-    String username = locator.getSingleDimensionValue(USERNAME);
-    if (username != null) {
-      SUser user = myUserModel.findUserAccount(null, username);
-      if (user == null) {
-        throw new NotFoundException("No user can be found by username '" + username + "'.");
-      }
-      return user;
-    }
-
-    return null;
-  }
-
-  @NotNull
-  @Override
-  protected ItemFilter<SUser> getFilter(@NotNull final Locator locator) {
-    final LocatorBasedFilterBuilder<SUser> result = new LocatorBasedFilterBuilder<SUser>(locator);
-
-    result.addLongFilter(DIMENSION_ID, new LocatorBasedFilterBuilder.ValueChecker<SUser, Long>() {
-      @Override
-      public boolean isIncluded(@NotNull final Long value, @NotNull final SUser item) {
-        return value.equals(item.getId());
-      }
+      return Collections.singletonList(user);
     });
 
-    result.addStringFilter(USERNAME, new LocatorBasedFilterBuilder.ValueChecker<SUser, String>() {
-      @Override
-      public boolean isIncluded(@NotNull final String value, @NotNull final SUser item) {
-        return value.equalsIgnoreCase(item.getUsername());
-      }
-    });
+    dimensionLong(ID).description("internal user id")
+                     .filter((value, item) -> value.equals(item.getId()))
+                     .toItems(dimension -> {
+                       SUser user = myUserModel.findUserById(dimension);
+                       if (user == null) {
+                         throw new NotFoundException("No user can be found by id '" + dimension + "'.");
+                       }
+                       return Collections.singletonList(user);
+                     });
 
-    result.addSingleValueFilter(GROUP, new LocatorBasedFilterBuilder.ValueFromString<SUserGroup>() {
-      @Override
-      public SUserGroup get(@NotNull final String valueText) {
-        return myGroupFinder.getGroup(valueText);
-      }
-    }, new LocatorBasedFilterBuilder.ValueChecker<SUser, SUserGroup>() {
-      @Override
-      public boolean isIncluded(@NotNull final SUserGroup value, @NotNull final SUser item) {
-        return value.containsUserDirectly(item);
-      }
-    });
+    dimensionString(USERNAME).description("user's username")
+                             .filter((value, item) -> value.equalsIgnoreCase(item.getUsername()))
+                             .toItems(dimension -> {
+                               SUser user = myUserModel.findUserAccount(null, dimension);
+                               if (user == null) {
+                                 throw new NotFoundException("No user can be found by username '" + dimension + "'.");
+                               }
+                               return Collections.singletonList(user);
+                             });
 
-    result.addSingleValueFilter(AFFECTED_GROUP, new LocatorBasedFilterBuilder.ValueFromString<SUserGroup>() {
-      @Override
-      public SUserGroup get(@NotNull final String valueText) {
-        return myGroupFinder.getGroup(valueText);
-      }
-    }, new LocatorBasedFilterBuilder.ValueChecker<SUser, SUserGroup>() {
-      @Override
-      public boolean isIncluded(@NotNull final SUserGroup value, @NotNull final SUser item) {
-        return item.getAllUserGroups().contains(value);
-      }
-    });
+    final Type<SUserGroup> myGroupMapper = type(dimensionValue -> myGroupFinder.getGroup(dimensionValue)).description("user groups locator");
 
-    result.addParameterConditionFilter(EMAIL, new LocatorBasedFilterBuilder.NullableValue<String, SUser>() {
-      @Override
-      public String get(@NotNull final SUser source) {
-        return source.getEmail();
-      }
-    });
+    dimension(GROUP, myGroupMapper).description("user group including the user directly")
+                                   .filter((value, item) -> value.containsUserDirectly(item))
+                                   .toItems(dimension -> {
+                                     checkViewAllUsersPermissionEnforced();
+                                     return convert(dimension.getDirectUsers());
+                                   });
 
-    result.addParameterConditionFilter(NAME, new LocatorBasedFilterBuilder.NullableValue<String, SUser>() {
-      @Override
-      public String get(@NotNull final SUser source) {
-        return source.getName();
-      }
-    });
+    dimension(AFFECTED_GROUP, myGroupMapper).description("user group including the user considering groups hierarchy")
+                                            .filter((value, item) -> item.getAllUserGroups().contains(value))
+                                            .toItems(dimension -> {
+                                              checkViewAllUsersPermissionEnforced();
+                                              return convert(dimension.getAllUsers());
+                                            });
 
-    result.addBooleanMatchFilter(HAS_PASSWORD, new LocatorBasedFilterBuilder.NotNullValue<Boolean, SUser>() {
-      @NotNull
-      @Override
-      public Boolean get(@NotNull final SUser source) {
-        return ((UserImpl)source).hasPassword();
+    dimensionParameterCondition(PROPERTY).description("user's property").valueForDefaultFilter(item -> getUserPropertiesProvider(item));
+    dimensionValueCondition(EMAIL).description("user's email").valueForDefaultFilter(item -> item.getEmail());
+    dimensionValueCondition(NAME).description("user's display name").valueForDefaultFilter(item -> item.getName());
+    dimensionBoolean(HAS_PASSWORD).description("user has not empty password").hidden().valueForDefaultFilter(item -> ((UserImpl)item).hasPassword());
+    dimension(PASSWORD, type(dimensionValue -> {
+      if (!myPermissionChecker.isPermissionGranted(Permission.CHANGE_SERVER_SETTINGS, null)) {
+        throw new AuthorizationFailedException("Only system admin can query users for passwords");
       }
-    });
-
-    result.addSingleValueFilter(PASSWORD, new LocatorBasedFilterBuilder.ValueFromString<String>() {
-      @Override
-      public String get(@NotNull final String valueText) {
-        if (!myPermissionChecker.isPermissionGranted(Permission.CHANGE_SERVER_SETTINGS, null)) {
-          throw new AuthorizationFailedException("Only system admin can query users for passwords");
-        }
-        try {
-          Thread.sleep(5 * 1000); //inapt attempt to prevent brute-forcing
-        } catch (InterruptedException e) {
-          //ignore
-        }
-        return valueText;
+      try {
+        Thread.sleep(TeamCityProperties.getInteger("rest.request.users.passwordCheckDelay.ms", 5 * 1000)); //inapt attempt to prevent brute-forcing
+      } catch (InterruptedException e) {
+        //ignore
       }
-    }, new LocatorBasedFilterBuilder.ValueChecker<SUser, String>() {
-      @Override
-      public boolean isIncluded(@NotNull final String value, @NotNull final SUser item) {
-        return myUserModel.findUserAccount(item.getRealm(), item.getUsername(), value) != null;
-      }
-    });
+      return dimensionValue;
+    }).description("text")).description("user's password")
+                           .hidden()
+                           .filter((value, item) -> myUserModel.findUserAccount(item.getRealm(), item.getUsername(), value) != null);
 
-    result.addParametersConditionFilter(PROPERTY, new LocatorBasedFilterBuilder.NotNullValue<ParametersProvider, SUser>() {
-      @NotNull
-      @Override
-      public ParametersProvider get(@NotNull final SUser item) {
-        return getUserPropertiesProvider(item);
-      }
-    });
+    dimensionTimeCondition(LAST_LOGIN_TIME, timeCondition).description("user's last login time").valueForDefaultFilter(item -> item.getLastLoginTimestamp());
 
-    result.addFilter(ROLE, new LocatorBasedFilterBuilder.ValueFromString<FilterConditionChecker<SUser>>() {
-      @Override
-      public FilterConditionChecker<SUser> get(@NotNull final String valueText) {
-        Locator roleLocator = new Locator(valueText, "item", "method", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-        List<String> roleAssignmentsLocatorTexts;
-        String method = null;
-        if (roleLocator.isSingleValue()) {
-          roleAssignmentsLocatorTexts = Collections.singletonList(roleLocator.getSingleValue());
-        } else {
-          roleAssignmentsLocatorTexts = roleLocator.getDimensionValue("item");
-          method = roleLocator.getSingleDimensionValue("method");
-        }
-        if (method == null && roleAssignmentsLocatorTexts.isEmpty()) {
-          roleAssignmentsLocatorTexts = Collections.singletonList(valueText);
-        } else {
-          roleLocator.checkLocatorFullyProcessed();
-        }
 
-        if (method == null) method = "effective";
-
-        RoleEntryDatas roleDatas = new RoleEntryDatas(roleAssignmentsLocatorTexts, myRolesManager, myProjectFinder, myPermissionChecker);
-        if ("effective".equals(method)) {
-          return new FilterConditionChecker<SUser>() {
-            public boolean isIncluded(@NotNull final SUser item) {
-              return roleDatas.containsAllRolesEffectively(item);
-            }
-          };
-        } else if ("byPermission".equals(method)) {
-          return new FilterConditionChecker<SUser>() {
-            public boolean isIncluded(@NotNull final SUser item) {
-              return roleDatas.containsAllRolesByPermissions(item);
-            }
-          };
-        } else {
-          //at some point can add locator dimensions to search direct roles or selectively considering projects, roles, groups nesting
-          throw new BadRequestException("Unknown '" + "method" + "' role dimension value '" + method + "'. Supported are: " + "effective" + ", " + "byPermission");
-        }
-      }
-    });
+    dimension(ROLE, type(dimensionValue -> new RoleEntryDatas(dimensionValue, myRolesManager, myProjectFinder, myPermissionChecker)).description("role locator"))
+      .description("user's role")
+      .filter((roleEntryDatas, item) -> roleEntryDatas.matches(item));
 
     //todo: add PERMISSION
 
-    result.addFilter(LAST_LOGIN_TIME, new LocatorBasedFilterBuilder.ValueFromString<FilterConditionChecker<SUser>>() {
-      @Override
-      public FilterConditionChecker<SUser> get(@NotNull final String valueText) {
-        return myTimeCondition.processTimeCondition(valueText, new TimeCondition.ValueExtractor<SUser, Date>() {
-          @Nullable
-          @Override
-          public Date get(@NotNull final SUser sUser) {
-            return sUser.getLastLoginTimestamp();
-          }
-        }, null).getFilter();
-      }
+    multipleConvertToItemHolder(DimensionConditionsImpl.ALWAYS, dimensions -> {
+      checkViewAllUsersPermissionEnforced();
+      return getItemHolder(myUserModel.getAllUsers().getUsers());
     });
-
-    return result.getFilter();
   }
 
-  @NotNull
-  private ParametersProvider getUserPropertiesProvider(@NotNull final SUser item) {
-    Map<PropertyKey, String> properties = item.getProperties();
-    HashMap<String, String> result = new HashMap<>();
-    for (Map.Entry<PropertyKey, String> entry : properties.entrySet()) {
-      result.put(entry.getKey().getKey(), entry.getValue());
+  //related to http://youtrack.jetbrains.net/issue/TW-20071 and other cases
+  @Nullable
+  @Contract("!null -> !null; null -> null")
+  public SUser ensureViewUserPermissionEnforced(final @Nullable SUser user) throws AuthorizationFailedException {
+    if (user != null && TeamCityProperties.getBooleanOrTrue(REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
+      checkViewUserPermission(user);
     }
-    return new MapParametersProviderImpl(result);
+    return user;
   }
 
-  @NotNull
-  @Override
-  protected ItemHolder<SUser> getPrefilteredItems(@NotNull final Locator locator) {
-    checkViewAllUsersPermissionEnforced();
-
-    final String group = locator.getSingleDimensionValue(GROUP);
-    if (group != null) {
-      return getItemHolder(convert(myGroupFinder.getGroup(group).getDirectUsers()));
+  public void checkViewAllUsersPermissionEnforced() throws AuthorizationFailedException {
+    if (TeamCityProperties.getBooleanOrTrue(REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
+      checkViewAllUsersPermission();
     }
+  }
 
-    final String affectedGroup = locator.getSingleDimensionValue(AFFECTED_GROUP);
-    if (affectedGroup != null) {
-      return getItemHolder(convert(myGroupFinder.getGroup(affectedGroup).getAllUsers()));
+  public void checkViewAllUsersPermission() throws AuthorizationFailedException {
+    myPermissionChecker.checkGlobalPermissionAnyOf(new Permission[]{Permission.VIEW_USER_PROFILE, Permission.CHANGE_USER});
+  }
+
+  public void checkViewUserPermission(final @NotNull SUser user) throws AuthorizationFailedException {
+    final jetbrains.buildServer.users.User currentUser = getCurrentUser();
+    if (currentUser != null && currentUser.getId() == user.getId()) {
+      return;
     }
-
-    return getItemHolder(myUserModel.getAllUsers().getUsers());
+    checkViewAllUsersPermission();
   }
 
   @Nullable
@@ -346,32 +210,14 @@ public class UserFinder extends AbstractFinder<SUser> {
     return myUserModel.findUserAccount(null, associatedUser.getUsername());
   }
 
-  public void checkViewUserPermission(final @NotNull SUser user) throws AuthorizationFailedException {
-    final jetbrains.buildServer.users.User currentUser = getCurrentUser();
-    if (currentUser != null && currentUser.getId() == user.getId()) {
-      return;
+  @NotNull
+  private static ParametersProvider getUserPropertiesProvider(@NotNull final SUser item) {
+    Map<PropertyKey, String> properties = item.getProperties();
+    HashMap<String, String> result = new HashMap<>();
+    for (Map.Entry<PropertyKey, String> entry : properties.entrySet()) {
+      result.put(entry.getKey().getKey(), entry.getValue());
     }
-    checkViewAllUsersPermission();
-  }
-
-  //related to http://youtrack.jetbrains.net/issue/TW-20071 and other cases
-  @Nullable
-  @Contract("!null -> !null; null -> null")
-  public SUser ensureViewUserPermissionEnforced(final @Nullable SUser user) throws AuthorizationFailedException {
-    if (user != null && TeamCityProperties.getBooleanOrTrue(REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
-      checkViewUserPermission(user);
-    }
-    return user;
-  }
-
-  public void checkViewAllUsersPermission() throws AuthorizationFailedException {
-    myPermissionChecker.checkGlobalPermissionAnyOf(new Permission[]{Permission.VIEW_USER_PROFILE, Permission.CHANGE_USER});
-  }
-
-  public void checkViewAllUsersPermissionEnforced() throws AuthorizationFailedException {
-    if (TeamCityProperties.getBooleanOrTrue(REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
-      checkViewAllUsersPermission();
-    }
+    return new MapParametersProviderImpl(result);
   }
 
   @NotNull
@@ -387,32 +233,97 @@ public class UserFinder extends AbstractFinder<SUser> {
     return result;
   }
 
-  private static class RoleEntryDatas {
+  public static String getLocatorById(@NotNull final Long id) {
+    return Locator.getStringLocator(ID.name, String.valueOf(id));
+  }
+
+  public static String getLocatorByUsername(@NotNull final String username) {
+    return Locator.getStringLocator(USERNAME.name, username);
+  }
+
+  public static String getLocatorByGroup(@NotNull final SUserGroup userGroup) {
+    return Locator.getStringLocator(GROUP.name, UserGroupFinder.getLocator(userGroup));
+  }
+
+  @NotNull
+  public static String getLocator(@NotNull final User user) {
+    return getLocatorById(user.getId());
+  }
+
+  @NotNull
+  @Override
+  public String getItemLocator(@NotNull final SUser user) {
+    return getLocator(user);
+  }
+
+  @NotNull
+  public SUser getItem(@Nullable final String locatorText, boolean checkViewPermission) {
+    if (checkViewPermission) {
+      return ensureViewUserPermissionEnforced(super.getItem(locatorText));
+    }
+    return super.getItem(locatorText);
+  }
+
+  static class RoleEntryDatas {
     private final Set<Role> anyScopeRoles = new HashSet<>();
     private final Set<RoleScope> anyRoleScopes = new HashSet<>();
     private final Map<Role, Set<RoleScope>> roleScopes = new HashMap<>();
     @NotNull private final RolesManager myRolesManager;
     @NotNull private final ProjectFinder myProjectFinder;
     @NotNull private final PermissionChecker myPermissionChecker;
+    @NotNull private final String myMethod;
 
 
-    public RoleEntryDatas(@NotNull final List<String> roleLocators,
+    public RoleEntryDatas(@NotNull final String roleLocatorText,
                           @NotNull final RolesManager rolesManager,
                           @NotNull final ProjectFinder projectFinder,
                           @NotNull final PermissionChecker permissionChecker) {
+      Locator roleLocator = new Locator(roleLocatorText, "item", "method", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+      List<String> roleAssignmentsLocatorTexts;
+      String method = null;
+      if (roleLocator.isSingleValue()) {
+        roleAssignmentsLocatorTexts = Collections.singletonList(roleLocator.getSingleValue());
+      } else {
+        roleAssignmentsLocatorTexts = roleLocator.getDimensionValue("item");
+        method = roleLocator.getSingleDimensionValue("method");
+      }
+      if (method == null && roleAssignmentsLocatorTexts.isEmpty()) {
+        roleAssignmentsLocatorTexts = Collections.singletonList(roleLocatorText);
+      } else {
+        roleLocator.checkLocatorFullyProcessed();
+      }
+
+      if (method == null) method = "effective";
+
+      if (!"effective".equals(method) && !"byPermission".equals(method)) {
+        //at some point can add locator dimensions to search direct roles or selectively considering projects, roles, groups nesting
+        throw new BadRequestException("Unknown '" + "method" + "' role dimension value '" + method + "'. Supported are: " + "effective" + ", " + "byPermission");
+      }
+
+      //parsed, not initialize
+
+      myMethod = method;
       myRolesManager = rolesManager;
       myProjectFinder = projectFinder;
       myPermissionChecker = permissionChecker;
-      for (String roleLocator : roleLocators) {
-        Locator locator = new Locator(roleLocator, "scope", "role");
+      for (String value : roleAssignmentsLocatorTexts) {
+        Locator locator = new Locator(value, "scope", "role");
         String scope = locator.getSingleDimensionValue("scope");
         String role = locator.getSingleDimensionValue("role");
         if (scope == null && role == null) {
-          throw new BadRequestException("Invalid role locator '" + roleLocator + ": either 'scope' or 'role' dimension should be present");
+          throw new LocatorProcessException("Invalid role locator '" + roleLocator + ": either 'scope' or 'role' dimension should be present");
         }
         locator.checkLocatorFullyProcessed();
         add(getScope(scope), getRole(role));
       }
+    }
+
+    boolean matches(@NotNull final SUser item) {
+      if ("effective".equals(myMethod)) {
+        return containsAllRolesEffectively(item);
+      }
+      //else if ("byPermission".equals(myMethod))
+      return containsAllRolesByPermissions(item);
     }
 
     /**
@@ -457,7 +368,7 @@ public class UserFinder extends AbstractFinder<SUser> {
     private Map<String, Permissions> projectsPermissions = null;
 
     /**
-     * does matching by effective permisisons
+     * does matching by effective permissions
      */
     boolean containsAllRolesByPermissions(@NotNull final AuthorityHolder mainHolder) {
       if (globalPermissions == null) {
@@ -585,4 +496,5 @@ public class UserFinder extends AbstractFinder<SUser> {
       return initialMessage;
     }
   }
+
 }

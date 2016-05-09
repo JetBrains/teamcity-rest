@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import com.google.common.base.Stopwatch;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -84,59 +85,59 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
     final SUser user1 = createUser("user1");
     final SUser user2 = createUser(String.valueOf(user1.getId()));
 
-    {
-      SUser result = myUserFinder.getItem("id:" + user1.getId());
-      assertNotNull(result);
-      assertEquals(user1.getId(), result.getId());
+    check("id:" + user1.getId(), user1);
+    assertEquals(Long.valueOf(1), getFinder().getItems("id:" + user1.getId()).myActuallyProcessedCount);
+
+    checkExceptionOnItemSearch(NotFoundException.class, "id:" + user1.getId() + "1");
+    checkExceptionOnItemsSearch(NotFoundException.class, "id:" + user1.getId() + "1");
+
+    check("username:" + user2.getUsername(), user2);
+    assertEquals(Long.valueOf(1), getFinder().getItems("username:" + user2.getUsername()).myActuallyProcessedCount);
+
+    check("username:" + "user1", user1);
+    check("id:" + user1.getId() + ",username:" + "USER1", user1);
+    check("username:" + "USER1", user1);
+
+    checkExceptionOnItemSearch(NotFoundException.class, "username:" + user2.getUsername() + "1");
+    checkExceptionOnItemsSearch(NotFoundException.class, "username:" + user2.getUsername() + "1");
+
+    check("id:" + user1.getId() + ",username:" + "user1", user1);
+
+    checkExceptionOnItemSearch(NotFoundException.class, "id:" + user1.getId() + ",username:" + "user1" + "x");
+    check("id:" + user1.getId() + ",username:" + "user1" + "x");
+
+    checkExceptionOnItemSearch(LocatorProcessException.class, "xxx:yyy");
+    checkExceptionOnItemsSearch(LocatorProcessException.class, "xxx:yyy");
+  }
+
+  @Test
+  public void testInvalidLocators() throws Throwable {
+    final SUser user10 = createUser("user1");
+
+    check (null, user10);
+    check("id:" + user10.getId(), user10);
+    checkExceptionOnItemsSearch(LocatorProcessException.class, "aaa:bbb");
+    checkExceptionOnItemsSearch(NotFoundException.class, "xxx");
+    checkExceptionOnItemsSearch(LocatorProcessException.class, "id:" + user10.getId() + ",aaa:bbb");
+    checkExceptionOnItemsSearch(LocatorProcessException.class, "id:" + user10.getId() + ",aaa:bbb");
+    checkExceptionOnItemsSearch(LocatorProcessException.class, "id:" + user10.getId() + ",xxx");
+
+    checkExceptionOnItemSearch(LocatorProcessException.class, "aaa:bbb");
+    checkExceptionOnItemSearch(NotFoundException.class, "xxx");
+    checkExceptionOnItemSearch(LocatorProcessException.class, "id:" + user10.getId() + ",aaa:bbb");
+    checkExceptionOnItemSearch(LocatorProcessException.class, "id:" + user10.getId() + ",xxx");
+
+    try {
+      getFinder().getItems("aaa:bbb");
+      fail("No exception is thrown");
+    } catch (Exception e) {
+      String message = e.getMessage();
+      assertContains(message, "username");
+      assertContains(message, "id");
+      assertContains(message, "group");
+      assertContains(message, "role");
+      assertNotContains(message, "hasPassword", false);
     }
-
-    BaseFinderTest.checkException(NotFoundException.class, new Runnable() {
-      public void run() {
-        myUserFinder.getItem("id:" + user1.getId() + "1");
-      }
-    }, null);
-
-    {
-      SUser result = myUserFinder.getItem("username:" + user2.getUsername());
-      assertNotNull(result);
-      assertEquals(user2.getId(), result.getId());
-    }
-
-    {
-      SUser result = myUserFinder.getItem("username:" + "user1");
-      assertNotNull(result);
-      assertEquals(user1.getId(), result.getId());
-    }
-
-    {
-      SUser result = myUserFinder.getItem("username:" + "USER1");
-      assertNotNull(result);
-      assertEquals(user1.getId(), result.getId());
-    }
-
-    BaseFinderTest.checkException(NotFoundException.class, new Runnable() {
-      public void run() {
-        myUserFinder.getItem("username:" + user2.getUsername() + "1");
-      }
-    }, null);
-
-    {
-      SUser result = myUserFinder.getItem("id:" + user1.getId() + ",username:" + "user1");
-      assertNotNull(result);
-      assertEquals(user1.getId(), result.getId());
-    }
-
-    BuildPromotionFinderTest.checkException(NotFoundException.class, new Runnable() {
-      public void run() {
-        myUserFinder.getItem("id:" + user1.getId() + ",username:" + "user1" + "x");
-      }
-    }, null);
-
-    BaseFinderTest.checkException(LocatorProcessException.class, new Runnable() {
-      public void run() {
-        myUserFinder.getItem("xxx:yyy");
-      }
-    }, null);
   }
 
   @Test
@@ -220,21 +221,27 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
     SUserGroup group1 = myFixture.createUserGroup("key1", "name1", "description");
     final SUser user1 = createUser("user1");
     final SUser user2 = createUser("user2");
+    final SUser user25 = createUser("user25");
     group1.addUser(user1);
     group1.addUser(user2);
+    group1.addUser(user25);
 
     SUserGroup group2 = myFixture.createUserGroup("key2", "name2", "description");
     final SUser user3 = createUser("user3");
     group2.addUser(user3);
+    group2.addUser(user25);
 
-    check("group:(key:" + "key1" + ")", user1, user2);
-    check("group:(key:" + "key2" + ")", user3);
-    check("group:(key:" + getUserGroupManager().getAllUsersGroup().getKey() + ")", user1, user2, user3);
+    check (null, user1, user2, user25, user3);
+    check("group:(key:" + group1.getKey() + ")", user1, user2, user25);
+    check("group:(key:" + group2.getKey() + ")", user3, user25);
+    check("group:(key:" + getUserGroupManager().getAllUsersGroup().getKey() + ")", user1, user2, user25, user3);
 
-    check("group:(key:" + "key1" + "),username:user1", user1);
+    check("group:(key:" + group1.getKey() + "),username:user1", user1);
 
     checkExceptionOnItemSearch(NotFoundException.class, "group:(key:XXX)");
     checkExceptionOnItemsSearch(NotFoundException.class, "group:(key:XXX)");
+
+    check("group:(key:" + group1.getKey() + "),group:(key:" + group2.getKey() + ")", user25);
   }
 
   @Test
@@ -311,5 +318,64 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
 
     //todo: error locators
     checkExceptionOnItemsSearch(LocatorProcessException.class, "role:(aaa)");
+  }
+
+  @Test
+  public void testHasPassword() throws Throwable {
+    final SUser user10 = createUser("user10");
+    final SUser user20 = createUser("user20");
+    user20.setPassword("pwd");
+    final SUser user30 = createUser("user30");
+    user30.setPassword("");
+    final SUser user40 = createUser("user40");
+    user40.setPassword("aaa");
+    user40.setPassword(null);
+
+    check(null, user10, user20, user30, user40);
+
+    check("hasPassword:true", user20, user30);
+    check("hasPassword:false", user10, user40);
+    check("hasPassword:any", user10, user20, user30, user40);
+
+    check("username:user20,hasPassword:true", user20);
+    check("username:user20,hasPassword:false");
+    check("username:user20,hasPassword:any", user20);
+
+    long delay = 500;
+    setInternalProperty("rest.request.users.passwordCheckDelay.ms", String.valueOf(delay)); //disable delay in tests
+    final Stopwatch start = new Stopwatch().start();
+    check("password:pwd", user20);
+    System.out.println("Elapsed ms: " + start.elapsedMillis());
+    assertTrue(start.elapsedMillis() > 2 * delay - 1);  //check the elapsed time is at least twice the period (once for multiple items search, once - for single items search)
+    assertTrue(start.elapsedMillis() < 3 * delay - 1);  //check the elapsed time is not more then twice the time wait
+    setInternalProperty("rest.request.users.passwordCheckDelay.ms", "0"); //disable delay in tests
+
+    final Stopwatch start2 = new Stopwatch().start();
+    check("password:pwd", user20);
+    System.out.println("Elapsed ms: " + start2.elapsedMillis());
+    assertTrue(start2.elapsedMillis() < delay - 1);  //check the elapsed time without wait is small
+
+    check("password:()", user30);
+  }
+
+  @Test
+  public void testNameEmail() throws Throwable {
+    final SUser user05 = createUser("user05");
+    final SUser user06 = createUser("user06");
+    user06.updateUserAccount(user06.getUsername(), "User 06","user06@anotherAcme.com");
+    final SUser user10 = createUser("user10");
+    user10.updateUserAccount(user10.getUsername(), "User 10","user10@acme.com");
+    final SUser user20 = createUser("user20");
+    user20.updateUserAccount(user20.getUsername(), "User 20", "user20@acme.com");
+    final SUser user30 = createUser("user30");
+    user30.updateUserAccount(user30.getUsername(), "", "");
+    final SUser user40 = createUser("user40");
+    user40.updateUserAccount(user40.getUsername(), null, null);
+
+    check(null, user05, user06, user10, user20, user30, user40);
+    check("name:User 20", user20);
+    check("name:(value:User .0,matchType:matches)", user10, user20);
+    check("email:(value:@acme.com,matchType:ends-with)", user10, user20);
+//    check("name:(matchType:exists)", user06, user10, user20, user30);
   }
 }

@@ -25,7 +25,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
-import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -332,10 +331,10 @@ public class User {
     }
 
     if (id != null){
-      return userFinder.getItem(Locator.getStringLocator(UserFinder.DIMENSION_ID, String.valueOf(id)));
+      return userFinder.getItem(UserFinder.getLocatorById(id));
     }
     if (username != null){
-      return userFinder.getItem(Locator.getStringLocator(UserFinder.USERNAME, username));
+      return userFinder.getItem(UserFinder.getLocatorByUsername(username));
     }
 
     throw new BadRequestException("Submitted user should have 'id', 'username' or 'locator' attributes");
