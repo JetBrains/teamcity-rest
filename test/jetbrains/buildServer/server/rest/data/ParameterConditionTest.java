@@ -38,7 +38,6 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exten
     exception(LocatorProcessException.class, "name:a,some:b");
     exception(LocatorProcessException.class, "some:b");
     exception(BadRequestException.class, "name:a,value:b,matchType:abra");
-    exception(LocatorProcessException.class, "abra");
   }
 
   @Test
@@ -52,6 +51,11 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exten
     matchesFalse("name:aaa", "aa", "");
     matchesFalse("name:a", "A", "value");
     matchesFalse("name:A", "a", "value");
+
+    matchesTrue("a", "a", "value");
+    matchesFalse("a", "aa", "a");
+    matchesFalse("a");
+    matchesFalse("A", "a", "value");
   }
 
   @Test
