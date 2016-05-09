@@ -19,7 +19,6 @@ package jetbrains.buildServer.server.rest.data;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -306,7 +305,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
             LOG.debug("While filtering build types by " + PARAMETER + " user does not have enough permissions to see settings. Excluding build type: " + item.describe(false));
             return false;
           }
-          return parameterCondition.matches(new MapParametersProviderImpl(item.get().getParameters())); //includes project params? template params?
+          return parameterCondition.matches(item.get());
         }
       });
     }

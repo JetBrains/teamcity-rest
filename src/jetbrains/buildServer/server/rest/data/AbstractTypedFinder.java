@@ -22,6 +22,7 @@ import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.serverSide.BuildPromotion;
+import jetbrains.buildServer.serverSide.InheritableUserParametersHolder;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -304,6 +305,11 @@ public abstract class AbstractTypedFinder<ITEM> extends AbstractFinder<ITEM> {
 
   TypedFinderDimensionWithDefaultChecker<ITEM, ParameterCondition, ParametersProvider> dimensionParameterCondition(@NotNull final Dimension<ParameterCondition> dimension) {
     return dimension(dimension, type(dimensionValue -> ParameterCondition.create(dimensionValue)).description("parameter condition"))
+      .defaultFilter((parameterCondition, item) -> parameterCondition.matches(item));
+  }
+
+  TypedFinderDimensionWithDefaultChecker<ITEM, ParameterCondition, InheritableUserParametersHolder> dimensionOwnParameterCondition(@NotNull final Dimension<ParameterCondition> dimension) {
+    return dimension(dimension, type(dimensionValue -> ParameterCondition.create(dimensionValue)).description("parameter condition with own support"))
       .defaultFilter((parameterCondition, item) -> parameterCondition.matches(item));
   }
 

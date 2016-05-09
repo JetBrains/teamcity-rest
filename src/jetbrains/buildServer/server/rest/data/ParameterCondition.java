@@ -17,11 +17,15 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import jetbrains.buildServer.parameters.ParametersProvider;
+import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.serverSide.InheritableUserParametersHolder;
 import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -38,6 +42,7 @@ public class ParameterCondition {
 
   public static final String NAME = "name";
   public static final String VALUE = "value";
+  public static final String OWN = "own";
   public static final String TYPE = "matchType";
   public static final String IGNORE_CASE = "ignoreCase";
   protected static final String NAME_MATCH_CHECK = "matchScope"; // can be set to:
@@ -47,20 +52,25 @@ public class ParameterCondition {
   @NotNull private final ValueCondition myNameCondition;
   @NotNull private final ValueCondition myValueCondition;
   private final boolean myNameCheckShouldMatchAll;
+  @Nullable private final Boolean myOwnCondition;
 
-  private ParameterCondition(@NotNull final ValueCondition nameCondition, @NotNull final ValueCondition valueCondition, final boolean nameCheckShouldMatchAll) {
+  private ParameterCondition(@NotNull final ValueCondition nameCondition,
+                             @NotNull final ValueCondition valueCondition,
+                             final boolean nameCheckShouldMatchAll,
+                             @Nullable final Boolean ownCondition) {
     myValueCondition = valueCondition;
     myNameCondition = nameCondition;
     myNameCheckShouldMatchAll = nameCheckShouldMatchAll;
+    myOwnCondition = ownCondition;
   }
 
   @Nullable
-  @Contract("!null -> !null, null -> null")
+  @Contract("!null -> !null; null -> null")
   public static ParameterCondition create(@Nullable final String propertyConditionLocator) {
     if (propertyConditionLocator == null){
       return null;
     }
-    final Locator locator = new Locator(propertyConditionLocator, NAME, VALUE, TYPE, IGNORE_CASE, NAME_MATCH_CHECK);
+    final Locator locator = new Locator(propertyConditionLocator, NAME, VALUE, TYPE, IGNORE_CASE, NAME_MATCH_CHECK, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
 
     final String value = locator.getSingleDimensionValue(VALUE);
 
@@ -77,7 +87,7 @@ public class ParameterCondition {
     }
 
     ValueCondition nameCondition;
-    final String name = locator.getSingleDimensionValue(NAME);
+    final String name = locator.isSingleValue() ? locator.getSingleValue() : locator.getSingleDimensionValue(NAME);
     if (name == null) {
       nameCondition = new ValueCondition(RequirementType.ANY, name, null);
     } else {
@@ -99,8 +109,9 @@ public class ParameterCondition {
     }
 
     Boolean ignoreCase = locator.getSingleDimensionValueAsBoolean(IGNORE_CASE);
+    Boolean own = locator.getSingleDimensionValueAsBoolean(OWN);
     locator.checkLocatorFullyProcessed();
-    return new ParameterCondition(nameCondition, new ValueCondition(requirement, value, ignoreCase), nameCheckShouldMatchAll);
+    return new ParameterCondition(nameCondition, new ValueCondition(requirement, value, ignoreCase), nameCheckShouldMatchAll, own);
   }
 
   @Nullable
@@ -171,6 +182,11 @@ public class ParameterCondition {
   }
 
   public boolean matches(@NotNull final ParametersProvider parametersProvider) {
+    if (myOwnCondition != null) throw new OperationException("Cannot filter by " + OWN + " dimension for the entity");
+    return matchesInternal(parametersProvider);
+  }
+
+  private boolean matchesInternal(final @NotNull ParametersProvider parametersProvider) {
     String constantValueIfSimpleEqualsCondition = myNameCondition.getConstantValueIfSimpleEqualsCondition();
     if (!StringUtil.isEmpty(constantValueIfSimpleEqualsCondition)) {
       final String value = parametersProvider.get(constantValueIfSimpleEqualsCondition);
@@ -190,6 +206,46 @@ public class ParameterCondition {
       }
     }
     return matched;
+  }
+
+  public boolean matches(@NotNull final InheritableUserParametersHolder parametersHolder) {
+    return matches(new MapParametersProviderImpl(parametersHolder.getParameters()), new MapParametersProviderImpl(parametersHolder.getOwnParameters()));
+  }
+
+  public boolean matches(@NotNull final ParametersProvider parametersProvider, @NotNull final ParametersProvider ownParametersProvider) {
+    if (myOwnCondition != null){
+      if (myOwnCondition) return matchesInternal(ownParametersProvider);
+      return matchesInternal(subtract(parametersProvider, ownParametersProvider));
+    }
+    return matchesInternal(parametersProvider);
+  }
+
+  @NotNull
+  private ParametersProvider subtract(@NotNull final ParametersProvider larger, @NotNull final ParametersProvider smaller) {
+    return new ParametersProvider() {
+      @Nullable
+      @Override
+      public String get(@NotNull final String key) {
+        if (smaller.get(key) != null) {
+          return null;
+        }
+        return larger.get(key);
+      }
+
+      @Override
+      public int size() {
+        return getAll().size();
+      }
+
+      @Override
+      public Map<String, String> getAll() {
+        LinkedHashMap<String, String> result = new LinkedHashMap<>(larger.getAll());
+        for (String key : smaller.getAll().keySet()) {
+          result.remove(key);
+        }
+        return result;
+      }
+    };
   }
 
   public boolean parameterMatches(@NotNull final Parameter parameter) {

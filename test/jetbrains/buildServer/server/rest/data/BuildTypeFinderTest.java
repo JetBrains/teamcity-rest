@@ -459,6 +459,56 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
   }
 
   @Test
+  public void testParameters() throws Exception {
+    myBuildType.remove();
+
+    final SProject project10 = createProject("p10");
+    project10.addParameter(new SimpleParameter("p10", "v10p"));
+    project10.addParameter(new SimpleParameter("p20", "v20"));
+    project10.addParameter(new SimpleParameter("p30", "v30p"));
+
+    final BuildTypeTemplate template = project10.createBuildTypeTemplate("template");
+    template.addConfigParameter(new SimpleParameter("p10", "v10t"));
+    template.addConfigParameter(new SimpleParameter("p20", "v20"));
+    template.addConfigParameter(new SimpleParameter("p40", "v40t"));
+
+    final SBuildType buildConf10 = project10.createBuildType("buildConf10");
+    buildConf10.attachToTemplate(template);
+    buildConf10.addConfigParameter(new SimpleParameter("p10", "v10b"));
+    buildConf10.addConfigParameter(new SimpleParameter("p30", "v30b"));
+
+
+    final SBuildType buildConf20 = project10.createBuildType("buildConf20");
+    buildConf20.attachToTemplate(template);
+
+    final SBuildType buildConf30 = project10.createBuildType("buildConf30");
+
+    final SProject project20 = createProject("p20");
+    final SBuildType buildConf50 = project20.createBuildType("buildConf50");
+
+    checkBuildTypes("templateFlag:false", buildConf10, buildConf20, buildConf30, buildConf50);
+    checkBuildTypes("templateFlag:false,parameter:p10", buildConf10, buildConf20, buildConf30);
+    checkBuildTypes("templateFlag:false,parameter:P10");
+    checkBuildTypes("templateFlag:false,parameter:(name:p10,value:v10p)", buildConf20, buildConf30);  //project's properties take over template's ones, so buildConf20 is included
+    checkBuildTypes("parameter:(name:p10,value:v10t)", template);
+    checkBuildTypes("templateFlag:false,parameter:(name:p40,value:v40t)", buildConf10, buildConf20);
+    checkBuildTypes("templateFlag:false,parameter:(name:p10,value:v10b)", buildConf10);
+    checkBuildTypes("templateFlag:false,parameter:(name:P10,value:v10b)");
+    checkBuildTypes("templateFlag:false,parameter:(name:p10,value:v10B)");
+    checkBuildTypes("templateFlag:false,parameter:(value:v10b)", buildConf10);
+    checkBuildTypes("templateFlag:false,parameter:(value:v10B)");
+
+    checkBuildTypes("templateFlag:false,parameter:(own:true)", buildConf10);
+    checkBuildTypes("templateFlag:false,parameter:(own:false)", buildConf10, buildConf20, buildConf30);
+    checkBuildTypes("templateFlag:false,parameter:(own:any)", buildConf10, buildConf20, buildConf30); // config w/o params does not match at lest for now
+    checkBuildTypes("templateFlag:false,parameter:(own:true,name:p30)", buildConf10);
+    checkBuildTypes("templateFlag:false,parameter:(own:true,name:p10)", buildConf10);
+    checkBuildTypes("parameter:(own:true,name:p10)", buildConf10, template);
+    checkBuildTypes("parameter:(own:true,name:p20)", template);
+    checkBuildTypes("templateFlag:false,parameter:(own:false,name:p10)", buildConf20, buildConf30);
+  }
+
+  @Test
   public void testSearchByBuilds() throws Exception {
     myBuildType.remove();
 

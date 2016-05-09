@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.List;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -197,7 +196,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
             LOG.debug("While filtering projects by " + DIMENSION_PARAMETER + " user does not have enough permissions to see settings. Excluding project: " + item.describe(false));
             return false;
           }
-          return parameterCondition.matches(new MapParametersProviderImpl(item.getOwnParameters()));
+          return parameterCondition.matches(item);
         }
       });
     }
