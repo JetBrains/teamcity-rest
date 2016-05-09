@@ -70,7 +70,8 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   protected QueuedBuildFinder myQueuedBuildFinder;
   protected BranchFinder myBranchFinder;
   protected ChangeFinder myChangeFinder;
-  private UserGroupFinder myGroupFinder;
+  protected UserGroupFinder myGroupFinder;
+  protected TimeCondition myTimeCondition;
 
   static public BeanContext getBeanContext(final ServiceLocator serviceLocator) {
     final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
@@ -121,22 +122,19 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myFixture.addService(myVcsRootInstanceFinder);
 
 
-    final PermissionChecker permissionChecker = new PermissionChecker(myServer.getSecurityContext());
-    myFixture.addService(permissionChecker);
-
-    TimeCondition timeCondition = new TimeCondition(myFixture);
-    myFixture.addService(timeCondition);
+    myTimeCondition = new TimeCondition(myFixture);
+    myFixture.addService(myTimeCondition);
 
     myGroupFinder = new UserGroupFinder(getUserGroupManager());
     myFixture.addService(myGroupFinder);
-    myUserFinder = new UserFinder(getUserModelEx(), myGroupFinder, myProjectFinder, timeCondition,
-                                  myFixture.getRolesManager(), permissionChecker, myServer.getSecurityContext());
+    myUserFinder = new UserFinder(getUserModelEx(), myGroupFinder, myProjectFinder, myTimeCondition,
+                                  myFixture.getRolesManager(), myPermissionChecker, myServer.getSecurityContext());
     myFixture.addService(myUserFinder);
 
     myBranchFinder = new BranchFinder(myBuildTypeFinder);
 
     myBuildPromotionFinder = new BuildPromotionFinder(myFixture.getBuildPromotionManager(), myFixture.getBuildQueue(), myServer, myVcsRootFinder,
-                                                      myProjectFinder, myBuildTypeFinder, myUserFinder, myAgentFinder, myBranchFinder, timeCondition, null);
+                                                      myProjectFinder, myBuildTypeFinder, myUserFinder, myAgentFinder, myBranchFinder, myTimeCondition, null);
     myFixture.addService(myBuildPromotionFinder);
 
     myBuildFinder = new BuildFinder(myServer, myBuildTypeFinder, myProjectFinder, myUserFinder, myBuildPromotionFinder, myAgentFinder);
@@ -168,7 +166,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myFixture.addService(myQueuedBuildFinder);
 
     myChangeFinder = new ChangeFinder(myProjectFinder, myBuildFinder, myBuildPromotionFinder, myBuildTypeFinder, myVcsRootFinder, myVcsRootInstanceFinder, myUserFinder,
-                                      myVcsManager, myFixture.getVcsHistory(), myBranchFinder, myFixture, permissionChecker);
+                                      myVcsManager, myFixture.getVcsHistory(), myBranchFinder, myFixture, myPermissionChecker);
   }
 
   public void setFinder(@NotNull AbstractFinder<T> finder){
