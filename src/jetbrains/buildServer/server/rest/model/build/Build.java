@@ -1105,7 +1105,7 @@ public class Build {
     if (modifiedBuildType!= null) {
       //it's core's responsibility to check permissions here
       try {
-        ((BuildPromotionEx)result).freezeSettings(modifiedBuildType);
+        ((BuildPromotionEx)result).freezeSettings(modifiedBuildType, "rest");
       } catch (IOException e) {
         throw new OperationException("Error while freezing promotion settings", e); //include nested erorr or it can expose too much data?
       }
