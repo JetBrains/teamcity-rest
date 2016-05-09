@@ -67,6 +67,7 @@ public class Locator {
   @Nullable private String[] mySupportedDimensions;
   @NotNull private final Collection<String> myIgnoreUnusedDimensions = new HashSet<String>();
   @NotNull private final Collection<String> myHddenSupportedDimensions = new HashSet<String>();
+  private DescriptionProvider myDescriptionProvider = null;
 
   public Locator(@Nullable final String locator) throws LocatorProcessException {
     this(locator, null);
@@ -383,7 +384,7 @@ public class Locator {
             message.append("Single value locator '").append(mySingleValue).append("' was ignored.");
           }
         }
-        if (mySupportedDimensions != null && mySupportedDimensions.length > 0) message.append(" Supported dimensions are: ").append(Arrays.toString(mySupportedDimensions));
+        if (mySupportedDimensions != null && mySupportedDimensions.length > 0) message.append(" ").append(getLocatorDescription(reportKindString.contains("includeHidden")));
         if (reportKindString.contains("log")) {
           if (reportKindString.contains("log-warn")) {
             LOG.warn(message.toString());
@@ -398,6 +399,27 @@ public class Locator {
     }
   }
 
+  protected interface DescriptionProvider{
+    @NotNull String get(boolean includeHidden);
+  }
+
+  public void setDescriptionProvider(final DescriptionProvider descriptionProvider) {
+    myDescriptionProvider = descriptionProvider;
+  }
+
+  @NotNull
+  private String getLocatorDescription(boolean includeHidden) {
+    if (myDescriptionProvider == null){
+      StringBuilder result = new StringBuilder();
+      result.append("Supported dimensions are: ").append(Arrays.toString(mySupportedDimensions)).append(".");
+      if (includeHidden && !myHddenSupportedDimensions.isEmpty()){
+        result.append(" Hidden supported are: ").append(Arrays.toString(myHddenSupportedDimensions.toArray()));
+      }
+      return result.toString();
+    }
+    return myDescriptionProvider.get(includeHidden);
+  }
+
   private void reportKnownButNotReportedDimensions() {
     final Set<String> usedDimensions = new HashSet<String>(myUsedDimensions);
     if (mySupportedDimensions != null) usedDimensions.removeAll(Arrays.asList(mySupportedDimensions));
@@ -408,8 +430,7 @@ public class Locator {
       //noinspection ThrowableInstanceNeverThrown
       final Exception exception = new Exception("Helper exception to get stacktrace");
       LOG.info("Locator " + StringUtil.pluralize("dimension", usedDimensions.size()) + " " + usedDimensions + (usedDimensions.size() > 1 ? " are" : " is") +
-               " actually used but not declared as supported. Declared as supported are: " + Arrays.toString(mySupportedDimensions) + "." +
-               (!myHddenSupportedDimensions.isEmpty() ? " Hidden supported are: " + Arrays.toString(myHddenSupportedDimensions.toArray()) : ""), exception);
+               " actually used but not declared as supported. Declared locator details: " + getLocatorDescription(true), exception);
     }
   }
 

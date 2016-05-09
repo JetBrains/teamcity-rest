@@ -65,7 +65,7 @@ public abstract class AbstractFinder<ITEM> {
 
   @NotNull
   public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    final Locator result = Locator.createLocator(locatorText, locatorDefaults, myKnownDimensions);
+    final Locator result = Locator.createLocator(locatorText, locatorDefaults, getKnownDimensions());
     result.addIgnoreUnusedDimensions(PagerData.COUNT);
     result.addHiddenDimensions(DIMENSION_ITEM, DIMENSION_UNIQUE); //experimental
     return result;
@@ -159,9 +159,7 @@ public abstract class AbstractFinder<ITEM> {
       locator.markAllUnused(); // nothing found - no dimensions should be marked as used then
     }
 
-    //it is important to call "getPrefilteredItems" first as that process some of the dimensions which  "getFilter" can then ignore for performance reasons
-    ItemHolder<ITEM> unfilteredItems = getPrefilteredItemsWithItemsSupport(locator);
-    final ItemFilter<ITEM> filter = getFilter(locator);
+    ItemHolderAndFilter<ITEM> holderAndFilter = getItemHolderAndFilter(locator);
 
     final Long start = locator.getSingleDimensionValueAsLong(PagerData.START);
     final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT, getDefaultPageItemsCount());
@@ -172,10 +170,36 @@ public abstract class AbstractFinder<ITEM> {
       lookupLimit = countFromFilter;
     }
 
-    final PagingItemFilter<ITEM> pagingFilter = new PagingItemFilter<ITEM>(filter, start, countFromFilter == null ? null : countFromFilter.intValue(), lookupLimit);
+    final PagingItemFilter<ITEM> pagingFilter = new PagingItemFilter<ITEM>(holderAndFilter.getItemFilter(),
+                                                                           start, countFromFilter == null ? null : countFromFilter.intValue(),
+                                                                           lookupLimit);
 
     locator.checkLocatorFullyProcessed();
-    return getItems(pagingFilter, unfilteredItems, locator);
+    return getItems(pagingFilter, holderAndFilter.getItemHolder(), locator);
+  }
+
+  protected ItemHolderAndFilter<ITEM> getItemHolderAndFilter(@NotNull Locator locator){
+    //it is important to call "getPrefilteredItems" first as that process some of the dimensions which  "getFilter" can then ignore for performance reasons
+    final ItemHolder<ITEM> unfilteredItems = getPrefilteredItemsWithItemsSupport(locator);
+    final ItemFilter<ITEM> filter = getFilter(locator);
+    return new ItemHolderAndFilter<ITEM>() {
+      @NotNull
+      @Override
+      public ItemHolder<ITEM> getItemHolder() {
+        return unfilteredItems;
+      }
+
+      @NotNull
+      @Override
+      public ItemFilter<ITEM> getItemFilter() {
+        return filter;
+      }
+    };
+  }
+
+  protected interface ItemHolderAndFilter<T>{
+    @NotNull ItemHolder<T> getItemHolder();
+    @NotNull ItemFilter<T> getItemFilter();
   }
 
   @NotNull
@@ -186,13 +210,13 @@ public abstract class AbstractFinder<ITEM> {
     final ArrayList<ITEM> result = filterItemProcessor.getResult();
     final long finishTime = System.nanoTime();
     final long totalItemsProcessed = filterItemProcessor.getTotalItemsProcessed();
+    final long processingTimeMs = TimeUnit.MILLISECONDS.convert(finishTime - startTime, TimeUnit.NANOSECONDS);
     if (totalItemsProcessed >= TeamCityProperties.getLong("rest.finder.processedItemsLogLimit", 1)) {
       final String lookupLimitMessage =
         filter.isLookupLimitReached() ? " (lookupLimit of " + filter.getLookupLimit() + " reached). Last processed item: " + LogUtil.describe(filter.getLastProcessedItem()) : "";
       LOG.debug("While processing locator '" + locator + "', " + result.size() + " items were matched by the filter from " + totalItemsProcessed + " processed in total" +
-                lookupLimitMessage); //todo make AbstractFilter loggable and add logging here
+                lookupLimitMessage + ", took " + processingTimeMs + " ms"); //todo make AbstractFilter loggable and add logging here
     }
-    final long processingTimeMs = TimeUnit.MILLISECONDS.convert(finishTime - startTime, TimeUnit.NANOSECONDS);
     if (totalItemsProcessed > TeamCityProperties.getLong("rest.finder.processedItemsWarnLimit", 10000) ||
         processingTimeMs > TeamCityProperties.getLong("rest.finder.timeWarnLimit", 10000)) {
       LOG.info("Server performance can be affected by REST request with locator '" + locator + "': " +
@@ -288,6 +312,7 @@ public abstract class AbstractFinder<ITEM> {
   @NotNull
   protected abstract ItemFilter<ITEM> getFilter(@NotNull final Locator locator);
 
+  @NotNull
   public String[] getKnownDimensions() {
     return myKnownDimensions;
   }
