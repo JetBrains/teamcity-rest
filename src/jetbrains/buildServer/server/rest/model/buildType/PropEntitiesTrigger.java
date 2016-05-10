@@ -29,6 +29,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
+import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
@@ -49,7 +50,7 @@ public class PropEntitiesTrigger {
   public PropEntitiesTrigger() {
   }
 
-  public PropEntitiesTrigger(final BuildTypeSettings buildType, @NotNull final Fields fields) {
+  public PropEntitiesTrigger(final BuildTypeSettingsEx buildType, @NotNull final Fields fields) {
     final Collection<BuildTriggerDescriptor> buildTriggersCollection = buildType.getBuildTriggersCollection();
     propEntities = ValueWithDefault.decideDefault(fields.isIncluded("trigger"), new ValueWithDefault.Value<List<PropEntityTrigger>>() {
       @Nullable

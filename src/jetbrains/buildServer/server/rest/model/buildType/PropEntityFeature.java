@@ -24,7 +24,7 @@ import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.serverSide.BuildFeatureDescriptorFactory;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
-import jetbrains.buildServer.serverSide.ParametersDescriptor;
+import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -38,8 +38,8 @@ public class PropEntityFeature extends PropEntity implements PropEntityEdit<SBui
   public PropEntityFeature() {
   }
 
-  public PropEntityFeature(@NotNull ParametersDescriptor descriptor, @NotNull final BuildTypeSettings buildType, @NotNull final Fields fields) {
-    super(descriptor, buildType, fields);
+  public PropEntityFeature(@NotNull SBuildFeatureDescriptor descriptor, @NotNull final BuildTypeSettingsEx buildType, @NotNull final Fields fields) {
+    super(descriptor, !buildType.getOwnBuildFeatures().contains(descriptor), buildType, fields); //can optimize by getting getOwnBuildFeatures in the caller
   }
 
   @NotNull

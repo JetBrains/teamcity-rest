@@ -56,6 +56,12 @@ public class BuildTypeOrTemplate implements Loggable {
   }
 
   @NotNull
+  public BuildTypeSettingsEx getSettingsEx(){
+    //noinspection ConstantConditions
+    return isBuildType() ? ((BuildTypeEx)myBuildType).getSettings() : ((BuildTypeTemplateEx)myTemplate).getSettings();
+  }
+
+  @NotNull
   public BuildTypeIdentity getIdentity(){
     //noinspection ConstantConditions
     return isBuildType() ? myBuildType : myTemplate;

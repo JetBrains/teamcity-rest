@@ -27,6 +27,7 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
+import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -53,7 +54,7 @@ public class PropEntitiesArtifactDep implements DefaultValueAware {
    * @param fields
    * @param context
    */
-  public PropEntitiesArtifactDep(@NotNull final List<SArtifactDependency> artifactDependencies, @Nullable final BuildTypeSettings buildType,
+  public PropEntitiesArtifactDep(@NotNull final List<SArtifactDependency> artifactDependencies, @Nullable final BuildTypeSettingsEx buildType,
                                  @NotNull final Fields fields, @NotNull final BeanContext context) {
     propEntities = ValueWithDefault.decideDefault(fields.isIncluded("artifact-dependency", true), new ValueWithDefault.Value<List<PropEntityArtifactDep>>() {
       @Nullable
@@ -69,7 +70,7 @@ public class PropEntitiesArtifactDep implements DefaultValueAware {
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), artifactDependencies.size());
   }
 
-  public PropEntitiesArtifactDep(@NotNull final BuildTypeSettings buildType, @NotNull final Fields fields, @NotNull final BeanContext context) {
+  public PropEntitiesArtifactDep(@NotNull final BuildTypeSettingsEx buildType, @NotNull final Fields fields, @NotNull final BeanContext context) {
     this(buildType.getArtifactDependencies(), buildType, fields, context);
   }
 

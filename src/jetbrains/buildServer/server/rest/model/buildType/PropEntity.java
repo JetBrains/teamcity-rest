@@ -32,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Author: Yegor.Yarko
  */
-@XmlType(propOrder = {"id", "name", "type",
+@XmlType(propOrder = {"id", "name", "type", "disabled", "inherited",
   "properties"})
 //@XmlRootElement(name = "property-described-entity")
 @SuppressWarnings("PublicField")
@@ -51,29 +51,35 @@ public class PropEntity {
   @Nullable
   public Boolean disabled;
 
+  @XmlAttribute
+  @Nullable
+  public Boolean inherited;
+
   @XmlElement
   public Properties properties;
 
   public PropEntity() {
   }
 
-  public PropEntity(@NotNull ParametersDescriptor descriptor, @NotNull BuildTypeSettings buildType, @NotNull final Fields fields) {
-    init(descriptor.getId(), null, descriptor.getType(), buildType.isEnabled(descriptor.getId()), descriptor.getParameters(), fields);
+  public PropEntity(@NotNull ParametersDescriptor descriptor, @Nullable final Boolean inherited, @NotNull BuildTypeSettings buildType, @NotNull final Fields fields) {
+    init(descriptor.getId(), null, descriptor.getType(), buildType.isEnabled(descriptor.getId()), inherited, descriptor.getParameters(), fields);
   }
 
   public PropEntity(@NotNull final String id,
                     @Nullable final String name,
                     @NotNull final String type,
                     @Nullable final Boolean enabled,
+                    @Nullable final Boolean inherited,
                     @NotNull final Map<String, String> properties,
                     @NotNull final Fields fields) {
-    init(id, name, type, enabled, properties, fields);
+    init(id, name, type, enabled, inherited, properties, fields);
   }
 
   protected void init(@NotNull final String id,
                     @Nullable final String name,
                     @NotNull final String type,
                     @Nullable final Boolean enabled,
+                    @Nullable final Boolean inherited,
                     @NotNull final Map<String, String> properties,
                     @NotNull final Fields fields) {
     this.id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), id);
@@ -81,7 +87,8 @@ public class PropEntity {
     this.type = ValueWithDefault.decideDefault(fields.isIncluded("type"), type);
     this.properties = ValueWithDefault.decideDefault(fields.isIncluded("properties"),
                                                      new Properties(properties, null, fields.getNestedField("properties", Fields.NONE, Fields.LONG)));
-    disabled = enabled == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("disabled"), !enabled);
+    this.disabled = enabled == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("disabled"), !enabled);
+    this.inherited = inherited == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("inherited"), inherited);
   }
 
   public static String getSetting(@NotNull final BuildTypeSettings buildType, @NotNull final String id, final String name) {

@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
+import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -50,7 +51,7 @@ public class PropEntitiesFeature {
   public PropEntitiesFeature() {
   }
 
-  public PropEntitiesFeature(final BuildTypeSettings buildType, @NotNull final Fields fields) {
+  public PropEntitiesFeature(final BuildTypeSettingsEx buildType, @NotNull final Fields fields) {
     final Collection<SBuildFeatureDescriptor> buildFeatures = buildType.getBuildFeatures();
     propEntities = ValueWithDefault.decideDefault(fields.isIncluded("feature"), new ValueWithDefault.Value<List<PropEntityFeature>>() {
       @Nullable

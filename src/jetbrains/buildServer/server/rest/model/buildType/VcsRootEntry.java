@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
+import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -28,11 +29,13 @@ import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.InvalidVcsRootScopeException;
 import jetbrains.buildServer.vcs.CheckoutRules;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -40,12 +43,17 @@ import org.jetbrains.annotations.NotNull;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "vcs-root-entry")
-@XmlType(name = "vcs-root-entry", propOrder = {"id",
+@XmlType(name = "vcs-root-entry", propOrder = {"id", "inherited",
   "vcsRoot", "checkoutRules"})
 public class VcsRootEntry {
   public static final String CHECKOUT_RULES = "checkout-rules";
+
   @XmlAttribute(name = "id")
   public String id;
+
+  @XmlAttribute
+  @Nullable
+  public Boolean inherited;
 
   @XmlElement(name = "vcs-root")
   public VcsRoot vcsRoot;
@@ -57,8 +65,17 @@ public class VcsRootEntry {
 
   public VcsRootEntry(final @NotNull SVcsRoot vcsRootParam, @NotNull final BuildTypeOrTemplate buildType, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id", true, true), vcsRootParam.getExternalId());
+    inherited = ValueWithDefault.decideDefault(fields.isIncluded("inherited"), !isOwnVcsRoot(buildType, vcsRootParam));
     vcsRoot = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("vcs-root", true, true), new VcsRoot(vcsRootParam, fields.getNestedField("vcs-root"), beanContext));
     checkoutRules =  ValueWithDefault.decideIncludeByDefault(fields.isIncluded(CHECKOUT_RULES, true, true), buildType.get().getCheckoutRules(vcsRootParam).getAsString());
+  }
+
+  private static boolean isOwnVcsRoot(@NotNull final BuildTypeOrTemplate buildType, @NotNull final SVcsRoot vcsRoot) {
+    List<jetbrains.buildServer.vcs.VcsRootEntry> ownVcsRootEntries = ((BuildTypeEx)buildType.get()).getSettings().getOwnVcsRootEntries(); //can optimize by getting in the caller
+    for (jetbrains.buildServer.vcs.VcsRootEntry entry : ownVcsRootEntries) {
+      if (entry.getVcsRoot().getId() == vcsRoot.getId()) return true;
+    }
+    return false;
   }
 
   //see also PropEntityEdit

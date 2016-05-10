@@ -16,7 +16,11 @@
 
 package jetbrains.buildServer.server.rest.model;
 
+import java.util.ArrayList;
+import java.util.List;
 import jetbrains.buildServer.RootUrlHolder;
+import jetbrains.buildServer.artifacts.RevisionRules;
+import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
@@ -26,17 +30,20 @@ import jetbrains.buildServer.server.rest.model.build.Branch;
 import jetbrains.buildServer.server.rest.model.build.Branches;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
+import jetbrains.buildServer.server.rest.model.buildType.PropEntity;
+import jetbrains.buildServer.server.rest.model.buildType.VcsRootEntry;
 import jetbrains.buildServer.server.rest.request.BuildTypeRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
-import jetbrains.buildServer.serverSide.BuildTypeEx;
-import jetbrains.buildServer.serverSide.RelativeWebLinks;
-import jetbrains.buildServer.serverSide.RequirementFactory;
-import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
+import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
 import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.vcs.CheckoutRules;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
@@ -276,6 +283,192 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
       assertNotNull(buildType.getCompatibleAgents().agents);
       assertEquals(2, buildType.getCompatibleAgents().agents.size());
     }
+  }
+
+  @Test
+  public void testInheritance() {
+    ProjectEx project10 = createProject("project10", "project 10");
+    MockVcsSupport vcs = vcsSupport().withName("vcs").dagBased(true).register();
+    final SVcsRoot vcsRoot10 = project10.createVcsRoot("vcs", "extId10", "name10");
+    final SVcsRoot vcsRoot20 = project10.createVcsRoot("vcs", "extId20", "name20");
+    final SVcsRoot vcsRoot30 = project10.createVcsRoot("vcs", "extId30", "name30");
+
+    project10.addParameter(new SimpleParameter("p", "v"));
+
+    BuildTypeEx bt100 = project10.createBuildType("bt100", "bt 100");
+    BuildTypeEx bt110 = project10.createBuildType("bt110", "bt 110");
+    BuildTypeEx bt120 = project10.createBuildType("bt120", "bt 120");
+
+
+    // TEMPLATE
+    BuildTypeTemplate t10 = project10.createBuildTypeTemplate("t10", "bt 10");
+
+    t10.setArtifactPaths("aaaaa");
+    t10.setBuildNumberPattern("pattern");
+    t10.setOption(BuildTypeOptions.BT_ALLOW_EXTERNAL_STATUS, true);
+    t10.setOption(BuildTypeOptions.BT_CHECKOUT_DIR, "checkout_t");
+    t10.setOption(BuildTypeOptions.BT_CHECKOUT_MODE, "ON_AGENT");
+    t10.setOption(BuildTypeOptions.BT_FAIL_ON_ANY_ERROR_MESSAGE, true);
+    t10.setOption(BuildTypeOptions.BT_EXECUTION_TIMEOUT, 11);
+
+
+    t10.addVcsRoot(vcsRoot10);
+    t10.addVcsRoot(vcsRoot20);
+    t10.setCheckoutRules(vcsRoot20, new CheckoutRules("a=>b"));
+
+    BuildRunnerDescriptorFactory runnerDescriptorFactory = myFixture.getSingletonService(BuildRunnerDescriptorFactory.class);
+    t10.addBuildRunner(runnerDescriptorFactory.createBuildRunner(project10, "run10", "name10", "Ant1", map("a", "b")));
+    t10.addBuildRunner(runnerDescriptorFactory.createBuildRunner(project10, "run20", "name20", "Ant2", map("a", "b")));
+
+    BuildTriggerDescriptor trigger10 = t10.addBuildTrigger("Type", map("a", "b"));
+    BuildTriggerDescriptor trigger20 = t10.addBuildTrigger("Type", map("a", "b"));
+
+    t10.addBuildFeature(myFixture.getBuildFeatureDescriptorFactory().createBuildFeature("f10", "type", map("a", "b")));
+    t10.addBuildFeature(myFixture.getBuildFeatureDescriptorFactory().createBuildFeature("f20", "type", map("a", "b")));
+    t10.addBuildFeature(myFixture.getBuildFeatureDescriptorFactory().createBuildFeature("f30", "type", map("a", "b")));
+
+    ArtifactDependencyFactory artifactDependencyFactory = myFixture.getSingletonService(ArtifactDependencyFactory.class);
+    ArrayList<SArtifactDependency> artifactDeps = new ArrayList<>();
+    artifactDeps.add(artifactDependencyFactory.createArtifactDependency("art10", bt100.getExternalId(), "path1", RevisionRules.LAST_PINNED_RULE));
+    artifactDeps.add(artifactDependencyFactory.createArtifactDependency("art20", bt100.getExternalId(), "path2", RevisionRules.LAST_PINNED_RULE));
+    artifactDeps.add(artifactDependencyFactory.createArtifactDependency("art30", bt100.getExternalId(), "path3", RevisionRules.LAST_PINNED_RULE));
+    t10.setArtifactDependencies(artifactDeps);
+
+    t10.addDependency(myFixture.getSingletonService(DependencyFactory.class).createDependency(bt100));
+    t10.addDependency(myFixture.getSingletonService(DependencyFactory.class).createDependency(bt110));
+
+    t10.addParameter(new SimpleParameter("a10", "b"));
+    t10.addParameter(new SimpleParameter("a20", "b"));
+
+    t10.addRequirement(myFixture.findSingletonService(RequirementFactory.class).createRequirement("req10", "a", null, RequirementType.EXISTS));
+    t10.addRequirement(myFixture.findSingletonService(RequirementFactory.class).createRequirement("req20", "b", null, RequirementType.EXISTS));
+    t10.addRequirement(myFixture.findSingletonService(RequirementFactory.class).createRequirement("req30", "c", null, RequirementType.EXISTS));
+
+    // BUILD TYPE
+    BuildTypeEx bt10 = project10.createBuildType("bt10", "bt 10");
+    bt10.attachToTemplate(t10);
+
+    bt10.setArtifactPaths("bbbb"); //todo: test w/o override
+    bt10.setOption(BuildTypeOptions.BT_ALLOW_EXTERNAL_STATUS, false);
+    bt10.setOption(BuildTypeOptions.BT_CHECKOUT_DIR, "checkout_bt");
+    bt10.setOption(BuildTypeOptions.BT_CHECKOUT_MODE, "ON_SERVER");
+    bt10.setOption(BuildTypeOptions.BT_EXECUTION_TIMEOUT, 17);
+
+    bt10.addVcsRoot(vcsRoot20);
+    bt10.setCheckoutRules(vcsRoot20, new CheckoutRules("x=>y"));
+    bt10.addVcsRoot(vcsRoot30);
+
+    bt10.setEnabled("run20", false);
+    bt10.addBuildRunner(runnerDescriptorFactory.createBuildRunner(project10, "run30", "name30", "Ant30", map("a", "b")));
+
+    bt10.setEnabled(trigger20.getId(), false);
+    BuildTriggerDescriptor trigger30 = bt10.addBuildTrigger("Type", map("a", "b"));
+
+    bt10.setEnabled("f20", false);
+    bt10.addBuildFeature(myFixture.getBuildFeatureDescriptorFactory().createBuildFeature("f30", "type_bt", map("a", "b")));
+    bt10.addBuildFeature(myFixture.getBuildFeatureDescriptorFactory().createBuildFeature("f40", "type", map("a", "b")));
+
+    ArrayList<SArtifactDependency> artifactDepsBt = new ArrayList<>();
+    artifactDepsBt.add(artifactDependencyFactory.createArtifactDependency("art30", bt100.getExternalId(), "path30", RevisionRules.LAST_FINISHED_RULE));
+    artifactDepsBt.add(artifactDependencyFactory.createArtifactDependency("art40", bt100.getExternalId(), "path4", RevisionRules.LAST_PINNED_RULE));
+    bt10.setArtifactDependencies(artifactDepsBt);
+    bt10.setEnabled("art20", false);
+    bt10.addDependency(myFixture.getSingletonService(DependencyFactory.class).createDependency(bt110));
+    bt10.addDependency(myFixture.getSingletonService(DependencyFactory.class).createDependency(bt120));
+
+    bt10.addParameter(new SimpleParameter("a20", "x"));
+    bt10.addParameter(new SimpleParameter("a30", "x"));
+
+    bt10.setEnabled("req20", false);
+    bt10.addRequirement(myFixture.findSingletonService(RequirementFactory.class).createRequirement("req30", "x", null, RequirementType.EQUALS));
+    bt10.addRequirement(myFixture.findSingletonService(RequirementFactory.class).createRequirement("req40", "y", null, RequirementType.EXISTS));
+
+
+    // NOW, TEST TIME!
+
+    BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("$long"), myBeanContext);
+
+    parameterEquals(find(buildType.getSettings().properties, "artifactRules"), "artifactRules", "bbbb", null);
+    parameterEquals(find(buildType.getSettings().properties, "buildNumberPattern"), "buildNumberPattern", "pattern", true);
+    parameterEquals(find(buildType.getSettings().properties, "allowExternalStatus"), "allowExternalStatus", "false", null);
+    parameterEquals(find(buildType.getSettings().properties, "checkoutDirectory"), "checkoutDirectory", "checkout_bt", null);
+    parameterEquals(find(buildType.getSettings().properties, "shouldFailBuildOnAnyErrorMessage"), "shouldFailBuildOnAnyErrorMessage", "true", true);
+    parameterEquals(find(buildType.getSettings().properties, "executionTimeoutMin"), "executionTimeoutMin", "17", null);
+    parameterEquals(find(buildType.getSettings().properties, "showDependenciesChanges"), "showDependenciesChanges", "false", true); //default value
+
+    assertEquals(3, buildType.getVcsRootEntries().vcsRootAssignments.size());
+    vcsRootEntryEquals(buildType.getVcsRootEntries().vcsRootAssignments.get(0), vcsRoot10.getExternalId(), "", true);
+    vcsRootEntryEquals(buildType.getVcsRootEntries().vcsRootAssignments.get(1), vcsRoot20.getExternalId(), "a=>b", true); //bt modifications are ignored
+    vcsRootEntryEquals(buildType.getVcsRootEntries().vcsRootAssignments.get(2), vcsRoot30.getExternalId(), "", null);
+
+    assertEquals(3, buildType.getSteps().propEntities.size());
+    stepsEquals(buildType.getSteps().propEntities.get(0), "run10", "Ant1", null, true);
+    stepsEquals(buildType.getSteps().propEntities.get(1), "run20", "Ant2", false, true);
+    stepsEquals(buildType.getSteps().propEntities.get(2), "run30", "Ant30", null, null);
+
+    //TeamCity issue: order of some entities depends on where the trigger is defined (build type or template)
+
+    assertEquals(3, buildType.getTriggers().propEntities.size());
+    stepsEquals(buildType.getTriggers().propEntities.get(0), trigger30.getId(), "Type", null, null);
+    stepsEquals(buildType.getTriggers().propEntities.get(1), trigger10.getId(), "Type", null, true);
+    stepsEquals(buildType.getTriggers().propEntities.get(2), trigger20.getId(), "Type", false, true);
+
+    assertEquals(4, buildType.getFeatures().propEntities.size());
+    stepsEquals(buildType.getFeatures().propEntities.get(0), "f30", "type_bt", null, null);
+    stepsEquals(buildType.getFeatures().propEntities.get(1), "f40", "type", null, null);
+    stepsEquals(buildType.getFeatures().propEntities.get(2), "f10", "type", null, true);
+    stepsEquals(buildType.getFeatures().propEntities.get(3), "f20", "type", false, true);
+
+    assertEquals(4, buildType.getArtifactDependencies().propEntities.size());
+    stepsEquals(buildType.getArtifactDependencies().propEntities.get(0), "art30", "artifact_dependency", null, null);
+    stepsEquals(buildType.getArtifactDependencies().propEntities.get(1), "art40", "artifact_dependency", null, null);
+    stepsEquals(buildType.getArtifactDependencies().propEntities.get(2), "art10", "artifact_dependency", null, true);
+    stepsEquals(buildType.getArtifactDependencies().propEntities.get(3), "art20", "artifact_dependency", false, true);
+
+    assertEquals(3, buildType.getSnapshotDependencies().propEntities.size());
+    stepsEquals(buildType.getSnapshotDependencies().propEntities.get(0), bt100.getExternalId(), "snapshot_dependency", null, true);
+    stepsEquals(buildType.getSnapshotDependencies().propEntities.get(1), bt110.getExternalId(), "snapshot_dependency", null, true);
+    stepsEquals(buildType.getSnapshotDependencies().propEntities.get(2), bt120.getExternalId(), "snapshot_dependency", null, null);
+
+    assertEquals(4, buildType.getParameters().properties.size());
+    parameterEquals(buildType.getParameters().properties.get(0), "a10", "b", true);
+    parameterEquals(buildType.getParameters().properties.get(1), "a20", "x", null);
+    parameterEquals(buildType.getParameters().properties.get(2), "a30", "x", null);
+    parameterEquals(buildType.getParameters().properties.get(3), "p", "v", true);
+
+    assertEquals(4, buildType.getAgentRequirements().propEntities.size());
+    stepsEquals(buildType.getAgentRequirements().propEntities.get(0), "req30", "equals", null, null);
+    stepsEquals(buildType.getAgentRequirements().propEntities.get(1), "req40", "exists", null, null);
+    stepsEquals(buildType.getAgentRequirements().propEntities.get(2), "req10", "exists", null, true);
+    stepsEquals(buildType.getAgentRequirements().propEntities.get(3), "req20", "exists", false, true);
+  }
+
+  private static void stepsEquals(final PropEntity propEntity, final String id, final String type, final Boolean enabled, final Boolean inherited) {
+    assertEquals(id, propEntity.id);
+    assertEquals(type, propEntity.type);
+    if (enabled == null) {
+      assertNull(propEntity.disabled);
+    } else {
+      assertEquals(Boolean.valueOf(!enabled), propEntity.disabled);
+    }
+    assertEquals(inherited, propEntity.inherited);
+  }
+
+  @NotNull
+  static private Property find(@NotNull final List<Property> properties, @NotNull final String propertyName) {
+    return CollectionsUtil.findFirst(properties, data -> propertyName.equals(data.name));
+  }
+
+  private void vcsRootEntryEquals(final VcsRootEntry vcsRootEntry, final String id, final String checkout_rules, final Boolean inherited) {
+    assertEquals(id, vcsRootEntry.id);
+    assertEquals(checkout_rules, vcsRootEntry.checkoutRules);
+    assertEquals(inherited, vcsRootEntry.inherited);
+  }
+
+  private void parameterEquals(final Property property, final String name, final String value, final Boolean inherited) {
+    assertEquals(name, property.name);
+    assertEquals(value, property.value);
+    assertEquals(inherited, property.inherited);
   }
 
   private static WebLinks getWebLinks(@NotNull final String rootUrl) {

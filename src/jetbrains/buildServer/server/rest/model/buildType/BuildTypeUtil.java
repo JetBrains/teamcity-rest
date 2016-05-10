@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model.buildType;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.ServiceLocator;
@@ -45,9 +46,9 @@ import org.jetbrains.annotations.Nullable;
 public class BuildTypeUtil {
   private static final Logger LOG = Logger.getInstance(BuildTypeUtil.class.getName());
 
-  public static HashMap<String, String> getSettingsParameters(@NotNull final BuildTypeOrTemplate buildType) {
+  public static HashMap<String, String> getSettingsParameters(@NotNull final BuildTypeOrTemplate buildType, final boolean onlyOwn) {
     HashMap<String, String> properties = new HashMap<String, String>();
-    addAllOptionsAsProperties(properties, buildType.get());
+    addAllOptionsAsProperties(properties, buildType.get(), onlyOwn);
     if (buildType.getBuildType() != null) {
       properties.put("buildNumberCounter", String.valueOf(buildType.getBuildType().getBuildNumbers().getBuildCounter()));
     }
@@ -77,15 +78,18 @@ public class BuildTypeUtil {
   }
 
   //todo: might use a generic util for this (e.g. Static HTML plugin has alike code to get all Page Places)
-  private static void addAllOptionsAsProperties(final HashMap<String, String> properties, final OptionSupport buildType) {
+  private static void addAllOptionsAsProperties(final HashMap<String, String> properties, final OptionSupport buildType, final boolean onlyOwn) {
+    Collection<Option> ownOptions = buildType.getOwnOptions();
     Field[] declaredFields = BuildTypeOptions.class.getDeclaredFields();
     for (Field declaredField : declaredFields) {
       try {
         if (Option.class.isAssignableFrom(declaredField.get(buildType).getClass())) {
           Option option = null;
           option = (Option)declaredField.get(buildType);
-          //noinspection unchecked
-          properties.put(option.getKey(), buildType.getOption(option).toString());
+          if (!onlyOwn || ownOptions.contains(option)) {
+            //noinspection unchecked
+            properties.put(option.getKey(), buildType.getOption(option).toString());
+          }
         }
       } catch (IllegalAccessException e) {
         LOG.error("Error retrieving option '" + declaredField.getName() + "' , error: " + e.getMessage());

@@ -68,20 +68,29 @@ public class Properties  implements DefaultValueAware {
 
   //todo: review all null usages for href to include due URL
   public Properties(@Nullable final Map<String, String> properties, @Nullable String href, @NotNull final Fields fields) {
-    if (properties == null) {
+    this(properties, null, href, fields, null);
+  }
+
+  public Properties(@Nullable final Map<String, String> parameters,
+                    @Nullable final Map<String, String> ownParameters,
+                    @Nullable String href,
+                    @NotNull final Fields fields,
+                    @Nullable final ServiceLocator serviceLocator) {
+    if (parameters == null) {
       this.count = null;
       this.properties = null;
     } else {
-      if (fields.isIncluded(PROPERTY, false, true)){
+      if (fields.isIncluded(PROPERTY, false, true)) {
         final Fields propertyFields = fields.getNestedField(PROPERTY, Fields.NONE, Fields.LONG);
         final ParameterCondition parameterCondition = getParameterCondition(fields);
-        for (java.util.Map.Entry<String, String> prop : properties.entrySet()) {
-          if (parameterCondition == null || parameterCondition.parameterMatches(new SimpleParameter(prop.getKey(), prop.getValue() != null ? prop.getValue() : ""))) {
-            this.properties.add(new Property(prop.getKey(), prop.getValue(), propertyFields));
+        for (java.util.Map.Entry<String, String> prop : parameters.entrySet()) {
+          SimpleParameter parameter = new SimpleParameter(prop.getKey(), prop.getValue() != null ? prop.getValue() : "");
+          if (parameterCondition == null || parameterCondition.parameterMatches(parameter)) {
+            this.properties.add(new Property(parameter, ownParameters == null || !ownParameters.containsKey(prop.getKey()), propertyFields, serviceLocator));
           }
         }
       }
-      this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), this.properties != null ? this.properties.size() : properties.size());
+      this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), this.properties != null ? this.properties.size() : parameters.size());
     }
     this.href = ValueWithDefault.decideDefault(fields.isIncluded("href"), href);
   }
@@ -100,7 +109,7 @@ public class Properties  implements DefaultValueAware {
         final ParameterCondition parameterCondition = getParameterCondition(fields);
         for (Parameter parameter : parameters) {
           if (parameterCondition == null || parameterCondition.parameterMatches(parameter)) {
-            this.properties.add(new Property(parameter, ownParameters != null && ownParameters.contains(parameter), propertyFields, serviceLocator));
+            this.properties.add(new Property(parameter, ownParameters == null || !ownParameters.contains(parameter), propertyFields, serviceLocator));
           }
         }
       }
@@ -141,7 +150,7 @@ public class Properties  implements DefaultValueAware {
     }
     final HashMap<String, String> result = new HashMap<String, String>(properties.size());
     for (Property property : properties) {
-      boolean actualOwn =  property.own != null && property.own;
+      boolean actualOwn =  property.inherited == null || !property.inherited;
       if (FilterUtil.isIncludedByBooleanFilter(ownOnly, actualOwn)){
         result.put(property.name, property.value);
       }

@@ -29,6 +29,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
+import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
@@ -50,7 +51,7 @@ public class PropEntitiesAgentRequirement {
   public PropEntitiesAgentRequirement() {
   }
 
-  public PropEntitiesAgentRequirement(@NotNull final BuildTypeSettings buildType, @NotNull final Fields fields) {
+  public PropEntitiesAgentRequirement(@NotNull final BuildTypeSettingsEx buildType, @NotNull final Fields fields) {
     final List<Requirement> requirements = buildType.getRequirements();
     propEntities = ValueWithDefault.decideDefault(fields.isIncluded("agent-requirement"), new ValueWithDefault.Value<List<PropEntityAgentRequirement>>() {
       @Nullable

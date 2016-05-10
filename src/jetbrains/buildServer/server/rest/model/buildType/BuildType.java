@@ -295,7 +295,7 @@ public class BuildType {
   public PropEntitiesStep getSteps() {
     return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("steps", false), check(new ValueWithDefault.Value<PropEntitiesStep>() {
       public PropEntitiesStep get() {
-        return new PropEntitiesStep(myBuildType.get(), myFields.getNestedField("steps", Fields.NONE, Fields.LONG));
+        return new PropEntitiesStep(myBuildType.getSettingsEx(), myFields.getNestedField("steps", Fields.NONE, Fields.LONG));
       }
     }));
   }
@@ -304,7 +304,7 @@ public class BuildType {
   public PropEntitiesFeature getFeatures() {
     return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("features", false), check(new ValueWithDefault.Value<PropEntitiesFeature>() {
       public PropEntitiesFeature get() {
-        return new PropEntitiesFeature(myBuildType.get(), myFields.getNestedField("features", Fields.NONE, Fields.LONG));
+        return new PropEntitiesFeature(myBuildType.getSettingsEx(), myFields.getNestedField("features", Fields.NONE, Fields.LONG));
       }
     }));
   }
@@ -313,7 +313,7 @@ public class BuildType {
   public PropEntitiesTrigger getTriggers() {
     return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("triggers", false), check(new ValueWithDefault.Value<PropEntitiesTrigger>() {
       public PropEntitiesTrigger get() {
-        return new PropEntitiesTrigger(myBuildType.get(), myFields.getNestedField("triggers", Fields.NONE, Fields.LONG));
+        return new PropEntitiesTrigger(myBuildType.getSettingsEx(), myFields.getNestedField("triggers", Fields.NONE, Fields.LONG));
       }
     }));
   }
@@ -324,7 +324,7 @@ public class BuildType {
     return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("snapshot-dependencies", false),
                                                                                 check(new ValueWithDefault.Value<PropEntitiesSnapshotDep>() {
                                                                                   public PropEntitiesSnapshotDep get() {
-                                                                                    return new PropEntitiesSnapshotDep(myBuildType.get(), myFields
+                                                                                    return new PropEntitiesSnapshotDep(myBuildType.getSettingsEx(), myFields
                                                                                       .getNestedField("snapshot-dependencies", Fields.NONE, Fields.LONG), myBeanContext);
                                                                                   }
                                                                                 }));
@@ -337,7 +337,7 @@ public class BuildType {
     } else {
       ValueWithDefault.Value<PropEntitiesArtifactDep> value = new ValueWithDefault.Value<PropEntitiesArtifactDep>() {
         public PropEntitiesArtifactDep get() {
-          return new PropEntitiesArtifactDep(myBuildType.get(), myFields.getNestedField("artifact-dependencies", Fields.NONE, Fields.LONG), myBeanContext);
+          return new PropEntitiesArtifactDep(myBuildType.getSettingsEx(), myFields.getNestedField("artifact-dependencies", Fields.NONE, Fields.LONG), myBeanContext);
         }
       };
       return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("artifact-dependencies", false), check(value));
@@ -351,7 +351,7 @@ public class BuildType {
                  ? null
                  : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("agent-requirements", false), check(new ValueWithDefault.Value<PropEntitiesAgentRequirement>() {
                    public PropEntitiesAgentRequirement get() {
-                     return new PropEntitiesAgentRequirement(myBuildType.get(), myFields.getNestedField("agent-requirements", Fields.NONE, Fields.LONG));
+                     return new PropEntitiesAgentRequirement(myBuildType.getSettingsEx(), myFields.getNestedField("agent-requirements", Fields.NONE, Fields.LONG));
                    }
                  }));
   }
@@ -360,7 +360,8 @@ public class BuildType {
   public Properties getSettings() {
     return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("settings", false), check(new ValueWithDefault.Value<Properties>() {
       public Properties get() {
-        return new Properties(BuildTypeUtil.getSettingsParameters(myBuildType), null, myFields.getNestedField("settings", Fields.NONE, Fields.LONG));
+        return new Properties(BuildTypeUtil.getSettingsParameters(myBuildType, false), BuildTypeUtil.getSettingsParameters(myBuildType, true),
+                              null, myFields.getNestedField("settings", Fields.NONE, Fields.LONG), myBeanContext.getServiceLocator());
       }
     }));
   }

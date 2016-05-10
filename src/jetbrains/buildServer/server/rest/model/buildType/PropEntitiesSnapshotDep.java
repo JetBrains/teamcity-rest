@@ -26,6 +26,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
+import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -48,14 +49,14 @@ public class PropEntitiesSnapshotDep {
   public PropEntitiesSnapshotDep() {
   }
 
-  public PropEntitiesSnapshotDep(@NotNull final BuildTypeSettings buildType, @NotNull final Fields fields, @NotNull final BeanContext context) {
+  public PropEntitiesSnapshotDep(@NotNull final BuildTypeSettingsEx buildType, @NotNull final Fields fields, @NotNull final BeanContext context) {
     final List<Dependency> dependencies = buildType.getDependencies();
     propEntities = ValueWithDefault.decideDefault(fields.isIncluded("snapshot-dependency"), new ValueWithDefault.Value<List<PropEntitySnapshotDep>>() {
       @Nullable
       public List<PropEntitySnapshotDep> get() {
         return CollectionsUtil.convertCollection(dependencies, new Converter<PropEntitySnapshotDep, Dependency>() {
           public PropEntitySnapshotDep createFrom(@NotNull final Dependency source) {
-            return new PropEntitySnapshotDep(source, fields.getNestedField("snapshot-dependency", Fields.NONE, Fields.LONG), context);
+            return new PropEntitySnapshotDep(source, buildType, fields.getNestedField("snapshot-dependency", Fields.NONE, Fields.LONG), context);
           }
         });
       }

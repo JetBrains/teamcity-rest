@@ -46,7 +46,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 16.04.2009
  */
 @XmlRootElement(name = "property")
-@XmlType(name = "property", propOrder = {"name", "value", "own",
+@XmlType(name = "property", propOrder = {"name", "value", "inherited",
   "type"})
 public class Property {
   @XmlAttribute
@@ -54,7 +54,7 @@ public class Property {
   @XmlAttribute
   public String value;
   @XmlAttribute
-  public Boolean own;
+  public Boolean inherited;
   @XmlElement
   public ParameterType type;
 
@@ -68,12 +68,12 @@ public class Property {
     }
   }
 
-  public Property(@NotNull final Parameter parameter, final boolean own, @NotNull final Fields fields, @NotNull final ServiceLocator serviceLocator) {
+  public Property(@NotNull final Parameter parameter, final boolean inherited, @NotNull final Fields fields, @Nullable final ServiceLocator serviceLocator) {
     name = !fields.isIncluded("name", true, true) ? null : parameter.getName();
-    if (!isSecure(parameter, serviceLocator)) {
+    if (serviceLocator == null || !isSecure(parameter, serviceLocator)) {
       value = !fields.isIncluded("value", true, true) ? null : parameter.getValue();
     }
-    this.own = ValueWithDefault.decideDefault(fields.isIncluded("own"), own); //consider renaming to "inherited" and including only if true
+    this.inherited = ValueWithDefault.decideDefault(fields.isIncluded("inherited"), inherited);
     final ControlDescription parameterSpec = parameter.getControlDescription();
     if (parameterSpec != null) {
       type = ValueWithDefault
@@ -132,7 +132,7 @@ public class Property {
     if (parameter == null) {
       throw new NotFoundException("No parameter with name '" + parameterName + "' is found.");
     }
-    return new Property(parameter, entity.getOwnParameters().containsKey(parameterName), fields, serviceLocator);
+    return new Property(parameter, !entity.getOwnParameters().containsKey(parameterName), fields, serviceLocator);
   }
 
   @NotNull

@@ -25,6 +25,7 @@ import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.serverSide.BuildRunnerDescriptor;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
+import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import jetbrains.buildServer.serverSide.SBuildRunnerDescriptor;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -38,8 +39,10 @@ public class PropEntityStep extends PropEntity implements PropEntityEdit<SBuildR
   public PropEntityStep() {
   }
 
-  public PropEntityStep(@NotNull SBuildRunnerDescriptor descriptor, @NotNull final BuildTypeSettings buildType, @NotNull final Fields fields) {
-    super(descriptor.getId(), descriptor.getName(), descriptor.getType(), buildType.isEnabled(descriptor.getId()), descriptor.getParameters(), fields);
+  public PropEntityStep(@NotNull SBuildRunnerDescriptor descriptor, @NotNull final BuildTypeSettingsEx buildType, @NotNull final Fields fields) {
+    super(descriptor.getId(), descriptor.getName(), descriptor.getType(), buildType.isEnabled(descriptor.getId()),
+          !buildType.getOwnBuildRunners().contains(descriptor), descriptor.getParameters(), fields);
+    //can optimize by getting getOwnBuildRunners in the caller
   }
 
   @NotNull

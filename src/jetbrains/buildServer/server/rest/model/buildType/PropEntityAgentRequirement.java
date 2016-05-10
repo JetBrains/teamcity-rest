@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
+import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import jetbrains.buildServer.serverSide.RequirementFactory;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -47,7 +48,7 @@ public class PropEntityAgentRequirement extends PropEntity implements PropEntity
   public PropEntityAgentRequirement() {
   }
 
-  public PropEntityAgentRequirement(@NotNull final Requirement requirement, @NotNull final BuildTypeSettings buildType, @NotNull final Fields fields) {
+  public PropEntityAgentRequirement(@NotNull final Requirement requirement, @NotNull final BuildTypeSettingsEx buildType, @NotNull final Fields fields) {
     HashMap<String, String> propertiesMap = new HashMap<String, String>(2);
     propertiesMap.put(NAME_PROPERTY_NAME, requirement.getPropertyName());
     if (requirement.getPropertyValue() != null) {
@@ -55,9 +56,11 @@ public class PropEntityAgentRequirement extends PropEntity implements PropEntity
     }
     String id = requirement.getId();
     if (id == null) {
-      init(requirement.getPropertyName(), null, requirement.getType().getName(), null, propertiesMap, fields);
+      //can optimize by getting getOwnRequirements in the caller
+      init(requirement.getPropertyName(), null, requirement.getType().getName(), null,
+           !buildType.getOwnRequirements().contains(requirement), propertiesMap, fields);
     } else {
-      init(id, null, requirement.getType().getName(), buildType.isEnabled(id), propertiesMap, fields);
+      init(id, null, requirement.getType().getName(), buildType.isEnabled(id), !buildType.getOwnRequirements().contains(requirement), propertiesMap, fields);
     }
   }
 

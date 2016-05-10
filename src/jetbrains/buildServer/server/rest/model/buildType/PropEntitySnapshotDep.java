@@ -32,6 +32,7 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
+import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
@@ -65,7 +66,10 @@ public class PropEntitySnapshotDep extends PropEntity implements PropEntityEdit<
   public PropEntitySnapshotDep() {
   }
 
-  public PropEntitySnapshotDep(@NotNull final Dependency dependency, @NotNull final Fields fields, @NotNull final BeanContext context) {
+  public PropEntitySnapshotDep(@NotNull final Dependency dependency,
+                               @NotNull final BuildTypeSettingsEx buildType,
+                               @NotNull final Fields fields,
+                               @NotNull final BeanContext context) {
     HashMap<String, String> properties = new HashMap<String, String>();
     if (TeamCityProperties.getBoolean(REST_COMPATIBILITY_INCLUDE_BUILD_TYPE_IN_PROPERTIES)) {
       properties.put(NAME_SOURCE_BUILD_TYPE_ID, dependency.getDependOnExternalId());
@@ -78,7 +82,8 @@ public class PropEntitySnapshotDep extends PropEntity implements PropEntityEdit<
     addOptionToProperty(properties, dependency, DependencyOptions.TAKE_SUCCESSFUL_BUILDS_ONLY);
 
     //todo: review id, type here
-    init(dependency.getDependOnExternalId(), null, SNAPSHOT_DEPENDENCY_TYPE_NAME, null, properties, fields);
+    init(dependency.getDependOnExternalId(), null, SNAPSHOT_DEPENDENCY_TYPE_NAME, null,
+         !buildType.getOwnDependencies().contains(dependency), properties, fields); //can optimize by getting getOwnDependencies in the caller
 
     sourceBuildType = ValueWithDefault.decideDefault(fields.isIncluded(PropEntitySnapshotDep.SOURCE_BUILD_TYPE, false, true), new ValueWithDefault.Value<BuildType>() {
       @Nullable

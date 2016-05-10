@@ -30,10 +30,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.ArtifactDependencyFactory;
-import jetbrains.buildServer.serverSide.BuildTypeSettings;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import org.jetbrains.annotations.NotNull;
@@ -69,7 +66,7 @@ public class PropEntityArtifactDep extends PropEntity implements PropEntityEdit<
    * @param fields
    * @param context
    */
-  public PropEntityArtifactDep(@NotNull final SArtifactDependency dependency, @Nullable final BuildTypeSettings buildType,
+  public PropEntityArtifactDep(@NotNull final SArtifactDependency dependency, @Nullable final BuildTypeSettingsEx buildType,
                                @NotNull final Fields fields, @NotNull final BeanContext context) {
     HashMap<String, String> properties = new HashMap<String, String>();
     if (TeamCityProperties.getBoolean(PropEntitySnapshotDep.REST_COMPATIBILITY_INCLUDE_BUILD_TYPE_IN_PROPERTIES)) {
@@ -97,7 +94,12 @@ public class PropEntityArtifactDep extends PropEntity implements PropEntityEdit<
     }
     properties.put(NAME_CLEAN_DESTINATION_DIRECTORY, Boolean.toString(dependency.isCleanDestinationFolder()));
 
-    init(dependency.getId(), null, ARTIFACT_DEPENDENCY_TYPE_NAME, buildType == null ? null : buildType.isEnabled(dependency.getId()), properties, fields);
+    if (buildType == null){
+      init(dependency.getId(), null, ARTIFACT_DEPENDENCY_TYPE_NAME, null, null, properties, fields);
+    } else{
+      init(dependency.getId(), null, ARTIFACT_DEPENDENCY_TYPE_NAME, buildType.isEnabled(dependency.getId()), //can optimize by getting getOwnArtifactDependencies in the caller
+           !buildType.getOwnArtifactDependencies().contains(dependency), properties, fields);
+    }
 
     sourceBuildType = ValueWithDefault.decideDefault(fields.isIncluded(PropEntitySnapshotDep.SOURCE_BUILD_TYPE, false, true), new ValueWithDefault.Value<BuildType>() {
       @Nullable
