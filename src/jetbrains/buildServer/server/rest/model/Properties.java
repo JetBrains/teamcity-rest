@@ -24,6 +24,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.FilterUtil;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.ParameterCondition;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
@@ -82,11 +83,12 @@ public class Properties  implements DefaultValueAware {
     } else {
       if (fields.isIncluded(PROPERTY, false, true)) {
         final Fields propertyFields = fields.getNestedField(PROPERTY, Fields.NONE, Fields.LONG);
-        final ParameterCondition parameterCondition = getParameterCondition(fields);
+        final ParameterCondition parameterCondition = getParameterCondition(fields.getLocator());
         for (java.util.Map.Entry<String, String> prop : parameters.entrySet()) {
           SimpleParameter parameter = new SimpleParameter(prop.getKey(), prop.getValue() != null ? prop.getValue() : "");
-          if (parameterCondition == null || parameterCondition.parameterMatches(parameter)) {
-            this.properties.add(new Property(parameter, ownParameters == null || !ownParameters.containsKey(prop.getKey()), propertyFields, serviceLocator));
+          boolean inherited = ownParameters == null || !ownParameters.containsKey(prop.getKey());
+          if (parameterCondition == null || parameterCondition.parameterMatches(parameter, inherited)) {
+            this.properties.add(new Property(parameter, inherited, propertyFields, serviceLocator));
           }
         }
       }
@@ -100,16 +102,26 @@ public class Properties  implements DefaultValueAware {
                     @Nullable String href,
                     @NotNull final Fields fields,
                     @NotNull final ServiceLocator serviceLocator) {
+    this(parameters, ownParameters, href, null, fields, serviceLocator);
+  }
+
+  public Properties(@Nullable final Collection<Parameter> parameters,
+                    @Nullable final Collection<Parameter> ownParameters,
+                    @Nullable String href,
+                    @Nullable Locator propertiedLocator,
+                    @NotNull final Fields fields,
+                    @NotNull final ServiceLocator serviceLocator) {
     if (parameters == null) {
       this.count = null;
       this.properties = null;
     } else {
       if (fields.isIncluded(PROPERTY, false, true)) {
         final Fields propertyFields = fields.getNestedField(PROPERTY, Fields.NONE, Fields.LONG);
-        final ParameterCondition parameterCondition = getParameterCondition(fields);
+        final ParameterCondition parameterCondition = getParameterCondition(propertiedLocator != null ? propertiedLocator.getStringRepresentation() : fields.getLocator());
         for (Parameter parameter : parameters) {
-          if (parameterCondition == null || parameterCondition.parameterMatches(parameter)) {
-            this.properties.add(new Property(parameter, ownParameters == null || !ownParameters.contains(parameter), propertyFields, serviceLocator));
+          boolean inherited = ownParameters == null || !ownParameters.contains(parameter);
+          if (parameterCondition == null || parameterCondition.parameterMatches(parameter, inherited)) {
+            this.properties.add(new Property(parameter, inherited, propertyFields, serviceLocator));
           }
         }
       }
@@ -122,8 +134,7 @@ public class Properties  implements DefaultValueAware {
    * Ignores any errors in the syntax: they will be logged but null will be returned as in the current usages it is already too late to report errors
    */
   @Nullable
-  public static ParameterCondition getParameterCondition(@NotNull final Fields fields) {
-    final String propertiesLocator = fields.getLocator();
+  public static ParameterCondition getParameterCondition(@Nullable final String propertiesLocator) {
     if (propertiesLocator != null) {
       return ParameterCondition.create(propertiesLocator);
     }

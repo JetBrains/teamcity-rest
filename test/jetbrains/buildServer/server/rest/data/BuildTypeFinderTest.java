@@ -498,14 +498,14 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     checkBuildTypes("templateFlag:false,parameter:(value:v10b)", buildConf10);
     checkBuildTypes("templateFlag:false,parameter:(value:v10B)");
 
-    checkBuildTypes("templateFlag:false,parameter:(own:true)", buildConf10);
-    checkBuildTypes("templateFlag:false,parameter:(own:false)", buildConf10, buildConf20, buildConf30);
-    checkBuildTypes("templateFlag:false,parameter:(own:any)", buildConf10, buildConf20, buildConf30); // config w/o params does not match at lest for now
-    checkBuildTypes("templateFlag:false,parameter:(own:true,name:p30)", buildConf10);
-    checkBuildTypes("templateFlag:false,parameter:(own:true,name:p10)", buildConf10);
-    checkBuildTypes("parameter:(own:true,name:p10)", buildConf10, template);
-    checkBuildTypes("parameter:(own:true,name:p20)", template);
-    checkBuildTypes("templateFlag:false,parameter:(own:false,name:p10)", buildConf20, buildConf30);
+    checkBuildTypes("templateFlag:false,parameter:(inherited:false)", buildConf10);
+    checkBuildTypes("templateFlag:false,parameter:(inherited:true)", buildConf10, buildConf20, buildConf30);
+    checkBuildTypes("templateFlag:false,parameter:(inherited:any)", buildConf10, buildConf20, buildConf30); // config w/o params does not match at lest for now
+    checkBuildTypes("templateFlag:false,parameter:(inherited:false,name:p30)", buildConf10);
+    checkBuildTypes("templateFlag:false,parameter:(inherited:false,name:p10)", buildConf10);
+    checkBuildTypes("parameter:(inherited:false,name:p10)", buildConf10, template);
+    checkBuildTypes("parameter:(inherited:false,name:p20)", template);
+    checkBuildTypes("templateFlag:false,parameter:(inherited:true,name:p10)", buildConf20, buildConf30);
   }
 
   @Test

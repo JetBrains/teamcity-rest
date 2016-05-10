@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -24,6 +25,8 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.Test;
+
+import static jetbrains.buildServer.util.Util.map;
 
 /**
  * @author Yegor.Yarko
@@ -152,6 +155,19 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exten
   }
 
   @Test
+  public void testInheritable() {
+    assertTrue(matchesWithOwn("name:a", new MapParametersProviderImpl(map("a", "b", "x", "y")), new MapParametersProviderImpl(map("x", "y"))));
+    assertTrue(matchesWithOwn("name:x", new MapParametersProviderImpl(map("a", "b", "x", "y")), new MapParametersProviderImpl(map("x", "y"))));
+    assertTrue(matchesWithOwn("name:a,inherited:true", new MapParametersProviderImpl(map("a", "b", "x", "y")), new MapParametersProviderImpl(map("x", "y"))));
+    assertFalse(matchesWithOwn("name:a,inherited:false", new MapParametersProviderImpl(map("a", "b", "x", "y")), new MapParametersProviderImpl(map("x", "y"))));
+    assertFalse(matchesWithOwn("name:x,inherited:true", new MapParametersProviderImpl(map("a", "b", "x", "y")), new MapParametersProviderImpl(map("x", "y"))));
+    assertTrue(matchesWithOwn("name:x,inherited:false", new MapParametersProviderImpl(map("a", "b", "x", "y")), new MapParametersProviderImpl(map("x", "y"))));
+
+    assertTrue(matchesWithOwn("name:x,value:y,inherited:false", new MapParametersProviderImpl(map("a", "b", "x", "y")), new MapParametersProviderImpl(map("x", "y"))));
+    assertFalse(matchesWithOwn("name:a,value:y,inherited:true", new MapParametersProviderImpl(map("a", "b", "x", "y")), new MapParametersProviderImpl(map("x", "y"))));
+  }
+
+  @Test
   public void testNameMatchType() {
     matchesFalse("name:(value:xxx,matchType:contains),value:aaa,matchType:equals", "xx", "aaa", "xxy", "bbb");
     matchesTrue("name:(value:xxx,matchType:contains),value:aaa,matchType:equals", "xxx", "aaa", "xxy", "bbb");
@@ -255,6 +271,12 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exten
 
   private static boolean matches(@NotNull final String propertyConditionLocator, @NotNull String... args) {
     return ParameterCondition.create(propertyConditionLocator).matches(new MapParametersProviderImpl(CollectionsUtil.asMap(args)));
+  }
+
+
+  private static boolean matchesWithOwn(@NotNull final String propertyConditionLocator, @NotNull final ParametersProvider parametersProvider,
+                                        @NotNull final ParametersProvider ownParametersProvider) {
+    return ParameterCondition.create(propertyConditionLocator).matches(parametersProvider, ownParametersProvider);
   }
 
 

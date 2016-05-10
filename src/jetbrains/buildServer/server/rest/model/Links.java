@@ -53,7 +53,7 @@ public class Links {
       @Override
       public List<Link> get() {
         final Fields nestedField = fields.getNestedField("link", Fields.LONG, Fields.LONG);
-        final ParameterCondition condition = Properties.getParameterCondition(fields);
+        final ParameterCondition condition = Properties.getParameterCondition(fields.getLocator());
         return CollectionsUtil.filterAndConvertCollection(linksP, new Converter<Link, LinkData>() {
           @Override
           public Link createFrom(@NotNull final LinkData source) {

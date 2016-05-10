@@ -22,7 +22,6 @@ import java.util.Map;
 import javax.ws.rs.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.Locator;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.ParameterType;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -56,22 +55,8 @@ public class ParametersSubResource {
   @GET
   @Produces({"application/xml", "application/json"})
   public Properties getParameters(@QueryParam("locator") Locator locator, @QueryParam("fields") String fields) {
-    if (locator == null) {
       return new Properties(myEntityWithParameters.getParametersCollection(), myEntityWithParameters.getOwnParametersCollection(), myParametersHref,
-                            new Fields(fields), myServiceLocator);
-    }
-    final Boolean own = locator.getSingleDimensionValueAsBoolean("own");
-    if (own == null) {
-      locator.checkLocatorFullyProcessed();
-      return new Properties(myEntityWithParameters.getParametersCollection(), myEntityWithParameters.getOwnParametersCollection(), myParametersHref,
-                            new Fields(fields), myServiceLocator);
-    }
-    if (own) {
-      return new Properties(myEntityWithParameters.getOwnParametersCollection(), myEntityWithParameters.getOwnParametersCollection(), myParametersHref,
-                            new Fields(fields), myServiceLocator);
-    } else {
-      throw new BadRequestException("Sorry, getting only not own parameters is not supported at the moment");
-    }
+                            locator, new Fields(fields), myServiceLocator);
   }
 
   @POST

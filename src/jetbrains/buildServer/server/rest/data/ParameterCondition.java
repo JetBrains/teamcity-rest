@@ -42,7 +42,7 @@ public class ParameterCondition {
 
   public static final String NAME = "name";
   public static final String VALUE = "value";
-  public static final String OWN = "own";
+  public static final String INHERITED = "inherited";
   public static final String TYPE = "matchType";
   public static final String IGNORE_CASE = "ignoreCase";
   protected static final String NAME_MATCH_CHECK = "matchScope"; // can be set to:
@@ -52,16 +52,16 @@ public class ParameterCondition {
   @NotNull private final ValueCondition myNameCondition;
   @NotNull private final ValueCondition myValueCondition;
   private final boolean myNameCheckShouldMatchAll;
-  @Nullable private final Boolean myOwnCondition;
+  @Nullable private final Boolean myInheritedCondition;
 
   private ParameterCondition(@NotNull final ValueCondition nameCondition,
                              @NotNull final ValueCondition valueCondition,
                              final boolean nameCheckShouldMatchAll,
-                             @Nullable final Boolean ownCondition) {
+                             @Nullable final Boolean inherited) {
     myValueCondition = valueCondition;
     myNameCondition = nameCondition;
     myNameCheckShouldMatchAll = nameCheckShouldMatchAll;
-    myOwnCondition = ownCondition;
+    myInheritedCondition = inherited;
   }
 
   @Nullable
@@ -109,9 +109,9 @@ public class ParameterCondition {
     }
 
     Boolean ignoreCase = locator.getSingleDimensionValueAsBoolean(IGNORE_CASE);
-    Boolean own = locator.getSingleDimensionValueAsBoolean(OWN);
+    Boolean inherited = locator.getSingleDimensionValueAsBoolean(INHERITED);
     locator.checkLocatorFullyProcessed();
-    return new ParameterCondition(nameCondition, new ValueCondition(requirement, value, ignoreCase), nameCheckShouldMatchAll, own);
+    return new ParameterCondition(nameCondition, new ValueCondition(requirement, value, ignoreCase), nameCheckShouldMatchAll, inherited);
   }
 
   @Nullable
@@ -182,7 +182,7 @@ public class ParameterCondition {
   }
 
   public boolean matches(@NotNull final ParametersProvider parametersProvider) {
-    if (myOwnCondition != null) throw new OperationException("Cannot filter by " + OWN + " dimension for the entity");
+    if (myInheritedCondition != null) throw new OperationException("Cannot filter by " + INHERITED + " dimension for the entity");
     return matchesInternal(parametersProvider);
   }
 
@@ -212,9 +212,14 @@ public class ParameterCondition {
     return matches(new MapParametersProviderImpl(parametersHolder.getParameters()), new MapParametersProviderImpl(parametersHolder.getOwnParameters()));
   }
 
+  /**
+   * @param parametersProvider
+   * @param ownParametersProvider subset of 'parametersProvider' with all the same values which determines which parameter to consider not inherited
+   * @return
+   */
   public boolean matches(@NotNull final ParametersProvider parametersProvider, @NotNull final ParametersProvider ownParametersProvider) {
-    if (myOwnCondition != null){
-      if (myOwnCondition) return matchesInternal(ownParametersProvider);
+    if (myInheritedCondition != null) {
+      if (!myInheritedCondition) return matchesInternal(ownParametersProvider);
       return matchesInternal(subtract(parametersProvider, ownParametersProvider));
     }
     return matchesInternal(parametersProvider);
@@ -248,8 +253,9 @@ public class ParameterCondition {
     };
   }
 
-  public boolean parameterMatches(@NotNull final Parameter parameter) {
-    return myNameCondition.matches(parameter.getName()) && myValueCondition.matches(parameter.getValue());
+  public boolean parameterMatches(@NotNull final Parameter parameter, final boolean inherited) {
+    if (myNameCheckShouldMatchAll) throw new OperationException("Dimension '" + NAME_MATCH_CHECK + "' is not supported for this filter");
+    return myNameCondition.matches(parameter.getName()) && myValueCondition.matches(parameter.getValue()) && FilterUtil.isIncludedByBooleanFilter(myInheritedCondition, inherited);
   }
 
   @Override

@@ -309,7 +309,7 @@ public abstract class AbstractTypedFinder<ITEM> extends AbstractFinder<ITEM> {
   }
 
   TypedFinderDimensionWithDefaultChecker<ITEM, ParameterCondition, InheritableUserParametersHolder> dimensionOwnParameterCondition(@NotNull final Dimension<ParameterCondition> dimension) {
-    return dimension(dimension, type(dimensionValue -> ParameterCondition.create(dimensionValue)).description("parameter condition with own support"))
+    return dimension(dimension, type(dimensionValue -> ParameterCondition.create(dimensionValue)).description("parameter condition with inherited support"))
       .defaultFilter((parameterCondition, item) -> parameterCondition.matches(item));
   }
 
