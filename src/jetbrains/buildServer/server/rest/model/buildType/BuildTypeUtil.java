@@ -20,7 +20,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
-import jetbrains.buildServer.BuildTypeDescriptor;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
@@ -49,8 +48,6 @@ public class BuildTypeUtil {
   public static HashMap<String, String> getSettingsParameters(@NotNull final BuildTypeOrTemplate buildType) {
     HashMap<String, String> properties = new HashMap<String, String>();
     addAllOptionsAsProperties(properties, buildType.get());
-    final String checkoutDirectory = buildType.get().getCheckoutDirectory();
-    if (checkoutDirectory != null) properties.put("checkoutDirectory", checkoutDirectory);
     if (buildType.getBuildType() != null) {
       properties.put("buildNumberCounter", String.valueOf(buildType.getBuildType().getBuildNumbers().getBuildCounter()));
     }
@@ -62,11 +59,7 @@ public class BuildTypeUtil {
    * @see #getSettingsParameters(jetbrains.buildServer.serverSide.SBuildType)
    */
   public static void setSettingsParameter(final BuildTypeOrTemplate buildType, final String name, final String value) {
-    if ("checkoutDirectory".equals(name)) {
-      buildType.get().setCheckoutDirectory(value);
-    } else if ("checkoutMode".equals(name)) {
-      buildType.get().setCheckoutType(BuildTypeDescriptor.CheckoutType.valueOf(value));
-    } else if ("buildNumberCounter".equals(name)) {
+    if ("buildNumberCounter".equals(name)) {
       if (buildType.getBuildType() != null) {
         buildType.getBuildType().getBuildNumbers().setBuildNumberCounter(new Long(value));
       }else{
