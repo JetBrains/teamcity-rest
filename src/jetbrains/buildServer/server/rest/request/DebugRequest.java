@@ -481,6 +481,20 @@ public class DebugRequest {
   }
 
   /**
+   * Experimental use only!
+   */
+  @GET
+  @Path("/values/transform/{method}")
+  @Produces({"text/plain"})
+  public String getHashed(@PathParam("method") String method, @QueryParam("value") String value) {
+    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    if ("md5".equals(method)){
+      return EncryptUtil.md5(value);
+    }
+    throw new BadRequestException("Unknown method '" + method + "'. Supported are: " + "md5" + ".");
+  }
+
+  /**
    * Tries to provide output consistent with java.lang.management.ThreadInfo#toString() (which cuts frames)
    * See also jetbrains.buildServer.util.DiagnosticUtil.threadDumpInternal()
    */
