@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.google.common.base.Stopwatch;
+import jetbrains.buildServer.MockTimeService;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -30,6 +31,7 @@ import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.auth.RoleImpl;
 import jetbrains.buildServer.serverSide.impl.auth.SecurityContextImpl;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.ExceptionUtil;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -356,6 +358,26 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
     assertTrue(start2.elapsedMillis() < delay - 1);  //check the elapsed time without wait is small
 
     check("password:()", user30);
+  }
+
+
+  @Test
+  public void testLastLogin() throws Throwable {
+    final SUser user10 = createUser("user10");
+    final SUser user20 = createUser("user20");
+    final SUser user30 = createUser("user30");
+
+    final MockTimeService time = new MockTimeService(Dates.now().getTime());
+    myServer.setTimeService(time);
+    user10.setLastLoginTimestamp(time.getNow());
+    time.jumpTo(600); //10 minutes
+    user20.setLastLoginTimestamp(time.getNow());
+    time.jumpTo(600); //another 10
+    check(null, user10, user20, user30);
+    check("lastLogin:-30m", user10, user20);
+    check("lastLogin:-15m", user20);
+    check("lastLogin:-15m,username:user20", user20);
+    check("lastLogin:-5m");
   }
 
   @Test

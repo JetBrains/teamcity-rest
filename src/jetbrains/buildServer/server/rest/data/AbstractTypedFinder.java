@@ -224,7 +224,9 @@ public abstract class AbstractTypedFinder<ITEM> extends AbstractFinder<ITEM> {
       AbstractTypedFinder.this.filter(myOriginal.getDimension(), new Filter<TYPE, ITEM>() {
         @Override
         public boolean isIncluded(@NotNull final TYPE value, @NotNull final ITEM item) {
-          return myDefaultChecker.isIncluded(value, retriever.get(item));
+          TYPE_FOR_FILTER valueForFilter = retriever.get(item);
+          if (valueForFilter == null) return false; //no value, but filter is present -> should not match
+          return myDefaultChecker.isIncluded(value, valueForFilter);
         }
       });
       return this;
@@ -541,7 +543,7 @@ public abstract class AbstractTypedFinder<ITEM> extends AbstractFinder<ITEM> {
   }
 
   public static interface TypeFromItem<TYPE, ITEM> {
-    @NotNull
+    @Nullable
     TYPE get(@NotNull final ITEM item);
   }
 
