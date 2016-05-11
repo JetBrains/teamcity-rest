@@ -41,8 +41,9 @@ public class NewBuildTypeDescription extends CopyOptionsDescription{
   public NewBuildTypeDescription() {
   }
 
-  public NewBuildTypeDescription(final String name, final String id, final BuildType sourceBuildType, final Boolean copyAllAssociatedSettings) {
-    super(copyAllAssociatedSettings, null, null, null);
+  public NewBuildTypeDescription(final String name, final String id, final BuildType sourceBuildType, final Boolean copyAllAssociatedSettings,
+                                 @NotNull final ServiceLocator serviceLocator) {
+    super(copyAllAssociatedSettings, null, null, null, serviceLocator);
     this.name = name;
     this.id = id;
     this.sourceBuildType = sourceBuildType;

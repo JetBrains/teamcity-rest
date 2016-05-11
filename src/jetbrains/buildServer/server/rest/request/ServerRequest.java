@@ -85,7 +85,7 @@ public class ServerRequest {
   @Produces({"application/xml", "application/json"})
   public PluginInfos servePlugins(@QueryParam("fields") String fields) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
-    return new PluginInfos(myDataProvider.getPlugins(), new Fields(fields));
+    return new PluginInfos(myDataProvider.getPlugins(), new Fields(fields), myServiceLocator);
   }
 
   /**

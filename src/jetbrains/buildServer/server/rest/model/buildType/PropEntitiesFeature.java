@@ -26,6 +26,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
@@ -51,14 +52,14 @@ public class PropEntitiesFeature {
   public PropEntitiesFeature() {
   }
 
-  public PropEntitiesFeature(final BuildTypeSettingsEx buildType, @NotNull final Fields fields) {
+  public PropEntitiesFeature(final BuildTypeSettingsEx buildType, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     final Collection<SBuildFeatureDescriptor> buildFeatures = buildType.getBuildFeatures();
     propEntities = ValueWithDefault.decideDefault(fields.isIncluded("feature"), new ValueWithDefault.Value<List<PropEntityFeature>>() {
       @Nullable
       public List<PropEntityFeature> get() {
         return CollectionsUtil.convertCollection(buildFeatures, new Converter<PropEntityFeature, SBuildFeatureDescriptor>() {
           public PropEntityFeature createFrom(@NotNull final SBuildFeatureDescriptor source) {
-            return new PropEntityFeature(source, buildType, fields.getNestedField("feature", Fields.NONE, Fields.LONG));
+            return new PropEntityFeature(source, buildType, fields.getNestedField("feature", Fields.NONE, Fields.LONG), beanContext);
           }
         });
       }

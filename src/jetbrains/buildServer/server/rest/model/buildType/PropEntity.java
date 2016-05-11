@@ -20,6 +20,7 @@ import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -61,8 +62,12 @@ public class PropEntity {
   public PropEntity() {
   }
 
-  public PropEntity(@NotNull ParametersDescriptor descriptor, @Nullable final Boolean inherited, @NotNull BuildTypeSettings buildType, @NotNull final Fields fields) {
-    init(descriptor.getId(), null, descriptor.getType(), buildType.isEnabled(descriptor.getId()), inherited, descriptor.getParameters(), fields);
+  public PropEntity(@NotNull ParametersDescriptor descriptor,
+                    @Nullable final Boolean inherited,
+                    @NotNull BuildTypeSettings buildType,
+                    @NotNull final Fields fields,
+                    @NotNull final ServiceLocator serviceLocator) {
+    init(descriptor.getId(), null, descriptor.getType(), buildType.isEnabled(descriptor.getId()), inherited, descriptor.getParameters(), fields, serviceLocator);
   }
 
   public PropEntity(@NotNull final String id,
@@ -71,22 +76,24 @@ public class PropEntity {
                     @Nullable final Boolean enabled,
                     @Nullable final Boolean inherited,
                     @NotNull final Map<String, String> properties,
-                    @NotNull final Fields fields) {
-    init(id, name, type, enabled, inherited, properties, fields);
+                    @NotNull final Fields fields,
+                    @NotNull final ServiceLocator serviceLocator) {
+    init(id, name, type, enabled, inherited, properties, fields, serviceLocator);
   }
 
   protected void init(@NotNull final String id,
-                    @Nullable final String name,
-                    @NotNull final String type,
-                    @Nullable final Boolean enabled,
-                    @Nullable final Boolean inherited,
-                    @NotNull final Map<String, String> properties,
-                    @NotNull final Fields fields) {
+                      @Nullable final String name,
+                      @NotNull final String type,
+                      @Nullable final Boolean enabled,
+                      @Nullable final Boolean inherited,
+                      @NotNull final Map<String, String> properties,
+                      @NotNull final Fields fields,
+                      @NotNull final ServiceLocator serviceLocator) {
     this.id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), id);
     this.name = ValueWithDefault.decideDefault(fields.isIncluded("name"), name);
     this.type = ValueWithDefault.decideDefault(fields.isIncluded("type"), type);
     this.properties = ValueWithDefault.decideDefault(fields.isIncluded("properties"),
-                                                     new Properties(properties, null, fields.getNestedField("properties", Fields.NONE, Fields.LONG)));
+                                                     new Properties(properties, null, fields.getNestedField("properties", Fields.NONE, Fields.LONG), serviceLocator));
     this.disabled = enabled == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("disabled"), !enabled);
     this.inherited = inherited == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("inherited"), inherited);
   }

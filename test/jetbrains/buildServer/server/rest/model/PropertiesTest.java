@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model;
 
 import java.util.Map;
 import jetbrains.buildServer.log.Loggable;
+import jetbrains.buildServer.serverSide.MockParameter;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -51,10 +52,18 @@ public class PropertiesTest extends BaseServerTestCase {
           CollectionsUtil.asMap("aaa", "xxx", "aaaa", "xxx", "aAaaa", "xxx"));
   }
 
+  @Test
+  public void testSecure() {
+    Property property = new Property(new MockParameter("aaa", "bbb", "password"), false, Fields.LONG, myFixture);
+    assertEquals("aaa", property.name);
+    assertNull(property.value);
+    assertEquals("password", property.type.rawValue);
+  }
+
   private void check(final Map<String, String> input,
                      @NotNull final String fields, @Nullable final Integer outputCount,
                      @Nullable final Map<String, String> output) {
-    Properties result = new Properties(input, null, new Fields(fields));
+    Properties result = new Properties(input, null, new Fields(fields), myFixture);
 
     assertEquals("Count does not match for " + describeProperties(result),outputCount == null ? null : Integer.valueOf(outputCount), result.count);
     if (output != null) {

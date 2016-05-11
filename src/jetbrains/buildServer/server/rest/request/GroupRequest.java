@@ -181,7 +181,7 @@ public class GroupRequest {
   @Produces({"application/xml", "application/json"})
   public Properties getProperties(@PathParam("groupLocator") String groupLocator, @QueryParam("fields") String fields) {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
-    return new Properties(User.getProperties(group), null, new Fields(fields));
+    return new Properties(User.getProperties(group), null, new Fields(fields), myBeanContext.getServiceLocator());
   }
 
   @GET

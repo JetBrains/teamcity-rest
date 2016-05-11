@@ -61,16 +61,9 @@ public class Property {
   public Property() {
   }
 
-  public Property(String nameP, String valueP, @NotNull final Fields fields) {
-    name = !fields.isIncluded("name", true, true) ? null : nameP;
-    if (!isPropertyToExclude(nameP)) {
-      value = !fields.isIncluded("value", true, true) ? null : valueP;
-    }
-  }
-
-  public Property(@NotNull final Parameter parameter, final boolean inherited, @NotNull final Fields fields, @Nullable final ServiceLocator serviceLocator) {
+  public Property(@NotNull final Parameter parameter, final boolean inherited, @NotNull final Fields fields, @NotNull final ServiceLocator serviceLocator) {
     name = !fields.isIncluded("name", true, true) ? null : parameter.getName();
-    if (serviceLocator == null || !isSecure(parameter, serviceLocator)) {
+    if (!isSecure(parameter, serviceLocator)) {
       value = !fields.isIncluded("value", true, true) ? null : parameter.getValue();
     }
     this.inherited = ValueWithDefault.decideDefault(fields.isIncluded("inherited"), inherited);

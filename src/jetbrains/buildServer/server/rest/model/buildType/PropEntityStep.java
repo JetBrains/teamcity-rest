@@ -23,6 +23,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.BuildRunnerDescriptor;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
@@ -39,9 +40,10 @@ public class PropEntityStep extends PropEntity implements PropEntityEdit<SBuildR
   public PropEntityStep() {
   }
 
-  public PropEntityStep(@NotNull SBuildRunnerDescriptor descriptor, @NotNull final BuildTypeSettingsEx buildType, @NotNull final Fields fields) {
+  public PropEntityStep(@NotNull SBuildRunnerDescriptor descriptor, @NotNull final BuildTypeSettingsEx buildType, @NotNull final Fields fields,
+                        @NotNull final BeanContext beanContext) {
     super(descriptor.getId(), descriptor.getName(), descriptor.getType(), buildType.isEnabled(descriptor.getId()),
-          !buildType.getOwnBuildRunners().contains(descriptor), descriptor.getParameters(), fields);
+          !buildType.getOwnBuildRunners().contains(descriptor), descriptor.getParameters(), fields, beanContext.getServiceLocator());
     //can optimize by getting getOwnBuildRunners in the caller
   }
 

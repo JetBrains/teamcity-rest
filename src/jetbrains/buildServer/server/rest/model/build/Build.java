@@ -411,7 +411,7 @@ public class Build {
         } catch (Exception e) {
           return null;
         }
-        return new Properties(myBuild.getParametersProvider().getAll(), null, myFields.getNestedField("resultingProperties", Fields.NONE, Fields.LONG));
+        return new Properties(myBuild.getParametersProvider().getAll(), null, myFields.getNestedField("resultingProperties", Fields.NONE, Fields.LONG), myServiceLocator);
       }
     });
   }
@@ -447,7 +447,7 @@ public class Build {
           public Properties get() {
             final Fields nestedField = myFields.getNestedField("statistics");
             return new Properties(nestedField.isMoreThenShort() ? getBuildStatisticsValues(myBuild) : null, //for performance reasons
-                                  statisticsHref, nestedField);
+                                  statisticsHref, nestedField, myServiceLocator);
           }
         });
     }

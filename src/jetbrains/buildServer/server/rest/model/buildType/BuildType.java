@@ -295,7 +295,7 @@ public class BuildType {
   public PropEntitiesStep getSteps() {
     return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("steps", false), check(new ValueWithDefault.Value<PropEntitiesStep>() {
       public PropEntitiesStep get() {
-        return new PropEntitiesStep(myBuildType.getSettingsEx(), myFields.getNestedField("steps", Fields.NONE, Fields.LONG));
+        return new PropEntitiesStep(myBuildType.getSettingsEx(), myFields.getNestedField("steps", Fields.NONE, Fields.LONG), myBeanContext);
       }
     }));
   }
@@ -304,7 +304,7 @@ public class BuildType {
   public PropEntitiesFeature getFeatures() {
     return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("features", false), check(new ValueWithDefault.Value<PropEntitiesFeature>() {
       public PropEntitiesFeature get() {
-        return new PropEntitiesFeature(myBuildType.getSettingsEx(), myFields.getNestedField("features", Fields.NONE, Fields.LONG));
+        return new PropEntitiesFeature(myBuildType.getSettingsEx(), myFields.getNestedField("features", Fields.NONE, Fields.LONG), myBeanContext);
       }
     }));
   }
@@ -313,7 +313,7 @@ public class BuildType {
   public PropEntitiesTrigger getTriggers() {
     return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("triggers", false), check(new ValueWithDefault.Value<PropEntitiesTrigger>() {
       public PropEntitiesTrigger get() {
-        return new PropEntitiesTrigger(myBuildType.getSettingsEx(), myFields.getNestedField("triggers", Fields.NONE, Fields.LONG));
+        return new PropEntitiesTrigger(myBuildType.getSettingsEx(), myFields.getNestedField("triggers", Fields.NONE, Fields.LONG), myBeanContext);
       }
     }));
   }
@@ -351,7 +351,8 @@ public class BuildType {
                  ? null
                  : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("agent-requirements", false), check(new ValueWithDefault.Value<PropEntitiesAgentRequirement>() {
                    public PropEntitiesAgentRequirement get() {
-                     return new PropEntitiesAgentRequirement(myBuildType.getSettingsEx(), myFields.getNestedField("agent-requirements", Fields.NONE, Fields.LONG));
+                     return new PropEntitiesAgentRequirement(myBuildType.getSettingsEx(), myFields.getNestedField("agent-requirements", Fields.NONE, Fields.LONG),
+                                                             myBeanContext.getServiceLocator());
                    }
                  }));
   }

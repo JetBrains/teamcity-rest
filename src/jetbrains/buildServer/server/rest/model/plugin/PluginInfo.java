@@ -20,6 +20,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -36,13 +37,15 @@ import org.jetbrains.annotations.NotNull;
 public class PluginInfo {
   private ServerPluginInfo myPluginInfo;
   private Fields myFields;
+  private ServiceLocator myServiceLocator;
 
   public PluginInfo() {
   }
 
-  public PluginInfo(final ServerPluginInfo pluginInfo, @NotNull Fields fields) {
+  public PluginInfo(final ServerPluginInfo pluginInfo, @NotNull Fields fields, @NotNull final ServiceLocator serviceLocator) {
     myPluginInfo = pluginInfo;
     myFields = fields;
+    myServiceLocator = serviceLocator;
   }
 
   @XmlAttribute
@@ -70,6 +73,6 @@ public class PluginInfo {
     return ValueWithDefault.decideDefault(myFields.isIncluded("parameters"),
                                           new Properties(myPluginInfo.getPluginXml().getInfo().getParameters(),
                                                          null,
-                                                         myFields.getNestedField("parameters", Fields.NONE, Fields.LONG)));
+                                                         myFields.getNestedField("parameters", Fields.NONE, Fields.LONG), myServiceLocator));
   }
 }

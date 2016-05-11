@@ -51,14 +51,14 @@ public class PropEntitiesAgentRequirement {
   public PropEntitiesAgentRequirement() {
   }
 
-  public PropEntitiesAgentRequirement(@NotNull final BuildTypeSettingsEx buildType, @NotNull final Fields fields) {
+  public PropEntitiesAgentRequirement(@NotNull final BuildTypeSettingsEx buildType, @NotNull final Fields fields, final ServiceLocator serviceLocator) {
     final List<Requirement> requirements = buildType.getRequirements();
     propEntities = ValueWithDefault.decideDefault(fields.isIncluded("agent-requirement"), new ValueWithDefault.Value<List<PropEntityAgentRequirement>>() {
       @Nullable
       public List<PropEntityAgentRequirement> get() {
         return CollectionsUtil.convertCollection(requirements, new Converter<PropEntityAgentRequirement, Requirement>() {
                   public PropEntityAgentRequirement createFrom(@NotNull final Requirement source) {
-                    return new PropEntityAgentRequirement(source, buildType, fields.getNestedField("agent-requirement", Fields.NONE, Fields.LONG));
+                    return new PropEntityAgentRequirement(source, buildType, fields.getNestedField("agent-requirement", Fields.NONE, Fields.LONG), serviceLocator);
                   }
                 });
       }

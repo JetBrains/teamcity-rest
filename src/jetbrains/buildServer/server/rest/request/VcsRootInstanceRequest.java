@@ -96,7 +96,7 @@ public class VcsRootInstanceRequest {
   @Produces({"application/xml", "application/json"})
   public Properties serveRootInstanceProperties(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator, @QueryParam("fields") String fields) {
     final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
-    return new Properties(rootInstance.getProperties(), null, new Fields(fields));
+    return new Properties(rootInstance.getProperties(), null, new Fields(fields), myBeanContext.getServiceLocator());
   }
 
 

@@ -68,14 +68,17 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     final String btLocator = "id:" + buildType1.getExternalId();
 
     assertEquals(3, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
-    myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property("a4", "b", Fields.LONG), "$long");
+    myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property(new SimpleParameter("a4", "b"), false, Fields.LONG, myFixture), "$long");
     assertEquals(4, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
     myBuildTypeRequest.getParametersSubResource(btLocator).deleteParameter("a3");
     assertEquals(3, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
 
     {
       Properties submitted = new Properties();
-      submitted.properties = Arrays.asList(new Property("n1", null, Fields.LONG));
+      Property p10 = new Property();
+      p10.name = "n1";
+      p10.value = null;
+      submitted.properties = Arrays.asList(p10);
 
       checkException(BadRequestException.class, new Runnable() {
         public void run() {
@@ -100,7 +103,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
 
     {
       Properties submitted = new Properties();
-      submitted.properties = Arrays.asList(new Property("n1", "v1", Fields.LONG));
+      submitted.properties = Arrays.asList(new Property(new SimpleParameter("n1", "v1"), false, Fields.LONG, myFixture));
 
       checkException(BadRequestException.class, new Runnable() {
         public void run() {
@@ -125,7 +128,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
 
     checkException(RuntimeException.class, new Runnable() {
       public void run() {
-        myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property("n1", "v1", Fields.LONG), "$long");
+        myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property(new SimpleParameter("n1", "v1"), false, Fields.LONG, myFixture), "$long");
       }
     }, null);
 
@@ -153,7 +156,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     assertEquals(4, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
     assertEquals(3, myBuildTypeRequest.getParametersSubResource(templateLocator).getParameters(null, "$long,property($long)").properties.size());
 
-    myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property("a4", "b", Fields.LONG), "$long");
+    myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property(new SimpleParameter("a4", "b"), false, Fields.LONG, myFixture), "$long");
     assertEquals(5, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
     assertEquals(3, myBuildTypeRequest.getParametersSubResource(templateLocator).getParameters(null, "$long,property($long)").properties.size());
 
@@ -199,7 +202,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
 
     {
       Properties submitted = new Properties();
-      submitted.properties = Arrays.asList(new Property("n1", "v1", Fields.LONG));
+      submitted.properties = Arrays.asList(new Property(new SimpleParameter("n1", "v1"), false, Fields.LONG, myFixture));
 
       checkException(BadRequestException.class, new Runnable() {
         public void run() {
@@ -224,7 +227,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
 
     checkException(RuntimeException.class, new Runnable() {
       public void run() {
-        myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property("n1", "v1", Fields.LONG), "$long");
+        myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property(new SimpleParameter("n1", "v1"), false, Fields.LONG, myFixture), "$long");
       }
     }, null);
 
@@ -580,7 +583,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted.type = "not-exists";
       submitted.disabled = true;
       submitted.properties = new Properties();
-      submitted.properties.properties = Arrays.asList(new Property("property-name", "aaa", Fields.LONG));
+      submitted.properties.properties = Arrays.asList(new Property(new SimpleParameter("property-name", "aaa"), false, Fields.LONG, myFixture));
       String newId = myBuildTypeRequest.addAgentRequirement(btLocator, "$long", submitted).id;
       assertEquals(4, myBuildTypeRequest.getAgentRequirements(btLocator, "$long,agent-requirement($long)").propEntities.size());
       assertTrue(myBuildTypeRequest.getAgentRequirements(btLocator, "$long,agent-requirement($long)").propEntities.get(3).disabled);
@@ -648,9 +651,9 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted.sourceBuildType = new BuildType();
       submitted.sourceBuildType.setId(buildType2.getExternalId());
       submitted.properties = new Properties();
-      submitted.properties.properties = Arrays.asList(new Property("revisionName", "aaa", Fields.LONG),
-                                                      new Property("revisionValue", "aaa", Fields.LONG),
-                                                      new Property("pathRules", "aaa", Fields.LONG));
+      submitted.properties.properties = Arrays.asList(new Property(new SimpleParameter("revisionName", "aaa"), false, Fields.LONG, myFixture),
+                                                      new Property(new SimpleParameter("revisionValue", "aaa"), false, Fields.LONG, myFixture),
+                                                      new Property(new SimpleParameter("pathRules", "aaa"), false, Fields.LONG, myFixture));
       submitted.disabled = true;
       String newId = myBuildTypeRequest.addArtifactDep(btLocator, "$long", submitted).id;
       assertEquals(4, myBuildTypeRequest.getArtifactDeps(btLocator, "$long,artifact-dependencies($long)").propEntities.size());
@@ -678,9 +681,9 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted1.sourceBuildType = new BuildType();
       submitted1.sourceBuildType.setId(buildType2.getExternalId());
       submitted1.properties = new Properties();
-      submitted1.properties.properties = Arrays.asList(new Property("revisionName", "aaa", Fields.LONG),
-                                                       new Property("revisionValue", "aaa", Fields.LONG),
-                                                       new Property("pathRules", "aaa", Fields.LONG));
+      submitted1.properties.properties = Arrays.asList(new Property(new SimpleParameter("revisionName", "aaa"), false, Fields.LONG, myFixture),
+                                                       new Property(new SimpleParameter("revisionValue", "aaa"), false, Fields.LONG, myFixture),
+                                                       new Property(new SimpleParameter("pathRules", "aaa"), false, Fields.LONG, myFixture));
       submitted.propEntities = Arrays.asList(submitted1);
 
       checkException(BadRequestException.class, new Runnable() {
@@ -712,9 +715,9 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted.sourceBuildType = new BuildType();
       submitted.sourceBuildType.setId(buildType2.getExternalId());
       submitted.properties = new Properties();
-      submitted.properties.properties = Arrays.asList(new Property("revisionName", "aaa", Fields.LONG),
-                                                      new Property("revisionValue", "aaa", Fields.LONG),
-                                                      new Property("pathRules", "aaa", Fields.LONG));
+      submitted.properties.properties = Arrays.asList(new Property(new SimpleParameter("revisionName", "aaa"), false, Fields.LONG, myFixture),
+                                                      new Property(new SimpleParameter("revisionValue", "aaa"), false, Fields.LONG, myFixture),
+                                                      new Property(new SimpleParameter("pathRules", "aaa"), false, Fields.LONG, myFixture));
       checkException(BadRequestException.class, new Runnable() {
         public void run() {
           myBuildTypeRequest.addArtifactDep(btLocator, "$long", submitted);

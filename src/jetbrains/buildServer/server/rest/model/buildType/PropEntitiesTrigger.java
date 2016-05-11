@@ -27,6 +27,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
@@ -50,14 +51,14 @@ public class PropEntitiesTrigger {
   public PropEntitiesTrigger() {
   }
 
-  public PropEntitiesTrigger(final BuildTypeSettingsEx buildType, @NotNull final Fields fields) {
+  public PropEntitiesTrigger(final BuildTypeSettingsEx buildType, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     final Collection<BuildTriggerDescriptor> buildTriggersCollection = buildType.getBuildTriggersCollection();
     propEntities = ValueWithDefault.decideDefault(fields.isIncluded("trigger"), new ValueWithDefault.Value<List<PropEntityTrigger>>() {
       @Nullable
       public List<PropEntityTrigger> get() {
         return CollectionsUtil.convertCollection(buildTriggersCollection, new Converter<PropEntityTrigger, BuildTriggerDescriptor>() {
           public PropEntityTrigger createFrom(@NotNull final BuildTriggerDescriptor source) {
-            return new PropEntityTrigger(source, buildType, fields.getNestedField("trigger", Fields.NONE, Fields.LONG));
+            return new PropEntityTrigger(source, buildType, fields.getNestedField("trigger", Fields.NONE, Fields.LONG), beanContext);
           }
         });
       }

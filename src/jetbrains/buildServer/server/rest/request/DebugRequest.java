@@ -261,7 +261,7 @@ public class DebugRequest {
     for (Map.Entry<Object, Object> entry : entries) {
       result.put(entry.getKey().toString(), entry.getValue().toString());
     }
-    return new Properties(result, null, new Fields(fields));
+    return new Properties(result, null, new Fields(fields), myServiceLocator);
   }
 
   /**
@@ -272,7 +272,7 @@ public class DebugRequest {
   @Produces({"application/xml", "application/json"})
   public Properties getEnvironmentVariables(@Context HttpServletRequest request, @QueryParam("fields") final String fields) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
-    return new Properties(System.getenv(), null, new Fields(fields));
+    return new Properties(System.getenv(), null, new Fields(fields), myServiceLocator);
   }
 
   /**

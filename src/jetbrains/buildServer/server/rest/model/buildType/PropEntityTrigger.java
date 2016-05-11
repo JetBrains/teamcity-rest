@@ -25,6 +25,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import jetbrains.buildServer.util.StringUtil;
@@ -40,8 +41,11 @@ public class PropEntityTrigger extends PropEntity implements PropEntityEdit<Buil
   public PropEntityTrigger() {
   }
 
-  public PropEntityTrigger(@NotNull final BuildTriggerDescriptor descriptor, @NotNull final BuildTypeSettingsEx buildTypeSettings, @NotNull final Fields fields) {
-    super(descriptor, !buildTypeSettings.getOwnBuildTriggers().contains(descriptor), buildTypeSettings, fields);
+  public PropEntityTrigger(@NotNull final BuildTriggerDescriptor descriptor,
+                           @NotNull final BuildTypeSettingsEx buildTypeSettings,
+                           @NotNull final Fields fields,
+                           @NotNull final BeanContext beanContext) {
+    super(descriptor, !buildTypeSettings.getOwnBuildTriggers().contains(descriptor), buildTypeSettings, fields, beanContext.getServiceLocator());
     //can optimize by getting getOwnBuildTriggers in the caller
   }
 

@@ -138,7 +138,7 @@ public class UserRequest {
   public Properties serveUserProperties(@PathParam("userLocator") String userLocator, @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getItem(userLocator, true);
 
-    return new Properties(User.getProperties(user), null, new Fields(fields));
+    return new Properties(User.getProperties(user), null, new Fields(fields), myBeanContext.getServiceLocator());
   }
 
   @GET

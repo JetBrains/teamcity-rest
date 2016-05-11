@@ -48,7 +48,10 @@ public class PropEntityAgentRequirement extends PropEntity implements PropEntity
   public PropEntityAgentRequirement() {
   }
 
-  public PropEntityAgentRequirement(@NotNull final Requirement requirement, @NotNull final BuildTypeSettingsEx buildType, @NotNull final Fields fields) {
+  public PropEntityAgentRequirement(@NotNull final Requirement requirement,
+                                    @NotNull final BuildTypeSettingsEx buildType,
+                                    @NotNull final Fields fields,
+                                    @NotNull final ServiceLocator serviceLocator) {
     HashMap<String, String> propertiesMap = new HashMap<String, String>(2);
     propertiesMap.put(NAME_PROPERTY_NAME, requirement.getPropertyName());
     if (requirement.getPropertyValue() != null) {
@@ -58,9 +61,9 @@ public class PropEntityAgentRequirement extends PropEntity implements PropEntity
     if (id == null) {
       //can optimize by getting getOwnRequirements in the caller
       init(requirement.getPropertyName(), null, requirement.getType().getName(), null,
-           !buildType.getOwnRequirements().contains(requirement), propertiesMap, fields);
+           !buildType.getOwnRequirements().contains(requirement), propertiesMap, fields, serviceLocator);
     } else {
-      init(id, null, requirement.getType().getName(), buildType.isEnabled(id), !buildType.getOwnRequirements().contains(requirement), propertiesMap, fields);
+      init(id, null, requirement.getType().getName(), buildType.isEnabled(id), !buildType.getOwnRequirements().contains(requirement), propertiesMap, fields, serviceLocator);
     }
   }
 

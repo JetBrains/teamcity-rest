@@ -48,8 +48,9 @@ public class NewProjectDescription extends CopyOptionsDescription{
                                @Nullable final Boolean copyAllAssociatedSettings,
                                @Nullable final Map<String, String> projectsIdsMap,
                                @Nullable final Map<String, String> buildTypesIdsMap,
-                               @Nullable final Map<String, String> vcsRootsIdsMap) {
-    super(copyAllAssociatedSettings, projectsIdsMap, buildTypesIdsMap, vcsRootsIdsMap);
+                               @Nullable final Map<String, String> vcsRootsIdsMap,
+                               @NotNull final ServiceLocator serviceLocator) {
+    super(copyAllAssociatedSettings, projectsIdsMap, buildTypesIdsMap, vcsRootsIdsMap, serviceLocator);
     this.name = name;
     this.id = id;
     this.sourceProject = sourceProject;

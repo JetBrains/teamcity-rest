@@ -152,7 +152,8 @@ public class VcsRoot {
     assert permissionChecker != null;
     if (!shouldRestrictSettingsViewing(root, permissionChecker)) {
       properties = ValueWithDefault.decideDefault(fields.isIncluded("properties", false),
-                                                  new Properties(root.getProperties(), null, fields.getNestedField("properties", Fields.NONE, Fields.LONG)));
+                                                  new Properties(root.getProperties(), null, fields.getNestedField("properties", Fields.NONE, Fields.LONG),
+                                                                 beanContext.getServiceLocator()));
       modificationCheckInterval = ValueWithDefault.decideDefault(fields.isIncluded("modificationCheckInterval", false),
                                                                  root.isUseDefaultModificationCheckInterval() ? null : root.getModificationCheckInterval());
       vcsRootInstances = ValueWithDefault.decideDefault(fields.isIncluded("vcsRootInstances", false), new ValueWithDefault.Value<VcsRootInstances>() {

@@ -25,6 +25,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
@@ -50,7 +51,7 @@ public class PropEntitiesStep {
   public PropEntitiesStep() {
   }
 
-  public PropEntitiesStep(@NotNull final BuildTypeSettingsEx buildType, @NotNull final Fields fields) {
+  public PropEntitiesStep(@NotNull final BuildTypeSettingsEx buildType, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     final List<SBuildRunnerDescriptor> buildRunners = buildType.getBuildRunners();
     propEntities = ValueWithDefault.decideDefault(fields.isIncluded("step"), new ValueWithDefault.Value<List<PropEntityStep>>() {
       @Nullable
@@ -58,7 +59,7 @@ public class PropEntitiesStep {
         return CollectionsUtil.convertCollection(buildRunners,
                                                  new Converter<PropEntityStep, SBuildRunnerDescriptor>() {
                                                    public PropEntityStep createFrom(@NotNull final SBuildRunnerDescriptor source) {
-                                                     return new PropEntityStep(source, buildType, fields.getNestedField("step", Fields.NONE, Fields.LONG));
+                                                     return new PropEntityStep(source, buildType, fields.getNestedField("step", Fields.NONE, Fields.LONG), beanContext);
                                                    }
                                                  });
       }

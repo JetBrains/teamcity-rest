@@ -155,7 +155,8 @@ public class VcsRootInstance {
   @XmlElement
   public Properties getProperties() {
     return check(ValueWithDefault.decideDefault(myFields.isIncluded("properties", false),
-                                                new Properties(myRoot.getProperties(), null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG))));
+                                                new Properties(myRoot.getProperties(), null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG),
+                                                               myBeanContext.getServiceLocator())));
   }
 
   @XmlElement

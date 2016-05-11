@@ -516,7 +516,8 @@ public class ProjectRequest {
                                      parentProjectRef, true,
                                      getNullOrCollection(projectIdsMap),
                                      getNullOrCollection(idsMaps.getBuildTypeIdsMap()),
-                                     getNullOrCollection(idsMaps.getVcsRootIdsMap()));
+                                     getNullOrCollection(idsMaps.getVcsRootIdsMap()),
+                                     myServiceLocator);
   }
 
 

@@ -83,7 +83,7 @@ public class PropEntitySnapshotDep extends PropEntity implements PropEntityEdit<
 
     //todo: review id, type here
     init(dependency.getDependOnExternalId(), null, SNAPSHOT_DEPENDENCY_TYPE_NAME, null,
-         !buildType.getOwnDependencies().contains(dependency), properties, fields); //can optimize by getting getOwnDependencies in the caller
+         !buildType.getOwnDependencies().contains(dependency), properties, fields, context.getServiceLocator()); //can optimize by getting getOwnDependencies in the caller
 
     sourceBuildType = ValueWithDefault.decideDefault(fields.isIncluded(PropEntitySnapshotDep.SOURCE_BUILD_TYPE, false, true), new ValueWithDefault.Value<BuildType>() {
       @Nullable

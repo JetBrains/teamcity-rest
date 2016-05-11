@@ -68,15 +68,15 @@ public class Properties  implements DefaultValueAware {
   }
 
   //todo: review all null usages for href to include due URL
-  public Properties(@Nullable final Map<String, String> properties, @Nullable String href, @NotNull final Fields fields) {
-    this(properties, null, href, fields, null);
+  public Properties(@Nullable final Map<String, String> properties, @Nullable String href, @NotNull final Fields fields, @NotNull final ServiceLocator serviceLocator) {
+    this(properties, null, href, fields, serviceLocator);
   }
 
   public Properties(@Nullable final Map<String, String> parameters,
                     @Nullable final Map<String, String> ownParameters,
                     @Nullable String href,
                     @NotNull final Fields fields,
-                    @Nullable final ServiceLocator serviceLocator) {
+                    @NotNull final ServiceLocator serviceLocator) {
     if (parameters == null) {
       this.count = null;
       this.properties = null;
