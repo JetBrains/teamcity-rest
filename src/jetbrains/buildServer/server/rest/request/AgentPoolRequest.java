@@ -102,16 +102,16 @@ public class AgentPoolRequest {
     if (agentPool.agents != null){
       throw new BadRequestException("Creating an agent pool with agents is not suppotrted. Please add agents after the pool creation");
     }
-    int newAgentPoolId;
+    final jetbrains.buildServer.serverSide.agentPools.AgentPool newAgentPool;
     try {
-      newAgentPoolId = myServiceLocator.getSingletonService(AgentPoolManager.class).createNewAgentPool(agentPool.name);
+      newAgentPool = myServiceLocator.getSingletonService(AgentPoolManager.class).createNewAgentPool(agentPool.name);
     } catch (AgentPoolCannotBeRenamedException e) {
       throw new IllegalStateException("Agent pool with name \'" + agentPool.name + "' already exists.");
     }
     if (agentPool.projects != null){
-      replaceProjects("id:" + newAgentPoolId, agentPool.projects);
+      replaceProjects("id:" + newAgentPool, agentPool.projects);
     }
-    return new AgentPool(myAgentPoolsFinder.getAgentPoolById(newAgentPoolId), Fields.LONG, myBeanContext);
+    return new AgentPool(newAgentPool, Fields.LONG, myBeanContext);
   }
 
   @GET
