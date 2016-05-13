@@ -572,7 +572,7 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     agent30.addConfigParameter("x", "2");
     agent30.pushAgentTypeData();
 
-    final int poolId1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1");
+    final int poolId1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1").getAgentPoolId();
     myFixture.getAgentPoolManager().moveAgentTypesToPool(poolId1, createSet(agent30.getId()));
 
     MockBuildAgent agent40 = myFixture.createEnabledAgent("agent40", "Ant");  //compatible, but excluded by policy

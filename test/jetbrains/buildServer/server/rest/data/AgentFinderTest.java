@@ -127,7 +127,7 @@ public class AgentFinderTest extends BaseFinderTest<SBuildAgent> {
 
   @Test
   public void testLocatorPool() throws AgentPoolCannotBeRenamedException, NoSuchAgentPoolException, PoolQuotaExceededException {
-    final int poolId1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1");
+    final int poolId1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1").getAgentPoolId();
     myFixture.getAgentPoolManager().moveAgentTypesToPool(poolId1, createSet(myAgent3.getId()));
 
     checkAgents("pool:(id:" + poolId1 + "),defaultFilter:false", myAgent3);
@@ -160,7 +160,7 @@ public class AgentFinderTest extends BaseFinderTest<SBuildAgent> {
     agent20.addConfigParameter("a", "b");
     agent20.pushAgentTypeData();
     agent20.setAuthorized(false, null, "");
-    final int poolId1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1");
+    final int poolId1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1").getAgentPoolId();
     myFixture.getAgentPoolManager().moveAgentTypesToPool(poolId1, createSet(agent20.getId()));
 
     MockBuildAgent agent30 = myFixture.createEnabledAgent("agent30", "Ant");
@@ -214,7 +214,7 @@ public class AgentFinderTest extends BaseFinderTest<SBuildAgent> {
     MockBuildAgent agent20 = myFixture.createEnabledAgent("agent20", "Ant");
     agent20.addConfigParameter("a", "b");
     agent20.pushAgentTypeData();
-    final int poolId1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1");
+    final int poolId1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1").getAgentPoolId();
     myFixture.getAgentPoolManager().moveAgentTypesToPool(poolId1, createSet(agent20.getId()));
 
     MockBuildAgent agent30 = myFixture.createEnabledAgent("agent30", "Ant");

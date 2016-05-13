@@ -107,7 +107,7 @@ public class AgentPoolRequest {
     }
     int newAgentPoolId;
     try {
-      newAgentPoolId = myServiceLocator.getSingletonService(AgentPoolManager.class).createNewAgentPool(agentPool.name);
+      newAgentPoolId = myServiceLocator.getSingletonService(AgentPoolManager.class).createNewAgentPool(agentPool.name).getAgentPoolId();
     } catch (AgentPoolCannotBeRenamedException e) {
       throw new IllegalStateException("Agent pool with name \'" + agentPool.name + "' already exists.");
     }
