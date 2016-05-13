@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import jetbrains.buildServer.artifacts.RevisionRules;
@@ -30,17 +31,19 @@ import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.buildType.*;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
-import jetbrains.buildServer.serverSide.ArtifactDependencyFactory;
-import jetbrains.buildServer.serverSide.BuildFeature;
-import jetbrains.buildServer.serverSide.BuildTypeSettingsAdapter;
-import jetbrains.buildServer.serverSide.SimpleParameter;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
+import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
+import jetbrains.buildServer.serverSide.impl.ProjectEx;
+import jetbrains.buildServer.vcs.CheckoutRules;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import static jetbrains.buildServer.util.Util.map;
 
 /**
  * @author Yegor.Yarko
@@ -800,5 +803,132 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     assertEquals(0, buildType1.getDependencies().size());
   }
 
-  
+  @Test
+  public void testCreatingWithTemplate() {
+
+    //see also alike setup in BuildTypeTest.testInheritance()
+    ProjectEx project10 = createProject("project10", "project 10");
+    MockVcsSupport vcs = vcsSupport().withName("vcs").dagBased(true).register();
+    final SVcsRoot vcsRoot10 = project10.createVcsRoot("vcs", "extId10", "name10");
+    final SVcsRoot vcsRoot20 = project10.createVcsRoot("vcs", "extId20", "name20");
+    final SVcsRoot vcsRoot30 = project10.createVcsRoot("vcs", "extId30", "name30");
+
+    project10.addParameter(new SimpleParameter("p", "v"));
+
+    BuildTypeEx bt100 = project10.createBuildType("bt100", "bt 100");
+    BuildTypeEx bt110 = project10.createBuildType("bt110", "bt 110");
+    BuildTypeEx bt120 = project10.createBuildType("bt120", "bt 120");
+
+
+    // TEMPLATE
+    BuildTypeTemplate t10 = project10.createBuildTypeTemplate("t10", "bt 10");
+
+    t10.setArtifactPaths("aaaaa");
+    t10.setBuildNumberPattern("pattern");
+    t10.setOption(BuildTypeOptions.BT_ALLOW_EXTERNAL_STATUS, true);
+    t10.setOption(BuildTypeOptions.BT_FAIL_IF_TESTS_FAIL, true);
+    t10.setOption(BuildTypeOptions.BT_CHECKOUT_DIR, "checkout_t");
+    t10.setOption(BuildTypeOptions.BT_CHECKOUT_MODE, "ON_AGENT");
+    t10.setOption(BuildTypeOptions.BT_FAIL_ON_ANY_ERROR_MESSAGE, true);
+    t10.setOption(BuildTypeOptions.BT_EXECUTION_TIMEOUT, 11);
+
+
+    t10.addVcsRoot(vcsRoot10);
+    t10.addVcsRoot(vcsRoot20);
+    t10.setCheckoutRules(vcsRoot20, new CheckoutRules("a=>b"));
+
+    BuildRunnerDescriptorFactory runnerDescriptorFactory = myFixture.getSingletonService(BuildRunnerDescriptorFactory.class);
+    t10.addBuildRunner(runnerDescriptorFactory.createBuildRunner(project10, "run10", "name10", "Ant1", map("a", "b")));
+    t10.addBuildRunner(runnerDescriptorFactory.createBuildRunner(project10, "run20", "name20", "Ant2", map("a", "b")));
+
+    BuildTriggerDescriptor trigger10 = t10.addBuildTrigger("Type", map("a", "b"));
+    BuildTriggerDescriptor trigger20 = t10.addBuildTrigger("Type", map("a", "b"));
+
+    t10.addBuildFeature(myFixture.getBuildFeatureDescriptorFactory().createBuildFeature("f10", "type", map("a", "b")));
+    t10.addBuildFeature(myFixture.getBuildFeatureDescriptorFactory().createBuildFeature("f20", "type", map("a", "b")));
+    t10.addBuildFeature(myFixture.getBuildFeatureDescriptorFactory().createBuildFeature("f30", "type", map("a", "b")));
+
+    ArtifactDependencyFactory artifactDependencyFactory = myFixture.getSingletonService(ArtifactDependencyFactory.class);
+    ArrayList<SArtifactDependency> artifactDeps = new ArrayList<>();
+    artifactDeps.add(artifactDependencyFactory.createArtifactDependency("art10", bt100.getExternalId(), "path1", RevisionRules.LAST_PINNED_RULE));
+    artifactDeps.add(artifactDependencyFactory.createArtifactDependency("art20", bt100.getExternalId(), "path2", RevisionRules.LAST_PINNED_RULE));
+    artifactDeps.add(artifactDependencyFactory.createArtifactDependency("art30", bt100.getExternalId(), "path3", RevisionRules.LAST_PINNED_RULE));
+    t10.setArtifactDependencies(artifactDeps);
+
+    t10.addDependency(myFixture.getSingletonService(DependencyFactory.class).createDependency(bt100));
+    t10.addDependency(myFixture.getSingletonService(DependencyFactory.class).createDependency(bt110));
+
+    t10.addParameter(new SimpleParameter("a10", "b"));
+    t10.addParameter(new SimpleParameter("a20", "b"));
+    t10.addParameter(new SimpleParameter("a30", "b"));
+
+    t10.addRequirement(myFixture.findSingletonService(RequirementFactory.class).createRequirement("req10", "a", null, RequirementType.EXISTS));
+    t10.addRequirement(myFixture.findSingletonService(RequirementFactory.class).createRequirement("req20", "b", null, RequirementType.EXISTS));
+    t10.addRequirement(myFixture.findSingletonService(RequirementFactory.class).createRequirement("req30", "c", null, RequirementType.EXISTS));
+
+    // BUILD TYPE
+    BuildTypeEx bt10 = project10.createBuildType("bt10", "bt 10");
+    bt10.attachToTemplate(t10);
+
+    bt10.setArtifactPaths("bbbb"); //todo: test w/o override
+    bt10.setOption(BuildTypeOptions.BT_ALLOW_EXTERNAL_STATUS, false);
+    bt10.setOption(BuildTypeOptions.BT_FAIL_IF_TESTS_FAIL, false);
+    { //hack to reproduce case related to https://youtrack.jetbrains.com/issue/TW-45273
+//comment until TW-45273 is fixed      t10.setOption(BuildTypeOptions.BT_FAIL_IF_TESTS_FAIL, false);
+    }
+    bt10.setOption(BuildTypeOptions.BT_CHECKOUT_DIR, "checkout_bt");
+    bt10.setOption(BuildTypeOptions.BT_CHECKOUT_MODE, "ON_SERVER");
+    bt10.setOption(BuildTypeOptions.BT_EXECUTION_TIMEOUT, 17);
+
+    bt10.addVcsRoot(vcsRoot20);
+    bt10.setCheckoutRules(vcsRoot20, new CheckoutRules("x=>y"));
+    bt10.addVcsRoot(vcsRoot30);
+
+    bt10.setEnabled("run20", false);
+    bt10.addBuildRunner(runnerDescriptorFactory.createBuildRunner(project10, "run30", "name30", "Ant30", map("a", "b")));
+
+    bt10.setEnabled(trigger20.getId(), false);
+    BuildTriggerDescriptor trigger30 = bt10.addBuildTrigger("Type", map("a", "b"));
+
+    bt10.setEnabled("f20", false);
+    bt10.addBuildFeature(myFixture.getBuildFeatureDescriptorFactory().createBuildFeature("f30", "type_bt", map("a", "b")));
+    bt10.addBuildFeature(myFixture.getBuildFeatureDescriptorFactory().createBuildFeature("f40", "type", map("a", "b")));
+
+    ArrayList<SArtifactDependency> artifactDepsBt = new ArrayList<>();
+    artifactDepsBt.add(artifactDependencyFactory.createArtifactDependency("art30", bt100.getExternalId(), "path30", RevisionRules.LAST_FINISHED_RULE));
+    artifactDepsBt.add(artifactDependencyFactory.createArtifactDependency("art40", bt100.getExternalId(), "path4", RevisionRules.LAST_PINNED_RULE));
+    bt10.setArtifactDependencies(artifactDepsBt);
+    bt10.setEnabled("art20", false);
+    bt10.addDependency(myFixture.getSingletonService(DependencyFactory.class).createDependency(bt110));
+    bt10.addDependency(myFixture.getSingletonService(DependencyFactory.class).createDependency(bt120));
+
+    bt10.addParameter(new SimpleParameter("a20", "x"));
+    bt10.addParameter(new SimpleParameter("a30", "b"));
+    bt10.addParameter(new SimpleParameter("a40", "x"));
+
+    bt10.setEnabled("req20", false);
+    bt10.addRequirement(myFixture.findSingletonService(RequirementFactory.class).createRequirement("req30", "x", null, RequirementType.EQUALS));
+    bt10.addRequirement(myFixture.findSingletonService(RequirementFactory.class).createRequirement("req40", "y", null, RequirementType.EXISTS));
+
+    // NOW, TEST TIME!
+
+    // get buildType
+    BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("$long"), getBeanContext(myServer));
+
+    // post buildType to create new one
+    buildType.initializeSubmittedFromUsual();
+    buildType.setId("bt10_copy");
+    buildType.setName("bt 10 - copy");
+    BuildType buildType_copy = myBuildTypeRequest.addBuildType(buildType, Fields.LONG.getFieldsSpec());
+
+    // compare initial and new buildType
+    BuildTypeImpl bt10_copy = myFixture.getProjectManager().findBuildTypeByExternalId("bt10_copy");
+    assertNotNull(bt10_copy);
+    assertNull(BuildTypeUtil.compareBuildTypes(bt10.getSettings(), bt10_copy.getSettings(), true, false));
+
+    //todo:
+    //check different settings in submitted from the inherited one, but with inherited flag
+    //check submitting with different enabled state
+    //check submitting with different id
+  }
 }

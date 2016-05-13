@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -105,7 +106,8 @@ public class PropEntitySnapshotDep extends PropEntity implements PropEntityEdit<
   }
 
   @NotNull
-  public Dependency addTo(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
+  @Override
+  public Dependency addTo(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
     if (!SNAPSHOT_DEPENDENCY_TYPE_NAME.equals(type)) {
       throw new BadRequestException("Snapshot dependency should have type '" + SNAPSHOT_DEPENDENCY_TYPE_NAME + "'.");
     }
@@ -114,6 +116,16 @@ public class PropEntitySnapshotDep extends PropEntity implements PropEntityEdit<
     final String buildTypeIdFromProperty = propertiesMap.get(NAME_SOURCE_BUILD_TYPE_ID); //compatibility mode with pre-8.0
     String buildTypeIdDependOn = getBuildTypeExternalIdForDependency(sourceBuildType, buildTypeIdFromProperty, serviceLocator);
     BuildTypeUtil.checkCanUseBuildTypeAsDependency(buildTypeIdDependOn, serviceLocator);
+
+    Dependency similar = getInheritedOrSameIdSimilar(buildType, serviceLocator);
+    if (inherited != null && inherited && similar != null) {
+      return similar;
+    }
+    if (similar != null && id != null && id.equals(similar.getDependOnExternalId())) {
+      //not inherited, but id is the same
+      //todo
+      return similar;
+    }
 
     //todo: (TeamCity) for some reason API does not report adding dependency with same id. Seems like it just ignores the call
     if (getSnapshotDepOrNull(buildType, buildTypeIdDependOn) != null) {
@@ -134,9 +146,23 @@ public class PropEntitySnapshotDep extends PropEntity implements PropEntityEdit<
     return getSnapshotDep(buildType, result.getDependOnExternalId(), serviceLocator.getSingletonService(BuildTypeFinder.class));
   }
 
+  @Nullable
+  public Dependency getInheritedOrSameIdSimilar(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator){
+    final List<Dependency> ownItems = buildType.getOwnDependencies();
+    for (Dependency item : buildType.getDependencies()) {
+      if (ownItems.contains(item)){
+        if (id == null || !id.equals(item.getDependOnExternalId())) {
+          continue;
+        }
+      }
+      if (isSimilar(new PropEntitySnapshotDep(item, buildType, Fields.LONG, getFakeBeanContext(serviceLocator)))) return item;
+    }
+    return null;
+  }
+
   @NotNull
   @Override
-  public Dependency replaceIn(@NotNull final BuildTypeSettings buildType, @NotNull final Dependency entityToReplace, @NotNull final ServiceLocator serviceLocator) {
+  public Dependency replaceIn(@NotNull final BuildTypeSettingsEx buildType, @NotNull final Dependency entityToReplace, @NotNull final ServiceLocator serviceLocator) {
     buildType.removeDependency(entityToReplace);
 
     try {
@@ -250,5 +276,11 @@ public class PropEntitySnapshotDep extends PropEntity implements PropEntityEdit<
       }
     }
     return null;
+  }
+
+  private boolean isSimilar(@Nullable final PropEntitySnapshotDep that) {
+    return that != null &&
+           (sourceBuildType == that.sourceBuildType || (sourceBuildType != null && sourceBuildType.isSimilar(that.sourceBuildType))) &&
+           super.isSimilar(that);
   }
 }

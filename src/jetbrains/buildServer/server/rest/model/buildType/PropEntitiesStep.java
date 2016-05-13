@@ -67,14 +67,22 @@ public class PropEntitiesStep {
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), buildRunners.size());
   }
 
-  public boolean setToBuildType(@NotNull final BuildTypeSettings buildTypeSettings, @NotNull final ServiceLocator serviceLocator) {
+  public boolean setToBuildType(@NotNull final BuildTypeSettingsEx buildTypeSettings, @NotNull final ServiceLocator serviceLocator) {
     Storage original = new Storage(buildTypeSettings);
-    removeAllSteps(buildTypeSettings);
     try {
+      removeAllSteps(buildTypeSettings);
       if (propEntities != null) {
+        String[] runnersOrder = new String[propEntities.size()];
+        boolean needToChangeOrder = false;
+        int i = 0;
         for (PropEntityStep entity : propEntities) {
-          entity.addToInternal(buildTypeSettings, serviceLocator);
+          SBuildRunnerDescriptor result = entity.addToInternal(buildTypeSettings, serviceLocator);
+          runnersOrder[i] = result.getId();
+          List<SBuildRunnerDescriptor> currentRunners = buildTypeSettings.getBuildRunners();
+          if (!needToChangeOrder && (currentRunners.size() < i + 1 || !currentRunners.get(i).getId().equals(result.getId()))) needToChangeOrder = true;
+          i++;
         }
+        if (needToChangeOrder) buildTypeSettings.applyRunnersOrder(runnersOrder);
       }
       return true;
     } catch (Exception e) {

@@ -34,6 +34,7 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -85,29 +86,82 @@ public class PropEntityAgentRequirement extends PropEntity implements PropEntity
   }
 
   @NotNull
-  public Requirement addTo(@NotNull final BuildTypeSettings buildTypeSettings, @NotNull final ServiceLocator serviceLocator) {
+  @Override
+  public Requirement addTo(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
+    Requirement result = addToMain(buildType, serviceLocator);
+    if (disabled != null) {
+      buildType.setEnabled(result.getId(), !disabled);
+    }
+    return result;
+  }
+
+  @NotNull
+  public Requirement addToMain(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
     final Map<String, String> propertiesMap = properties == null ? Collections.emptyMap() : properties.getMap();
     String propertyName = propertiesMap.get(NAME_PROPERTY_NAME);
     if (StringUtil.isEmpty(propertyName)) {
       throw new BadRequestException("No name is specified. Make sure '" + NAME_PROPERTY_NAME + "' property is present and has not empty value");
     }
-    final Requirement requirementToAdd = serviceLocator.getSingletonService(RequirementFactory.class).createRequirement(propertyName, propertiesMap.get(NAME_PROPERTY_VALUE), getSubmittedType());
+
+    Requirement similar = getInheritedOrSameIdSimilar(buildType, serviceLocator);
+    if (inherited != null && inherited && similar != null) {
+      return similar;
+    }
+    if (similar != null && id != null && id.equals(similar.getId())) {
+      //not inherited, but id is the same
+      //todo
+      return similar;
+    }
+
+    @NotNull final RequirementFactory factory = serviceLocator.getSingletonService(RequirementFactory.class);
+    String forcedId = null;
+    //special case for "overriden" entities
+    if (id != null){
+      for (Requirement item : buildType.getRequirements()) {
+        if (id.equals(item.getId())) {
+          forcedId = id;
+          break;
+        }
+      }
+    }
+
+    Requirement requirementToAdd;
+    if (forcedId != null) {
+      requirementToAdd = factory.createRequirement(forcedId, propertyName, propertiesMap.get(NAME_PROPERTY_VALUE), getSubmittedType());
+    } else {
+      requirementToAdd = factory.createRequirement(propertyName, propertiesMap.get(NAME_PROPERTY_VALUE), getSubmittedType());
+    }
 
     String requirementId = requirementToAdd.getId();
     if (requirementId == null && disabled != null) {
       //throw exception before adding requirement to the model
       throw new OperationException("Cannot set disabled state for an entity without id");
     }
-    buildTypeSettings.addRequirement(requirementToAdd);
+    buildType.addRequirement(requirementToAdd);
     if (disabled != null) {
-      buildTypeSettings.setEnabled(requirementId, !disabled);
+      buildType.setEnabled(requirementId, !disabled);
     }
     return requirementToAdd;
   }
 
+
+  @Nullable
+  public Requirement getInheritedOrSameIdSimilar(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
+    final List<Requirement> ownItems = buildType.getRequirements();
+    for (Requirement item : buildType.getRequirements()) {
+      if (ownItems.contains(item)) {
+        if (id == null || !id.equals(item.getId())) {
+          continue;
+        }
+      }
+      if (isSimilar(new PropEntityAgentRequirement(item, buildType, Fields.LONG, serviceLocator))) return item;
+    }
+    return null;
+  }
+
   @NotNull
   @Override
-  public Requirement replaceIn(@NotNull final BuildTypeSettings buildType, @NotNull final Requirement entityToReplace, @NotNull final ServiceLocator serviceLocator) {
+  public Requirement replaceIn(@NotNull final BuildTypeSettingsEx buildType, @NotNull final Requirement entityToReplace, @NotNull final ServiceLocator serviceLocator) {
     PropEntitiesAgentRequirement.Storage original = new PropEntitiesAgentRequirement.Storage(buildType);
     buildType.removeRequirement(entityToReplace);
 

@@ -17,7 +17,7 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.serverSide.BuildTypeSettings;
+import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -25,11 +25,17 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 01/04/2016
  */
 public interface PropEntityEdit<T> {
+  /**
+   * Adds the setting defined by the current instance to the buildType passes.
+   * If the instance has "inherited=true" and buildType uses a tempalte and the template has an entity with all the same settings, the call does nothing, it is just ignored,
+   * otherwise the settings is added.
+   */
   @NotNull
-  T addTo(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator);
+  T addTo(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator);
 
   @NotNull
-  T replaceIn(@NotNull final BuildTypeSettings buildType, @NotNull final T entityToReplace, @NotNull final ServiceLocator serviceLocator);
+  T replaceIn(@NotNull final BuildTypeSettingsEx buildType, @NotNull final T entityToReplace, @NotNull final ServiceLocator serviceLocator);
+  //todo: currently, snapshot deps and agent requirements consider "inherited" attribute on replacemnt (can skip adding if there is alike entity in the template) and others don't - might need unifying
 
 //  static void removeFrom(@NotNull final BuildTypeSettings buildType, @NotNull final T entity);
 }

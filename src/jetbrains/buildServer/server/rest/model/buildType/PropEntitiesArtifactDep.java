@@ -83,7 +83,7 @@ public class PropEntitiesArtifactDep implements DefaultValueAware {
     final ArrayList<SArtifactDependency> result =
       replaceOriginal ? new ArrayList<SArtifactDependency>(propEntities.size()) : new ArrayList<SArtifactDependency>(originalCollection);
     for (PropEntityArtifactDep entity : propEntities) {
-      result.add(entity.createDependency(serviceLocator).dep);
+      result.add(entity.createDependency(null, serviceLocator));
     }
     return result;
   }
@@ -110,21 +110,21 @@ public class PropEntitiesArtifactDep implements DefaultValueAware {
   /**
    * @return true if buildTypeSettings is modified
    */
-  public boolean setToBuildType(final @NotNull BuildTypeSettings buildTypeSettings, final @NotNull ServiceLocator serviceLocator) {
+  public boolean setToBuildType(final @NotNull BuildTypeSettingsEx buildTypeSettings, final @NotNull ServiceLocator serviceLocator) {
     PropEntitiesArtifactDep.Storage original = new PropEntitiesArtifactDep.Storage(buildTypeSettings);
     try {
-      List<PropEntityArtifactDep.ArtifactDependency> wrappers = new ArrayList<>();
       List<SArtifactDependency> deps = new ArrayList<>();
+      Map<String, Boolean> enabledData = new HashMap<>();
       if (propEntities != null) {
         for (PropEntityArtifactDep entity : propEntities) {
-          PropEntityArtifactDep.ArtifactDependency dep = entity.createDependency(serviceLocator);
-          wrappers.add(dep);
-          deps.add(dep.dep);
+          SArtifactDependency newDep = entity.addToInternalMain(buildTypeSettings, serviceLocator);
+          deps.add(newDep);
+          enabledData.put(newDep.getId(), entity.disabled == null || !entity.disabled);
         }
       }
       buildTypeSettings.setArtifactDependencies(deps);
-      for (PropEntityArtifactDep.ArtifactDependency wrapper : wrappers) {
-        buildTypeSettings.setEnabled(wrapper.id, wrapper.enabled);
+      for (Map.Entry<String, Boolean> entry : enabledData.entrySet()) {
+        buildTypeSettings.setEnabled(entry.getKey(), entry.getValue());
       }
       return true; // cannot actually determine if modified or not
     } catch (Exception e) {

@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model;
 
+import com.google.common.base.Objects;
 import java.text.ParseException;
 import java.util.Collection;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -61,7 +62,7 @@ public class Property {
   public Property() {
   }
 
-  public Property(@NotNull final Parameter parameter, final boolean inherited, @NotNull final Fields fields, @NotNull final ServiceLocator serviceLocator) {
+  public Property(@NotNull final Parameter parameter, @Nullable final Boolean inherited, @NotNull final Fields fields, @NotNull final ServiceLocator serviceLocator) {
     name = !fields.isIncluded("name", true, true) ? null : parameter.getName();
     if (!isSecure(parameter, serviceLocator)) {
       value = !fields.isIncluded("value", true, true) ? null : parameter.getValue();
@@ -132,9 +133,7 @@ public class Property {
   public Parameter addTo(@NotNull final InheritableUserParametersHolder entity, @NotNull final ServiceLocator serviceLocator){
     Collection<Parameter> original = entity.getOwnParametersCollection();
     try {
-      Parameter fromPosted = getFromPosted(serviceLocator);
-      entity.addParameter(fromPosted);
-      return fromPosted;
+      return addToInternal(entity, serviceLocator);
     } catch (Exception e) {
       //restore
       BuildTypeUtil.removeAllParameters(entity);
@@ -143,6 +142,53 @@ public class Property {
       }
       throw new BadRequestException("Cannot set parameters: " + e.toString(), e);
     }
+  }
+
+  @NotNull
+  public Parameter addToInternal(final @NotNull InheritableUserParametersHolder entity, final @NotNull ServiceLocator serviceLocator) {
+    Parameter fromPosted = getFromPosted(serviceLocator);
+
+    if (inherited != null && inherited) {
+      Parameter similar = entity.getParameter(name);
+      if (similar != null && isSimilar(new Property(similar, inherited, Fields.LONG, serviceLocator))) return similar;
+    }
+
+    entity.addParameter(fromPosted);
+    return fromPosted;
+  }
+
+  public boolean isSimilar(final Property that) {
+    return that != null &&
+           Objects.equal(name, that.name) &&
+           Objects.equal(value, that.value) &&
+           Objects.equal(type, that.type);
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    final Property property = (Property)o;
+    return Objects.equal(name, property.name) &&
+           Objects.equal(value, property.value) &&
+           Objects.equal(inherited, property.inherited) &&
+           Objects.equal(type, property.type);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(name, value, inherited, type);
+  }
+
+  @Override
+  public String toString() {
+    final StringBuilder sb = new StringBuilder("Property{");
+    sb.append("name='").append(name).append('\'');
+    sb.append(", value='").append(value).append('\'');
+    sb.append(", inherited=").append(inherited);
+    sb.append(", type=").append(type);
+    sb.append('}');
+    return sb.toString();
   }
 }
 

@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model.buildType;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.List;
+import java.util.Objects;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -618,6 +619,54 @@ public class BuildType {
     this.submittedSettings = submittedSettings;
   }
 
+  //used in tests
+  public BuildType initializeSubmittedFromUsual() {
+    setId(getId());
+    setInternalId(getInternalId());
+    setLocator(getLocator());
+
+    setProjectId(getProjectId());
+    setProject(getProject());
+    setName(getName());
+    setDescription(getDescription());
+    setTemplateFlag(getTemplateFlag());
+    setPaused(isPaused());
+    BuildType template = getTemplate();
+    if (template != null) {
+      setTemplate(template.initializeSubmittedFromUsual());
+    }
+    setVcsRootEntries(getVcsRootEntries());
+    setParameters(getParameters());
+    setSteps(getSteps());
+    setFeatures(getFeatures());
+    setTriggers(getTriggers());
+    PropEntitiesSnapshotDep snapshotDependencies = getSnapshotDependencies();
+    if (snapshotDependencies != null){
+      if (snapshotDependencies.propEntities != null){
+        for (PropEntitySnapshotDep dep : snapshotDependencies.propEntities) {
+          if (dep.sourceBuildType != null){
+            dep.sourceBuildType.initializeSubmittedFromUsual();
+          }
+        }
+      }
+      setSnapshotDependencies(snapshotDependencies);
+    }
+    PropEntitiesArtifactDep artifactDependencies = getArtifactDependencies();
+    if (artifactDependencies != null){
+      if (artifactDependencies.propEntities != null){
+        for (PropEntityArtifactDep dep : artifactDependencies.propEntities) {
+          if (dep.sourceBuildType != null){
+            dep.sourceBuildType.initializeSubmittedFromUsual();
+          }
+        }
+      }
+      setArtifactDependencies(artifactDependencies);
+    }
+    setAgentRequirements(getAgentRequirements());
+    setSettings(getSettings());
+    return this;
+  }
+
   @NotNull
   public BuildTypeOrTemplate createNewBuildTypeFromPosted(@NotNull final ServiceLocator serviceLocator) {
     SProject project;
@@ -666,6 +715,11 @@ public class BuildType {
     }
   }
 
+  public boolean isSimilar(@Nullable final BuildType sourceBuildType) {
+    return sourceBuildType != null &&
+           (Objects.equals(submittedId, sourceBuildType.submittedId) || Objects.equals(submittedInternalId, sourceBuildType.submittedInternalId));
+  }
+
   private interface BuildTypeOrTemplatePatcher {
     @NotNull
     BuildTypeOrTemplate getBuildTypeOrTemplate();
@@ -695,24 +749,27 @@ public class BuildType {
       if (buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType() == null) {
         throw new BadRequestException("Cannot set template for a template");
       }
-      //noinspection ConstantConditions
-      final BuildTypeOrTemplate templateFromPosted = submittedTemplate.getBuildTypeFromPosted(serviceLocator.findSingletonService(BuildTypeFinder.class));
+      final BuildTypeOrTemplate templateFromPosted;
+      try {
+        //noinspection ConstantConditions
+        templateFromPosted = submittedTemplate.getBuildTypeFromPosted(serviceLocator.findSingletonService(BuildTypeFinder.class));
+      } catch (BadRequestException e) {
+        throw new BadRequestException("Error retrieving submitted template: " + e.getMessage(), e);
+      }
       if (templateFromPosted.getTemplate() == null) {
         throw new BadRequestException("'template' field should reference a template, not build type");
       }
       result = true;
       buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType().attachToTemplate(templateFromPosted.getTemplate());
     }
-    BuildTypeSettings buildTypeSettings = buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().get();
+    BuildTypeSettingsEx buildTypeSettings = buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getSettingsEx();
     if (submittedVcsRootEntries != null) {
       boolean updated = submittedVcsRootEntries.setToBuildType(buildTypeSettings, serviceLocator);
       result = result || updated;
     }
     if (submittedParameters != null && submittedParameters.properties != null) {
-      for (Property p : submittedParameters.properties) {
-        result = true;
-        BuildTypeUtil.changeParameter(p.name, p.value, buildTypeSettings, serviceLocator);
-      }
+      boolean updated = submittedParameters.setTo(buildTypeSettings, serviceLocator);
+      result = result || updated;
     }
     if (submittedSteps != null) {
       boolean updated = submittedSteps.setToBuildType(buildTypeSettings, serviceLocator);
@@ -741,7 +798,7 @@ public class BuildType {
     if (submittedSettings != null && submittedSettings.properties != null) {
       for (Property property : submittedSettings.properties) {
         try {
-          BuildTypeRequest.setSetting(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate(), property.name, property.value);
+          BuildTypeRequest.setSetting(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate(), property);
           result = true;
         } catch (java.lang.UnsupportedOperationException e) {  //can be thrown from EditableBuildTypeCopy
           LOG.debug("Error setting property '" + property.name + "' to value '" + property.value + "': " + e.getMessage());

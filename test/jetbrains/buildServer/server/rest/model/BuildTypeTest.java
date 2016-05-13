@@ -287,6 +287,7 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
 
   @Test
   public void testInheritance() {
+    //see also alike setup in BuildTypeRequestTest.testCreatingWithTemplate()
     ProjectEx project10 = createProject("project10", "project 10");
     MockVcsSupport vcs = vcsSupport().withName("vcs").dagBased(true).register();
     final SVcsRoot vcsRoot10 = project10.createVcsRoot("vcs", "extId10", "name10");

@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model;
 
+import com.google.common.base.Objects;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
@@ -40,5 +41,18 @@ public class ParameterType {
   public ParameterType(@NotNull ControlDescription typeSpec, @NotNull final Fields fields, @NotNull final ServiceLocator serviceLocator) {
     final String specString = serviceLocator.getSingletonService(ParameterDescriptionFactory.class).serializeSpec(typeSpec);
     rawValue = !fields.isIncluded("rawValue", true, true) ? null : specString;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    final ParameterType that = (ParameterType)o;
+    return Objects.equal(rawValue, that.rawValue);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(rawValue);
   }
 }

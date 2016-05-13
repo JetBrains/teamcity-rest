@@ -29,7 +29,6 @@ import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.InvalidVcsRootScopeException;
 import jetbrains.buildServer.vcs.CheckoutRules;
@@ -71,7 +70,7 @@ public class VcsRootEntry {
   }
 
   private static boolean isOwnVcsRoot(@NotNull final BuildTypeOrTemplate buildType, @NotNull final SVcsRoot vcsRoot) {
-    List<jetbrains.buildServer.vcs.VcsRootEntry> ownVcsRootEntries = ((BuildTypeEx)buildType.get()).getSettings().getOwnVcsRootEntries(); //can optimize by getting in the caller
+    List<jetbrains.buildServer.vcs.VcsRootEntry> ownVcsRootEntries = buildType.getSettingsEx().getOwnVcsRootEntries(); //can optimize by getting in the caller
     for (jetbrains.buildServer.vcs.VcsRootEntry entry : ownVcsRootEntries) {
       if (entry.getVcsRoot().getId() == vcsRoot.getId()) return true;
     }

@@ -66,7 +66,7 @@ public class PropEntitiesTrigger {
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), buildTriggersCollection.size());
   }
 
-  public boolean setToBuildType(final BuildTypeSettings buildTypeSettings, final ServiceLocator serviceLocator) {
+  public boolean setToBuildType(final BuildTypeSettingsEx buildTypeSettings, final ServiceLocator serviceLocator) {
     Storage original = new Storage(buildTypeSettings);
     try {
       removeAllTriggers(buildTypeSettings);

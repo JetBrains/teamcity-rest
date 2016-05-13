@@ -16,14 +16,19 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
+import com.google.common.base.Objects;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.PathTransformer;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.ParametersDescriptor;
@@ -111,5 +116,31 @@ public class PropEntity {
     } else {
       throw new BadRequestException("Only 'disabled' setting names is supported. '" + name + "' unknown.");
     }
+  }
+
+  static public BeanContext getFakeBeanContext(@NotNull final ServiceLocator serviceLocator) {
+    final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
+      public String transform(final String path) {
+        return path;
+      }
+    });
+    final BeanFactory beanFactory = new BeanFactory(null);
+
+    return new BeanContext(beanFactory, serviceLocator, apiUrlBuilder);
+  }
+
+  /**
+   * Checks all except id and disabled state
+   * @param that the entity to check the current one against
+   * @return
+   */
+  public boolean isSimilar(@Nullable final PropEntity that) {
+    return that != null &&
+//           (id == null || that.id == null || Objects.equal(id, that.id)) &&
+           (name == null || that.name == null || Objects.equal(name, that.name)) &&
+           (type == null || that.type == null || Objects.equal(type, that.type)) &&
+//           (disabled == null || that.disabled == null || Objects.equal(disabled, that.disabled)) &&
+           (inherited == null || that.inherited == null || Objects.equal(inherited, that.inherited)) &&
+           (properties == that.properties || ( properties != null && properties.isSimilar(that.properties)));
   }
 }

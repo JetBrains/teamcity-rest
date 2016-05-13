@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.Collections;
+import java.util.List;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
@@ -30,6 +31,7 @@ import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -50,7 +52,8 @@ public class PropEntityTrigger extends PropEntity implements PropEntityEdit<Buil
   }
 
   @NotNull
-  public BuildTriggerDescriptor addTo(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
+  @Override
+  public BuildTriggerDescriptor addTo(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
     PropEntitiesTrigger.Storage original = new PropEntitiesTrigger.Storage(buildType);
     try {
       return addToInternal(buildType, serviceLocator);
@@ -62,10 +65,30 @@ public class PropEntityTrigger extends PropEntity implements PropEntityEdit<Buil
   }
 
   @NotNull
-  public BuildTriggerDescriptor addToInternal(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
+  public BuildTriggerDescriptor addToInternal(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
+    BuildTriggerDescriptor result = addToInternalMain(buildType, serviceLocator);
+    if (disabled != null) {
+      buildType.setEnabled(result.getId(), !disabled);
+    }
+    return result;
+  }
+
+  @NotNull
+  public BuildTriggerDescriptor addToInternalMain(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Build trigger cannot have empty 'type'.");
     }
+
+    BuildTriggerDescriptor similar = getInheritedOrSameIdSimilar(buildType, serviceLocator);
+    if (inherited != null && inherited && similar != null) {
+      return similar;
+    }
+    if (similar != null && id != null && id.equals(similar.getId())) {
+      //not inherited, but id is the same
+      //todo
+      return similar;
+    }
+
     final BuildTriggerDescriptor triggerToAdd = serviceLocator
       .getSingletonService(BuildTriggerDescriptorFactory.class).createTriggerDescriptor(type, properties == null ? Collections.emptyMap() : properties.getMap());
 
@@ -83,8 +106,22 @@ public class PropEntityTrigger extends PropEntity implements PropEntityEdit<Buil
     return result;
   }
 
+  @Nullable
+  public BuildTriggerDescriptor getInheritedOrSameIdSimilar(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator){
+    final List<BuildTriggerDescriptor> ownItems = buildType.getOwnBuildTriggers();
+    for (BuildTriggerDescriptor item : buildType.getBuildTriggersCollection()) {
+      if (ownItems.contains(item)){
+        if (id == null || !id.equals(item.getId())) {
+          continue;
+        }
+      }
+      if (isSimilar(new PropEntityTrigger(item, buildType, Fields.LONG, getFakeBeanContext(serviceLocator)))) return item;
+    }
+    return null;
+  }
+
   @NotNull
-  public BuildTriggerDescriptor replaceIn(@NotNull final BuildTypeSettings buildType, @NotNull final BuildTriggerDescriptor trigger, @NotNull final ServiceLocator serviceLocator) {
+  public BuildTriggerDescriptor replaceIn(@NotNull final BuildTypeSettingsEx buildType, @NotNull final BuildTriggerDescriptor trigger, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Build trigger cannot have empty 'type'.");
     }

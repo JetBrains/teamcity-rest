@@ -67,7 +67,7 @@ public class PropEntitiesFeature {
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), buildFeatures.size());
   }
 
-  public boolean setToBuildType(@NotNull final BuildTypeSettings buildTypeSettings, @NotNull final ServiceLocator serviceLocator) {
+  public boolean setToBuildType(@NotNull final BuildTypeSettingsEx buildTypeSettings, @NotNull final ServiceLocator serviceLocator) {
     Storage original = new Storage(buildTypeSettings);
     removeAllFeatures(buildTypeSettings);
     try {

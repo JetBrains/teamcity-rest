@@ -66,7 +66,7 @@ public class PropEntitiesAgentRequirement {
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), requirements.size());
   }
 
-  public boolean setToBuildType(@NotNull final BuildTypeSettings buildTypeSettings, @NotNull final ServiceLocator serviceLocator) {
+  public boolean setToBuildType(@NotNull final BuildTypeSettingsEx buildTypeSettings, @NotNull final ServiceLocator serviceLocator) {
     Storage original = new Storage(buildTypeSettings);
     try {
       removeAll(buildTypeSettings);

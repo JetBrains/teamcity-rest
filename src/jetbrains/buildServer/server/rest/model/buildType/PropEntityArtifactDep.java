@@ -121,44 +121,91 @@ public class PropEntityArtifactDep extends PropEntity implements PropEntityEdit<
   }
 
   @NotNull
-  public SArtifactDependency addTo(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
+  @Override
+  public SArtifactDependency addTo(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
     PropEntitiesArtifactDep.Storage original = new PropEntitiesArtifactDep.Storage(buildType);
-    final ArtifactDependency newDependency;
     try {
       final List<SArtifactDependency> dependencies = new ArrayList<SArtifactDependency>(buildType.getArtifactDependencies());
-      newDependency = createDependency(serviceLocator);
-      dependencies.add(newDependency.dep);
+      SArtifactDependency result = addToInternal(buildType, serviceLocator);
+      dependencies.add(result);
       buildType.setArtifactDependencies(dependencies);
-      buildType.setEnabled(newDependency.id, newDependency.enabled);
+      return result;
     } catch (Exception e) {
       original.apply(buildType);
       throw new BadRequestException("Error adding artifact dependency: " + e.toString(), e);
     }
-    return newDependency.dep;
   }
 
   @NotNull
-  public SArtifactDependency replaceIn(@NotNull final BuildTypeSettings buildType, @NotNull final SArtifactDependency originalDep, @NotNull final ServiceLocator serviceLocator) {
-    final PropEntityArtifactDep.ArtifactDependency newDependency = createDependency(serviceLocator);
+  public SArtifactDependency addToInternal(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
+    SArtifactDependency result = addToInternalMain(buildType, serviceLocator);
+    if (disabled != null) {
+      buildType.setEnabled(result.getId(), !disabled);
+    }
+    return result;
+  }
+
+  @NotNull
+  public SArtifactDependency addToInternalMain(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
+    SArtifactDependency similar = getInheritedOrSameIdSimilar(buildType, serviceLocator);
+    if (inherited != null && inherited && similar != null) {
+      return similar;
+    }
+    if (similar != null && id != null && id.equals(similar.getId())) {
+      //not inherited, but id is the same
+      //todo
+      return similar;
+    }
+
+    //special case for "overriden" entities
+    if (id != null) {
+      for (SArtifactDependency item : buildType.getArtifactDependencies()) {
+        if (id.equals(item.getId())) {
+          return createDependency(id, serviceLocator);
+        }
+      }
+    }
+
+    return createDependency(null, serviceLocator);
+  }
+
+  @Nullable
+  public SArtifactDependency getInheritedOrSameIdSimilar(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
+    final List<SArtifactDependency> ownItems = buildType.getOwnArtifactDependencies();
+    for (SArtifactDependency item : buildType.getArtifactDependencies()) {
+      if (ownItems.contains(item)) {
+        if (id == null || !id.equals(item.getId())) {
+          continue;
+        }
+      }
+      if (isSimilar(new PropEntityArtifactDep(item, buildType, Fields.LONG, getFakeBeanContext(serviceLocator)))) return item;
+    }
+    return null;
+  }
+
+  @NotNull
+  @Override
+  public SArtifactDependency replaceIn(@NotNull final BuildTypeSettingsEx buildType, @NotNull final SArtifactDependency originalDep, @NotNull final ServiceLocator serviceLocator) {
+    final SArtifactDependency newDependency = createDependency(null, serviceLocator);
 
     PropEntitiesArtifactDep.Storage original = new PropEntitiesArtifactDep.Storage(buildType);
     final List<SArtifactDependency> newDependencies = new ArrayList<>(original.deps.size());
     for (SArtifactDependency currentDependency : original.deps) {
       if (currentDependency.equals(originalDep)) {
-        newDependencies.add(newDependency.dep);
+        newDependencies.add(newDependency);
       } else {
         newDependencies.add(currentDependency);
       }
     }
     try {
       buildType.setArtifactDependencies(newDependencies);
-      buildType.setEnabled(newDependency.id, newDependency.enabled);
+      buildType.setEnabled(newDependency.getId(), disabled == null || !disabled);
     } catch (Exception e) {
       //restore
       original.apply(buildType);
       throw new BadRequestException("Error updating artifact dependencies: " + e.toString(), e);
     }
-    return newDependency.dep;
+    return newDependency;
   }
 
   public static void removeFrom(@NotNull final BuildTypeSettings buildType, @NotNull final SArtifactDependency artifactDependency) {
@@ -170,7 +217,7 @@ public class PropEntityArtifactDep extends PropEntity implements PropEntityEdit<
   }
 
   @NotNull
-  public ArtifactDependency createDependency(@NotNull final ServiceLocator serviceLocator) {
+  public SArtifactDependency createDependency(@Nullable String forcedId, @NotNull final ServiceLocator serviceLocator) {
     if (!ARTIFACT_DEPENDENCY_TYPE_NAME.equals(type)){
       throw new BadRequestException("Artifact dependency should have type '" + ARTIFACT_DEPENDENCY_TYPE_NAME + "'.");
     }
@@ -188,15 +235,22 @@ public class PropEntityArtifactDep extends PropEntity implements PropEntityEdit<
     if (sourcePaths == null) {
       throw new BadRequestException("Missing source path property '" + NAME_PATH_RULES + "'. Should be specified.");
     }
-    final SArtifactDependency artifactDependency = serviceLocator.getSingletonService(ArtifactDependencyFactory.class).
-      createArtifactDependency(buildTypeIdDependOn, sourcePaths,
-                               getRevisionRule(revisionName, propertiesMap.get(NAME_REVISION_VALUE), propertiesMap.get(NAME_REVISION_BRANCH)));
+    ArtifactDependencyFactory factory = serviceLocator.getSingletonService(ArtifactDependencyFactory.class);
+    final SArtifactDependency artifactDependency;
+    if (forcedId == null) {
+      artifactDependency = factory.createArtifactDependency(buildTypeIdDependOn, sourcePaths,
+                                                            getRevisionRule(revisionName, propertiesMap.get(NAME_REVISION_VALUE), propertiesMap.get(NAME_REVISION_BRANCH)));
+    } else {
+      artifactDependency = factory.createArtifactDependency(forcedId, buildTypeIdDependOn, sourcePaths,
+                                                            getRevisionRule(revisionName, propertiesMap.get(NAME_REVISION_VALUE), propertiesMap.get(NAME_REVISION_BRANCH)));
+    }
+
     final String cleanDir = propertiesMap.get(NAME_CLEAN_DESTINATION_DIRECTORY);
     if (cleanDir != null) {
       artifactDependency.setCleanDestinationFolder(Boolean.parseBoolean(cleanDir));
     }
     //noinspection SimplifiableConditionalExpression
-    return new ArtifactDependency(artifactDependency, disabled == null ? true : !disabled);
+    return artifactDependency;
   }
 
   @NotNull
@@ -217,15 +271,9 @@ public class PropEntityArtifactDep extends PropEntity implements PropEntityEdit<
     }
   }
 
-  public static class ArtifactDependency {
-    @NotNull public SArtifactDependency dep;
-    public boolean enabled;
-    public String id;
-
-    public ArtifactDependency(@NotNull final SArtifactDependency dep, final boolean enabled) {
-      this.dep = dep;
-      this.id = dep.getId();
-      this.enabled = enabled;
-    }
+  private boolean isSimilar(@Nullable final PropEntityArtifactDep that) {
+    return that != null &&
+           (sourceBuildType == that.sourceBuildType || (sourceBuildType != null && sourceBuildType.isSimilar(that.sourceBuildType))) &&
+           super.isSimilar(that);
   }
 }

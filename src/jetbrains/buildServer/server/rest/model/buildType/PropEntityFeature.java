@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.HashMap;
+import java.util.List;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -29,6 +30,7 @@ import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -45,11 +47,48 @@ public class PropEntityFeature extends PropEntity implements PropEntityEdit<SBui
   }
 
   @NotNull
-  public SBuildFeatureDescriptor addToInternal(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
+  public SBuildFeatureDescriptor addToInternal(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
+    SBuildFeatureDescriptor result = addToInternalMain(buildType, serviceLocator);
+    if (disabled != null) {
+      buildType.setEnabled(result.getId(), !disabled);
+    }
+    return result;
+  }
+
+  @NotNull
+  public SBuildFeatureDescriptor addToInternalMain(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Created build feature cannot have empty 'type'.");
     }
-    final SBuildFeatureDescriptor newBuildFeature = serviceLocator.getSingletonService(BuildFeatureDescriptorFactory.class).createNewBuildFeature(type, properties != null ? properties.getMap() : new HashMap<String, String>());
+    SBuildFeatureDescriptor similar = getInheritedOrSameIdSimilar(buildType, serviceLocator);
+    if (inherited != null && inherited && similar != null) {
+      return similar;
+    }
+    if (similar != null && id != null && id.equals(similar.getId())) {
+      //not inherited, but id is the same
+      //todo
+      return similar;
+    }
+
+    @NotNull final BuildFeatureDescriptorFactory factory = serviceLocator.getSingletonService(BuildFeatureDescriptorFactory.class);
+    String forcedId = null;
+    //special case for "overriden" entities
+    if (id != null) {
+      for (SBuildFeatureDescriptor item : buildType.getBuildFeatures()) {
+        if (id.equals(item.getId())) {
+          forcedId = id;
+          break;
+        }
+      }
+    }
+
+    SBuildFeatureDescriptor newBuildFeature;
+    if (forcedId != null) {
+      newBuildFeature = factory.createBuildFeature(forcedId, type, properties != null ? properties.getMap() : new HashMap<String, String>());
+    } else {
+      newBuildFeature = factory.createNewBuildFeature(type, properties != null ? properties.getMap() : new HashMap<String, String>());
+    }
+
     try {
       buildType.addBuildFeature(newBuildFeature);
     } catch (Exception e) {
@@ -62,8 +101,23 @@ public class PropEntityFeature extends PropEntity implements PropEntityEdit<SBui
     return BuildTypeUtil.getBuildTypeFeatureOrNull(buildType, newBuildFeature.getId());
   }
 
+  @Nullable
+  public SBuildFeatureDescriptor getInheritedOrSameIdSimilar(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
+    final List<SBuildFeatureDescriptor> ownItems = buildType.getOwnBuildFeatures();
+    for (SBuildFeatureDescriptor item : buildType.getBuildFeatures()) {
+      if (ownItems.contains(item)) {
+        if (id == null || !id.equals(item.getId())) {
+          continue;
+        }
+      }
+      if (isSimilar(new PropEntityFeature(item, buildType, Fields.LONG, getFakeBeanContext(serviceLocator)))) return item;
+    }
+    return null;
+  }
+
   @NotNull
-  public SBuildFeatureDescriptor addTo(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
+  @Override
+  public SBuildFeatureDescriptor addTo(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
     PropEntitiesFeature.Storage original = new PropEntitiesFeature.Storage(buildType);
     try {
       return addToInternal(buildType, serviceLocator);
@@ -74,7 +128,10 @@ public class PropEntityFeature extends PropEntity implements PropEntityEdit<SBui
   }
 
   @NotNull
-  public SBuildFeatureDescriptor replaceIn(@NotNull final BuildTypeSettings buildType, @NotNull final SBuildFeatureDescriptor feature, @NotNull final ServiceLocator serviceLocator) {
+  @Override
+  public SBuildFeatureDescriptor replaceIn(@NotNull final BuildTypeSettingsEx buildType,
+                                           @NotNull final SBuildFeatureDescriptor feature,
+                                           @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Build feature cannot have empty 'type'.");
     }

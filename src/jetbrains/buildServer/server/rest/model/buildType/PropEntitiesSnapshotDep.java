@@ -67,7 +67,7 @@ public class PropEntitiesSnapshotDep {
   /**
    * @return true if buildTypeSettings is modified
    */
-  public boolean setToBuildType(final @NotNull BuildTypeSettings buildTypeSettings, final @NotNull ServiceLocator serviceLocator) {
+  public boolean setToBuildType(final @NotNull BuildTypeSettingsEx buildTypeSettings, final @NotNull ServiceLocator serviceLocator) {
     final List<Dependency> originalDependencies = buildTypeSettings.getDependencies();
     try {
       removeAllDependencies(buildTypeSettings);
@@ -83,7 +83,7 @@ public class PropEntitiesSnapshotDep {
       for (Dependency dependency : originalDependencies) {
         buildTypeSettings.addDependency(dependency);
       }
-      throw new BadRequestException("Error setting snapshot dependencies", e);
+      throw new BadRequestException("Error setting snapshot dependencies: " + e.toString(), e);
     }
   }
 

@@ -23,7 +23,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 10.04.13
  */
 public class FilterUtil {
-  public static boolean isIncludedByBooleanFilter(@Nullable final Boolean filterValue, final boolean actualValue) {
-    return filterValue == null || (!(filterValue ^ actualValue));
+  public static boolean isIncludedByBooleanFilter(@Nullable final Boolean filterValue, @Nullable final Boolean actualValue) {
+    return filterValue == null || actualValue == null || (!(filterValue ^ actualValue));
   }
 }

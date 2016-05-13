@@ -173,9 +173,7 @@ public class ParametersSubResource {
   @Produces({"application/xml", "application/json"})
   public Property setParameter(@PathParam("name") String parameterName, Property parameter, @QueryParam("fields") String fields) {
     parameter.name = parameterName; //overriding name in the entity with the value from URL
-    final Parameter fromPosted = parameter.getFromPosted(myServiceLocator);
-    //myEntityWithParameters.removeParameter(fromPosted.getName());
-    myEntityWithParameters.addParameter(fromPosted); //when such parameter already exists, the method replaces it
+    parameter.addTo(myEntityWithParameters, myServiceLocator);
     myEntityWithParameters.persist();
     return Property.createFrom(parameter.name, myEntityWithParameters, new Fields(fields), myServiceLocator);
   }

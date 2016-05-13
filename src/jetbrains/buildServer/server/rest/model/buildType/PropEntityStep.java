@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.Collections;
+import java.util.List;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -30,6 +31,7 @@ import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import jetbrains.buildServer.serverSide.SBuildRunnerDescriptor;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -48,7 +50,8 @@ public class PropEntityStep extends PropEntity implements PropEntityEdit<SBuildR
   }
 
   @NotNull
-  public SBuildRunnerDescriptor addTo(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
+  @Override
+  public SBuildRunnerDescriptor addTo(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
     PropEntitiesStep.Storage original = new PropEntitiesStep.Storage(buildType);
     try {
       return addToInternal(buildType, serviceLocator);
@@ -60,22 +63,53 @@ public class PropEntityStep extends PropEntity implements PropEntityEdit<SBuildR
   }
 
   @NotNull
-  public SBuildRunnerDescriptor addToInternal(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
+  public SBuildRunnerDescriptor addToInternal(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
+    SBuildRunnerDescriptor result = addToInternalMain(buildType, serviceLocator);
+    if (disabled != null) {
+      buildType.setEnabled(result.getId(), !disabled);
+    }
+    return result;
+  }
+
+  @NotNull
+  public SBuildRunnerDescriptor addToInternalMain(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Created step cannot have empty 'type'.");
+    }
+
+    SBuildRunnerDescriptor similar = getInheritedOrSameIdSimilar(buildType, serviceLocator);
+    if (inherited != null && inherited && similar != null) {
+      return similar;
+    }
+    if (similar != null && id != null && id.equals(similar.getId())) {
+      //not inherited, but id is the same
+      //todo
+      return similar;
     }
 
     @SuppressWarnings("ConstantConditions")
     final SBuildRunnerDescriptor runnerToCreate =
       buildType.addBuildRunner(StringUtil.isEmpty(name) ? "" : name, type, properties != null ? properties.getMap() : Collections.<String, String>emptyMap());
-    if (disabled != null) {
-      buildType.setEnabled(runnerToCreate.getId(), !disabled);
-    }
     return runnerToCreate;
   }
 
+  @Nullable
+  public SBuildRunnerDescriptor getInheritedOrSameIdSimilar(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator){
+    final List<SBuildRunnerDescriptor> ownItems = buildType.getOwnBuildRunners();
+    for (SBuildRunnerDescriptor item : buildType.getBuildRunners()) {
+      if (ownItems.contains(item)){
+        if (id == null || !id.equals(item.getId())) {
+          continue;
+        }
+      }
+      if (isSimilar(new PropEntityStep(item, buildType, Fields.LONG, getFakeBeanContext(serviceLocator)))) return item;
+    }
+    return null;
+  }
+
   @NotNull
-  public SBuildRunnerDescriptor replaceIn(@NotNull final BuildTypeSettings buildType, @NotNull SBuildRunnerDescriptor step, @NotNull final ServiceLocator serviceLocator) {
+  @Override
+  public SBuildRunnerDescriptor replaceIn(@NotNull final BuildTypeSettingsEx buildType, @NotNull SBuildRunnerDescriptor step, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Created step cannot have empty 'type'.");
     }

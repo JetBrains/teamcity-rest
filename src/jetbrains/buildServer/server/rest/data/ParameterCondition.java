@@ -253,7 +253,7 @@ public class ParameterCondition {
     };
   }
 
-  public boolean parameterMatches(@NotNull final Parameter parameter, final boolean inherited) {
+  public boolean parameterMatches(@NotNull final Parameter parameter, @Nullable final Boolean inherited) {
     if (myNameCheckShouldMatchAll) throw new OperationException("Dimension '" + NAME_MATCH_CHECK + "' is not supported for this filter");
     return myNameCondition.matches(parameter.getName()) && myValueCondition.matches(parameter.getValue()) && FilterUtil.isIncludedByBooleanFilter(myInheritedCondition, inherited);
   }

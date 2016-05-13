@@ -86,7 +86,7 @@ public class Properties  implements DefaultValueAware {
         final ParameterCondition parameterCondition = getParameterCondition(fields.getLocator());
         for (java.util.Map.Entry<String, String> prop : parameters.entrySet()) {
           SimpleParameter parameter = new SimpleParameter(prop.getKey(), prop.getValue() != null ? prop.getValue() : "");
-          boolean inherited = ownParameters == null || !ownParameters.containsKey(prop.getKey());
+          Boolean inherited = ownParameters == null ? null : !ownParameters.containsKey(prop.getKey());
           if (parameterCondition == null || parameterCondition.parameterMatches(parameter, inherited)) {
             this.properties.add(new Property(parameter, inherited, propertyFields, serviceLocator));
           }
@@ -173,25 +173,14 @@ public class Properties  implements DefaultValueAware {
     return ValueWithDefault.isAllDefault(count, href, properties);
   }
 
-  @NotNull
-  public List<Parameter> getFromPosted(@NotNull final ServiceLocator serviceLocator) {
-    if (properties == null) {
-      return Collections.emptyList();
-    }
-    final ArrayList<Parameter> result = new ArrayList<Parameter>(properties.size());
-    for (Property parameter : properties) {
-      result.add(parameter.getFromPosted(serviceLocator));
-    }
-    return result;
-  }
-
   public boolean setTo(@NotNull final InheritableUserParametersHolder holder, @NotNull final ServiceLocator serviceLocator) {
     Collection<Parameter> original = holder.getOwnParametersCollection();
-    final List<Parameter> fromPosted = getFromPosted(serviceLocator);
     try {
       BuildTypeUtil.removeAllParameters(holder);
-      for (Parameter p : fromPosted) {
-        holder.addParameter(p);
+      if (properties != null) {
+        for (Property entity : properties) {
+          entity.addToInternal(holder, serviceLocator);
+        }
       }
       return true;
     } catch (Exception e) {
@@ -202,5 +191,11 @@ public class Properties  implements DefaultValueAware {
       }
       throw new BadRequestException("Cannot set parameters: " + e.toString(), e);
     }
+  }
+
+  public boolean isSimilar(final Properties that) {
+    return that != null &&
+          (count == null || that.count == null || com.google.common.base.Objects.equal(count, that.count)) &&
+          (properties == null || that.properties == null || com.google.common.base.Objects.equal(properties, that.properties));
   }
 }
