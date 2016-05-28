@@ -428,7 +428,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
       assertEquals(1, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getVcsRootEntries().size());
       assertEquals(1, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildRunners().size());
       assertEquals(1, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildFeatures().size());
-      assertEquals(1, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getUserDefinedParameters().size());
+      assertEquals(1, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getParameters().size());
     }
 
     //this test will actually test something only with option to copy the current settings from the build type. As so far empty build type is created, these checks check nothing
@@ -448,7 +448,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
       assertEquals(1, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getVcsRootEntries().size()); //these cannot be overriden so far, should actually throw exception on triggering
       assertEquals(0, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildRunners().size());
       assertEquals(0, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildFeatures().size());
-      assertEquals(0, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getUserDefinedParameters().size());
+      assertEquals(0, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getParameters().size());
     }
   }
 
