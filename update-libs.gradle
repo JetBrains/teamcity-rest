@@ -141,16 +141,13 @@ task fetchSwaggerSrc(type: Copy) {
 }
 
 
-task fetchSrc
-fetchSrc.dependsOn fetchJerseySrc, fetchJacksonSrc, fetchSwaggerSrc
+task sources(dependsOn: [fetchJerseySrc, fetchJacksonSrc, fetchSwaggerSrc])
 
-task fetchLibs
-fetchLibs.dependsOn fetchJersey, fetchJackson, fetchSwagger
+task fetchLibs(dependsOn: [fetchJersey, fetchJackson, fetchSwagger])
 
-task fetch
-fetch.dependsOn fetchLibs, fetchSrc
+task update(dependsOn: fetchLibs)
 
 task cleanup(type: Delete) {
   delete '.gradle', project.buildDir
 }
-cleanup.shouldRunAfter fetch
+cleanup.shouldRunAfter update
