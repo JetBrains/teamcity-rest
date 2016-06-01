@@ -18,7 +18,7 @@
 
 ext.versions = [
         'jersey' : '1.19',
-        'jackson': '2.6.3', //swagger requires at least 2.4.0
+        'jackson': '2.6.6', //swagger requires at least 2.4.0
         'swagger': '1.5.4',
 ]
 
