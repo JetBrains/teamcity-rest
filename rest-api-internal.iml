@@ -57,29 +57,29 @@
     <orderEntry type="module-library" exported="">
       <library name="Jackson">
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/jackson-annotations-2.6.3.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-core-2.6.3.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-databind-2.6.3.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-dataformat-xml-2.6.3.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-dataformat-yaml-2.6.3.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-datatype-joda-2.6.3.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-jaxrs-base-2.6.3.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-jaxrs-json-provider-2.6.3.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jackson-module-jaxb-annotations-2.6.3.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-annotations-2.6.6.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-core-2.6.6.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-databind-2.6.6.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-dataformat-xml-2.6.6.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-dataformat-yaml-2.6.6.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-datatype-joda-2.6.6.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-jaxrs-base-2.6.6.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-jaxrs-json-provider-2.6.6.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jackson-module-jaxb-annotations-2.6.6.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/stax2-api-3.1.4.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/snakeyaml-1.15.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-annotations-2.6.3-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-core-2.6.3-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-databind-2.6.3-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-dataformat-xml-2.6.3-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-dataformat-yaml-2.6.3-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-datatype-joda-2.6.3-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-jaxrs-base-2.6.3-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-jaxrs-json-provider-2.6.3-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jackson-module-jaxb-annotations-2.6.3-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-annotations-2.6.6-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-core-2.6.6-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-databind-2.6.6-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-dataformat-xml-2.6.6-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-dataformat-yaml-2.6.6-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-datatype-joda-2.6.6-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-jaxrs-base-2.6.6-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-jaxrs-json-provider-2.6.6-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-module-jaxb-annotations-2.6.6-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>

@@ -62,15 +62,15 @@
   <!-- Project Libraries -->
   
   <path id="library.jackson.classpath">
-    <pathelement location="${basedir}/lib/jackson-annotations-2.6.3.jar"/>
-    <pathelement location="${basedir}/lib/jackson-core-2.6.3.jar"/>
-    <pathelement location="${basedir}/lib/jackson-databind-2.6.3.jar"/>
-    <pathelement location="${basedir}/lib/jackson-dataformat-xml-2.6.3.jar"/>
-    <pathelement location="${basedir}/lib/jackson-dataformat-yaml-2.6.3.jar"/>
-    <pathelement location="${basedir}/lib/jackson-datatype-joda-2.6.3.jar"/>
-    <pathelement location="${basedir}/lib/jackson-jaxrs-base-2.6.3.jar"/>
-    <pathelement location="${basedir}/lib/jackson-jaxrs-json-provider-2.6.3.jar"/>
-    <pathelement location="${basedir}/lib/jackson-module-jaxb-annotations-2.6.3.jar"/>
+    <pathelement location="${basedir}/lib/jackson-annotations-2.6.6.jar"/>
+    <pathelement location="${basedir}/lib/jackson-core-2.6.6.jar"/>
+    <pathelement location="${basedir}/lib/jackson-databind-2.6.6.jar"/>
+    <pathelement location="${basedir}/lib/jackson-dataformat-xml-2.6.6.jar"/>
+    <pathelement location="${basedir}/lib/jackson-dataformat-yaml-2.6.6.jar"/>
+    <pathelement location="${basedir}/lib/jackson-datatype-joda-2.6.6.jar"/>
+    <pathelement location="${basedir}/lib/jackson-jaxrs-base-2.6.6.jar"/>
+    <pathelement location="${basedir}/lib/jackson-jaxrs-json-provider-2.6.6.jar"/>
+    <pathelement location="${basedir}/lib/jackson-module-jaxb-annotations-2.6.6.jar"/>
     <pathelement location="${basedir}/lib/snakeyaml-1.15.jar"/>
     <pathelement location="${basedir}/lib/stax2-api-3.1.4.jar"/>
   </path>
