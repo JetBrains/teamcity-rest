@@ -80,11 +80,10 @@ dependencies {
   jackson dep("com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider:${versions.jackson}")
   jackson dep("com.fasterxml.jackson.module:jackson-module-jaxb-annotations:${versions.jackson}")
 
-  swagger(dep(group: 'io.swagger', name: 'swagger-models', version: versions.swagger),
+  swagger(
           dep(group: 'io.swagger', name: 'swagger-core', version: versions.swagger),
-          dep(group: 'io.swagger', name: 'swagger-jaxrs', version: versions.swagger),
           dep(group: 'io.swagger', name: 'swagger-jersey-jaxrs', version: versions.swagger),
-          dep(group: 'io.swagger', name: 'swagger-annotations', version: versions.swagger))
+  )
 
 }
 
@@ -105,6 +104,11 @@ configurations.jersey.exclude group: 'org.codehaus.jackson' // added later from 
 configurations.jersey.exclude group: 'org.springframework' // TC core
 configurations.jersey.exclude module: 'aopalliance' // TC core
 configurations.jersey.exclude module: 'commons-logging' // TC core
+
+// Until https://github.com/swagger-api/swagger-core/pull/1814/ is released:
+configurations.swagger.exclude group: 'com.sun.jersey', module: 'jersey-servlet'
+configurations.swagger.exclude group: 'com.sun.jersey', module: 'jersey-server'
+configurations.swagger.exclude group: 'com.sun.jersey', module: 'jersey-client'
 
 task fetchJersey(type: Copy) {
   from configurations.jersey.grep { !it.name.contains("sources") }
