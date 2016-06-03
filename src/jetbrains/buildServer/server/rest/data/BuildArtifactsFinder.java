@@ -34,9 +34,11 @@ import jetbrains.buildServer.serverSide.BuildPromotionEx;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactHolder;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifacts;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactsViewMode;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
+import jetbrains.buildServer.util.ExceptionUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.browser.*;
 import jetbrains.buildServer.util.filters.Filter;
@@ -396,6 +398,10 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
           }
         });
       } catch (BrowserException e) {
+        //noinspection ThrowableResultOfMethodCallIgnored
+        if (ExceptionUtil.getCause(e, AccessDeniedException.class) != null) {
+          throw new AuthorizationFailedException("Error listing children for artifact '" + myElement.getFullName() + "'.", e);
+        }
         throw new OperationException("Error listing children for artifact '" + myElement.getFullName() + "'.", e);
       }
     }
