@@ -29,6 +29,7 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.serverSide.metadata.BuildMetadataEntry;
 import jetbrains.buildServer.serverSide.metadata.impl.MetadataStorageEx;
@@ -228,6 +229,16 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected ItemFilter<BuildPromotion> getFilter(@NotNull final Locator locator) {
 
     final MultiCheckerFilter<BuildPromotion> result = new MultiCheckerFilter<BuildPromotion>();
+
+    //checking permissions to view - workaround for TW-45544
+    result.add(item -> {
+      try {
+        item.getBuildType();
+        return true;
+      } catch (AccessDeniedException e) {
+        return false; //excluding from the lists as secure wrappers usually do
+      }
+    });
 
     Locator stateLocator = getStateLocator(locator);
 
@@ -878,6 +889,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     //the logic should match that of getBuildId(String)
     final BuildPromotion buildPromotion = buildPromotionManager.findPromotionOrReplacement(id);
     if (buildPromotion != null && (getBuildId(buildPromotion) == buildPromotion.getId())) {
+      buildPromotion.getBuildType(); //checking permissions to view - workaround for TW-45544
       return buildPromotion;
     }
     final SBuild build = buildsManager.findBuildInstanceById(id);
