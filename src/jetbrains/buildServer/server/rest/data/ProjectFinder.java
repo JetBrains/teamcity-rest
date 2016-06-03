@@ -27,14 +27,14 @@ import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.project.Project;
-import jetbrains.buildServer.serverSide.ProjectManager;
-import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -55,6 +55,9 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   public static final String DIMENSION_ARCHIVED = "archived";
   protected static final String DIMENSION_PARAMETER = "parameter";
   protected static final String DIMENSION_SELECTED = "selectedByUser";
+  public static final String BUILD = "build";
+  public static final String BUILD_TYPE = "buildType";
+  public static final String VCS_ROOT = "vcsRoot";
 
   @NotNull private final ProjectManager myProjectManager;
   private final PermissionChecker myPermissionChecker;
@@ -62,7 +65,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
   public ProjectFinder(@NotNull final ProjectManager projectManager, final PermissionChecker permissionChecker, @NotNull final ServiceLocator serviceLocator){
     super(new String[]{DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, DIMENSION_AFFECTED_PROJECT, DIMENSION_NAME, DIMENSION_ARCHIVED,
-      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+      BUILD, BUILD_TYPE, VCS_ROOT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myProjectManager = projectManager;
     myPermissionChecker = permissionChecker;
     myServiceLocator = serviceLocator;
@@ -151,6 +154,27 @@ public class ProjectFinder extends AbstractFinder<SProject> {
         throw new NotFoundException("No project found by locator '" + locator.getStringRepresentation() + "'. Project cannot be found by uuid '" + uuid + "'.");
       }
       return project;
+    }
+
+    String buildLocator = locator.getSingleDimensionValue(BUILD);
+    if (!StringUtil.isEmpty(buildLocator)) {
+      BuildPromotion build = myServiceLocator.getSingletonService(BuildPromotionFinder.class).getItem(buildLocator);
+      SBuildType buildType = build.getBuildType();
+      if (buildType != null) {
+        return buildType.getProject();
+      }
+    }
+
+    String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
+    if (!StringUtil.isEmpty(buildTypeLocator)) {
+      BuildTypeOrTemplate buildType = myServiceLocator.getSingletonService(BuildTypeFinder.class).getItem(buildTypeLocator);
+      return buildType.getProject();
+    }
+
+    String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT);
+    if (!StringUtil.isEmpty(vcsRootLocator)) {
+      SVcsRoot vcsRoot = myServiceLocator.getSingletonService(VcsRootFinder.class).getItem(vcsRootLocator);
+      return vcsRoot.getProject();
     }
 
     return null;

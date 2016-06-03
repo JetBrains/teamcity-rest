@@ -17,13 +17,16 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
+import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -40,6 +43,7 @@ public class BranchFinder extends AbstractFinder<Branch> {
   protected static final String BRANCHED = "branched";
   private static final String NAME_CONDITION = "nameCondition";
   private static final String DISPLAY_NAME_CONDITION = "displayNameCondition";
+  public static final String BUILD = "build";
 
   protected static final String POLICY = "policy";
   protected static final String CHANGES_FROM_DEPENDENCIES = "changesFromDependencies";   //todo: revise naming
@@ -47,10 +51,12 @@ public class BranchFinder extends AbstractFinder<Branch> {
   private static final String ANY = "<any>";
 
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
+  @NotNull private final ServiceLocator myServiceLocator;
 
-  public BranchFinder(@NotNull final BuildTypeFinder buildTypeFinder) {
-    super(NAME, DEFAULT, UNSPECIFIED, BUILD_TYPE, POLICY, CHANGES_FROM_DEPENDENCIES, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME); //see also getBranchFilterDetails
+  public BranchFinder(@NotNull final BuildTypeFinder buildTypeFinder, @NotNull final ServiceLocator serviceLocator) {
+    super(NAME, DEFAULT, UNSPECIFIED, BUILD_TYPE, BUILD, POLICY, CHANGES_FROM_DEPENDENCIES, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME); //see also getBranchFilterDetails
     myBuildTypeFinder = buildTypeFinder;
+    myServiceLocator = serviceLocator;
   }
 
   @NotNull
@@ -195,6 +201,12 @@ public class BranchFinder extends AbstractFinder<Branch> {
   @NotNull
   @Override
   protected ItemHolder<Branch> getPrefilteredItems(@NotNull final Locator locator) {
+    String buildLocator = locator.getSingleDimensionValue(BUILD);
+    if (!StringUtil.isEmpty(buildLocator)) {
+      BuildPromotion build = myServiceLocator.getSingletonService(BuildPromotionFinder.class).getItem(buildLocator);
+      return getItemHolder(Collections.singleton(build.getBranch()));
+    }
+
     final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
     if (buildTypeLocator == null) {
       throw new BadRequestException("No '" + BUILD_TYPE + "' dimension is present but it is required for searching branches. Locator: '" + locator.getStringRepresentation() + "'");

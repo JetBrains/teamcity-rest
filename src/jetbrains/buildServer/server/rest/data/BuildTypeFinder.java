@@ -69,6 +69,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   protected static final String DIMENSION_SELECTED = "selectedByUser";
   public static final String VCS_ROOT_DIMENSION = "vcsRoot";
   public static final String VCS_ROOT_INSTANCE_DIMENSION = "vcsRootInstance";
+  public static final String BUILD = "build";
 
   private final ProjectFinder myProjectFinder;
   @NotNull private final AgentFinder myAgentFinder;
@@ -82,7 +83,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
                          final PermissionChecker permissionChecker,
                          @NotNull final ServiceLocator serviceLocator) {
     super(new String[]{DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, AFFECTED_PROJECT, DIMENSION_NAME, TEMPLATE_FLAG_DIMENSION_NAME,
-      TEMPLATE_DIMENSION_NAME, PAUSED, VCS_ROOT_DIMENSION, VCS_ROOT_INSTANCE_DIMENSION,
+      TEMPLATE_DIMENSION_NAME, PAUSED, VCS_ROOT_DIMENSION, VCS_ROOT_INSTANCE_DIMENSION, BUILD,
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myProjectManager = projectManager;
     myProjectFinder = projectFinder;
@@ -207,6 +208,15 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
                                     " Cannot be found by external or internal id '" + id + "'.");
       }
       throw new NotFoundException("No " + getName(template) + " is found by id '" + id + "'.");
+    }
+
+    String buildLocator = locator.getSingleDimensionValue(BUILD);
+    if (!StringUtil.isEmpty(buildLocator)) {
+      BuildPromotion build = myServiceLocator.getSingletonService(BuildPromotionFinder.class).getItem(buildLocator);
+      SBuildType buildType = build.getBuildType();
+      if (buildType != null) {
+        return new BuildTypeOrTemplate(buildType);
+      }
     }
 
     return null;
