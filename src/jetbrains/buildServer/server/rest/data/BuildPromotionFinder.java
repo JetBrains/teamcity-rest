@@ -538,7 +538,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private Long getBuildId(@Nullable final String buildLocator) {
     if (buildLocator == null) {
       return null;
-      return buildPromotion;
     }
     final Long buildId = getBuildId(new Locator(buildLocator));
     if (buildId != null) {
