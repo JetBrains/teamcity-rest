@@ -753,7 +753,14 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     final BuildPromotion build40 = build().in(buildConf).onModifications(modification).finish().getBuildPromotion();
 
     checkBuilds("revision:rev_Vcs1_2", build20);
+    checkBuilds("revision:rev_Vcs1_");
     checkBuilds("revision:(version:rev_Vcs1_2)", build20);
+    checkBuilds("revision:(version:rev_Vcs1_)");
+    checkBuilds("revision:(version:(value:rev_Vcs1_2))", build20);
+    checkBuilds("revision:(version:(value:rev_Vcs1_,matchType:equals))");
+    checkBuilds("revision:(version:(value:rev_Vcs1_2,matchType:contains))", build20);
+    checkBuilds("revision:(version:(value:rev_Vcs1_,matchType:contains))", build20, build10);
+    checkBuilds("revision:(version:(value:abra,matchType:contains))");
     checkBuilds("revision:(internalVersion:change_v1)", build40);
     checkBuilds("revision:(version:change_V1_display)", build40);
     checkBuilds("revision:(version:change_V1_display,vcsRoot:(id:" + root1.getParent().getExternalId() + "))", build40);

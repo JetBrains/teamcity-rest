@@ -642,17 +642,17 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       } else {
         final String vcsRootLocator = revisionLocator.getSingleDimensionValue("vcsRoot");
         final SVcsRoot vcsRoot = vcsRootLocator == null ? null : myVcsRootFinder.getItem(vcsRootLocator);
-        final String version = revisionLocator.getSingleDimensionValue("version");
-        final String internalVersion = revisionLocator.getSingleDimensionValue("internalVersion");
+        final ValueCondition versionCondition = ParameterCondition.createValueCondition(revisionLocator.getSingleDimensionValue("version"));
+        final ValueCondition internalVersionCondition = ParameterCondition.createValueCondition(revisionLocator.getSingleDimensionValue("internalVersion"));
         revisionLocator.checkLocatorFullyProcessed();
-        if (vcsRoot != null || !StringUtil.isEmpty(version) || !StringUtil.isEmpty(internalVersion)) {
+        if (vcsRoot != null || versionCondition != null || internalVersionCondition != null) {
           result.add(new FilterConditionChecker<BuildPromotion>() {
             public boolean isIncluded(@NotNull final BuildPromotion item) {
               final List<BuildRevision> revisions = item.getRevisions();
               for (BuildRevision rev : revisions) {
                 if ((vcsRoot == null || vcsRoot.getId() == rev.getRoot().getParent().getId()) &&
-                    (version == null || version.equals(rev.getRevisionDisplayName())) &&
-                    (internalVersion == null || internalVersion.equals(rev.getRevision()))) {
+                    (versionCondition == null || versionCondition.matches(rev.getRevisionDisplayName())) &&
+                    (internalVersionCondition == null || internalVersionCondition.matches(rev.getRevision()))) {
                   return true;
                 }
               }
