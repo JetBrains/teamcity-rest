@@ -440,7 +440,7 @@ public class BuildFinder {
     if (buildPromotion == null) {
       throw new NotFoundException("No build promotion can be found by promotion id " + promotionId);
     }
-    buildPromotion.getBuildType(); //checking permissions to view - workaround for TW-45544
+    BuildPromotionFinder.ensureCanView(buildPromotion);
     return buildPromotion;
   }
 
