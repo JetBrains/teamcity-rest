@@ -195,6 +195,16 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     return null;
   }
 
+  public static void ensureCanView(@NotNull final BuildPromotion buildPromotion) {
+    //checking permissions to view - workaround for TW-45544
+    try {
+      buildPromotion.getBuildType();
+    } catch (AccessDeniedException e) {
+      //concealing the message which contains build configuration id: You do not have enough permissions to access build type with id: XXX
+      throw new AccessDeniedException(e.getAuthorityHolder(), "Not enough permissions to access build with id: " + buildPromotion.getId());
+    }
+  }
+
   /**
    * Utility method to get id from the locator even if there is no such build
    * Should match findSingleItem method logic
@@ -227,7 +237,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     result.add(new FilterConditionChecker<BuildPromotion>() {
       public boolean isIncluded(@NotNull final BuildPromotion item) {
         try {
-          item.getBuildType();
+          ensureCanView(item);
           return true;
         } catch (AccessDeniedException e) {
           return false; //excluding from the lists as secure wrappers usually do
