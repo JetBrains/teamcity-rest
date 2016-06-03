@@ -254,7 +254,7 @@ public class Locator {
       currentDimensionName = locator.substring(parsedIndex, nameEnd);
       if (!isValidName(currentDimensionName)) {
         throw new LocatorProcessException(locator, parsedIndex, "Invalid dimension name :'" + currentDimensionName +
-                                                                "'. Should contain only alpha-numeric symbols or be known one: " + Arrays.asList(mySupportedDimensions));
+                                                                "'. Should contain only alpha-numeric symbols or be known one: " + Arrays.toString(mySupportedDimensions));
       }
       currentDimensionValue = "";
       parsedIndex = nameEnd;
