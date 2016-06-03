@@ -26,6 +26,7 @@ import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -221,6 +222,18 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     final MultiCheckerFilter<BuildPromotion> result =
       new MultiCheckerFilter<BuildPromotion>(locator.getSingleDimensionValueAsLong(PagerData.START), countFromFilter.intValue(),
                                              locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT));
+
+    //checking permissions to view - workaround for TW-45544
+    result.add(new FilterConditionChecker<BuildPromotion>() {
+      public boolean isIncluded(@NotNull final BuildPromotion item) {
+        try {
+          item.getBuildType();
+          return true;
+        } catch (AccessDeniedException e) {
+          return false; //excluding from the lists as secure wrappers usually do
+        }
+      }
+    });
 
     final String stateDimension = locator.getSingleDimensionValue(STATE);
     Locator stateLocator;
@@ -525,6 +538,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private Long getBuildId(@Nullable final String buildLocator) {
     if (buildLocator == null) {
       return null;
+      return buildPromotion;
     }
     final Long buildId = getBuildId(new Locator(buildLocator));
     if (buildId != null) {
