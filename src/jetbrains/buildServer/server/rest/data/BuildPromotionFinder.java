@@ -230,7 +230,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     result.add(new FilterConditionChecker<BuildPromotion>() {
       public boolean isIncluded(@NotNull final BuildPromotion item) {
         try {
-          item.getBuildType();
+          ensureCanView(item);
           return true;
         } catch (AccessDeniedException e) {
           return false; //excluding from the lists as secure wrappers usually do
@@ -767,7 +767,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     //the logic should match that of getBuildId(String)
     final BuildPromotion buildPromotion = buildPromotionManager.findPromotionOrReplacement(id);
     if (buildPromotion != null && (getBuildId(buildPromotion) == buildPromotion.getId())) {
-      buildPromotion.getBuildType(); //checking permissions to view - workaround for TW-45544
+      ensureCanView(buildPromotion);
       return buildPromotion;
     }
     final SBuild build = buildsManager.findBuildInstanceById(id);
@@ -775,6 +775,16 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       return build.getBuildPromotion();
     }
     throw new NotFoundException("No build found by id '" + id + "'.");
+  }
+
+  public static void ensureCanView(@NotNull final BuildPromotion buildPromotion) {
+    //checking permissions to view - workaround for TW-45544
+    try {
+      buildPromotion.getBuildType();
+    } catch (AccessDeniedException e) {
+      //concealing the message which contains build configuration id: You do not have enough permissions to access build type with id: XXX
+      throw new AccessDeniedException(e.getAuthorityHolder(), "Not enough permissions to access build with id: " + buildPromotion.getId());
+    }
   }
 
   @NotNull
