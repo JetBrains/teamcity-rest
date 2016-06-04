@@ -267,7 +267,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     }
 
     {
-      ParameterType parameterType = parametersSubResource.getParameterType("a1", "$long");
+      ParameterType parameterType = parametersSubResource.getParameterType("a1");
       assertEquals("cType a='b' c='d'", parameterType.rawValue);
     }
 
@@ -275,7 +275,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     {
       ParameterType parameterType = new ParameterType();
       parameterType.rawValue = "cType a='b1' c='d'";
-      ParameterType newParameterType = parametersSubResource.setParameterType("a1", parameterType, "$long");
+      ParameterType newParameterType = parametersSubResource.setParameterType("a1", parameterType);
       assertEquals("cType a='b1' c='d'", newParameterType.rawValue);
     }
     */
