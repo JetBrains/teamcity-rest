@@ -18,12 +18,12 @@ package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import javax.ws.rs.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.ParameterType;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.InheritableUserParametersHolder;
 import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.UserParametersHolder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -41,10 +42,10 @@ import org.jetbrains.annotations.Nullable;
 @Api(hidden = true) // To prevent appearing in Swagger#definitions
 public class ParametersSubResource {
 
-  @NotNull private ServiceLocator myServiceLocator;
+  @NotNull protected ServiceLocator myServiceLocator;
 
-  @NotNull private final EntityWithParameters myEntityWithParameters;
-  @NotNull private final String myParametersHref;
+  @NotNull protected final EntityWithParameters myEntityWithParameters;
+  @NotNull protected final String myParametersHref;
 
   public ParametersSubResource(final @NotNull ServiceLocator serviceLocator, final @NotNull EntityWithParameters entityWithParameters, final @NotNull String parametersHref) {
     myServiceLocator = serviceLocator;
@@ -63,7 +64,7 @@ public class ParametersSubResource {
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Property setParameter(Property parameter, @QueryParam("fields") String fields) {
-    parameter.addTo(myEntityWithParameters, myServiceLocator);
+    parameter.addTo(new InheritableUserParametersHolderFromEntity(myEntityWithParameters), myServiceLocator);
     myEntityWithParameters.persist();
     return Property.createFrom(parameter.name, myEntityWithParameters, new Fields(fields), myServiceLocator);
   }
@@ -72,7 +73,7 @@ public class ParametersSubResource {
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Properties setParameters(Properties properties, @QueryParam("fields") String fields) {
-    properties.setTo(myEntityWithParameters, myServiceLocator);
+    properties.setTo(new InheritableUserParametersHolderFromEntity(myEntityWithParameters), myServiceLocator);
     myEntityWithParameters.persist();
     return new Properties(myEntityWithParameters.getParametersCollection(), myEntityWithParameters.getOwnParametersCollection(), myParametersHref,
                           new Fields(fields), myServiceLocator);
@@ -108,42 +109,6 @@ public class ParametersSubResource {
     return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, false, false, myServiceLocator);
   }
 
-  @GET
-  @Path("/{name}/type")
-  @Produces({"application/xml", "application/json"})
-  public ParameterType getParameterType(@PathParam("name") String parameterName) {
-    return Property.createFrom(parameterName, myEntityWithParameters, Fields.LONG, myServiceLocator).type;
-  }
-
-  @PUT
-  @Path("/{name}/type")
-  @Consumes({"application/xml", "application/json"})
-  @Produces({"application/xml", "application/json"})
-  public ParameterType setParameterType(@PathParam("name") String parameterName, ParameterType parameterType) {
-    BuildTypeUtil.changeParameterType(parameterName, parameterType.rawValue, myEntityWithParameters, myServiceLocator);
-    myEntityWithParameters.persist();
-    return Property.createFrom(parameterName, myEntityWithParameters, Fields.LONG, myServiceLocator).type;
-  }
-
-  @GET
-  @Path("/{name}/type/rawValue")
-  @Produces("text/plain")
-  public String getParameterTypeRawValue(@PathParam("name") String parameterName) {
-    final ParameterType type = Property.createFrom(parameterName, myEntityWithParameters, Fields.LONG, myServiceLocator).type;
-    return type == null ? null : type.rawValue;
-  }
-
-  @PUT
-  @Path("/{name}/type/rawValue")
-  @Consumes("text/plain")
-  @Produces("text/plain")
-  public String setParameterTypeRawValue(@PathParam("name") String parameterName, String parameterTypeRawValue) {
-    BuildTypeUtil.changeParameterType(parameterName, parameterTypeRawValue, myEntityWithParameters, myServiceLocator);
-    myEntityWithParameters.persist();
-    final ParameterType type = Property.createFrom(parameterName, myEntityWithParameters, Fields.LONG, myServiceLocator).type;
-    return type == null ? null : type.rawValue;
-  }
-
   /**
    * Plain text support for pre-8.1 compatibility
    */
@@ -173,7 +138,7 @@ public class ParametersSubResource {
   @Produces({"application/xml", "application/json"})
   public Property setParameter(@PathParam("name") String parameterName, Property parameter, @QueryParam("fields") String fields) {
     parameter.name = parameterName; //overriding name in the entity with the value from URL
-    parameter.addTo(myEntityWithParameters, myServiceLocator);
+    parameter.addTo(new InheritableUserParametersHolderFromEntity(myEntityWithParameters), myServiceLocator);
     myEntityWithParameters.persist();
     return Property.createFrom(parameter.name, myEntityWithParameters, new Fields(fields), myServiceLocator);
   }
@@ -186,11 +151,30 @@ public class ParametersSubResource {
   }
 
 
-  interface EntityWithParameters extends InheritableUserParametersHolder {
-    void persist();
+  public static abstract class EntityWithParameters implements UserParametersHolder {
+    abstract public void persist();
+    /**
+     * @return null if own parameters are not supported.
+     * @see also InheritableUserParametersHolder
+     */
+    @Nullable
+    abstract public Collection<Parameter> getOwnParametersCollection();
+
+    /**
+     * @return null if own parameters are not supported.
+     * @see also InheritableUserParametersHolder
+     */
+    @Nullable
+    abstract public Map<String, String> getOwnParameters();
+
+    @Nullable
+    public Boolean isInherited(@NotNull final String parameterName){
+      Map<String, String> ownParameters = getOwnParameters();
+      return ownParameters == null ? null : !ownParameters.containsKey(parameterName);
+    }
   }
 
-  public static class BuildTypeEntityWithParameters implements EntityWithParameters {
+  public static class BuildTypeEntityWithParameters extends EntityWithParameters {
     @NotNull private final BuildTypeOrTemplate myBuildTypeOrTemplate;
 
     public BuildTypeEntityWithParameters(@NotNull final BuildTypeOrTemplate buildTypeOrTemplate) {
@@ -241,54 +225,138 @@ public class ParametersSubResource {
     }
   }
 
-  public static class ProjectEntityWithParameters implements EntityWithParameters {
+  public static class ProjectEntityWithParameters extends InheritableUserParametersHolderEntityWithParameters {
     @NotNull private final SProject myProject;
 
     public ProjectEntityWithParameters(@NotNull final SProject project) {
+      super(project);
       myProject = project;
     }
 
     public void persist() {
       myProject.persist();
     }
+ }
+
+  public static abstract class InheritableUserParametersHolderEntityWithParameters extends UserParametersHolderEntityWithParameters {
+    @NotNull private final InheritableUserParametersHolder myEntity;
+
+    public InheritableUserParametersHolderEntityWithParameters(@NotNull final InheritableUserParametersHolder entity) {
+      super(entity);
+      myEntity = entity;
+    }
+
+    @NotNull
+    public Collection<Parameter> getOwnParametersCollection() {
+      return myEntity.getOwnParametersCollection();
+    }
+
+    @NotNull
+    public Map<String, String> getOwnParameters() {
+      return myEntity.getOwnParameters();
+    }
+  }
+
+  public static abstract class UserParametersHolderEntityWithParameters extends EntityWithParameters {
+    @NotNull private final UserParametersHolder myEntity;
+
+    public UserParametersHolderEntityWithParameters(@NotNull final UserParametersHolder entity) {
+      myEntity = entity;
+    }
 
     public void addParameter(@NotNull final Parameter param) {
-      myProject.addParameter(param);
+      myEntity.addParameter(param);
     }
 
     public void removeParameter(@NotNull final String paramName) {
-      myProject.removeParameter(paramName);
+      myEntity.removeParameter(paramName);
     }
 
     @NotNull
     public Collection<Parameter> getParametersCollection() {
-      return myProject.getParametersCollection();
+      return myEntity.getParametersCollection();
     }
 
     @Nullable
     @Override
     public Parameter getParameter(@NotNull final String paramName) {
-      return myProject.getParameter(paramName);
+      return myEntity.getParameter(paramName);
     }
 
     @NotNull
     public Map<String, String> getParameters() {
-      return myProject.getParameters();
+      return myEntity.getParameters();
     }
 
     @Nullable
     public String getParameterValue(@NotNull final String paramName) {
-      return myProject.getParameterValue(paramName);
+      return myEntity.getParameterValue(paramName);
     }
 
-    @NotNull
+    @Nullable
     public Collection<Parameter> getOwnParametersCollection() {
-      return myProject.getOwnParametersCollection();
+      return null;
+    }
+
+    @Nullable
+    public Map<String, String> getOwnParameters() {
+      return null;
+    }
+  }
+
+  public static class InheritableUserParametersHolderFromEntity implements InheritableUserParametersHolder {
+    @NotNull final EntityWithParameters myEntity;
+
+    public InheritableUserParametersHolderFromEntity(@NotNull final EntityWithParameters entityWithParameters) {
+      myEntity = entityWithParameters;
     }
 
     @NotNull
+    @Override
+    public Collection<Parameter> getParametersCollection() {
+      return myEntity.getParametersCollection();
+    }
+
+    @Nullable
+    @Override
+    public Parameter getParameter(@NotNull final String paramName) {
+      return myEntity.getParameter(paramName);
+    }
+
+    @NotNull
+    @Override
+    public Map<String, String> getParameters() {
+      return myEntity.getParameters();
+    }
+
+    @Nullable
+    @Override
+    public String getParameterValue(@NotNull final String paramName) {
+      return myEntity.getParameterValue(paramName);
+    }
+
+    @Override
+    public void addParameter(@NotNull final Parameter param) {
+      myEntity.addParameter(param);
+    }
+
+    @Override
+    public void removeParameter(@NotNull final String paramName) {
+      myEntity.removeParameter(paramName);
+    }
+
+    @NotNull
+    @Override
+    public Collection<Parameter> getOwnParametersCollection() {
+      Collection<Parameter> result = myEntity.getOwnParametersCollection();
+      return result == null ? Collections.emptyList() : result;
+    }
+
+    @NotNull
+    @Override
     public Map<String, String> getOwnParameters() {
-      return myProject.getOwnParameters();
+      Map<String, String> result = myEntity.getOwnParameters();
+      return result == null ? Collections.emptyMap() : result;
     }
   }
 }

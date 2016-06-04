@@ -26,6 +26,7 @@ import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.ParameterType;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.buildType.*;
@@ -37,6 +38,9 @@ import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
+import jetbrains.buildServer.serverSide.parameters.ParameterDescriptionFactory;
+import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
+import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.vcs.CheckoutRules;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
@@ -240,6 +244,41 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     myBuildTypeRequest.getParametersSubResource(btLocator).setParameters(new Properties(), "$long");
     assertEquals(3, buildType1.getParameters().size());
     assertEquals(0, buildType1.getOwnParameters().size());
+  }
+
+  @Test
+  public void testParameterTypeResourses() {
+    BuildTypeImpl buildType1 = registerTemplateBasedBuildType("buildType1");
+
+    ParameterFactory parameterFactory = myFixture.getSingletonService(ParameterFactory.class);
+    ParameterDescriptionFactory parameterDescriptionFactory = myFixture.getSingletonService(ParameterDescriptionFactory.class);
+    buildType1.addParameter(parameterFactory.createParameter("a1", "b10", parameterDescriptionFactory.createDescription("cType", CollectionsUtil.asMap("a", "b", "c", "d"))));
+    buildType1.addParameter(new SimpleParameter("a2", "b9"));
+
+    final String btLocator = "id:" + buildType1.getExternalId();
+
+    TypedParametersSubResource parametersSubResource = myBuildTypeRequest.getParametersSubResource(btLocator);
+    assertEquals(2, parametersSubResource.getParameters(null, "$long,property($long)").properties.size());
+    {
+      Property parameter = parametersSubResource.getParameter("a1", "$long");
+      assertEquals("a1", parameter.name);
+      assertEquals("b10", parameter.value);
+      assertEquals("cType a='b' c='d'", parameter.type.rawValue);
+    }
+
+    {
+      ParameterType parameterType = parametersSubResource.getParameterType("a1", "$long");
+      assertEquals("cType a='b' c='d'", parameterType.rawValue);
+    }
+
+    /*
+    {
+      ParameterType parameterType = new ParameterType();
+      parameterType.rawValue = "cType a='b1' c='d'";
+      ParameterType newParameterType = parametersSubResource.setParameterType("a1", parameterType, "$long");
+      assertEquals("cType a='b1' c='d'", newParameterType.rawValue);
+    }
+    */
   }
 
   @Test

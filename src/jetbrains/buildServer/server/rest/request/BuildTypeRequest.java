@@ -224,9 +224,9 @@ public class BuildTypeRequest {
   }
 
   @Path("/{btLocator}" + PARAMETERS)
-  public ParametersSubResource getParametersSubResource(@PathParam("btLocator") String buildTypeLocator){
+  public TypedParametersSubResource getParametersSubResource(@PathParam("btLocator") String buildTypeLocator){
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    return new ParametersSubResource(myServiceLocator, new ParametersSubResource.BuildTypeEntityWithParameters(buildType), getParametersHref(buildType));
+    return new TypedParametersSubResource(myServiceLocator, new ParametersSubResource.BuildTypeEntityWithParameters(buildType), getParametersHref(buildType));
   }
 
   @GET

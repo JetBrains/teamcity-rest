@@ -27,11 +27,9 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
+import jetbrains.buildServer.server.rest.request.ParametersSubResource;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.ControlDescription;
-import jetbrains.buildServer.serverSide.InheritableUserParametersHolder;
-import jetbrains.buildServer.serverSide.Parameter;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.parameters.ParameterDescriptionFactory;
 import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
 import jetbrains.buildServer.serverSide.parameters.types.PasswordType;
@@ -112,7 +110,7 @@ public class Property {
   }
 
   public static Property createFrom(@Nullable final String parameterName,
-                                    @NotNull final InheritableUserParametersHolder entity,
+                                    @NotNull final ParametersSubResource.EntityWithParameters entity,
                                     @NotNull final Fields fields,
                                     @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(parameterName)) {
@@ -126,7 +124,7 @@ public class Property {
     if (parameter == null) {
       throw new NotFoundException("No parameter with name '" + parameterName + "' is found.");
     }
-    return new Property(parameter, !entity.getOwnParameters().containsKey(parameterName), fields, serviceLocator);
+    return new Property(parameter, entity.isInherited(parameterName), fields, serviceLocator);
   }
 
   @NotNull
@@ -145,7 +143,7 @@ public class Property {
   }
 
   @NotNull
-  public Parameter addToInternal(final @NotNull InheritableUserParametersHolder entity, final @NotNull ServiceLocator serviceLocator) {
+  public Parameter addToInternal(final @NotNull UserParametersHolder entity, final @NotNull ServiceLocator serviceLocator) {
     Parameter fromPosted = getFromPosted(serviceLocator);
 
     if (inherited != null && inherited) {

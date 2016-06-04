@@ -119,7 +119,7 @@ public class Properties  implements DefaultValueAware {
         final Fields propertyFields = fields.getNestedField(PROPERTY, Fields.NONE, Fields.LONG);
         final ParameterCondition parameterCondition = getParameterCondition(propertiedLocator != null ? propertiedLocator.getStringRepresentation() : fields.getLocator());
         for (Parameter parameter : parameters) {
-          boolean inherited = ownParameters == null || !ownParameters.contains(parameter);
+          Boolean inherited = ownParameters == null ? null : !ownParameters.contains(parameter);
           if (parameterCondition == null || parameterCondition.parameterMatches(parameter, inherited)) {
             this.properties.add(new Property(parameter, inherited, propertyFields, serviceLocator));
           }

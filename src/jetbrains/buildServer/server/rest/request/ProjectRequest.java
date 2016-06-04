@@ -168,7 +168,7 @@ public class ProjectRequest {
     try {
       projectManager.removeProject(resultingProject.getProjectId());
     } catch (ProjectRemoveFailedException e1) {
-      LOG.warn("Rallback of project creation failed", e1);
+      LOG.warn("Rollback of project creation failed", e1);
       //ignore
     }
     throw new InvalidStateException("Error during project creation finalization", e);
@@ -329,9 +329,9 @@ public class ProjectRequest {
   }
 
   @Path("/{projectLocator}" + PARAMETERS)
-  public ParametersSubResource getParametersSubResource(@PathParam("projectLocator") String projectLocator){
+  public TypedParametersSubResource getParametersSubResource(@PathParam("projectLocator") String projectLocator){
     SProject project = myProjectFinder.getItem(projectLocator, true);
-    return new ParametersSubResource(myServiceLocator, new ParametersSubResource.ProjectEntityWithParameters(project), getParametersHref(project));
+    return new TypedParametersSubResource(myServiceLocator, new ParametersSubResource.ProjectEntityWithParameters(project), getParametersHref(project));
   }
 
   @GET
