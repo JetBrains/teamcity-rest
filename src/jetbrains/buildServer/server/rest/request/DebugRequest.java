@@ -157,12 +157,20 @@ public class DebugRequest {
   @Path("/vcsCheckingForChangesQueue")
   @Produces({"application/xml", "application/json"})
   public VcsRootInstances scheduleCheckingForChanges(@QueryParam("locator") final String vcsRootInstancesLocator,
+                                                     @QueryParam("requestor") final String requestor,
                                                      @QueryParam("fields") final String fields,
                                                      @Context @NotNull final BeanContext beanContext) {
     //todo: check whether permission checks are necessary
     final PagedSearchResult<VcsRootInstance> vcsRootInstances = myVcsRootInstanceFinder.getItems(vcsRootInstancesLocator);
-    myDataProvider.getVcsModificationChecker().forceCheckingFor(vcsRootInstances.myEntries, OperationRequestor.COMMIT_HOOK);
+    myDataProvider.getVcsModificationChecker().forceCheckingFor(vcsRootInstances.myEntries, getRequestor(requestor));
     return new VcsRootInstances(CachingValue.simple(((Collection<VcsRootInstance>)vcsRootInstances.myEntries)), null, new Fields(fields), beanContext);
+  }
+
+  @NotNull
+  private OperationRequestor getRequestor(@Nullable final String requestorText) {
+    //TeamCity API: ideally, should be possible to pass custom value as requestor to allow debugging the origin of the request
+    if (StringUtil.isEmpty(requestorText)) return OperationRequestor.COMMIT_HOOK; //todo: seems like should be unknown or user by default
+    return OperationRequestor.valueOf(requestorText.toUpperCase());
   }
 
   /**
