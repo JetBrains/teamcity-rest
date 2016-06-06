@@ -163,6 +163,7 @@ public class Properties  implements DefaultValueAware {
     for (Property property : properties) {
       boolean actualOwn =  property.inherited == null || !property.inherited;
       if (FilterUtil.isIncludedByBooleanFilter(ownOnly, actualOwn)){
+        property.isValid();//todo  check for unused type, inherited.
         result.put(property.name, property.value);
       }
     }

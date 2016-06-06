@@ -87,12 +87,7 @@ public class Property {
 
   @NotNull
   public Parameter getFromPosted(@NotNull final ServiceLocator serviceLocator) {
-    if (StringUtil.isEmpty(name)) {
-      throw new BadRequestException("Parameter name cannot be empty.");
-    }
-    if (value == null) {
-      throw new BadRequestException("Parameter value for the parameter '" + name + "' should be specified (can be \"\").");
-    }
+    isValid();
     final ParameterFactory parameterFactory = serviceLocator.getSingletonService(ParameterFactory.class);
     if (type == null || type.rawValue == null) {
       return parameterFactory.createSimpleParameter(name, value);
@@ -107,6 +102,15 @@ public class Property {
     }
 
     return parameterFactory.createTypedParameter(name, value, type.rawValue);
+  }
+
+  public void isValid() {
+    if (StringUtil.isEmpty(name)) {
+      throw new BadRequestException("Parameter name cannot be empty.");
+    }
+    if (value == null) {
+      throw new BadRequestException("Parameter value for the parameter '" + name + "' should be specified (can be \"\").");
+    }
   }
 
   public static Property createFrom(@Nullable final String parameterName,

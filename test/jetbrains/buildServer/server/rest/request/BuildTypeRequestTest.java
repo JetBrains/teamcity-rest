@@ -367,6 +367,48 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
 
   }
 
+  @Test
+  public void testUpdatingSteps2() {
+    BuildTypeImpl buildType1 = registerBuildType("buildType1", "projectName");
+
+    SBuildRunnerDescriptor buildRunner1 = buildType1.addBuildRunner("name1", "runnerType1", createMap("a", "b"));
+    String disabledId = buildType1.addBuildRunner("name2", "runnerType1", createMap("a", "b")).getId();
+    buildType1.setEnabled(disabledId, false);
+    buildType1.addBuildRunner("name3", "runnerType1", createMap("a", "b"));
+
+    final String btLocator = "id:" + buildType1.getExternalId();
+
+    {
+      Properties properties = new Properties();
+      Property prop = new Property();
+      prop.name = "x";
+      //no value
+      properties.properties.add(prop);
+      assertExceptionThrown(() -> myBuildTypeRequest.replaceStepParameters(btLocator, buildRunner1.getId(), properties, "$long"), BadRequestException.class);
+    }
+
+    {
+      Properties properties = new Properties();
+      Property prop = new Property();
+      prop.name = "";
+      prop.value = "y";
+      properties.properties.add(prop);
+      assertExceptionThrown(() -> myBuildTypeRequest.replaceStepParameters(btLocator, buildRunner1.getId(), properties, "$long"), BadRequestException.class);
+    }
+
+    {
+      Properties properties = new Properties();
+      Property prop = new Property();
+      prop.name = "x";
+      prop.value = "y";
+      properties.properties.add(prop);
+      assertEquals("b", buildType1.findBuildRunnerById(buildRunner1.getId()).getParameters().get("a"));
+      myBuildTypeRequest.replaceStepParameters(btLocator, buildRunner1.getId(), properties, "$long");
+      assertEquals("y", buildType1.findBuildRunnerById(buildRunner1.getId()).getParameters().get("x"));
+      assertNull(buildType1.findBuildRunnerById(buildRunner1.getId()).getParameters().get("a"));
+    }
+  }
+
 
   @Test
   public void testUpdatingVcsRoots() {
