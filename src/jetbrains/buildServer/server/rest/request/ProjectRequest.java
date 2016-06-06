@@ -19,9 +19,7 @@ package jetbrains.buildServer.server.rest.request;
 import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import java.io.File;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -40,9 +38,7 @@ import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.buildType.NewBuildTypeDescription;
-import jetbrains.buildServer.server.rest.model.project.NewProjectDescription;
-import jetbrains.buildServer.server.rest.model.project.Project;
-import jetbrains.buildServer.server.rest.model.project.Projects;
+import jetbrains.buildServer.server.rest.model.project.*;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
@@ -51,6 +47,7 @@ import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.identifiers.DuplicateExternalIdException;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectsLoader;
+import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -78,6 +75,7 @@ public class ProjectRequest {
 
   public static final String API_PROJECTS_URL = Constants.API_URL + "/projects";
   protected static final String PARAMETERS = BuildTypeRequest.PARAMETERS;
+  protected static final String FEATURES = "/features";
 
   @NotNull
   public static String getHref() {
@@ -92,6 +90,11 @@ public class ProjectRequest {
   @NotNull
   public static String getParametersHref(final SProject project) {
     return getProjectHref(project) + PARAMETERS;
+  }
+
+  @NotNull
+  public static String getFeaturesHref(@NotNull final SProject project) {
+    return getProjectHref(project) + FEATURES;
   }
 
   @GET
@@ -411,6 +414,74 @@ public class ProjectRequest {
     return Build.getFieldValue(myBuildFinder.getBuildPromotion(buildType, buildLocator), field, myBeanContext);
   }
 
+//todo: add vcs roots and others
+
+  @Path("/{projectLocator}" + FEATURES)
+  public ProjectFeatureSubResource getFeatures(@PathParam("projectLocator") String projectLocator) {
+    final SProject project = myProjectFinder.getItem(projectLocator, true);
+    return new ProjectFeatureSubResource(myBeanContext, new FeatureSubResource.Entity<PropEntitiesProjectFeature, PropEntityProjectFeature>() {
+
+        @Override
+        public String getHref() {
+          return getFeaturesHref(project);
+        }
+
+        @Override
+        public void persist() {
+          project.persist();
+        }
+
+        @NotNull
+        @Override
+        public PropEntityProjectFeature getSingle(@NotNull final String featureLocator, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+          return new PropEntityProjectFeature(PropEntityProjectFeature.getFeatureByLocator(project, featureLocator), fields, beanContext);
+        }
+
+        @Override
+        public void delete(@NotNull final String featureLocator, @NotNull final ServiceLocator serviceLocator) {
+          project.removeFeature(PropEntityProjectFeature.getFeatureByLocator(project, featureLocator).getId());
+        }
+
+        @NotNull
+        @Override
+        public String replace(@NotNull final String featureLocator, final @NotNull PropEntityProjectFeature newFeature, @NotNull final ServiceLocator serviceLocator) {
+          return newFeature.replaceIn(project, PropEntityProjectFeature.getFeatureByLocator(project, featureLocator), serviceLocator).getId(); //todo: return id form the method!
+        }
+
+        @NotNull
+        @Override
+        public String add(@NotNull final PropEntityProjectFeature entityToAdd, @NotNull final ServiceLocator serviceLocator) {
+          return entityToAdd.addTo(project, myServiceLocator).getId();
+        }
+
+        @NotNull
+        @Override
+        public PropEntitiesProjectFeature get(final String locator, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+          return new PropEntitiesProjectFeature(project, locator, fields, myBeanContext);
+        }
+
+        @Override
+        public void replaceAll(@NotNull final PropEntitiesProjectFeature newEntities, @NotNull final ServiceLocator serviceLocator) {
+          newEntities.setTo(project, serviceLocator);
+        }
+
+        @Override
+        public UserParametersHolder getParametersHolder(@NotNull final String featureLocator) {
+          return new ProjectFeatureDescriptionUserParametersHolder(project, featureLocator);
+        }
+
+        //@Override
+        //public String setSetting(@NotNull final String featureLocator, @NotNull final String settingName, @Nullable final String newValue) {
+        //  return null;
+        //}
+        //
+        //@Override
+        //public String getSetting(@NotNull final String featureLocator, @NotNull final String settingName) {
+        //  return null;
+        //}
+      });
+  }
+
   @GET
   @Path("/{projectLocator}/parentProject")
   @Produces({"application/xml", "application/json"})
@@ -551,5 +622,53 @@ public class ProjectRequest {
   @Nullable
   private Map<String, String> getNullOrCollection(final @NotNull Map<String, String> map) {
     return map.size() > 0 ? map : null;
+  }
+
+  private class ProjectFeatureDescriptionUserParametersHolder implements UserParametersHolder {
+    @NotNull private final SProject myProject;
+    @NotNull private final String myProjectFeatureId;
+
+    public ProjectFeatureDescriptionUserParametersHolder(@NotNull final SProject project, @NotNull final String projectFeatureId) {
+      myProject = project;
+      myProjectFeatureId = projectFeatureId;
+    }
+
+    @Override
+    public void addParameter(@NotNull final Parameter param) {
+      Map<String, String> newParameters = new HashMap<>(getParameters());
+      newParameters.put(param.getName(), param.getValue());
+      myProject.updateFeature(myProjectFeatureId, PropEntityProjectFeature.getFeatureByLocator(myProject, myProjectFeatureId).getType(), newParameters);
+    }
+
+    @Override
+    public void removeParameter(@NotNull final String paramName) {
+      Map<String, String> newParameters = new HashMap<>(getParameters());
+      newParameters.remove(paramName);
+      myProject.updateFeature(myProjectFeatureId, PropEntityProjectFeature.getFeatureByLocator(myProject, myProjectFeatureId).getType(), newParameters);
+    }
+
+    @NotNull
+    @Override
+    public Collection<Parameter> getParametersCollection() {
+      return CollectionsUtil.convertCollection(getParameters().entrySet(), source -> new SimpleParameter(source.getKey(), source.getValue()));
+    }
+
+    @Nullable
+    @Override
+    public Parameter getParameter(@NotNull final String paramName) {
+      return new SimpleParameter(paramName, getParameters().get(paramName));
+    }
+
+    @NotNull
+    @Override
+    public Map<String, String> getParameters() {
+      return PropEntityProjectFeature.getFeatureByLocator(myProject, myProjectFeatureId).getParameters();
+    }
+
+    @Nullable
+    @Override
+    public String getParameterValue(@NotNull final String paramName) {
+      return getParameters().get(paramName);
+    }
   }
 }

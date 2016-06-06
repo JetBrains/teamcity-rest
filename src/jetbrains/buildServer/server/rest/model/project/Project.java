@@ -25,7 +25,6 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.APIController;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
@@ -55,7 +54,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "project")
 @XmlType(name = "project", propOrder = {"id", "internalId", "uuid", "name", "parentProjectId", "parentProjectInternalId", "parentProjectName", "archived", "description", "href", "webUrl",
-  "links", "parentProject", "buildTypes", "templates", "parameters", "vcsRoots", "projects"})
+  "links", "parentProject", "buildTypes", "templates", "parameters", "vcsRoots", "features", "projects"})
 @SuppressWarnings("PublicField")
 public class Project {
   @XmlAttribute
@@ -119,6 +118,9 @@ public class Project {
   @XmlElement (name = "vcsRoots")
   public VcsRoots vcsRoots;
 
+  @XmlElement
+  public PropEntitiesProjectFeature features;
+
   @XmlElement (name = "projects")
   public Projects projects;
 
@@ -128,6 +130,12 @@ public class Project {
   @XmlAttribute public String locator;
 
   public Project() {
+  }
+
+  public Project(@Nullable final String externalId, @Nullable final String internalId, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    //todo: check usages: externalId should actually be NotNull and internal id should never be necessary
+    id = ValueWithDefault.decideDefault(fields.isIncluded("id"), externalId);
+    this.internalId = ValueWithDefault.decideDefault(fields.isIncluded("internalId"), internalId);
   }
 
   public Project(@NotNull final SProject project, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
@@ -189,10 +197,16 @@ public class Project {
                               new PagerData(VcsRootRequest.getHref(project)), fields.getNestedField("vcsRoots"), beanContext);
         }
       });
+      features = ValueWithDefault.decideDefault(fields.isIncluded("features", false),
+                                                () -> {
+                                                  Fields nestedFields = fields.getNestedField("features", Fields.NONE, Fields.LONG);
+                                                  return new PropEntitiesProjectFeature(project, nestedFields.getLocator(), nestedFields, beanContext);
+                                                });
     } else {
       templates = null;
       parameters = null;
       vcsRoots = null;
+      features = null;
     }
 
     projects = ValueWithDefault.decideDefault(fields.isIncluded("projects", false), new ValueWithDefault.Value<Projects>() {
@@ -236,11 +250,6 @@ public class Project {
         return builder.build(fields.getNestedField("links"));
       }
     });
-  }
-
-  public Project(@Nullable final String externalId, @Nullable final String internalId, @NotNull final ApiUrlBuilder apiUrlBuilder) {
-    id = externalId;
-    this.internalId = internalId; //todo: check usages: externalId should actually be NotNull and internal id should never be necessary
   }
 
   @Nullable

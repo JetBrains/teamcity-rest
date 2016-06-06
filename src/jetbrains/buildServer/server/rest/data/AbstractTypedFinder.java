@@ -40,6 +40,7 @@ public abstract class AbstractTypedFinder<ITEM> extends AbstractFinder<ITEM> {
   //consider adding additional checks on condifured dimensions: validate that all dimensions were used: that checker is added or it participated in toItems, etc.
   //consider adding special toItem (single) configuration to process them first
 
+//  private String myDescription; //todo: use this for providing help on what is searched by this locator
   private final LinkedHashMap<String, TypedFinderDimensionImpl> myDimensions = new LinkedHashMap<>();
   private final LinkedHashMap<DimensionConditionsImpl, NameValuePairs> myDefaultDimensionsConditions = new LinkedHashMap<>();
   private final LinkedHashMap<DimensionConditionsImpl, ItemsFromDimensions<ITEM>> myItemsConditions = new LinkedHashMap<>();
@@ -278,7 +279,7 @@ public abstract class AbstractTypedFinder<ITEM> extends AbstractFinder<ITEM> {
     }
   }
 
-  TypedFinderDimension<ITEM, Long> dimensionLong(@NotNull final Dimension<Long> dimension) {
+  public TypedFinderDimension<ITEM, Long> dimensionLong(@NotNull final Dimension<Long> dimension) {
     return dimension(dimension, type(dimensionValue -> {
       try {
         return Long.parseLong(dimensionValue);
@@ -288,16 +289,16 @@ public abstract class AbstractTypedFinder<ITEM> extends AbstractFinder<ITEM> {
     }).description("number"));
   }
 
-  TypedFinderDimension<ITEM, String> dimensionString(@NotNull final Dimension<String> dimension) {
+  public TypedFinderDimension<ITEM, String> dimensionString(@NotNull final Dimension<String> dimension) {
     return dimension(dimension, type(dimensionValue -> dimensionValue).description("text"));
   }
 
-  TypedFinderDimensionWithDefaultChecker<ITEM, Boolean, Boolean> dimensionBoolean(@NotNull final Dimension<Boolean> dimension) {
+  public TypedFinderDimensionWithDefaultChecker<ITEM, Boolean, Boolean> dimensionBoolean(@NotNull final Dimension<Boolean> dimension) {
     return dimension(dimension, type(dimensionValue -> Locator.getBooleanByValue(dimensionValue)).description("boolean"))
       .defaultFilter((value, item) -> FilterUtil.isIncludedByBooleanFilter(value, item));
   }
 
-  TypedFinderDimension<ITEM, List<BuildPromotion>> dimensionBuildPromotions(@NotNull final Dimension<List<BuildPromotion>> dimension,
+  public TypedFinderDimension<ITEM, List<BuildPromotion>> dimensionBuildPromotions(@NotNull final Dimension<List<BuildPromotion>> dimension,
                                                                             @NotNull final ServiceLocator serviceLocator) {
     return dimension(dimension, type(dimensionValue -> {
       final BuildPromotionFinder buildPromotionFinder = serviceLocator.getSingletonService(BuildPromotionFinder.class);
@@ -305,22 +306,22 @@ public abstract class AbstractTypedFinder<ITEM> extends AbstractFinder<ITEM> {
     }).description("build locator"));
   }
 
-  TypedFinderDimensionWithDefaultChecker<ITEM, ParameterCondition, ParametersProvider> dimensionParameterCondition(@NotNull final Dimension<ParameterCondition> dimension) {
+  public TypedFinderDimensionWithDefaultChecker<ITEM, ParameterCondition, ParametersProvider> dimensionParameterCondition(@NotNull final Dimension<ParameterCondition> dimension) {
     return dimension(dimension, type(dimensionValue -> ParameterCondition.create(dimensionValue)).description("parameter condition"))
       .defaultFilter((parameterCondition, item) -> parameterCondition.matches(item));
   }
 
-  TypedFinderDimensionWithDefaultChecker<ITEM, ParameterCondition, InheritableUserParametersHolder> dimensionOwnParameterCondition(@NotNull final Dimension<ParameterCondition> dimension) {
+  public TypedFinderDimensionWithDefaultChecker<ITEM, ParameterCondition, InheritableUserParametersHolder> dimensionOwnParameterCondition(@NotNull final Dimension<ParameterCondition> dimension) {
     return dimension(dimension, type(dimensionValue -> ParameterCondition.create(dimensionValue)).description("parameter condition with inherited support"))
       .defaultFilter((parameterCondition, item) -> parameterCondition.matches(item));
   }
 
-  TypedFinderDimensionWithDefaultChecker<ITEM, ValueCondition, String> dimensionValueCondition(@NotNull final Dimension<ValueCondition> dimension) {
+  public TypedFinderDimensionWithDefaultChecker<ITEM, ValueCondition, String> dimensionValueCondition(@NotNull final Dimension<ValueCondition> dimension) {
     return dimension(dimension, type(dimensionValue -> ParameterCondition.createValueCondition(dimensionValue)).description("value condition"))
       .defaultFilter((valueCondition, item) -> valueCondition.matches(item));
   }
 
-  TypedFinderDimensionWithDefaultChecker<ITEM, TimeCondition.ParsedTimeCondition, Date> dimensionTimeCondition(@NotNull final Dimension<TimeCondition.ParsedTimeCondition> dimension,
+  public TypedFinderDimensionWithDefaultChecker<ITEM, TimeCondition.ParsedTimeCondition, Date> dimensionTimeCondition(@NotNull final Dimension<TimeCondition.ParsedTimeCondition> dimension,
                                                                                                                @NotNull final TimeCondition timeCondition) {
     return dimension(dimension, type(dimensionValue -> timeCondition.getTimeCondition(dimensionValue)).description("time condition"))
       .defaultFilter((parsedTimeCondition, item) -> parsedTimeCondition.matches(item));
@@ -329,30 +330,35 @@ public abstract class AbstractTypedFinder<ITEM> extends AbstractFinder<ITEM> {
 
   //============================= Main definition methods =============================
 
-  <TYPE> TypedFinderDimension<ITEM, TYPE> dimension(@NotNull final Dimension<TYPE> dimension, @NotNull final Type<TYPE> typeMapper) { //typeMapper: dimensionValue->typed object
+  //public AbstractTypedFinder<ITEM> description(@NotNull final String description) {
+  //  myDescription = description;
+  //  return this;
+  //}
+
+  public <TYPE> TypedFinderDimension<ITEM, TYPE> dimension(@NotNull final Dimension<TYPE> dimension, @NotNull final Type<TYPE> typeMapper) { //typeMapper: dimensionValue->typed object
     if (myDimensions.containsKey(dimension.name)) throw new OperationException("Dimension with name '" + dimension.name + "' was already added");
     @NotNull TypedFinderDimensionImpl<TYPE> value = new TypedFinderDimensionImpl<>(dimension, typeMapper);
     myDimensions.put(dimension.name, value);
     return value;
   }
 
-  void singleDimension(@NotNull final ItemsFromDimension<ITEM, String> singleDimensionHandler) {
+  public void singleDimension(@NotNull final ItemsFromDimension<ITEM, String> singleDimensionHandler) {
     mySingleDimensionHandler = singleDimensionHandler;
   }
 
-  AbstractTypedFinder<ITEM> multipleConvertToItems(@NotNull final DimensionConditionsImpl conditions,
+  public AbstractTypedFinder<ITEM> multipleConvertToItems(@NotNull final DimensionConditionsImpl conditions,
                                                    @NotNull final ItemsFromDimensions<ITEM> parsedObjectsIfConditionsMatched) {
     myItemsConditions.put(conditions, parsedObjectsIfConditionsMatched);
     return this;
   }
 
-  AbstractTypedFinder<ITEM> multipleConvertToItemHolder(@NotNull final DimensionConditionsImpl conditions,
+  public AbstractTypedFinder<ITEM> multipleConvertToItemHolder(@NotNull final DimensionConditionsImpl conditions,
                                                         @NotNull final ItemHolderFromDimensions<ITEM> parsedObjectsIfConditionsMatched) {
     myItemHoldersConditions.put(conditions, parsedObjectsIfConditionsMatched);
     return this;
   }
 
-  AbstractTypedFinder<ITEM> filter(@NotNull final DimensionConditionsImpl conditions, @NotNull final ItemFilterFromDimensions<ITEM> parsedObjectsIfConditionsMatched) {
+  public AbstractTypedFinder<ITEM> filter(@NotNull final DimensionConditionsImpl conditions, @NotNull final ItemFilterFromDimensions<ITEM> parsedObjectsIfConditionsMatched) {
     myFiltersConditions.put(conditions, parsedObjectsIfConditionsMatched);
     return this;
   }
@@ -549,7 +555,7 @@ public abstract class AbstractTypedFinder<ITEM> extends AbstractFinder<ITEM> {
 
   //============================= Helper subclasses =============================
 
-  static class DimensionConditionsImpl implements DimensionConditions {
+  public static class DimensionConditionsImpl implements DimensionConditions {
     @NotNull private final List<DimensionCondition> conditions = new ArrayList<>();
 
     @NotNull
@@ -575,7 +581,7 @@ public abstract class AbstractTypedFinder<ITEM> extends AbstractFinder<ITEM> {
       return false;
     }
 
-    static final DimensionConditionsImpl ALWAYS = new DimensionConditionsImpl() {
+    public static final DimensionConditionsImpl ALWAYS = new DimensionConditionsImpl() {
       @Override
       boolean complies(@NotNull final Locator locator) {
         return true;

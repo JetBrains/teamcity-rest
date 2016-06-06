@@ -45,9 +45,9 @@ public class ParametersSubResource {
   @NotNull protected ServiceLocator myServiceLocator;
 
   @NotNull protected final EntityWithParameters myEntityWithParameters;
-  @NotNull protected final String myParametersHref;
+  @Nullable protected final String myParametersHref;
 
-  public ParametersSubResource(final @NotNull ServiceLocator serviceLocator, final @NotNull EntityWithParameters entityWithParameters, final @NotNull String parametersHref) {
+  public ParametersSubResource(final @NotNull ServiceLocator serviceLocator, final @NotNull EntityWithParameters entityWithParameters, final @Nullable String parametersHref) {
     myServiceLocator = serviceLocator;
     myEntityWithParameters = entityWithParameters;
     myParametersHref = parametersHref;

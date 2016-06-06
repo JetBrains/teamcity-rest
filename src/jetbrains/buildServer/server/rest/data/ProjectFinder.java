@@ -27,6 +27,7 @@ import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.project.Project;
+import jetbrains.buildServer.server.rest.model.project.PropEntityProjectFeature;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
@@ -58,6 +59,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   public static final String BUILD = "build";
   public static final String BUILD_TYPE = "buildType";
   public static final String VCS_ROOT = "vcsRoot";
+  public static final String FEATURE = "feature";
 
   @NotNull private final ProjectManager myProjectManager;
   private final PermissionChecker myPermissionChecker;
@@ -65,7 +67,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
   public ProjectFinder(@NotNull final ProjectManager projectManager, final PermissionChecker permissionChecker, @NotNull final ServiceLocator serviceLocator){
     super(new String[]{DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, DIMENSION_AFFECTED_PROJECT, DIMENSION_NAME, DIMENSION_ARCHIVED,
-      BUILD, BUILD_TYPE, VCS_ROOT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+      BUILD, BUILD_TYPE, VCS_ROOT, FEATURE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
     myProjectManager = projectManager;
     myPermissionChecker = permissionChecker;
     myServiceLocator = serviceLocator;
@@ -246,6 +248,20 @@ public class ProjectFinder extends AbstractFinder<SProject> {
           }
         });
       }
+    }
+
+    final String featureDimension = locator.getSingleDimensionValue(FEATURE);
+    if (featureDimension != null) {
+      result.add(new FilterConditionChecker<SProject>() {
+        public boolean isIncluded(@NotNull final SProject item) {
+          final boolean canView = !Project.shouldRestrictSettingsViewing(item, myPermissionChecker);
+          if (!canView) {
+            LOG.debug("While filtering projects by " + DIMENSION_PARAMETER + " user does not have enough permissions to see settings. Excluding project: " + item.describe(false));
+            return false;
+          }
+          return new PropEntityProjectFeature.ProjectFeatureFinder(item).getItems(featureDimension).myEntries.size() > 0;
+        }
+      });
     }
 
     return result;

@@ -17,16 +17,21 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.Arrays;
+import java.util.List;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.project.Project;
+import jetbrains.buildServer.server.rest.model.project.PropEntityProjectFeature;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
+import jetbrains.buildServer.serverSide.impl.ProjectFeatureDescriptorFactory;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import static jetbrains.buildServer.util.CollectionsUtil.asMap;
 
 /**
  * @author Yegor.Yarko
@@ -179,6 +184,24 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
   }
 
   @Test
+  public void testFeatureDimension() throws Exception {
+    final SProject project10 = createProject("p10", "project 10");
+    final SProject project20 = createProject("p20", "project 20");
+    final SProject project30 = createProject("p30", "project 30");
+
+    project10.addFeature("type1", asMap("a", "b", "c", "d"));
+    project20.addFeature("type2", asMap("a", "b2", "c2", "d2"));
+
+    check(null, getRootProject(), project10, project20, project30);
+    check("feature:(type:type1)", project10);
+    check("feature:(type:Type1)");
+    check("feature:(type:(matchType:any))", project10, project20);
+    check("feature:(property:(name:a))", project10, project20);
+    check("feature:(property:(name:a,value:b2))", project20);
+    check("feature:(property:(name:a),property:(name:c))", project10);
+  }
+
+  @Test
   public void testProjectBean() throws Exception {
     final SProject project10 = createProject("p1", "project 1");
     final SProject project20 = createProject("p2", "project 2");
@@ -210,5 +233,26 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
         return source.id;
       }
     }), project10_10.getExternalId(), project10_20.getExternalId(), project10_10_10.getExternalId());
+
+
+    ProjectFeatureDescriptorFactory featureDescriptorFactory = myFixture.findSingletonService(ProjectFeatureDescriptorFactory.class);
+    assert featureDescriptorFactory != null;
+    project10.addFeature(featureDescriptorFactory.createProjectFeature("uniqueId10", "type10", asMap("a", "b", "c", "d")));
+    project10_10.addFeature(featureDescriptorFactory.createProjectFeature("uniqueId20", "type20", asMap("a", "b", "c", "d")));
+
+    project = new Project(project10_10, new Fields("$long"), getBeanContext(myServer));
+    assertEquals(project.id, project10_10.getExternalId());
+    assertNotNull(project.features);
+    assertEquals(Integer.valueOf(1), project.features.count);
+    List<PropEntityProjectFeature> propEntities = project.features.propEntities;
+    assertEquals(1, propEntities.size());
+    PropEntityProjectFeature feature = propEntities.get(0);
+    assertEquals("uniqueId20",feature.id);
+    assertEquals("type20",feature.type);
+    assertEquals(Integer.valueOf(2),feature.properties.count);
+    assertEquals("a",feature.properties.properties.get(0).name);
+    assertEquals("b",feature.properties.properties.get(0).value);
+    assertEquals("c",feature.properties.properties.get(1).name);
+    assertEquals("d",feature.properties.properties.get(1).value);
   }
 }

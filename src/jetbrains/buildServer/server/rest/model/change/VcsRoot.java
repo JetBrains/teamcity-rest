@@ -145,7 +145,7 @@ public class VcsRoot {
     if (projectById != null) {
       project = ValueWithDefault.decideDefault(fields.isIncluded("project", false), new Project(projectById, fields.getNestedField("project"), beanContext));
     } else {
-      project = ValueWithDefault.decideDefault(fields.isIncluded("project", false), new Project(null, ownerProjectId, beanContext.getApiUrlBuilder()));
+      project = ValueWithDefault.decideDefault(fields.isIncluded("project", false), new Project(null, ownerProjectId, fields.getNestedField("project"), beanContext));
     }
 
     final PermissionChecker permissionChecker = beanContext.getServiceLocator().findSingletonService(PermissionChecker.class);
