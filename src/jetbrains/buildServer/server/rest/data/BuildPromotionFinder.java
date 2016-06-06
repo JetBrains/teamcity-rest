@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -48,6 +49,8 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 20.08.2014
  */
 public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
+  private static final Logger LOG = Logger.getInstance(BuildPromotionFinder.class.getName());
+
   //DIMENSION_ID - id of a build or id of build promotion which will get associated build with the id
   public static final String PROMOTION_ID = BuildFinder.PROMOTION_ID;
   protected static final String PROMOTION_ID_ALIAS = "promotionId";
@@ -905,7 +908,9 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       buildPromotion.getBuildType();
     } catch (AccessDeniedException e) {
       //concealing the message which contains build configuration id: You do not have enough permissions to access build type with id: XXX
-      throw new AccessDeniedException(e.getAuthorityHolder(), "Not enough permissions to access build with id: " + buildPromotion.getId());
+      String message = "Not enough permissions to access build with id: " + buildPromotion.getId();
+      LOG.debug(message, e);
+      throw new AccessDeniedException(e.getAuthorityHolder(), message);
     }
   }
 
