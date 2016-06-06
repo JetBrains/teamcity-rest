@@ -273,10 +273,14 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
 
     /*
     {
+      assertEquals("cType", buildType1.getParameter("a1").getControlDescription().getParameterType());
+      assertMap(buildType1.getParameter("a1").getControlDescription().getParameterTypeArguments(), "a", "b", "c", "d");
       ParameterType parameterType = new ParameterType();
       parameterType.rawValue = "cType a='b1' c='d'";
       ParameterType newParameterType = parametersSubResource.setParameterType("a1", parameterType);
       assertEquals("cType a='b1' c='d'", newParameterType.rawValue);
+      assertEquals("cType", buildType1.getParameter("a1").getControlDescription().getParameterType());
+      assertMap(buildType1.getParameter("a1").getControlDescription().getParameterTypeArguments(), "a", "b1", "c", "d");
     }
     */
   }
