@@ -80,7 +80,7 @@ public class PropEntityProjectFeature extends PropEntity {
     String forcedId = null;
     //special case for "overriden" entities
     if (id != null) {
-      for (SProjectFeatureDescriptor item : project.getFeatures()) {
+      for (SProjectFeatureDescriptor item : project.getOwnFeatures()) {
         if (id.equals(item.getId())) {
           forcedId = id;
           break;
@@ -90,9 +90,9 @@ public class PropEntityProjectFeature extends PropEntity {
 
     SProjectFeatureDescriptor newFeature;
     if (forcedId != null) {
-      newFeature = factory.createProjectFeature(forcedId, type, properties != null ? properties.getMap() : new HashMap<String, String>());
+      newFeature = factory.createProjectFeature(forcedId, type, properties != null ? properties.getMap() : new HashMap<String, String>(), project);
     } else {
-      newFeature = factory.createNewProjectFeature(type, properties != null ? properties.getMap() : new HashMap<String, String>());
+      newFeature = factory.createNewProjectFeature(type, properties != null ? properties.getMap() : new HashMap<String, String>(), project);
     }
 
     try {
@@ -154,7 +154,7 @@ public class PropEntityProjectFeature extends PropEntity {
 
       dimensionParameterCondition(PROPERTY).description("feature property").valueForDefaultFilter(item -> new MapParametersProviderImpl(item.getParameters()));
 
-      multipleConvertToItems(DimensionConditionsImpl.ALWAYS, dimensions -> new ArrayList<>(project.getFeatures()));
+      multipleConvertToItems(DimensionConditionsImpl.ALWAYS, dimensions -> new ArrayList<>(project.getOwnFeatures()));
     }
 
     @NotNull

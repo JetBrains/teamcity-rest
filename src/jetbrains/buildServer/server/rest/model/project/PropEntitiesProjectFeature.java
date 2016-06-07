@@ -86,7 +86,7 @@ public class PropEntitiesProjectFeature {
   }
 
   private static void removeAll(@NotNull final SProject project) {
-    for (SProjectFeatureDescriptor entry : project.getFeatures()) {
+    for (SProjectFeatureDescriptor entry : project.getOwnFeatures()) {
       project.removeFeature(entry.getId());
     }
   }
@@ -95,7 +95,7 @@ public class PropEntitiesProjectFeature {
     private final Collection<SProjectFeatureDescriptor> myFeatures;
 
     public Storage(final @NotNull SProject project) {
-      myFeatures = project.getFeatures();
+      myFeatures = project.getOwnFeatures();
     }
 
     public void apply(final @NotNull SProject project){
