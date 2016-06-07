@@ -95,7 +95,7 @@ public class ChangeRequest {
                               @QueryParam("locator") String locator,
                               @QueryParam("fields") String fields,
                               @Context UriInfo uriInfo, @Context HttpServletRequest request) {
-    Locator actualLocator = locator == null ? Locator.createEmptyLocator(myChangeFinder.getKnownDimensions()) : myChangeFinder.createLocator(locator, null);
+    Locator actualLocator = locator == null ? Locator.createEmptyLocator() : new Locator(locator);
     if (!actualLocator.isSingleValue()) {
       updateLocatorDimension(actualLocator, "project", projectLocator);
       updateLocatorDimension(actualLocator, "buildType", buildTypeLocator);

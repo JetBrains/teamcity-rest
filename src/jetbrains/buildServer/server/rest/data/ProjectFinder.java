@@ -66,8 +66,12 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   @NotNull private final ServiceLocator myServiceLocator;
 
   public ProjectFinder(@NotNull final ProjectManager projectManager, final PermissionChecker permissionChecker, @NotNull final ServiceLocator serviceLocator){
-    super(new String[]{DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, DIMENSION_AFFECTED_PROJECT, DIMENSION_NAME, DIMENSION_ARCHIVED,
-      BUILD, BUILD_TYPE, VCS_ROOT, FEATURE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+    super(DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, DIMENSION_AFFECTED_PROJECT, DIMENSION_NAME, DIMENSION_ARCHIVED,
+      BUILD, BUILD_TYPE, VCS_ROOT, FEATURE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    setHiddenDimensions(DIMENSION_PARAMETER, DIMENSION_SELECTED,
+                        DIMENSION_LOOKUP_LIMIT,
+                        DIMENSION_PARENT_PROJECT //compatibility mode for versions <9.1
+    );
     myProjectManager = projectManager;
     myPermissionChecker = permissionChecker;
     myServiceLocator = serviceLocator;
@@ -83,20 +87,9 @@ public class ProjectFinder extends AbstractFinder<SProject> {
     return Locator.getStringLocator(DIMENSION_ID, project.getExternalId());
   }
 
-
-  @NotNull
-  @Override
-  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(DIMENSION_PARAMETER, DIMENSION_SELECTED); //hide for now
-    result.addHiddenDimensions(DIMENSION_PARENT_PROJECT); //compatibility mode for versions <9.1
-    result.addHiddenDimensions(DIMENSION_LOOKUP_LIMIT);
-    return result;
-  }
-
   @Nullable
   @Override
-  protected SProject findSingleItem(@NotNull final Locator locator) {
+  public SProject findSingleItem(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's a name or internal id or external id
       SProject project = null;
@@ -191,7 +184,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
   @NotNull
   @Override
-  protected ItemFilter<SProject> getFilter(@NotNull final Locator locator) {
+  public ItemFilter<SProject> getFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<SProject> result = new MultiCheckerFilter<SProject>();
 
     final String name = locator.getSingleDimensionValue(DIMENSION_NAME);
@@ -269,7 +262,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
   @NotNull
   @Override
-  protected ItemHolder<SProject> getPrefilteredItems(@NotNull final Locator locator) {
+  public ItemHolder<SProject> getPrefilteredItems(@NotNull final Locator locator) {
 
     //this should be the first one as the order returned here is important!
     final String selectedForUser = locator.getSingleDimensionValue(DIMENSION_SELECTED);
@@ -366,7 +359,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
   @NotNull
   public SProject getItem(@Nullable final String locatorText, final boolean checkViewSettingsPermission) {
-    final SProject result = super.getItem(locatorText, null);
+    final SProject result = getItem(locatorText);
     if (checkViewSettingsPermission) {
       check(result, myPermissionChecker);
     }

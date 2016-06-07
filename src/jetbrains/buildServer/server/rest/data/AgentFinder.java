@@ -64,7 +64,8 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   @NotNull private final ServiceLocator myServiceLocator;
 
   public AgentFinder(final @NotNull BuildAgentManager agentManager, @NotNull final ServiceLocator serviceLocator) {
-    super(new String[]{DIMENSION_ID, NAME, CONNECTED, AUTHORIZED, ENABLED, PARAMETER, IP, POOL, COMPATIBLE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+    super(DIMENSION_ID, NAME, CONNECTED, AUTHORIZED, ENABLED, PARAMETER, IP, POOL, COMPATIBLE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    setHiddenDimensions(PROTOCOL, INCOMPATIBLE, DEFAULT_FILTERING, DIMENSION_LOOKUP_LIMIT);
     myAgentManager = agentManager;
     myServiceLocator = serviceLocator;
   }
@@ -84,20 +85,10 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     return Locator.getStringLocator(COMPATIBLE, Locator.getStringLocator(COMPATIBLE_BUILD_TYPE, BuildTypeFinder.getLocator(buildType)));
   }
 
-  @NotNull
-  @Override
-  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(PROTOCOL, INCOMPATIBLE);    //hide this for now
-    result.addHiddenDimensions(DEFAULT_FILTERING);
-    result.addHiddenDimensions(DIMENSION_LOOKUP_LIMIT);
-    return result;
-  }
-
   //todo: check view agent details permission before returning unauthorized agents, here and in prefiltering
   @Override
   @Nullable
-  protected SBuildAgent findSingleItem(@NotNull final Locator locator) {
+  public SBuildAgent findSingleItem(@NotNull final Locator locator) {
 
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's name
@@ -131,7 +122,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
 
   @NotNull
   @Override
-  protected ItemFilter<SBuildAgent> getFilter(@NotNull final Locator locator) {
+  public ItemFilter<SBuildAgent> getFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<SBuildAgent> result = new MultiCheckerFilter<SBuildAgent>();
 
     final Boolean authorizedDimension = locator.getSingleDimensionValueAsBoolean(AUTHORIZED);
@@ -361,7 +352,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
 
   @NotNull
   @Override
-  protected ItemHolder<SBuildAgent> getPrefilteredItems(@NotNull final Locator locator) {
+  public ItemHolder<SBuildAgent> getPrefilteredItems(@NotNull final Locator locator) {
     setLocatorDefaults(locator);
 
     final Boolean authorizedDimension = locator.getSingleDimensionValueAsBoolean(AUTHORIZED);

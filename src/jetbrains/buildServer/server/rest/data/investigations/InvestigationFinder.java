@@ -129,13 +129,13 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   }
 
   @Override
-  protected InvestigationWrapper findSingleItem(@NotNull final Locator locator) {
+  public InvestigationWrapper findSingleItem(@NotNull final Locator locator) {
     return null;
   }
 
   @NotNull
   @Override
-  protected ItemFilter<InvestigationWrapper> getFilter(@NotNull final Locator locator) {
+  public ItemFilter<InvestigationWrapper> getFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<InvestigationWrapper> result = new MultiCheckerFilter<InvestigationWrapper>();
 
     final String investigatorDimension = locator.getSingleDimensionValue(ASSIGNEE);
@@ -225,7 +225,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
   @NotNull
   @Override
-  protected ItemHolder<InvestigationWrapper> getPrefilteredItems(@NotNull final Locator locator) {
+  public ItemHolder<InvestigationWrapper> getPrefilteredItems(@NotNull final Locator locator) {
     final String problemDimension = locator.getSingleDimensionValue(PROBLEM_DIMENSION);
     if (problemDimension != null){
       final ProblemWrapper problem = myProblemFinder.getItem(problemDimension);

@@ -90,7 +90,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
 
   @NotNull
   @Override
-  protected ItemFilter<ArtifactTreeElement> getFilter(@NotNull final Locator locator) {
+  public ItemFilter<ArtifactTreeElement> getFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<ArtifactTreeElement> result = new MultiCheckerFilter<ArtifactTreeElement>();
 
     TimeCondition.FilterAndLimitingDate<ArtifactTreeElement> dateFiltering =
@@ -170,7 +170,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
 
   @NotNull
   @Override
-  protected ItemHolder<ArtifactTreeElement> getPrefilteredItems(@NotNull final Locator locator) {
+  public ItemHolder<ArtifactTreeElement> getPrefilteredItems(@NotNull final Locator locator) {
     setLocatorDefaults(locator);
 
     Boolean includeHidden = locator.getSingleDimensionValueAsBoolean(HIDDEN_DIMENSION_NAME);

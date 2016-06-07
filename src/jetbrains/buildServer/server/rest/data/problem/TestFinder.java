@@ -57,8 +57,9 @@ public class TestFinder extends AbstractFinder<STest> {
                     final @NotNull TestName2IndexImpl testName2Index,
                     final @NotNull CurrentProblemsManager currentProblemsManager,
                     final @NotNull ProblemMutingService problemMutingService) {
-    super(new String[]{DIMENSION_ID, NAME, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED, MUTE_AFFECTED,
-      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+    super(DIMENSION_ID, NAME, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED, MUTE_AFFECTED,
+      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    setHiddenDimensions(BUILD); //ineffective performance-wise
     myBuildPromotionFinder = buildPromotionFinder;
     myTestManager = testManager;
     myProjectFinder = projectFinder;
@@ -82,17 +83,9 @@ public class TestFinder extends AbstractFinder<STest> {
     return Locator.createEmptyLocator().setDimension(DIMENSION_ID, String.valueOf(testNameId)).getStringRepresentation();
   }
 
-  @NotNull
-  @Override
-  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(BUILD); //not effective
-    return result;
-  }
-
   @Override
   @Nullable
-  protected STest findSingleItem(@NotNull final Locator locator) {
+  public STest findSingleItem(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's id
       final Long parsedId = locator.getSingleValueAsLong();
@@ -131,7 +124,7 @@ public class TestFinder extends AbstractFinder<STest> {
 
   @NotNull
   @Override
-  protected ItemHolder<STest> getPrefilteredItems(@NotNull final Locator locator) {
+  public ItemHolder<STest> getPrefilteredItems(@NotNull final Locator locator) {
     String buildLocator = locator.getSingleDimensionValue(BUILD);
     if (buildLocator != null){
       return getItemHolder(getTestsByBuilds(buildLocator));
@@ -203,7 +196,7 @@ public class TestFinder extends AbstractFinder<STest> {
 
   @NotNull
   @Override
-  protected ItemFilter<STest> getFilter(@NotNull final Locator locator) {
+  public ItemFilter<STest> getFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<STest> result = new MultiCheckerFilter<STest>();
 
     final String nameDimension = locator.getSingleDimensionValue(NAME);

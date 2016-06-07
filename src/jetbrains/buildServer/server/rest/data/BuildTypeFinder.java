@@ -82,9 +82,10 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
                          @NotNull final AgentFinder agentFinder,
                          final PermissionChecker permissionChecker,
                          @NotNull final ServiceLocator serviceLocator) {
-    super(new String[]{DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, AFFECTED_PROJECT, DIMENSION_NAME, TEMPLATE_FLAG_DIMENSION_NAME,
+    super(DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, AFFECTED_PROJECT, DIMENSION_NAME, TEMPLATE_FLAG_DIMENSION_NAME,
       TEMPLATE_DIMENSION_NAME, PAUSED, VCS_ROOT_DIMENSION, VCS_ROOT_INSTANCE_DIMENSION, BUILD,
-      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    setHiddenDimensions(COMPATIBLE_AGENT, COMPATIBLE_AGENTS_COUNT, PARAMETER, FILTER_BUILDS, SNAPSHOT_DEPENDENCY, DIMENSION_SELECTED, DIMENSION_LOOKUP_LIMIT);
     myProjectManager = projectManager;
     myProjectFinder = projectFinder;
     myAgentFinder = agentFinder;
@@ -107,18 +108,9 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     return Locator.createEmptyLocator().setDimension(DIMENSION_ID, template.getExternalId()).getStringRepresentation();
   }
 
-  @NotNull
-  @Override
-  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(COMPATIBLE_AGENT, COMPATIBLE_AGENTS_COUNT, PARAMETER, FILTER_BUILDS, SNAPSHOT_DEPENDENCY, DIMENSION_SELECTED); //hide these for now
-    result.addHiddenDimensions(DIMENSION_LOOKUP_LIMIT);
-    return result;
-  }
-
   @Override
   @Nullable
-  protected BuildTypeOrTemplate findSingleItem(@NotNull final Locator locator) {
+  public BuildTypeOrTemplate findSingleItem(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's an internal id, external id or name
       final String value = locator.getSingleValue();
@@ -225,7 +217,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
   @NotNull
   @Override
-  protected ItemFilter<BuildTypeOrTemplate> getFilter(@NotNull final Locator locator) {
+  public ItemFilter<BuildTypeOrTemplate> getFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<BuildTypeOrTemplate> result = new MultiCheckerFilter<BuildTypeOrTemplate>();
 
     final String name = locator.getSingleDimensionValue(DIMENSION_NAME);
@@ -349,7 +341,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
               return buildPromotions.size() > 0;
             }
 
-            final ItemFilter<BuildPromotion> filter = buildFinder.getFilter(buildFinder.createLocator(match, null));
+            final ItemFilter<BuildPromotion> filter = buildFinder.getFilter(match);
             for (BuildPromotion buildPromotion : buildPromotions) {
               if (!filter.isIncluded(buildPromotion)) return false;
             }
@@ -439,7 +431,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
   @NotNull
   @Override
-  protected ItemHolder<BuildTypeOrTemplate> getPrefilteredItems(@NotNull final Locator locator) {
+  public ItemHolder<BuildTypeOrTemplate> getPrefilteredItems(@NotNull final Locator locator) {
     //this should be the first one as the order returned here is important!
     final String selectedForUser = locator.getSingleDimensionValue(DIMENSION_SELECTED);
     if (selectedForUser != null) {

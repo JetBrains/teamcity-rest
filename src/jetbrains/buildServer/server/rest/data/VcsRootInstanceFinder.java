@@ -69,9 +69,10 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
                                @NotNull ProjectManager projectManager,
                                @NotNull VcsRootIdentifiersManager vcsRootIdentifiersManager,
                                final @NotNull PermissionChecker permissionChecker) {
-    super(new String[]{DIMENSION_ID, TYPE, PROJECT, AFFECTED_PROJECT, PROPERTY, REPOSITORY_ID_STRING,
+    super(DIMENSION_ID, TYPE, PROJECT, AFFECTED_PROJECT, PROPERTY, REPOSITORY_ID_STRING,
       BUILD_TYPE, VCS_ROOT_DIMENSION,
-      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    setHiddenDimensions(PROPERTY);
     myVcsRootFinder = vcsRootFinder;
     myVcsManager = vcsManager;
     myProjectFinder = projectFinder;
@@ -101,17 +102,9 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
     return Locator.getStringLocator(VCS_ROOT_DIMENSION, VcsRootFinder.getLocator(vcsRoot));
   }
 
-  @NotNull
-  @Override
-  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(PROPERTY); //experimental
-    return result;
-  }
-
   @Nullable
   @Override
-  protected VcsRootInstance findSingleItem(@NotNull final Locator locator) {
+  public VcsRootInstance findSingleItem(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's root instance id
       return getVcsRootInstanceById(locator.getSingleValueAsLong());
@@ -140,7 +133,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
   @NotNull
   @Override
-  protected ItemFilter<VcsRootInstance> getFilter(@NotNull final Locator locator) {
+  public ItemFilter<VcsRootInstance> getFilter(@NotNull final Locator locator) {
 
     final MultiCheckerFilter<VcsRootInstance> result = new MultiCheckerFilter<VcsRootInstance>();
 
@@ -240,7 +233,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
   @NotNull
   @Override
-  protected ItemHolder<VcsRootInstance> getPrefilteredItems(@NotNull Locator locator) {
+  public ItemHolder<VcsRootInstance> getPrefilteredItems(@NotNull Locator locator) {
     final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
     if (vcsRootLocator != null) {
       final List<SVcsRoot> vcsRoots = myVcsRootFinder.getItems(vcsRootLocator).myEntries;

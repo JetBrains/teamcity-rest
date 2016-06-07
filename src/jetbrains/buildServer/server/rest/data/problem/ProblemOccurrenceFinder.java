@@ -110,7 +110,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   }
 
   @Override
-  protected BuildProblem findSingleItem(@NotNull final Locator locator) {
+  public BuildProblem findSingleItem(@NotNull final Locator locator) {
     //todo: searching occurrence by id does not work: review!!!
 
     // dimension-specific item search
@@ -142,7 +142,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
   @NotNull
   @Override
-  protected ItemHolder<BuildProblem> getPrefilteredItems(@NotNull final Locator locator) {
+  public ItemHolder<BuildProblem> getPrefilteredItems(@NotNull final Locator locator) {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
       List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
@@ -190,7 +190,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
   @NotNull
   @Override
-  protected ItemFilter<BuildProblem> getFilter(@NotNull final Locator locator) {
+  public ItemFilter<BuildProblem> getFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<BuildProblem> result = new MultiCheckerFilter<BuildProblem>();
 
     if (locator.isUnused(PROBLEM)) {

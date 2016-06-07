@@ -89,8 +89,11 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
                       @NotNull final VcsModificationHistory vcsModificationHistory,
                       @NotNull final BranchFinder branchFinder,
                       @NotNull final ServiceLocator serviceLocator, @NotNull final PermissionChecker permissionChecker) {
-    super(new String[]{DIMENSION_ID, PROJECT, BUILD_TYPE, BUILD, VCS_ROOT, VCS_ROOT_INSTANCE, USERNAME, USER, VERSION, INTERNAL_VERSION, COMMENT, FILE,
-      SINCE_CHANGE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+    super(DIMENSION_ID, PROJECT, BUILD_TYPE, BUILD, VCS_ROOT, VCS_ROOT_INSTANCE, USERNAME, USER, VERSION, INTERNAL_VERSION, COMMENT, FILE,
+          SINCE_CHANGE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    setHiddenDimensions(BRANCH, PERSONAL, PENDING, CHILD_CHANGE, PARENT_CHANGE, DAG_TRAVERSE, PROMOTION, //hide these for now
+                        DIMENSION_LOOKUP_LIMIT //not supported in fact
+    );
     myPermissionChecker = permissionChecker;
     myProjectFinder = projectFinder;
     myBuildFinder = buildFinder;
@@ -109,15 +112,6 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   @Override
   public Long getDefaultPageItemsCount() {
     return (long)Constants.getDefaultPageItemsCount();
-  }
-
-  @NotNull
-  @Override
-  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(BRANCH, PERSONAL, PENDING, CHILD_CHANGE, PARENT_CHANGE, DAG_TRAVERSE, PROMOTION); //hide these for now
-    result.addHiddenDimensions(DIMENSION_LOOKUP_LIMIT); //not supported in fact
-    return result;
   }
 
   @NotNull
@@ -141,7 +135,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
   @Override
   @Nullable
-  protected SVcsModification findSingleItem(@NotNull final Locator locator) {
+  public SVcsModification findSingleItem(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's id
       @SuppressWarnings("ConstantConditions") SVcsModification modification = myVcsManager.findModificationById(locator.getSingleValueAsLong(), false);
@@ -172,7 +166,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
   @NotNull
   @Override
-  protected ItemFilter<SVcsModification> getFilter(@NotNull final Locator locator) {
+  public ItemFilter<SVcsModification> getFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<SVcsModification> result = new MultiCheckerFilter<SVcsModification>();
 
     //myBuildType, myProject and myBranchName are handled on getting initial collection to filter
@@ -394,7 +388,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     try {
       return Long.parseLong(sinceChangeDimension);
     } catch (NumberFormatException e) {
-      final Locator locator = createLocator(sinceChangeDimension, null);
+      final Locator locator = new Locator(sinceChangeDimension);
       Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
       if (id != null && locator.getDimensionsCount() == 1) {
         return id;
@@ -406,7 +400,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
   @NotNull
   @Override
-  protected ItemHolder<SVcsModification> getPrefilteredItems(@NotNull final Locator locator) {
+  public ItemHolder<SVcsModification> getPrefilteredItems(@NotNull final Locator locator) {
 
     SBuildType buildType = null;
     final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE); //todo: support multiple buildTypes here

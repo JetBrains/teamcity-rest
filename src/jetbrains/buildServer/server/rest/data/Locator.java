@@ -70,7 +70,7 @@ public class Locator {
   private DescriptionProvider myDescriptionProvider = null;
 
   public Locator(@Nullable final String locator) throws LocatorProcessException {
-    this(locator, null);
+    this(locator, (String[])null);
   }
 
   /**
@@ -101,7 +101,7 @@ public class Locator {
    * @param supportedDimensions dimensions supported in this locator, used in {@link #checkLocatorFullyProcessed()}
    * @throws LocatorProcessException
    */
-  public Locator(@Nullable final String locator, final String... supportedDimensions) throws LocatorProcessException {
+  public Locator(@Nullable final String locator, @Nullable final String... supportedDimensions) throws LocatorProcessException {
     this(locator, false, supportedDimensions);
   }
 
@@ -112,7 +112,7 @@ public class Locator {
    * @param supportedDimensions dimensions supported in this locator, used in {@link #checkLocatorFullyProcessed()}
    * @throws LocatorProcessException
    */
-  public Locator(@Nullable final String locator, final boolean extendedMode, final String... supportedDimensions) throws LocatorProcessException {
+  public Locator(@Nullable final String locator, final boolean extendedMode, @Nullable final String... supportedDimensions) throws LocatorProcessException {
     myRawValue = locator;
     myExtendedMode = extendedMode;
     if (StringUtil.isEmpty(locator)) {
@@ -159,7 +159,7 @@ public class Locator {
   }
 
   /**
-   * The resultant locator will have all the dimensions from "defualts" locator set unless already defined.
+   * The resultant locator will have all the dimensions from "defaults" locator set unless already defined.
    * If "locator" text is empty, "defaults" locator will be used
    *
    * @param locator
@@ -167,7 +167,8 @@ public class Locator {
    * @param supportedDimensions
    * @return
    */
-  public static Locator createLocator(@Nullable final String locator, @Nullable final Locator defaults, final String[] supportedDimensions) {
+  @NotNull
+  public static Locator createLocator(@Nullable final String locator, @Nullable final Locator defaults, @Nullable final String[] supportedDimensions) {
     Locator result;
     if (locator != null || defaults == null) {
       result = new Locator(locator, supportedDimensions);
@@ -193,7 +194,24 @@ public class Locator {
     return result;
   }
 
-  public static Locator createEmptyLocator(final String... supportedDimensions) {
+  /**
+   * The resultant locator will have all the dimensions and values of "mainLocator" and those from "defaultsLocator" which are note defined in "mainLocator"
+   * If "mainLocator" text is empty, "defaultsLocator" locator will be used
+   *
+   * @see #createLocator(String, Locator, String[])
+   */
+  @NotNull
+  public static String merge(@Nullable final String mainLocator, @Nullable final String defaultsLocator) {
+    return createLocator(mainLocator, defaultsLocator == null ? null : new Locator(defaultsLocator), null).getStringRepresentation();
+  }
+
+  @NotNull
+  public static Locator createPotentiallyEmptyLocator(@Nullable final String locatorText) { //todo: may be support this in Locator constructor?
+    return StringUtil.isEmpty(locatorText) ? Locator.createEmptyLocator() : new Locator(locatorText);
+  }
+
+  @NotNull
+  public static Locator createEmptyLocator(@Nullable final String... supportedDimensions) {
     final Locator result = new Locator();
     result.mySupportedDimensions = supportedDimensions;
     return result;
@@ -253,8 +271,10 @@ public class Locator {
 
       currentDimensionName = locator.substring(parsedIndex, nameEnd);
       if (!isValidName(currentDimensionName)) {
-        throw new LocatorProcessException(locator, parsedIndex, "Invalid dimension name :'" + currentDimensionName +
-                                                                "'. Should contain only alpha-numeric symbols or be known one: " + Arrays.toString(mySupportedDimensions));
+        throw new LocatorProcessException(locator, parsedIndex, "Invalid dimension name :'" + currentDimensionName + "'. Should contain only alpha-numeric symbols" +
+                                                                (mySupportedDimensions == null || mySupportedDimensions.length == 0
+                                                                 ? ""
+                                                                 : " or be known one: " + Arrays.toString(mySupportedDimensions)));
       }
       currentDimensionValue = "";
       parsedIndex = nameEnd;
@@ -772,7 +792,7 @@ public class Locator {
     return result.getStringRepresentation();
   }
 
-  public String getStringRepresentation() {
+  public String getStringRepresentation() { //todo: what is returned for empty locator???    and replace "actualLocator.isEmpty() ? null : actualLocator.getStringRepresentation()"
     if (mySingleValue != null) {
       return mySingleValue;
     }

@@ -64,21 +64,14 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
                               final @NotNull ProjectFinder projectFinder,
                               final @NotNull BuildHistoryEx buildHistory,
                               final @NotNull CurrentProblemsManager currentProblemsManager) {
-    super(new String[]{DIMENSION_ID, TEST, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED});
+    super(DIMENSION_ID, TEST, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED);
+    setHiddenDimensions(EXPAND_INVOCATIONS);
     myTestFinder = testFinder;
     myBuildFinder = buildFinder;
     myBuildTypeFinder = buildTypeFinder;
     myProjectFinder = projectFinder;
     myBuildHistory = buildHistory;
     myCurrentProblemsManager = currentProblemsManager;
-  }
-
-  @NotNull
-  @Override
-  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(EXPAND_INVOCATIONS); //experimental
-    return result;
   }
 
   @Override
@@ -107,7 +100,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   @Override
   @Nullable
-  protected STestRun findSingleItem(@NotNull final Locator locator) {
+  public STestRun findSingleItem(@NotNull final Locator locator) {
     /*
     if (locator.isSingleValue()) {
       Long idDimension = locator.getSingleValueAsLong();
@@ -159,7 +152,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   @NotNull
   @Override
-  protected ItemHolder<STestRun> getPrefilteredItems(@NotNull final Locator locator) {
+  public ItemHolder<STestRun> getPrefilteredItems(@NotNull final Locator locator) {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
       List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
@@ -310,7 +303,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   @NotNull
   @Override
-  protected ItemFilter<STestRun> getFilter(@NotNull final Locator locator) {
+  public ItemFilter<STestRun> getFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<STestRun> result = new MultiCheckerFilter<STestRun>();
 
 

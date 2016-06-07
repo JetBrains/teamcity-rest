@@ -55,18 +55,10 @@ public class BranchFinder extends AbstractFinder<Branch> {
 
   public BranchFinder(@NotNull final BuildTypeFinder buildTypeFinder, @NotNull final ServiceLocator serviceLocator) {
     super(NAME, DEFAULT, UNSPECIFIED, BUILD_TYPE, BUILD, POLICY, CHANGES_FROM_DEPENDENCIES, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME); //see also getBranchFilterDetails
+    setHiddenDimensions(BRANCHED,
+                        NAME_CONDITION, DISPLAY_NAME_CONDITION); /*experimental*/
     myBuildTypeFinder = buildTypeFinder;
     myServiceLocator = serviceLocator;
-  }
-
-  @NotNull
-  @Override
-  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(BRANCHED);
-    result.addHiddenDimensions(NAME_CONDITION); /*experimental*/
-    result.addHiddenDimensions(DISPLAY_NAME_CONDITION); /*experimental*/
-    return result;
   }
 
   public String getDefaultBranchLocator() {
@@ -75,7 +67,7 @@ public class BranchFinder extends AbstractFinder<Branch> {
 
   @NotNull
   @Override
-  protected ItemFilter<Branch> getFilter(@NotNull final Locator locator) {
+  public ItemFilter<Branch> getFilter(@NotNull final Locator locator) {
     return getBranchFilterDetails(locator).filter;
   }
 
@@ -200,7 +192,7 @@ public class BranchFinder extends AbstractFinder<Branch> {
 
   @NotNull
   @Override
-  protected ItemHolder<Branch> getPrefilteredItems(@NotNull final Locator locator) {
+  public ItemHolder<Branch> getPrefilteredItems(@NotNull final Locator locator) {
     String buildLocator = locator.getSingleDimensionValue(BUILD);
     if (!StringUtil.isEmpty(buildLocator)) {
       BuildPromotion build = myServiceLocator.getSingletonService(BuildPromotionFinder.class).getItem(buildLocator);
@@ -281,7 +273,7 @@ public class BranchFinder extends AbstractFinder<Branch> {
     if (locatorText != null && new Locator(locatorText).isSingleValue()) {
       baseLocator = Locator.getStringLocator(NAME, locatorText);
     }
-    return getItems(Locator.setDimensionIfNotPresent(baseLocator, BUILD_TYPE, myBuildTypeFinder.getItemLocator(new BuildTypeOrTemplate(buildType))));
+    return getItems(Locator.setDimensionIfNotPresent(baseLocator, BUILD_TYPE, myBuildTypeFinder.getCanonicalLocator(new BuildTypeOrTemplate(buildType))));
   }
 
   @Nullable

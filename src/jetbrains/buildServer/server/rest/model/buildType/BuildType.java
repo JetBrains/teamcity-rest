@@ -383,13 +383,7 @@ public class BuildType {
       public Investigations get() {
         final Fields nestedFields = myFields.getNestedField("investigations");
         final InvestigationFinder finder = myBeanContext.getSingletonService(InvestigationFinder.class);
-        final String nestedLocator = nestedFields.getLocator();
-        final String actualLocatorText;
-        if (nestedLocator == null) {
-          actualLocatorText = InvestigationFinder.getLocator(myBuildType.getBuildType());
-        } else {
-          actualLocatorText = finder.createLocator(nestedLocator, new Locator(InvestigationFinder.getLocator(myBuildType.getBuildType()))).getStringRepresentation();
-        }
+        final String actualLocatorText = Locator.merge(nestedFields.getLocator(), InvestigationFinder.getLocator(myBuildType.getBuildType()));
         final List<InvestigationWrapper> result = Investigations.isDataNecessary(nestedFields) ? finder.getItems(actualLocatorText).myEntries : null;
         return new Investigations(result, new PagerData(InvestigationRequest.getHref(actualLocatorText)), nestedFields, myBeanContext);
       }
@@ -405,12 +399,7 @@ public class BuildType {
       @Nullable
       public Agents get() {
         final Fields nestedFields = myFields.getNestedField("compatibleAgents");
-        final AgentFinder finder = myBeanContext.getSingletonService(AgentFinder.class);
-        final String nestedLocator = nestedFields.getLocator();
-        String actualLocatorText = AgentFinder.getCompatibleAgentsLocator(myBuildType.getBuildType());
-        if (nestedLocator != null) {
-          actualLocatorText = finder.createLocator(nestedLocator, new Locator(actualLocatorText)).getStringRepresentation();
-        }
+        String  actualLocatorText = Locator.merge(nestedFields.getLocator(), AgentFinder.getCompatibleAgentsLocator(myBuildType.getBuildType()));
         return new Agents(actualLocatorText, new PagerData(AgentRequest.getItemsHref(actualLocatorText)), nestedFields, myBeanContext);
       }
     });

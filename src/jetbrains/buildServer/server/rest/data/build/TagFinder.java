@@ -24,7 +24,6 @@ import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.TagData;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -41,7 +40,10 @@ public class TagFinder extends AbstractFinder<TagData> {
   @NotNull private final BuildPromotion myBuildPromotion;
 
   public TagFinder(final @NotNull UserFinder userFinder, final @NotNull BuildPromotion buildPromotion) {
-    super(new String[]{NAME, PRIVATE, OWNER});
+    super(NAME, PRIVATE, OWNER);
+    setHiddenDimensions(Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, CONDITION, //experimental
+                        DIMENSION_LOOKUP_LIMIT
+    );
     myUserFinder = userFinder;
     myBuildPromotion = buildPromotion;
   }
@@ -51,7 +53,7 @@ public class TagFinder extends AbstractFinder<TagData> {
   public String getItemLocator(@NotNull final TagData tagData) {
     final Locator result = Locator.createEmptyLocator();
     result.setDimension(NAME, tagData.getLabel());
-    if (tagData.getOwner() != null) result.setDimension(OWNER, myUserFinder.getItemLocator(tagData.getOwner()));
+    if (tagData.getOwner() != null) result.setDimension(OWNER, myUserFinder.getCanonicalLocator(tagData.getOwner()));
     return result.getStringRepresentation();
   }
 
@@ -61,18 +63,9 @@ public class TagFinder extends AbstractFinder<TagData> {
     return defaultLocator;
   }
 
-  @Override
-  @NotNull
-  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    final Locator locator = super.createLocator(locatorText, locatorDefaults);
-    locator.addHiddenDimensions(Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, CONDITION); //experimental
-    locator.addHiddenDimensions(DIMENSION_LOOKUP_LIMIT);
-    return locator;
-  }
-
   @NotNull
   @Override
-  protected ItemHolder<TagData> getPrefilteredItems(@NotNull final Locator locator) {
+  public ItemHolder<TagData> getPrefilteredItems(@NotNull final Locator locator) {
     final ArrayList<TagData> result = new ArrayList<TagData>(myBuildPromotion.getTagDatas());
     Collections.sort(result, new Comparator<TagData>() {
       public int compare(final TagData o1, final TagData o2) {
@@ -100,7 +93,7 @@ public class TagFinder extends AbstractFinder<TagData> {
 
   @NotNull
   @Override
-  protected ItemFilter<TagData> getFilter(@NotNull final Locator locator) {
+  public ItemFilter<TagData> getFilter(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       final String singleValue = locator.getSingleValue();
       final MultiCheckerFilter<TagData> result = new MultiCheckerFilter<TagData>();

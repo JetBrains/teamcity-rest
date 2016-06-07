@@ -61,6 +61,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
                        final @NotNull ProblemMutingService problemMutingService) {
     super(new String[]{DIMENSION_ID, IDENTITY, TYPE, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED,
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+    setHiddenDimensions(BUILD); //ineffective perfomance-wise
     myProjectFinder = projectFinder;
     myBuildPromotionFinder = buildPromotionFinder;
     myBuildProblemManager = buildProblemManager;
@@ -83,17 +84,9 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     return Locator.createEmptyLocator().setDimension(DIMENSION_ID, String.valueOf(problemId)).getStringRepresentation();
   }
 
-  @NotNull
-  @Override
-  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(BUILD); //not effective
-    return result;
-  }
-
   @Override
   @Nullable
-  protected ProblemWrapper findSingleItem(@NotNull final Locator locator) {
+  public ProblemWrapper findSingleItem(@NotNull final Locator locator) {
     Long id = getProblemIdByLocator(locator);
     if (id != null) {
       return new ProblemWrapper(id.intValue(), myServiceLocator);
@@ -123,7 +116,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
 
   @NotNull
   @Override
-  protected ItemHolder<ProblemWrapper> getPrefilteredItems(@NotNull final Locator locator) {
+  public ItemHolder<ProblemWrapper> getPrefilteredItems(@NotNull final Locator locator) {
     String buildLocator = locator.getSingleDimensionValue(BUILD);
     if (buildLocator != null) {
       return getItemHolder(getProblemsByBuilds(buildLocator));
@@ -157,7 +150,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
 
   @NotNull
   @Override
-  protected ItemFilter<ProblemWrapper> getFilter(@NotNull final Locator locator) {
+  public ItemFilter<ProblemWrapper> getFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<ProblemWrapper> result = new MultiCheckerFilter<ProblemWrapper>();
 
     final String identityDimension = locator.getSingleDimensionValue(IDENTITY);

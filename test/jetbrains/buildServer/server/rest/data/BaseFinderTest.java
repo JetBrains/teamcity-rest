@@ -49,7 +49,7 @@ import org.testng.annotations.BeforeMethod;
  * Created by yaegor on 13/06/2015.
  */
 public abstract class BaseFinderTest<T> extends BaseServerTestCase{
-  private AbstractFinder<T> myFinder;
+  private Finder<T> myFinder;
   protected VcsManagerImpl myVcsManager;
   protected PermissionChecker myPermissionChecker;
 
@@ -169,11 +169,11 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
                                       myVcsManager, myFixture.getVcsHistory(), myBranchFinder, myFixture, myPermissionChecker);
   }
 
-  public void setFinder(@NotNull AbstractFinder<T> finder){
+  public void setFinder(@NotNull Finder<T> finder){
     myFinder = finder;
   }
 
-  public AbstractFinder<T> getFinder() {
+  public Finder<T> getFinder() {
     return myFinder;
   }
 
@@ -195,7 +195,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     check(locator, matcher, getFinder(), items);
   }
 
-  public static <S, R> void check(@Nullable final String locator, @NotNull Matcher<S, R> matcher, @NotNull final AbstractFinder<R> finder, S... items) {
+  public static <S, R> void check(@Nullable final String locator, @NotNull Matcher<S, R> matcher, @NotNull final Finder<R> finder, S... items) {
     final List<R> result = finder.getItems(locator).myEntries;
     final String expected = getDescription(Arrays.asList(items));
     final String actual = getDescription(result);

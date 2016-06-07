@@ -145,6 +145,15 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
           NUMBER, STATUS, CANCELED, PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, HANGING,
           DEFAULT_FILTERING, SINCE_BUILD_ID_LOOK_AHEAD_COUNT,
           Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    setHiddenDimensions(AGENT_NAME, TAGS, RUNNING,  //compatibility
+                        BY_PROMOTION,  //switch for legacy behavior
+                        COMPATIBLE_AGENTS_COUNT,  //experimental for queued builds only
+                        EQUIVALENT, REVISION, PROMOTION_ID_ALIAS, BUILD_ID, METADATA,
+                        STATISTIC_VALUE,  //experimental
+                        SINCE_BUILD_ID_LOOK_AHEAD_COUNT,  //experimental
+                        ORDERED,  //experimental
+                        STROB  //experimental
+    );
     myBuildPromotionManager = buildPromotionManager;
     myBuildQueue = buildQueue;
     myBuildsManager = buildsManager;
@@ -172,24 +181,9 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     return null;
   }
 
-  @NotNull
-  @Override
-  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(AGENT_NAME, TAGS, RUNNING); //compatibility
-    result.addHiddenDimensions(BY_PROMOTION); //switch for legacy behavior
-    result.addHiddenDimensions(COMPATIBLE_AGENTS_COUNT); //experimental for queued builds only
-    result.addHiddenDimensions(EQUIVALENT, REVISION, PROMOTION_ID_ALIAS, BUILD_ID, METADATA);
-    result.addHiddenDimensions(STATISTIC_VALUE); //experimental
-    result.addHiddenDimensions(SINCE_BUILD_ID_LOOK_AHEAD_COUNT); //experimental
-    result.addHiddenDimensions(ORDERED); //experimental
-    result.addHiddenDimensions(STROB); //experimental
-    return result;
-  }
-
   @Nullable
   @Override
-  protected BuildPromotion findSingleItem(@NotNull final Locator locator) {
+  public BuildPromotion findSingleItem(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       @NotNull final Long singleValueAsLong;
       try {
@@ -229,7 +223,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   @NotNull
   @Override
-  protected ItemFilter<BuildPromotion> getFilter(@NotNull final Locator locator) {
+  public ItemFilter<BuildPromotion> getFilter(@NotNull final Locator locator) {
 
     final MultiCheckerFilter<BuildPromotion> result = new MultiCheckerFilter<BuildPromotion>();
 
@@ -983,7 +977,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   @NotNull
   @Override
-  protected ItemHolder<BuildPromotion> getPrefilteredItems(@NotNull Locator locator) {
+  public ItemHolder<BuildPromotion> getPrefilteredItems(@NotNull Locator locator) {
     final Boolean byPromotion = locator.getSingleDimensionValueAsBoolean(BY_PROMOTION);
     if (byPromotion != null && !byPromotion) {
       throw new BadRequestException("Found '" + BY_PROMOTION + "' locator set to 'false' which is not supported");
@@ -1204,7 +1198,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   @NotNull
   private <ITEM> List<Locator> getPartialLocatorsForStrobDimension(@NotNull final List<Locator> resultStrobBuildLocators, @NotNull final Locator strobLocator, @NotNull final String strobDimension,
-                                                                   @NotNull final AbstractFinder<ITEM> strobTypeFinder) {
+                                                                   @NotNull final Finder<ITEM> strobTypeFinder) {
     final String strobDimensionValue = strobLocator.getSingleDimensionValue(strobDimension);
     if (strobDimensionValue == null) {
       return resultStrobBuildLocators;
@@ -1225,7 +1219,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
       final PagedSearchResult<ITEM> items = strobTypeFinder.getItems(patchedStrobDimensionValue);
       for (ITEM item : items.myEntries) {
-        result.add(new Locator(strobBuildLocator).setDimensionIfNotPresent(strobDimension, strobTypeFinder.getItemLocator(item)));
+        result.add(new Locator(strobBuildLocator).setDimensionIfNotPresent(strobDimension, strobTypeFinder.getCanonicalLocator(item)));
       }
     }
     return result;

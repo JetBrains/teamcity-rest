@@ -35,11 +35,11 @@ public class GraphFinder<T> extends AbstractFinder<T> {
   protected static final String DIMENSION_STOP = "stop";
   protected static final String DIMENSION_RECURSIVE = "recursive";
   protected static final String DIMENSION_INCLUDE_INITIAL = "includeInitial";
-  private final AbstractFinder<T> myFinder;
+  private final Finder<T> myFinder;
   @NotNull private final Traverser<T> myTraverser;
   private Long myDefaultLookupLimit;
 
-  public GraphFinder(@NotNull AbstractFinder<T> finder, @NotNull Traverser<T> traverser) {
+  public GraphFinder(@NotNull Finder<T> finder, @NotNull Traverser<T> traverser) {
     super(new String[]{DIMENSION_FROM, DIMENSION_TO, DIMENSION_RECURSIVE, DIMENSION_INCLUDE_INITIAL, DIMENSION_STOP});
     myFinder = finder;
     myTraverser = traverser;
@@ -53,7 +53,7 @@ public class GraphFinder<T> extends AbstractFinder<T> {
 
   @NotNull
   @Override
-  protected ItemFilter<T> getFilter(@NotNull final Locator locator) {
+  public ItemFilter<T> getFilter(@NotNull final Locator locator) {
     return new MultiCheckerFilter<T>();
   }
 
@@ -69,16 +69,16 @@ public class GraphFinder<T> extends AbstractFinder<T> {
 
   @NotNull
   @Override
-  protected ItemHolder<T> getPrefilteredItems(@NotNull final Locator locator) {
+  public ItemHolder<T> getPrefilteredItems(@NotNull final Locator locator) {
     Boolean recursive = locator.getSingleDimensionValueAsBoolean(DIMENSION_RECURSIVE, true);
     if (recursive == null) recursive = true;
 
     Boolean includeOriginal = locator.getSingleDimensionValueAsBoolean(DIMENSION_INCLUDE_INITIAL, false);
     if (includeOriginal == null) includeOriginal = false;
 
-    final List<T> toItems = getItemsFromDimension(locator, DIMENSION_TO, myFinder);
-    final List<T> fromItems = getItemsFromDimension(locator, DIMENSION_FROM, myFinder);
-    final List<T> stopItems = getItemsFromDimension(locator, DIMENSION_STOP, myFinder);
+    final List<T> toItems = getItemsFromDimension(locator, DIMENSION_TO);
+    final List<T> fromItems = getItemsFromDimension(locator, DIMENSION_FROM);
+    final List<T> stopItems = getItemsFromDimension(locator, DIMENSION_STOP);
     Long lookupLimit = locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT, getDefaultLookupLimit());
 
     Set<T> resultTo = new LinkedHashSet<T>();
@@ -107,7 +107,7 @@ public class GraphFinder<T> extends AbstractFinder<T> {
   }
 
   @NotNull
-  private List<T> getItemsFromDimension(final Locator locator, final String dimensionName, final AbstractFinder<T> finder) {
+  private List<T> getItemsFromDimension(@NotNull final Locator locator, @NotNull final String dimensionName) {
     final List<String> dimensionValues = locator.getDimensionValue(dimensionName);
     if (!dimensionValues.isEmpty()) {
       final ArrayList<T> result = new ArrayList<T>();

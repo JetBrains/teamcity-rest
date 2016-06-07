@@ -773,6 +773,7 @@ public abstract class AbstractTypedFinder<ITEM> extends AbstractFinder<ITEM> {
       //consider processing other items as well and intersecting???
     }
 
+    //todo: improve this to provide a message with available conditions or require providing "getAll" at configuration time
     throw new OperationException("No conditions matched"); //exception type
   }
 
@@ -802,13 +803,13 @@ public abstract class AbstractTypedFinder<ITEM> extends AbstractFinder<ITEM> {
 
   @NotNull
   @Override
-  protected ItemHolder<ITEM> getPrefilteredItems(@NotNull final Locator locator) {
+  public ItemHolder<ITEM> getPrefilteredItems(@NotNull final Locator locator) {
     throw new OperationException("Should not be called when getItemHolderAndFilter is implemented");
   }
 
   @NotNull
   @Override
-  protected ItemFilter<ITEM> getFilter(@NotNull final Locator locator) {
+  public ItemFilter<ITEM> getFilter(@NotNull final Locator locator) {
     throw new OperationException("Should not be called when getItemHolderAndFilter is implemented");
   }
 

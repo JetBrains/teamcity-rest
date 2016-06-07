@@ -26,6 +26,7 @@ import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.server.rest.request.Constants;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
@@ -59,7 +60,7 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
 
   @NotNull private final VcsManager myVcsManager;
   @NotNull private final ProjectFinder myProjectFinder;
-  @NotNull private final BuildTypeFinder myBuildTypeFinder; //todo: add filtering by (multiple) build types???
+  @NotNull private final Finder<BuildTypeOrTemplate> myBuildTypeFinder; //todo: add filtering by (multiple) build types???
   @NotNull private final ProjectManager myProjectManager;
   @NotNull private final VcsRootIdentifiersManager myVcsRootIdentifiersManager;
   @NotNull private final PermissionChecker myPermissionChecker;
@@ -70,8 +71,9 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
                        @NotNull ProjectManager projectManager,
                        @NotNull VcsRootIdentifiersManager vcsRootIdentifiersManager,
                        final @NotNull PermissionChecker permissionChecker) {
-    super(new String[]{DIMENSION_ID, NAME, TYPE, PROJECT, AFFECTED_PROJECT, PROPERTY, REPOSITORY_ID_STRING, INTERNAL_ID, UUID,
-      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+    super(DIMENSION_ID, NAME, TYPE, PROJECT, AFFECTED_PROJECT, PROPERTY, REPOSITORY_ID_STRING, INTERNAL_ID, UUID,
+      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    setHiddenDimensions(PROPERTY);
     myVcsManager = vcsManager;
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;
@@ -101,17 +103,9 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
     return Locator.getStringLocator(PROJECT, String.valueOf(ProjectFinder.getLocator(project)));
   }
 
-  @NotNull
-  @Override
-  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(PROPERTY); //experimental
-    return result;
-  }
-
   @Nullable
   @Override
-  protected SVcsRoot findSingleItem(@NotNull final Locator locator) {
+  public SVcsRoot findSingleItem(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
       // no dimensions found, assume it's an internal id or external id
       return getVcsRootByExternalOrInternalId(locator.getSingleValue());
@@ -178,7 +172,7 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
 
   @NotNull
   @Override
-  protected ItemFilter<SVcsRoot> getFilter(@NotNull final Locator locator) {
+  public ItemFilter<SVcsRoot> getFilter(@NotNull final Locator locator) {
 
     final MultiCheckerFilter<SVcsRoot> result = new MultiCheckerFilter<SVcsRoot>();
 
@@ -236,7 +230,7 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
 
   @NotNull
   @Override
-  protected ItemHolder<SVcsRoot> getPrefilteredItems(@NotNull Locator locator) {
+  public ItemHolder<SVcsRoot> getPrefilteredItems(@NotNull Locator locator) {
     final String affectedProjectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectLocator != null) {
       final SProject affectedProject = myProjectFinder.getItem(affectedProjectLocator);

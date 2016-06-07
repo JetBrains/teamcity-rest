@@ -51,7 +51,8 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
                            final AgentFinder agentFinder,
                            final BuildPromotionManager buildPromotionManager,
                            final BuildsManager buildsManager) {
-    super(new String[]{DIMENSION_ID, PROMOTION_ID, PROJECT, BUILD_TYPE, AGENT, USER, PERSONAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+    super(DIMENSION_ID, PROMOTION_ID, PROJECT, BUILD_TYPE, AGENT, USER, PERSONAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    setHiddenDimensions(DIMENSION_LOOKUP_LIMIT);
     myBuildQueue = buildQueue;
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;
@@ -74,20 +75,12 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
 
   @NotNull
   @Override
-  public Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    final Locator result = super.createLocator(locatorText, locatorDefaults);
-    result.addHiddenDimensions(DIMENSION_LOOKUP_LIMIT);
-    return result;
-  }
-
-  @NotNull
-  @Override
-  protected ItemHolder<SQueuedBuild> getPrefilteredItems(@NotNull final Locator locator) {
+  public ItemHolder<SQueuedBuild> getPrefilteredItems(@NotNull final Locator locator) {
     return getItemHolder(myBuildQueue.getItems());
   }
 
   @Override
-  protected SQueuedBuild findSingleItem(@NotNull final Locator locator) {
+  public SQueuedBuild findSingleItem(@NotNull final Locator locator) {
 
     if (locator.isSingleValue()) {
      // assume it's promotion id
@@ -117,7 +110,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
 
   @NotNull
   @Override
-  protected ItemFilter<SQueuedBuild> getFilter(@NotNull final Locator locator) {
+  public ItemFilter<SQueuedBuild> getFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<SQueuedBuild> result = new MultiCheckerFilter<SQueuedBuild>();
 
     final String projectLocator = locator.getSingleDimensionValue(PROJECT);
