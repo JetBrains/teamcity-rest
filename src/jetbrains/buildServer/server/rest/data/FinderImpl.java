@@ -35,7 +35,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 06/06/2016
  */
-public abstract class FinderImpl<ITEM> implements Finder<ITEM> {
+public class FinderImpl<ITEM> implements Finder<ITEM> {
   private static final Logger LOG = Logger.getInstance(AbstractFinder.class.getName());
 
   public static final String DIMENSION_ID = "id";
@@ -85,7 +85,7 @@ public abstract class FinderImpl<ITEM> implements Finder<ITEM> {
   @Override
   public ItemFilter<ITEM> getFilter(@NotNull final String locatorText) {
     final Locator locator = createLocator(locatorText, null);
-    final ItemFilter<ITEM> result = myDataBinding.getFilter(locator);
+    final ItemFilter<ITEM> result = myDataBinding.getLocatorDataBinding(locator).getFilter();
     locator.checkLocatorFullyProcessed();
     return result;
   }
@@ -109,36 +109,12 @@ public abstract class FinderImpl<ITEM> implements Finder<ITEM> {
     for (String hiddenDimension : myDataBinding.getHiddenDimensions()) {
       result.addHiddenDimensions(hiddenDimension);
     }
+    Locator.DescriptionProvider descriptionProvider = myDataBinding.getLocatorDescriptionProvider();
+    if (descriptionProvider != null) {
+      result.setDescriptionProvider(descriptionProvider);
+    }
     return result;
   }
-
-  protected ItemHolderAndFilter<ITEM> getItemHolderAndFilter(@NotNull Locator locator) {
-    //it is important to call "getPrefilteredItems" first as that process some of the dimensions which  "getFilter" can then ignore for performance reasons
-    final FinderDataBinding.ItemHolder<ITEM> unfilteredItems = getPrefilteredItemsWithItemsSupport(locator);
-    final ItemFilter<ITEM> filter = myDataBinding.getFilter(locator);
-    return new ItemHolderAndFilter<ITEM>() {
-      @NotNull
-      @Override
-      public FinderDataBinding.ItemHolder<ITEM> getItemHolder() {
-        return unfilteredItems;
-      }
-
-      @NotNull
-      @Override
-      public ItemFilter<ITEM> getItemFilter() {
-        return filter;
-      }
-    };
-  }
-
-  interface ItemHolderAndFilter<T> {
-    @NotNull
-    FinderDataBinding.ItemHolder getItemHolder();
-
-    @NotNull
-    ItemFilter<T> getItemFilter();
-  }
-
 
   @Nullable
   @Contract("null -> null; !null -> !null")
@@ -208,7 +184,7 @@ public abstract class FinderImpl<ITEM> implements Finder<ITEM> {
 
         ItemFilter<ITEM> filter = null;
         try {
-          filter = myDataBinding.getFilter(locator);
+          filter = myDataBinding.getLocatorDataBinding(locator).getFilter();
         } catch (NotFoundException e) {
           throw new NotFoundException("Invalid filter for found single item, try omitting extra dimensions: " + e.getMessage(), e);
         } catch (BadRequestException e) {
@@ -228,13 +204,13 @@ public abstract class FinderImpl<ITEM> implements Finder<ITEM> {
           }
         }
 
-        locator.checkLocatorFullyProcessed();
         return new PagedSearchResult<ITEM>(Collections.singletonList(singleItem), null, null);
       }
       locator.markAllUnused(); // nothing found - no dimensions should be marked as used then
     }
 
-    ItemHolderAndFilter<ITEM> holderAndFilter = getItemHolderAndFilter(locator);
+    FinderDataBinding.LocatorDataBinding<ITEM> locatorDataBinding = myDataBinding.getLocatorDataBinding(locator);
+    final FinderDataBinding.ItemHolder<ITEM> unfilteredItems = getPrefilteredItemsWithItemsSupport(locator, locatorDataBinding); //todo : check locator used dimensions
 
     final Long start = locator.getSingleDimensionValueAsLong(PagerData.START);
     final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT, myDataBinding.getDefaultPageItemsCount());
@@ -245,12 +221,12 @@ public abstract class FinderImpl<ITEM> implements Finder<ITEM> {
       lookupLimit = countFromFilter;
     }
 
-    final PagingItemFilter<ITEM> pagingFilter = new PagingItemFilter<ITEM>(holderAndFilter.getItemFilter(),
+    final PagingItemFilter<ITEM> pagingFilter = new PagingItemFilter<ITEM>(locatorDataBinding.getFilter(),
                                                                            start, countFromFilter == null ? null : countFromFilter.intValue(),
                                                                            lookupLimit);
 
     locator.checkLocatorFullyProcessed();
-    return getItems(pagingFilter, holderAndFilter.getItemHolder(), locator);
+    return getItems(pagingFilter, unfilteredItems, locator);
   }
 
   @NotNull
@@ -280,13 +256,14 @@ public abstract class FinderImpl<ITEM> implements Finder<ITEM> {
   }
 
   @NotNull
-  private FinderDataBinding.ItemHolder<ITEM> getPrefilteredItemsWithItemsSupport(@NotNull Locator locator) {
+  private FinderDataBinding.ItemHolder<ITEM> getPrefilteredItemsWithItemsSupport(@NotNull final Locator locator,
+                                                                                 @NotNull final FinderDataBinding.LocatorDataBinding<ITEM> locatorDataBinding) {
     final List<String> itemsDimension = locator.getDimensionValue(FinderImpl.DIMENSION_ITEM);
     if (itemsDimension.isEmpty()) {
       Boolean deduplicate = locator.getSingleDimensionValueAsBoolean(FinderImpl.DIMENSION_UNIQUE);
       if (deduplicate != null && deduplicate) {
         Collection<ITEM> result = new LinkedHashSet<ITEM>();
-        myDataBinding.getPrefilteredItems(locator).process(new ItemProcessor<ITEM>() {
+        locatorDataBinding.getPrefilteredItems().process(new ItemProcessor<ITEM>() {
           @Override
           public boolean processItem(final ITEM item) {
             result.add(item);
@@ -295,7 +272,7 @@ public abstract class FinderImpl<ITEM> implements Finder<ITEM> {
         });
         return FinderDataBinding.getItemHolder(result);
       } else {
-        return myDataBinding.getPrefilteredItems(locator);
+        return locatorDataBinding.getPrefilteredItems();
       }
     }
 

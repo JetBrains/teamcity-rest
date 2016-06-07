@@ -97,7 +97,7 @@ public class Group {
     users = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("users", false), new ValueWithDefault.Value<Users>() {
       public Users get() {
         //improvement: it is better to force the group to the current one (and support several ANDed groups in the userFinder)
-        final PagedSearchResult<SUser> items = context.getSingletonService(UserFinder.class).getItems(fields.getLocator(), new Locator(UserFinder.getLocatorByGroup(userGroup)));
+        final PagedSearchResult<SUser> items = context.getSingletonService(UserFinder.class).getItems(Locator.merge(fields.getLocator(), UserFinder.getLocatorByGroup(userGroup)));
         return new Users(items.myEntries, fields.getNestedField("users", Fields.NONE, Fields.LONG), context);
       }
     });

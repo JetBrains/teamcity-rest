@@ -41,9 +41,10 @@ public interface FinderDataBinding<ITEM> {
   @NotNull
   String[] getHiddenDimensions();
 
+  @Nullable
+  Locator.DescriptionProvider getLocatorDescriptionProvider();
+
   /**
-   *
-   * @param locator
    * @return the item found or null if this is not single item locator
    * @throws NotFoundException when the locator is for single item, but the item does not exist / is not accessible for the current user
    */
@@ -51,15 +52,21 @@ public interface FinderDataBinding<ITEM> {
   ITEM findSingleItem(@NotNull final Locator locator);
 
   @NotNull
-  AbstractFinder.ItemHolder<ITEM> getPrefilteredItems(@NotNull Locator locator);
+  LocatorDataBinding<ITEM> getLocatorDataBinding(@NotNull final Locator locator);
 
-  /**
-   * Returns filter based on passed locator
-   * Should not have side-effects other than marking used locator dimensions
-   * @param locator can be empty locator. Can
-   */
-  @NotNull
-  ItemFilter<ITEM> getFilter(@NotNull final Locator locator);
+  interface LocatorDataBinding<ITEM> {
+    @NotNull
+    ItemHolder<ITEM> getPrefilteredItems();
+
+    /**
+     * Returns filter based on passed locator
+     * Should not have side-effects other than marking used locator dimensions
+     *
+     * @param locator can be empty locator. Can
+     */
+    @NotNull
+    ItemFilter<ITEM> getFilter();
+  }
 
   @NotNull
   String getItemLocator(@NotNull final ITEM item);
@@ -69,7 +76,7 @@ public interface FinderDataBinding<ITEM> {
   }
 
   @NotNull
-  static <P> ItemHolder<P> getItemHolder(@NotNull Iterable<P> items){
+  static <P> ItemHolder<P> getItemHolder(@NotNull Iterable<P> items) {
     return new CollectionItemHolder<P>(items);
   }
 
@@ -93,13 +100,13 @@ public interface FinderDataBinding<ITEM> {
   class AggregatingItemHolder<P> implements ItemHolder<P> {
     @NotNull final private List<ItemHolder<P>> myItemHolders = new ArrayList<>();
 
-    public void add(ItemHolder<P> holder){
+    public void add(ItemHolder<P> holder) {
       myItemHolders.add(holder);
     }
 
     public boolean process(@NotNull final ItemProcessor<P> processor) {
       for (ItemHolder<P> itemHolder : myItemHolders) {
-        if (!itemHolder.process(processor)){
+        if (!itemHolder.process(processor)) {
           return false;
         }
       }

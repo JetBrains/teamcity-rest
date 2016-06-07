@@ -57,6 +57,30 @@ public abstract class AbstractFinder<ITEM> extends FinderImpl<ITEM> implements F
   }
 
   @NotNull
+  public abstract ItemHolder<ITEM> getPrefilteredItems(@NotNull final Locator locator);
+
+  @NotNull
+  public abstract  ItemFilter<ITEM> getFilter(@NotNull final Locator locator);
+
+  @NotNull
+  @Override
+  public LocatorDataBinding<ITEM> getLocatorDataBinding(@NotNull final Locator locator) {
+    return new LocatorDataBinding<ITEM>() {
+      @NotNull
+      @Override
+      public ItemHolder<ITEM> getPrefilteredItems() {
+        return AbstractFinder.this.getPrefilteredItems(locator);
+      }
+
+      @NotNull
+      @Override
+      public ItemFilter<ITEM> getFilter() {
+        return AbstractFinder.this.getFilter(locator);
+      }
+    };
+  }
+
+  @NotNull
   @Override
   public String[] getKnownDimensions() {
     return myKnownDimensions;
@@ -66,6 +90,12 @@ public abstract class AbstractFinder<ITEM> extends FinderImpl<ITEM> implements F
   @Override
   public String[] getHiddenDimensions() {
     return myHiddenDimensions;
+  }
+
+  @Nullable
+  @Override
+  public Locator.DescriptionProvider getLocatorDescriptionProvider() {
+    return null;
   }
 
   public void setHiddenDimensions(@NotNull final String... hiddenDimensions) {

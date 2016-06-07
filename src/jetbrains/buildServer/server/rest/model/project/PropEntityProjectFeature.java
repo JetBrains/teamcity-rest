@@ -22,8 +22,9 @@ import java.util.HashMap;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
-import jetbrains.buildServer.server.rest.data.AbstractTypedFinder;
+import jetbrains.buildServer.server.rest.data.DelegatingFinder;
 import jetbrains.buildServer.server.rest.data.ParameterCondition;
+import jetbrains.buildServer.server.rest.data.TypedFinderBuilder;
 import jetbrains.buildServer.server.rest.data.ValueCondition;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
@@ -128,39 +129,39 @@ public class PropEntityProjectFeature extends PropEntity {
     return getFeatureByLocator(project, entityToReplace.getId());
   }
 
-  public static class ProjectFeatureFinder extends AbstractTypedFinder<SProjectFeatureDescriptor> {
-    private static final Dimension<String> ID = new Dimension<>("id");
-    private static final Dimension<ValueCondition> TYPE = new Dimension<>("type");
-    private static final Dimension<ParameterCondition> PROPERTY = new Dimension<>("property");
+  public static class ProjectFeatureFinder extends DelegatingFinder<SProjectFeatureDescriptor> {
+    private static final TypedFinderBuilder.Dimension<String> ID = new TypedFinderBuilder.Dimension<>("id");
+    private static final TypedFinderBuilder.Dimension<ValueCondition> TYPE = new TypedFinderBuilder.Dimension<>("type");
+    private static final TypedFinderBuilder.Dimension<ParameterCondition> PROPERTY = new TypedFinderBuilder.Dimension<>("property");
 
     public ProjectFeatureFinder(@NotNull final SProject project) {
+      TypedFinderBuilder<SProjectFeatureDescriptor> builder = new TypedFinderBuilder<SProjectFeatureDescriptor>();
+
 //      description("Project features of project with id '" + project.getExternalId() + "'");
-      singleDimension(dimension -> {
+      builder.singleDimension(dimension -> {
         // no dimensions found, assume it's id
         SProjectFeatureDescriptor result = project.findFeatureById(dimension);
         if (result == null) throw new NotFoundException("Cannot find project feature with id '" + dimension + "' in the project with id '" + project.getExternalId() + "'");
         return Collections.singletonList(result);
       });
 
-      dimensionString(ID).description("feature id")
+      builder.dimensionString(ID).description("feature id")
                          .filter((value, item) -> value.equals(item.getId()))
                          .toItems(dimension -> {
                            SProjectFeatureDescriptor result = project.findFeatureById(dimension);
                            return result == null ? null : Collections.singletonList(result);
                          });
 
-      dimensionValueCondition(TYPE).description("feature type")
+      builder.dimensionValueCondition(TYPE).description("feature type")
                            .valueForDefaultFilter(item -> item.getType());
 
-      dimensionParameterCondition(PROPERTY).description("feature property").valueForDefaultFilter(item -> new MapParametersProviderImpl(item.getParameters()));
+      builder.dimensionParameterCondition(PROPERTY).description("feature property").valueForDefaultFilter(item -> new MapParametersProviderImpl(item.getParameters()));
 
-      multipleConvertToItems(DimensionConditionsImpl.ALWAYS, dimensions -> new ArrayList<>(project.getOwnFeatures()));
-    }
+      builder.multipleConvertToItems(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> new ArrayList<>(project.getOwnFeatures()));
 
-    @NotNull
-    @Override
-    public String getItemLocator(@NotNull final SProjectFeatureDescriptor projectFeatureDescriptor) {
-      return projectFeatureDescriptor.getId();
+      builder.locatorProvider(projectFeatureDescriptor -> projectFeatureDescriptor.getId());
+
+      setDelegate(builder.build());
     }
   }
 }

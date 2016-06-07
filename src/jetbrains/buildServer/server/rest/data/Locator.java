@@ -421,24 +421,24 @@ public class Locator {
   }
 
   protected interface DescriptionProvider{
-    @NotNull String get(boolean includeHidden);
+    @NotNull String get(@NotNull Locator locator, boolean includeHidden);
   }
 
-  public void setDescriptionProvider(final DescriptionProvider descriptionProvider) {
+  public void setDescriptionProvider(@NotNull final DescriptionProvider descriptionProvider) {
     myDescriptionProvider = descriptionProvider;
   }
 
   @NotNull
   private String getLocatorDescription(boolean includeHidden) {
-    if (myDescriptionProvider == null){
+    if (myDescriptionProvider == null) {
       StringBuilder result = new StringBuilder();
       result.append("Supported dimensions are: ").append(Arrays.toString(mySupportedDimensions)).append(".");
-      if (includeHidden && !myHddenSupportedDimensions.isEmpty()){
+      if (includeHidden && !myHddenSupportedDimensions.isEmpty()) {
         result.append(" Hidden supported are: ").append(Arrays.toString(myHddenSupportedDimensions.toArray()));
       }
       return result.toString();
     }
-    return myDescriptionProvider.get(includeHidden);
+    return myDescriptionProvider.get(this, includeHidden);
   }
 
   private void reportKnownButNotReportedDimensions() {

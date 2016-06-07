@@ -41,11 +41,14 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static jetbrains.buildServer.server.rest.data.FinderDataBinding.getItemHolder;
+import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimension;
+
 /**
  * @author Yegor.Yarko
  *         Date: 23.03.13
  */
-public class UserFinder extends AbstractTypedFinder<SUser> {
+public class UserFinder extends DelegatingFinder<SUser> {
   private static final Logger LOG = Logger.getInstance(jetbrains.buildServer.serverSide.impl.audit.finders.UserFinder.class.getName());
   public static final String REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS = "rest.request.checkAdditionalPermissionsForUsersAndGroups";
 
@@ -64,6 +67,7 @@ public class UserFinder extends AbstractTypedFinder<SUser> {
   @NotNull private final UserModel myUserModel;
   @NotNull private final UserGroupFinder myGroupFinder;
   @NotNull private final ProjectFinder myProjectFinder;
+  @NotNull private final TimeCondition myTimeCondition;
   @NotNull private final RolesManager myRolesManager;
   @NotNull private final PermissionChecker myPermissionChecker;
   @NotNull private final SecurityContext mySecurityContext;
@@ -78,95 +82,11 @@ public class UserFinder extends AbstractTypedFinder<SUser> {
     myUserModel = userModel;
     myGroupFinder = groupFinder;
     myProjectFinder = projectFinder;
+    myTimeCondition = timeCondition;
     myRolesManager = rolesManager;
     myPermissionChecker = permissionChecker;
     mySecurityContext = securityContext;
-
-    singleDimension(dimension -> {
-      // no dimensions found, assume it's username
-      SUser user = myUserModel.findUserAccount(null, dimension);
-      if (user == null) {
-        if (!"current".equals(dimension)) {
-          throw new NotFoundException("No user can be found by username '" + dimension + "'.");
-        }
-        // support for predefined "current" keyword to get current user
-        final SUser currentUser = getCurrentUser();
-        if (currentUser == null) {
-          throw new NotFoundException("No current user.");
-        } else {
-          return Collections.singletonList(currentUser);
-        }
-      }
-      return Collections.singletonList(user);
-    });
-
-    dimensionLong(ID).description("internal user id")
-                     .filter((value, item) -> value.equals(item.getId()))
-                     .toItems(dimension -> {
-                       SUser user = myUserModel.findUserById(dimension);
-                       if (user == null) {
-                         throw new NotFoundException("No user can be found by id '" + dimension + "'.");
-                       }
-                       return Collections.singletonList(user);
-                     });
-
-    dimensionString(USERNAME).description("user's username")
-                             .filter((value, item) -> value.equalsIgnoreCase(item.getUsername()))
-                             .toItems(dimension -> {
-                               SUser user = myUserModel.findUserAccount(null, dimension);
-                               if (user == null) {
-                                 throw new NotFoundException("No user can be found by username '" + dimension + "'.");
-                               }
-                               return Collections.singletonList(user);
-                             });
-
-    final Type<SUserGroup> myGroupMapper = type(dimensionValue -> myGroupFinder.getGroup(dimensionValue)).description("user groups locator");
-
-    dimension(GROUP, myGroupMapper).description("user group including the user directly")
-                                   .filter((value, item) -> value.containsUserDirectly(item))
-                                   .toItems(dimension -> {
-                                     checkViewAllUsersPermissionEnforced();
-                                     return convert(dimension.getDirectUsers());
-                                   });
-
-    dimension(AFFECTED_GROUP, myGroupMapper).description("user group including the user considering groups hierarchy")
-                                            .filter((value, item) -> item.getAllUserGroups().contains(value))
-                                            .toItems(dimension -> {
-                                              checkViewAllUsersPermissionEnforced();
-                                              return convert(dimension.getAllUsers());
-                                            });
-
-    dimensionParameterCondition(PROPERTY).description("user's property").valueForDefaultFilter(item -> getUserPropertiesProvider(item));
-    dimensionValueCondition(EMAIL).description("user's email").valueForDefaultFilter(item -> item.getEmail());
-    dimensionValueCondition(NAME).description("user's display name").valueForDefaultFilter(item -> item.getName());
-    dimensionBoolean(HAS_PASSWORD).description("user has not empty password").hidden().valueForDefaultFilter(item -> ((UserImpl)item).hasPassword());
-    dimension(PASSWORD, type(dimensionValue -> {
-      if (!myPermissionChecker.isPermissionGranted(Permission.CHANGE_SERVER_SETTINGS, null)) {
-        throw new AuthorizationFailedException("Only system admin can query users for passwords");
-      }
-      try {
-        Thread.sleep(TeamCityProperties.getInteger("rest.request.users.passwordCheckDelay.ms", 5 * 1000)); //inapt attempt to prevent brute-forcing
-      } catch (InterruptedException e) {
-        //ignore
-      }
-      return dimensionValue;
-    }).description("text")).description("user's password")
-                           .hidden()
-                           .filter((value, item) -> myUserModel.findUserAccount(item.getRealm(), item.getUsername(), value) != null);
-
-    dimensionTimeCondition(LAST_LOGIN_TIME, timeCondition).description("user's last login time").valueForDefaultFilter(item -> item.getLastLoginTimestamp());
-
-
-    dimension(ROLE, type(dimensionValue -> new RoleEntryDatas(dimensionValue, myRolesManager, myProjectFinder, myPermissionChecker)).description("role locator"))
-      .description("user's role")
-      .filter((roleEntryDatas, item) -> roleEntryDatas.matches(item));
-
-    //todo: add PERMISSION
-
-    multipleConvertToItemHolder(DimensionConditionsImpl.ALWAYS, dimensions -> {
-      checkViewAllUsersPermissionEnforced();
-      return getItemHolder(myUserModel.getAllUsers().getUsers());
-    });
+    setDelegate(new UserFinderBuilder().build());
   }
 
   //related to http://youtrack.jetbrains.net/issue/TW-20071 and other cases
@@ -248,12 +168,6 @@ public class UserFinder extends AbstractTypedFinder<SUser> {
   @NotNull
   public static String getLocator(@NotNull final User user) {
     return getLocatorById(user.getId());
-  }
-
-  @NotNull
-  @Override
-  public String getItemLocator(@NotNull final SUser user) {
-    return getLocator(user);
   }
 
   @NotNull
@@ -497,4 +411,95 @@ public class UserFinder extends AbstractTypedFinder<SUser> {
     }
   }
 
+  private class UserFinderBuilder extends TypedFinderBuilder<SUser> {
+    UserFinderBuilder() {
+      singleDimension(dimension -> {
+        // no dimensions found, assume it's username
+        SUser user = myUserModel.findUserAccount(null, dimension);
+        if (user == null) {
+          if (!"current".equals(dimension)) {
+            throw new NotFoundException("No user can be found by username '" + dimension + "'.");
+          }
+          // support for predefined "current" keyword to get current user
+          final SUser currentUser = getCurrentUser();
+          if (currentUser == null) {
+            throw new NotFoundException("No current user.");
+          } else {
+            return Collections.singletonList(currentUser);
+          }
+        }
+        return Collections.singletonList(user);
+      });
+
+      dimensionLong(ID).description("internal user id")
+                       .filter((value, item) -> value.equals(item.getId()))
+                       .toItems(dimension -> {
+                         SUser user = myUserModel.findUserById(dimension);
+                         if (user == null) {
+                           throw new NotFoundException("No user can be found by id '" + dimension + "'.");
+                         }
+                         return Collections.singletonList(user);
+                       });
+
+      dimensionString(USERNAME).description("user's username")
+                               .filter((value, item) -> value.equalsIgnoreCase(item.getUsername()))
+                               .toItems(dimension -> {
+                                 SUser user = myUserModel.findUserAccount(null, dimension);
+                                 if (user == null) {
+                                   throw new NotFoundException("No user can be found by username '" + dimension + "'.");
+                                 }
+                                 return Collections.singletonList(user);
+                               });
+
+      final Type<SUserGroup> myGroupMapper = type(dimensionValue -> myGroupFinder.getGroup(dimensionValue)).description("user groups locator");
+
+      dimension(GROUP, myGroupMapper).description("user group including the user directly")
+                                     .filter((value, item) -> value.containsUserDirectly(item))
+                                     .toItems(dimension -> {
+                                       checkViewAllUsersPermissionEnforced();
+                                       return convert(dimension.getDirectUsers());
+                                     });
+
+      dimension(AFFECTED_GROUP, myGroupMapper).description("user group including the user considering groups hierarchy")
+                                              .filter((value, item) -> item.getAllUserGroups().contains(value))
+                                              .toItems(dimension -> {
+                                                checkViewAllUsersPermissionEnforced();
+                                                return convert(dimension.getAllUsers());
+                                              });
+
+      dimensionParameterCondition(PROPERTY).description("user's property").valueForDefaultFilter(item -> getUserPropertiesProvider(item));
+      dimensionValueCondition(EMAIL).description("user's email").valueForDefaultFilter(item -> item.getEmail());
+      dimensionValueCondition(NAME).description("user's display name").valueForDefaultFilter(item -> item.getName());
+      dimensionBoolean(HAS_PASSWORD).description("user has not empty password").hidden().valueForDefaultFilter(item -> ((UserImpl)item).hasPassword());
+      dimension(PASSWORD, type(dimensionValue -> {
+        if (!myPermissionChecker.isPermissionGranted(Permission.CHANGE_SERVER_SETTINGS, null)) {
+          throw new AuthorizationFailedException("Only system admin can query users for passwords");
+        }
+        try {
+          Thread.sleep(TeamCityProperties.getInteger("rest.request.users.passwordCheckDelay.ms", 5 * 1000)); //inapt attempt to prevent brute-forcing
+        } catch (InterruptedException e) {
+          //ignore
+        }
+        return dimensionValue;
+      }).description("text")).description("user's password")
+                             .hidden()
+                             .filter((value, item) -> myUserModel.findUserAccount(item.getRealm(), item.getUsername(), value) != null);
+
+      dimensionTimeCondition(LAST_LOGIN_TIME, myTimeCondition).description("user's last login time").valueForDefaultFilter(item -> item.getLastLoginTimestamp());
+
+
+      dimension(ROLE, type(dimensionValue -> new RoleEntryDatas(dimensionValue, myRolesManager, myProjectFinder, myPermissionChecker)).description("role locator"))
+        .description("user's role")
+        .filter((roleEntryDatas, item) -> roleEntryDatas.matches(item));
+
+      //todo: add PERMISSION
+
+      multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> {
+        checkViewAllUsersPermissionEnforced();
+        return getItemHolder(myUserModel.getAllUsers().getUsers());
+      });
+
+      locatorProvider(user -> getLocator(user));
+    }
+  }
 }
