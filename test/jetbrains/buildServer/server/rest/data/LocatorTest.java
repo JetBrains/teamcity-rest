@@ -250,7 +250,7 @@ public class LocatorTest {
     check("($base64:YWFh)", true, "$base64:YWFh");
     check("a:($base64:YWFh)", false, null, "a", "aaa");
     check("a:($base64:KQ==)", false, null, "a", ")");
-    check("$base64:0KTQq9Cy0JAtQVNkRg==", true, "‘€‚¿-ASdF");
+    check("$base64:0KTQq9Cy0JAtQVNkRg==", true, "\u0424\u042B\u0432\u0410-ASdF");
     check("$base64:0JXQs9C+0YDQldCz0L/RgA==", true, "\u0415\u0433\u043E\u0440\u0415\u0433\u043F\u0440");
     check("$base64:0JXQs9C-0YDQldCz0L_RgA==", true, "\u0415\u0433\u043E\u0440\u0415\u0433\u043F\u0440"); //Base64 URL
     check("$base64:56if", true, "\u7A1F");
