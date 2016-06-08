@@ -18,7 +18,10 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -237,6 +240,36 @@ public class LocatorTest {
   @Test(expectedExceptions = LocatorProcessException.class)
   public void testEscaped9() {
       new Locator("(a)b");
+  }
+
+  @Test
+  public void testBase64Encoded() {
+    check("$base64", true, "$base64");
+    check("a:$base64", false, null, "a", "$base64");
+    check("$base64:YWFh", true, "aaa");
+    check("($base64:YWFh)", true, "$base64:YWFh");
+    check("a:($base64:YWFh)", false, null, "a", "aaa");
+    check("a:($base64:KQ==)", false, null, "a", ")");
+    check("$base64:0KTQq9Cy0JAtQVNkRg==", true, "‘€‚¿-ASdF");
+    check("$base64:0JXQs9C+0YDQldCz0L/RgA==", true, "\u0415\u0433\u043E\u0440\u0415\u0433\u043F\u0440");
+    check("$base64:0JXQs9C-0YDQldCz0L_RgA==", true, "\u0415\u0433\u043E\u0440\u0415\u0433\u043F\u0440"); //Base64 URL
+    check("$base64:56if", true, "\u7A1F");
+
+    check("$base64:JGJhc2U6WVE9PQ==", true, "$base:YQ==");
+
+    check("$base64:8J+mhA==", true, "\uD83E\uDD84"); // U+1F984, &#129412;
+
+    check("$base64:", true, "");
+
+    checkException("$aaa:bbb,a:b", LocatorProcessException.class);
+    checkException("$base64:YWFh,a:b", LocatorProcessException.class);
+    checkException("$base64:YWFh:", LocatorProcessException.class);
+    checkException("$base64:YWFh:,", LocatorProcessException.class);
+    checkException("$base64:YWFh,$base64:YWFh", LocatorProcessException.class);
+    checkException("$base64:YWFh.", LocatorProcessException.class);
+    checkException("$base64:a.", LocatorProcessException.class);
+    checkException("$base64:=a", LocatorProcessException.class);
+    checkException("$base64:aLJBNlkjblk+/===", LocatorProcessException.class);
   }
 
   @SuppressWarnings("ConstantConditions")
@@ -590,5 +623,45 @@ public class LocatorTest {
   @Test(dataProvider = "valid-complex-values-extendedMode")
   public void testComplexValuesParsingNoErrorsExtendedMode(String value) {
     new Locator(value, true, null);
+  }
+
+  static <E extends Throwable> void checkException(String locatorText, @NotNull Class<E> exception) {
+    //noinspection ThrowableResultOfMethodCallIgnored
+    BaseFinderTest.checkException(exception, () -> new Locator(locatorText), "creating locator for text '" + locatorText + "'");
+  }
+
+  void check(String locatorText, boolean isSingleValue, String singleValue, @Nullable String... dimensions) {
+    Locator locator = new Locator(locatorText);
+    assertEquals("is single value", isSingleValue, locator.isSingleValue());
+    assertEquals("single value", singleValue, locator.getSingleValue());
+    if (dimensions == null){
+      assertEquals("dimensions count", locator.getDimensionsCount(), 0);
+      return;
+    }
+
+    assertTrue("dimensions passed are invalid - should be [name, value], ...", dimensions.length % 2 == 0);
+    assertEquals("dimensions count", locator.getDimensionsCount(), dimensions.length / 2);
+
+    String previousName = null;
+    int numberInCurrentName = 0;
+    for (int i = 0; i < dimensions.length; i += 2) {
+      @NotNull String name = dimensions[i];
+      @Nullable String value = dimensions[i + 1];
+
+      if (name.equals(previousName)) {
+        numberInCurrentName++;
+      } else {
+        numberInCurrentName = 0;
+      }
+      previousName = name;
+
+      if (numberInCurrentName == 0) {
+        assertEquals("dimension value '" + name + "'", value, locator.getSingleDimensionValue(name));
+      }
+
+      List<String> actualValues = locator.getDimensionValue(name);
+      assertFalse("dimension exists '" + name + "'", actualValues.isEmpty());
+      assertEquals("dimension value '" + name + "'[" + numberInCurrentName + "]", value, actualValues.get(numberInCurrentName));
+    }
   }
 }

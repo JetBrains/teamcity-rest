@@ -24,6 +24,7 @@ import java.lang.management.LockInfo;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MonitorInfo;
 import java.lang.management.ThreadInfo;
+import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -496,10 +497,23 @@ public class DebugRequest {
   @Produces({"text/plain"})
   public String getHashed(@PathParam("method") String method, @QueryParam("value") String value) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
-    if ("md5".equals(method)){
+    if ("md5".equalsIgnoreCase(method)){
       return EncryptUtil.md5(value);
     }
-    throw new BadRequestException("Unknown method '" + method + "'. Supported are: " + "md5" + ".");
+    if ("base64".equalsIgnoreCase(method) || "encodeBase64".equalsIgnoreCase(method)){
+      return new String(Base64.getEncoder().encode(value.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
+    }
+    if ("decodeBase64".equalsIgnoreCase(method)){
+      try {
+        return new String(Base64.getUrlDecoder().decode(value.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
+      } catch (IllegalArgumentException e) {
+        return new String(Base64.getDecoder().decode(value.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
+      }
+    }
+    if ("base64url".equalsIgnoreCase(method) || "encodeBase64Url".equalsIgnoreCase(method)){
+      return new String(Base64.getUrlEncoder().encode(value.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
+    }
+    throw new BadRequestException("Unknown method '" + method + "'. Supported are: " + "md5"+ ", " + "encodeBase64Url" + ", " + "decodeBase64" + ".");
   }
 
   /**

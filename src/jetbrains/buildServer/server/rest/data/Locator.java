@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -56,6 +57,7 @@ public class Locator {
   private static final String DIMENSION_COMPLEX_VALUE_END_DELIMITER = ")";
   public static final String LOCATOR_SINGLE_VALUE_UNUSED_NAME = "single value";
   protected static final String ANY_LITERAL = "$any";
+  protected static final String BASE64_ESCAPE_FAKE_DIMENSION = "$base64";
 
   private final String myRawValue;
   private final boolean myExtendedMode;
@@ -119,21 +121,70 @@ public class Locator {
       throw new LocatorProcessException("Invalid locator. Cannot be empty.");
     }
     mySupportedDimensions = supportedDimensions;
-    if (isEscapedValue(locator)) {
-      mySingleValue = locator.substring(DIMENSION_COMPLEX_VALUE_START_DELIMITER.length(), locator.length() - DIMENSION_COMPLEX_VALUE_END_DELIMITER.length());
+    String escapedValue = getUnescapedSingleValue(locator);
+    if (escapedValue != null) {
+      mySingleValue = escapedValue;
       myDimensions = new LinkedHashMap<String, List<String>>();
     } else if (!extendedMode && !hasDimensions(locator)) {
       mySingleValue = locator;
       myDimensions = new LinkedHashMap<String, List<String>>();
     } else {
       mySingleValue = null;
-      myDimensions = parse(locator);
+      myDimensions = parse(locator, mySupportedDimensions, myHddenSupportedDimensions, myExtendedMode);
     }
   }
 
-  private boolean isEscapedValue(final @NotNull String locator) {
-    return locator.length() > (DIMENSION_COMPLEX_VALUE_START_DELIMITER.length() + DIMENSION_COMPLEX_VALUE_END_DELIMITER.length()) &&
-           locator.startsWith(DIMENSION_COMPLEX_VALUE_START_DELIMITER) && locator.endsWith(DIMENSION_COMPLEX_VALUE_END_DELIMITER);
+  @Nullable
+  private String getUnescapedSingleValue(@NotNull final String text) {
+    if (text.length() > (DIMENSION_COMPLEX_VALUE_START_DELIMITER.length() + DIMENSION_COMPLEX_VALUE_END_DELIMITER.length()) &&
+        text.startsWith(DIMENSION_COMPLEX_VALUE_START_DELIMITER) && text.endsWith(DIMENSION_COMPLEX_VALUE_END_DELIMITER)) {
+      return text.substring(DIMENSION_COMPLEX_VALUE_START_DELIMITER.length(), text.length() - DIMENSION_COMPLEX_VALUE_END_DELIMITER.length());
+    }
+    return getBase64UnescapedSingleValue(text, myExtendedMode);
+  }
+
+  @Nullable
+  private static String getBase64UnescapedSingleValue(final @NotNull String text, final boolean extendedMode) {
+    if (!TeamCityProperties.getBooleanOrTrue("rest.locator.allowBase64")) return null;
+    if (!text.startsWith(BASE64_ESCAPE_FAKE_DIMENSION + DIMENSION_NAME_VALUE_DELIMITER)) {
+      //optimization until more then one dimension is supported
+      return null;
+    }
+
+    LinkedHashMap<String, List<String>> parsedDimensions;
+    try {
+      parsedDimensions = parse(text, new String[]{BASE64_ESCAPE_FAKE_DIMENSION}, Collections.emptyList(), extendedMode);
+    } catch (LocatorProcessException e) {
+      return null;
+    }
+
+    if (parsedDimensions.size() != 1) {
+      //more then one dimension found
+      return null;
+    }
+
+    List<String> base64EncodedValues = parsedDimensions.get(BASE64_ESCAPE_FAKE_DIMENSION);
+    if (base64EncodedValues.isEmpty()) return null;
+    if (base64EncodedValues.size() != 1) throw new LocatorProcessException("More then 1 " + BASE64_ESCAPE_FAKE_DIMENSION + " values, only single one is supported");
+    String base64EncodedValue = base64EncodedValues.get(0);
+
+    byte[] decoded;
+    try {
+       decoded = Base64.getUrlDecoder().decode(base64EncodedValue.getBytes(StandardCharsets.UTF_8));
+    } catch(IllegalArgumentException first){
+      try {
+         decoded = Base64.getDecoder().decode(base64EncodedValue.getBytes(StandardCharsets.UTF_8));
+      } catch(IllegalArgumentException second){
+        throw new LocatorProcessException("Invalid Base64 character sequence (UTF-8 encoding is used to decode string). Value: '" + text + "'", first);
+      }
+    }
+
+    try {
+      return new String(decoded, StandardCharsets.UTF_8);
+    } catch (Throwable e) {
+      LOG.debug("Error base64 decoding locator '" + text + "'", e);
+    }
+    return null;
   }
 
   private boolean hasDimensions(final @NotNull String locatorText) {
@@ -235,7 +286,9 @@ public class Locator {
   }
 
   @NotNull
-  private LinkedHashMap<String, List<String>> parse(@NotNull final String locator) {
+  private static LinkedHashMap<String, List<String>> parse(@NotNull final String locator,
+                                                           @Nullable final String[] supportedDimensions, @NotNull final Collection<String> hiddenSupportedDimensions,
+                                                           final boolean extendedMode) {
     LinkedHashMap<String, List<String>> result = new LinkedHashMap<String, List<String>>();
     String currentDimensionName;
     String currentDimensionValue;
@@ -270,11 +323,11 @@ public class Locator {
       }
 
       currentDimensionName = locator.substring(parsedIndex, nameEnd);
-      if (!isValidName(currentDimensionName)) {
+      if (!isValidName(currentDimensionName, supportedDimensions, hiddenSupportedDimensions, extendedMode)) {
         throw new LocatorProcessException(locator, parsedIndex, "Invalid dimension name :'" + currentDimensionName + "'. Should contain only alpha-numeric symbols" +
-                                                                (mySupportedDimensions == null || mySupportedDimensions.length == 0
+                                                                (supportedDimensions == null || supportedDimensions.length == 0
                                                                  ? ""
-                                                                 : " or be known one: " + Arrays.toString(mySupportedDimensions)));
+                                                                 : " or be known one: " + Arrays.toString(supportedDimensions)));
       }
       currentDimensionValue = "";
       parsedIndex = nameEnd;
@@ -321,6 +374,8 @@ public class Locator {
               currentDimensionValue = ANY_LITERAL; //this was not a complex value, so setting exactly the same string to be able to determine this on retrieving
             }
           }
+          String unescapedValue = getBase64UnescapedSingleValue(currentDimensionValue, extendedMode);
+          if (unescapedValue != null) currentDimensionValue = unescapedValue;
         }
       }
       final List<String> currentList = result.get(currentDimensionName);
@@ -352,10 +407,11 @@ public class Locator {
     return pos - DIMENSION_COMPLEX_VALUE_END_DELIMITER.length();
   }
 
-  private boolean isValidName(final String name) {
-    if ((mySupportedDimensions == null || !Arrays.asList(mySupportedDimensions).contains(name)) && !myHddenSupportedDimensions.contains(name)) {
+  private static boolean isValidName(@Nullable final String name,
+                                     final String[] supportedDimensions, @NotNull final Collection<String> hiddenSupportedDimensions, final boolean extendedMode) {
+    if ((supportedDimensions == null || !Arrays.asList(supportedDimensions).contains(name)) && !hiddenSupportedDimensions.contains(name)) {
       for (int i = 0; i < name.length(); i++) {
-        if (!Character.isLetter(name.charAt(i)) && !Character.isDigit(name.charAt(i)) && !(name.charAt(i) == '-' && myExtendedMode)) return false;
+        if (!Character.isLetter(name.charAt(i)) && !Character.isDigit(name.charAt(i)) && !(name.charAt(i) == '-' && extendedMode)) return false;
       }
     }
     return true;
