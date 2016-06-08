@@ -175,16 +175,15 @@ public class Locator {
       try {
          decoded = Base64.getDecoder().decode(base64EncodedValue.getBytes(StandardCharsets.UTF_8));
       } catch(IllegalArgumentException second){
-        throw new LocatorProcessException("Invalid Base64 character sequence (UTF-8 encoding is used to decode string). Value: '" + text + "'", first);
+        throw new LocatorProcessException("Invalid Base64url character sequence: '" + base64EncodedValue + "'", first);
       }
     }
 
     try {
       return new String(decoded, StandardCharsets.UTF_8);
-    } catch (Throwable e) {
-      LOG.debug("Error base64 decoding locator '" + text + "'", e);
+    } catch (Exception e) {
+      throw new LocatorProcessException("Error converting decoded '" + base64EncodedValue + "' value bytes to UTF-8 string", e);
     }
-    return null;
   }
 
   private boolean hasDimensions(final @NotNull String locatorText) {

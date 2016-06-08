@@ -247,6 +247,7 @@ public class LocatorTest {
     check("$base64", true, "$base64");
     check("a:$base64", false, null, "a", "$base64");
     check("$base64:YWFh", true, "aaa");
+    check("$base64:(YWFh)", true, "aaa");
     check("($base64:YWFh)", true, "$base64:YWFh");
     check("a:($base64:YWFh)", false, null, "a", "aaa");
     check("a:($base64:KQ==)", false, null, "a", ")");
@@ -261,12 +262,15 @@ public class LocatorTest {
 
     check("$base64:", true, "");
 
+    checkException("$base64:((YWFh))", LocatorProcessException.class);  //tries to parse "(YWFh)" as base64
+    checkException("$base64:YWFh)", LocatorProcessException.class); //tries to parse "YWFh)" as base64
     checkException("$aaa:bbb,a:b", LocatorProcessException.class);
     checkException("$base64:YWFh,a:b", LocatorProcessException.class);
     checkException("$base64:YWFh:", LocatorProcessException.class);
     checkException("$base64:YWFh:,", LocatorProcessException.class);
     checkException("$base64:YWFh,$base64:YWFh", LocatorProcessException.class);
     checkException("$base64:YWFh.", LocatorProcessException.class);
+    checkException("$base64:YWF\u0415=", LocatorProcessException.class);
     checkException("$base64:a.", LocatorProcessException.class);
     checkException("$base64:=a", LocatorProcessException.class);
     checkException("$base64:aLJBNlkjblk+/===", LocatorProcessException.class);
