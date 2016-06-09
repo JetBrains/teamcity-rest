@@ -31,14 +31,16 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Items;
 import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.RepositoryVersion;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
-import jetbrains.buildServer.vcs.*;
+import jetbrains.buildServer.vcs.SingleVersionRepositoryStateAdapter;
+import jetbrains.buildServer.vcs.VcsException;
+import jetbrains.buildServer.vcs.VcsManager;
+import jetbrains.buildServer.vcs.VcsRootInstanceEx;
 import jetbrains.buildServer.vcs.impl.RepositoryStateManager;
 import jetbrains.vcs.api.services.tc.VcsMappingElement;
 import org.jetbrains.annotations.NotNull;
@@ -51,8 +53,9 @@ import static jetbrains.buildServer.serverSide.impl.projectSources.SmallPatchCac
  *         Date: 16.04.2009
  */
 @XmlRootElement(name = "vcs-root-instance")
-@XmlType(name = "vcs-root-instance", propOrder = {"id", "vcsRootId", "vcsRootInternalId", "name","vcsName", "status", "lastChecked", "lastVersion", "lastVersionInternal", "href",
-  "parent", "properties", "repositoryIdStrings"})
+@XmlType(name = "vcs-root-instance", propOrder = {"id", "vcsRootId", "vcsRootInternalId", "name", "vcsName",
+  "modificationCheckInterval", "lastVersion", "lastVersionInternal", "href",
+  "parent", "state", "previousState", "properties", "repositoryIdStrings"})
 @SuppressWarnings("PublicField")
 public class VcsRootInstance {
   public static final String LAST_VERSION_INTERNAL = "lastVersionInternal";
@@ -78,10 +81,7 @@ public class VcsRootInstance {
   public String vcsName;
 
   @XmlAttribute
-  public String status;
-
-  @XmlAttribute
-  public String lastChecked;
+  public Integer modificationCheckInterval;
 
   @XmlAttribute
   public String href;
@@ -119,9 +119,7 @@ public class VcsRootInstance {
     canViewSettings = !VcsRoot.shouldRestrictSettingsViewing(root.getParent(), permissionChecker);
 
     vcsName = ValueWithDefault.decideDefault(fields.isIncluded("vcsName", false), root.getVcsName());
-    final VcsRootStatus vcsRootStatus = ((VcsRootInstanceEx)myRoot).getStatus();
-    status = ValueWithDefault.decideDefault(fields.isIncluded("status", false), vcsRootStatus.getType().toString());
-    lastChecked = check(ValueWithDefault.decideDefault(fields.isIncluded("lastChecked", false), Util.formatTime(vcsRootStatus.getTimestamp())));
+    modificationCheckInterval = ValueWithDefault.decideDefault(fields.isIncluded("modificationCheckInterval", false), (int)root.getEffectiveModificationCheckInterval());
   }
 
   @XmlAttribute
@@ -150,6 +148,18 @@ public class VcsRootInstance {
   @XmlElement(name = "vcs-root")
   public VcsRoot getParent() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("vcs-root", false), new VcsRoot(myRoot.getParent(), myFields.getNestedField("vcs-root"), myBeanContext));
+  }
+
+  @XmlElement(name = "state")
+  public VcsCheckState getState() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("state", false), () ->
+      check(new VcsCheckState(((VcsRootInstanceEx)myRoot).getStatus(), ((VcsRootInstanceEx)myRoot).getLastRequestor(), myFields.getNestedField("state"), myBeanContext)));
+  }
+
+  @XmlElement(name = "previousState")
+  public VcsCheckState getPreviousState() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("previousState", false), () ->
+      check(new VcsCheckState(((VcsRootInstanceEx)myRoot).getStatus(), null, myFields.getNestedField("previousState"), myBeanContext)));
   }
 
   @XmlElement

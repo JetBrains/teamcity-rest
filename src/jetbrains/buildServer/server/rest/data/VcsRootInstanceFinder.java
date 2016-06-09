@@ -30,14 +30,10 @@ import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.auth.Permission;
-import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManager;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.filters.Filter;
-import jetbrains.buildServer.vcs.SVcsRoot;
-import jetbrains.buildServer.vcs.VcsManager;
-import jetbrains.buildServer.vcs.VcsRootInstance;
-import jetbrains.buildServer.vcs.VcsRootInstanceEntry;
+import jetbrains.buildServer.vcs.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -54,6 +50,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   protected static final String AFFECTED_PROJECT = "affectedProject";
   protected static final String PROPERTY = "property";
   protected static final String BUILD_TYPE = "buildType";
+  protected static final String STATE = "state";
 
   @NotNull private final VcsRootFinder myVcsRootFinder;
   @NotNull private final VcsManager myVcsManager;
@@ -61,18 +58,20 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
   @NotNull private final ProjectManager myProjectManager;
   @NotNull private final PermissionChecker myPermissionChecker;
+  @NotNull private final TimeCondition myTimeCondition;
 
   public VcsRootInstanceFinder(@NotNull VcsRootFinder vcsRootFinder,
                                @NotNull VcsManager vcsManager,
                                @NotNull ProjectFinder projectFinder,
                                @NotNull BuildTypeFinder buildTypeFinder,
                                @NotNull ProjectManager projectManager,
-                               @NotNull VcsRootIdentifiersManager vcsRootIdentifiersManager,
+                               @NotNull TimeCondition timeCondition,
                                final @NotNull PermissionChecker permissionChecker) {
     super(DIMENSION_ID, TYPE, PROJECT, AFFECTED_PROJECT, PROPERTY, REPOSITORY_ID_STRING,
       BUILD_TYPE, VCS_ROOT_DIMENSION,
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-    setHiddenDimensions(PROPERTY);
+    myTimeCondition = timeCondition;
+    setHiddenDimensions(PROPERTY, STATE);
     myVcsRootFinder = vcsRootFinder;
     myVcsManager = vcsManager;
     myProjectFinder = projectFinder;
@@ -186,6 +185,32 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
           return parameterCondition.matches(new AbstractMapParametersProvider(item.getProperties()));
         }
       });
+    }
+
+    final String state = locator.getSingleDimensionValue(STATE);
+    if (state != null) {
+      if (new Locator(state).isSingleValue()){
+        result.add(new FilterConditionChecker<VcsRootInstance>() {
+          public boolean isIncluded(@NotNull final VcsRootInstance item) {
+            return state.equalsIgnoreCase(((VcsRootInstanceEx)item).getStatus().getType().toString().toLowerCase());
+          }
+        });
+      } else{
+        TypedFinderBuilder<VcsRootInstanceEx> builder = new TypedFinderBuilder<VcsRootInstanceEx>();
+        builder.dimensionEnum(new TypedFinderBuilder.Dimension<>("status"), VcsRootStatus.Type.class).description("status of the VCS root instance").
+          valueForDefaultFilter(root -> root.getStatus().getType());
+        builder.dimensionEnum(new TypedFinderBuilder.Dimension<>("requestor"), OperationRequestor.class).description("what invoked the checking for changes operation").
+          valueForDefaultFilter(root -> root.getLastRequestor());
+        builder.dimensionTimeCondition(new TypedFinderBuilder.Dimension<>("timestamp"), myTimeCondition).description("time of the state changing").
+          valueForDefaultFilter(root -> root.getStatus().getTimestamp());
+        builder.multipleConvertToItems(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> Collections.emptyList()); //workaround for at least one condition
+        final ItemFilter<VcsRootInstanceEx> filter = builder.build().getFilter(state);
+        result.add(new FilterConditionChecker<VcsRootInstance>() {
+          public boolean isIncluded(@NotNull final VcsRootInstance item) {
+            return filter.isIncluded((VcsRootInstanceEx)item);
+          }
+        });
+      }
     }
 
     final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);

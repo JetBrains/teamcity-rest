@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.ParametersProvider;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.serverSide.BuildPromotion;
@@ -322,6 +323,11 @@ public class TypedFinderBuilder<ITEM> {
       .defaultFilter((valueCondition, item) -> valueCondition.matches(item));
   }
 
+  public<T extends Enum> TypedFinderDimensionWithDefaultChecker<ITEM, T, T> dimensionEnum(@NotNull final Dimension<T> dimension, @NotNull final Class<T> enumClass) {
+    return dimension(dimension, type(dimensionValue -> getEnumValue(dimensionValue, enumClass)).description("one of " + getValues(enumClass)))
+    .defaultFilter((t, item) -> t.equals(item));
+  }
+
   public TypedFinderDimensionWithDefaultChecker<ITEM, TimeCondition.ParsedTimeCondition, Date> dimensionTimeCondition(@NotNull final Dimension<TimeCondition.ParsedTimeCondition> dimension,
                                                                                                                       @NotNull final TimeCondition timeCondition) {
     return dimension(dimension, type(dimensionValue -> timeCondition.getTimeCondition(dimensionValue)).description("time condition"))
@@ -373,7 +379,7 @@ public class TypedFinderBuilder<ITEM> {
 
   @NotNull
   public Finder<ITEM> build() {
-    if (myLocatorProvider == null) throw new OperationException("Should set locator provider via a call to locatorProvider()");
+//    if (myLocatorProvider == null) throw new OperationException("Should set locator provider via a call to locatorProvider()");
     return new FinderImpl<ITEM>(new TypedFinderDataBindingImpl());
   }
 
@@ -412,6 +418,20 @@ public class TypedFinderBuilder<ITEM> {
 
   public <TYPE> TypeBuilder<TYPE> type(@NotNull final TypeBuilder.ValueRetriever<TYPE> retriever) {
     return new TypeBuilder<>(retriever);
+  }
+
+  @NotNull
+  private static <T extends Enum> T getEnumValue(@NotNull final String value, @NotNull final Class<T> enumClass) {
+    T[] consts = enumClass.getEnumConstants();
+    assert consts != null;
+    for (T c : consts) {
+      if (value.equalsIgnoreCase(c.name())) return c;
+    }
+    throw new BadRequestException("Unsupported value '" + value + "'. Supported values are: " + getValues(enumClass));
+  }
+
+  private static <T extends Enum> List<String> getValues(final @NotNull Class<T> enumClass) {
+    return CollectionsUtil.convertCollection(Arrays.asList(enumClass.getEnumConstants()), source -> source.name().toLowerCase());
   }
 
   //============================= Public subclasses =============================
@@ -823,7 +843,7 @@ public class TypedFinderBuilder<ITEM> {
       }
 
       //todo: improve this to provide a message with available conditions or require providing "getAll" at configuration time
-      throw new OperationException("No conditions matched"); //exception type
+      throw new OperationException("No conditions matched. Use multipleConvertToItems and alike methods"); //exception type
     }
 
 
@@ -853,6 +873,7 @@ public class TypedFinderBuilder<ITEM> {
     @NotNull
     @Override
     public String getItemLocator(@NotNull final ITEM item) {
+    if (myLocatorProvider == null) throw new OperationException("Incorrect configuration of the typed finder: locator provider not set");
       return myLocatorProvider.getLocator(item);
     }
   }

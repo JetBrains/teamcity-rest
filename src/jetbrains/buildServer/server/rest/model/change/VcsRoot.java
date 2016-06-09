@@ -27,7 +27,9 @@ import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.*;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.Items;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.model.project.Project;
@@ -53,8 +55,8 @@ import static jetbrains.buildServer.serverSide.impl.projectSources.SmallPatchCac
  *         Date: 16.04.2009
  */
 @XmlRootElement(name = "vcs-root")
-@XmlType(name = "vcs-root", propOrder = { "id", "internalId", "uuid", "name","vcsName", "modificationCheckInterval", "status", "lastChecked", "href",
-  "project", "properties", "vcsRootInstances" , "repositoryIdStrings"})  //todo: add webUrl
+@XmlType(name = "vcs-root", propOrder = { "id", "internalId", "uuid", "name","vcsName", "modificationCheckInterval", "href",
+  "project", "state", "properties", "vcsRootInstances" , "repositoryIdStrings"})  //todo: add webUrl
 @SuppressWarnings("PublicField")
 public class VcsRoot {
   @XmlAttribute
@@ -76,17 +78,14 @@ public class VcsRoot {
   public Integer modificationCheckInterval;
 
   @XmlAttribute
-  public String status;
-
-  @XmlAttribute
-  public String lastChecked;
-
-  @XmlAttribute
   public String href;
 
 
   @XmlElement
   public Properties properties;
+
+  @XmlElement
+  public VcsCheckState state;
 
   /**
    * Used only when creating new VCS roots
@@ -124,11 +123,13 @@ public class VcsRoot {
     final boolean includeInternalId = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME);
     internalId =  ValueWithDefault.decideDefault(fields.isIncluded("internalId", includeInternalId, includeInternalId), root.getId());
 
+    final PermissionChecker permissionChecker = beanContext.getServiceLocator().findSingletonService(PermissionChecker.class);
+    assert permissionChecker != null;
     uuid = ValueWithDefault.decideDefault(fields.isIncluded("uuid", false, false), new ValueWithDefault.Value<String>() {
       @Nullable
       public String get() {
         final SProject projectOfTheRoot = getProjectByRoot(root);
-        if (projectOfTheRoot != null && beanContext.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.EDIT_PROJECT, projectOfTheRoot.getProjectId())) {
+        if (projectOfTheRoot != null && permissionChecker.isPermissionGranted(Permission.EDIT_PROJECT, projectOfTheRoot.getProjectId())) {
           return ((SVcsRootEx)root).getEntityId().getConfigId();
         }
         return null;
@@ -148,8 +149,6 @@ public class VcsRoot {
       project = ValueWithDefault.decideDefault(fields.isIncluded("project", false), new Project(null, ownerProjectId, fields.getNestedField("project"), beanContext));
     }
 
-    final PermissionChecker permissionChecker = beanContext.getServiceLocator().findSingletonService(PermissionChecker.class);
-    assert permissionChecker != null;
     if (!shouldRestrictSettingsViewing(root, permissionChecker)) {
       properties = ValueWithDefault.decideDefault(fields.isIncluded("properties", false),
                                                   new Properties(root.getProperties(), null, fields.getNestedField("properties", Fields.NONE, Fields.LONG),
@@ -186,16 +185,16 @@ public class VcsRoot {
           return null;
         }
       });
+
+      state = ValueWithDefault.decideDefault(fields.isIncluded("state", false), () -> {
+        return new VcsCheckState(beanContext.getSingletonService(VcsManager.class).getStatus(root), null, fields.getNestedField("state"), beanContext);
+      });
     } else {
       properties = null;
       modificationCheckInterval = null;
       vcsRootInstances = null;
       repositoryIdStrings = null;
     }
-
-    final VcsRootStatus rootStatus = beanContext.getSingletonService(VcsManager.class).getStatus(root);
-    status = ValueWithDefault.decideDefault(fields.isIncluded("status", false), rootStatus.getType().toString());
-    lastChecked = ValueWithDefault.decideDefault(fields.isIncluded("lastChecked", false), Util.formatTime(rootStatus.getTimestamp()));
   }
 
   @Nullable
