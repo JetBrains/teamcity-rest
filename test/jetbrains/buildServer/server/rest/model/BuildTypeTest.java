@@ -444,6 +444,25 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     stepsEquals(buildType.getAgentRequirements().propEntities.get(3), "req20", "exists", false, true);
   }
 
+  @Test
+  public void testParametersCount() {
+    final BuildTypeEx bt = getRootProject().createProject("Project1", "Project test 1").createBuildType("testBT", "My test build type");
+    bt.addParameter(new SimpleParameter("a", "b"));
+    {
+      final BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt), Fields.LONG, myBeanContext);
+      assertEquals(new Integer(1), buildType.getParameters().count);
+      assertEquals(1, buildType.getParameters().properties.size());
+      assertEquals("a", buildType.getParameters().properties.get(0).name);
+      assertEquals("b", buildType.getParameters().properties.get(0).value);
+    }
+    {
+      final BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt), new Fields("parameters($short)"), myBeanContext);
+      assertEquals(new Integer(1), buildType.getParameters().count);
+      assertNull(buildType.getParameters().properties);
+    }
+  }
+
+
   private static void stepsEquals(final PropEntity propEntity, final String id, final String type, final Boolean enabled, final Boolean inherited) {
     assertEquals(id, propEntity.id);
     assertEquals(type, propEntity.type);
