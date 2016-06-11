@@ -367,7 +367,8 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   public TypedFinderBuilder<ITEM> filter(@NotNull final DimensionCondition conditions, @NotNull final ItemFilterFromDimensions<ITEM> parsedObjectsIfConditionsMatched) {
-    myFiltersConditions.put(conditions, parsedObjectsIfConditionsMatched);
+    ItemFilterFromDimensions<ITEM> previous = myFiltersConditions.put(conditions, parsedObjectsIfConditionsMatched);
+    if (previous != null) throw new OperationException("Overriding dimension condition '" + conditions.toString() + "'");
     return this;
   }
 
@@ -391,7 +392,18 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   private <TYPE> TypedFinderBuilder<ITEM> filter(@NotNull final Dimension<TYPE> dimension, @NotNull final Filter<TYPE, ITEM> filteringMapper) {
-    return filter(new DimensionConditionsImpl().when(dimension, Condition.PRESENT), new ItemFilterFromDimensions<ITEM>() {
+    DimensionCondition condition;
+    if (Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME.equals(dimension.name)) {
+      condition = new DimensionCondition(){
+        @Override
+        public boolean complies(@NotNull final Locator locator) {
+          return locator.isSingleValue();
+        }
+      };
+    } else{
+      condition = new DimensionConditionsImpl().when(dimension, Condition.PRESENT);
+    }
+    return filter(condition, new ItemFilterFromDimensions<ITEM>() {
       @Nullable
       @Override
       public ItemFilter<ITEM> get(@NotNull final DimensionObjects dimensions) {
@@ -443,6 +455,11 @@ public class TypedFinderBuilder<ITEM> {
     public Dimension(@NotNull final String name) {
       if (name.length() == 0) throw new OperationException("Wrong name: empty");
       this.name = name;
+    }
+
+    @NotNull
+    public static <T> Dimension<T> single(){
+      return new Dimension<>(Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     }
 
     @Override
@@ -891,17 +908,18 @@ public class TypedFinderBuilder<ITEM> {
 
     @Nullable
     private <TYPE> List<TYPE> getTypedDimensionByLocator(@NotNull final Locator locator, @NotNull final TypedFinderDimensionImpl<TYPE> typedDimension) {
+      if (Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME.equals(typedDimension.getDimension().name)){
+        String singleValue = locator.getSingleValue();
+        if (singleValue != null){
+          return Collections.singletonList(getByDimensionValue(typedDimension, singleValue));
+        }
+      }
       //noinspection unchecked
       List<String> dimensionValues = locator.getDimensionValue(typedDimension.getDimension().name);
       if (dimensionValues.isEmpty()) return null;
       List<TYPE> results = new ArrayList<>(dimensionValues.size());
       for (String dimensionValue : dimensionValues) {
-        TYPE result;
-        try {
-          result = typedDimension.getType().get(dimensionValue);
-        } catch (LocatorProcessException e) {
-          throw new LocatorProcessException("Error in dimension '" + typedDimension.getDimension().name + "', value: '" + dimensionValue + "'", e);
-        }
+        TYPE result = getByDimensionValue(typedDimension, dimensionValue);
         if (result == null) continue; //dimension returned null (e.g. Boolean "any") - proceed as if not filtering is required by the dimension
         Checker<TYPE> checker = typedDimension.getChecker();
         if (checker != null) {
@@ -911,6 +929,16 @@ public class TypedFinderBuilder<ITEM> {
         }
       }
       return results;
+    }
+
+    private <TYPE> TYPE getByDimensionValue(final @NotNull TypedFinderDimensionImpl<TYPE> typedDimension, final String dimensionValue) {
+      TYPE result;
+      try {
+        result = typedDimension.getType().get(dimensionValue);
+      } catch (LocatorProcessException e) {
+        throw new LocatorProcessException("Error in dimension '" + typedDimension.getDimension().name + "', value: '" + dimensionValue + "'", e);
+      }
+      return result;
     }
 
     @NotNull

@@ -189,28 +189,23 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
     final String state = locator.getSingleDimensionValue(STATE);
     if (state != null) {
-      if (new Locator(state).isSingleValue()){
-        result.add(new FilterConditionChecker<VcsRootInstance>() {
-          public boolean isIncluded(@NotNull final VcsRootInstance item) {
-            return state.equalsIgnoreCase(((VcsRootInstanceEx)item).getStatus().getType().toString().toLowerCase());
-          }
-        });
-      } else{
-        TypedFinderBuilder<VcsRootInstanceEx> builder = new TypedFinderBuilder<VcsRootInstanceEx>();
-        builder.dimensionEnum(new TypedFinderBuilder.Dimension<>("status"), VcsRootStatus.Type.class).description("status of the VCS root instance").
-          valueForDefaultFilter(root -> root.getStatus().getType());
-        builder.dimensionEnum(new TypedFinderBuilder.Dimension<>("requestor"), OperationRequestor.class).description("what invoked the checking for changes operation").
-          valueForDefaultFilter(root -> root.getLastRequestor());
-        builder.dimensionTimeCondition(new TypedFinderBuilder.Dimension<>("timestamp"), myTimeCondition).description("time of the state changing").
-          valueForDefaultFilter(root -> root.getStatus().getTimestamp());
-        builder.multipleConvertToItems(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> Collections.emptyList()); //workaround for at least one condition
-        final ItemFilter<VcsRootInstanceEx> filter = builder.build().getFilter(state);
-        result.add(new FilterConditionChecker<VcsRootInstance>() {
-          public boolean isIncluded(@NotNull final VcsRootInstance item) {
-            return filter.isIncluded((VcsRootInstanceEx)item);
-          }
-        });
-      }
+      TypedFinderBuilder<VcsRootInstanceEx> builder = new TypedFinderBuilder<VcsRootInstanceEx>();
+      builder.dimensionEnum(TypedFinderBuilder.Dimension.single(), VcsRootStatus.Type.class).description("status of the VCS root instance").
+        valueForDefaultFilter(root -> root.getStatus().getType());
+
+      builder.dimensionEnum(new TypedFinderBuilder.Dimension<>("status"), VcsRootStatus.Type.class).description("status of the VCS root instance").
+        valueForDefaultFilter(root -> root.getStatus().getType());
+      builder.dimensionEnum(new TypedFinderBuilder.Dimension<>("requestor"), OperationRequestor.class).description("what invoked the checking for changes operation").
+        valueForDefaultFilter(root -> root.getLastRequestor());
+      builder.dimensionTimeCondition(new TypedFinderBuilder.Dimension<>("timestamp"), myTimeCondition).description("time of the state changing").
+        valueForDefaultFilter(root -> root.getStatus().getTimestamp());
+      builder.multipleConvertToItems(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> Collections.emptyList()); //workaround for at least one condition
+      final ItemFilter<VcsRootInstanceEx> filter = builder.build().getFilter(state);
+      result.add(new FilterConditionChecker<VcsRootInstance>() {
+        public boolean isIncluded(@NotNull final VcsRootInstance item) {
+          return filter.isIncluded((VcsRootInstanceEx)item);
+        }
+      });
     }
 
     final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);

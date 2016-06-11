@@ -55,7 +55,7 @@ public class Locator {
   private static final String DIMENSIONS_DELIMITER = ",";
   private static final String DIMENSION_COMPLEX_VALUE_START_DELIMITER = "(";
   private static final String DIMENSION_COMPLEX_VALUE_END_DELIMITER = ")";
-  public static final String LOCATOR_SINGLE_VALUE_UNUSED_NAME = "single value";
+  public static final String LOCATOR_SINGLE_VALUE_UNUSED_NAME = "$value";
   protected static final String ANY_LITERAL = "$any";
   protected static final String BASE64_ESCAPE_FAKE_DIMENSION = "$base64";
 
