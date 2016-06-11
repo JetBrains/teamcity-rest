@@ -1393,10 +1393,6 @@ public class BuildTypeRequest {
 
     @Override
     public void addParameter(@NotNull final Parameter param) {
-      String currentValue = BuildTypeUtil.getSettingsParameters(myBuildType, false).get(param.getName());
-      if (currentValue == null) {
-        throw new BadRequestException("Setting parameter with name '" + param.getName() + "' is not known.");
-      }
       if (param.getControlDescription() != null) throw new BadRequestException("Type is not supported for settings.");
       try {
         BuildTypeUtil.setSettingsParameter(myBuildType, param.getName(), param.getValue());
@@ -1414,11 +1410,11 @@ public class BuildTypeRequest {
     @Nullable
     @Override
     public Parameter getParameter(@NotNull final String paramName) {
-      Map<String, String> parameters = BuildTypeUtil.getSettingsParameters(myBuildType, false);
-      if (parameters.containsKey(paramName)) {
-        return new SimpleParameter(paramName, parameters.get(paramName));
+      String value = BuildTypeUtil.getSettingsParameters(myBuildType, false).get(paramName);
+      if (value != null) {
+        return new SimpleParameter(paramName, value);
       }
-      throw new NotFoundException("No setting parameter with name '" + paramName + "' is found.");
+      return null;
     }
 
     @NotNull

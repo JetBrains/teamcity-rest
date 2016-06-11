@@ -47,6 +47,7 @@ import jetbrains.buildServer.vcs.CheckoutRules;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -352,7 +353,7 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     bt10.setArtifactPaths("bbbb"); //todo: test w/o override
     bt10.setOption(BuildTypeOptions.BT_ALLOW_EXTERNAL_STATUS, false);
     bt10.setOption(BuildTypeOptions.BT_CHECKOUT_DIR, "checkout_bt");
-    bt10.setOption(BuildTypeOptions.BT_CHECKOUT_MODE, "ON_SERVER");
+    bt10.setOption(BuildTypeOptions.BT_CHECKOUT_MODE, "ON_AGENT");
     bt10.setOption(BuildTypeOptions.BT_EXECUTION_TIMEOUT, 17);
 
     bt10.addVcsRoot(vcsRoot20);
@@ -393,9 +394,10 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     parameterEquals(find(buildType.getSettings().properties, "buildNumberPattern"), "buildNumberPattern", "pattern", true);
     parameterEquals(find(buildType.getSettings().properties, "allowExternalStatus"), "allowExternalStatus", "false", null);
     parameterEquals(find(buildType.getSettings().properties, "checkoutDirectory"), "checkoutDirectory", "checkout_bt", null);
+//    parameterEquals(find(buildType.getSettings().properties, "checkoutMode"), "checkoutMode", "ON_AGENT", null); //option set to the same value in bt - API does not make difference so far
     parameterEquals(find(buildType.getSettings().properties, "shouldFailBuildOnAnyErrorMessage"), "shouldFailBuildOnAnyErrorMessage", "true", true);
     parameterEquals(find(buildType.getSettings().properties, "executionTimeoutMin"), "executionTimeoutMin", "17", null);
-    parameterEquals(find(buildType.getSettings().properties, "showDependenciesChanges"), "showDependenciesChanges", "false", true); //default value
+    assertNull(find(buildType.getSettings().properties, "showDependenciesChanges")); //default value
 
     assertEquals(3, buildType.getVcsRootEntries().vcsRootAssignments.size());
     vcsRootEntryEquals(buildType.getVcsRootEntries().vcsRootAssignments.get(0), vcsRoot10.getExternalId(), "", true);
@@ -445,6 +447,54 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
   }
 
   @Test
+  public void testSettings() {
+    ProjectEx project10 = createProject("project10", "project 10");
+    BuildTypeEx bt10 = project10.createBuildType("bt10", "bt 10");
+
+    {
+      BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("$long"), myBeanContext);
+
+      parameterEquals(find(buildType.getSettings().properties, "buildNumberCounter"), "buildNumberCounter", "1", null);
+      assertEquals(1, buildType.getSettings().properties.size());
+    }
+
+    bt10.setArtifactPaths("bbbb");
+    bt10.setOption(BuildTypeOptions.BT_ALLOW_EXTERNAL_STATUS, false);
+    bt10.setOption(BuildTypeOptions.BT_CHECKOUT_DIR, "checkout_bt");
+    bt10.setOption(BuildTypeOptions.BT_CHECKOUT_MODE, "ON_SERVER");
+    bt10.setOption(BuildTypeOptions.BT_EXECUTION_TIMEOUT, 17);
+
+    {
+      BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("$long"), myBeanContext);
+
+      parameterEquals(find(buildType.getSettings().properties, "artifactRules"), "artifactRules", "bbbb", null);
+//    parameterEquals(find(buildType.getSettings().properties, "allowExternalStatus"), "allowExternalStatus", "false", null); //settings to default value does not set it in API...
+      parameterEquals(find(buildType.getSettings().properties, "checkoutDirectory"), "checkoutDirectory", "checkout_bt", null);
+      parameterEquals(find(buildType.getSettings().properties, "checkoutMode"), "checkoutMode", "ON_SERVER", null);
+      parameterEquals(find(buildType.getSettings().properties, "executionTimeoutMin"), "executionTimeoutMin", "17", null);
+
+      assertNull(find(buildType.getSettings().properties, "allowPersonalBuildTriggering"));
+      assertNull(find(buildType.getSettings().properties, "buildNumberPattern"));
+      assertNull(find(buildType.getSettings().properties, "shouldFailBuildOnAnyErrorMessage"));
+      assertNull(find(buildType.getSettings().properties, "showDependenciesChanges"));
+    }
+
+    bt10.setOption(BuildTypeOptions.BT_ALLOW_PERSONAL_BUILD_TRIGGERING, false);
+    bt10.setOption(BuildTypeOptions.BT_BUILD_NUMBER_PATTERN, "aaa");
+    bt10.setOption(BuildTypeOptions.BT_FAIL_ON_ANY_ERROR_MESSAGE, true);
+    bt10.setOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES, true);
+
+    {
+      BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("$long"), myBeanContext);
+
+      parameterEquals(find(buildType.getSettings().properties, "allowPersonalBuildTriggering"), "allowPersonalBuildTriggering", "false", null);
+      parameterEquals(find(buildType.getSettings().properties, "buildNumberPattern"), "buildNumberPattern", "aaa", null);
+      parameterEquals(find(buildType.getSettings().properties, "shouldFailBuildOnAnyErrorMessage"), "shouldFailBuildOnAnyErrorMessage", "true", null);
+      parameterEquals(find(buildType.getSettings().properties, "showDependenciesChanges"), "showDependenciesChanges", "true", null);
+    }
+  }
+
+  @Test
   public void testParametersCount() {
     final BuildTypeEx bt = getRootProject().createProject("Project1", "Project test 1").createBuildType("testBT", "My test build type");
     bt.addParameter(new SimpleParameter("a", "b"));
@@ -474,7 +524,7 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     assertEquals(inherited, propEntity.inherited);
   }
 
-  @NotNull
+  @Nullable
   static private Property find(@NotNull final List<Property> properties, @NotNull final String propertyName) {
     return CollectionsUtil.findFirst(properties, data -> propertyName.equals(data.name));
   }

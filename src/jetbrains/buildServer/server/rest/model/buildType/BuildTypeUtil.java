@@ -45,12 +45,20 @@ import org.jetbrains.annotations.Nullable;
  */
 public class BuildTypeUtil {
   private static final Logger LOG = Logger.getInstance(BuildTypeUtil.class.getName());
+  protected static final String BUILD_NUMBER_COUNTER = "buildNumberCounter";
 
+  @NotNull
   public static HashMap<String, String> getSettingsParameters(@NotNull final BuildTypeOrTemplate buildType, final boolean onlyOwn) {
     HashMap<String, String> properties = new HashMap<String, String>();
-    addAllOptionsAsProperties(properties, buildType.get(), onlyOwn);
+//    getOptionsAsMap(properties, buildType.get(), onlyOwn && buildType.get().isTemplateBased());
+
+    BuildTypeTemplate template = buildType.get().getTemplate();
+    if (!onlyOwn && template != null) {
+      properties.putAll(getOptionsAsMap(buildType.get(), template.getOwnOptions()));
+    }
+    properties.putAll(getOptionsAsMap(buildType.get(), buildType.get().getOwnOptions()));
     if (buildType.getBuildType() != null) {
-      properties.put("buildNumberCounter", String.valueOf(buildType.getBuildType().getBuildNumbers().getBuildCounter()));
+      properties.put(BUILD_NUMBER_COUNTER, String.valueOf(buildType.getBuildType().getBuildNumbers().getBuildCounter()));
     }
     return properties;
   }
@@ -60,16 +68,20 @@ public class BuildTypeUtil {
    * @see #getSettingsParameters(jetbrains.buildServer.serverSide.SBuildType)
    */
   public static void setSettingsParameter(final BuildTypeOrTemplate buildType, final String name, final String value) {
-    if ("buildNumberCounter".equals(name)) {
+    if (BUILD_NUMBER_COUNTER.equals(name)) {
       if (buildType.getBuildType() != null) {
         buildType.getBuildType().getBuildNumbers().setBuildNumberCounter(new Long(value));
       }else{
-        throw new BadRequestException("Templates do not have build counter.");
+        throw new BadRequestException("Templates do not have build counter: could not set setting '" + BUILD_NUMBER_COUNTER + "'");
       }
     } else {
       final Option option = Option.fromKey(name);
       if (option == null) {
-        throw new IllegalArgumentException("No Build Type option found for name '" + name + "'");
+        List<Option> allSupportedOptions = getAllSupportedOptions(buildType.get());
+        List<String> allOptionNames = new ArrayList<>();
+        allOptionNames.addAll(CollectionsUtil.convertCollection(allSupportedOptions, source -> source.getKey()));
+        allOptionNames.add(BUILD_NUMBER_COUNTER);
+        throw new IllegalArgumentException("No BuildType setting found for name '" + name + "'. Supported settings names are: " + allOptionNames);
       }
       final Object optionValue = option.fromString(value);
       //noinspection unchecked
@@ -77,24 +89,37 @@ public class BuildTypeUtil {
     }
   }
 
+  private static Map<String, String> getOptionsAsMap(@NotNull final OptionSupport buildType, @Nullable final Collection<Option> ownOptions) {
+    final Map<String, String> result = new HashMap<>();
+    for (Option option : getAllSupportedOptions(buildType)) {
+      if (ownOptions == null || ownOptions.contains(option)) {
+        result.put(option.getKey(), buildType.getOption(option).toString());
+      }
+    }
+    return result;
+  }
+
   //todo: might use a generic util for this (e.g. Static HTML plugin has alike code to get all Page Places)
-  private static void addAllOptionsAsProperties(final HashMap<String, String> properties, final OptionSupport buildType, final boolean onlyOwn) {
-    Collection<Option> ownOptions = buildType.getOwnOptions();
+  @NotNull
+  private static List<Option> getAllSupportedOptions(@NotNull final OptionSupport buildType) {
+    ArrayList<Option> result = new ArrayList<>();
     Field[] declaredFields = BuildTypeOptions.class.getDeclaredFields();
     for (Field declaredField : declaredFields) {
       try {
         if (Option.class.isAssignableFrom(declaredField.get(buildType).getClass())) {
           Option option = null;
           option = (Option)declaredField.get(buildType);
-          if (!onlyOwn || ownOptions.contains(option)) {
-            //noinspection unchecked
-            properties.put(option.getKey(), buildType.getOption(option).toString());
+          if (option == null) {
+            LOG.error("Error getting field for option '" + declaredField.getName() + "'");
+          } else {
+            result.add(option);
           }
         }
       } catch (IllegalAccessException e) {
         LOG.error("Error retrieving option '" + declaredField.getName() + "' , error: " + e.getMessage());
       }
     }
+    return result;
   }
 
   @NotNull
