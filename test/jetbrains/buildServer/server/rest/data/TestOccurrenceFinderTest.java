@@ -16,12 +16,14 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import com.google.common.base.Objects;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -214,5 +216,24 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     public String toString() {
       return "{" + testName + ", " + status.getText() + ", " + orderId + ", " + buildId + "}";
     }
+  }
+
+  public void check(@Nullable final String locator, STestRun... items) {
+    //using getEqualsMatcher() sometimes fails
+    check(locator, new Matcher<STestRun, STestRun>() {
+      @Override
+      public boolean matches(@NotNull final STestRun o, @NotNull final STestRun o2) {
+          if (o == o2) return true;
+          if (o.getClass() != o2.getClass()) return false;
+          return o.getOrderId() == o2.getOrderId() &&
+                 o.getTestRunId() == o2.getTestRunId() &&
+                 o.getDuration() == o2.getDuration() &&
+                 o.getStatus() == o2.getStatus() &&
+                 Objects.equal(o.getTest(), o2.getTest()) &&
+                 Objects.equal(o.getBuild(),o2.getBuild()) &&
+//                 Objects.equal(o.getTestOutputInfo(), o2.getTestOutputInfo()) &&
+                 Objects.equal(o.getMuteInfo(), o2.getMuteInfo());
+      }
+    }, getFinder(), items);
   }
 }
