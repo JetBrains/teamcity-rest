@@ -387,6 +387,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       Property prop = new Property();
       prop.name = "x";
       //no value
+      properties.properties = new ArrayList<>();
       properties.properties.add(prop);
       assertExceptionThrown(() -> myBuildTypeRequest.replaceStepParameters(btLocator, buildRunner1.getId(), properties, "$long"), BadRequestException.class);
     }
@@ -396,6 +397,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       Property prop = new Property();
       prop.name = "";
       prop.value = "y";
+      properties.properties = new ArrayList<>();
       properties.properties.add(prop);
       assertExceptionThrown(() -> myBuildTypeRequest.replaceStepParameters(btLocator, buildRunner1.getId(), properties, "$long"), BadRequestException.class);
     }
@@ -405,6 +407,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       Property prop = new Property();
       prop.name = "x";
       prop.value = "y";
+      properties.properties = new ArrayList<>();
       properties.properties.add(prop);
       assertEquals("b", buildType1.findBuildRunnerById(buildRunner1.getId()).getParameters().get("a"));
       myBuildTypeRequest.replaceStepParameters(btLocator, buildRunner1.getId(), properties, "$long");

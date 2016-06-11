@@ -756,7 +756,7 @@ public class BuildType {
       boolean updated = submittedVcsRootEntries.setToBuildType(buildTypeSettings, serviceLocator);
       result = result || updated;
     }
-    if (submittedParameters != null && submittedParameters.properties != null) {
+    if (submittedParameters != null) {
       boolean updated = submittedParameters.setTo(buildTypeSettings, serviceLocator);
       result = result || updated;
     }
@@ -785,6 +785,7 @@ public class BuildType {
       result = result || updated;
     }
     if (submittedSettings != null && submittedSettings.properties != null) {
+      //need to remove all settings if submittedSettings.properties == null???
       for (Property property : submittedSettings.properties) {
         try {
           BuildTypeRequest.setSetting(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate(), property);

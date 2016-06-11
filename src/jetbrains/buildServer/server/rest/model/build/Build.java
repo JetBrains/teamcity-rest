@@ -389,9 +389,8 @@ public class Build {
   public Properties getProperties() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
-        final Collection<Parameter> parameters = Properties.convertToSimpleParameters(myBuildPromotion.getParameters());
-        final Collection<Parameter> customParameters = Properties.convertToSimpleParameters(Build.this.myBuildPromotion.getCustomParameters());
-        return new Properties(parameters, customParameters, null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myServiceLocator);
+        return new Properties(myBuildPromotion.getParameters(), myBuildPromotion.getCustomParameters(), null,
+                              myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myServiceLocator);
       }
     });
   }

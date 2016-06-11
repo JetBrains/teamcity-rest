@@ -166,7 +166,8 @@ public class DataUpdater {
     }
   }
 
-  private void addProperties(final SUser user, final Properties properties) {
+  private void addProperties(final SUser user, @NotNull final Properties properties) {
+    if (properties.properties == null) return;
     Map<PropertyKey, String> convertedProperties = new HashMap<PropertyKey, String>(properties.properties.size());
     for (Property listItem : properties.properties) {
       convertedProperties.put(new SimplePropertyKey(listItem.name), listItem.value);

@@ -34,8 +34,7 @@ import jetbrains.buildServer.serverSide.InheritableUserParametersHolder;
 import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.util.CaseInsensitiveStringComparator;
-import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -56,13 +55,7 @@ public class Properties  implements DefaultValueAware {
   public String href;
 
   @XmlElement(name = PROPERTY)
-  public List<Property> properties = new SortedList<Property>(new Comparator<Property>() {
-    private final CaseInsensitiveStringComparator comp = new CaseInsensitiveStringComparator();
-
-    public int compare(final Property o1, final Property o2) {
-      return comp.compare(o1.name, o2.name);
-    }
-  });
+  public List<Property> properties;
 
   public Properties() {
   }
@@ -77,24 +70,7 @@ public class Properties  implements DefaultValueAware {
                     @Nullable String href,
                     @NotNull final Fields fields,
                     @NotNull final ServiceLocator serviceLocator) {
-    if (parameters == null) {
-      this.count = null;
-      this.properties = null;
-    } else {
-      if (fields.isIncluded(PROPERTY, false, true)) {
-        final Fields propertyFields = fields.getNestedField(PROPERTY, Fields.NONE, Fields.LONG);
-        final ParameterCondition parameterCondition = getParameterCondition(fields.getLocator());
-        for (java.util.Map.Entry<String, String> prop : parameters.entrySet()) {
-          SimpleParameter parameter = new SimpleParameter(prop.getKey(), prop.getValue() != null ? prop.getValue() : "");
-          Boolean inherited = ownParameters == null ? null : !ownParameters.containsKey(prop.getKey());
-          if (parameterCondition == null || parameterCondition.parameterMatches(parameter, inherited)) {
-            this.properties.add(new Property(parameter, inherited, propertyFields, serviceLocator));
-          }
-        }
-      }
-      this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), this.properties != null ? this.properties.size() : parameters.size());
-    }
-    this.href = ValueWithDefault.decideDefault(fields.isIncluded("href"), href);
+    this(convertToSimpleParameters(parameters), convertToSimpleParameters(ownParameters), href, null, fields, serviceLocator);
   }
 
   public Properties(@Nullable final Collection<Parameter> parameters,
@@ -108,7 +84,7 @@ public class Properties  implements DefaultValueAware {
   public Properties(@Nullable final Collection<Parameter> parameters,
                     @Nullable final Collection<Parameter> ownParameters,
                     @Nullable String href,
-                    @Nullable Locator propertiedLocator,
+                    @Nullable Locator propertiesLocator,
                     @NotNull final Fields fields,
                     @NotNull final ServiceLocator serviceLocator) {
     if (parameters == null) {
@@ -116,18 +92,38 @@ public class Properties  implements DefaultValueAware {
       this.properties = null;
     } else {
       if (fields.isIncluded(PROPERTY, false, true)) {
+        this.properties = getEmptyProperties();
         final Fields propertyFields = fields.getNestedField(PROPERTY, Fields.NONE, Fields.LONG);
-        final ParameterCondition parameterCondition = getParameterCondition(propertiedLocator != null ? propertiedLocator.getStringRepresentation() : fields.getLocator());
+        final ParameterCondition parameterCondition = getParameterCondition(propertiesLocator != null ? propertiesLocator.getStringRepresentation() : fields.getLocator());
+        Set<String> ownParameterNames = new HashSet<>();
+        if (ownParameters != null) {
+          for (Parameter parameter : ownParameters) {
+            ownParameterNames.add(parameter.getName());
+          }
+        }
         for (Parameter parameter : parameters) {
-          Boolean inherited = ownParameters == null ? null : !ownParameters.contains(parameter);
+          Boolean inherited = ownParameters == null ? null : !ownParameterNames.contains(parameter.getName());
           if (parameterCondition == null || parameterCondition.parameterMatches(parameter, inherited)) {
             this.properties.add(new Property(parameter, inherited, propertyFields, serviceLocator));
           }
         }
+        this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), this.properties.size());  //count of the properties included
+      } else {
+        this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), parameters.size()); //actual count when no properties are included
       }
-      this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), this.properties != null ? this.properties.size() : parameters.size());
     }
     this.href = ValueWithDefault.decideDefault(fields.isIncluded("href"), href);
+  }
+
+  @NotNull
+  private static SortedList<Property> getEmptyProperties() {
+    return new SortedList<Property>(new Comparator<Property>() {
+      private final CaseInsensitiveStringComparator comp = new CaseInsensitiveStringComparator();
+
+      public int compare(final Property o1, final Property o2) {
+        return comp.compare(o1.name, o2.name);
+      }
+    });
   }
 
   /**
@@ -141,12 +137,17 @@ public class Properties  implements DefaultValueAware {
     return null;
   }
 
-  public static List<Parameter> convertToSimpleParameters(final Map<String, String> parametersMap) {
-    return CollectionsUtil.convertCollection(parametersMap.entrySet(), new Converter<Parameter, Map.Entry<String, String>>() {
-      public Parameter createFrom(@NotNull final Map.Entry<String, String> source) {
-        return new SimpleParameter(source.getKey(), source.getValue());
-      }
-    });
+  @Nullable
+  @Contract("null -> null; !null -> !null")
+  public static List<Parameter> convertToSimpleParameters(@Nullable final Map<String, String> parametersMap) {
+    if (parametersMap == null ) return null;
+    ArrayList<Parameter> result = new ArrayList<>(parametersMap.size());
+    for (Map.Entry<String, String> source : parametersMap.entrySet()) {
+      if (source.getValue() == null)
+        continue;
+      result.add(new SimpleParameter(source.getKey(), source.getValue()));
+    }
+    return result;
   }
 
   @NotNull
