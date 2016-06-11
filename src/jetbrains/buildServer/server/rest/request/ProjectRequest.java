@@ -97,6 +97,11 @@ public class ProjectRequest {
     return getProjectHref(project) + FEATURES;
   }
 
+  @NotNull
+  public static String getFeatureHref(@NotNull final SProject project, @NotNull final SProjectFeatureDescriptor descriptor) {
+    return getFeaturesHref(project) + "/" + PropEntityProjectFeature.ProjectFeatureFinder.getLocator(descriptor);
+  }
+
   @GET
   @Produces({"application/xml", "application/json"})
   public Projects serveProjects(@QueryParam("locator") String locator, @QueryParam("fields") String fields,

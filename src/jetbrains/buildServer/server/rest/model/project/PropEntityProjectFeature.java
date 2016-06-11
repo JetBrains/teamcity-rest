@@ -22,15 +22,14 @@ import java.util.HashMap;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
-import jetbrains.buildServer.server.rest.data.DelegatingFinder;
-import jetbrains.buildServer.server.rest.data.ParameterCondition;
-import jetbrains.buildServer.server.rest.data.TypedFinderBuilder;
-import jetbrains.buildServer.server.rest.data.ValueCondition;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.buildType.PropEntity;
+import jetbrains.buildServer.server.rest.request.ProjectFeatureSubResource;
+import jetbrains.buildServer.server.rest.request.ProjectRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.SProjectFeatureDescriptor;
@@ -49,7 +48,9 @@ public class PropEntityProjectFeature extends PropEntity {
 
   public PropEntityProjectFeature(@NotNull final SProjectFeatureDescriptor descriptor,
                                   @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
-    init(descriptor.getId(), null, descriptor.getType(), null, null, descriptor.getParameters(), fields, beanContext.getServiceLocator());
+    String featureHref = ProjectRequest.getFeatureHref(descriptor.getProject(), descriptor);
+    init(descriptor.getId(), null, descriptor.getType(), null, null, featureHref, descriptor.getParameters(), ProjectFeatureSubResource.getPropertiesHref(featureHref),
+         fields, beanContext.getServiceLocator());
   }
 
   /**
@@ -159,9 +160,14 @@ public class PropEntityProjectFeature extends PropEntity {
 
       builder.multipleConvertToItems(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> new ArrayList<>(project.getOwnFeatures()));
 
-      builder.locatorProvider(projectFeatureDescriptor -> projectFeatureDescriptor.getId());
+      builder.locatorProvider(projectFeatureDescriptor -> getLocator(projectFeatureDescriptor));
 
       setDelegate(builder.build());
+    }
+
+    @NotNull
+    public static String getLocator(@NotNull final SProjectFeatureDescriptor item) {
+      return Locator.getStringLocator("id", item.getId());
     }
   }
 }

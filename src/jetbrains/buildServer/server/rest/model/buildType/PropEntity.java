@@ -38,7 +38,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Author: Yegor.Yarko
  */
-@XmlType(propOrder = {"id", "name", "type", "disabled", "inherited",
+@XmlType(propOrder = {"id", "name", "type", "disabled", "inherited", "href",
   "properties"})
 //@XmlRootElement(name = "property-described-entity")
 @SuppressWarnings("PublicField")
@@ -60,6 +60,10 @@ public class PropEntity {
   @XmlAttribute
   @Nullable
   public Boolean inherited;
+
+  @XmlAttribute(required = false)
+  @Nullable
+  public String href;
 
   @XmlElement
   public Properties properties;
@@ -94,13 +98,27 @@ public class PropEntity {
                       @NotNull final Map<String, String> properties,
                       @NotNull final Fields fields,
                       @NotNull final ServiceLocator serviceLocator) {
+    init(id, name, type, enabled, inherited, null, properties, null, fields, serviceLocator);
+  }
+
+  protected void init(@NotNull final String id,
+                      @Nullable final String name,
+                      @NotNull final String type,
+                      @Nullable final Boolean enabled,
+                      @Nullable final Boolean inherited,
+                      @Nullable final String href,
+                      @NotNull final Map<String, String> properties,
+                      @Nullable final String propertiesHref,
+                      @NotNull final Fields fields,
+                      @NotNull final ServiceLocator serviceLocator) {
     this.id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), id);
     this.name = ValueWithDefault.decideDefault(fields.isIncluded("name"), name);
     this.type = ValueWithDefault.decideDefault(fields.isIncluded("type"), type);
     this.properties = ValueWithDefault.decideDefault(fields.isIncluded("properties"),
-                                                     new Properties(properties, null, fields.getNestedField("properties", Fields.NONE, Fields.LONG), serviceLocator));
+                                                     new Properties(properties, propertiesHref, fields.getNestedField("properties", Fields.NONE, Fields.LONG), serviceLocator));
     this.disabled = enabled == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("disabled"), !enabled);
     this.inherited = inherited == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("inherited"), inherited);
+    this.href = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("href"), href);
   }
 
   public static String getSetting(@NotNull final BuildTypeSettings buildType, @NotNull final String id, final String name) {

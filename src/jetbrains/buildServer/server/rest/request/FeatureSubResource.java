@@ -31,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @Api(hidden = true) // To prevent appearing in Swagger#definitions
 public class FeatureSubResource<M, S> {
+  private static final String PROPERTIES = "/properties";
   @NotNull private final Entity<M, S> myEntity;
 
   @NotNull private final BeanContext myBeanContext;
@@ -69,6 +70,11 @@ public class FeatureSubResource<M, S> {
     //String getSetting(final @NotNull String featureLocator, final @NotNull String settingName);
 
     //todo: return true/false result in delete and replaceAll ???
+  }
+
+  @NotNull
+  public static String getPropertiesHref(@NotNull String baseHref){
+    return baseHref + PROPERTIES;
   }
 
   public FeatureSubResource(final @NotNull BeanContext beanContext, final @NotNull Entity<M, S> entity) {
@@ -123,7 +129,7 @@ public class FeatureSubResource<M, S> {
     return myEntity.getSingle(resultId, new Fields(fields), myBeanContext);
   }
 
-  @Path("/{featureLocator}/properties")
+  @Path("/{featureLocator}" + PROPERTIES)
   public ParametersSubResource getParametersSubResource(@PathParam("featureLocator") String featureLocator, @QueryParam("fields") String fields) {
     return new ParametersSubResource(myBeanContext.getServiceLocator(), new ParametersSubResource.UserParametersHolderEntityWithParameters(myEntity.getParametersHolder(featureLocator)){
       @Override
