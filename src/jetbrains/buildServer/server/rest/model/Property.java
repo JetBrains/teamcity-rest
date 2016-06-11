@@ -18,7 +18,6 @@ package jetbrains.buildServer.server.rest.model;
 
 import com.google.common.base.Objects;
 import java.text.ParseException;
-import java.util.Collection;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -26,10 +25,12 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.request.ParametersSubResource;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.ControlDescription;
+import jetbrains.buildServer.serverSide.InheritableUserParametersHolder;
+import jetbrains.buildServer.serverSide.Parameter;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.parameters.ParameterDescriptionFactory;
 import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
 import jetbrains.buildServer.serverSide.parameters.types.PasswordType;
@@ -133,30 +134,25 @@ public class Property {
 
   @NotNull
   public Parameter addTo(@NotNull final InheritableUserParametersHolder entity, @NotNull final ServiceLocator serviceLocator){
-    Collection<Parameter> original = entity.getOwnParametersCollection();
+    Parameter fromPosted = getFromPosted(serviceLocator);
+    Parameter originalParameter = entity.getParameter(fromPosted.getName());
+    boolean originalParameterOwn = entity.getOwnParameters().containsKey(fromPosted.getName());
     try {
-      return addToInternal(entity, serviceLocator);
+      if (inherited != null && inherited) {
+        if (originalParameter != null && isSimilar(new Property(originalParameter, inherited, Fields.LONG, serviceLocator))) return originalParameter;
+      }
+
+      entity.addParameter(fromPosted);
+      return fromPosted;
     } catch (Exception e) {
       //restore
-      BuildTypeUtil.removeAllParameters(entity);
-      for (Parameter p : original) {
-        entity.addParameter(p);
+      if (originalParameterOwn && originalParameter != null) {
+        entity.addParameter(originalParameter);
+      } else if (entity.getParameter(fromPosted.getName()) != null) {
+        entity.removeParameter(fromPosted.getName());
       }
-      throw new BadRequestException("Cannot set parameters: " + e.toString(), e);
+      throw new BadRequestException("Cannot set parameter '" + fromPosted.getName() + "' to value '" + fromPosted.getValue() + "': " + e.toString(), e);
     }
-  }
-
-  @NotNull
-  public Parameter addToInternal(final @NotNull UserParametersHolder entity, final @NotNull ServiceLocator serviceLocator) {
-    Parameter fromPosted = getFromPosted(serviceLocator);
-
-    if (inherited != null && inherited) {
-      Parameter similar = entity.getParameter(name);
-      if (similar != null && isSimilar(new Property(similar, inherited, Fields.LONG, serviceLocator))) return similar;
-    }
-
-    entity.addParameter(fromPosted);
-    return fromPosted;
   }
 
   public boolean isSimilar(final Property that) {

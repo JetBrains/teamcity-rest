@@ -181,12 +181,12 @@ public class Properties  implements DefaultValueAware {
       BuildTypeUtil.removeAllParameters(holder);
       if (properties != null) {
         for (Property entity : properties) {
-          entity.addToInternal(holder, serviceLocator);
+          entity.addTo(holder, serviceLocator);
         }
       }
       return true;
     } catch (Exception e) {
-      //restore
+      //restore all parameters if setting one has failed
       BuildTypeUtil.removeAllParameters(holder);
       for (Parameter p : original) {
         holder.addParameter(p);
