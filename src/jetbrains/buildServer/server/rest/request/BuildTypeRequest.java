@@ -229,88 +229,11 @@ public class BuildTypeRequest {
     return new TypedParametersSubResource(myServiceLocator, new ParametersSubResource.BuildTypeEntityWithParameters(buildType), getParametersHref(buildType));
   }
 
-  @GET
   @Path("/{btLocator}/settings")
-  @Produces({"application/xml", "application/json"})
-  public Properties serveBuildTypeSettings(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
+  public ParametersSubResource getSettingsSubResource(@PathParam("btLocator") String buildTypeLocator) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    return new Properties(BuildTypeUtil.getSettingsParameters(buildType, false), BuildTypeUtil.getSettingsParameters(buildType, true), null, new Fields(fields), myServiceLocator);
+    return new ParametersSubResource(myServiceLocator, new BuildTypeSettingsEntityWithParams(buildType), getHref() + "/settings");
   }
-
-  @PUT
-  @Path("/{btLocator}/settings")
-  @Consumes({"application/xml", "application/json"})
-  @Produces({"application/xml", "application/json"})
-  public Properties replaceBuildTypeSettings(@PathParam("btLocator") String buildTypeLocator, Properties suppliedEntities, @QueryParam("fields") String fields) {
-    final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    //todo: TeamCity API: how to reset settings to defaults?
-    if (suppliedEntities.properties != null) {
-      for (Property property : suppliedEntities.properties) {
-        setSetting(buildType, property);
-      }
-    }
-    buildType.get().persist();
-    return new Properties(BuildTypeUtil.getSettingsParameters(buildType, false), BuildTypeUtil.getSettingsParameters(buildType, true), null, new Fields(fields), myServiceLocator);
-  }
-
-  @GET
-  @Path("/{btLocator}/settings/{name}")
-  @Produces("text/plain")
-  public String serveBuildTypeSetting(@PathParam("btLocator") String buildTypeLocator, @PathParam("name") String parameterName) {
-    final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    if (StringUtil.isEmpty(parameterName)) {
-      throw new BadRequestException("Setting parameter name cannot be empty.");
-    }
-
-    return getSetting(buildType, parameterName);
-  }
-
-  private String getSetting(final BuildTypeOrTemplate buildType, final String parameterName) {
-    Map<String, String> parameters = BuildTypeUtil.getSettingsParameters(buildType, false);
-    if (parameters.containsKey(parameterName)) {
-      return parameters.get(parameterName);
-    }
-    throw new NotFoundException("No setting parameter with name '" + parameterName + "' is found.");
-  }
-
-  @PUT
-  @Path("/{btLocator}/settings/{name}")
-  @Produces("text/plain")
-  public String putBuildTypeSetting(@PathParam("btLocator") String buildTypeLocator,
-                                  @PathParam("name") String parameterName,
-                                  String newValue) {
-    final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    setSetting(buildType, new Property(new SimpleParameter(parameterName, newValue), false, Fields.LONG, myServiceLocator));
-    buildType.get().persist();
-    return getSetting(buildType, parameterName);
-  }
-
-  public static void setSetting(@NotNull final BuildTypeOrTemplate buildType, @NotNull final Property property) {
-    if (StringUtil.isEmpty(property.name)) {
-      throw new BadRequestException("Settings parameter name cannot be empty.");
-    }
-
-    if (property.type != null) {
-      throw new BadRequestException("Type is not supported for settings.");
-    }
-
-    String currentValue = BuildTypeUtil.getSettingsParameters(buildType, false).get(property.name);
-    if (currentValue == null) {
-      throw new BadRequestException("Setting parameter with name '" + property.name + "' is not known.");
-    }
-
-    if (property.inherited != null && property.inherited && currentValue.equals(property.value)) {
-      return;
-    }
-
-    try {
-      BuildTypeUtil.setSettingsParameter(buildType, property.name, property.value);
-    } catch (IllegalArgumentException e) {
-      throw new BadRequestException(
-        "Could not set setting parameter with name '" + property.name + "' to value '" + property.value + "'. Error: " + e.getMessage());
-    }
-  }
-
 
   @GET
   @Path("/{btLocator}/template")
@@ -1442,5 +1365,78 @@ public class BuildTypeRequest {
     myBuildTypeFinder = myBeanContext.getSingletonService(BuildTypeFinder.class);
     myApiUrlBuilder = beanContext.getApiUrlBuilder();
     myVcsRootFinder = myBeanContext.getSingletonService(VcsRootFinder.class);
+  }
+
+  public static class BuildTypeSettingsEntityWithParams extends ParametersSubResource.EntityWithParameters {
+    @NotNull private final BuildTypeOrTemplate myBuildType;
+
+    public BuildTypeSettingsEntityWithParams(@NotNull final BuildTypeOrTemplate buildType) {
+      this.myBuildType = buildType;
+    }
+
+    @Override
+    public void persist() {
+      myBuildType.get().persist();
+    }
+
+    @Nullable
+    @Override
+    public Collection<Parameter> getOwnParametersCollection() {
+      return Properties.convertToSimpleParameters(getOwnParameters());
+    }
+
+    @Nullable
+    @Override
+    public Map<String, String> getOwnParameters() {
+      return BuildTypeUtil.getSettingsParameters(myBuildType, true);
+    }
+
+    @Override
+    public void addParameter(@NotNull final Parameter param) {
+      String currentValue = BuildTypeUtil.getSettingsParameters(myBuildType, false).get(param.getName());
+      if (currentValue == null) {
+        throw new BadRequestException("Setting parameter with name '" + param.getName() + "' is not known.");
+      }
+      if (param.getControlDescription() != null) throw new BadRequestException("Type is not supported for settings.");
+      try {
+        BuildTypeUtil.setSettingsParameter(myBuildType, param.getName(), param.getValue());
+      } catch (IllegalArgumentException e) {
+        throw new BadRequestException(
+          "Could not set setting parameter with name '" + param.getName() + "' to value '" + param.getValue() + "'. Error: " + e.getMessage());
+      }
+    }
+
+    @Override
+    public void removeParameter(@NotNull final String paramName) {
+      throw new BadRequestException("Delete is not supported for settings");
+    }
+
+    @Nullable
+    @Override
+    public Parameter getParameter(@NotNull final String paramName) {
+      Map<String, String> parameters = BuildTypeUtil.getSettingsParameters(myBuildType, false);
+      if (parameters.containsKey(paramName)) {
+        return new SimpleParameter(paramName, parameters.get(paramName));
+      }
+      throw new NotFoundException("No setting parameter with name '" + paramName + "' is found.");
+    }
+
+    @NotNull
+    @Override
+    public Collection<Parameter> getParametersCollection() {
+      return Properties.convertToSimpleParameters(getParameters());
+    }
+
+    @NotNull
+    @Override
+    public Map<String, String> getParameters() {
+      return BuildTypeUtil.getSettingsParameters(myBuildType, false);
+    }
+
+    @Nullable
+    @Override
+    public String getParameterValue(@NotNull final String paramName) {
+      return null;
+    }
   }
 }

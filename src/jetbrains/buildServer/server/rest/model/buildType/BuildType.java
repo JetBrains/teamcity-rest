@@ -788,7 +788,7 @@ public class BuildType {
       //need to remove all settings if submittedSettings.properties == null???
       for (Property property : submittedSettings.properties) {
         try {
-          BuildTypeRequest.setSetting(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate(), property);
+          property.addTo(new BuildTypeRequest.BuildTypeSettingsEntityWithParams(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate()), null, serviceLocator);
           result = true;
         } catch (java.lang.UnsupportedOperationException e) {  //can be thrown from EditableBuildTypeCopy
           LOG.debug("Error setting property '" + property.name + "' to value '" + property.value + "': " + e.getMessage());

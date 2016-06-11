@@ -18,7 +18,6 @@ package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 import javax.ws.rs.*;
 import jetbrains.buildServer.ServiceLocator;
@@ -64,16 +63,22 @@ public class ParametersSubResource {
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Property setParameter(Property parameter, @QueryParam("fields") String fields) {
-    parameter.addTo(new InheritableUserParametersHolderFromEntity(myEntityWithParameters), myServiceLocator);
+    addParameter(parameter);
     myEntityWithParameters.persist();
     return Property.createFrom(parameter.name, myEntityWithParameters, new Fields(fields), myServiceLocator);
+  }
+
+  @NotNull
+  private Parameter addParameter(@NotNull final Property parameter) {
+    Map<String, String> ownParameters = myEntityWithParameters.getOwnParameters();
+    return parameter.addTo(myEntityWithParameters, ownParameters == null ? null : ownParameters.keySet(), myServiceLocator);
   }
 
   @PUT
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Properties setParameters(Properties properties, @QueryParam("fields") String fields) {
-    properties.setTo(new InheritableUserParametersHolderFromEntity(myEntityWithParameters), myServiceLocator);
+    properties.setTo(myEntityWithParameters, myEntityWithParameters.getOwnParametersCollection(), myServiceLocator);
     myEntityWithParameters.persist();
     return new Properties(myEntityWithParameters.getParametersCollection(), myEntityWithParameters.getOwnParametersCollection(), myParametersHref,
                           new Fields(fields), myServiceLocator);
@@ -138,7 +143,7 @@ public class ParametersSubResource {
   @Produces({"application/xml", "application/json"})
   public Property setParameter(@PathParam("name") String parameterName, Property parameter, @QueryParam("fields") String fields) {
     parameter.name = parameterName; //overriding name in the entity with the value from URL
-    parameter.addTo(new InheritableUserParametersHolderFromEntity(myEntityWithParameters), myServiceLocator);
+    addParameter(parameter);
     myEntityWithParameters.persist();
     return Property.createFrom(parameter.name, myEntityWithParameters, new Fields(fields), myServiceLocator);
   }
@@ -301,62 +306,6 @@ public class ParametersSubResource {
     @Nullable
     public Map<String, String> getOwnParameters() {
       return null;
-    }
-  }
-
-  public static class InheritableUserParametersHolderFromEntity implements InheritableUserParametersHolder {
-    @NotNull final EntityWithParameters myEntity;
-
-    public InheritableUserParametersHolderFromEntity(@NotNull final EntityWithParameters entityWithParameters) {
-      myEntity = entityWithParameters;
-    }
-
-    @NotNull
-    @Override
-    public Collection<Parameter> getParametersCollection() {
-      return myEntity.getParametersCollection();
-    }
-
-    @Nullable
-    @Override
-    public Parameter getParameter(@NotNull final String paramName) {
-      return myEntity.getParameter(paramName);
-    }
-
-    @NotNull
-    @Override
-    public Map<String, String> getParameters() {
-      return myEntity.getParameters();
-    }
-
-    @Nullable
-    @Override
-    public String getParameterValue(@NotNull final String paramName) {
-      return myEntity.getParameterValue(paramName);
-    }
-
-    @Override
-    public void addParameter(@NotNull final Parameter param) {
-      myEntity.addParameter(param);
-    }
-
-    @Override
-    public void removeParameter(@NotNull final String paramName) {
-      myEntity.removeParameter(paramName);
-    }
-
-    @NotNull
-    @Override
-    public Collection<Parameter> getOwnParametersCollection() {
-      Collection<Parameter> result = myEntity.getOwnParametersCollection();
-      return result == null ? Collections.emptyList() : result;
-    }
-
-    @NotNull
-    @Override
-    public Map<String, String> getOwnParameters() {
-      Map<String, String> result = myEntity.getOwnParameters();
-      return result == null ? Collections.emptyMap() : result;
     }
   }
 }

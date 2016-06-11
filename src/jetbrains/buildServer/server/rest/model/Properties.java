@@ -33,6 +33,7 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.InheritableUserParametersHolder;
 import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.serverSide.SimpleParameter;
+import jetbrains.buildServer.serverSide.UserParametersHolder;
 import jetbrains.buildServer.util.CaseInsensitiveStringComparator;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -176,12 +177,18 @@ public class Properties  implements DefaultValueAware {
   }
 
   public boolean setTo(@NotNull final InheritableUserParametersHolder holder, @NotNull final ServiceLocator serviceLocator) {
-    Collection<Parameter> original = holder.getOwnParametersCollection();
+    return setTo(holder, holder.getOwnParametersCollection(), serviceLocator);
+  }
+
+  public boolean setTo(@NotNull final UserParametersHolder holder,
+                       @Nullable final Collection<Parameter> ownParameters,
+                       @NotNull final ServiceLocator serviceLocator) {
+    Collection<Parameter> original = ownParameters != null ? ownParameters : holder.getParametersCollection();
     try {
       BuildTypeUtil.removeAllParameters(holder);
       if (properties != null) {
         for (Property entity : properties) {
-          entity.addTo(holder, serviceLocator);
+          entity.addTo(holder, getNames(ownParameters), serviceLocator);
         }
       }
       return true;
@@ -193,6 +200,16 @@ public class Properties  implements DefaultValueAware {
       }
       throw new BadRequestException("Cannot set parameters: " + e.toString(), e);
     }
+  }
+
+  @Nullable
+  private Set<String> getNames(@Nullable final Collection<Parameter> parameters) {
+    if (parameters == null) return null;
+    final HashSet<String> result = new HashSet<>(parameters.size());
+    for (Parameter parameter : parameters) {
+      result.add(parameter.getName());
+    }
+    return result;
   }
 
   public boolean isSimilar(final Properties that) {

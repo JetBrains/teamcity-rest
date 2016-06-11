@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model;
 
 import com.google.common.base.Objects;
 import java.text.ParseException;
+import java.util.Set;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -28,9 +29,9 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.request.ParametersSubResource;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.ControlDescription;
-import jetbrains.buildServer.serverSide.InheritableUserParametersHolder;
 import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.UserParametersHolder;
 import jetbrains.buildServer.serverSide.parameters.ParameterDescriptionFactory;
 import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
 import jetbrains.buildServer.serverSide.parameters.types.PasswordType;
@@ -132,14 +133,17 @@ public class Property {
     return new Property(parameter, entity.isInherited(parameterName), fields, serviceLocator);
   }
 
+
   @NotNull
-  public Parameter addTo(@NotNull final InheritableUserParametersHolder entity, @NotNull final ServiceLocator serviceLocator){
+  public Parameter addTo(@NotNull final UserParametersHolder entity,
+                         @Nullable final Set<String> ownParameterNames,
+                         @NotNull final ServiceLocator serviceLocator) {
     Parameter fromPosted = getFromPosted(serviceLocator);
     Parameter originalParameter = entity.getParameter(fromPosted.getName());
-    boolean originalParameterOwn = entity.getOwnParameters().containsKey(fromPosted.getName());
+    @SuppressWarnings("SimplifiableConditionalExpression") boolean originalParameterOwn = ownParameterNames == null ? true : ownParameterNames.contains(fromPosted.getName());
     try {
       if (inherited != null && inherited) {
-        if (originalParameter != null && isSimilar(new Property(originalParameter, inherited, Fields.LONG, serviceLocator))) return originalParameter;
+        if (originalParameter != null && isSimilar(new Property(originalParameter, true, Fields.LONG, serviceLocator))) return originalParameter;
       }
 
       entity.addParameter(fromPosted);
