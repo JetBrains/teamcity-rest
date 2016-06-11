@@ -65,6 +65,10 @@ public class ValueCondition {
     }
     try {
       if (getActualIgnoreCase()) {
+        if (myRequirementType.equals(RequirementType.MATCHES) || myRequirementType.equals(RequirementType.DOES_NOT_MATCH)) {
+          //special case as regexp cannot be lowercased
+          return myRequirementType.matchValues(myParameterValue, toLower(value));
+        }
         return myRequirementType.matchValues(toLower(myParameterValue), toLower(value));
       } else {
         return myRequirementType.matchValues(myParameterValue, value);

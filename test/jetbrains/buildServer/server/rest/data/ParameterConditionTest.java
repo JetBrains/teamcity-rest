@@ -216,6 +216,32 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exten
 
     matchesSingleFalse("value:x", "X");
     matchesSingleTrue("value:x,ignoreCase:true", "X");
+
+    matchesSingleTrue("matchType:matches,value:[abc]", "a");
+    matchesSingleFalse("matchType:matches,value:[abc]", "A");
+    matchesSingleTrue("matchType:matches,value:[abc],ignoreCase:true", "a");
+    matchesSingleTrue("matchType:matches,value:[abc],ignoreCase:true", "A");
+
+    matchesSingleTrue("matchType:matches,value:[ABC]", "A");
+    matchesSingleFalse("matchType:matches,value:[ABC]", "a");
+
+    exceptionSingle(BadRequestException.class, "matchType:matchesAbra,value:[ABC]");
+
+    // matches and does-not-match are special cases and the value is not affected by ignoreCase:true
+    matchesSingleFalse("matchType:matches,value:[ABC],ignoreCase:true", "A");
+    matchesSingleFalse("matchType:matches,value:[ABC],ignoreCase:true", "a");
+    matchesSingleTrue("matchType:does-not-match,value:[ABC],ignoreCase:true", "a");
+
+    matchesSingleTrue("matchType:matches,value:\\w", "a");  //word character
+    matchesSingleFalse("matchType:matches,value:\\w", " ");
+    matchesSingleTrue("matchType:matches,value:\\w,ignoreCase:true", "a");
+    matchesSingleFalse("matchType:matches,value:\\w,ignoreCase:true", " ");
+
+    matchesSingleTrue("matchType:matches,value:\\W", " ");  //non-word character
+    matchesSingleFalse("matchType:matches,value:\\W", "a");
+    matchesSingleTrue("matchType:matches,value:\\W,ignoreCase:true", " ");
+    matchesSingleFalse("matchType:matches,value:\\W,ignoreCase:true", "a");
+    matchesSingleTrue("matchType:does-not-match,value:\\W,ignoreCase:true", "a");
   }
 
   @Test
@@ -281,11 +307,11 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exten
 
 
   private static void matchesSingleTrue(@NotNull final String propertyConditionLocator, @Nullable String value) {
-    assertTrue(matchesSingle(propertyConditionLocator, value));
+    assertEquals("Matching value '" + value + "' by condition '" + propertyConditionLocator + "'", true, matchesSingle(propertyConditionLocator, value));
   }
 
   private static void matchesSingleFalse(@NotNull final String propertyConditionLocator, @Nullable String value) {
-    assertFalse(matchesSingle(propertyConditionLocator, value));
+    assertEquals("Matching value '" + value + "' by condition '" + propertyConditionLocator + "'", false, matchesSingle(propertyConditionLocator, value));
   }
 
   private static boolean matchesSingle(@NotNull final String propertyConditionLocator, @Nullable String value) {
