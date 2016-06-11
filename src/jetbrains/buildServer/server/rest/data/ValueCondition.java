@@ -29,15 +29,28 @@ import org.jetbrains.annotations.Nullable;
 public class ValueCondition {
   @Nullable private final String myParameterValue;
   @NotNull private final RequirementType myRequirementType;
-  private final boolean myIgnoreCase;
+  @Nullable private Boolean myIgnoreCase;
 
   public ValueCondition(@NotNull final RequirementType requirementType, @Nullable final String value, @Nullable final Boolean ignoreCase) {
     myParameterValue = value;
     myRequirementType = requirementType;
-    myIgnoreCase = ignoreCase == null ? false : ignoreCase;
+    myIgnoreCase = ignoreCase;
     if (myRequirementType.isParameterRequired() && myParameterValue == null) {
       throw new BadRequestException("Wrong parameter condition: requirement type '" + requirementType.getName() + "' requires specification of the value");
     }
+  }
+
+  public boolean getActualIgnoreCase() {
+    return myIgnoreCase == null ? false : myIgnoreCase;
+  }
+
+  @Nullable
+  public Boolean getIgnoreCase() {
+    return myIgnoreCase;
+  }
+
+  public void setIgnoreCase(final boolean ignoreCase) {
+    myIgnoreCase = ignoreCase;
   }
 
   public boolean matches(@Nullable final String value) {
@@ -51,7 +64,7 @@ public class ValueCondition {
       return false;
     }
     try {
-      if (myIgnoreCase) {
+      if (getActualIgnoreCase()) {
         return myRequirementType.matchValues(toLower(myParameterValue), toLower(value));
       } else {
         return myRequirementType.matchValues(myParameterValue, value);
@@ -70,7 +83,7 @@ public class ValueCondition {
 
   @Nullable
   public String getConstantValueIfSimpleEqualsCondition() {
-    if (RequirementType.EQUALS.equals(myRequirementType) && !myIgnoreCase) return myParameterValue;
+    if (RequirementType.EQUALS.equals(myRequirementType) && !getActualIgnoreCase()) return myParameterValue;
     return null;
   }
 

@@ -1138,10 +1138,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
               options.setBranch(Branch.DEFAULT_BRANCH_NAME);
             }
             if (branchFilterDetails.getBranchName() != null) {
-              //ineffective, but otherwise cannot find a build by display name branch (need support in BuildQueryOptions to get default + named branch)
-              options.setMatchAllBranches(true);
-              //options.setMatchAllBranches(false);
-              //options.setBranch(branchFilterDetails.getBranchName());
+              options.setMatchAllBranches(false);
+              options.setBranch(branchFilterDetails.getBranchName());
             }
           }
         } catch (LocatorProcessException e) {

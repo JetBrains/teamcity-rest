@@ -41,8 +41,8 @@ public class BranchFinder extends AbstractFinder<Branch> {
   protected static final String DEFAULT = "default";
   protected static final String UNSPECIFIED = "unspecified";
   protected static final String BRANCHED = "branched";
-  private static final String NAME_CONDITION = "nameCondition";
-  private static final String DISPLAY_NAME_CONDITION = "displayNameCondition";
+  protected static final String DISPLAY_NAME = "displayName";
+  protected static final String VCS_NAME = "vcsName";
   public static final String BUILD = "build";
 
   protected static final String POLICY = "policy";
@@ -56,7 +56,7 @@ public class BranchFinder extends AbstractFinder<Branch> {
   public BranchFinder(@NotNull final BuildTypeFinder buildTypeFinder, @NotNull final ServiceLocator serviceLocator) {
     super(NAME, DEFAULT, UNSPECIFIED, BUILD_TYPE, BUILD, POLICY, CHANGES_FROM_DEPENDENCIES, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME); //see also getBranchFilterDetails
     setHiddenDimensions(BRANCHED,
-                        NAME_CONDITION, DISPLAY_NAME_CONDITION); /*experimental*/
+                        DISPLAY_NAME, VCS_NAME); /*experimental*/
     myBuildTypeFinder = buildTypeFinder;
     myServiceLocator = serviceLocator;
   }
@@ -99,7 +99,7 @@ public class BranchFinder extends AbstractFinder<Branch> {
     final String singleValue = locator.getSingleValue();
     if (singleValue != null) {
       if (!ANY.equals(singleValue)) {
-        result.branchName = singleValue;
+//        result.branchName = singleValue;  do not set as it is ignore case and can match display/vcs branch
         filter.add(new FilterConditionChecker<Branch>() {
           @Override
           public boolean isIncluded(@NotNull final Branch item) {
@@ -115,31 +115,35 @@ public class BranchFinder extends AbstractFinder<Branch> {
 
     final String nameDimension = locator.getSingleDimensionValue(NAME);
     if (nameDimension != null && !ANY.equals(nameDimension)) {
-      result.branchName = nameDimension;
+      final ValueCondition parameterCondition = ParameterCondition.createValueCondition(nameDimension);
+      if (parameterCondition.getIgnoreCase() == null) parameterCondition.setIgnoreCase(true); //pre-TeamCity-10 behavior
+      //result.branchName = nameDimension;  do not set as it is ignore case and can match display/vcs branch
       filter.add(new FilterConditionChecker<Branch>() {
         @Override
         public boolean isIncluded(@NotNull final Branch item) {
-          return nameDimension.equalsIgnoreCase(item.getDisplayName()) || nameDimension.equalsIgnoreCase(item.getName());
+          return parameterCondition.matches(item.getDisplayName()) || parameterCondition.matches(item.getName());
         }
       });
     }
 
-    final String nameCondition = locator.getSingleDimensionValue(NAME_CONDITION);
-    if (nameCondition != null) {
-      final ValueCondition parameterCondition = ParameterCondition.createValueCondition(nameCondition);
-      filter.add(new FilterConditionChecker<Branch>() {
-        public boolean isIncluded(@NotNull final Branch item) {
-          return parameterCondition.matches(item.getName());
-        }
-      });
-    }
-
-    final String displayNameCondition = locator.getSingleDimensionValue(DISPLAY_NAME_CONDITION);
+    final String displayNameCondition = locator.getSingleDimensionValue(DISPLAY_NAME);
     if (displayNameCondition != null) {
       final ValueCondition parameterCondition = ParameterCondition.createValueCondition(displayNameCondition);
       filter.add(new FilterConditionChecker<Branch>() {
         public boolean isIncluded(@NotNull final Branch item) {
           return parameterCondition.matches(item.getDisplayName());
+        }
+      });
+    }
+
+    final String nameCondition = locator.getSingleDimensionValue(VCS_NAME);
+    if (nameCondition != null) {
+      final ValueCondition parameterCondition = ParameterCondition.createValueCondition(nameCondition);
+      String exactValue = parameterCondition.getConstantValueIfSimpleEqualsCondition();
+      if (exactValue != null) result.branchName = exactValue;
+      filter.add(new FilterConditionChecker<Branch>() {
+        public boolean isIncluded(@NotNull final Branch item) {
+          return parameterCondition.matches(item.getName());
         }
       });
     }
