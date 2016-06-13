@@ -395,10 +395,43 @@ public class BuildQueueRequest {
   @POST
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Build queueNewBuild(Build build, @Context HttpServletRequest request){
+  public Build queueNewBuild(Build build, @QueryParam("moveToTop") Boolean moveToTop, @Context HttpServletRequest request){
     final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser();
     SQueuedBuild queuedBuild = build.triggerBuild(user, myServiceLocator, new HashMap<Long, Long>());
+    if (moveToTop != null && moveToTop){
+      final BuildQueue buildQueue = myServiceLocator.getSingletonService(BuildQueue.class);
+      buildQueue.moveTop(queuedBuild.getItemId());
+    }
     return new Build(queuedBuild.getBuildPromotion(), Fields.LONG, myBeanContext);
   }
 
+  /**
+   * Experimental ability to reorder the queue
+   */
+  @PUT
+  @Path("/order")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public Builds setNewBuildQueueOrder(Builds builds, @PathParam("field") String fields) {
+    if (builds.builds == null){
+      throw new BadRequestException("No new builds order specified. Should post a collection of builds with ids");
+    }
+    final BuildPromotionFinder buildFinder = myServiceLocator.getSingletonService(BuildPromotionFinder.class);
+    List<String> ids = new ArrayList<>();
+    for (Build build : builds.builds) {
+      try {
+        SQueuedBuild queuedBuild = build.getFromPosted(buildFinder, Collections.emptyMap()).getQueuedBuild();
+        if (queuedBuild == null) continue;
+        ids.add(String.valueOf(queuedBuild.getItemId()));
+      } catch (Exception e) {
+        //ignore
+      }
+    }
+    final BuildQueue buildQueue = myServiceLocator.getSingletonService(BuildQueue.class);
+    buildQueue.applyOrder(CollectionsUtil.toArray(ids, String.class));
+
+    //see getBuilds()
+    return Builds.createFromBuildPromotions(CollectionsUtil.convertCollection(myQueuedBuildFinder.getItems(null).myEntries, source -> source.getBuildPromotion()),
+                                            null, new Fields(fields), myBeanContext);
+  }
 }
