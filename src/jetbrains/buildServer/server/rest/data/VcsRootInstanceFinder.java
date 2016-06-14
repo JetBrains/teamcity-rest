@@ -223,16 +223,28 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
     final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
     if (buildTypeLocator != null) {
-      final List<VcsRootInstanceEntry> vcsRootInstanceEntries = getBuildTypeOrTemplate(buildTypeLocator).getVcsRootInstanceEntries();
-      result.add(new FilterConditionChecker<VcsRootInstance>() {
-        public boolean isIncluded(@NotNull final VcsRootInstance item) {
-          return CollectionsUtil.contains(vcsRootInstanceEntries, new Filter<VcsRootInstanceEntry>() {
-            public boolean accept(@NotNull final VcsRootInstanceEntry data) {
-              return item.equals(data.getVcsRoot());
-            }
-          });
-        }
-      });
+      BuildTypeOrTemplate buildType = getBuildTypeOrTemplate(buildTypeLocator);
+      Boolean versionedSettingsUsagesOnly = locator.lookupSingleDimensionValueAsBoolean(HAS_VERSIONED_SETTINGS_ONLY);
+      if (versionedSettingsUsagesOnly != null && versionedSettingsUsagesOnly) {
+        //special case to include versioned settings root if directly requested
+        Set<VcsRootInstance> settingsRootInstances = getSettingsRootInstances(Collections.singleton(buildType.getProject()));
+        result.add(new FilterConditionChecker<VcsRootInstance>() {
+          public boolean isIncluded(@NotNull final VcsRootInstance item) {
+            return settingsRootInstances.contains(item);
+          }
+        });
+      } else {
+        List<VcsRootInstanceEntry> vcsRootInstanceEntries = buildType.getVcsRootInstanceEntries();
+        result.add(new FilterConditionChecker<VcsRootInstance>() {
+          public boolean isIncluded(@NotNull final VcsRootInstance item) {
+            return CollectionsUtil.contains(vcsRootInstanceEntries, new Filter<VcsRootInstanceEntry>() {
+              public boolean accept(@NotNull final VcsRootInstanceEntry data) {
+                return item.equals(data.getVcsRoot());
+              }
+            });
+          }
+        });
+      }
     }
 
     final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
