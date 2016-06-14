@@ -18,12 +18,12 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.Collection;
 import java.util.Collections;
-import jetbrains.buildServer.serverSide.BuildTypeEx;
-import jetbrains.buildServer.serverSide.BuildTypeTemplate;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SimpleParameter;
+import java.util.Map;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
+import jetbrains.buildServer.serverSide.impl.ProjectFeatureDescriptorFactory;
+import jetbrains.buildServer.serverSide.versionedSettings.VersionedSettingsManager;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.vcs.*;
 import org.jetbrains.annotations.NotNull;
@@ -206,5 +206,103 @@ public class VcsRootInstanceFinderTest extends BaseFinderTest<VcsRootInstance> {
   private VcsRootInstance attachVcsRoot(final SBuildType buildType, final SVcsRoot vcsRoot) {
     buildType.addVcsRoot(vcsRoot);
     return buildType.getVcsRootInstanceForParent(vcsRoot);
+  }
+
+  @Test
+  public void testVersionedSettingsInstances() throws Exception {
+    myFixture.registerVcsSupport("svn");
+
+    final ProjectEx project10 = getRootProject().createProject("project10", "Project name 10");
+    final ProjectEx project20 = project10.createProject("project20", "Project name 20");
+    final ProjectEx project30 = project20.createProject("project30", "Project name 30");
+    final ProjectEx project40 = project30.createProject("project40", "Project name 40");
+    final ProjectEx project50 = project40.createProject("project50", "Project name 50");
+    final ProjectEx project60 = project40.createProject("project60", "Project name 60");
+
+    final SVcsRoot vcsRoot20 = project20.createVcsRoot("svn", "id10", "VCS root 10 name");
+    vcsRoot20.setProperties(CollectionsUtil.asMap("aaa", "%param%"));
+
+    ProjectFeatureDescriptorFactory projectFeatureFactory = myFixture.getSingletonService(ProjectFeatureDescriptorFactory.class);
+    Map<String, String> params = CollectionsUtil.asMap("buildSettings", "ALWAYS_USE_CURRENT",
+                                                       "rootId", vcsRoot20.getExternalId(),
+                                                       "showChanges", "false");
+    SProjectFeatureDescriptor featureDescriptor30 = projectFeatureFactory.createNewProjectFeature("versionedSettings", params, project30);
+    project30.addFeature(featureDescriptor30);
+
+    Map<String, String> params2 = CollectionsUtil.asMap("buildSettings", "ALWAYS_USE_CURRENT",
+                                                        "rootId", vcsRoot20.getExternalId(),
+                                                        "showChanges", "true");
+    SProjectFeatureDescriptor featureDescriptor40 = projectFeatureFactory.createNewProjectFeature("versionedSettings", params2, project40);
+    project30.addFeature(featureDescriptor40);
+
+    Map<String, String> params3 = CollectionsUtil.asMap("enabled", "false");
+    SProjectFeatureDescriptor featureDescriptor60 = projectFeatureFactory.createNewProjectFeature("versionedSettings", params3, project60);
+    project60.addFeature(featureDescriptor60);
+
+    VersionedSettingsManager versionedSettingsManager = myFixture.getSingletonService(VersionedSettingsManager.class);
+
+    {
+      VcsRootInstance versionedSettingsVcsRoot_p30 = versionedSettingsManager.getVersionedSettingsVcsRootInstance(project30);
+      check(null, versionedSettingsVcsRoot_p30);
+      check("affectedProject:(id:" + project20.getExternalId() + ")", versionedSettingsVcsRoot_p30);
+      check("affectedProject:(id:" + project30.getExternalId() + ")", versionedSettingsVcsRoot_p30);
+      check("affectedProject:(id:" + project40.getExternalId() + ")", versionedSettingsVcsRoot_p30);
+    }
+
+    project20.addParameter(new SimpleParameter("param", "p20"));
+    project30.addParameter(new SimpleParameter("param", "p30"));
+    project40.addParameter(new SimpleParameter("param", "p40"));
+
+
+    BuildTypeEx p40_bt10 = project40.createBuildType("p40_bt10");
+    p40_bt10.addParameter(new SimpleParameter("param", "bt"));
+    BuildTypeEx p40_bt20 = project40.createBuildType("p40_bt20");
+    BuildTypeEx p40_bt30 = project40.createBuildType("p40_bt30");
+
+    {
+      VcsRootInstance versionedSettingsVcsRoot_p30 = versionedSettingsManager.getVersionedSettingsVcsRootInstance(project30);
+      VcsRootInstance versionedSettingsVcsRoot_p40 = versionedSettingsManager.getVersionedSettingsVcsRootInstance(project40);
+      VcsRootInstance btInstance10 = attachVcsRoot(p40_bt10, vcsRoot20);
+      VcsRootInstance btInstance20 = attachVcsRoot(p40_bt20, vcsRoot20);
+      assert btInstance20.equals(versionedSettingsVcsRoot_p40);
+
+      check(null, versionedSettingsVcsRoot_p30, versionedSettingsVcsRoot_p40, btInstance10);
+      check("property:(name:aaa,value:p30)", versionedSettingsVcsRoot_p30);
+      check("buildType:(id:" + p40_bt10.getExternalId() + ")", btInstance10);
+      check("buildType:(id:" + p40_bt20.getExternalId() + ")", versionedSettingsVcsRoot_p40);
+      check("buildType:(id:" + p40_bt30.getExternalId() + ")");
+
+//      check("project:(id:" + project20.getExternalId() + ")");
+      check("project:(id:" + project30.getExternalId() + ")", versionedSettingsVcsRoot_p30);
+      check("project:(id:" + project40.getExternalId() + ")", versionedSettingsVcsRoot_p40);
+      check("project:(id:" + project50.getExternalId() + ")", versionedSettingsVcsRoot_p40);
+      check("project:(id:" + project60.getExternalId() + ")");
+
+      check("affectedProject:(id:" + project20.getExternalId() + ")", versionedSettingsVcsRoot_p30, versionedSettingsVcsRoot_p40, btInstance10);
+      check("affectedProject:(id:" + project30.getExternalId() + ")", versionedSettingsVcsRoot_p30, versionedSettingsVcsRoot_p40, btInstance10);
+      check("affectedProject:(id:" + project40.getExternalId() + ")", versionedSettingsVcsRoot_p40, btInstance10);
+
+      check("affectedProject:(id:" + project20.getExternalId() + "),versionedSettings:any", versionedSettingsVcsRoot_p30, versionedSettingsVcsRoot_p40, btInstance10);
+      check("affectedProject:(id:" + project20.getExternalId() + "),versionedSettings:false", versionedSettingsVcsRoot_p40, btInstance10);
+      check("affectedProject:(id:" + project20.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p30, versionedSettingsVcsRoot_p40);
+
+      final ProjectEx project70 = project40.createProject("project70", "Project name 70");
+      project70.addParameter(new SimpleParameter("param", "bt"));
+      VcsRootInstance versionedSettingsVcsRoot_p70 = versionedSettingsManager.getVersionedSettingsVcsRootInstance(project70);
+      assert versionedSettingsVcsRoot_p70 != null;
+      assert versionedSettingsVcsRoot_p70.equals(btInstance10);
+
+      check("buildType:(id:" + p40_bt10.getExternalId() + ")", btInstance10);
+      check("project:(id:" + project40.getExternalId() + ")", versionedSettingsVcsRoot_p40);
+      check("project:(id:" + project70.getExternalId() + ")", btInstance10);
+      check("project:(id:" + project70.getExternalId() + "),versionedSettings:true", btInstance10);
+      check("project:(id:" + project70.getExternalId() + "),versionedSettings:false");
+      check("affectedProject:(id:" + project40.getExternalId() + ")", versionedSettingsVcsRoot_p40, btInstance10);
+      check("affectedProject:(id:" + project40.getExternalId() + "),versionedSettings:any", versionedSettingsVcsRoot_p40, btInstance10);
+      check("affectedProject:(id:" + project40.getExternalId() + "),versionedSettings:false", btInstance20, btInstance10);
+      check("affectedProject:(id:" + project40.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p40, btInstance10);
+      check("affectedProject:(id:" + project70.getExternalId() + "),versionedSettings:false");
+      check("affectedProject:(id:" + project70.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p70);
+    }
   }
 }

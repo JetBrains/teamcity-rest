@@ -39,6 +39,7 @@ import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
 import jetbrains.buildServer.serverSide.problems.BuildProblemManager;
+import jetbrains.buildServer.serverSide.versionedSettings.VersionedSettingsManager;
 import jetbrains.buildServer.util.ExceptionUtil;
 import jetbrains.buildServer.vcs.impl.VcsManagerImpl;
 import org.jetbrains.annotations.NotNull;
@@ -121,6 +122,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myFixture.addService(myVcsRootFinder);
 
     myVcsRootInstanceFinder = new VcsRootInstanceFinder(myVcsRootFinder, myVcsManager, myProjectFinder, myBuildTypeFinder, myProjectManager,
+                                                        myFixture.getSingletonService(VersionedSettingsManager.class),
                                                         myTimeCondition, myPermissionChecker);
     myFixture.addService(myVcsRootInstanceFinder);
 

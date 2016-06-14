@@ -30,6 +30,7 @@ import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.versionedSettings.VersionedSettingsManager;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.filters.Filter;
@@ -51,6 +52,12 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   protected static final String PROPERTY = "property";
   protected static final String BUILD_TYPE = "buildType";
   protected static final String STATE = "state";
+  protected static final String HAS_VERSIONED_SETTINGS_ONLY = "versionedSettings"; //actually means "withoutBuildTypeUsagesWithinScope"
+  protected static final Comparator<VcsRootInstance> VCS_ROOT_INSTANCE_COMPARATOR = new Comparator<VcsRootInstance>() {
+    public int compare(final VcsRootInstance o1, final VcsRootInstance o2) {
+      return (int)(o1.getId() - o2.getId());
+    }
+  };
 
   @NotNull private final VcsRootFinder myVcsRootFinder;
   @NotNull private final VcsManager myVcsManager;
@@ -58,6 +65,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
   @NotNull private final ProjectManager myProjectManager;
   @NotNull private final PermissionChecker myPermissionChecker;
+  @NotNull private final VersionedSettingsManager myVersionedSettingsManager;
   @NotNull private final TimeCondition myTimeCondition;
 
   public VcsRootInstanceFinder(@NotNull VcsRootFinder vcsRootFinder,
@@ -65,11 +73,13 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
                                @NotNull ProjectFinder projectFinder,
                                @NotNull BuildTypeFinder buildTypeFinder,
                                @NotNull ProjectManager projectManager,
+                               @NotNull VersionedSettingsManager versionedSettingsManager,
                                @NotNull TimeCondition timeCondition,
                                final @NotNull PermissionChecker permissionChecker) {
     super(DIMENSION_ID, TYPE, PROJECT, AFFECTED_PROJECT, PROPERTY, REPOSITORY_ID_STRING,
-      BUILD_TYPE, VCS_ROOT_DIMENSION,
+      BUILD_TYPE, VCS_ROOT_DIMENSION, HAS_VERSIONED_SETTINGS_ONLY,
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    myVersionedSettingsManager = versionedSettingsManager;
     myTimeCondition = timeCondition;
     setHiddenDimensions(PROPERTY, STATE);
     myVcsRootFinder = vcsRootFinder;
@@ -161,9 +171,12 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
     final String projectLocator = locator.getSingleDimensionValue(PROJECT); //todo: support multiple here for "from all not archived projects" case
     if (projectLocator != null) {
       final SProject project = myProjectFinder.getItem(projectLocator);
+      VcsRootInstance settingsInstance = myVersionedSettingsManager.getVersionedSettingsVcsRootInstance(project);
+      final Boolean nonVersionedSettings = locator.lookupSingleDimensionValueAsBoolean(HAS_VERSIONED_SETTINGS_ONLY);
       result.add(new FilterConditionChecker<VcsRootInstance>() {
         public boolean isIncluded(@NotNull final VcsRootInstance item) {
-          return project.equals(VcsRoot.getProjectByRoot(item.getParent()));
+          return project.equals(VcsRoot.getProjectByRoot(item.getParent())) || //todo: rework project dimensions for the instance to mean smth. more meaningful
+                 (nonVersionedSettings == null || nonVersionedSettings) && item.equals(settingsInstance);
         }
       });
     }
@@ -234,7 +247,8 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
     final String affectedProjectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT); //todo: support multiple here
     if (affectedProjectLocator != null) {
-      final List<VcsRootInstance> vcsRootInstances = myProjectFinder.getItem(affectedProjectLocator).getVcsRootInstances();
+      final Set<VcsRootInstance> vcsRootInstances = getVcsRootInstancesUnderProject(myProjectFinder.getItem(affectedProjectLocator),
+                                                                                    locator.getSingleDimensionValueAsBoolean(HAS_VERSIONED_SETTINGS_ONLY));
       result.add(new FilterConditionChecker<VcsRootInstance>() {
         public boolean isIncluded(@NotNull final VcsRootInstance item) {
           return vcsRootInstances.contains(item);
@@ -242,6 +256,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       });
     }
 
+    // should check HAS_VERSIONED_SETTINGS_ONLY only in prefiltered items as it should consider the current scope - no way to filter in Filter
 
     return result;
   }
@@ -254,29 +269,26 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   @NotNull
   @Override
   public ItemHolder<VcsRootInstance> getPrefilteredItems(@NotNull Locator locator) {
+    Boolean versionedSettingsUsagesOnly = locator.getSingleDimensionValueAsBoolean(HAS_VERSIONED_SETTINGS_ONLY);  // should check it not in Filter as it considers current scope
+
     final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
     if (vcsRootLocator != null) {
       final List<SVcsRoot> vcsRoots = myVcsRootFinder.getItems(vcsRootLocator).myEntries;
       final Set<VcsRootInstance> result = new LinkedHashSet<VcsRootInstance>();
       for (SVcsRoot vcsRoot : vcsRoots) {
-        for (SBuildType buildType : vcsRoot.getUsages().keySet()) {
-          final VcsRootInstance rootInstance = buildType.getVcsRootInstanceForParent(vcsRoot);
-          if (rootInstance != null) {
-            try {
-              checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance); //minor performance optimization not to return roots which will be filtered in the filter
-              result.add(rootInstance); //todo: need to sort?
-            } catch (Exception e) {
-              //ignore
-            }
-          }
-        }
+        result.addAll(getInstances(vcsRoot, versionedSettingsUsagesOnly));
       }
       return getItemHolder(result);
     }
 
     final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
     if (buildTypeLocator != null) {
-      final List<VcsRootInstanceEntry> vcsRootInstanceEntries = getBuildTypeOrTemplate(buildTypeLocator).getVcsRootInstanceEntries();
+      final BuildTypeOrTemplate buildType = getBuildTypeOrTemplate(buildTypeLocator);
+      if (versionedSettingsUsagesOnly != null && versionedSettingsUsagesOnly){
+        //special case to include versioned settings root if directly requested
+        return getItemHolder(getSettingsRootInstances(Collections.singleton(buildType.getProject())));
+      }
+      final List<VcsRootInstanceEntry> vcsRootInstanceEntries = buildType.getVcsRootInstanceEntries();
       return getItemHolder(CollectionsUtil.convertCollection(vcsRootInstanceEntries, new Converter<VcsRootInstance, VcsRootInstanceEntry>() {
         public VcsRootInstance createFrom(@NotNull final VcsRootInstanceEntry source) {
           return source.getVcsRoot();
@@ -286,27 +298,76 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
     final String projectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT); //todo: support multiple here for "from all not archived projects" case
     if (projectLocator != null) {
-      final SProject project = myProjectFinder.getItem(projectLocator);
-      return getItemHolder(project.getVcsRootInstances());
+      return getItemHolder(getVcsRootInstancesUnderProject(myProjectFinder.getItem(projectLocator), versionedSettingsUsagesOnly));
     }
 
     //todo: (TeamCity) open API is there a better way to do this?
     //if reworked, can use checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, item);
     // when implemented, can also add to jetbrains.buildServer.usageStatistics.impl.providers.StaticServerUsageStatisticsProvider.publishNumberOfVcsRoots()
-    final Set<VcsRootInstance> rootInstancesSet = new LinkedHashSet<VcsRootInstance>();
-    for (SBuildType buildType : myProjectManager.getAllBuildTypes()) {
-      if (myPermissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, buildType.getProjectId())) {
-        rootInstancesSet.addAll(buildType.getVcsRootInstances());
+    final Set<VcsRootInstance> result = new TreeSet<>(VCS_ROOT_INSTANCE_COMPARATOR);
+
+    if (versionedSettingsUsagesOnly == null || !versionedSettingsUsagesOnly) {
+      for (SBuildType buildType : myProjectManager.getAllBuildTypes()) {
+        if (myPermissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, buildType.getProjectId())) {
+          result.addAll(buildType.getVcsRootInstances());
+        }
       }
     }
-    final List<VcsRootInstance> result = new ArrayList<VcsRootInstance>(rootInstancesSet.size());
-    result.addAll(rootInstancesSet);
-    Collections.sort(result, new Comparator<VcsRootInstance>() {
-      public int compare(final VcsRootInstance o1, final VcsRootInstance o2) {
-        return (int)(o1.getId() - o2.getId());
-      }
-    });
+    if (versionedSettingsUsagesOnly == null || versionedSettingsUsagesOnly) {
+      result.addAll(getSettingsRootInstances(myProjectManager.getProjects()));
+    }
     return getItemHolder(result);
+  }
+
+  @NotNull
+  private TreeSet<VcsRootInstance> getVcsRootInstancesUnderProject(@NotNull final SProject project, @Nullable final Boolean versionedSettingsUsagesOnly) {
+    TreeSet<VcsRootInstance> result = new TreeSet<>(VCS_ROOT_INSTANCE_COMPARATOR);
+    if (versionedSettingsUsagesOnly == null || !versionedSettingsUsagesOnly){
+      result.addAll((project.getVcsRootInstances()));  //todo: includes versioned settings???
+    }
+    if (versionedSettingsUsagesOnly == null || versionedSettingsUsagesOnly){
+      result.addAll(getSettingsRootInstances(Collections.singleton(project)));
+      result.addAll(getSettingsRootInstances(project.getProjects()));
+    }
+    return result;
+  }
+
+  @NotNull
+  private Set<VcsRootInstance> getInstances(@NotNull final SVcsRoot vcsRoot, @Nullable final Boolean versionedSettingsUsagesOnly) {
+    TreeSet<VcsRootInstance> result = new TreeSet<>(VCS_ROOT_INSTANCE_COMPARATOR);
+    if (versionedSettingsUsagesOnly == null || !versionedSettingsUsagesOnly) {
+      for (SBuildType buildType : vcsRoot.getUsages().keySet()) {
+        final VcsRootInstance rootInstance = buildType.getVcsRootInstanceForParent(vcsRoot);
+        if (rootInstance != null) {
+          try {
+            checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance); //minor performance optimization not to return roots which will be filtered in the filter
+            result.add(rootInstance);
+          } catch (Exception e) {
+            //ignore
+          }
+        }
+      }
+    }
+    if (versionedSettingsUsagesOnly == null || versionedSettingsUsagesOnly) {
+      result.addAll(getSettingsRootInstances(myVersionedSettingsManager.getProjectsBySettingsRoot(vcsRoot)));
+    }
+    return result;
+  }
+
+  private Set<VcsRootInstance> getSettingsRootInstances(@NotNull final Collection<SProject> projectsInRoot) {
+    HashSet<VcsRootInstance> result = new HashSet<>();
+    for (SProject project : projectsInRoot) {
+      VcsRootInstance instance = myVersionedSettingsManager.getVersionedSettingsVcsRootInstance(project);
+      if (instance != null) {
+        try {
+          checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, instance); //minor performance optimization not to return roots which will be filtered in the filter
+          result.add(instance);
+        } catch (Exception e) {
+          //ignore
+        }
+      }
+    }
+    return result;
   }
 
   public void checkPermission(@NotNull final Permission permission, @NotNull final VcsRootInstance rootInstance) {
