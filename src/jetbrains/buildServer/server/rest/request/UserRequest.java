@@ -145,7 +145,7 @@ public class UserRequest {
   @Path("/{userLocator}/properties/{name}")
   @Produces("text/plain")
   public String serveUserProperty(@PathParam("userLocator") String userLocator, @PathParam("name") String parameterName) {
-    return BuildTypeUtil.getParameter(parameterName, User.getProperties(myUserFinder.getItem(userLocator, true)), true, true);
+    return BuildTypeUtil.getParameter(parameterName, User.getProperties(myUserFinder.getItem(userLocator, true)), true, true, myBeanContext.getServiceLocator());
   }
 
   @PUT
@@ -161,7 +161,7 @@ public class UserRequest {
     }
 
     user.setUserProperty(new SimplePropertyKey(name), newValue);
-    return BuildTypeUtil.getParameter(name, User.getProperties(myUserFinder.getItem(userLocator, true)), false, true);
+    return BuildTypeUtil.getParameter(name, User.getProperties(myUserFinder.getItem(userLocator, true)), false, true, myBeanContext.getServiceLocator());
   }
 
   @DELETE

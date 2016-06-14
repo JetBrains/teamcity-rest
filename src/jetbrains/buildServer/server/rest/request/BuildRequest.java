@@ -222,7 +222,7 @@ public class BuildRequest {
   public String getParameter(@PathParam("buildLocator") String buildLocator, @PathParam("propertyName") String propertyName) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     myPermissionChecker.checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getBuildPromotion());
-    return BuildTypeUtil.getParameter(propertyName, build.getParametersProvider(), true, true);
+    return BuildTypeUtil.getParameter(propertyName, build.getParametersProvider(), true, true, myBeanContext.getServiceLocator());
   }
 
   @Path("/{buildLocator}" + ARTIFACTS)

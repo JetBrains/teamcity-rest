@@ -460,7 +460,7 @@ public class BuildTypeRequest {
   public String getStepParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("stepId") String stepId,
                                  @PathParam("parameterName") String parameterName) {
     SBuildRunnerDescriptor step = getStep(myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true).get(), stepId);
-    return BuildTypeUtil.getParameter(parameterName, step.getParameters(), true, false);
+    return BuildTypeUtil.getParameter(parameterName, step.getParameters(), true, false, myServiceLocator);
   }
 
   @PUT
@@ -478,7 +478,7 @@ public class BuildTypeRequest {
     parameters.put(parameterName, newValue);
     buildType.get().updateBuildRunner(step.getId(), step.getName(), step.getType(), parameters);
     buildType.get().persist();
-    return BuildTypeUtil.getParameter(parameterName, getStep(buildType.get(), stepId).getParameters(), false, false);
+    return BuildTypeUtil.getParameter(parameterName, getStep(buildType.get(), stepId).getParameters(), false, false, myServiceLocator);
   }
 
   @GET
@@ -607,7 +607,7 @@ public class BuildTypeRequest {
                                     @PathParam("parameterName") String parameterName) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
     SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType.get(), featureId);
-    return BuildTypeUtil.getParameter(parameterName, feature.getParameters(), true, false);
+    return BuildTypeUtil.getParameter(parameterName, feature.getParameters(), true, false, myServiceLocator);
   }
 
   @PUT
@@ -625,7 +625,7 @@ public class BuildTypeRequest {
     parameters.put(parameterName, newValue);
     buildType.get().updateBuildFeature(feature.getId(), feature.getType(), parameters);
     buildType.get().persist();
-    return BuildTypeUtil.getParameter(parameterName, BuildTypeUtil.getBuildTypeFeature(buildType.get(), featureId).getParameters(), false, false);
+    return BuildTypeUtil.getParameter(parameterName, BuildTypeUtil.getBuildTypeFeature(buildType.get(), featureId).getParameters(), false, false, myServiceLocator);
   }
 
 

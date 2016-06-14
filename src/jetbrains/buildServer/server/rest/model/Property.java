@@ -18,13 +18,20 @@ package jetbrains.buildServer.server.rest.model;
 
 import com.google.common.base.Objects;
 import java.text.ParseException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.InvalidStateException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.request.ParametersSubResource;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -32,6 +39,7 @@ import jetbrains.buildServer.serverSide.ControlDescription;
 import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.UserParametersHolder;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.parameters.ParameterDescriptionFactory;
 import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
 import jetbrains.buildServer.serverSide.parameters.types.PasswordType;
@@ -66,6 +74,8 @@ public class Property {
     name = !fields.isIncluded("name", true, true) ? null : parameter.getName();
     if (!isSecure(parameter, serviceLocator)) {
       value = !fields.isIncluded("value", true, true) ? null : parameter.getValue();
+    } else if (includeSecureProperties(serviceLocator)) {
+      value = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("value", true, true), () -> getSecureValue(parameter, serviceLocator));
     }
     this.inherited = ValueWithDefault.decideDefault(fields.isIncluded("inherited"), inherited);
     final ControlDescription parameterSpec = parameter.getControlDescription();
@@ -76,15 +86,52 @@ public class Property {
   }
 
   public static boolean isSecure(@NotNull final Parameter parameter, @NotNull final ServiceLocator serviceLocator) {
-    if (serviceLocator.getSingletonService(PasswordType.class).isPassword(parameter.getControlDescription()) && !TeamCityProperties.getBoolean("rest.listSecureProperties")) {
-      return true;
+    if (serviceLocator.getSingletonService(PasswordType.class).isPassword(parameter.getControlDescription()) && !includeSecureProperties(serviceLocator)) {
+      return !getAllowedValues().contains(getSecureValue(parameter, serviceLocator));
     }
-    return isPropertyToExclude(parameter.getName());
+    return isPropertyToExclude(parameter.getName(), parameter.getValue(), serviceLocator);
   }
 
-  public static boolean isPropertyToExclude(@NotNull final String key) {
+  public static boolean isPropertyToExclude(@NotNull final String key, @Nullable final String value, final @NotNull ServiceLocator serviceLocator) {
     //TeamCity API question: or should jetbrains.buildServer.agent.Constants.SECURE_PROPERTY_PREFIX be used here?
-    return key.startsWith(SVcsRoot.SECURE_PROPERTY_PREFIX) && !TeamCityProperties.getBoolean("rest.listSecureProperties");
+    if (key.startsWith(SVcsRoot.SECURE_PROPERTY_PREFIX) && !includeSecureProperties(serviceLocator)) {
+      return !getAllowedValues().contains(value);
+    }
+    return false;
+  }
+
+  @Nullable
+  private static String getSecureValue(final @NotNull Parameter parameter, final @NotNull ServiceLocator serviceLocator) {
+    final ParameterFactory parameterFactory = serviceLocator.getSingletonService(ParameterFactory.class);
+    Map<String, String> extractedParams = parameterFactory.extractBuildParameters(Collections.singletonList(parameter));
+    return extractedParams.get(parameter.getName());
+  }
+
+  private static boolean includeSecureProperties(final @NotNull ServiceLocator serviceLocator) {
+    //noinspection ConstantConditions
+    return TeamCityProperties.getBoolean("rest.listSecureProperties") &&
+           serviceLocator.findSingletonService(PermissionChecker.class).isPermissionGranted(Permission.EDIT_PROJECT, null);
+  }
+
+  @NotNull
+  private static List<String> getAllowedValues() {
+    String valuesLocatorText = TeamCityProperties.getPropertyOrNull("rest.listSecureProperties.valuesLocator", "password:()"); //allow empty values by default
+    try {
+      if (!StringUtil.isEmpty(valuesLocatorText)) {
+        Locator valuesLocator = new Locator(valuesLocatorText, "password", "enabled");
+        Boolean enabled = valuesLocator.getSingleDimensionValueAsBoolean("enabled", true);
+        if (enabled != null && !enabled) {
+          return Collections.emptyList();
+        }
+        List<String> values = valuesLocator.getDimensionValue("password");
+        valuesLocator.checkLocatorFullyProcessed();
+        return values;
+      }
+    } catch (LocatorProcessException e) {
+      throw new InvalidStateException("Wrong '" + "rest.listSecureProperties.valuesLocator" +
+                                      "' server internal property value, remove it or use format 'password:(),password:(sample)', error: " + e.getMessage());
+    }
+    return Collections.emptyList();
   }
 
   @NotNull

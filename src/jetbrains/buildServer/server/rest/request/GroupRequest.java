@@ -188,7 +188,7 @@ public class GroupRequest {
   @Path("/{groupLocator}/properties/{name}")
   @Produces("text/plain")
   public String serveUserProperties(@PathParam("groupLocator") String groupLocator, @PathParam("name") String parameterName) {
-    return BuildTypeUtil.getParameter(parameterName, User.getProperties( myUserGroupFinder.getGroup(groupLocator)), true, true);
+    return BuildTypeUtil.getParameter(parameterName, User.getProperties( myUserGroupFinder.getGroup(groupLocator)), true, true, myBeanContext.getServiceLocator());
   }
 
   @PUT
@@ -204,7 +204,7 @@ public class GroupRequest {
     }
 
     group.setGroupProperty(new SimplePropertyKey(name), newValue);
-    return BuildTypeUtil.getParameter(name, User.getProperties(group), false, true);
+    return BuildTypeUtil.getParameter(name, User.getProperties(group), false, true, myBeanContext.getServiceLocator());
   }
 
   @DELETE
