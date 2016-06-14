@@ -43,6 +43,7 @@ import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.PropEntitiesArtifactDep;
 import jetbrains.buildServer.server.rest.model.change.Changes;
+import jetbrains.buildServer.server.rest.model.change.Revision;
 import jetbrains.buildServer.server.rest.model.change.Revisions;
 import jetbrains.buildServer.server.rest.model.files.FileApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.files.Files;
@@ -94,7 +95,7 @@ import org.jetbrains.annotations.Nullable;
            "startEstimate"/*q*/, "waitReason"/*q*/,
            "runningBuildInfo"/*r*/, "canceledInfo"/*rf*/,
            "queuedDate", "startDate"/*rf*/, "finishDate"/*f*/,
-           "triggered", "lastChanges", "changes", "revisions",
+           "triggered", "lastChanges", "changes", "revisions", "versionedSettingsRevision",
            "agent", "compatibleAgents"/*q*/,
            "testOccurrences"/*rf*/, "problemOccurrences"/*rf*/,
            "artifacts"/*rf*/, "issues"/*rf*/,
@@ -595,6 +596,23 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded("revisions", false), new ValueWithDefault.Value<Revisions>() {
       public Revisions get() {
         return new Revisions(myBuildPromotion.getRevisions(), myFields.getNestedField("revisions", Fields.NONE, Fields.LONG), myBeanContext);
+      }
+    });
+  }
+
+  @XmlElement(name = "versionedSettingsRevision")
+  public Revision getVersionedSettingsRevision() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("versionedSettingsRevision", false), new ValueWithDefault.Value<Revision>() {
+      public Revision get() {
+        List<BuildRevision> revisions =
+          CollectionsUtil.filterAndConvertCollection(((BuildPromotionEx)myBuildPromotion).getAllRevisionsMap().values(), source -> source, data -> data.isSettingsRevision());
+        if (revisions.isEmpty()) {
+          return null;
+        }
+        if (revisions.size() > 1) {
+          LOG.warn("Found more then one versioned settings revision for " + LogUtil.describe(myBuildPromotion));
+        }
+        return new Revision(revisions.get(0), myFields.getNestedField("versionedSettingsRevision", Fields.NONE, Fields.LONG), myBeanContext);
       }
     });
   }
