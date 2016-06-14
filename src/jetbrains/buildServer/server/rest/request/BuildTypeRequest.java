@@ -1404,7 +1404,7 @@ public class BuildTypeRequest {
 
     @Override
     public void removeParameter(@NotNull final String paramName) {
-      throw new BadRequestException("Delete is not supported for settings");
+      BuildTypeUtil.resetSettingsParameter(myBuildType, paramName);
     }
 
     @Nullable

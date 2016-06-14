@@ -122,6 +122,17 @@ public class BuildTypeUtil {
     return result;
   }
 
+  public static void resetSettingsParameter(final BuildTypeOrTemplate buildType, final String paramName) {
+    if (BUILD_NUMBER_COUNTER.equals(paramName)) {
+      throw new BadRequestException("Setting '" + paramName + "' is always present and cannot be deleted");
+    }
+    Option option = Option.fromKey(paramName);
+    if (option == null) {
+      throw new BadRequestException("Unknown option: '" + paramName +"'");
+    }
+    setSettingsParameter(buildType, paramName, String.valueOf(option.getDefaultValue()));
+  }
+
   @NotNull
   public static SBuildFeatureDescriptor getBuildTypeFeature(final BuildTypeSettings buildType, @NotNull final String featureId) {
     if (StringUtil.isEmpty(featureId)){
