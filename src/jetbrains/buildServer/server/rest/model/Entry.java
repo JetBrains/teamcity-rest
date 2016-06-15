@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.model;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -36,7 +37,7 @@ public class Entry {
   public Entry() {
   }
 
-  public Entry(String name, String value) {
+  public Entry(@Nullable String name, @Nullable String value) {
     this.name = name;
     this.value = value;
   }

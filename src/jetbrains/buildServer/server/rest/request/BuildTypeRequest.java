@@ -35,6 +35,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.build.Branches;
@@ -145,6 +146,9 @@ public class BuildTypeRequest {
     try {
       actualLocator = Locator.setDimensionIfNotPresent(locator, BuildTypeFinder.TEMPLATE_FLAG_DIMENSION_NAME, "false");
     } catch (IllegalArgumentException e) {
+      //cannot set the dimension, continue as is
+      actualLocator = locator;
+    } catch (LocatorProcessException e) {
       //cannot set the dimension, continue as is
       actualLocator = locator;
     }
