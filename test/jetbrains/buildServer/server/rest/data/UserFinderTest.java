@@ -300,13 +300,15 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
     RoleImpl role20 = new RoleImpl("role20", "custom role", new Permissions(Permission.PIN_UNPIN_BUILD), myFixture.getRolesManager());
     role20.addIncludedRole(role10);
     myFixture.getRolesManager().addRole(role20);
+    RoleImpl role30 = new RoleImpl("role30", "custom role", new Permissions(Permission.LABEL_BUILD, Permission.CANCEL_BUILD), myFixture.getRolesManager());
+    myFixture.getRolesManager().addRole(role30);
 
     user10.addRole(RoleScope.globalScope(), getSysAdminRole());
     user20.addRole(RoleScope.globalScope(), getProjectAdminRole());
     user30.addRole(RoleScope.projectScope(prj1.getProjectId()), getProjectViewerRole());
     user40.addRole(RoleScope.projectScope(prj1_1.getProjectId()), getProjectViewerRole());
     user50.addRole(RoleScope.projectScope(prj3.getProjectId()), getProjectViewerRole());
-    user50.addRole(RoleScope.globalScope(), getTestRoles().getAgentManagerRole());
+    user50.addRole(RoleScope.globalScope(), role30);
     group10.addRole(RoleScope.projectScope(prj1.getProjectId()), role20);
     group10.addRole(RoleScope.projectScope(getRootProject().getProjectId()), getTestRoles().getProjectViewerRole());
 
