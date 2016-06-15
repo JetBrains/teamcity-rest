@@ -955,12 +955,28 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("branch:(unspecified:false)", build60, build50, build40, build30, build20, build10);
     checkBuilds("branch:(name:branch1)", build60);
     checkBuilds("branch:branch1", build60);
+    checkBuilds("branch:Branch1", build60);
     checkBuilds("branch:(name:master)", build40, build30);
+    checkBuilds("branch:(name:Master)", build40, build30);
 
     checkBuilds("branch:(name:<default>)", build40, build30);
+    checkBuilds("branch:(name:<Default>)", build40, build30);
     checkBuilds("branch:<default>", build40, build30);
+    checkBuilds("branch:<Default>", build40, build30);
     checkBuilds("branch:(name:<any>)", build65, build60, build50, build40, build30, build20, build10);
     checkBuilds("branch:<any>", build65, build60, build50, build40, build30, build20, build10);
+
+    checkBuilds("branch:(name:branch1)", build60);
+    checkBuilds("branch:(name:master)", build40, build30);
+    checkBuilds("branch:(name:(value:branch1))", build60);
+    checkBuilds("branch:(name:(value:Branch1))");
+    checkBuilds("branch:(name:(value:branch1,matchType:equals))", build60);
+    checkBuilds("branch:branch", build50, build20);
+    checkBuilds("branch:(name:(value:branch,matchType:starts-with))", build60, build50, build20);
+    checkBuilds("branch:(name:(<default>))", build40, build30);
+    checkBuilds("branch:(name:(value:<default>))"); //when full value condition syntax is used, <default> has no special meaning as we compare displayName, use "default" dimension instead
+    checkBuilds("branch:(name:(value:<Default>))");
+    checkBuilds("branch:(name:(value:<any>))");
 
     checkBuilds("branch:(buildType:(id:" + buildConf1.getExternalId() + "),policy:ALL_BRANCHES)", build65, build60, build50, build40, build30, build20);
     checkBuilds("branch:(buildType:(id:" + buildConf1.getExternalId() + "),policy:VCS_BRANCHES)", build60, build40, build30);
@@ -975,6 +991,101 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     // check that no filtering is done when not necessary
     assertEquals(0, ((MultiCheckerFilter)myBranchFinder.getFilter(new Locator("<any>"))).getSubFiltersCount());
     assertEquals(0, ((MultiCheckerFilter)myBranchFinder.getFilter(new Locator("default:any"))).getSubFiltersCount());
+  }
+
+  @Test
+  public void testBranchDimensionWithSeveralRoots() {
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
+
+    MockVcsSupport vcs = vcsSupport().withName("vcs").dagBased(true).register();
+    BuildFinderTestBase.MockCollectRepositoryChangesPolicy collectChangesPolicy = new BuildFinderTestBase.MockCollectRepositoryChangesPolicy();
+    vcs.setCollectChangesPolicy(collectChangesPolicy);
+
+    SVcsRoot vcsRoot10 = buildConf2.getProject().createVcsRoot("vcs", "extId10", "name10");
+    buildConf2.addVcsRoot(vcsRoot10);
+    SVcsRoot vcsRoot20 = buildConf2.getProject().createVcsRoot("vcs", "extId20", "name20");
+    buildConf2.addVcsRoot(vcsRoot20);
+
+    final VcsRootInstance vcsRootInstance10 = buildConf2.getVcsRootInstanceForParent(vcsRoot10);
+    assert vcsRootInstance10 != null;
+    final VcsRootInstance vcsRootInstance20 = buildConf2.getVcsRootInstanceForParent(vcsRoot20);
+    assert vcsRootInstance20 != null;
+
+    collectChangesPolicy.setCurrentState(vcsRootInstance10, createVersionState("refs/heads/master", map("refs/heads/master", "a1",
+                                                                                                        "refs/heads/branch1", "a2",
+                                                                                                        "refs/heads/branch2", "a3")));
+    collectChangesPolicy.setCurrentState(vcsRootInstance20, createVersionState("refs/heads/master", map("refs/heads/master", "b1",
+                                                                                                        "refs/heads/branch1", "b2",
+                                                                                                        "refs/heads/branch2", "b3")));
+    setBranchSpec(vcsRootInstance10, "+:refs/heads/(*)");
+    setBranchSpec(vcsRootInstance20, "+:refs/heads/(*)");
+    buildConf2.forceCheckingForChanges();
+
+
+    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+
+
+    final BuildPromotion build30 = build().in(buildConf2).finish().getBuildPromotion();
+    final BuildPromotion build40 = build().in(buildConf2).withDefaultBranch().finish().getBuildPromotion();
+    final BuildPromotion build50 = build().in(buildConf2).withBranch("branch").finish().getBuildPromotion(); //not existing branch
+    final BuildPromotion build60 = build().in(buildConf2).withBranch("branch1").finish().getBuildPromotion();
+    final BuildPromotion build70 = build().in(buildConf2).withBranch("master").finish().getBuildPromotion(); //not existing branch
+
+    checkBuilds(null, build40, build30);
+    checkBuilds("branch:(default:any)", build70, build60, build50, build40, build30);
+    checkBuilds("branch:(name:<default>)", build40, build30);
+    checkBuilds("buildType:(id:" + buildConf2.getExternalId() + "),branch:(name:<default>)", build40, build30);
+    checkBuilds("branch:(name:master)", build70, build40, build30);
+    checkBuilds("branch:(name:master,default:true)", build40, build30);
+    checkBuilds("branch:(name:master,default:false)", build70);
+    checkBuilds("buildType:(id:" + buildConf2.getExternalId() + "),branch:(name:master)", build70, build40, build30);
+    checkBuilds("branch:(name:branch1)", build60);
+
+
+    final BuildTypeImpl buildConf3 = registerBuildType("buildConf3", "project");
+
+    SVcsRoot vcsRoot30 = buildConf3.getProject().createVcsRoot("vcs", "extId30", "name30");
+    buildConf3.addVcsRoot(vcsRoot30);
+    SVcsRoot vcsRoot40 = buildConf3.getProject().createVcsRoot("vcs", "extId40", "name40");
+    buildConf3.addVcsRoot(vcsRoot40);
+
+    final VcsRootInstance vcsRootInstance30 = buildConf3.getVcsRootInstanceForParent(vcsRoot30);
+    assert vcsRootInstance30 != null;
+    final VcsRootInstance vcsRootInstance40 = buildConf3.getVcsRootInstanceForParent(vcsRoot40);
+    assert vcsRootInstance40 != null;
+
+    collectChangesPolicy.setCurrentState(vcsRootInstance30, createVersionState("refs/heads/master", map("refs/heads/master", "a1",
+                                                                                                        "refs/heads/branch1", "a2",
+                                                                                                        "refs/heads/branch2", "a3")));
+    collectChangesPolicy.setCurrentState(vcsRootInstance40, createVersionState("refs/heads/branch1", map("refs/heads/master", "b1",
+                                                                                                         "refs/heads/branch1", "b2",
+                                                                                                         "refs/heads/branch2", "b3"))); //different default branch
+    setBranchSpec(vcsRootInstance30, "+:refs/heads/(*)");
+    setBranchSpec(vcsRootInstance40, "+:refs/heads/(*)");
+    buildConf3.forceCheckingForChanges();
+
+    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+
+    final BuildPromotion build230 = build().in(buildConf3).finish().getBuildPromotion();
+    final BuildPromotion build240 = build().in(buildConf3).withDefaultBranch().finish().getBuildPromotion();
+    final BuildPromotion build250 = build().in(buildConf3).withBranch("branch").finish().getBuildPromotion(); //not existing branch
+    final BuildPromotion build260 = build().in(buildConf3).withBranch("branch1").finish().getBuildPromotion();
+    final BuildPromotion build270 = build().in(buildConf3).withBranch("master").finish().getBuildPromotion(); //not existing branch
+
+    checkBuilds("buildType:(id:" + buildConf3.getExternalId() + ")", build240, build230);
+    checkBuilds("buildType:(id:" + buildConf3.getExternalId() + "),branch:(default:any)", build270, build260, build250, build240, build230);
+    checkBuilds("buildType:(id:" + buildConf3.getExternalId() + "),branch:(name:<default>)", build240, build230);
+    checkBuilds("buildType:(id:" + buildConf3.getExternalId() + "),branch:(name:<Default>)", build240, build230);
+    checkBuilds("buildType:(id:" + buildConf3.getExternalId() + "),branch:(name:(value:<default>))", build240, build230);
+    checkBuilds("buildType:(id:" + buildConf3.getExternalId() + "),branch:(name:(value:<Default>))"); //case sensitive in this syntax
+    checkBuilds("buildType:(id:" + buildConf3.getExternalId() + "),branch:(name:master)", build270);
+    checkBuilds("buildType:(id:" + buildConf3.getExternalId() + "),branch:(name:Master)", build270);
+    checkBuilds("buildType:(id:" + buildConf3.getExternalId() + "),branch:(name:master,default:true)");
+    checkBuilds("buildType:(id:" + buildConf3.getExternalId() + "),branch:(name:master,default:false)", build270);
+    checkBuilds("buildType:(id:" + buildConf3.getExternalId() + "),branch:(name:(value:master))", build270);
+    checkBuilds("buildType:(id:" + buildConf3.getExternalId() + "),branch:(name:(value:Master))");
+    checkBuilds("buildType:(id:" + buildConf3.getExternalId() + "),branch:(name:branch)", build250);
+    checkBuilds("buildType:(id:" + buildConf3.getExternalId() + "),branch:(name:branch1)", build260);
   }
 
   @Test

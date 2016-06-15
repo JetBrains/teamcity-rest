@@ -41,8 +41,6 @@ public class BranchFinder extends AbstractFinder<Branch> {
   protected static final String DEFAULT = "default";
   protected static final String UNSPECIFIED = "unspecified";
   protected static final String BRANCHED = "branched";
-  protected static final String DISPLAY_NAME = "displayName";
-  protected static final String VCS_NAME = "vcsName";
   public static final String BUILD = "build";
 
   protected static final String POLICY = "policy";
@@ -55,8 +53,7 @@ public class BranchFinder extends AbstractFinder<Branch> {
 
   public BranchFinder(@NotNull final BuildTypeFinder buildTypeFinder, @NotNull final ServiceLocator serviceLocator) {
     super(NAME, DEFAULT, UNSPECIFIED, BUILD_TYPE, BUILD, POLICY, CHANGES_FROM_DEPENDENCIES, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME); //see also getBranchFilterDetails
-    setHiddenDimensions(BRANCHED,
-                        DISPLAY_NAME, VCS_NAME); /*experimental*/
+    setHiddenDimensions(BRANCHED);
     myBuildTypeFinder = buildTypeFinder;
     myServiceLocator = serviceLocator;
   }
@@ -116,34 +113,23 @@ public class BranchFinder extends AbstractFinder<Branch> {
     final String nameDimension = locator.getSingleDimensionValue(NAME);
     if (nameDimension != null && !ANY.equals(nameDimension)) {
       final ValueCondition parameterCondition = ParameterCondition.createValueCondition(nameDimension);
-      if (parameterCondition.getIgnoreCase() == null) parameterCondition.setIgnoreCase(true); //pre-TeamCity-10 behavior
-      //result.branchName = nameDimension;  do not set as it is ignore case and can match display/vcs branch
-      filter.add(new FilterConditionChecker<Branch>() {
-        @Override
-        public boolean isIncluded(@NotNull final Branch item) {
-          return parameterCondition.matches(item.getDisplayName()) || parameterCondition.matches(item.getName());
-        }
-      });
-    }
-
-    final String displayNameCondition = locator.getSingleDimensionValue(DISPLAY_NAME);
-    if (displayNameCondition != null) {
-      final ValueCondition parameterCondition = ParameterCondition.createValueCondition(displayNameCondition);
-      filter.add(new FilterConditionChecker<Branch>() {
-        public boolean isIncluded(@NotNull final Branch item) {
-          return parameterCondition.matches(item.getDisplayName());
-        }
-      });
-    }
-
-    final String nameCondition = locator.getSingleDimensionValue(VCS_NAME);
-    if (nameCondition != null) {
-      final ValueCondition parameterCondition = ParameterCondition.createValueCondition(nameCondition);
+      boolean compatibilityMode;
+      if (nameDimension.equals(parameterCondition.getValue())){
+        //single value
+        compatibilityMode = true;
+        if (parameterCondition.getIgnoreCase() == null) parameterCondition.setIgnoreCase(true); //pre-TeamCity-10 behavior
+      } else{
+        compatibilityMode = false;
+      }
       String exactValue = parameterCondition.getConstantValueIfSimpleEqualsCondition();
       if (exactValue != null) result.branchName = exactValue;
       filter.add(new FilterConditionChecker<Branch>() {
+        @Override
         public boolean isIncluded(@NotNull final Branch item) {
-          return parameterCondition.matches(item.getName());
+          if (compatibilityMode){
+            return parameterCondition.matches(item.getDisplayName()) || parameterCondition.matches(item.getName()); //this basically matched both actual name and "<default>" for default branch
+          }
+          return parameterCondition.matches(item.getDisplayName());
         }
       });
     }

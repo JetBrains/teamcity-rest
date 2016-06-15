@@ -91,6 +91,11 @@ public class ValueCondition {
     return null;
   }
 
+  @Nullable
+  public String getValue() {
+    return myParameterValue;
+  }
+
   @Override
   public String toString() {
     final StringBuilder result = new StringBuilder();
