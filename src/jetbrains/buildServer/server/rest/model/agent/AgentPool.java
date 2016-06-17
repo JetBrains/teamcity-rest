@@ -20,7 +20,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
+import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -62,30 +62,30 @@ public class AgentPool {
     href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(agentPool));
     maxAgents = ValueWithDefault.decideDefault(fields.isIncluded("maxAgents", false), getMaxAgents(agentPool));
 
-    final AgentPoolsFinder agentPoolsFinder = beanContext.getSingletonService(AgentPoolsFinder.class);
+    final AgentPoolFinder agentPoolFinder = beanContext.getSingletonService(AgentPoolFinder.class);
 
     projects = ValueWithDefault.decideDefault(fields.isIncluded("projects", false), new ValueWithDefault.Value<Projects>() {
       @Nullable
       public Projects get() {
-        return new Projects(agentPoolsFinder.getPoolProjects(agentPool), null, fields.getNestedField("projects", Fields.NONE, Fields.LONG), beanContext);
+        return new Projects(agentPoolFinder.getPoolProjects(agentPool), null, fields.getNestedField("projects", Fields.NONE, Fields.LONG), beanContext);
       }
     });
     //todo: support agent types
     agents = ValueWithDefault.decideDefault(fields.isIncluded("agents", false), new ValueWithDefault.Value<Agents>() {
       @Nullable
       public Agents get() {
-        return new Agents(agentPoolsFinder.getPoolAgents(agentPool), null, fields.getNestedField("agents", Fields.NONE, Fields.LONG), beanContext);
+        return new Agents(agentPoolFinder.getPoolAgents(agentPool), null, fields.getNestedField("agents", Fields.NONE, Fields.LONG), beanContext);
       }
     });
   }
 
   @NotNull
-  public jetbrains.buildServer.serverSide.agentPools.AgentPool getAgentPoolFromPosted(@NotNull final AgentPoolsFinder agentPoolsFinder) {
+  public jetbrains.buildServer.serverSide.agentPools.AgentPool getAgentPoolFromPosted(@NotNull final AgentPoolFinder agentPoolFinder) {
     Locator resultLocator = Locator.createEmptyLocator();
     boolean otherDimensionsSet = false;
     if (id != null) {
       otherDimensionsSet = true;
-      resultLocator.setDimension(AgentPoolsFinder.DIMENSION_ID, String.valueOf(id));
+      resultLocator.setDimension(AgentPoolFinder.DIMENSION_ID, String.valueOf(id));
     }
     /*
     //todo: implement this in finder!
@@ -100,7 +100,7 @@ public class AgentPool {
       }
       resultLocator = new Locator(locator);
     }
-    return agentPoolsFinder.getAgentPool(resultLocator.getStringRepresentation());
+    return agentPoolFinder.getItem(resultLocator.getStringRepresentation());
   }
 
   public static String getFieldValue(@NotNull final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool, @NotNull final String fieldName) {

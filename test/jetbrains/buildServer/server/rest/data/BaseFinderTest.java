@@ -67,7 +67,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   protected ProblemOccurrenceFinder myProblemOccurrenceFinder;
   protected TestOccurrenceFinder myTestOccurrenceFinder;
   protected InvestigationFinder myInvestigationFinder;
-  protected AgentPoolsFinder myAgentPoolsFinder;
+  protected AgentPoolFinder myAgentPoolFinder;
   protected QueuedBuildFinder myQueuedBuildFinder;
   protected BranchFinder myBranchFinder;
   protected ChangeFinder myChangeFinder;
@@ -108,8 +108,8 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myAgentFinder = new AgentFinder(myAgentManager, myFixture);
     myFixture.addService(myAgentFinder);
 
-    myAgentPoolsFinder = new AgentPoolsFinder(myFixture, myAgentFinder);
-    myFixture.addService(myAgentPoolsFinder);
+    myAgentPoolFinder = new AgentPoolFinder(myFixture.getAgentPoolManager(), myAgentFinder, myFixture);
+    myFixture.addService(myAgentPoolFinder);
 
     myBuildTypeFinder = new BuildTypeFinder(myProjectManager, myProjectFinder, myAgentFinder, myPermissionChecker, myServer);
     myFixture.addService(myBuildTypeFinder);

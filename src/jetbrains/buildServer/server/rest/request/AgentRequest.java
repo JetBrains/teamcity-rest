@@ -44,7 +44,7 @@ import org.jetbrains.annotations.NotNull;
 public class AgentRequest {
   @Context private DataProvider myDataProvider;
   @Context private ApiUrlBuilder myApiUrlBuilder;
-  @Context @NotNull private AgentPoolsFinder myAgentPoolsFinder;
+  @Context @NotNull private AgentPoolFinder myAgentPoolFinder;
   @Context @NotNull private AgentFinder myAgentFinder;
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private BeanContext myBeanContext;
@@ -106,7 +106,7 @@ public class AgentRequest {
   @Path("/{agentLocator}")
   @Produces({"application/xml", "application/json"})
   public Agent serveAgent(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
-    return new Agent(myAgentFinder.getItem(agentLocator), myAgentPoolsFinder, new Fields(fields), myBeanContext);
+    return new Agent(myAgentFinder.getItem(agentLocator), myAgentPoolFinder, new Fields(fields), myBeanContext);
   }
 
   @DELETE
@@ -121,7 +121,7 @@ public class AgentRequest {
   @Produces({"application/xml", "application/json"})
   public AgentPool getAgentPool(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolsFinder.getAgentPool(agent);
+    final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolFinder.getAgentPool(agent);
     return agentPool == null ? null : new AgentPool(agentPool,  new Fields(fields),myBeanContext);
   }
 
@@ -131,8 +131,8 @@ public class AgentRequest {
   @Produces({"application/xml", "application/json"})
   public AgentPool setAgentPool(@PathParam("agentLocator") String agentLocator, AgentPool agentPool) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    myDataProvider.addAgentToPool(agentPool.getAgentPoolFromPosted(myAgentPoolsFinder), agent);
-    final jetbrains.buildServer.serverSide.agentPools.AgentPool foundPool = myAgentPoolsFinder.getAgentPool(agent);
+    myDataProvider.addAgentToPool(agentPool.getAgentPoolFromPosted(myAgentPoolFinder), agent);
+    final jetbrains.buildServer.serverSide.agentPools.AgentPool foundPool = myAgentPoolFinder.getAgentPool(agent);
     return foundPool == null ? null : new AgentPool(foundPool, Fields.LONG, myBeanContext);
   }
 

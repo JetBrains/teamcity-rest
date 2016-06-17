@@ -154,8 +154,8 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
 
     final String poolDimension = locator.getSingleDimensionValue(POOL); //see also AgentPoolsFinder.getPoolAgents()
     if (poolDimension != null) {
-      AgentPoolsFinder agentPoolsFinder = myServiceLocator.getSingletonService(AgentPoolsFinder.class);
-      final AgentPool agentPool = agentPoolsFinder.getAgentPool(poolDimension); //get id here to support not existing pools?
+      AgentPoolFinder agentPoolFinder = myServiceLocator.getSingletonService(AgentPoolFinder.class);
+      final AgentPool agentPool = agentPoolFinder.getItem(poolDimension); //get id here to support not existing pools?
       result.add(new FilterConditionChecker<SBuildAgent>() {
         public boolean isIncluded(@NotNull final SBuildAgent item) {
           return ((BuildAgentEx)item).getAgentType().getAgentPoolId() == agentPool.getAgentPoolId(); //TeamCity API issue: cast
@@ -456,11 +456,11 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
    * @return found agent pool or null if cannot extract agent pool from the locator
    */
   @Nullable
-  public static AgentPool getAgentPoolFromLocator(@NotNull final String locatorText, @NotNull final AgentPoolsFinder agentPoolsFinder) {
+  public static AgentPool getAgentPoolFromLocator(@NotNull final String locatorText, @NotNull final AgentPoolFinder agentPoolFinder) {
     final Locator locator = new Locator(locatorText);
     final String poolDimension = locator.getSingleDimensionValue(POOL);
     if (poolDimension != null) {
-      return agentPoolsFinder.getAgentPool(poolDimension);
+      return agentPoolFinder.getItem(poolDimension);
     }
     return null; //reporting no errors by method contract
   }

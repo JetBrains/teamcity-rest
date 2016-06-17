@@ -17,15 +17,15 @@
 package jetbrains.buildServer.server.rest.jersey;
 
 import javax.ws.rs.ext.Provider;
-import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
+import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
 
 /**
  * @author Yegor.Yarko
  *         Date: 07.11.13
  */
 @Provider
-public class AgentPoolsFinderProvider extends AbstractSingletonBeanProvider<AgentPoolsFinder> {
-  public AgentPoolsFinderProvider(final AgentPoolsFinder object) {
-    super(object, AgentPoolsFinder.class);
+public class AgentPoolsFinderProvider extends AbstractSingletonBeanProvider<AgentPoolFinder> {
+  public AgentPoolsFinderProvider(final AgentPoolFinder object) {
+    super(object, AgentPoolFinder.class);
   }
 }

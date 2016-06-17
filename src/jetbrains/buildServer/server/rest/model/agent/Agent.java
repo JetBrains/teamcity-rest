@@ -22,7 +22,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.AgentRestrictorType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.AgentFinder;
-import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
+import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -86,7 +86,7 @@ public class Agent {
     });
   }
 
-  public Agent(@NotNull final SBuildAgent agent, @NotNull final AgentPoolsFinder agentPoolsFinder, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+  public Agent(@NotNull final SBuildAgent agent, @NotNull final AgentPoolFinder agentPoolFinder, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     final int agentId = agent.getId();
     final boolean unknownAgent = agentId == UNKNOWN_AGENT_ID;
     id = unknownAgent ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), agentId);
@@ -138,7 +138,7 @@ public class Agent {
     pool = ValueWithDefault.decideDefault(fields.isIncluded("pool", false), new ValueWithDefault.Value<AgentPool>() {
       @Nullable
       public AgentPool get() {
-        final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = agentPoolsFinder.getAgentPool(agent);
+        final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = agentPoolFinder.getAgentPool(agent);
         return agentPool == null ? null : new AgentPool(agentPool, fields.getNestedField("pool"), beanContext);
       }
     });
@@ -250,12 +250,12 @@ public class Agent {
   public SAgentRestrictor getAgentRestrictor(@NotNull final ServiceLocator serviceLocator) {
     final AgentRestrictorFactory agentRestrictorFactory = serviceLocator.getSingletonService(AgentRestrictorFactory.class);
     if (pool != null) {
-      final AgentPoolsFinder agentPoolsFinder = serviceLocator.getSingletonService(AgentPoolsFinder.class);
-      return agentRestrictorFactory.createFor(AgentRestrictorType.AGENT_POOL, pool.getAgentPoolFromPosted(agentPoolsFinder).getAgentPoolId());
+      final AgentPoolFinder agentPoolFinder = serviceLocator.getSingletonService(AgentPoolFinder.class);
+      return agentRestrictorFactory.createFor(AgentRestrictorType.AGENT_POOL, pool.getAgentPoolFromPosted(agentPoolFinder).getAgentPoolId());
     }
     if (locator != null) {
-      final AgentPoolsFinder agentPoolsFinder = serviceLocator.getSingletonService(AgentPoolsFinder.class);
-      final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = AgentFinder.getAgentPoolFromLocator(locator, agentPoolsFinder);
+      final AgentPoolFinder agentPoolFinder = serviceLocator.getSingletonService(AgentPoolFinder.class);
+      final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = AgentFinder.getAgentPoolFromLocator(locator, agentPoolFinder);
       if (agentPool != null){
         return agentRestrictorFactory.createFor(AgentRestrictorType.AGENT_POOL, agentPool.getAgentPoolId());
       }

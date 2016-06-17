@@ -23,7 +23,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.data.AgentPoolsFinder;
+import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -83,13 +83,13 @@ public class AgentPools {
   }
 
   @NotNull
-  public List<jetbrains.buildServer.serverSide.agentPools.AgentPool> getPoolsFromPosted(@NotNull final AgentPoolsFinder agentPoolsFinder) {
+  public List<jetbrains.buildServer.serverSide.agentPools.AgentPool> getPoolsFromPosted(@NotNull final AgentPoolFinder agentPoolFinder) {
       if (items == null) {
         throw new BadRequestException("List of agent pools should be supplied");
       }
       final ArrayList<jetbrains.buildServer.serverSide.agentPools.AgentPool> result = new ArrayList<jetbrains.buildServer.serverSide.agentPools.AgentPool>(items.size());
       for (AgentPool agentPool : items) {
-        result.add(agentPool.getAgentPoolFromPosted(agentPoolsFinder));
+        result.add(agentPool.getAgentPoolFromPosted(agentPoolFinder));
       }
       return result;
     }

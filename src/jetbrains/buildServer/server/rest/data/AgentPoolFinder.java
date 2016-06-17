@@ -39,12 +39,16 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 07.11.13
  */
-public class AgentPoolsFinder {
+public class AgentPoolFinder {
   public static final String DIMENSION_ID = "id";
+  @NotNull private final AgentPoolManager myAgentPoolManager;
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final AgentFinder myAgentFinder;
 
-  public AgentPoolsFinder(@NotNull final ServiceLocator serviceLocator, final @NotNull AgentFinder agentFinder) {
+  public AgentPoolFinder(@NotNull final AgentPoolManager agentPoolManager,
+                         @NotNull final AgentFinder agentFinder,
+                         @NotNull final ServiceLocator serviceLocator) {
+    myAgentPoolManager = agentPoolManager;
     myServiceLocator = serviceLocator;
     myAgentFinder = agentFinder;
   }
@@ -72,7 +76,7 @@ public class AgentPoolsFinder {
    */
   @NotNull
   public List<SProject> getPoolProjects(@NotNull final AgentPool agentPool) {
-    final Set<String> projectIds = myServiceLocator.getSingletonService(AgentPoolManager.class).getPoolProjects(agentPool.getAgentPoolId());
+    final Set<String> projectIds = myAgentPoolManager.getPoolProjects(agentPool.getAgentPoolId());
     final ProjectManager projectManager = myServiceLocator.getSingletonService(ProjectManager.class);
     final List<SProject> result = new ArrayList<SProject>(projectIds.size());
     for (String projectId : projectIds) {
@@ -88,7 +92,7 @@ public class AgentPoolsFinder {
 
   @NotNull
   public AgentPool getAgentPoolById(final long id) {
-    final AgentPool agentPool = myServiceLocator.getSingletonService(AgentPoolManager.class).findAgentPoolById((int)id);
+    final AgentPool agentPool = myAgentPoolManager.findAgentPoolById((int)id);
     if (agentPool == null) {
       throw new NotFoundException("No agent pool is found by id '" + id + "'.");
     }
@@ -102,7 +106,7 @@ public class AgentPoolsFinder {
   }
 
   @NotNull
-  public AgentPool getAgentPool(final String locatorText) {
+  public AgentPool getItem(final String locatorText) {
     if (StringUtil.isEmpty(locatorText)) {
       throw new BadRequestException("Empty agent pool locator is not supported.");
     }
@@ -123,8 +127,7 @@ public class AgentPoolsFinder {
   }
 
   public Collection<AgentPool> getPoolsForProject(final SProject project) {
-    final AgentPoolManager poolManager = myServiceLocator.getSingletonService(AgentPoolManager.class);
-    final Set<Integer> projectPoolsIds = poolManager.getProjectPools(project.getProjectId());
+    final Set<Integer> projectPoolsIds = myAgentPoolManager.getProjectPools(project.getProjectId());
     final ArrayList<AgentPool> result = new ArrayList<AgentPool>(projectPoolsIds.size());
     for (Integer poolId : projectPoolsIds) {
       result.add(getAgentPoolById(poolId));

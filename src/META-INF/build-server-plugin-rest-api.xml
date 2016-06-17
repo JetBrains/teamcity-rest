@@ -50,7 +50,7 @@
   <bean id="restVcsRootFinder" class="jetbrains.buildServer.server.rest.data.VcsRootFinder"/>
   <bean id="restVcsRootInstanceFinder" class="jetbrains.buildServer.server.rest.data.VcsRootInstanceFinder"/>
   <bean id="restChangeFinder" class="jetbrains.buildServer.server.rest.data.ChangeFinder"/>
-  <bean id="restAgentPoolsFinder" class="jetbrains.buildServer.server.rest.data.AgentPoolsFinder"/>
+  <bean id="restAgentPoolsFinder" class="jetbrains.buildServer.server.rest.data.AgentPoolFinder"/>
   <bean id="restAgentFinder" class="jetbrains.buildServer.server.rest.data.AgentFinder"/>
   <bean id="restInvestigationFinder" class="jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder"/>
   <bean id="restProblemFinder" class="jetbrains.buildServer.server.rest.data.problem.ProblemFinder"/>

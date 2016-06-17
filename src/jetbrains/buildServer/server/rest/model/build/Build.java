@@ -305,7 +305,7 @@ public class Build {
       public Agent get() {
         if (myBuild != null) {
           SBuildAgent agent = myBuild.getAgent();
-          return new Agent(agent, myBeanContext.getSingletonService(AgentPoolsFinder.class), myFields.getNestedField("agent"), myBeanContext);
+          return new Agent(agent, myBeanContext.getSingletonService(AgentPoolFinder.class), myFields.getNestedField("agent"), myBeanContext);
         }
         if (myQueuedBuild != null) {
           final AgentRestrictor agentRestrictor = myQueuedBuild.getAgentRestrictor();
@@ -313,12 +313,12 @@ public class Build {
             if (agentRestrictor.getType() == AgentRestrictorType.SINGLE_AGENT) {
               SBuildAgent agent = myQueuedBuild.getBuildAgent();
               if (agent != null) {
-                return new Agent(agent, myBeanContext.getSingletonService(AgentPoolsFinder.class), myFields.getNestedField("agent"), myBeanContext);
+                return new Agent(agent, myBeanContext.getSingletonService(AgentPoolFinder.class), myFields.getNestedField("agent"), myBeanContext);
               }
             }
             if (agentRestrictor.getType() == AgentRestrictorType.AGENT_POOL) {
               final int agentPoolId = agentRestrictor.getId();
-              final AgentPool agentPool = myBeanContext.getSingletonService(AgentPoolsFinder.class).getAgentPoolById(agentPoolId);
+              final AgentPool agentPool = myBeanContext.getSingletonService(AgentPoolFinder.class).getAgentPoolById(agentPoolId);
               return new Agent(agentPool, myFields.getNestedField("agent"), myBeanContext);
             }
           }
