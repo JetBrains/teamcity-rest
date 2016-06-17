@@ -41,10 +41,7 @@ import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.agentPools.AgentPoolCannotBeDeletedException;
-import jetbrains.buildServer.serverSide.agentPools.AgentPoolCannotBeRenamedException;
-import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
-import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
+import jetbrains.buildServer.serverSide.agentPools.*;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -101,13 +98,18 @@ public class AgentPoolRequest {
   @POST
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public AgentPool setPools(AgentPool agentPool) {
+  public AgentPool createPool(AgentPool agentPool) {
     if (agentPool.agents != null){
-      throw new BadRequestException("Creating an agent pool with agents is not suppotrted. Please add agents after the pool creation");
+      throw new BadRequestException("Creating an agent pool with agents is not supported. Please add agents after the pool creation");
     }
     final jetbrains.buildServer.serverSide.agentPools.AgentPool newAgentPool;
     try {
-      newAgentPool = myServiceLocator.getSingletonService(AgentPoolManager.class).createNewAgentPool(agentPool.name);
+      AgentPoolDetails agentDetails = AgentPoolDetails.DEFAULT;
+      if (agentPool.maxAgents != null) {
+        agentDetails = new AgentPoolDetailsImpl(AgentPoolDetails.DEFAULT.getMinAgents(),
+                                                agentPool.maxAgents != null ? Integer.valueOf(agentPool.maxAgents) : AgentPoolDetails.DEFAULT.getMaxAgents());
+      }
+      newAgentPool = myServiceLocator.getSingletonService(AgentPoolManager.class).createNewAgentPool(agentPool.name, agentDetails);
     } catch (AgentPoolCannotBeRenamedException e) {
       throw new IllegalStateException("Agent pool with name \'" + agentPool.name + "' already exists.");
     }
@@ -238,6 +240,24 @@ public class AgentPoolRequest {
     SBuildAgent postedAgent = agent.getAgentFromPosted(myAgentFinder);
     myDataProvider.addAgentToPool(agentPool, postedAgent);
     return new Agent(postedAgent, myAgentPoolsFinder, new Fields(fields), myBeanContext);
+  }
+
+  @GET
+  @Path("/{agentPoolLocator}/{field}")
+  @Produces("text/plain")
+  public String getField(@PathParam("agentPoolLocator") String agentPoolLocator, @PathParam("field") String fieldName) {
+    final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolsFinder.getAgentPool(agentPoolLocator);
+    return AgentPool.getFieldValue(agentPool, fieldName);
+  }
+
+  @PUT
+  @Path("/{agentPoolLocator}/{field}")
+  @Consumes("text/plain")
+  @Produces("text/plain")
+  public String setField(@PathParam("agentPoolLocator") String agentPoolLocator, @PathParam("field") String fieldName, String newValue) {
+    final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolsFinder.getAgentPool(agentPoolLocator);
+    AgentPool.setFieldValue(agentPool, fieldName, newValue, myBeanContext);
+    return AgentPool.getFieldValue(myAgentPoolsFinder.getAgentPool(agentPoolLocator), fieldName); //need to find the pool again to get a refreshed version
   }
 }
 
