@@ -27,9 +27,11 @@ import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeStorage;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -76,6 +78,25 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
       dimensionAgents(AGENT, myServiceLocator).description("agents associated with the agent pool").
         valueForDefaultFilter(agentPool -> new HashSet<SBuildAgent>(getPoolAgentsInternal(agentPool)));
 
+      filter(DimensionCondition.ALWAYS, new ItemFilterFromDimensions<AgentPool>() {
+        @Nullable
+        @Override
+        public ItemFilter<AgentPool> get(@NotNull final DimensionObjects dimensions) {
+          final boolean hasPermission = myServiceLocator.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.VIEW_AGENT_DETAILS, null);
+          if (hasPermission) return null;
+          return new ItemFilter<AgentPool>() {
+            @Override
+            public boolean shouldStop(@NotNull final AgentPool item) {
+              return false;
+            }
+
+            @Override
+            public boolean isIncluded(@NotNull final AgentPool item) {
+              return false;
+            }
+          };
+        }
+      });
       multipleConvertToItems(DimensionCondition.ALWAYS, dimensions -> myAgentPoolManager.getAllAgentPools());
 
       locatorProvider(agentPool -> getLocator(agentPool));
