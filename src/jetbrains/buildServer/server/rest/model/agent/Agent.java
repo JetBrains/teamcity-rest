@@ -189,10 +189,12 @@ public class Agent {
       return String.valueOf(agent.isEnabled());
     } else if ("authorized".equals(name)) {
       return String.valueOf(agent.isAuthorized());
-    } else if ("enabledInfoCommentText".equals(name)) {
+    }
+    //check permission to match UI
+    serviceLocator.getSingletonService(PermissionChecker.class).checkGlobalPermission(Permission.VIEW_AGENT_DETAILS);
+    if ("enabledInfoCommentText".equals(name)) {
       return String.valueOf(agent.getStatusComment().getComment());
     } else if ("authorizedInfoCommentText".equals(name)) {
-      serviceLocator.getSingletonService(PermissionChecker.class).checkGlobalPermission(Permission.VIEW_AGENT_DETAILS);
       return String.valueOf(agent.getAuthorizeComment().getComment());
     } else if ("ip".equals(name)) {
       return agent.getHostAddress();
