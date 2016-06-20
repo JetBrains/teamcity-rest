@@ -18,15 +18,14 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.util.text.StringUtil;
 import java.util.Arrays;
+import java.util.Set;
 import jetbrains.buildServer.controllers.interceptors.auth.impl.BuildAuthorityHolder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
-import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.BuildTypeSettings;
-import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
-import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.serverSide.impl.projects.ProjectUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.vcs.SVcsModification;
 import org.jetbrains.annotations.NotNull;
@@ -36,38 +35,67 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 18.09.2014
  */
-public class PermissionChecker {@NotNull private final SecurityContext mySecurityContext;
+public class PermissionChecker {
+  @NotNull private final SecurityContextEx mySecurityContext;
+  @NotNull private final ProjectManager myProjectManager;
 
-  public PermissionChecker(@NotNull final SecurityContext securityContext) {
+  public PermissionChecker(@NotNull final SecurityContextEx securityContext, @NotNull final ProjectManager projectManager) {
     mySecurityContext = securityContext;
+    myProjectManager = projectManager;
   }
 
-  public void checkGlobalPermission(final Permission permission) throws AuthorizationFailedException {
+  public void checkGlobalPermission(@NotNull final Permission permission) throws AuthorizationFailedException {
     final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
-    if (!authorityHolder.isPermissionGrantedForAnyProject(permission)) {
-      throw new AuthorizationFailedException(
-        "User " + authorityHolder.getAssociatedUser() + " does not have global permission " + permission);
+    if (hasGlobalPermission(authorityHolder, permission)) return;
+    throwNoPermission(authorityHolder, permission);
+  }
+
+  private boolean hasGlobalPermission(@NotNull final AuthorityHolder authorityHolder, @NotNull final Permission permission) {
+    if (authorityHolder.isPermissionGrantedGlobally(permission)) {
+      return true;
     }
+    if (permission.isProjectAssociationSupported()) {
+      Set<String> allProjectsInternalIds;
+      try {
+        allProjectsInternalIds = mySecurityContext.runAsSystem(() -> ProjectUtil.getProjectSelfAndChildrenInternalIds(myProjectManager.getRootProject()));
+      } catch (Throwable throwable) {
+        return false;
+      }
+      if (authorityHolder.isPermissionGrantedForAnyProject(permission) &&
+          authorityHolder.isPermissionGrantedForAllProjects(allProjectsInternalIds, permission)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public void checkGlobalPermissionAnyOf(final Permission[] permissions) throws AuthorizationFailedException{
     final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
     for (Permission permission : permissions) {
-      if (authorityHolder.isPermissionGrantedForAnyProject(permission)) {
+      if (hasGlobalPermission(authorityHolder, permission)) {
         return;
       }
     }
 
+    throwNoPermission(authorityHolder, permissions);
+  }
+
+  private void throwNoPermission(@NotNull final AuthorityHolder authorityHolder, @NotNull final Permission... permissions) throws AuthorizationFailedException {
     final User user = authorityHolder.getAssociatedUser();
+    String permissionsPart;
+    if (permissions.length > 1) {
+      permissionsPart = "any of the permissions granted globally: " + Arrays.toString(permissions);
+    } else {
+      permissionsPart = "global permission " + permissions[0];
+    }
     if (user != null){
-      throw new AuthorizationFailedException("User " + user.describe(false) + " does not have any of the permissions granted globally: " + Arrays.toString(permissions));
+      throw new AuthorizationFailedException("User " + user.describe(false) + " does not have " + permissionsPart);
     }
     if (authorityHolder instanceof BuildAuthorityHolder){
       final long associatedBuildId = ((BuildAuthorityHolder)authorityHolder).getAssociatedBuildId();
-      throw new AuthorizationFailedException("Built-in user for build with id " + associatedBuildId +
-                                             " does not have any of the permissions granted globally: " + Arrays.toString(permissions));
+      throw new AuthorizationFailedException("Built-in user for build with id " + associatedBuildId + " does not have " + permissionsPart);
     }
-    throw new AuthorizationFailedException("Athority holder does not have any of the permissions granted globally: " + Arrays.toString(permissions));
+    throw new AuthorizationFailedException("Authority holder does not have " + permissionsPart);
   }
 
   public void checkProjectPermission(@NotNull final Permission permission, @Nullable final String internalProjectId) throws AuthorizationFailedException{
@@ -111,7 +139,7 @@ public class PermissionChecker {@NotNull private final SecurityContext mySecurit
   public boolean isPermissionGranted(@NotNull final Permission permission, @Nullable final String internalProjectId) {
     final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
     if (internalProjectId == null){
-      return authorityHolder.isPermissionGrantedGlobally(permission);
+      return hasGlobalPermission(authorityHolder, permission);
     }
     return authorityHolder.isPermissionGrantedForProject(internalProjectId, permission);
   }

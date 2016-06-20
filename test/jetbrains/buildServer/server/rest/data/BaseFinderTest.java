@@ -96,7 +96,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myVcsManager = myFixture.getVcsManager();
     myFixture.addService(myVcsManager);
     myFixture.addService(myProjectManager);
-    myPermissionChecker = new PermissionChecker(myServer.getSecurityContext());
+    myPermissionChecker = new PermissionChecker(myServer.getSecurityContext(), myProjectManager);
     myFixture.addService(myPermissionChecker);
 
     myTimeCondition = new TimeCondition(myFixture);
