@@ -28,6 +28,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentTypes.AgentType;
 import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -129,6 +130,15 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   @Override
   public ItemFilter<SBuildAgent> getFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<SBuildAgent> result = new MultiCheckerFilter<SBuildAgent>();
+
+    //filtering unauthorized agents as UI does
+    if (!myServiceLocator.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.VIEW_AGENT_DETAILS, null)) {
+      result.add(new FilterConditionChecker<SBuildAgent>() {
+        public boolean isIncluded(@NotNull final SBuildAgent item) {
+          return item.isAuthorized();
+        }
+      });
+    }
 
     final Boolean authorizedDimension = locator.getSingleDimensionValueAsBoolean(AUTHORIZED);
     if (authorizedDimension != null) {
