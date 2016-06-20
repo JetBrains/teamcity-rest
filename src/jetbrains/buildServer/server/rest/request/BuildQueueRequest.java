@@ -29,10 +29,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
-import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.errors.OperationException;
-import jetbrains.buildServer.server.rest.errors.PartialUpdateError;
+import jetbrains.buildServer.server.rest.errors.*;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
@@ -417,13 +414,16 @@ public class BuildQueueRequest {
       throw new BadRequestException("No new builds order specified. Should post a collection of builds with ids");
     }
     final BuildPromotionFinder buildFinder = myServiceLocator.getSingletonService(BuildPromotionFinder.class);
-    List<String> ids = new ArrayList<>();
+    LinkedHashSet<String> ids = new LinkedHashSet<>();
     for (Build build : builds.builds) {
       try {
-        SQueuedBuild queuedBuild = build.getFromPosted(buildFinder, Collections.emptyMap()).getQueuedBuild();
-        if (queuedBuild == null) continue;
-        ids.add(String.valueOf(queuedBuild.getItemId()));
-      } catch (Exception e) {
+        List<BuildPromotion> items = buildFinder.getItems(build.getLocatorFromPosted(Collections.emptyMap()), new Locator(getBuildPromotionLocatorDefaults())).myEntries;
+        for (BuildPromotion buildPromotion : items) {
+          SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+          if (queuedBuild == null) continue;
+          ids.add(String.valueOf(queuedBuild.getItemId()));
+        }
+      } catch (NotFoundException e) {
         //ignore
       }
     }

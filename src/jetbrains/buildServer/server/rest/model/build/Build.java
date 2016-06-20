@@ -1041,6 +1041,11 @@ public class Build {
   @NotNull
   public BuildPromotion getFromPosted(@NotNull final BuildPromotionFinder buildFinder,
                                       @NotNull final Map<Long, Long> buildPromotionIdQueuedBuildsReplacements) {
+    return buildFinder.getItem(getLocatorFromPosted(buildPromotionIdQueuedBuildsReplacements));
+  }
+
+  @NotNull
+  public String getLocatorFromPosted(final @NotNull Map<Long, Long> buildPromotionIdQueuedBuildsReplacements) {
     String locatorText;
     if (submittedLocator != null) {
       if (submittedPromotionId != null) {
@@ -1075,8 +1080,7 @@ public class Build {
 
       locatorText = locator.getStringRepresentation();
     }
-
-    return buildFinder.getItem(locatorText);
+    return locatorText;
   }
 
   private BuildTriggeringOptions submittedTriggeringOptions;
