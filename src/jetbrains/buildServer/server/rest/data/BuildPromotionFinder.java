@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.serverSide.metadata.BuildMetadataEntry;
 import jetbrains.buildServer.serverSide.metadata.impl.MetadataStorageEx;
@@ -118,6 +119,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private final BranchFinder myBranchFinder;
   private final MetadataStorageEx myMetadataStorage;
   private final TimeCondition myTimeCondition;
+  private final PermissionChecker myPermissionChecker;
 
   @NotNull
   public static String getLocator(@NotNull final BuildPromotion buildPromotion) {
@@ -140,11 +142,13 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                               final AgentFinder agentFinder,
                               final BranchFinder branchFinder,
                               final TimeCondition timeCondition,
+                              final PermissionChecker permissionChecker,
                               final MetadataStorageEx metadataStorage) {
     super(DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, USER, PERSONAL, STATE, TAG, PROPERTY, COMPATIBLE_AGENT,
           NUMBER, STATUS, CANCELED, PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, HANGING,
           DEFAULT_FILTERING, SINCE_BUILD_ID_LOOK_AHEAD_COUNT,
           Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    myPermissionChecker = permissionChecker;
     setHiddenDimensions(AGENT_NAME, TAGS, RUNNING,  //compatibility
                         BY_PROMOTION,  //switch for legacy behavior
                         COMPATIBLE_AGENTS_COUNT,  //experimental for queued builds only
@@ -978,6 +982,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   @NotNull
   @Override
   public ItemHolder<BuildPromotion> getPrefilteredItems(@NotNull Locator locator) {
+
+    if (!myPermissionChecker.hasPermissionInAnyProject(Permission.VIEW_PROJECT)){
+      return getItemHolder(Collections.emptyList()); //TeamCity issue: should be handled in core. Do not spend any resources on user without permissions
+    }
+
     final Boolean byPromotion = locator.getSingleDimensionValueAsBoolean(BY_PROMOTION);
     if (byPromotion != null && !byPromotion) {
       throw new BadRequestException("Found '" + BY_PROMOTION + "' locator set to 'false' which is not supported");

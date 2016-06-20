@@ -116,4 +116,8 @@ public class PermissionChecker {@NotNull private final SecurityContext mySecurit
     return authorityHolder.isPermissionGrantedForProject(internalProjectId, permission);
   }
 
+  public boolean hasPermissionInAnyProject(@NotNull final Permission permission) {
+    final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
+    return authorityHolder.isPermissionGrantedForAnyProject(permission);
+  }
 }
