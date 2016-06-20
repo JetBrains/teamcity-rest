@@ -24,6 +24,8 @@ import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.InheritableUserParametersHolder;
+import jetbrains.buildServer.serverSide.SBuildAgent;
+import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -281,18 +283,18 @@ public class TypedFinderBuilder<ITEM> {
     }
   }
 
-  public TypedFinderDimension<ITEM, Long> dimensionLong(@NotNull final Dimension<Long> dimension) {
+  public TypedFinderDimensionWithDefaultChecker<ITEM, Long, Long> dimensionLong(@NotNull final Dimension<Long> dimension) {
     return dimension(dimension, type(dimensionValue -> {
       try {
         return Long.parseLong(dimensionValue);
       } catch (NumberFormatException e) {
         throw new LocatorProcessException("Invalid value '" + dimensionValue + "'. Should be a number.");
       }
-    }).description("number"));
+    }).description("number")).defaultFilter((aLong, item) -> aLong.equals(item));
   }
 
-  public TypedFinderDimension<ITEM, String> dimensionString(@NotNull final Dimension<String> dimension) {
-    return dimension(dimension, type(dimensionValue -> dimensionValue).description("text"));
+  public TypedFinderDimensionWithDefaultChecker<ITEM, String, String> dimensionString(@NotNull final Dimension<String> dimension) {
+    return dimension(dimension, type(dimensionValue -> dimensionValue).description("text")).defaultFilter((s, item) -> s.equals(item));
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, Boolean, Boolean> dimensionBoolean(@NotNull final Dimension<Boolean> dimension) {
@@ -300,12 +302,60 @@ public class TypedFinderBuilder<ITEM> {
       .defaultFilter((value, item) -> FilterUtil.isIncludedByBooleanFilter(value, item));
   }
 
-  public TypedFinderDimension<ITEM, List<BuildPromotion>> dimensionBuildPromotions(@NotNull final Dimension<List<BuildPromotion>> dimension,
-                                                                                   @NotNull final ServiceLocator serviceLocator) {
-    return dimension(dimension, type(dimensionValue -> {
-      final BuildPromotionFinder buildPromotionFinder = serviceLocator.getSingletonService(BuildPromotionFinder.class);
-      return buildPromotionFinder.getItems(dimensionValue).myEntries;
-    }).description("build locator"));
+  public TypedFinderDimensionWithDefaultChecker<ITEM, List<BuildPromotion>, Set<BuildPromotion>> dimensionBuildPromotions(@NotNull final Dimension<List<BuildPromotion>> dimension,
+                                                                                                                          @NotNull final ServiceLocator serviceLocator) {
+    return dimensionWithFinder(dimension, () -> serviceLocator.getSingletonService(BuildPromotionFinder.class), "build locator");
+  }
+
+  public TypedFinderDimensionWithDefaultChecker<ITEM, List<SBuildAgent>, Set<SBuildAgent>> dimensionAgents(@NotNull final Dimension<List<SBuildAgent>> dimension,
+                                                                                                           @NotNull final ServiceLocator serviceLocator) {
+    return dimensionWithFinder(dimension, () -> serviceLocator.getSingletonService(AgentFinder.class), (item) -> item.getId(), "agent locator");
+  }
+
+  public TypedFinderDimensionWithDefaultChecker<ITEM, List<SProject>, Set<SProject>> dimensionProjects(@NotNull final Dimension<List<SProject>> dimension,
+                                                                                                       @NotNull final ServiceLocator serviceLocator) {
+    return dimensionWithFinder(dimension, () -> serviceLocator.getSingletonService(ProjectFinder.class), "project locator");
+  }
+
+  /**
+   * Use with caution: should be able to find items in set!
+   */
+  public <FINDER_TYPE> TypedFinderDimensionWithDefaultChecker<ITEM, List<FINDER_TYPE>, Set<FINDER_TYPE>> dimensionWithFinder(@NotNull final Dimension<List<FINDER_TYPE>> dimension,
+                                                                                                                             @NotNull final Value<Finder<FINDER_TYPE>> finderValue,
+                                                                                                                             @NotNull String typeDescription) {
+    return dimension(dimension, type(dimensionValue -> finderValue.get().getItems(dimensionValue).myEntries).description(typeDescription))
+      .defaultFilter(new Filter<List<FINDER_TYPE>, Set<FINDER_TYPE>>() {
+        @Override
+        public boolean isIncluded(@NotNull final List<FINDER_TYPE> fromFilter, @NotNull final Set<FINDER_TYPE> fromItem) {
+          for (FINDER_TYPE item : fromFilter) {
+            if (fromItem.contains(item)) return true;
+          }
+          return false;
+        }
+      });
+  }
+
+  /**
+   * @param <MIDDLE> - type which can be used in Set
+   * @return
+   */
+  public <FINDER_TYPE, MIDDLE> TypedFinderDimensionWithDefaultChecker<ITEM, List<FINDER_TYPE>, Set<FINDER_TYPE>>
+  dimensionWithFinder(@NotNull final Dimension<List<FINDER_TYPE>> dimension, @NotNull final Value<Finder<FINDER_TYPE>> finderValue,
+                      @NotNull final Converter<MIDDLE, FINDER_TYPE> converter, @NotNull String typeDescription) {
+    return dimension(dimension, type(dimensionValue -> finderValue.get().getItems(dimensionValue).myEntries).description(typeDescription))
+      .defaultFilter(new Filter<List<FINDER_TYPE>, Set<FINDER_TYPE>>() {
+        @Override
+        public boolean isIncluded(@NotNull final List<FINDER_TYPE> fromFilter, @NotNull final Set<FINDER_TYPE> fromItem) {
+          Set<MIDDLE> middleSet = new HashSet<MIDDLE>();
+          for (FINDER_TYPE item : fromItem) {
+            middleSet.add(converter.convert(item));
+          }
+          for (FINDER_TYPE item : fromFilter) {
+            if (middleSet.contains(converter.convert(item))) return true;
+          }
+          return false;
+        }
+      });
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, ParameterCondition, ParametersProvider> dimensionParameterCondition(@NotNull final Dimension<ParameterCondition> dimension) {
@@ -616,12 +666,21 @@ public class TypedFinderBuilder<ITEM> {
 
   public static interface Filter<CHECK_VALUE, ACTUAL_VALUE> {
     boolean isIncluded(@NotNull CHECK_VALUE value, @NotNull ACTUAL_VALUE item);
-
   }
 
   public static interface TypeFromItem<TYPE, ITEM> {
     @Nullable
     TYPE get(@NotNull final ITEM item);
+  }
+
+  public interface Value<S> {
+    @NotNull
+    S get();
+  }
+
+  interface Converter<TO, FROM> {
+    @NotNull
+    TO convert(@NotNull FROM item);
   }
 
   //============================= Helper subclasses =============================
@@ -880,7 +939,7 @@ public class TypedFinderBuilder<ITEM> {
             }
           });
           if (checker == null) continue;
-          if (alreadyUsedDimensions.containsAll(usedDimensions)) continue; //all the dimensions were already used
+          if (!usedDimensions.isEmpty() && alreadyUsedDimensions.containsAll(usedDimensions)) continue; //all the dimensions were already used. Is this logic at all needed?
           result.add(checker); //also support shouldStop
         }
       }

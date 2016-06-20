@@ -16,10 +16,12 @@
 
 package jetbrains.buildServer.server.rest.model.agent;
 
+import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -28,6 +30,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.agentPools.*;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -74,7 +77,10 @@ public class AgentPool {
     agents = ValueWithDefault.decideDefault(fields.isIncluded("agents", false), new ValueWithDefault.Value<Agents>() {
       @Nullable
       public Agents get() {
-        return new Agents(agentPoolFinder.getPoolAgents(agentPool), null, fields.getNestedField("agents", Fields.NONE, Fields.LONG), beanContext);
+        Fields nestedFields = fields.getNestedField("agents", Fields.NONE, Fields.LONG);
+        List<SBuildAgent> agents = beanContext.getSingletonService(AgentFinder.class).
+          getItems(nestedFields.getLocator(), new Locator(AgentFinder.getLocator(agentPool))).myEntries;
+        return new Agents(agents, null, nestedFields, beanContext);
       }
     });
   }

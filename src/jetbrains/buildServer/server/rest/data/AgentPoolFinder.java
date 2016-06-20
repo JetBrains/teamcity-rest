@@ -16,12 +16,9 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimension;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.BuildAgentEx;
 import jetbrains.buildServer.serverSide.ProjectManager;
@@ -31,7 +28,6 @@ import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeStorage;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
 
@@ -39,7 +35,7 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 07.11.13
  */
-public class AgentPoolFinder {
+public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
   public static final String DIMENSION_ID = "id";
   @NotNull private final AgentPoolManager myAgentPoolManager;
   @NotNull private final ServiceLocator myServiceLocator;
@@ -51,14 +47,51 @@ public class AgentPoolFinder {
     myAgentPoolManager = agentPoolManager;
     myServiceLocator = serviceLocator;
     myAgentFinder = agentFinder;
+    setDelegate(new AgentPoolFinderBuilder().build());
   }
+
+  @NotNull
+  public static String getLocator(@NotNull final AgentPool agentPool) {
+    return Locator.getStringLocator(ID.name, String.valueOf(agentPool.getAgentPoolId()));
+  }
+
+  @NotNull
+  public static String getLocator(@NotNull final SProject project) {
+    return Locator.getStringLocator(PROJECT.name, ProjectFinder.getLocator(project));
+  }
+
+  private static final Dimension<Long> ID = new Dimension<>("id");
+  private static final Dimension<String> NAME = new Dimension<>("name");
+  private static final Dimension<List<SBuildAgent>> AGENT = new Dimension<>("agent");
+  private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
+
+  private class AgentPoolFinderBuilder extends TypedFinderBuilder<AgentPool> {
+    AgentPoolFinderBuilder() {
+      dimensionLong(Dimension.single()).description("agent pool id").toItems(dimension -> Collections.singletonList(getAgentPoolById(dimension)));
+      dimensionLong(ID).description("agent pool id").toItems(dimension -> Collections.singletonList(getAgentPoolById(dimension))).
+        valueForDefaultFilter(agentPool -> (long)agentPool.getAgentPoolId());
+      dimensionString(NAME).description("agent pool name").valueForDefaultFilter(agentPool -> agentPool.getName());
+      dimensionProjects(PROJECT, myServiceLocator).description("projects associated with the agent pool").
+        valueForDefaultFilter(agentPool -> new HashSet<SProject>(getPoolProjects(agentPool)));
+      dimensionAgents(AGENT, myServiceLocator).description("agents associated with the agent pool").
+        valueForDefaultFilter(agentPool -> new HashSet<SBuildAgent>(getPoolAgentsInternal(agentPool)));
+
+      multipleConvertToItems(DimensionCondition.ALWAYS, dimensions -> myAgentPoolManager.getAllAgentPools());
+
+      locatorProvider(agentPool -> getLocator(agentPool));
+    }
+  }
+
+  //
+  // Helper methods
+  //
 
   //todo: TeamCity API: what is the due way to do this? http://youtrack.jetbrains.com/issue/TW-33307
   /**
    * Gets all agents (registered and unregistered) of the specified pool excluding cloud agent images.
    */
   @NotNull
-  public List<SBuildAgent> getPoolAgents(@NotNull final AgentPool agentPool) {
+  private List<SBuildAgent> getPoolAgentsInternal(@NotNull final AgentPool agentPool) {
     final Collection<Integer> agentTypeIds = myServiceLocator.getSingletonService(AgentTypeStorage.class).getAgentTypeIdsByPool(agentPool.getAgentPoolId());
 
     //todo: support cloud agents here
@@ -105,33 +138,7 @@ public class AgentPoolFinder {
     return agentEx.getAgentType().getAgentPool();
   }
 
-  @NotNull
-  public AgentPool getItem(final String locatorText) {
-    if (StringUtil.isEmpty(locatorText)) {
-      throw new BadRequestException("Empty agent pool locator is not supported.");
-    }
-    final Locator locator = new Locator(locatorText, DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-    if (locator.isSingleValue()) {
-      // no dimensions found, assume it's an id
-      locator.checkLocatorFullyProcessed();
-      //noinspection ConstantConditions
-      return getAgentPoolById(locator.getSingleValueAsLong());
-    }
-    Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
-    if (id != null) {
-      locator.checkLocatorFullyProcessed();
-      return getAgentPoolById(id);
-    }
-    locator.checkLocatorFullyProcessed();
-    throw new NotFoundException("Agent pool locator '" + locatorText + "' is not supported.");
-  }
-
-  public Collection<AgentPool> getPoolsForProject(final SProject project) {
-    final Set<Integer> projectPoolsIds = myAgentPoolManager.getProjectPools(project.getProjectId());
-    final ArrayList<AgentPool> result = new ArrayList<AgentPool>(projectPoolsIds.size());
-    for (Integer poolId : projectPoolsIds) {
-      result.add(getAgentPoolById(poolId));
-    }
-    return result;
+  public Collection<AgentPool> getPoolsForProject(@NotNull final SProject project) {
+    return getItems(getLocator(project)).myEntries;
   }
 }

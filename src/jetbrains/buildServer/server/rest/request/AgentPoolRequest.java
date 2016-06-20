@@ -21,14 +21,13 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.AgentFinder;
-import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.data.ProjectFinder;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -71,8 +70,10 @@ public class AgentPoolRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
-  public AgentPools getPools(@QueryParam("fields") String fields) {
-    return new AgentPools(myServiceLocator.getSingletonService(AgentPoolManager.class).getAllAgentPools(), new PagerData(getHref()), new Fields(fields), myBeanContext);
+  public AgentPools getPools(@QueryParam("locator") String locator, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+    PagedSearchResult<jetbrains.buildServer.serverSide.agentPools.AgentPool> result = myAgentPoolFinder.getItems(locator);
+    final PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
+    return new AgentPools(result.myEntries, pager, new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -220,9 +221,9 @@ public class AgentPoolRequest {
   @GET
   @Path("/{agentPoolLocator}/agents")
   @Produces({"application/xml", "application/json"})
-  public Agents getPoolAgents(@PathParam("agentPoolLocator") String agentPoolLocator, @QueryParam("fields") String fields) {
+  public Agents getPoolAgents(@PathParam("agentPoolLocator") String agentPoolLocator, @QueryParam("locator") String locator, @QueryParam("fields") String fields) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolFinder.getItem(agentPoolLocator);
-    return new Agents(myAgentPoolFinder.getPoolAgents(agentPool), null, new Fields(fields), myBeanContext);
+    return new Agents(myAgentFinder.getItems(locator, new Locator(AgentFinder.getLocator(agentPool))).myEntries, null, new Fields(fields), myBeanContext);
   }
 
   /**

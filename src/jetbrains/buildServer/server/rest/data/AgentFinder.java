@@ -85,6 +85,11 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     return Locator.getStringLocator(COMPATIBLE, Locator.getStringLocator(COMPATIBLE_BUILD_TYPE, BuildTypeFinder.getLocator(buildType)));
   }
 
+  @NotNull
+  public static String getLocator(@NotNull final AgentPool pool) {
+    return Locator.getStringLocator(POOL, AgentPoolFinder.getLocator(pool), DEFAULT_FILTERING, "false");
+  }
+
   //todo: check view agent details permission before returning unauthorized agents, here and in prefiltering
   @Override
   @Nullable
