@@ -138,7 +138,7 @@ public class VcsRootRequest {
       protected Collection<jetbrains.buildServer.vcs.VcsRootInstance> doGet() {
         final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
         final HashSet<jetbrains.buildServer.vcs.VcsRootInstance> result = new HashSet<jetbrains.buildServer.vcs.VcsRootInstance>();
-        for (SBuildType buildType : vcsRoot.getUsages().keySet()) {
+        for (SBuildType buildType : vcsRoot.getUsagesInConfigurations()) {
           final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = buildType.getVcsRootInstanceForParent(vcsRoot);
           if (rootInstance != null) {
             result.add(rootInstance);

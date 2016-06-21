@@ -348,7 +348,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   private Set<VcsRootInstance> getInstances(@NotNull final SVcsRoot vcsRoot, @Nullable final Boolean versionedSettingsUsagesOnly) {
     TreeSet<VcsRootInstance> result = new TreeSet<>(VCS_ROOT_INSTANCE_COMPARATOR);
     if (versionedSettingsUsagesOnly == null || !versionedSettingsUsagesOnly) {
-      for (SBuildType buildType : vcsRoot.getUsages().keySet()) {
+      for (SBuildType buildType : vcsRoot.getUsagesInConfigurations()) {
         final VcsRootInstance rootInstance = buildType.getVcsRootInstanceForParent(vcsRoot);
         if (rootInstance != null) {
           try {

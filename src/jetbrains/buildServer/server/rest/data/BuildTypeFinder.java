@@ -457,7 +457,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       final LinkedHashSet<BuildTypeOrTemplate> result = new LinkedHashSet<BuildTypeOrTemplate>();
       for (SVcsRoot root : vcsRoots) {
         //can optimize more by checking template flag here
-        result.addAll(BuildTypes.fromBuildTypes(root.getUsages().keySet()));
+        result.addAll(BuildTypes.fromBuildTypes(root.getUsagesInConfigurations()));
         result.addAll(BuildTypes.fromTemplates(vcsManager.getAllTemplateUsages(root)));
       }
       //order of the result is not well defined here, might need to resort...
