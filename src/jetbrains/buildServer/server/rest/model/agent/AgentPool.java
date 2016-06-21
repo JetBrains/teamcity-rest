@@ -63,7 +63,7 @@ public class AgentPool {
     id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), agentPool.getAgentPoolId());
     name = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), agentPool.getName());
     href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(agentPool));
-    maxAgents = ValueWithDefault.decideDefault(fields.isIncluded("maxAgents", false), getMaxAgents(agentPool));
+    maxAgents = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("maxAgents", false), getMaxAgents(agentPool));
 
     final AgentPoolFinder agentPoolFinder = beanContext.getSingletonService(AgentPoolFinder.class);
 
