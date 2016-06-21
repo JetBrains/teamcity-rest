@@ -152,14 +152,14 @@ public class Project {
 
     links = getLinks(project, fields, beanContext);
 
-    final SProject actulParentProject = project.getParentProject();
+    final SProject actualParentProject = project.getParentProject();
     final String descriptionText = project.getDescription();
     description = ValueWithDefault.decideDefault(fields.isIncluded("description"), StringUtil.isEmpty(descriptionText) ? null : descriptionText);
     archived = ValueWithDefault.decideDefault(fields.isIncluded("archived"), project.isArchived());
 
-    parentProject = actulParentProject == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("parentProject", false), new ValueWithDefault.Value<Project>() {
+    parentProject = actualParentProject == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("parentProject", false), new ValueWithDefault.Value<Project>() {
       public Project get() {
-        return new Project(actulParentProject, fields.getNestedField("parentProject"), beanContext);
+        return new Project(actualParentProject, fields.getNestedField("parentProject"), beanContext);
       }
     });
 
@@ -219,16 +219,16 @@ public class Project {
       }
     });
 
-    parentProjectId = ValueWithDefault.decideDefault(fields.isIncluded("parentProjectId"), actulParentProject == null ? null : actulParentProject.getExternalId());
+    parentProjectId = ValueWithDefault.decideDefault(fields.isIncluded("parentProjectId"), actualParentProject == null ? null : actualParentProject.getExternalId());
 
     final boolean forceParentAttributes = TeamCityProperties.getBoolean("rest.beans.project.addParentProjectAttributes");
-    parentProjectName = actulParentProject == null
+    parentProjectName = actualParentProject == null
                         ? null
-                        : ValueWithDefault.decideDefault(fields.isIncluded("parentProjectName", false, false) || forceParentAttributes, actulParentProject.getFullName());
-    parentProjectInternalId = actulParentProject == null
+                        : ValueWithDefault.decideDefault(fields.isIncluded("parentProjectName", false, false) || forceParentAttributes, actualParentProject.getFullName());
+    parentProjectInternalId = actualParentProject == null
                               ? null
                               : ValueWithDefault.decideDefault(forceParentAttributes || fields.isIncluded("parentProjectInternalId", includeInternal, includeInternal),
-                                                               actulParentProject.getProjectId());
+                                                               actualParentProject.getProjectId());
   }
 
   @Nullable

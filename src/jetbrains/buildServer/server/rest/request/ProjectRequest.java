@@ -492,10 +492,10 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   public Project getParentProject(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
-    final SProject actulParentProject = project.getParentProject();
-    return actulParentProject == null
+    final SProject actualParentProject = project.getParentProject();
+    return actualParentProject == null
            ? null
-           : new Project(actulParentProject,  new Fields(fields), myBeanContext);
+           : new Project(actualParentProject,  new Fields(fields), myBeanContext);
   }
 
   @PUT
