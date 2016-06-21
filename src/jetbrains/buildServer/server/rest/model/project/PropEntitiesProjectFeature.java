@@ -38,7 +38,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 04/06/2016
  */
-@XmlRootElement(name = "project-features")  //todo: ok that it clashes???
+@XmlRootElement(name = "projectFeatures")  //todo: ok that it clashes???
 public class PropEntitiesProjectFeature {
   @XmlAttribute
   public Integer count;
@@ -47,7 +47,7 @@ public class PropEntitiesProjectFeature {
   @Nullable
   public String href;
 
-  @XmlElement(name = "feature")
+  @XmlElement(name = "projectFeature")
   public List<PropEntityProjectFeature> propEntities;
 
   public PropEntitiesProjectFeature() {
@@ -55,12 +55,12 @@ public class PropEntitiesProjectFeature {
 
   public PropEntitiesProjectFeature(@NotNull final SProject project, @Nullable final String featureLocator, @NotNull final Fields fields, final BeanContext beanContext) {
     final List<SProjectFeatureDescriptor> features = new PropEntityProjectFeature.ProjectFeatureFinder(project).getItems(featureLocator).myEntries;
-    propEntities = ValueWithDefault.decideDefault(fields.isIncluded("feature"), new ValueWithDefault.Value<List<PropEntityProjectFeature>>() {
+    propEntities = ValueWithDefault.decideDefault(fields.isIncluded("projectFeature"), new ValueWithDefault.Value<List<PropEntityProjectFeature>>() {
       @Nullable
       public List<PropEntityProjectFeature> get() {
         return CollectionsUtil.convertCollection(features, new Converter<PropEntityProjectFeature, SProjectFeatureDescriptor>() {
           public PropEntityProjectFeature createFrom(@NotNull final SProjectFeatureDescriptor source) {
-            return new PropEntityProjectFeature(source, fields.getNestedField("feature", Fields.NONE, Fields.LONG), beanContext);
+            return new PropEntityProjectFeature(source, fields.getNestedField("projectFeature", Fields.NONE, Fields.LONG), beanContext);
           }
         });
       }

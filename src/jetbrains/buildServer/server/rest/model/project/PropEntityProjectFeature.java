@@ -41,7 +41,7 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 04/06/2016
  */
-@XmlRootElement(name = "project-feature") //todo: is this OK that it clashes with PropEntityFeature???
+@XmlRootElement(name = "projectFeature") //todo: is this OK that it clashes with PropEntityFeature???
 public class PropEntityProjectFeature extends PropEntity {
   public PropEntityProjectFeature() {
   }

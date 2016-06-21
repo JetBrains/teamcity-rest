@@ -242,9 +242,9 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
 
     project = new Project(project10_10, new Fields("$long"), getBeanContext(myServer));
     assertEquals(project.id, project10_10.getExternalId());
-    assertNotNull(project.features);
-    assertEquals(Integer.valueOf(1), project.features.count);
-    List<PropEntityProjectFeature> propEntities = project.features.propEntities;
+    assertNotNull(project.projectFeatures);
+    assertEquals(Integer.valueOf(1), project.projectFeatures.count);
+    List<PropEntityProjectFeature> propEntities = project.projectFeatures.propEntities;
     assertEquals(1, propEntities.size());
     PropEntityProjectFeature feature = propEntities.get(0);
     assertEquals("uniqueId20",feature.id);

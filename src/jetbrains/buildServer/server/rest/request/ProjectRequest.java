@@ -75,7 +75,7 @@ public class ProjectRequest {
 
   public static final String API_PROJECTS_URL = Constants.API_URL + "/projects";
   protected static final String PARAMETERS = BuildTypeRequest.PARAMETERS;
-  protected static final String FEATURES = "/features";
+  protected static final String FEATURES = "/projectFeatures";
 
   @NotNull
   public static String getHref() {

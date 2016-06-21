@@ -54,7 +54,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "project")
 @XmlType(name = "project", propOrder = {"id", "internalId", "uuid", "name", "parentProjectId", "parentProjectInternalId", "parentProjectName", "archived", "description", "href", "webUrl",
-  "links", "parentProject", "buildTypes", "templates", "parameters", "vcsRoots", "features", "projects"})
+  "links", "parentProject", "buildTypes", "templates", "parameters", "vcsRoots", "projectFeatures", "projects"})
 @SuppressWarnings("PublicField")
 public class Project {
   @XmlAttribute
@@ -119,7 +119,7 @@ public class Project {
   public VcsRoots vcsRoots;
 
   @XmlElement
-  public PropEntitiesProjectFeature features;
+  public PropEntitiesProjectFeature projectFeatures;
 
   @XmlElement (name = "projects")
   public Projects projects;
@@ -197,16 +197,16 @@ public class Project {
                               new PagerData(VcsRootRequest.getHref(project)), fields.getNestedField("vcsRoots"), beanContext);
         }
       });
-      features = ValueWithDefault.decideDefault(fields.isIncluded("features", false),
+      projectFeatures = ValueWithDefault.decideDefault(fields.isIncluded("projectFeatures", false),
                                                 () -> {
-                                                  Fields nestedFields = fields.getNestedField("features", Fields.NONE, Fields.LONG);
+                                                  Fields nestedFields = fields.getNestedField("projectFeatures", Fields.NONE, Fields.LONG);
                                                   return new PropEntitiesProjectFeature(project, nestedFields.getLocator(), nestedFields, beanContext);
                                                 });
     } else {
       templates = null;
       parameters = null;
       vcsRoots = null;
-      features = null;
+      projectFeatures = null;
     }
 
     projects = ValueWithDefault.decideDefault(fields.isIncluded("projects", false), new ValueWithDefault.Value<Projects>() {
