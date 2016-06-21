@@ -103,7 +103,11 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
 
   @NotNull
   protected Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    final Locator result = Locator.createLocator(locatorText, locatorDefaults, myDataBinding.getKnownDimensions());
+    List<String> knownDimensions = new ArrayList<>(Arrays.asList(myDataBinding.getKnownDimensions()));
+    knownDimensions.add(PagerData.START);
+    knownDimensions.add(PagerData.COUNT);
+    knownDimensions.add(DIMENSION_LOOKUP_LIMIT);
+    final Locator result = Locator.createLocator(locatorText, locatorDefaults, knownDimensions.toArray(new String[knownDimensions.size()]));
     result.addIgnoreUnusedDimensions(PagerData.COUNT);
     result.addHiddenDimensions(AbstractFinder.DIMENSION_ITEM, AbstractFinder.DIMENSION_UNIQUE); //experimental
     for (String hiddenDimension : myDataBinding.getHiddenDimensions()) {

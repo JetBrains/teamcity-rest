@@ -81,7 +81,7 @@ public class ExceptionMapperUtil {
     if (statusCode >= 500){
       responseText.append("Error has occurred during request processing");
     } else {
-      responseText.append("Invalid request");
+      responseText.append("Responding with error");
     }
     responseText.append(", status code: ").append(Integer.toString(statusCode));
     if (status != null) responseText.append(" (").append(status.toString()).append(")");

@@ -833,6 +833,7 @@ public class TypedFinderBuilder<ITEM> {
         if (!dimension.getHidden()) result.add(dimension.getDimension().name);
       }
       result.add(HELP_DIMENSION);
+      if (mySingleDimensionHandler != null) result.add(Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
       return CollectionsUtil.toArray(result, String.class);
     }
 

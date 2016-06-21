@@ -413,11 +413,10 @@ public class BuildQueueRequest {
     if (builds.builds == null){
       throw new BadRequestException("No new builds order specified. Should post a collection of builds with ids");
     }
-    final BuildPromotionFinder buildFinder = myServiceLocator.getSingletonService(BuildPromotionFinder.class);
     LinkedHashSet<String> ids = new LinkedHashSet<>();
     for (Build build : builds.builds) {
       try {
-        List<BuildPromotion> items = buildFinder.getItems(build.getLocatorFromPosted(Collections.emptyMap()), new Locator(getBuildPromotionLocatorDefaults())).myEntries;
+        List<BuildPromotion> items = myBuildPromotionFinder.getItems(build.getLocatorFromPosted(Collections.emptyMap()), new Locator(getBuildPromotionLocatorDefaults())).myEntries;
         for (BuildPromotion buildPromotion : items) {
           SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
           if (queuedBuild == null) continue;
@@ -431,7 +430,7 @@ public class BuildQueueRequest {
     buildQueue.applyOrder(CollectionsUtil.toArray(ids, String.class));
 
     //see getBuilds()
-    return Builds.createFromBuildPromotions(CollectionsUtil.convertCollection(myQueuedBuildFinder.getItems(null).myEntries, source -> source.getBuildPromotion()),
+    return Builds.createFromBuildPromotions(myBuildPromotionFinder.getItems(getBuildPromotionLocatorDefaults().getStringRepresentation()).myEntries,
                                             null, new Fields(fields), myBeanContext);
   }
 }

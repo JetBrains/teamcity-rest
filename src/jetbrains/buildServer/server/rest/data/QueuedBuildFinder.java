@@ -53,6 +53,8 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
                            final BuildsManager buildsManager) {
     super(DIMENSION_ID, PROMOTION_ID, PROJECT, BUILD_TYPE, AGENT, USER, PERSONAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     setHiddenDimensions(DIMENSION_LOOKUP_LIMIT);
+    setHiddenDimensions("compatibleAgent");
+    setHiddenDimensions("compatibleAgentsCount");
     myBuildQueue = buildQueue;
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;

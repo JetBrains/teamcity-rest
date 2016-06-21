@@ -260,6 +260,12 @@ public class Locator {
     return StringUtil.isEmpty(locatorText) ? Locator.createEmptyLocator() : new Locator(locatorText);
   }
 
+  @Nullable
+  @Contract("null -> null; !null -> !null")
+  public static Locator locator(@Nullable final String locatorText) {
+    return locatorText != null ? new Locator(locatorText) : null;
+  }
+
   @NotNull
   public static Locator createEmptyLocator(@Nullable final String... supportedDimensions) {
     final Locator result = new Locator();
