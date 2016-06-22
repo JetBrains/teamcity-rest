@@ -46,6 +46,7 @@ import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.identifiers.DuplicateExternalIdException;
+import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectsLoader;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
@@ -556,6 +557,68 @@ public class ProjectRequest {
       throw new IllegalStateException("Agent pool with id \'" + agentPoolId + "' is not found.");
     }
     return new AgentPool(agentPoolFromPosted, Fields.LONG, myBeanContext);
+  }
+
+  @GET
+  @Path("/{projectLocator}/order/projects")
+  @Produces({"application/xml", "application/json"})
+  public Projects getProjectsOrder(@PathParam("projectLocator") String projectLocator, @PathParam("field") String fields) {
+    SProject project = myProjectFinder.getItem(projectLocator);
+    return new Projects(((ProjectEx)project).getOwnProjectsOrder(), null, new Fields(fields), myBeanContext);
+  }
+
+  @PUT
+  @Path("/{projectLocator}/order/projects")
+  @Produces({"application/xml", "application/json"})
+  public Projects setProjectsOrder(@PathParam("projectLocator") String projectLocator, Projects projects, @PathParam("field") String fields) {
+    SProject project = myProjectFinder.getItem(projectLocator);
+    LinkedHashSet<String> ids = new LinkedHashSet<>();
+    if (projects.projects != null) {
+      for (Project postedProject : projects.projects) {
+        final String locatorFromPosted = postedProject.getLocatorFromPosted();
+        List<SProject> items = myProjectFinder.getItems(project, locatorFromPosted).myEntries;
+        if (items.isEmpty()) {
+          throw new BadRequestException("No direct sub-projects in project found by locator '" + locatorFromPosted + "'");
+        }
+        for (SProject item : items) {
+          ids.add(item.getProjectId());
+        }
+      }
+    }
+    ((ProjectEx)project).setOwnProjectsOrder(new ArrayList<>(ids));
+
+    return new Projects(((ProjectEx)project).getOwnProjectsOrder(), null, new Fields(fields), myBeanContext);
+  }
+
+  @GET
+  @Path("/{projectLocator}/order/buildTypes")
+  @Produces({"application/xml", "application/json"})
+  public BuildTypes getBuildTypesOrder(@PathParam("projectLocator") String projectLocator, @PathParam("field") String fields) {
+    SProject project = myProjectFinder.getItem(projectLocator);
+    return new BuildTypes(BuildTypes.fromBuildTypes(((ProjectEx)project).getOwnBuildTypesOrder()), null, new Fields(fields), myBeanContext);
+  }
+
+  @PUT
+  @Path("/{projectLocator}/order/buildTypes")
+  @Produces({"application/xml", "application/json"})
+  public BuildTypes setBuildTypesOrder(@PathParam("projectLocator") String projectLocator, BuildTypes buildTypes, @PathParam("field") String fields) {
+    SProject project = myProjectFinder.getItem(projectLocator);
+    LinkedHashSet<String> ids = new LinkedHashSet<>();
+    if (buildTypes.buildTypes != null) {
+      for (BuildType buildType : buildTypes.buildTypes) {
+        String locatorFromPosted = buildType.getLocatorFromPosted();
+        List<SBuildType> items = myBuildTypeFinder.getBuildTypes(project, locatorFromPosted);
+        if (items.isEmpty()) {
+          throw new BadRequestException("No build types in project found by locator '" + locatorFromPosted + "'");
+        }
+        for (SBuildType item : items) {
+          ids.add(item.getInternalId());
+        }
+      }
+    }
+    ((ProjectEx)project).setOwnBuildTypesOrder(new ArrayList<>(ids));
+    //see serveBuildTypesInProject()
+    return new BuildTypes(BuildTypes.fromBuildTypes(((ProjectEx)project).getOwnBuildTypesOrder()), null, new Fields(fields), myBeanContext);
   }
 
   /**

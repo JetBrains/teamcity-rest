@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.model.project;
 
-import com.intellij.openapi.util.text.StringUtil;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -45,6 +44,7 @@ import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
+import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -308,6 +308,11 @@ public class Project {
 
   @NotNull
   public SProject getProjectFromPosted(@NotNull ProjectFinder projectFinder) {
+    return projectFinder.getItem(getLocatorFromPosted());
+  }
+
+  @NotNull
+  public String getLocatorFromPosted() {
     //todo: support posted parentProject fields here
     String locatorText = "";
     if (internalId != null) locatorText = "internalId:" + internalId;
@@ -319,14 +324,15 @@ public class Project {
         throw new BadRequestException("Both 'locator' and 'id' or 'internalId' attributes are specified. Only one should be present.");
       }
     }
-    if (jetbrains.buildServer.util.StringUtil.isEmpty(locatorText)){
+    if (StringUtil.isEmpty(locatorText)){
       //find by href for compatibility with 7.0
-      if (!jetbrains.buildServer.util.StringUtil.isEmpty(href)){
-        return projectFinder.getItem(jetbrains.buildServer.util.StringUtil.lastPartOf(href, '/'));
+      if (!StringUtil.isEmpty(href)){
+        locatorText = StringUtil.lastPartOf(href, '/');
+      } else{
+        throw new BadRequestException("No project specified. Either 'id', 'internalId' or 'locator' attribute should be present.");
       }
-      throw new BadRequestException("No project specified. Either 'id', 'internalId' or 'locator' attribute should be present.");
     }
-    return projectFinder.getItem(locatorText);
+    return locatorText;
   }
 
   public static boolean shouldRestrictSettingsViewing(final @NotNull BuildProject project, final @NotNull PermissionChecker permissionChecker) {

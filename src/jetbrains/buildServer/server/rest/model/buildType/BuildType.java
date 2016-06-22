@@ -451,6 +451,34 @@ public class BuildType {
     throw new BadRequestException("Could not find build type by the data. Either 'id' or 'internalId' or 'locator' attributes should be specified.");
   }
 
+  @NotNull
+  public String getLocatorFromPosted() {
+    String locatorText;
+    if (submittedLocator != null) {
+      if (submittedId != null) {
+        throw new BadRequestException("Both 'locator' and '" + "id" + "' attributes are specified. Only one should be present.");
+      }
+      if (submittedInternalId != null) {
+        throw new BadRequestException("Both 'locator' and '" + "internalId" + "' attributes are specified. Only one should be present.");
+      }
+      locatorText = submittedLocator;
+    } else {
+      final Locator locator = Locator.createEmptyLocator();
+      if (submittedId != null) {
+        locator.setDimension("id", submittedId);
+      }
+      if (submittedInternalId != null) {
+          locator.setDimension("internalId", submittedInternalId);
+      }
+      if (locator.isEmpty()) {
+        throw new BadRequestException("No build specified. Either '" + "id" + "' or 'locator' attributes should be present.");
+      }
+
+      locatorText = locator.getStringRepresentation();
+    }
+    return locatorText;
+  }
+
   /**
    * @return null if nothing is customized
    */

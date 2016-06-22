@@ -409,9 +409,9 @@ public class BuildQueueRequest {
   @Path("/order")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Builds setNewBuildQueueOrder(Builds builds, @PathParam("field") String fields) {
+  public Builds setBuildQueueOrder(Builds builds, @PathParam("fields") String fields) {
     if (builds.builds == null){
-      throw new BadRequestException("No new builds order specified. Should post a collection of builds with ids");
+      throw new BadRequestException("No new builds order specified. Should post a collection of builds, each with id or locator");
     }
     LinkedHashSet<String> ids = new LinkedHashSet<>();
     for (Build build : builds.builds) {
