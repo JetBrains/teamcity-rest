@@ -328,7 +328,7 @@ public class User {
       if (username != null) {
         throw new BadRequestException("Both 'locator' and '" + "username" + "' attributes are specified. Only one should be present.");
       }
-      return userFinder.getItem(submittedLocator);
+      return userFinder.getItem(submittedLocator, true);
     }
 
     if (id != null){

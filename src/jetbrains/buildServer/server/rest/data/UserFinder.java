@@ -37,7 +37,6 @@ import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.users.impl.UserImpl;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -89,16 +88,6 @@ public class UserFinder extends DelegatingFinder<SUser> {
     setDelegate(new UserFinderBuilder().build());
   }
 
-  //related to http://youtrack.jetbrains.net/issue/TW-20071 and other cases
-  @Nullable
-  @Contract("!null -> !null; null -> null")
-  public SUser ensureViewUserPermissionEnforced(final @Nullable SUser user) throws AuthorizationFailedException {
-    if (user != null && TeamCityProperties.getBooleanOrTrue(REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
-      checkViewUserPermission(user);
-    }
-    return user;
-  }
-
   public void checkViewAllUsersPermissionEnforced() throws AuthorizationFailedException {
     if (TeamCityProperties.getBooleanOrTrue(REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
       checkViewAllUsersPermission();
@@ -109,12 +98,18 @@ public class UserFinder extends DelegatingFinder<SUser> {
     myPermissionChecker.checkGlobalPermissionAnyOf(new Permission[]{Permission.VIEW_USER_PROFILE, Permission.CHANGE_USER});
   }
 
-  public void checkViewUserPermission(final @NotNull SUser user) throws AuthorizationFailedException {
-    final jetbrains.buildServer.users.User currentUser = getCurrentUser();
-    if (currentUser != null && currentUser.getId() == user.getId()) {
-      return;
+  public void checkViewUserPermission(final @Nullable SUser user) throws AuthorizationFailedException {
+    if (user != null) {
+      final jetbrains.buildServer.users.User currentUser = getCurrentUser();
+      if (currentUser != null && currentUser.getId() == user.getId()) {
+        return;
+      }
     }
-    checkViewAllUsersPermission();
+    try {
+      checkViewAllUsersPermission();
+    } catch (AuthorizationFailedException e) {
+      throw new AuthorizationFailedException("No permission to reference users: " + e.getMessage(), e);
+    }
   }
 
   @Nullable
@@ -173,7 +168,17 @@ public class UserFinder extends DelegatingFinder<SUser> {
   @NotNull
   public SUser getItem(@Nullable final String locatorText, boolean checkViewPermission) {
     if (checkViewPermission) {
-      return ensureViewUserPermissionEnforced(super.getItem(locatorText));
+      SUser user = null;
+      try {
+        user = super.getItem(locatorText);
+        return user;
+      } finally {
+        //should check in case of NotFoundException as well. this will mask original exception in cae of no permissions, but that is exactly what is necessary
+        if (TeamCityProperties.getBooleanOrTrue(REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
+          //related to http://youtrack.jetbrains.net/issue/TW-20071 and other cases
+          checkViewUserPermission(user);
+        }
+      }
     }
     return super.getItem(locatorText);
   }
