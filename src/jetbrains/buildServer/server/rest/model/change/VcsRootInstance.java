@@ -229,6 +229,8 @@ public class VcsRootInstance {
       } catch (VcsException e) {
         throw new InvalidStateException("Error while getting current revision: ", e);
       }
+    } else if ("changesPush".equals(field)) {
+      return String.valueOf(!((VcsRootInstanceEx)rootInstance).isPollingMode());
     }
     throw new NotFoundException(
       "Field '" + field + "' is not supported. Supported are: id, name, vcsName, " + LAST_VERSION + ", " + LAST_VERSION_INTERNAL + ", currentVersion, currentVersionInternal.");
