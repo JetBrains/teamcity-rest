@@ -54,7 +54,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "project")
 @XmlType(name = "project", propOrder = {"id", "internalId", "uuid", "name", "parentProjectId", "parentProjectInternalId", "parentProjectName", "archived", "description", "href", "webUrl",
-  "links", "parentProject", "buildTypes", "templates", "parameters", "vcsRoots", "projectFeatures", "projects"})
+  "links", "parentProject", "readOnlyUI", "buildTypes", "templates", "parameters", "vcsRoots", "projectFeatures", "projects"})
 @SuppressWarnings("PublicField")
 public class Project {
   @XmlAttribute
@@ -107,6 +107,9 @@ public class Project {
   public Project parentProject;
 
   @XmlElement
+  public StateField readOnlyUI;
+
+  @XmlElement
   public BuildTypes buildTypes;
 
   @XmlElement
@@ -156,6 +159,7 @@ public class Project {
     final String descriptionText = project.getDescription();
     description = ValueWithDefault.decideDefault(fields.isIncluded("description"), StringUtil.isEmpty(descriptionText) ? null : descriptionText);
     archived = ValueWithDefault.decideDefault(fields.isIncluded("archived"), project.isArchived());
+    readOnlyUI = StateField.create(project.isReadOnly(), ((ProjectEx)project).isCustomSettingsFormatUsed() ? false : null, fields.getNestedField("readOnlyUI"));
 
     parentProject = actualParentProject == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("parentProject", false), new ValueWithDefault.Value<Project>() {
       public Project get() {
@@ -264,6 +268,8 @@ public class Project {
       return project.getName();
     } else if ("archived".equals(field)) {
       return String.valueOf(project.isArchived());
+    } else if ("readOnlyUI".equals(field)) {
+      return String.valueOf(project.isReadOnly());
     } else if ("parentProjectName".equals(field)) {
       //noinspection ConstantConditions
       return project.getParentProject() == null ? null : project.getParentProject().getName();
@@ -301,6 +307,10 @@ public class Project {
       return;
     } else if ("archived".equals(field)) {
       project.setArchived(Boolean.valueOf(value), serviceLocator.getSingletonService(UserFinder.class).getCurrentUser());
+      return;
+    } else if ("readOnlyUI".equals(field) && TeamCityProperties.getBoolean("rest.projectRequest.allowSetReadOnlyUI")) {
+      ((ProjectEx)project).setEditable(!Boolean.valueOf(value));
+      project.persist();
       return;
     }
     throw new BadRequestException("Setting field '" + field + "' is not supported. Supported are: name, description, archived");

@@ -214,6 +214,25 @@ public class ProjectRequest {
     return Project.getFieldValue(project, fieldName);
   }
 
+  /*
+  @GET
+  @Path("/{projectLocator}/readOnlyUI/value")
+  @Produces("text/plain")
+  public String getReadOnlyUiEnabled(@PathParam("projectLocator") String projectLocator) {
+    return Project.getFieldValue(myProjectFinder.getItem(projectLocator), "readOnlyUI");
+  }
+
+  @PUT
+  @Path("/{projectLocator}/readOnlyUI/value")
+  @Consumes("text/plain")
+  @Produces("text/plain")
+  public String setReadOnlyUiEnabled(@PathParam("projectLocator") String projectLocator, String newValue) {
+    final SProject project = myProjectFinder.getItem(projectLocator);
+    Project.setFieldValueAndPersist(project, "readOnlyUI", String.valueOf(newValue), myServiceLocator);
+    return Project.getFieldValue(myProjectFinder.getItem(projectLocator), "readOnlyUI");
+  }
+  */
+
   @GET
   @Path("/{projectLocator}/buildTypes")
   @Produces({"application/xml", "application/json"})

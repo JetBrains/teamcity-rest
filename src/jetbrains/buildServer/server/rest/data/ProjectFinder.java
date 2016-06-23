@@ -54,6 +54,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   private static final String DIMENSION_AFFECTED_PROJECT = "affectedProject";
   public static final String DIMENSION_NAME = "name";
   public static final String DIMENSION_ARCHIVED = "archived";
+  public static final String DIMENSION_READ_ONLY_UI = "readOnlyUI";
   protected static final String DIMENSION_PARAMETER = "parameter";
   protected static final String DIMENSION_SELECTED = "selectedByUser";
   public static final String BUILD = "build";
@@ -67,8 +68,8 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
   public ProjectFinder(@NotNull final ProjectManager projectManager, final PermissionChecker permissionChecker, @NotNull final ServiceLocator serviceLocator){
     super(DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, DIMENSION_AFFECTED_PROJECT, DIMENSION_NAME, DIMENSION_ARCHIVED,
-      BUILD, BUILD_TYPE, VCS_ROOT, FEATURE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-    setHiddenDimensions(DIMENSION_PARAMETER, DIMENSION_SELECTED,
+          BUILD, BUILD_TYPE, VCS_ROOT, FEATURE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    setHiddenDimensions(DIMENSION_PARAMETER, DIMENSION_SELECTED, DIMENSION_READ_ONLY_UI,
                         DIMENSION_LOOKUP_LIMIT,
                         DIMENSION_PARENT_PROJECT //compatibility mode for versions <9.1
     );
@@ -201,6 +202,15 @@ public class ProjectFinder extends AbstractFinder<SProject> {
       result.add(new FilterConditionChecker<SProject>() {
         public boolean isIncluded(@NotNull final SProject item) {
           return FilterUtil.isIncludedByBooleanFilter(archived, item.isArchived());
+        }
+      });
+    }
+
+    final Boolean readOnlyUI = locator.getSingleDimensionValueAsBoolean(DIMENSION_READ_ONLY_UI);
+    if (readOnlyUI != null) {
+      result.add(new FilterConditionChecker<SProject>() {
+        public boolean isIncluded(@NotNull final SProject item) {
+          return FilterUtil.isIncludedByBooleanFilter(readOnlyUI, item.isReadOnly());
         }
       });
     }
