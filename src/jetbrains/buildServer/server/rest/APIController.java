@@ -113,8 +113,8 @@ public class APIController extends BaseController implements ServletContextAware
   private final RequestPathTransformInfo myRequestPathTransformInfo;
   private final PathSet myUnauthenticatedPathSet = new PathSet();
 
-  private final CachingValuesFromInternalProperty myAllowedOrigins = new CachingValuesFromInternalProperty();
-  private final CachingValuesFromInternalProperty myDisabledRequests = new CachingValuesFromInternalProperty();
+  private final CachingValuesFromInternalProperty myAllowedOrigins = new CachingValuesFromInternalProperty(REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME, ",");
+  private final CachingValues myDisabledRequests = new CachingValues();
 
   public APIController(final SBuildServer server,
                        WebControllerManager webControllerManager,
@@ -506,7 +506,7 @@ public class APIController extends BaseController implements ServletContextAware
   private boolean processCorsRequest(final HttpServletRequest request, final HttpServletResponse response) {
     final String origin = request.getHeader("Origin");
     if (StringUtil.isNotEmpty(origin)) {
-      final String[] originsArray = myAllowedOrigins.getParsedValues(TeamCityProperties.getProperty(REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME), ",");
+      final String[] originsArray = myAllowedOrigins.getParsedValues();
       if (ArrayUtil.contains(origin, originsArray)) {
         addOriginHeaderToResponse(response, origin);
         addOtherHeadersToResponse(request, response);
@@ -554,14 +554,45 @@ public class APIController extends BaseController implements ServletContextAware
     return myServer.getExtensions(RESTControllerExtension.class);
   }
 
-  class CachingValuesFromInternalProperty{
+  class CachingValuesFromInternalProperty {
     private String myCachedValue;
+    private String[] myParsedValues;
+    private final String myPropertyName;
+    private final String myDelimiter;
+
+    CachingValuesFromInternalProperty(@NotNull final String propertyName, @Nullable final String delimiter) {
+      myPropertyName = propertyName;
+      myDelimiter = delimiter;
+    }
+
+    @NotNull
+    synchronized String[] getParsedValues() {
+      final String property = TeamCityProperties.getProperty(myPropertyName);
+      if (isShouldReparse(property)) {
+        myCachedValue = property;
+        myParsedValues = property.split(StringUtil.isEmpty(myDelimiter) ? "," : myDelimiter);
+        for (int i = 0; i < myParsedValues.length; i++) {
+          myParsedValues[i] = myParsedValues[i].trim();
+        }
+      }
+      return myParsedValues;
+    }
+
+    synchronized boolean isShouldReparse(String value) {
+      return !equalsNullable(myCachedValue, value);
+    }
+  }
+
+  class CachingValues {
+    private String myCachedValue;
+    private String myCachedDelimiter;
     private String[] myParsedValues;
 
     @NotNull
     private synchronized String[] getParsedValues(@NotNull final String currentValue, @Nullable final String delimiter) {
-      if (myCachedValue == null || !myCachedValue.equals(currentValue)) {
+      if (!equalsNullable(myCachedValue, currentValue) || !equalsNullable(myCachedDelimiter, delimiter)) {
         myCachedValue = currentValue;
+        myCachedDelimiter = delimiter;
         myParsedValues = currentValue.split(StringUtil.isEmpty(delimiter) ? "," : delimiter);
         for (int i = 0; i < myParsedValues.length; i++) {
           myParsedValues[i] = myParsedValues[i].trim();
@@ -652,4 +683,11 @@ public class APIController extends BaseController implements ServletContextAware
     return myAuthToken;
   }
 
+  private static <T> boolean equalsNullable(@Nullable T a, @Nullable T b) {
+    if (a == null) {
+      return b == null;
+    } else {
+      return b != null && a.equals(b);
+    }
+  }
 }
