@@ -663,6 +663,13 @@ public class Locator {
     return idDimension != null ? new ArrayList<String>(idDimension) : Collections.<String>emptyList();
   }
 
+  public Boolean isAnyPresent(@NotNull final String... dimensionName) {
+    for (String name : dimensionName) {
+      if (myDimensions.get(name) != null) return true;
+    }
+    return false;
+  }
+
   /**
    * Same as getSingleDimensionValue but does not mark the value as used
    */

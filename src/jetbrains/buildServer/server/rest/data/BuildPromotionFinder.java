@@ -788,19 +788,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     return createStateLocator(STATE_ANY); // default to all the builds
   }
 
-  private boolean isStateLocatorPresent(@NotNull final Locator locator) {
-    final Set<String> usedDimensions = locator.getUsedDimensions();
-    if (locator.getSingleDimensionValue(STATE) != null) {
-      if (!usedDimensions.contains(STATE)) locator.markUnused(STATE);
-      return true;
-    }
-    if (locator.getSingleDimensionValue(RUNNING) != null) {
-      if (!usedDimensions.contains(RUNNING)) locator.markUnused(RUNNING);
-      return true;
-    }
-    return false;
-  }
-
   @NotNull
   private MultiCheckerFilter<SBuild> getBuildFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<SBuild> result = new MultiCheckerFilter<SBuild>();
@@ -1233,20 +1220,42 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   }
 
   private void setLocatorDefaults(@NotNull final Locator locator) {
-    final Boolean defaultFiltering = locator.getSingleDimensionValueAsBoolean(DEFAULT_FILTERING, true);
-    if (!locator.isSingleValue() && (defaultFiltering == null || defaultFiltering)) {
-      locator.setDimensionIfNotPresent(PERSONAL, "false");
-      locator.setDimensionIfNotPresent(CANCELED, "false");
-      if (!isStateLocatorPresent(locator)) {
-        locator.setDimension(STATE, STATE_FINISHED);
+    if (locator.isSingleValue()) {
+      return;
+    }
+    final Boolean defaultFiltering = locator.getSingleDimensionValueAsBoolean(DEFAULT_FILTERING);
+    if (defaultFiltering != null && !defaultFiltering) {
+      return;
+    }
+
+    //this is added for consistency - currently this never triggers as findSingleItem treats the dimensions without ever calling setLocatorDefaults
+    if (locator.isAnyPresent(DIMENSION_ID, PROMOTION_ID, PROMOTION_ID_ALIAS, BUILD_ID)) {
+      return;
+    }
+
+    if (!locator.isAnyPresent(STATE, RUNNING)) {
+      locator.setDimension(STATE, STATE_FINISHED);
+    }
+
+    if (defaultFiltering == null) { // if it is set, then use the value ("true" if we got there)
+      if (TeamCityProperties.getBooleanOrTrue("rest.buildPromotionFinder.varyingDefaults")) {
+        if (locator.isAnyPresent(AGENT, AGENT_NAME, USER, HANGING, EQUIVALENT)) {
+          // users usually expect that any build will be returned for such locators, see TW-45140
+          return;
+        }
+        Locator stateLocator = getStateLocator(new Locator(locator));
+        if (!isStateIncluded(stateLocator, STATE_FINISHED)) {
+          // also including all builds if the only requested are running or queued builds
+          return;
+        }
       }
-      locator.setDimensionIfNotPresent(FAILED_TO_START, "false");
-      if (locator.lookupSingleDimensionValue(SNAPSHOT_DEP) == null &&
-          locator.lookupSingleDimensionValue(EQUIVALENT) == null &&
-          locator.lookupSingleDimensionValue(ORDERED) == null) {
-        //do not force branch to default for some locators
-        locator.setDimensionIfNotPresent(BRANCH, myBranchFinder.getDefaultBranchLocator());
-      }
+    }
+    locator.setDimensionIfNotPresent(PERSONAL, "false");
+    locator.setDimensionIfNotPresent(CANCELED, "false");
+    locator.setDimensionIfNotPresent(FAILED_TO_START, "false");
+    if (!locator.isAnyPresent(SNAPSHOT_DEP, EQUIVALENT, ORDERED)) {
+      //do not force branch to default for some locators
+      locator.setDimensionIfNotPresent(BRANCH, myBranchFinder.getDefaultBranchLocator());
     }
   }
 

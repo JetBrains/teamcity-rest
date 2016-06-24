@@ -1210,6 +1210,155 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("strob:(branch:(default:any,buildType:(id:" + buildConf2.getExternalId() + ")),locator:(buildType:(id:" + buildConf1.getExternalId() + ")))", build40, build25);
   }
 
+  @Test
+  public void testDefaultsLegacy() {
+    setInternalProperty("rest.buildPromotionFinder.varyingDefaults", "false"); //turn on pre-TeamCity 10 mode
+    final SProject project = createProject("prj", "project");
+    final BuildTypeEx buildConf1 = (BuildTypeEx)project.createBuildType("buildConf1", "buildConf1");
+    SUser user1 = createUser("user1");
+
+    final BuildPromotion build10 = build().in(buildConf1).finish().getBuildPromotion();
+    final BuildPromotion build15 = build().in(buildConf1).personalForUser("user1").finish().getBuildPromotion();
+    final BuildPromotion build20 = build().in(buildConf1).failedToStart().finish().getBuildPromotion();
+    final BuildPromotion build30 = build().in(buildConf1).cancel(user1).getBuildPromotion();
+    SFinishedBuild finishedBuild40 = build().in(buildConf1).withBranch("branch1").tag("tag").finish();
+    finishedBuild40.setPinned(true, null, null);
+    final BuildPromotion build40 = finishedBuild40.getBuildPromotion();
+    final BuildPromotion build45 = build().in(buildConf1).withBranch("branch1").personalForUser("user1").finish().getBuildPromotion();
+    final BuildPromotion build50 = build().in(buildConf1).withBranch("branch1").failedToStart().by(user1).finish().getBuildPromotion();
+    final BuildPromotion build60 = build().in(buildConf1).withBranch("branch1").cancel(user1).getBuildPromotion();
+
+    final BuildPromotion build100 = build().in(buildConf1).run().getBuildPromotion();
+    myFixture.createEnabledAgent("agent2", "runner1");
+    myFixture.createEnabledAgent("agent3", "runner1");
+    final BuildPromotion build110 = build().in(buildConf1).withBranch("branch1").by(user1).run().getBuildPromotion();
+    final BuildPromotion build120 = build().in(buildConf1).withBranch("branch1").personalForUser("user1").failedToStart().tag("tag").run().getBuildPromotion();
+
+    final BuildPromotion build130 = build().in(buildConf1).addToQueue().getBuildPromotion();
+    final BuildPromotion build140 = build().in(buildConf1).withBranch("branch1").addToQueue().getBuildPromotion();
+    final BuildPromotion build150 = build().in(buildConf1).withBranch("branch1").personalForUser("user1").addToQueue().getBuildPromotion();
+
+    check("defaultFilter:false", build130, build140, build150, build120, build110, build100, build60, build50, build45, build40, build30, build20, build15, build10);
+    check(null, build10);
+    check("state:finished", build10);
+    check("state:(finished:true)", build10);
+    check("running:false", build10);
+//bug here with state processing    check("state:(finished:false)", build130, build140, build150, build120, build110, build100);
+//bug here with state processing    check("state:(finished:any)", build130, build140, build150, build120, build110, build100, build60, build50, build45, build40, build30, build20, build15, build10);
+    check("state:(finished:true,running:true)", build100, build10);
+    check("state:(finished:true,queued:true)", build130, build10);
+    check("running:true", build100);
+    check("state:(running)", build100);
+    check("state:(running:true)", build100);
+
+    check("branch:(branch1)", build40);
+    check("branch:(branch1),running:true", build110);
+
+    check("agent:(id:" + build100.getAssociatedBuild().getAgent().getId() + ")", build10);
+    check("agent:(id:" + build110.getAssociatedBuild().getAgent().getId() + ")");
+    check("agent:(id:" + build100.getAssociatedBuild().getAgent().getId() + "),running:any", build100, build10);
+    check("agent:(id:" + build100.getAssociatedBuild().getAgent().getId() + "),running:true", build100);
+    check("agent:(id:" + build110.getAssociatedBuild().getAgent().getId() + "),running:true");
+    check("agent:(id:" + build120.getAssociatedBuild().getAgent().getId() + "),running:true");
+    check("agentName:" + build120.getAssociatedBuild().getAgent().getName() + ",running:true");
+
+    check("user:id:" + user1.getId());
+    check("user:id:" + user1.getId() + ",state:any");
+
+    check("id:" + build50.getId(), build50);
+    check("id:" + build60.getId(), build60);
+    check("id:" + build120.getId(), build120);
+    check("id:" + build120.getId(), build120);
+
+    check("state:queued", build130);
+    check("state:(queued:true,running:true)", build130, build100);
+
+    check("buildType:" + buildConf1.getExternalId(), build10);
+    check("buildType:" + buildConf1.getExternalId() + ",running:any", build100, build10);
+//bug here with state processing    check("buildType:" + buildConf1.getExternalId() + ",state:(queued:any)", build130, build100, build10);
+    check("buildType:" + buildConf1.getExternalId() + ",state:(queued:true,running:true,finished:true)", build130, build100, build10);
+    check("tag:tag");
+    check("tag:tag,running:true");
+    check("pinned:true");
+  }
+
+  @Test
+  public void testDefaults() {
+    final SProject project = createProject("prj", "project");
+    final BuildTypeEx buildConf1 = (BuildTypeEx)project.createBuildType("buildConf1", "buildConf1");
+    SUser user1 = createUser("user1");
+
+    final BuildPromotion build10 = build().in(buildConf1).finish().getBuildPromotion();
+    final BuildPromotion build15 = build().in(buildConf1).personalForUser("user1").finish().getBuildPromotion();
+    final BuildPromotion build20 = build().in(buildConf1).failedToStart().finish().getBuildPromotion();
+    final BuildPromotion build30 = build().in(buildConf1).cancel(user1).getBuildPromotion();
+    SFinishedBuild finishedBuild40 = build().in(buildConf1).withBranch("branch1").tag("tag").finish();
+    finishedBuild40.setPinned(true, null, null);
+    final BuildPromotion build40 = finishedBuild40.getBuildPromotion();
+    final BuildPromotion build45 = build().in(buildConf1).withBranch("branch1").personalForUser("user1").finish().getBuildPromotion();
+    final BuildPromotion build50 = build().in(buildConf1).withBranch("branch1").failedToStart().by(user1).finish().getBuildPromotion();
+    final BuildPromotion build60 = build().in(buildConf1).withBranch("branch1").cancel(user1).getBuildPromotion();
+
+    final BuildPromotion build100 = build().in(buildConf1).run().getBuildPromotion();
+    myFixture.createEnabledAgent("agent2", "runner1");
+    myFixture.createEnabledAgent("agent3", "runner1");
+    final BuildPromotion build110 = build().in(buildConf1).withBranch("branch1").by(user1).run().getBuildPromotion();
+    final BuildPromotion build120 = build().in(buildConf1).withBranch("branch1").personalForUser("user1").failedToStart().tag("tag").run().getBuildPromotion();
+
+    final BuildPromotion build130 = build().in(buildConf1).addToQueue().getBuildPromotion();
+    final BuildPromotion build140 = build().in(buildConf1).withBranch("branch1").addToQueue().getBuildPromotion();
+    final BuildPromotion build150 = build().in(buildConf1).withBranch("branch1").personalForUser("user1").addToQueue().getBuildPromotion();
+
+    check("defaultFilter:false", build130, build140, build150, build120, build110, build100, build60, build50, build45, build40, build30, build20, build15, build10);
+    check(null, build10);
+    check("state:finished", build10);
+    check("state:(finished:true)", build10);
+    check("running:false", build10);
+//bug here with state processing    check("state:(finished:false)", build130, build140, build150, build120, build110, build100);
+//bug here with state processing    check("state:(finished:any)", build130, build140, build150, build120, build110, build100, build60, build50, build45, build40, build30, build20, build15, build10);
+    check("state:(finished:true,running:true)", build100, build10);
+    check("state:(finished:true,running:true),defaultFilter:false", build120, build110, build100, build60, build50, build45, build40, build30, build20, build15, build10);
+    check("state:(finished:true,running:true),defaultFilter:true", build100, build10);
+    check("state:(finished:true,queued:true)", build130, build10);
+    check("running:true,defaultFilter:true", build100);
+    check("running:true", build120, build110, build100);
+    check("state:(running)", build120, build110, build100);
+    check("state:(running:true)", build120, build110, build100);
+
+    check("branch:(branch1)", build40);
+    check("branch:(branch1),running:true", build120, build110);
+
+    check("agent:(id:" + build100.getAssociatedBuild().getAgent().getId() + ")", build60, build50, build45, build40, build30, build20, build15, build10);
+    check("agent:(id:" + build110.getAssociatedBuild().getAgent().getId() + ")");
+    check("agent:(id:" + build100.getAssociatedBuild().getAgent().getId() + "),running:any", build100, build60, build50, build45, build40, build30, build20, build15, build10);
+    check("agent:(id:" + build100.getAssociatedBuild().getAgent().getId() + "),running:true", build100);
+    check("agent:(id:" + build110.getAssociatedBuild().getAgent().getId() + "),running:true", build110);
+    check("agent:(id:" + build120.getAssociatedBuild().getAgent().getId() + "),running:true", build120);
+    check("agentName:" + build120.getAssociatedBuild().getAgent().getName() + ",running:true", build120);
+
+    check("user:id:" + user1.getId(), build50);
+    check("user:id:" + user1.getId() + ",state:any", build110, build50);
+
+    check("id:" + build50.getId(), build50);
+    check("id:" + build60.getId(), build60);
+    check("id:" + build120.getId(), build120);
+    check("id:" + build150.getId(), build150);
+
+    check("state:queued", build130, build140, build150);
+    check("state:(queued:true,running:true)", build130, build140, build150, build120, build110, build100);
+
+    check("buildType:" + buildConf1.getExternalId(), build10);
+    check("buildType:" + buildConf1.getExternalId() + ",running:any", build100, build10);
+    check("buildType:" + buildConf1.getExternalId() + ",running:any,defaultFilter:false", build120, build110, build100, build60, build50, build45, build40, build30, build20, build15, build10);
+//bug here with state processing    check("buildType:" + buildConf1.getExternalId() + ",state:(queued:any)", build130, build100, build10);
+    check("buildType:" + buildConf1.getExternalId() + ",state:(queued:true,running:true,finished:true)", build130, build100, build10);
+    check("buildType:" + buildConf1.getExternalId() + ",state:(queued:true,running:true,finished:true),defaultFilter:false", build130, build140, build150, build120,
+          build110, build100, build60, build50, build45, build40, build30, build20, build15, build10);
+    check("tag:tag");
+    check("tag:tag,running:true", build120);
+    check("pinned:true");
+  }
+
   //==================================================
 
   public void checkBuilds(final String locator, BuildPromotion... builds) {
