@@ -42,6 +42,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   public static final String DIMENSION_LOOKUP_LIMIT = "lookupLimit";
   public static final String DIMENSION_ITEM = "item";
   public static final String DIMENSION_UNIQUE = "unique";
+  protected static final String OPTIONS_REPORT_ERROR_ON_NOTHING_FOUND = "$reportErrorOnNothingFound";
 
   //todo: add set-filtering (filter by collection of items in prefiltering and in filter), e.g. see handling of ProjectFinder.DIMENSION_PROJECT
   private FinderDataBinding<ITEM> myDataBinding;
@@ -107,9 +108,12 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     knownDimensions.add(PagerData.START);
     knownDimensions.add(PagerData.COUNT);
     knownDimensions.add(DIMENSION_LOOKUP_LIMIT);
+    knownDimensions.add(OPTIONS_REPORT_ERROR_ON_NOTHING_FOUND);
     final Locator result = Locator.createLocator(locatorText, locatorDefaults, knownDimensions.toArray(new String[knownDimensions.size()]));
     result.addIgnoreUnusedDimensions(PagerData.COUNT);
+    result.addIgnoreUnusedDimensions(OPTIONS_REPORT_ERROR_ON_NOTHING_FOUND);
     result.addHiddenDimensions(AbstractFinder.DIMENSION_ITEM, AbstractFinder.DIMENSION_UNIQUE); //experimental
+    result.addHiddenDimensions(OPTIONS_REPORT_ERROR_ON_NOTHING_FOUND); //experimental
     for (String hiddenDimension : myDataBinding.getHiddenDimensions()) {
       result.addHiddenDimensions(hiddenDimension);
     }
@@ -172,7 +176,8 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
       try {
         singleItem = myDataBinding.findSingleItem(locator);
       } catch (NotFoundException e) {
-        if (multipleItemsQuery) { //consider adding comment/warning messages to PagedSearchResult, return it as a header in the response
+        if (multipleItemsQuery && !isReportErrorOnNothingFound(locator)) {
+          //consider adding comment/warning messages to PagedSearchResult, return it as a header in the response
           //returning empty collection for multiple items query
           return new PagedSearchResult<ITEM>(Collections.<ITEM>emptyList(), null, null);
         }
@@ -200,7 +205,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
         if (!filter.isIncluded(singleItem)) {
           final String message = "Found single item by " + StringUtil.pluralize("dimension", singleItemUsedDimensions.size()) + " " + singleItemUsedDimensions +
                                  ", but that was filtered out using the entire locator '" + locator + "'";
-          if (multipleItemsQuery) {
+          if (multipleItemsQuery && !isReportErrorOnNothingFound(locator)) {
             LOG.debug(message);
             return new PagedSearchResult<ITEM>(Collections.<ITEM>emptyList(), null, null);
           } else {
@@ -233,6 +238,10 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     return getItems(pagingFilter, unfilteredItems, locator);
   }
 
+  private static boolean isReportErrorOnNothingFound(final @NotNull Locator locator) {
+    return locator.getSingleDimensionValueAsStrictBoolean(OPTIONS_REPORT_ERROR_ON_NOTHING_FOUND, false);
+  }
+
   @NotNull
   private PagedSearchResult<ITEM> getItems(final @NotNull PagingItemFilter<ITEM> filter,
                                            final @NotNull FinderDataBinding.ItemHolder<ITEM> unfilteredItems,
@@ -254,6 +263,9 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
         processingTimeMs > TeamCityProperties.getLong("rest.finder.timeWarnLimit", 10000)) {
       LOG.info("Server performance can be affected by REST request with locator '" + locator + "': " +
                totalItemsProcessed + " items were processed and " + result.size() + " items were returned, took " + processingTimeMs + " ms");
+    }
+    if (result.isEmpty() && isReportErrorOnNothingFound(locator)){
+      throw new NotFoundException("Nothing is found by locator '" + locator.getStringRepresentation() + "'.");
     }
     return new PagedSearchResult<ITEM>(result, filter.getStart(), filter.getCount(), totalItemsProcessed,
                                        filter.getLookupLimit(), filter.isLookupLimitReached(), filter.getLastProcessedItem());

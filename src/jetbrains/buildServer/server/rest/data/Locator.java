@@ -633,6 +633,16 @@ public class Locator {
     return getSingleDimensionValueAsBoolean(dimensionName);
   }
 
+  public boolean getSingleDimensionValueAsStrictBoolean(@NotNull final String dimensionName, boolean defaultValue) {
+    final String value = getSingleDimensionValue(dimensionName);
+    if (value == null) {
+      return defaultValue;
+    }
+    final Boolean result = getStrictBoolean(value);
+    if (result != null) return result;
+    throw new LocatorProcessException("Invalid strict boolean value '" + value + "'. Should be 'true' or 'false'.");
+  }
+
   /**
    * Extracts the single dimension value from dimensions.
    *

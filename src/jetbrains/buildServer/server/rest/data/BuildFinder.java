@@ -153,7 +153,13 @@ public class BuildFinder {
 
   @NotNull
   public PagedSearchResult<BuildPromotion> getBuilds(@Nullable final SBuildType buildType, @Nullable final String locatorText) {
-    Locator locator = locatorText != null ? new Locator(locatorText) : Locator.createEmptyLocator();
+    Locator locator = null;
+    try {
+      locator = locatorText != null ? new Locator(locatorText) : Locator.createEmptyLocator();
+    } catch (LocatorProcessException e) {
+      //error creating locator - some special dimensions used? process by default
+      return myBuildPromotionFinder.getBuildPromotions(buildType, locatorText);
+    }
     if (useByPromotionFiltering(locator)) {
       return myBuildPromotionFinder.getBuildPromotions(buildType, locatorText);
     }
