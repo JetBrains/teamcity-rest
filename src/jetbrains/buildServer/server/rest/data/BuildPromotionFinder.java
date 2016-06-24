@@ -1243,7 +1243,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
           // users usually expect that any build will be returned for such locators, see TW-45140
           return;
         }
-        Locator stateLocator = getStateLocator(new Locator(locator));
+        Locator stateLocator = getStateLocator(new Locator(locator)); //creating locator copy here not to affect used dimensions
         if (!isStateIncluded(stateLocator, STATE_FINISHED)) {
           // also including all builds if the only requested are running or queued builds
           return;

@@ -56,8 +56,9 @@ public class Locator {
   private static final String DIMENSION_COMPLEX_VALUE_START_DELIMITER = "(";
   private static final String DIMENSION_COMPLEX_VALUE_END_DELIMITER = ")";
   public static final String LOCATOR_SINGLE_VALUE_UNUSED_NAME = "$singleValue";
-  protected static final String ANY_LITERAL = "$any";
-  protected static final String BASE64_ESCAPE_FAKE_DIMENSION = "$base64";
+  private static final String ANY_LITERAL = "$any";
+  private static final String BASE64_ESCAPE_FAKE_DIMENSION = "$base64";
+  private static final String HELP_DIMENSION = "$help";
 
   private final String myRawValue;
   private final boolean myExtendedMode;
@@ -130,6 +131,7 @@ public class Locator {
       myDimensions = new LinkedHashMap<String, List<String>>();
     } else {
       mySingleValue = null;
+      myHddenSupportedDimensions.add(HELP_DIMENSION);
       myDimensions = parse(locator, mySupportedDimensions, myHddenSupportedDimensions, myExtendedMode);
     }
   }
@@ -433,7 +435,7 @@ public class Locator {
         reportKnownButNotReportedDimensions();
       }
       final Set<String> unusedDimensions = getUnusedDimensions();
-      if (unusedDimensions.size() > 0) {
+      if (unusedDimensions.size() > 0 || isHelpRequested()) {
         Set<String> ignoredDimensions = mySupportedDimensions == null ? Collections.<String>emptySet() :
                                         CollectionsUtil.intersect(unusedDimensions, CollectionsUtil.join(Arrays.asList(mySupportedDimensions), myHddenSupportedDimensions));
         Set<String> unknownDimensions = CollectionsUtil.minus(unusedDimensions, ignoredDimensions);
@@ -450,7 +452,7 @@ public class Locator {
             message.append(unknownDimensions).append(" ").append(unknownDimensions.size() == 1 ? "is" : "are").append(" unknown");
           }
           message.append(".");
-        } else {
+        } else if (unusedDimensions.size() == 1) {
           if (!unusedDimensions.contains(LOCATOR_SINGLE_VALUE_UNUSED_NAME)) {
             if (mySupportedDimensions != null) {
               message.append("Locator dimension ").append(unusedDimensions).append(" is ");
@@ -466,7 +468,11 @@ public class Locator {
             message.append("Single value locator '").append(mySingleValue).append("' was ignored.");
           }
         }
-        if (mySupportedDimensions != null && mySupportedDimensions.length > 0) message.append(" ").append(getLocatorDescription(reportKindString.contains("includeHidden")));
+        if (mySupportedDimensions != null && mySupportedDimensions.length > 0) {
+          if (message.length() > 0)
+            message.append(" ");
+          message.append(getLocatorDescription(reportKindString.contains("includeHidden")));
+        }
         if (reportKindString.contains("log")) {
           if (reportKindString.contains("log-warn")) {
             LOG.warn(message.toString());
@@ -481,6 +487,16 @@ public class Locator {
     }
   }
 
+  public boolean isHelpRequested() {
+    if (isSingleValue()) return HELP_DIMENSION.equals(getSingleValue());
+    return getSingleDimensionValue(HELP_DIMENSION) != null;
+  }
+
+  @NotNull
+  public Locator helpOptions() {
+    return createPotentiallyEmptyLocator(getSingleDimensionValue(HELP_DIMENSION));
+  }
+
   protected interface DescriptionProvider{
     @NotNull String get(@NotNull Locator locator, boolean includeHidden);
   }
@@ -490,12 +506,23 @@ public class Locator {
   }
 
   @NotNull
-  private String getLocatorDescription(boolean includeHidden) {
+  public String getLocatorDescription(boolean includeHidden) {
     if (myDescriptionProvider == null) {
       StringBuilder result = new StringBuilder();
-      result.append("Supported dimensions are: ").append(Arrays.toString(mySupportedDimensions)).append(".");
+      if (mySupportedDimensions != null) {
+        result.append("Supported dimensions are: [");
+        for (String dimension : mySupportedDimensions) {
+          if (!myHddenSupportedDimensions.contains(dimension)) {
+            result.append(dimension).append(", ");
+          }
+        }
+        if (mySupportedDimensions.length > 0) result.delete(result.length() - ", ".length(), result.length());
+        result.append("]");
+      }
       if (includeHidden && !myHddenSupportedDimensions.isEmpty()) {
-        result.append(" Hidden supported are: ").append(Arrays.toString(myHddenSupportedDimensions.toArray()));
+        result.append(" Hidden supported are: [");
+        result.append(StringUtil.join(", ", myHddenSupportedDimensions));
+        result.append("]");
       }
       return result.toString();
     }

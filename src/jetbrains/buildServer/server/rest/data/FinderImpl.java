@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -182,6 +183,12 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
           return new PagedSearchResult<ITEM>(Collections.<ITEM>emptyList(), null, null);
         }
         throw e;
+      } catch (LocatorProcessException|BadRequestException e){
+        if (!locator.isHelpRequested()){
+          throw e;
+        }
+        throw new BadRequestException(e.getMessage() +
+                                      "\nLocator details: " + locator.getLocatorDescription(locator.helpOptions().getSingleDimensionValueAsStrictBoolean("hidden", false)), e);
       }
       if (singleItem != null) {
         final Set<String> singleItemUsedDimensions = locator.getUsedDimensions();
@@ -239,7 +246,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   }
 
   private static boolean isReportErrorOnNothingFound(final @NotNull Locator locator) {
-    return locator.getSingleDimensionValueAsStrictBoolean(OPTIONS_REPORT_ERROR_ON_NOTHING_FOUND, false);
+    return locator.getSingleDimensionValueAsStrictBoolean(OPTIONS_REPORT_ERROR_ON_NOTHING_FOUND, false) || locator.isHelpRequested();
   }
 
   @NotNull

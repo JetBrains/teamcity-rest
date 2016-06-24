@@ -782,8 +782,6 @@ public class TypedFinderBuilder<ITEM> {
   //============================= AbstractFinder implementation =============================
 
   private class TypedFinderDataBindingImpl implements FinderDataBinding<ITEM> {
-    protected static final String HELP_DIMENSION = "$help";
-
     @Nullable
     @Override
     public Long getDefaultPageItemsCount() {
@@ -832,7 +830,6 @@ public class TypedFinderBuilder<ITEM> {
       for (TypedFinderDimensionImpl dimension : myDimensions.values()) {
         if (!dimension.getHidden()) result.add(dimension.getDimension().name);
       }
-      result.add(HELP_DIMENSION);
       if (mySingleDimensionHandler != null) result.add(Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
       return CollectionsUtil.toArray(result, String.class);
     }
@@ -844,7 +841,6 @@ public class TypedFinderBuilder<ITEM> {
       for (TypedFinderDimensionImpl dimension : myDimensions.values()) {
         if (dimension.getHidden()) result.add(dimension.getDimension().name);
       }
-      result.add(HELP_DIMENSION);
       return CollectionsUtil.toArray(result, String.class);
     }
 
@@ -855,8 +851,7 @@ public class TypedFinderBuilder<ITEM> {
         StringBuilder result = new StringBuilder();
         result.append("Supported locator dimensions:\n");
         for (TypedFinderDimensionImpl dimension : myDimensions.values()) {
-          if (!includeHidden && dimension.getHidden() && locator.getDimensionValue(dimension.getDimension().name).isEmpty() &&
-              (locator.getDimensionValue(HELP_DIMENSION).isEmpty())) {
+          if (!includeHidden && dimension.getHidden() && locator.getDimensionValue(dimension.getDimension().name).isEmpty() && !locator.isHelpRequested()) {
             continue;
           }
           result.append(dimension.getDimension().name);
@@ -907,7 +902,7 @@ public class TypedFinderBuilder<ITEM> {
           ItemsFromDimensions<ITEM> itemsFromDimensions = myItemsConditions.get(conditions);
           List<ITEM> itemsList = itemsFromDimensions.get(dimensionObjects);
           if (itemsList != null) return FinderDataBinding.getItemHolder(itemsList);
-          //add debug mode to collect all toItems and report their sizes if antoher order would be more effective
+          //add debug mode to collect all toItems and report their sizes if another order would be more effective
         }
         //consider processing other items as well and intersecting???
 
