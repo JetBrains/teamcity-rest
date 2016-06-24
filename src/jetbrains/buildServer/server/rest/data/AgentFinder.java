@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import com.google.common.collect.ComparisonChain;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
@@ -49,6 +50,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   protected static final String PROTOCOL = "protocol";
   protected static final String DEFAULT_FILTERING = "defaultFilter";
   protected static final String POOL = "pool";
+  protected static final String BUILD = "build";
   protected static final String COMPATIBLE = "compatible";
   protected static final String INCOMPATIBLE = "incompatible";
   protected static final String COMPATIBLE_BUILD_TYPE = "buildType";
@@ -65,7 +67,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   @NotNull private final ServiceLocator myServiceLocator;
 
   public AgentFinder(final @NotNull BuildAgentManager agentManager, @NotNull final ServiceLocator serviceLocator) {
-    super(DIMENSION_ID, NAME, CONNECTED, AUTHORIZED, ENABLED, PARAMETER, IP, POOL, COMPATIBLE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    super(DIMENSION_ID, NAME, CONNECTED, AUTHORIZED, ENABLED, PARAMETER, IP, POOL, BUILD, COMPATIBLE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     setHiddenDimensions(PROTOCOL, INCOMPATIBLE, DEFAULT_FILTERING, DIMENSION_LOOKUP_LIMIT);
     myAgentManager = agentManager;
     myServiceLocator = serviceLocator;
@@ -178,6 +180,18 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       });
     }
 
+    if (!locator.isUnused(BUILD)) {
+      final String buildDimension = locator.getSingleDimensionValue(BUILD);
+      if (buildDimension != null) {
+        Set<SBuildAgent> agents = getBuildRelatedAgents(buildDimension);
+        result.add(new FilterConditionChecker<SBuildAgent>() {
+          public boolean isIncluded(@NotNull final SBuildAgent item) {
+            return agents.contains(item);
+          }
+        });
+      }
+    }
+
     final String ipDimension = locator.getSingleDimensionValue(IP);
     if (ipDimension != null) {
       result.add(new FilterConditionChecker<SBuildAgent>() {
@@ -244,6 +258,35 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
        }
     }
 
+    return result;
+  }
+
+  @NotNull
+  private Set<SBuildAgent> getBuildRelatedAgents(@NotNull final String buildDimension) {
+    BuildPromotionFinder finder = myServiceLocator.getSingletonService(BuildPromotionFinder.class);
+    List<BuildPromotion> builds = finder.getItems(buildDimension).myEntries;
+    //agents with the same id can be returned (not existing agents)
+    TreeSet<SBuildAgent> result = new TreeSet<>(new Comparator<SBuildAgent>() {
+      @Override
+      public int compare(final SBuildAgent o1, final SBuildAgent o2) {
+        return ComparisonChain.start()
+                              .compare(o1.getId(), o2.getId())
+                              .compare(o1.getAgentTypeId(), o2.getAgentTypeId())
+                              .compare(o1.getName(), o2.getName())
+                              .result();
+      }
+    });
+    for (BuildPromotion build : builds) {
+      SQueuedBuild queuedBuild = build.getQueuedBuild();
+      if (queuedBuild != null) {
+        result.addAll(queuedBuild.getCanRunOnAgents());
+      } else {
+        SBuild associatedBuild = build.getAssociatedBuild();
+        if (associatedBuild != null) {
+          result.add(associatedBuild.getAgent());
+        }
+      }
+    }
     return result;
   }
 
@@ -370,6 +413,11 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   public ItemHolder<SBuildAgent> getPrefilteredItems(@NotNull final Locator locator) {
     setLocatorDefaults(locator);
 
+    final String buildDimension = locator.getSingleDimensionValue(BUILD);
+    if (buildDimension != null) {
+      return getItemHolder(getBuildRelatedAgents(buildDimension));
+    }
+
     final Boolean authorizedDimension = locator.getSingleDimensionValueAsBoolean(AUTHORIZED);
     final boolean includeUnauthorized = authorizedDimension == null || !authorizedDimension;
 
@@ -474,7 +522,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       return;
     }
 
-    if (defaultFiltering == null && locator.isAnyPresent(POOL, IP, PROTOCOL)) {
+    if (defaultFiltering == null && locator.isAnyPresent(BUILD, POOL, IP, PROTOCOL)) {
       return;
     }
 
