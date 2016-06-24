@@ -69,7 +69,7 @@ public class Locator {
   @NotNull private final Set<String> myUsedDimensions = new HashSet<String>();
   @Nullable private String[] mySupportedDimensions;
   @NotNull private final Collection<String> myIgnoreUnusedDimensions = new HashSet<String>();
-  @NotNull private final Collection<String> myHddenSupportedDimensions = new HashSet<String>();
+  @NotNull private final Collection<String> myHiddenSupportedDimensions = new HashSet<String>();
   private DescriptionProvider myDescriptionProvider = null;
 
   public Locator(@Nullable final String locator) throws LocatorProcessException {
@@ -93,7 +93,7 @@ public class Locator {
     myUsedDimensions.addAll(locator.myUsedDimensions);
     mySupportedDimensions = locator.mySupportedDimensions != null ? locator.mySupportedDimensions.clone() : null;
     myIgnoreUnusedDimensions.addAll(locator.myIgnoreUnusedDimensions);
-    myHddenSupportedDimensions.addAll(locator.myHddenSupportedDimensions);
+    myHiddenSupportedDimensions.addAll(locator.myHiddenSupportedDimensions);
     myExtendedMode = locator.myExtendedMode;
   }
 
@@ -131,8 +131,8 @@ public class Locator {
       myDimensions = new LinkedHashMap<String, List<String>>();
     } else {
       mySingleValue = null;
-      myHddenSupportedDimensions.add(HELP_DIMENSION);
-      myDimensions = parse(locator, mySupportedDimensions, myHddenSupportedDimensions, myExtendedMode);
+      myHiddenSupportedDimensions.add(HELP_DIMENSION);
+      myDimensions = parse(locator, mySupportedDimensions, myHiddenSupportedDimensions, myExtendedMode);
     }
   }
 
@@ -233,8 +233,8 @@ public class Locator {
         final String value = defaults.getSingleDimensionValue(dimensionName);
         if (value != null) {
           result.setDimensionIfNotPresent(dimensionName, value);
-          if (defaults.myHddenSupportedDimensions.contains(dimensionName)){
-            result.myHddenSupportedDimensions.add(dimensionName);
+          if (defaults.myHiddenSupportedDimensions.contains(dimensionName)){
+            result.myHiddenSupportedDimensions.add(dimensionName);
           }
           if (defaults.myIgnoreUnusedDimensions.contains(dimensionName)){
             result.myIgnoreUnusedDimensions.add(dimensionName);
@@ -289,7 +289,7 @@ public class Locator {
    * @param hiddenDimensions
    */
   public void addHiddenDimensions(final String... hiddenDimensions) {
-    myHddenSupportedDimensions.addAll(Arrays.asList(hiddenDimensions));
+    myHiddenSupportedDimensions.addAll(Arrays.asList(hiddenDimensions));
   }
 
   @NotNull
@@ -437,7 +437,7 @@ public class Locator {
       final Set<String> unusedDimensions = getUnusedDimensions();
       if (unusedDimensions.size() > 0 || isHelpRequested()) {
         Set<String> ignoredDimensions = mySupportedDimensions == null ? Collections.<String>emptySet() :
-                                        CollectionsUtil.intersect(unusedDimensions, CollectionsUtil.join(Arrays.asList(mySupportedDimensions), myHddenSupportedDimensions));
+                                        CollectionsUtil.intersect(unusedDimensions, CollectionsUtil.join(Arrays.asList(mySupportedDimensions), myHiddenSupportedDimensions));
         Set<String> unknownDimensions = CollectionsUtil.minus(unusedDimensions, ignoredDimensions);
         StringBuilder message = new StringBuilder();
         if (unusedDimensions.size() > 1) {
@@ -512,16 +512,16 @@ public class Locator {
       if (mySupportedDimensions != null) {
         result.append("Supported dimensions are: [");
         for (String dimension : mySupportedDimensions) {
-          if (!myHddenSupportedDimensions.contains(dimension)) {
+          if (!myHiddenSupportedDimensions.contains(dimension)) {
             result.append(dimension).append(", ");
           }
         }
         if (mySupportedDimensions.length > 0) result.delete(result.length() - ", ".length(), result.length());
         result.append("]");
       }
-      if (includeHidden && !myHddenSupportedDimensions.isEmpty()) {
+      if (includeHidden && !myHiddenSupportedDimensions.isEmpty()) {
         result.append(" Hidden supported are: [");
-        result.append(StringUtil.join(", ", myHddenSupportedDimensions));
+        result.append(StringUtil.join(", ", myHiddenSupportedDimensions));
         result.append("]");
       }
       return result.toString();
@@ -532,7 +532,7 @@ public class Locator {
   private void reportKnownButNotReportedDimensions() {
     final Set<String> usedDimensions = new HashSet<String>(myUsedDimensions);
     if (mySupportedDimensions != null) usedDimensions.removeAll(Arrays.asList(mySupportedDimensions));
-    usedDimensions.removeAll(myHddenSupportedDimensions);
+    usedDimensions.removeAll(myHiddenSupportedDimensions);
     if (usedDimensions.size() > 0) {
       //found used dimensions which are not declared as used.
 
