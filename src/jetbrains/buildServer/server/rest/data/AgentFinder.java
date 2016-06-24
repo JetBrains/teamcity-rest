@@ -461,10 +461,24 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   }
 
   private void setLocatorDefaults(@NotNull final Locator locator) {
-    final Boolean defaultFiltering = locator.getSingleDimensionValueAsBoolean(DEFAULT_FILTERING, true);
-    if (!locator.isSingleValue() && (defaultFiltering == null || defaultFiltering)) {
-      locator.setDimensionIfNotPresent(AUTHORIZED, "true");
+    if (locator.isSingleValue()) {
+      return;
     }
+
+    final Boolean defaultFiltering = locator.getSingleDimensionValueAsBoolean(DEFAULT_FILTERING);
+    if (defaultFiltering != null && !defaultFiltering) {
+      return;
+    }
+
+    if (defaultFiltering == null && locator.isAnyPresent(DIMENSION_ID, NAME)){
+      return;
+    }
+
+    if (defaultFiltering == null && locator.isAnyPresent(POOL, IP, PROTOCOL)) {
+      return;
+    }
+
+    locator.setDimensionIfNotPresent(AUTHORIZED, "true");
   }
 
   /**
