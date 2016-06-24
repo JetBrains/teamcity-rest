@@ -1229,7 +1229,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     }
 
     //this is added for consistency - currently this never triggers as findSingleItem treats the dimensions without ever calling setLocatorDefaults
-    if (locator.isAnyPresent(DIMENSION_ID, PROMOTION_ID, PROMOTION_ID_ALIAS, BUILD_ID)) {
+    if (defaultFiltering == null && locator.isAnyPresent(DIMENSION_ID, PROMOTION_ID, PROMOTION_ID_ALIAS, BUILD_ID)) {
       return;
     }
 
@@ -1253,7 +1253,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     locator.setDimensionIfNotPresent(PERSONAL, "false");
     locator.setDimensionIfNotPresent(CANCELED, "false");
     locator.setDimensionIfNotPresent(FAILED_TO_START, "false");
-    if (!locator.isAnyPresent(SNAPSHOT_DEP, EQUIVALENT, ORDERED)) {
+    if (defaultFiltering != null || !locator.isAnyPresent(SNAPSHOT_DEP, EQUIVALENT, ORDERED)) {
       //do not force branch to default for some locators
       locator.setDimensionIfNotPresent(BRANCH, myBranchFinder.getDefaultBranchLocator());
     }
