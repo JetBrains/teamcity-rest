@@ -29,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlType
 public class StateField {
+  // see also BooleanStatus
   @XmlAttribute
   public Boolean value;
   @XmlAttribute

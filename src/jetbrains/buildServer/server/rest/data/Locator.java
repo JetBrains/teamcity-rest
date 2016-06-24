@@ -132,6 +132,7 @@ public class Locator {
     } else {
       mySingleValue = null;
       myHiddenSupportedDimensions.add(HELP_DIMENSION);
+      myIgnoreUnusedDimensions.add(HELP_DIMENSION);
       myDimensions = parse(locator, mySupportedDimensions, myHiddenSupportedDimensions, myExtendedMode);
     }
   }
@@ -426,6 +427,9 @@ public class Locator {
 
   //todo: use this whenever possible
   public void checkLocatorFullyProcessed() {
+    if (isHelpRequested()){
+      throw new LocatorProcessException("Locator help requested: " + getLocatorDescription(helpOptions().getSingleDimensionValueAsStrictBoolean("hidden", false)));
+    }
     String reportKindString = TeamCityProperties.getProperty("rest.report.unused.locator", "error");
     if (!TeamCityProperties.getBooleanOrTrue("rest.report.locator.errors")) {
       reportKindString = "off";
@@ -435,7 +439,7 @@ public class Locator {
         reportKnownButNotReportedDimensions();
       }
       final Set<String> unusedDimensions = getUnusedDimensions();
-      if (unusedDimensions.size() > 0 || isHelpRequested()) {
+      if (unusedDimensions.size() > 0) {
         Set<String> ignoredDimensions = mySupportedDimensions == null ? Collections.<String>emptySet() :
                                         CollectionsUtil.intersect(unusedDimensions, CollectionsUtil.join(Arrays.asList(mySupportedDimensions), myHiddenSupportedDimensions));
         Set<String> unknownDimensions = CollectionsUtil.minus(unusedDimensions, ignoredDimensions);
@@ -488,7 +492,7 @@ public class Locator {
   }
 
   public boolean isHelpRequested() {
-    if (isSingleValue()) return HELP_DIMENSION.equals(getSingleValue());
+    if (isSingleValue()) return HELP_DIMENSION.equals(lookupSingleValue());
     return getSingleDimensionValue(HELP_DIMENSION) != null;
   }
 

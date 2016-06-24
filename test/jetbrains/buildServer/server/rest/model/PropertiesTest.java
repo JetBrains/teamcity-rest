@@ -41,7 +41,7 @@ public class PropertiesTest extends BaseServerTestCase {
 
   @Test
   public void testLocators() {
-    check(CollectionsUtil.asMap("a", "b", "aaa", "xxx", "bbb", "yyy", "aAaa", "xXx"), "$long,$locator(name:aaa)", 1,
+    check(CollectionsUtil.asMap("a", "b", "aaa", "xxx", "bbb", "yyy", "aAaa", "xXx", "aAa", "xXx"), "$long,$locator(name:aaa)", 1,
           CollectionsUtil.asMap("aaa", "xxx"));
 
     check(CollectionsUtil.asMap("a", "b", "aaa", "xxx", "bbb", "yyy", "aAaa", "xXx"), "$long,$locator(value:xxx)", 1,
