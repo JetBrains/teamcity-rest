@@ -355,7 +355,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
     return new ItemHolder<BuildProblem>() {
       @Override
-      public boolean process(@NotNull final ItemProcessor<BuildProblem> processor) {
+      public void process(@NotNull final ItemProcessor<BuildProblem> processor) {
         for (Long buildId : buildIds) {
           try {
             final BuildPromotion buildByPromotionId = buildFinder.getBuildByPromotionId(Long.valueOf(buildId));
@@ -364,7 +364,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
             } else {
               final BuildProblem problem = findProblem(buildByPromotionId, problemId);
               if (problem != null) {
-                if (!processor.processItem(problem)) return false;
+                processor.processItem(problem);
               }
             }
           } catch (RuntimeException e) {
@@ -372,7 +372,6 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
             LOG.infoAndDebugDetails("Error getting problems for build promotion with id " + buildId + ", problemId: " + problemId + ", ignoring. Cause", e);
           }
           }
-        return true;
         }
     };
   }

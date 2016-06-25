@@ -1017,17 +1017,14 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       final Iterator<BuildMetadataEntry> metadataEntries = getBuildMetadataEntryIterator(metadata);
       return new ItemHolder<BuildPromotion>() {
         @Override
-        public boolean process(@NotNull final ItemProcessor<BuildPromotion> processor) {
+        public void process(@NotNull final ItemProcessor<BuildPromotion> processor) {
           while (metadataEntries.hasNext()) {
             BuildMetadataEntry metadataEntry = metadataEntries.next();
             SBuild build = myBuildsManager.findBuildInstanceById(metadataEntry.getBuildId());
             if (build != null) {
-              if (!processor.processItem(build.getBuildPromotion())) {
-                return false;
-              }
+              processor.processItem(build.getBuildPromotion());
             }
           }
-          return true;
         }
       };
     }
@@ -1150,13 +1147,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       options.setOrderByChanges(false);
 
       finishedBuilds = new ItemHolder<BuildPromotion>() {
-        public boolean process(@NotNull final ItemProcessor<BuildPromotion> processor) {
+        public void process(@NotNull final ItemProcessor<BuildPromotion> processor) {
           myBuildsManager.processBuilds(options, new ItemProcessor<SBuild>() {
             public boolean processItem(SBuild item) {
               return processor.processItem(item.getBuildPromotion());
             }
           });
-          return false;
         }
       };
     }
@@ -1165,15 +1161,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final ItemHolder<BuildPromotion> finishedBuildsFinal = finishedBuilds;
     return new ItemHolder<BuildPromotion>() {
-      public boolean process(@NotNull final ItemProcessor<BuildPromotion> processor) {
-        if (new CollectionItemHolder<BuildPromotion>(result).process(processor)) {
-          if (finishedBuildsFinal != null) {
-            return finishedBuildsFinal.process(processor);
-          }
-          return true;
+      public void process(@NotNull final ItemProcessor<BuildPromotion> processor) {
+        new CollectionItemHolder<BuildPromotion>(result).process(processor);
+        if (finishedBuildsFinal != null) {
+          finishedBuildsFinal.process(processor);
         }
-        return false;
-      }
+        }
     };
   }
 

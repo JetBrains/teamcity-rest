@@ -250,22 +250,17 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     }
     return new ItemHolder<STestRun>() {
       @Override
-      public boolean process(@NotNull final ItemProcessor<STestRun> processor) {
+      public void process(@NotNull final ItemProcessor<STestRun> processor) {
         for (STestRun entry : tests) {
           if (!(entry instanceof CompositeTestRun)) {
-            if (!processor.processItem(entry)) {
-              return false;
-            }
+            processor.processItem(entry);
           } else {
             CompositeTestRun compositeRun = (CompositeTestRun)entry;
             for (STestRun nestedTestRun : compositeRun.getTestRuns()) {
-              if (!processor.processItem(nestedTestRun)) {
-                return false;
-              }
+              processor.processItem(nestedTestRun);
             }
           }
         }
-        return true;
       }
     };
   }

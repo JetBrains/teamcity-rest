@@ -72,7 +72,7 @@ public interface FinderDataBinding<ITEM> {
   String getItemLocator(@NotNull final ITEM item);
 
   interface ItemHolder<P> {
-    boolean process(@NotNull final ItemProcessor<P> processor);
+    void process(@NotNull final ItemProcessor<P> processor);
   }
 
   @NotNull
@@ -87,13 +87,10 @@ public interface FinderDataBinding<ITEM> {
       myEntries = entries;
     }
 
-    public boolean process(@NotNull final ItemProcessor<P> processor) {
+    public void process(@NotNull final ItemProcessor<P> processor) {
       for (P entry : myEntries) {
-        if (!processor.processItem(entry)) {
-          return false;
-        }
+        processor.processItem(entry);
       }
-      return true;
     }
   }
 
@@ -104,13 +101,10 @@ public interface FinderDataBinding<ITEM> {
       myItemHolders.add(holder);
     }
 
-    public boolean process(@NotNull final ItemProcessor<P> processor) {
+    public void process(@NotNull final ItemProcessor<P> processor) {
       for (ItemHolder<P> itemHolder : myItemHolders) {
-        if (!itemHolder.process(processor)) {
-          return false;
-        }
+        itemHolder.process(processor);
       }
-      return true;
     }
   }
 }
