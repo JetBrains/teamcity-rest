@@ -1138,7 +1138,8 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     final BuildPromotion build30 = build().in(buildConf1).failed().parameter("b", "20").finish().getBuildPromotion();
 
     checkBuilds("item:(id:" + build10.getId() + ")", build10);
-    checkBuilds("item:(id:" + build10.getId() + "),item:(id:" + build10.getId() + ")", build10, build10);
+    checkBuilds("item:(id:" + build10.getId() + "),item:(id:" + build10.getId() + ")", build10);
+    checkBuilds("item:(id:" + build10.getId() + "),item:(id:" + build10.getId() + "),unique:false", build10, build10);
     checkBuilds("item:(id:" + build10.getId() + "),item:(id:" + build10.getId() + "),unique:true", build10);
     checkBuilds("item:(id:" + build10.getId() + "),item:(id:" + build20.getId() + ")", build10, build20);
     checkBuilds("item:(id:" + build20.getId() + "),item:(id:" + build10.getId() + ")", build20, build10);
@@ -1146,6 +1147,48 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("item:(id:" + build20.getId() + "),item:(id:" + build10.getId() + "),start:1", build10);
     checkBuilds("item:(status:SUCCESS),item:(status:FAILURE)", build20, build10, build30);
     checkBuilds("item:(status:SUCCESS),item:(status:FAILURE),item:(id:" + build10.getId() + "),unique:true", build20, build10, build30);
+  }
+
+  @Test
+  public void testLogicDimensions() {
+    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
+
+    final BuildPromotion build10 = build().in(buildConf1).finish().getBuildPromotion();
+    final BuildPromotion build20 = build().in(buildConf1).failed().parameter("a", "10").parameter("b", "10").parameter("aa", "15").finish().getBuildPromotion();
+    final BuildPromotion build30 = build().in(buildConf1).failed().parameter("a", "20").finish().getBuildPromotion();
+    final BuildPromotion build40 = build().in(buildConf1).parameter("a", "30").parameter("b", "20").finish().getBuildPromotion();
+
+    checkBuilds(null, build40, build30, build20, build10);
+
+    checkBuilds("id:" + build10.getId(), build10);
+    checkBuilds("or:(id:" + build10.getId() + ")", build10);
+    checkBuilds("and:(id:" + build10.getId() + ")", build10);
+    checkExceptionOnBuildsSearch(LocatorProcessException.class, "id:" + build10.getId() + ",id:" + build20.getId());
+    check("id:" + build10.getId() + ",taskId:" + build20.getId());
+    checkBuilds("and:(id:" + build10.getId() + ",taskId:" + build20.getId() + ")");
+    checkBuilds("or:(id:" + build10.getId() + ",id:" + build20.getId() + ")", build10, build20);
+    checkBuilds("or:(id:" + build20.getId() + ",id:" + build10.getId() + ")", build20, build10);
+    checkBuilds("or:(id:" + build20.getId() + ",id:" + build10.getId() + "),id:" + build20.getId(), build20);
+    checkBuilds("and:(or:(id:" + build20.getId() + "),id:" + build10.getId() + ")");
+    checkBuilds("or:(id:" + build20.getId() + "),id:" + build10.getId());
+    checkBuilds("or:(id:" + build20.getId() + "),id:" + build20.getId(), build20);
+    checkExceptionOnBuildsSearch(LocatorProcessException.class, "and:(or:(id:" + build20.getId() + "),or:(id:" + build10.getId() + "))"); //multiple ORs are not supported so far
+    checkExceptionOnBuildsSearch(LocatorProcessException.class, "or:(id:" + build20.getId() + "),or:(id:" + build10.getId() + ")"); //multiple ORs are not supported so far
+//    checkBuilds("and:(or(id:" + build20.getId() + ",id:" + build10.getId() + "),or(id:" + build30.getId() + ",id:" + build20.getId() + "))", build20);
+
+    checkBuilds("status:FAILURE", build30, build20);
+    checkBuilds("property:(name:b)", build40, build20);
+    checkBuilds("property:(name:a)", build40, build30, build20);
+    checkBuilds("or:(id:" + build30.getId() + ",id:" + build20.getId() + "),property:(name:a),start:1", build20);
+    checkBuilds("or:(id:" + build20.getId() + ",id:" + build10.getId() + "),id:" + build20.getId() + ",unique:false", build20);
+
+    checkBuilds("or:(id:" + build10.getId() + ",id:" + build10.getId() + ")", build10);
+    checkBuilds("item:(status:SUCCESS),item:(status:FAILURE)", build40, build10, build30, build20);
+    checkBuilds("or:(property:(name:b)),item:(status:FAILURE)", build20);
+    checkBuilds("property:(name:b),status:FAILURE", build20);
+    checkBuilds("property:(name:b),item:(status:FAILURE)", build20);
+    checkBuilds("or:(property:(name:b),status:FAILURE)", build40, build20, build30);
+    checkBuilds("not:(status:FAILURE)", build40, build10);
   }
 
   @Test

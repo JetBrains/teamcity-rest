@@ -246,6 +246,10 @@ public class BuildFinderFixedBuildSequenceByPromotionTest extends BuildFinderTes
     final String btId = myBuildConf.getExternalId();
     final long b2Id = myBuild2failed.getBuildId();
     final long b9id = myBuild9failedToStart.getBuildId();
+
+    checkBuilds("buildType:(id:" + btId + "),sinceBuild:(id:" + b2Id + ")", myBuild12, myBuild10byUser, myBuild3tagged);
+    checkBuilds("buildType:(id:" + btId + "),untilBuild:(id:" + b9id + ")", myBuild3tagged, myBuild2failed, myBuild1);
+
     checkBuilds("buildType:(id:" + btId + "),sinceBuild:(id:" + b2Id + "),untilBuild:(id:" + b9id + "),status:SUCCESS",
                 myBuild3tagged);
     //checkBuilds("buildType:(id:"+myBuildConf2.getExternalId()+"),user:(id:"+myUser.getId() +"),status:FAILURE,personal:true",

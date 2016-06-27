@@ -41,6 +41,10 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
 
   public static final String DIMENSION_ID = "id";
   public static final String DIMENSION_LOOKUP_LIMIT = "lookupLimit";
+
+  public static final String LOGIC_OP_OR = "or";
+  public static final String LOGIC_OP_AND = "and";
+  public static final String LOGIC_OP_NOT = "not";
   public static final String DIMENSION_ITEM = "item";
   public static final String DIMENSION_UNIQUE = "unique";
   protected static final String OPTIONS_REPORT_ERROR_ON_NOTHING_FOUND = "$reportErrorOnNothingFound";
@@ -87,7 +91,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   @Override
   public ItemFilter<ITEM> getFilter(@NotNull final String locatorText) {
     final Locator locator = createLocator(locatorText, null);
-    final ItemFilter<ITEM> result = myDataBinding.getLocatorDataBinding(locator).getFilter();
+    final ItemFilter<ITEM> result = getFilterWithLogicOpsSupport(locator, myDataBinding.getLocatorDataBinding(locator), true);
     locator.checkLocatorFullyProcessed();
     return result;
   }
@@ -113,7 +117,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     final Locator result = Locator.createLocator(locatorText, locatorDefaults, knownDimensions.toArray(new String[knownDimensions.size()]));
     result.addIgnoreUnusedDimensions(PagerData.COUNT);
     result.addIgnoreUnusedDimensions(OPTIONS_REPORT_ERROR_ON_NOTHING_FOUND);
-    result.addHiddenDimensions(AbstractFinder.DIMENSION_ITEM, AbstractFinder.DIMENSION_UNIQUE); //experimental
+    result.addHiddenDimensions(LOGIC_OP_OR, LOGIC_OP_AND, LOGIC_OP_NOT, AbstractFinder.DIMENSION_ITEM, AbstractFinder.DIMENSION_UNIQUE); //experimental
     result.addHiddenDimensions(OPTIONS_REPORT_ERROR_ON_NOTHING_FOUND); //experimental
     for (String hiddenDimension : myDataBinding.getHiddenDimensions()) {
       result.addHiddenDimensions(hiddenDimension);
@@ -200,7 +204,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
 
         ItemFilter<ITEM> filter = null;
         try {
-          filter = myDataBinding.getLocatorDataBinding(locator).getFilter();
+          filter = getDataBindingWithLogicOpsSupport(locator, myDataBinding).getFilter();
         } catch (NotFoundException e) {
           throw new NotFoundException("Invalid filter for found single item, try omitting extra dimensions: " + e.getMessage(), e);
         } catch (BadRequestException e) {
@@ -208,6 +212,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
         } catch (Exception e) {
           throw new BadRequestException("Invalid filter for found single item, try omitting extra dimensions: " + e.toString(), e);
         }
+        locator.getSingleDimensionValue(DIMENSION_UNIQUE); //mark as used as it has no influence on single item
         locator.checkLocatorFullyProcessed(); //checking before invoking filter to report any unused dimensions before possible error reporting in filter
         if (!filter.isIncluded(singleItem)) {
           final String message = "Found single item by " + StringUtil.pluralize("dimension", singleItemUsedDimensions.size()) + " " + singleItemUsedDimensions +
@@ -225,8 +230,12 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
       locator.markAllUnused(); // nothing found - no dimensions should be marked as used then
     }
 
-    FinderDataBinding.LocatorDataBinding<ITEM> locatorDataBinding = myDataBinding.getLocatorDataBinding(locator);
-    final FinderDataBinding.ItemHolder<ITEM> unfilteredItems = getPrefilteredItemsWithItemsSupport(locator, locatorDataBinding); //todo : check locator used dimensions
+    FinderDataBinding.LocatorDataBinding<ITEM> locatorDataBinding = getDataBindingWithLogicOpsSupport(locator, myDataBinding);
+    FinderDataBinding.ItemHolder<ITEM> unfilteredItems = locatorDataBinding.getPrefilteredItems();
+    boolean deduplicate = locator.getSingleDimensionValueAsStrictBoolean(DIMENSION_UNIQUE, locator.isAnyPresent(DIMENSION_ITEM, LOGIC_OP_OR));
+    if (deduplicate) {
+      unfilteredItems = new FinderDataBinding.DeduplicatingItemHolder<>(unfilteredItems);
+    }
 
     final Long start = locator.getSingleDimensionValueAsLong(PagerData.START);
     final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT, myDataBinding.getDefaultPageItemsCount());
@@ -279,36 +288,258 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   }
 
   @NotNull
-  private FinderDataBinding.ItemHolder<ITEM> getPrefilteredItemsWithItemsSupport(@NotNull final Locator locator,
-                                                                                 @NotNull final FinderDataBinding.LocatorDataBinding<ITEM> locatorDataBinding) {
-    final List<String> itemsDimension = locator.getDimensionValue(FinderImpl.DIMENSION_ITEM);
-    if (itemsDimension.isEmpty()) {
-      Boolean deduplicate = locator.getSingleDimensionValueAsBoolean(FinderImpl.DIMENSION_UNIQUE);
-      if (deduplicate != null && deduplicate) {
-        Collection<ITEM> result = new LinkedHashSet<ITEM>();
-        locatorDataBinding.getPrefilteredItems().process(new ItemProcessor<ITEM>() {
-          @Override
-          public boolean processItem(final ITEM item) {
-            result.add(item);
-            return true;
-          }
-        });
-        return FinderDataBinding.getItemHolder(result);
-      } else {
-        return locatorDataBinding.getPrefilteredItems();
+  private ItemFilter<ITEM> getFilterWithLogicOpsSupport(@NotNull final Locator locator, @NotNull final FinderDataBinding.LocatorDataBinding<ITEM> dataBinding, boolean orSupport) {
+    AndFilterBuilder<ITEM> result = new AndFilterBuilder<ITEM>();
+    result.add(dataBinding.getFilter());
+
+    if (orSupport) {
+      final List<String> itemDimension = locator.getDimensionValue(DIMENSION_ITEM);
+      if (!itemDimension.isEmpty()) {
+        result.add(getFilterOr(itemDimension));
+      }
+
+      final String orDimension = locator.getSingleDimensionValue(LOGIC_OP_OR); //consider adding for multiple support here, use getItemsAnd()
+      if (orDimension != null) {
+        result.add(getFilterOr(getListOfSubLocators(orDimension)));
       }
     }
 
-    Collection<ITEM> result;
-    Boolean deduplicate = locator.getSingleDimensionValueAsBoolean(FinderImpl.DIMENSION_UNIQUE);
-    if (deduplicate != null && deduplicate) {
-      result = new LinkedHashSet<ITEM>();
-    } else {
-      result = new ArrayList<>();
+    final String andDimension = locator.getSingleDimensionValue(LOGIC_OP_AND);  //consider adding for multiple support here, use getItemsAnd()
+    if (andDimension != null) {
+      result.add(getFilter(andDimension));
     }
-    for (String itemLocator : itemsDimension) {
-      result.addAll(getItems(itemLocator).myEntries);
+
+    final String notDimension = locator.getSingleDimensionValue(LOGIC_OP_NOT);  //consider adding for multiple support here, use getItemsAnd()
+    if (notDimension != null) {
+      ItemFilter<ITEM> notFilter = getFilter(notDimension);
+      return new ItemFilter<ITEM>() {
+        @Override
+        public boolean shouldStop(@NotNull final ITEM item) {
+          return false;
+        }
+
+        @Override
+        public boolean isIncluded(@NotNull final ITEM item) {
+          return !notFilter.isIncluded(item);
+        }
+      };
     }
-    return FinderDataBinding.getItemHolder(result);
+
+    return result.build();
   }
+
+  /**
+   * @param locator
+   * @param dataBinding
+   * @return null, if no logic ops are found within locator and it should be processed as usual, otherwise, result items which require no additional processing.
+   */
+  @NotNull
+  private FinderDataBinding.LocatorDataBinding<ITEM> getDataBindingWithLogicOpsSupport(@NotNull final Locator locator,
+                                                                                       @NotNull final FinderDataBinding<ITEM> originalDataBinding) {
+    return new FinderDataBinding.LocatorDataBinding<ITEM>() {
+      private FinderDataBinding.LocatorDataBinding<ITEM> myLocatorDataBinding;
+
+      @NotNull
+      @Override
+      public FinderDataBinding.ItemHolder<ITEM> getPrefilteredItems() {
+        final List<String> itemDimension = locator.getDimensionValue(DIMENSION_ITEM);
+        if (!itemDimension.isEmpty()) {
+          return getItemsOr(itemDimension);
+        }
+
+        //for multiple support here, use getItemsAnd()
+        final String orDimension = locator.getSingleDimensionValue(LOGIC_OP_OR);
+        if (orDimension != null) {
+          return getItemsOr(getListOfSubLocators(orDimension)); //relying on filters to handle other dimensions of locator, but can call originalDataBinding.getItems here as well
+        }
+        if (myLocatorDataBinding == null) {
+          myLocatorDataBinding = originalDataBinding.getLocatorDataBinding(locator);
+        }
+        return myLocatorDataBinding.getPrefilteredItems();
+      }
+
+      @NotNull
+      @Override
+      public ItemFilter<ITEM> getFilter() {
+        if (myLocatorDataBinding == null) {
+          myLocatorDataBinding = originalDataBinding.getLocatorDataBinding(locator);
+        }
+        return getFilterWithLogicOpsSupport(locator, myLocatorDataBinding, locator.isUnused(DIMENSION_ITEM) || locator.isUnused(LOGIC_OP_OR));
+      }
+    };
+  }
+
+  @NotNull
+  private List<String> getListOfSubLocators(@NotNull final String locatorText) {
+    Locator locator = new Locator(locatorText);
+    if (locator.isSingleValue()) {
+      return Collections.singletonList(locator.getStringRepresentation());
+    }
+    ArrayList<String> result = new ArrayList<>();
+    for (String dimensionName : locator.getDefinedDimensions()) {
+      for (String value : locator.getDimensionValue(dimensionName)) {
+        result.add(Locator.getStringLocator(dimensionName, value));
+      }
+    }
+    return result;
+  }
+
+  @NotNull
+  private ItemFilter<ITEM> getFilterOr(@NotNull final List<String> itemsDimension) {
+    OrFilterBuilder<ITEM> result = new OrFilterBuilder<ITEM>();
+    for (String itemLocator : itemsDimension) {
+      result.add(getFilter(itemLocator));
+    }
+    return result.build();
+  }
+
+  private static class OrFilterBuilder<T> {
+    @NotNull private final List<ItemFilter<T>> myCheckers;
+
+    OrFilterBuilder() {
+      myCheckers = new ArrayList<ItemFilter<T>>();
+    }
+
+    public OrFilterBuilder<T> add(ItemFilter<T> checker) {
+      myCheckers.add(checker);
+      return this;
+    }
+
+    public ItemFilter<T> build() {
+      return new ItemFilter<T>() {
+        @Override
+        public boolean shouldStop(@NotNull final T item) {
+          for (ItemFilter<T> checker : myCheckers) {
+            if (!checker.shouldStop(item)) return false;
+          }
+          return true;
+        }
+
+        @Override
+        public boolean isIncluded(@NotNull final T item) {
+          for (ItemFilter<T> checker : myCheckers) {
+            if (checker.isIncluded(item)) {
+              return true;
+            }
+          }
+          return false;
+        }
+      };
+    }
+  }
+
+  //see also MultiCheckerFilter
+  private static class AndFilterBuilder<T> {
+    @NotNull private final List<ItemFilter<T>> myCheckers;
+
+    AndFilterBuilder() {
+      myCheckers = new ArrayList<ItemFilter<T>>();
+    }
+
+    public AndFilterBuilder<T> add(ItemFilter<T> checker) {
+      myCheckers.add(checker);
+      return this;
+    }
+
+    public ItemFilter<T> build() {
+      return new ItemFilter<T>() {
+        @Override
+        public boolean shouldStop(@NotNull final T item) {
+          for (ItemFilter<T> checker : myCheckers) {
+            if (checker.shouldStop(item)) {
+              return true;
+            }
+          }
+          return false;
+        }
+
+        @Override
+        public boolean isIncluded(@NotNull final T item) {
+          for (ItemFilter<T> checker : myCheckers) {
+            if (!checker.isIncluded(item)) {
+              return false;
+            }
+          }
+          return true;
+        }
+      };
+    }
+  }
+
+  @NotNull
+  private FinderDataBinding.ItemHolder<ITEM> getItemsOr(@NotNull final List<String> itemsDimension) {
+    return new FinderDataBinding.ItemHolder<ITEM>() {
+      @Override
+      public void process(@NotNull final ItemProcessor<ITEM> processor) {
+        for (String itemLocator : itemsDimension) {
+          FinderDataBinding.getItemHolder(getItems(itemLocator).myEntries).process(processor);  //todo: rework APIs to add itemHolders instead of serialized collection
+        }
+      }
+    };
+  }
+
+  /*
+  @NotNull
+  private FinderDataBinding.LocatorDataBinding<ITEM> getItemsAnd(@NotNull final List<String> itemsDimension) {
+    if (itemsDimension.size() == 0) {
+      throw new BadRequestException("Unsupported empty locator for 'and' processing");
+    }
+    if (itemsDimension.size() == 1) {
+      return new FinderDataBinding.LocatorDataBinding<ITEM>() {
+        @NotNull
+        @Override
+        public FinderDataBinding.ItemHolder<ITEM> getPrefilteredItems() {
+          return FinderDataBinding.getItemHolder(getItems(itemsDimension.get(0)).myEntries);
+        }
+
+        @NotNull
+        @Override
+        public ItemFilter<ITEM> getFilter() {
+          return DO_NOTHING_FILTER;
+        }
+      };
+    }
+    Iterator<String> it = itemsDimension.iterator();
+    List<ITEM> firstSet = getItems(it.next()).myEntries;
+    MultiCheckerFilter<ITEM> filter = new MultiCheckerFilter<ITEM>();
+    while (it.hasNext()) {
+      filter.add(getFilter(it.next()));
+    }
+    return new FinderDataBinding.LocatorDataBinding<ITEM>() {
+      @NotNull
+      @Override
+      public FinderDataBinding.ItemHolder<ITEM> getPrefilteredItems() {
+        return FinderDataBinding.getItemHolder(firstSet);
+      }
+
+      @NotNull
+      @Override
+      public ItemFilter<ITEM> getFilter() {
+        return new ItemFilter<ITEM>() {
+          @Override
+          public boolean shouldStop(@NotNull final ITEM item) {
+            return false;
+          }
+
+          @Override
+          public boolean isIncluded(@NotNull final ITEM item) {
+            return filter.isIncluded(item);
+          }
+        };
+      }
+    };
+  }
+
+  private final ItemFilter<ITEM> DO_NOTHING_FILTER = new ItemFilter<ITEM>() {
+    @Override
+    public boolean shouldStop(@NotNull final ITEM item) {
+      return false;
+    }
+
+    @Override
+    public boolean isIncluded(@NotNull final ITEM item) {
+      return true;
+    }
+  };
+  */
 }

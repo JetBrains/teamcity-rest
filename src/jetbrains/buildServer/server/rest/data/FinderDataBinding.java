@@ -17,7 +17,9 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.util.ItemProcessor;
 import org.jetbrains.annotations.NotNull;
@@ -105,6 +107,30 @@ public interface FinderDataBinding<ITEM> {
       for (ItemHolder<P> itemHolder : myItemHolders) {
         itemHolder.process(processor);
       }
+    }
+  }
+
+  /**
+   * Works only for P with due hash/equals
+   *
+   * @param <P>
+   */
+  class DeduplicatingItemHolder<P> implements ItemHolder<P> {
+    @NotNull private final ItemHolder<P> myItemHolder;
+
+    public DeduplicatingItemHolder(@NotNull final ItemHolder<P> itemHolder) {
+      myItemHolder = itemHolder;
+    }
+
+    public void process(@NotNull final ItemProcessor<P> processor) {
+      @NotNull final Set<P> processed = new HashSet<>();
+      myItemHolder.process(new ItemProcessor<P>() {
+        @Override
+        public boolean processItem(final P item) {
+          if (processed.add(item)) return processor.processItem(item);
+          return true;
+        }
+      });
     }
   }
 }

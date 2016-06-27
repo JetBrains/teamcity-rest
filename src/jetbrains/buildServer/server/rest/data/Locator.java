@@ -485,7 +485,7 @@ public class Locator {
           }
         }
         if (reportKindString.contains("error")) {
-          throw new LocatorProcessException(message.toString());
+          throw new LocatorProcessException(this, message.toString());
         }
       }
     }
@@ -736,6 +736,10 @@ public class Locator {
     return myDimensions.size();
   }
 
+  public Collection<String> getDefinedDimensions() {
+    return new ArrayList<String>(myDimensions.keySet());
+  }
+
   /**
    * Replaces all the dimensions values to the one specified.
    * Should be used only for multi-dimension locators.
@@ -811,7 +815,7 @@ public class Locator {
   }
 
   public boolean isUnused(@NotNull final String dimensionName) {
-    return !myUsedDimensions.contains(dimensionName);
+    return myDimensions.containsKey(dimensionName) && !myUsedDimensions.contains(dimensionName);
   }
 
   /**

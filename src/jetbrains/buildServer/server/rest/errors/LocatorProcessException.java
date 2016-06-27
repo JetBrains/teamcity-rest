@@ -16,13 +16,32 @@
 
 package jetbrains.buildServer.server.rest.errors;
 
+import jetbrains.buildServer.server.rest.data.Locator;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 /**
  * @author Yegor.Yarko
  *         Date: 15.08.2010
  */
 public class LocatorProcessException extends RuntimeException {
+  @Nullable private Locator myLocator;
+
   public LocatorProcessException(final String locator, final int index, final String message) {
     super("Bad locator syntax: " + message + ". Details: locator: '" + locator + "', at position " + index);
+  }
+
+  public LocatorProcessException(@NotNull final Locator errorWithLocator, @NotNull final String message) {
+    super("Error processing locator '" + errorWithLocator.getStringRepresentation() + "': " + message);
+    myLocator = new Locator(errorWithLocator); //creating a copy
+  }
+
+  public LocatorProcessException(@NotNull final String message, @NotNull final LocatorProcessException cause) {
+    super(message + ". Original error: " + cause.getMessage(), cause);
+    Locator locator = cause.getLocator();
+    if (locator != null) {
+      myLocator = new Locator(locator); //creating a copy
+    }
   }
 
   public LocatorProcessException(final String message) {
@@ -31,5 +50,10 @@ public class LocatorProcessException extends RuntimeException {
 
   public LocatorProcessException(final String message, final Throwable cause) {
     super(message, cause);
+  }
+
+  @Nullable
+  public Locator getLocator() {
+    return myLocator;
   }
 }

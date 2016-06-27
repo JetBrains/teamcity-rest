@@ -241,6 +241,46 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     });
 
+    if (locator.isSingleValue()) {
+      try {
+        long foundPromotionId = getBuildPromotionById(locator.getSingleValueAsLong(), myBuildPromotionManager, myBuildsManager).getId();
+        result.add(item -> foundPromotionId == item.getId());
+      } catch (NotFoundException e) {
+        result.add(item -> false);
+      }
+    }
+    final Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
+    if (id != null) {
+      try {
+        long foundPromotionId = getBuildPromotionById(id, myBuildPromotionManager, myBuildsManager).getId();
+        result.add(item -> foundPromotionId == item.getId());
+      } catch (NotFoundException e) {
+        result.add(item -> false);
+      }
+    }
+    final Long promotionId = locator.getSingleDimensionValueAsLong(PROMOTION_ID);
+    if (promotionId != null) {
+      try {
+        long foundPromotionId = BuildFinder.getBuildPromotion(promotionId, myBuildPromotionManager).getId();
+        result.add(item -> foundPromotionId == item.getId());
+      } catch (NotFoundException e) {
+        result.add(item -> false);
+      }
+    }
+    final Long promotionIdAlias = locator.getSingleDimensionValueAsLong(PROMOTION_ID_ALIAS);
+    if (promotionIdAlias != null) {
+      try {
+        long foundPromotionId = BuildFinder.getBuildPromotion(promotionIdAlias, myBuildPromotionManager).getId();
+        result.add(item -> foundPromotionId == item.getId());
+      } catch (NotFoundException e) {
+        result.add(item -> false);
+      }
+    }
+    final Long buildId = locator.getSingleDimensionValueAsLong(BUILD_ID);
+    if (buildId != null) {
+      result.add(item -> buildId.equals(item.getAssociatedBuildId()));
+    }
+
     Locator stateLocator = getStateLocator(locator);
 
     if (!isStateIncluded(stateLocator, STATE_QUEUED)) {
