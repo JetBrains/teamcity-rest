@@ -20,7 +20,6 @@ import com.google.common.base.Objects;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -103,8 +102,7 @@ public class Property {
   @Nullable
   private static String getSecureValue(final @NotNull Parameter parameter, final @NotNull ServiceLocator serviceLocator) {
     final ParameterFactory parameterFactory = serviceLocator.getSingletonService(ParameterFactory.class);
-    Map<String, String> extractedParams = parameterFactory.extractBuildParameters(Collections.singletonList(parameter));
-    return extractedParams.get(parameter.getName());
+    return parameterFactory.getRawValue(parameter);
   }
 
   private static boolean includeSecureProperties(final @NotNull ServiceLocator serviceLocator) {
