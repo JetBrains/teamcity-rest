@@ -60,7 +60,7 @@ public class PropEntitiesProjectFeature {
       public List<PropEntityProjectFeature> get() {
         return CollectionsUtil.convertCollection(features, new Converter<PropEntityProjectFeature, SProjectFeatureDescriptor>() {
           public PropEntityProjectFeature createFrom(@NotNull final SProjectFeatureDescriptor source) {
-            return new PropEntityProjectFeature(source, fields.getNestedField("projectFeature", Fields.NONE, Fields.LONG), beanContext);
+            return new PropEntityProjectFeature(project, source, fields.getNestedField("projectFeature", Fields.NONE, Fields.LONG), beanContext);
           }
         });
       }
