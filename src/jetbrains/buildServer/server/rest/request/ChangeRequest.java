@@ -193,9 +193,9 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/attributes")
   @Produces({"application/xml", "application/json"})
-  public Entries getChangeAttributes(@PathParam("changeLocator") String changeLocator) {
+  public Entries getChangeAttributes(@PathParam("changeLocator") String changeLocator, @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
-    return new Entries(change.getAttributes());
+    return new Entries(change.getAttributes(), new Fields(fields));
   }
   
   /**

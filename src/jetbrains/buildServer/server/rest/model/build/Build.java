@@ -433,7 +433,7 @@ public class Build {
             result.put(BuildAttributes.CLEAN_SOURCES, value.toString());
           }
         }
-        return new Entries(result);
+        return new Entries(result, myFields.getNestedField("attributes"));
       }
     });
   }

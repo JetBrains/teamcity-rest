@@ -35,7 +35,7 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "entries")
 public class Entries implements DefaultValueAware{
   @XmlAttribute
-  public long count;
+  public Integer count;
 
   @XmlElement(name = "entry")
   public List<Entry> entries = new SortedList<Entry>(new Comparator<Entry>() {
@@ -49,10 +49,10 @@ public class Entries implements DefaultValueAware{
   public Entries() {
   }
 
-  public Entries(@NotNull final java.util.Map<String, String> propertiesP) {
-    count = propertiesP.size();
+  public Entries(@NotNull final java.util.Map<String, String> propertiesP, final @NotNull Fields fields) {
+    this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), propertiesP.size());
     for (java.util.Map.Entry<String, String> prop : propertiesP.entrySet()) {
-      entries.add(new Entry(prop.getKey(), prop.getValue()));
+      entries.add(new Entry(prop.getKey(), prop.getValue(), fields.getNestedField("entry")));
     }
   }
 

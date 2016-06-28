@@ -46,7 +46,7 @@ public class NamedData {
       @Nullable
       @Override
       public Entries get() {
-        return new Entries(properties); //todo: , fields.getNestedField("entries"));
+        return new Entries(properties, fields.getNestedField("entries"));
       }
     });
   }

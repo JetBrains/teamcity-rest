@@ -19,6 +19,8 @@ package jetbrains.buildServer.server.rest.model;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -37,9 +39,9 @@ public class Entry {
   public Entry() {
   }
 
-  public Entry(@Nullable String name, @Nullable String value) {
-    this.name = name;
-    this.value = value;
+  public Entry(@Nullable String name, @Nullable String value, final @NotNull Fields fields) {
+    this.name =  ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), name);
+    this.value = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("value"), value);
   }
 }
 

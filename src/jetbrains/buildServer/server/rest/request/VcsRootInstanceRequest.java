@@ -137,10 +137,10 @@ public class VcsRootInstanceRequest {
   @GET
   @Path("/{vcsRootInstanceLocator}/repositoryState")
   @Produces({"application/xml", "application/json"})
-  public Entries getRepositoryState(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator) {
+  public Entries getRepositoryState(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator, @QueryParam("fields") String fields) {
     final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
     final RepositoryState repositoryState = myDataProvider.getBean(RepositoryStateManager.class).getRepositoryState(rootInstance);
-    return new Entries(repositoryState.getBranchRevisions());
+    return new Entries(repositoryState.getBranchRevisions(), new Fields(fields));
   }
 
   @DELETE
@@ -164,13 +164,13 @@ public class VcsRootInstanceRequest {
   @Path("/{vcsRootInstanceLocator}/repositoryState")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Entries setRepositoryState(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator, Entries branchesState) {
+  public Entries setRepositoryState(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator, Entries branchesState, @QueryParam("fields") String fields) {
     final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
     myVcsRootInstanceFinder.checkPermission(Permission.EDIT_PROJECT, rootInstance);
     final RepositoryStateManager repositoryStateManager = myDataProvider.getBean(RepositoryStateManager.class);
     repositoryStateManager.setRepositoryState(rootInstance, RepositoryStateFactory.createRepositoryState(branchesState.getMap()));
     final RepositoryState repositoryState = repositoryStateManager.getRepositoryState(rootInstance);
-    return new Entries(repositoryState.getBranchRevisions());
+    return new Entries(repositoryState.getBranchRevisions(), new Fields(fields));
   }
 
   @POST
