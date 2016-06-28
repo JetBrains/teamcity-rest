@@ -58,7 +58,7 @@ public class Locator {
   public static final String LOCATOR_SINGLE_VALUE_UNUSED_NAME = "$singleValue";
   private static final String ANY_LITERAL = "$any";
   private static final String BASE64_ESCAPE_FAKE_DIMENSION = "$base64";
-  private static final String HELP_DIMENSION = "$help";
+  public static final String HELP_DIMENSION = "$help";
 
   private final String myRawValue;
   private final boolean myExtendedMode;
@@ -748,10 +748,21 @@ public class Locator {
    * @param value value of the dimension
    */
   public Locator setDimension(@NotNull final String name, @NotNull final String value) {
+    return setDimension(name, Collections.singletonList(value));
+  }
+
+  /**
+   * Replaces all the dimensions values to those specified.
+   * Should be used only for multi-dimension locators.
+   *
+   * @param name  name of the dimension
+   * @param values new values of the dimension
+   */
+  public Locator setDimension(@NotNull final String name, @NotNull final List<String> values) {
     if (isSingleValue()) {
       throw new IllegalArgumentException("Attempt to set dimension '" + name + "' for single value locator.");
     }
-    myDimensions.put(name, Collections.singletonList(value));
+    myDimensions.put(name, new ArrayList<>(values));
     markUnused(name);
     modified = true; // todo: use setDimension to replace the dimension in myRawValue
     return this;
@@ -768,6 +779,14 @@ public class Locator {
     Collection<String> idDimension = myDimensions.get(name);
     if (idDimension == null || idDimension.isEmpty()) {
       setDimension(name, value);
+    }
+    return this;
+  }
+
+  public Locator setDimensionIfNotPresent(@NotNull final String name, @NotNull final List<String> values) {
+    Collection<String> idDimension = myDimensions.get(name);
+    if (idDimension == null || idDimension.isEmpty()) {
+      setDimension(name, values);
     }
     return this;
   }
