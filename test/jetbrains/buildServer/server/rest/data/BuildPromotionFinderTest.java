@@ -1166,8 +1166,10 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "id:" + build10.getId() + ",id:" + build20.getId());
     check("id:" + build10.getId() + ",taskId:" + build20.getId());
     checkBuilds("and:(id:" + build10.getId() + ",taskId:" + build20.getId() + ")");
-    checkBuilds("or:(id:" + build10.getId() + ",id:" + build20.getId() + ")", build10, build20);
+    checkBuilds("or:(id:" + build10.getId() + ",id:" + build20.getId() + ")", build20, build10);
     checkBuilds("or:(id:" + build20.getId() + ",id:" + build10.getId() + ")", build20, build10);
+    checkBuilds("item:(id:" + build10.getId() + "),item:(" + build20.getId() + ")", build10, build20);
+    checkBuilds("item:(id:" + build20.getId() + "),item:(" + build10.getId() + ")", build20, build10);
     checkBuilds("or:(id:" + build20.getId() + ",id:" + build10.getId() + "),id:" + build20.getId(), build20);
     checkBuilds("and:(or:(id:" + build20.getId() + "),id:" + build10.getId() + ")");
     checkBuilds("or:(id:" + build20.getId() + "),id:" + build10.getId());
@@ -1179,6 +1181,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("status:FAILURE", build30, build20);
     checkBuilds("property:(name:b)", build40, build20);
     checkBuilds("property:(name:a)", build40, build30, build20);
+    checkBuilds("or:(id:" + build30.getId() + ",id:" + build20.getId() + "),property:(name:a)", build30, build20);
     checkBuilds("or:(id:" + build30.getId() + ",id:" + build20.getId() + "),property:(name:a),start:1", build20);
     checkBuilds("or:(id:" + build20.getId() + ",id:" + build10.getId() + "),id:" + build20.getId() + ",unique:false", build20);
 
@@ -1187,8 +1190,19 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("or:(property:(name:b)),item:(status:FAILURE)", build20);
     checkBuilds("property:(name:b),status:FAILURE", build20);
     checkBuilds("property:(name:b),item:(status:FAILURE)", build20);
-    checkBuilds("or:(property:(name:b),status:FAILURE)", build40, build20, build30);
+    checkBuilds("or:(property:(name:b),status:FAILURE)", build40, build30, build20);
     checkBuilds("not:(status:FAILURE)", build40, build10);
+
+    checkBuilds("status:FAILURE,start:1", build20);
+    checkMultipleBuilds("item:(status:FAILURE),property:(name:a,value:10)", build20); //search by item, filter by top-level
+    checkBuilds("item:(status:FAILURE,start:1),property:(name:a,value:10)", build20); //search by item, filter by top-level
+    checkBuilds("or:(status:FAILURE),property:(name:a,value:10)", build20); //search by top level, filter by or
+    checkExceptionOnBuildsSearch(LocatorProcessException.class, "or:(status:FAILURE,start:1),property:(name:a,value:10)"); //start in logic filtering is not supported
+    checkExceptionOnBuildsSearch(LocatorProcessException.class, "and:(status:FAILURE,start:1),property:(name:a,value:10)"); //start in logic filtering is not supported
+    checkExceptionOnBuildsSearch(LocatorProcessException.class, "not:(status:FAILURE,start:1),property:(name:a,value:10)"); //start in logic filtering is not supported
+
+    assertEquals(Long.valueOf(1), checkMultipleBuilds("item:(id:" + build20.getId() + "),status:FAILURE", build20).myActuallyProcessedCount);
+    assertEquals(Long.valueOf(4), checkMultipleBuilds("or:(id:" + build20.getId() + "),status:FAILURE", build20).myActuallyProcessedCount);
   }
 
   @Test
@@ -1425,7 +1439,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 
   }
 
-  private PagedSearchResult<BuildPromotion> checkMultipleBuilds(final String locator, final BuildPromotion[] builds) {
+  private PagedSearchResult<BuildPromotion> checkMultipleBuilds(final String locator, final BuildPromotion... builds) {
     final PagedSearchResult<BuildPromotion> searchResult = myBuildPromotionFinder.getItems(locator);
     final List<BuildPromotion> result = searchResult.myEntries;
     final String expected = getPromotionsDescription(Arrays.asList(builds));

@@ -91,7 +91,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   @Override
   public ItemFilter<ITEM> getFilter(@NotNull final String locatorText) {
     final Locator locator = createLocator(locatorText, null);
-    final ItemFilter<ITEM> result = getFilterWithLogicOpsSupport(locator, myDataBinding.getLocatorDataBinding(locator), true);
+    final ItemFilter<ITEM> result = getFilterWithLogicOpsSupport(locator, myDataBinding.getLocatorDataBinding(locator));
     locator.checkLocatorFullyProcessed();
     return result;
   }
@@ -288,20 +288,13 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   }
 
   @NotNull
-  private ItemFilter<ITEM> getFilterWithLogicOpsSupport(@NotNull final Locator locator, @NotNull final FinderDataBinding.LocatorDataBinding<ITEM> dataBinding, boolean orSupport) {
+  private ItemFilter<ITEM> getFilterWithLogicOpsSupport(@NotNull final Locator locator, @NotNull final FinderDataBinding.LocatorDataBinding<ITEM> dataBinding) {
     AndFilterBuilder<ITEM> result = new AndFilterBuilder<ITEM>();
     result.add(dataBinding.getFilter());
 
-    if (orSupport) {
-      final List<String> itemDimension = locator.getDimensionValue(DIMENSION_ITEM);
-      if (!itemDimension.isEmpty()) {
-        result.add(getFilterOr(itemDimension));
-      }
-
-      final String orDimension = locator.getSingleDimensionValue(LOGIC_OP_OR); //consider adding for multiple support here, use getItemsAnd()
-      if (orDimension != null) {
-        result.add(getFilterOr(getListOfSubLocators(orDimension)));
-      }
+    final String orDimension = locator.getSingleDimensionValue(LOGIC_OP_OR); //consider adding for multiple support here, use getItemsAnd()
+    if (orDimension != null) {
+      result.add(getFilterOr(getListOfSubLocators(orDimension)));
     }
 
     final String andDimension = locator.getSingleDimensionValue(LOGIC_OP_AND);  //consider adding for multiple support here, use getItemsAnd()
@@ -347,11 +340,6 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
           return getItemsOr(itemDimension);
         }
 
-        //for multiple support here, use getItemsAnd()
-        final String orDimension = locator.getSingleDimensionValue(LOGIC_OP_OR);
-        if (orDimension != null) {
-          return getItemsOr(getListOfSubLocators(orDimension)); //relying on filters to handle other dimensions of locator, but can call originalDataBinding.getItems here as well
-        }
         if (myLocatorDataBinding == null) {
           myLocatorDataBinding = originalDataBinding.getLocatorDataBinding(locator);
         }
@@ -364,7 +352,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
         if (myLocatorDataBinding == null) {
           myLocatorDataBinding = originalDataBinding.getLocatorDataBinding(locator);
         }
-        return getFilterWithLogicOpsSupport(locator, myLocatorDataBinding, locator.isUnused(DIMENSION_ITEM) || locator.isUnused(LOGIC_OP_OR));
+        return getFilterWithLogicOpsSupport(locator, myLocatorDataBinding);
       }
     };
   }
