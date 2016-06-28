@@ -52,6 +52,8 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   protected static final String PROPERTY = "property";
   protected static final String BUILD_TYPE = "buildType";
   protected static final String STATE = "state";
+  protected static final String FINISH_VCS_CHECKING_FOR_CHANGES = "checkingForChangesFinishDate";  // experimental
+  protected static final String REPOSITORY_STATE = "repositoryState";  // experimental
   protected static final String HAS_VERSIONED_SETTINGS_ONLY = "versionedSettings"; //actually means "withoutBuildTypeUsagesWithinScope"
   protected static final Comparator<VcsRootInstance> VCS_ROOT_INSTANCE_COMPARATOR = new Comparator<VcsRootInstance>() {
     public int compare(final VcsRootInstance o1, final VcsRootInstance o2) {
@@ -81,7 +83,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     myVersionedSettingsManager = versionedSettingsManager;
     myTimeCondition = timeCondition;
-    setHiddenDimensions(PROPERTY, STATE);
+    setHiddenDimensions(PROPERTY, STATE, FINISH_VCS_CHECKING_FOR_CHANGES, REPOSITORY_STATE);
     myVcsRootFinder = vcsRootFinder;
     myVcsManager = vcsManager;
     myProjectFinder = projectFinder;
@@ -222,6 +224,33 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       });
     }
 
+    TimeCondition.FilterAndLimitingDate<VcsRootInstance> finishFiltering =
+      myTimeCondition.processTimeConditions(FINISH_VCS_CHECKING_FOR_CHANGES, locator, (vcsRootInstance) -> getFinishCheckingForChanges(vcsRootInstance), null);
+    if (finishFiltering != null) result.add(finishFiltering.getFilter());
+
+    final String repositoryState = locator.getSingleDimensionValue(REPOSITORY_STATE);
+    if (repositoryState != null) {
+      TypedFinderBuilder<RepositoryState> builder = new TypedFinderBuilder<RepositoryState>();
+      builder.dimensionTimeCondition(new TypedFinderBuilder.Dimension<>("timestamp"), myTimeCondition).description("time of the repository state creation").
+        valueForDefaultFilter(item -> item.getCreateTimestamp());
+
+      builder.dimensionValueCondition(new TypedFinderBuilder.Dimension<>("branchName")).description("branch name").filter((valueCondition, item) -> {
+        for (String branchName : item.getBranchRevisions().keySet()) {
+          if (valueCondition.matches(branchName)) return true;
+        }
+        return false;
+      });
+
+      builder.multipleConvertToItems(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> Collections.emptyList()); //workaround for at least one condition
+      final ItemFilter<RepositoryState> filter = builder.build().getFilter(repositoryState);
+      result.add(new FilterConditionChecker<VcsRootInstance>() {
+        public boolean isIncluded(@NotNull final VcsRootInstance item) {
+          return filter.isIncluded(((VcsRootInstanceEx)item).getLastUsedState());
+        }
+      });
+
+    }
+
     final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
     if (buildTypeLocator != null) {
       BuildTypeOrTemplate buildType = getBuildTypeOrTemplate(buildTypeLocator);
@@ -272,6 +301,10 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
     // should check HAS_VERSIONED_SETTINGS_ONLY only in prefiltered items as it should consider the current scope - no way to filter in Filter
 
     return result;
+  }
+
+  private static Date getFinishCheckingForChanges(@NotNull final VcsRootInstance vcsRootInstance) {
+    return ((VcsRootInstanceEx)vcsRootInstance).getLastFinishChangesCollectingTime();
   }
 
   @NotNull

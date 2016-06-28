@@ -55,7 +55,7 @@ import static jetbrains.buildServer.serverSide.impl.projectSources.SmallPatchCac
 @XmlRootElement(name = "vcs-root-instance")
 @XmlType(name = "vcs-root-instance", propOrder = {"id", "vcsRootId", "vcsRootInternalId", "name", "vcsName",
   "modificationCheckInterval", "lastVersion", "lastVersionInternal", "href",
-  "parent", "state", "previousState", "properties", "repositoryIdStrings"})
+  "parent", "state", "previousState", "repositoryState", "properties", "repositoryIdStrings"})
 @SuppressWarnings("PublicField")
 public class VcsRootInstance {
   public static final String LAST_VERSION_INTERNAL = "lastVersionInternal";
@@ -150,7 +150,13 @@ public class VcsRootInstance {
     return ValueWithDefault.decideDefault(myFields.isIncluded("vcs-root", false), new VcsRoot(myRoot.getParent(), myFields.getNestedField("vcs-root"), myBeanContext));
   }
 
-  @XmlElement(name = "state")
+  @XmlElement(name = "repositoryState")
+  public RepositoryState getRepositoryState() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("repositoryState", false, false), () ->
+      check(new RepositoryState(((VcsRootInstanceEx)myRoot).getLastUsedState(), myFields.getNestedField("repositoryState"), myBeanContext)));
+  }
+
+  @XmlElement(name = "state") //todo: review "state" wording here
   public VcsCheckState getState() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("state", false), () ->
       check(new VcsCheckState(((VcsRootInstanceEx)myRoot).getStatus(), ((VcsRootInstanceEx)myRoot).getLastRequestor(), myFields.getNestedField("state"), myBeanContext)));
@@ -159,7 +165,7 @@ public class VcsRootInstance {
   @XmlElement(name = "previousState")
   public VcsCheckState getPreviousState() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("previousState", false), () ->
-      check(new VcsCheckState(((VcsRootInstanceEx)myRoot).getStatus(), null, myFields.getNestedField("previousState"), myBeanContext)));
+      check(new VcsCheckState(((VcsRootInstanceEx)myRoot).getPreviousStatus(), null, myFields.getNestedField("previousState"), myBeanContext)));
   }
 
   @XmlElement
