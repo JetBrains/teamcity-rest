@@ -17,6 +17,8 @@
 package jetbrains.buildServer.server.rest.data;
 
 
+import java.util.HashSet;
+import java.util.Set;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.NotNull;
@@ -105,5 +107,11 @@ public abstract class AbstractFinder<ITEM> extends FinderImpl<ITEM> implements F
   @NotNull
   public static <P> ItemHolder<P> getItemHolder(@NotNull Iterable<P> items){
     return FinderDataBinding.getItemHolder(items);
+  }
+
+  @Nullable
+  @Override
+  public Set<ITEM> createContainerSet() {
+    return new HashSet<>();
   }
 }

@@ -117,7 +117,8 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     final Locator result = Locator.createLocator(locatorText, locatorDefaults, knownDimensions.toArray(new String[knownDimensions.size()]));
     result.addIgnoreUnusedDimensions(PagerData.COUNT);
     result.addIgnoreUnusedDimensions(OPTIONS_REPORT_ERROR_ON_NOTHING_FOUND);
-    result.addHiddenDimensions(LOGIC_OP_OR, LOGIC_OP_AND, LOGIC_OP_NOT, AbstractFinder.DIMENSION_ITEM, AbstractFinder.DIMENSION_UNIQUE); //experimental
+    result.addHiddenDimensions(LOGIC_OP_OR, LOGIC_OP_AND, LOGIC_OP_NOT, AbstractFinder.DIMENSION_ITEM);  //experimental
+    result.addHiddenDimensions(AbstractFinder.DIMENSION_UNIQUE);  //experimental, should actually depend on FinderDataBinding.getContainerSet returning not null
     result.addHiddenDimensions(OPTIONS_REPORT_ERROR_ON_NOTHING_FOUND); //experimental
     for (String hiddenDimension : myDataBinding.getHiddenDimensions()) {
       result.addHiddenDimensions(hiddenDimension);
@@ -232,9 +233,12 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
 
     FinderDataBinding.LocatorDataBinding<ITEM> locatorDataBinding = getDataBindingWithLogicOpsSupport(locator, myDataBinding);
     FinderDataBinding.ItemHolder<ITEM> unfilteredItems = locatorDataBinding.getPrefilteredItems();
-    boolean deduplicate = locator.getSingleDimensionValueAsStrictBoolean(DIMENSION_UNIQUE, locator.isAnyPresent(DIMENSION_ITEM, LOGIC_OP_OR));
-    if (deduplicate) {
-      unfilteredItems = new FinderDataBinding.DeduplicatingItemHolder<>(unfilteredItems);
+    Set<ITEM> containerSet = myDataBinding.createContainerSet();
+    if (containerSet != null) {
+      boolean deduplicate = locator.getSingleDimensionValueAsStrictBoolean(DIMENSION_UNIQUE, locator.isAnyPresent(DIMENSION_ITEM));
+      if (deduplicate) {
+        unfilteredItems = new FinderDataBinding.DeduplicatingItemHolder<>(unfilteredItems, containerSet);
+      }
     }
 
     final Long start = locator.getSingleDimensionValueAsLong(PagerData.START);

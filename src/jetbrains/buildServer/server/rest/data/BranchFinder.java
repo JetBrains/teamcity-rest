@@ -16,9 +16,8 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import com.google.common.collect.ComparisonChain;
+import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
@@ -278,6 +277,19 @@ public class BranchFinder extends AbstractFinder<Branch> {
       // not a valid branches listing locator
       return null;
     }
+  }
+
+  @NotNull
+  public TreeSet<Branch> createContainerSet() {
+    return new TreeSet<>(new Comparator<Branch>() {
+      @Override
+      public int compare(final Branch o1, final Branch o2) {
+        return ComparisonChain.start()
+                              .compareTrueFirst(o1.isDefaultBranch(), o2.isDefaultBranch())
+                              .compare(o1.getName(), o2.getName())
+                              .result();
+      }
+    });
   }
 
   public static class BranchFilterDetails {

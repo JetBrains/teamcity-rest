@@ -213,6 +213,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       builder.dimensionTimeCondition(new TypedFinderBuilder.Dimension<>("timestamp"), myTimeCondition).description("time of the state changing").
         valueForDefaultFilter(root -> root.getStatus().getTimestamp());
       builder.multipleConvertToItems(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> Collections.emptyList()); //workaround for at least one condition
+      builder.containerSetProvider(() -> new HashSet<VcsRootInstanceEx>());
       final ItemFilter<VcsRootInstanceEx> filter = builder.build().getFilter(state);
       result.add(new FilterConditionChecker<VcsRootInstance>() {
         public boolean isIncluded(@NotNull final VcsRootInstance item) {

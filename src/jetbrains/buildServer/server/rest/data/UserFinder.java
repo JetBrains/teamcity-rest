@@ -505,6 +505,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
       });
 
       locatorProvider(user -> getLocator(user));
+      containerSetProvider(() -> new HashSet<SUser>());
     }
   }
 }

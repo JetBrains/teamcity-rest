@@ -17,7 +17,6 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -73,6 +72,14 @@ public interface FinderDataBinding<ITEM> {
   @NotNull
   String getItemLocator(@NotNull final ITEM item);
 
+  /**
+   * Returns new empty set which ensures proper items matching
+   * Is used for "unique" dimension processing
+   * @return null if "unique" dimension is not supported
+   */
+  @Nullable
+  Set<ITEM> createContainerSet();
+
   interface ItemHolder<P> {
     void process(@NotNull final ItemProcessor<P> processor);
   }
@@ -96,7 +103,7 @@ public interface FinderDataBinding<ITEM> {
     }
   }
 
-  class AggregatingItemHolder<P> implements ItemHolder<P> {
+  static class AggregatingItemHolder<P> implements ItemHolder<P> {
     @NotNull final private List<ItemHolder<P>> myItemHolders = new ArrayList<>();
 
     public void add(ItemHolder<P> holder) {
@@ -115,19 +122,20 @@ public interface FinderDataBinding<ITEM> {
    *
    * @param <P>
    */
-  class DeduplicatingItemHolder<P> implements ItemHolder<P> {
+  static class DeduplicatingItemHolder<P> implements ItemHolder<P> {
     @NotNull private final ItemHolder<P> myItemHolder;
+    private @NotNull Set<P> myProcessed;
 
-    public DeduplicatingItemHolder(@NotNull final ItemHolder<P> itemHolder) {
+    public DeduplicatingItemHolder(@NotNull final ItemHolder<P> itemHolder, @NotNull final Set<P> processed) {
       myItemHolder = itemHolder;
+      myProcessed = processed;
     }
 
     public void process(@NotNull final ItemProcessor<P> processor) {
-      @NotNull final Set<P> processed = new HashSet<>();
       myItemHolder.process(new ItemProcessor<P>() {
         @Override
         public boolean processItem(final P item) {
-          if (processed.add(item)) return processor.processItem(item);
+          if (myProcessed.add(item)) return processor.processItem(item);
           return true;
         }
       });

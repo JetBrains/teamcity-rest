@@ -16,6 +16,9 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import com.google.common.collect.ComparisonChain;
+import java.util.Comparator;
+import java.util.TreeSet;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.*;
@@ -73,6 +76,18 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
   @NotNull
   public static String getLocator(@NotNull final SQueuedBuild build) {
     return Locator.getStringLocator(DIMENSION_ID, String.valueOf(build.getBuildPromotion().getId()));
+  }
+
+  @NotNull
+  public TreeSet<SQueuedBuild> createContainerSet() {
+    return new TreeSet<>(new Comparator<SQueuedBuild>() {
+      @Override
+      public int compare(final SQueuedBuild o1, final SQueuedBuild o2) {
+        return ComparisonChain.start()
+                              .compare(o1.getItemId(), o2.getItemId())
+                              .result();
+      }
+    });
   }
 
   @NotNull

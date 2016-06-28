@@ -56,13 +56,6 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   protected static final String COMPATIBLE_BUILD_TYPE = "buildType";
   protected static final String COMPATIBLE_BUILD = "build";
 
-  protected static final Comparator<SBuildAgent> AGENTS_COMPARATOR = new Comparator<SBuildAgent>() {
-    @Override
-    public int compare(final SBuildAgent o1, final SBuildAgent o2) {
-      return o1.getId() - o2.getId();
-    }
-  };
-
   @NotNull private final BuildAgentManager myAgentManager;
   @NotNull private final ServiceLocator myServiceLocator;
 
@@ -266,16 +259,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     BuildPromotionFinder finder = myServiceLocator.getSingletonService(BuildPromotionFinder.class);
     List<BuildPromotion> builds = finder.getItems(buildDimension).myEntries;
     //agents with the same id can be returned (not existing agents)
-    TreeSet<SBuildAgent> result = new TreeSet<>(new Comparator<SBuildAgent>() {
-      @Override
-      public int compare(final SBuildAgent o1, final SBuildAgent o2) {
-        return ComparisonChain.start()
-                              .compare(o1.getId(), o2.getId())
-                              .compare(o1.getAgentTypeId(), o2.getAgentTypeId())
-                              .compare(o1.getName(), o2.getName())
-                              .result();
-      }
-    });
+    TreeSet<SBuildAgent> result = createContainerSet();
     for (BuildPromotion build : builds) {
       SQueuedBuild queuedBuild = build.getQueuedBuild();
       if (queuedBuild != null) {
@@ -288,6 +272,20 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       }
     }
     return result;
+  }
+
+  @NotNull
+  public TreeSet<SBuildAgent> createContainerSet() {
+    return new TreeSet<>(new Comparator<SBuildAgent>() {
+      @Override
+      public int compare(final SBuildAgent o1, final SBuildAgent o2) {
+        return ComparisonChain.start()
+                              .compare(o1.getId(), o2.getId())
+                              .compare(o1.getAgentTypeId(), o2.getAgentTypeId())
+                              .compare(o1.getName(), o2.getName())
+                              .result();
+      }
+    });
   }
 
   @NotNull
@@ -424,7 +422,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     if (!includeUnauthorized && locator.lookupSingleDimensionValue(COMPATIBLE) != null) {
       final String compatible = locator.getSingleDimensionValue(COMPATIBLE); //compatible with at least with one of the buildTypes
       assert compatible != null;
-      TreeSet<SBuildAgent> result = new TreeSet<>(AGENTS_COMPARATOR);
+      TreeSet<SBuildAgent> result = createContainerSet();
       CompatibleLocatorParseResult compatibleData = getBuildTypesFromCompatibleDimension(compatible);
       if (compatibleData.buildTypes != null) {
         for (SBuildType buildType : compatibleData.buildTypes) {
@@ -455,7 +453,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     if (!includeUnauthorized && locator.lookupSingleDimensionValue(INCOMPATIBLE) != null) {
       final String incompatible = locator.getSingleDimensionValue(INCOMPATIBLE); //incompatible with at least with one of the buildTypes
       assert incompatible != null;
-      TreeSet<SBuildAgent> result = new TreeSet<>(AGENTS_COMPARATOR);
+      TreeSet<SBuildAgent> result = createContainerSet();
       CompatibleLocatorParseResult compatibleData = getBuildTypesFromCompatibleDimension(incompatible);
       if (compatibleData.buildTypes != null){
         for (SBuildType buildType : compatibleData.buildTypes) {
@@ -488,7 +486,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       return getItemHolder(result);
     }
 
-    List<SBuildAgent> result = new ArrayList<SBuildAgent>();
+    TreeSet<SBuildAgent> result = createContainerSet();
 
     final Boolean connectedDimension = locator.getSingleDimensionValueAsBoolean(CONNECTED);
     if (connectedDimension == null || connectedDimension) {
@@ -499,12 +497,6 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       result.addAll(((BuildAgentManagerEx)myAgentManager).getUnregisteredAgents(includeUnauthorized));  //TeamCIty API issue: cast
     }
 
-    return getSorted(result);
-  }
-
-  @NotNull
-  private ItemHolder<SBuildAgent> getSorted(@NotNull final List<SBuildAgent> result) {
-    Collections.sort(result, AGENTS_COMPARATOR);
     return getItemHolder(result);
   }
 

@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data.problem;
 
+import com.google.common.collect.ComparisonChain;
 import java.util.*;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
@@ -96,6 +97,19 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   public static String getTestRunLocator(final @NotNull SBuild build) {
     return Locator.createEmptyLocator().setDimension(BUILD, BuildRequest.getBuildLocator(build)).getStringRepresentation();
+  }
+
+  @NotNull
+  public TreeSet<STestRun> createContainerSet() {
+    return new TreeSet<>(new Comparator<STestRun>() {
+      @Override
+      public int compare(final STestRun o1, final STestRun o2) {
+        return ComparisonChain.start()
+                              .compare(o1.getBuildId(), o2.getBuildId())
+                              .compare(o1.getTestRunId(), o2.getTestRunId())
+                              .result();
+      }
+    });
   }
 
   @Override

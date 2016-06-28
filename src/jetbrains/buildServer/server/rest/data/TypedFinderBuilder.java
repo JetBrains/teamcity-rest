@@ -51,6 +51,7 @@ public class TypedFinderBuilder<ITEM> {
   private final LinkedHashMap<DimensionCondition, ItemFilterFromDimensions<ITEM>> myFiltersConditions = new LinkedHashMap<>();
   private ItemsFromDimension<ITEM, String> mySingleDimensionHandler;
   private LocatorProvider<ITEM> myLocatorProvider;
+  private ContainerSetProvider<ITEM> myContainerSetProvider;
 
   public interface TypedFinderDimension<ITEM, TYPE> {
     @NotNull
@@ -429,6 +430,12 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   @NotNull
+  public TypedFinderBuilder<ITEM> containerSetProvider(@NotNull ContainerSetProvider<ITEM> containerSetProvider) {
+    myContainerSetProvider = containerSetProvider;
+    return this;
+  }
+
+  @NotNull
   public Finder<ITEM> build() {
 //    if (myLocatorProvider == null) throw new OperationException("Should set locator provider via a call to locatorProvider()");
     return new FinderImpl<ITEM>(new TypedFinderDataBindingImpl());
@@ -676,6 +683,11 @@ public class TypedFinderBuilder<ITEM> {
   public interface Value<S> {
     @NotNull
     S get();
+  }
+
+  public static interface ContainerSetProvider<ITEM> {
+    @NotNull
+    Set<ITEM> createContainerSet();
   }
 
   interface Converter<TO, FROM> {
@@ -947,6 +959,12 @@ public class TypedFinderBuilder<ITEM> {
     public String getItemLocator(@NotNull final ITEM item) {
     if (myLocatorProvider == null) throw new OperationException("Incorrect configuration of the typed finder: locator provider not set");
       return myLocatorProvider.getLocator(item);
+    }
+
+    @Nullable
+    @Override
+    public Set<ITEM> createContainerSet() {
+      return myContainerSetProvider == null ? null : myContainerSetProvider.createContainerSet();
     }
   }
 

@@ -19,8 +19,8 @@ package jetbrains.buildServer.server.rest.model.project;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.data.*;
@@ -162,6 +162,7 @@ public class PropEntityProjectFeature extends PropEntity {
       builder.multipleConvertToItems(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> new ArrayList<>(project.getOwnFeatures()));
 
       builder.locatorProvider(projectFeatureDescriptor -> getLocator(projectFeatureDescriptor));
+      builder.containerSetProvider(() -> new HashSet<SProjectFeatureDescriptor>());
 
       setDelegate(builder.build());
     }

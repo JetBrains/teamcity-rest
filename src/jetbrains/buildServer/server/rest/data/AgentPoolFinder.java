@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import com.google.common.collect.ComparisonChain;
 import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimension;
@@ -100,6 +101,15 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
       multipleConvertToItems(DimensionCondition.ALWAYS, dimensions -> myAgentPoolManager.getAllAgentPools());
 
       locatorProvider(agentPool -> getLocator(agentPool));
+      containerSetProvider(() -> new TreeSet<>(new Comparator<AgentPool>() {
+            @Override
+            public int compare(final AgentPool o1, final AgentPool o2) {
+              return ComparisonChain.start()
+                                    .compare(o1.getAgentPoolId(), o2.getAgentPoolId())
+                                    .compare(o1.getName(), o2.getName())
+                                    .result();
+            }
+          }));
     }
   }
 

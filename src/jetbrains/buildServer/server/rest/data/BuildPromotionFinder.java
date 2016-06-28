@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import com.google.common.collect.ComparisonChain;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -183,6 +184,18 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       return defaultLookupLimit;
     }
     return null;
+  }
+
+  @NotNull
+  public TreeSet<BuildPromotion> createContainerSet() {
+    return new TreeSet<>(new Comparator<BuildPromotion>() {
+      @Override
+      public int compare(final BuildPromotion o1, final BuildPromotion o2) {
+        return ComparisonChain.start()
+                              .compare(o1.getId(), o2.getId())
+                              .result();
+      }
+    });
   }
 
   @Nullable
