@@ -462,9 +462,7 @@ public class ProjectRequest {
         @Override
         public PropEntityProjectFeature getSingle(@NotNull final String featureLocator, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
           final SProjectFeatureDescriptor projectFeature = PropEntityProjectFeature.getFeatureByLocator(project, featureLocator);
-          final BuildProject project = myProjectFinder.findProjectByInternalId(projectFeature.getProjectId());
-          if (project == null || !(project instanceof SProject)) throw new OperationException("Project containing feature '" + projectFeature + "' doesn't exist");
-          return new PropEntityProjectFeature((SProject)project, projectFeature, fields, beanContext);
+          return new PropEntityProjectFeature(project, projectFeature, fields, beanContext);
         }
 
         @Override
