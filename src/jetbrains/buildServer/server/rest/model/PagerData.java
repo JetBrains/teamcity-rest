@@ -106,8 +106,6 @@ public class PagerData {
       if (StringUtil.isEmpty(locatorQueryParameterName)) {
         throw new OperationException("TeamCity REST API implementation error: lookupLimit is passed while no locator parameter name is specified.");
       }
-      if (nextHref == null) {
-      }
       if (currentPageRealCount == 0) {
         nextHref = new UriModification(uriBuilder, locatorText);
       } else {
