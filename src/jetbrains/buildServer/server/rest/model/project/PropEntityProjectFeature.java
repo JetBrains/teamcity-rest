@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.data.*;
@@ -46,9 +47,9 @@ public class PropEntityProjectFeature extends PropEntity {
   public PropEntityProjectFeature() {
   }
 
-  public PropEntityProjectFeature(@NotNull final SProjectFeatureDescriptor descriptor,
+  public PropEntityProjectFeature(@NotNull final SProject project, @NotNull final SProjectFeatureDescriptor descriptor,
                                   @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
-    String featureHref = ProjectRequest.getFeatureHref(descriptor.getProject(), descriptor);
+    String featureHref = ProjectRequest.getFeatureHref(project, descriptor);
     init(descriptor.getId(), null, descriptor.getType(), null, null, featureHref, descriptor.getParameters(), ProjectFeatureSubResource.getPropertiesHref(featureHref),
          fields, beanContext.getServiceLocator());
   }

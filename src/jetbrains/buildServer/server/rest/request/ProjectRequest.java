@@ -24,11 +24,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.agent.AgentPool;
@@ -459,7 +461,10 @@ public class ProjectRequest {
         @NotNull
         @Override
         public PropEntityProjectFeature getSingle(@NotNull final String featureLocator, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
-          return new PropEntityProjectFeature(PropEntityProjectFeature.getFeatureByLocator(project, featureLocator), fields, beanContext);
+          final SProjectFeatureDescriptor projectFeature = PropEntityProjectFeature.getFeatureByLocator(project, featureLocator);
+          final BuildProject project = myProjectFinder.findProjectByInternalId(projectFeature.getProjectId());
+          if (project == null || !(project instanceof SProject)) throw new OperationException("Project containing feature '" + projectFeature + "' doesn't exist");
+          return new PropEntityProjectFeature((SProject)project, projectFeature, fields, beanContext);
         }
 
         @Override
