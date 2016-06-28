@@ -22,12 +22,10 @@ import java.util.Collections;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.data.PagedSearchResult;
-import jetbrains.buildServer.server.rest.data.VcsRootInstanceFinder;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
@@ -37,10 +35,12 @@ import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.serverSide.VcsAccessFactory;
 import jetbrains.buildServer.serverSide.VcsWorkspaceAccess;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.RepositoryStateManager;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
@@ -173,8 +173,73 @@ public class VcsRootInstanceRequest {
     return new Entries(repositoryState.getBranchRevisions());
   }
 
-  public static final String WHERE_NOTE = "current sources of the VCS root";
+  @POST
+  @Path("/commitHookNotification")
+  @Produces({"text/plain"})
+  public Response scheduleCheckingForChanges(@QueryParam("locator") final String vcsRootInstancesLocator, @Context @NotNull final BeanContext beanContext) {
+    if (StringUtil.isEmpty(vcsRootInstancesLocator)) {
+      throw new BadRequestException("No 'locator' parameter provided, should be not empty VCS root instances locator");
+    }
+    final PagedSearchResult<jetbrains.buildServer.vcs.VcsRootInstance> vcsRootInstances = myVcsRootInstanceFinder.getItems(vcsRootInstancesLocator);
+    if (vcsRootInstances.myEntries.isEmpty()) {
+      return Response.status(Response.Status.NOT_FOUND).entity("No VCS roots are found for locator '" + vcsRootInstancesLocator + "' with current user " +
+                                                               myBeanContext.getSingletonService(PermissionChecker.class).getCurrentUserDescription() +
+                                                               ". Check locator and permissions using '" +
+                                                               API_VCS_ROOT_INSTANCES_URL + "?locator=" + Locator.HELP_DIMENSION + "' URL.").build();
+    }
 
+    myDataProvider.getVcsModificationChecker().forceCheckingFor(vcsRootInstances.myEntries, OperationRequestor.COMMIT_HOOK);
+    StringBuilder okMessage = new StringBuilder();
+    okMessage.append("Scheduled checking for changes for");
+    if (vcsRootInstances.isNextPageAvailable()) {
+      okMessage.append(" first ").append(vcsRootInstances.myActualCount).append(" VCS roots.");
+      if (vcsRootInstances.myCount != null && vcsRootInstances.myActualCount >= vcsRootInstances.myCount) {
+        okMessage.append(" You can add '" + PagerData.COUNT + ":X' to cover more roots.");
+      }
+      if (vcsRootInstances.myLookupLimit != null && vcsRootInstances.myLookupLimitReached) {
+        okMessage.append(" You can add '" + FinderImpl.DIMENSION_LOOKUP_LIMIT + ":X' to cover more roots.");
+      }
+    } else {
+      okMessage.append(" ").append(vcsRootInstances.myEntries.size()).append(" VCS roots.");
+    }
+    return Response.status(Response.Status.ACCEPTED).entity(okMessage.toString()).build();  //in XX prpjects
+  }
+
+
+  /**
+   * Was previously available as .../app/rest/debug/vcsCheckingForChangesQueue
+   * @param vcsRootInstancesLocator locator for VCS root instances
+   * @param requestor Marks the origin of the request. One of "commit_hook" or "user". Note that "commit_hook" has special meaning which increases background checking for changes interval for a VCS root
+   * @return the set of VCS root instances scheduled for the checking for changes operation
+   */
+  @POST
+  @Path("/vcsCheckingForChangesQueue")
+  @Produces({"application/xml", "application/json"})
+  public VcsRootInstances scheduleCheckingForChanges(@QueryParam("locator") final String vcsRootInstancesLocator,
+                                                     @QueryParam("requestor") final String requestor,
+                                                     @QueryParam("fields") final String fields,
+                                                     @Context UriInfo uriInfo,
+                                                     @Context HttpServletRequest request,
+                                                     @Context @NotNull final BeanContext beanContext) {
+    //todo: check whether permission checks are necessary
+    final PagedSearchResult<jetbrains.buildServer.vcs.VcsRootInstance> vcsRootInstances = myVcsRootInstanceFinder.getItems(vcsRootInstancesLocator);
+    myDataProvider.getVcsModificationChecker().forceCheckingFor(vcsRootInstances.myEntries, getRequestor(requestor));
+    PagerData pagerData = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), vcsRootInstances, vcsRootInstancesLocator, "locator");
+
+    //return 202 Accepted
+    //return something which can be used to track progress (like get list of instances which has not yet compleed since the queuing
+    //consider returning URL in href which will list the instances which has not yet been checked since the request
+    return new VcsRootInstances(CachingValue.simple(vcsRootInstances.myEntries), pagerData, new Fields(fields), beanContext);
+  }
+
+  @NotNull
+  private OperationRequestor getRequestor(@Nullable final String requestorText) {
+    //TeamCity API: ideally, should be possible to pass custom value as requestor to allow debugging the origin of the request
+    if (StringUtil.isEmpty(requestorText)) return OperationRequestor.USER;
+    return TypedFinderBuilder.getEnumValue(requestorText, OperationRequestor.class);
+  }
+
+  public static final String WHERE_NOTE = "current sources of the VCS root";
 
   /**
    * Experimental support only

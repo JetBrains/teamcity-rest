@@ -25,6 +25,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.impl.auth.SecurityContextImpl;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.vcs.SVcsModification;
@@ -81,21 +82,39 @@ public class PermissionChecker {
   }
 
   private void throwNoPermission(@NotNull final AuthorityHolder authorityHolder, @NotNull final Permission... permissions) throws AuthorizationFailedException {
-    final User user = authorityHolder.getAssociatedUser();
     String permissionsPart;
     if (permissions.length > 1) {
       permissionsPart = "any of the permissions granted globally: " + Arrays.toString(permissions);
     } else {
       permissionsPart = "global permission " + permissions[0];
     }
+    throw new AuthorizationFailedException("User " + describe(authorityHolder) + " does not have " + permissionsPart);
+  }
+
+  @NotNull
+  public static String describe(@NotNull final AuthorityHolder authorityHolder) {
+    final User user = authorityHolder.getAssociatedUser();
     if (user != null){
-      throw new AuthorizationFailedException("User " + user.describe(false) + " does not have " + permissionsPart);
+      return user.describe(false);
     }
     if (authorityHolder instanceof BuildAuthorityHolder){
       final long associatedBuildId = ((BuildAuthorityHolder)authorityHolder).getAssociatedBuildId();
-      throw new AuthorizationFailedException("Built-in user for build with id " + associatedBuildId + " does not have " + permissionsPart);
+      return "<built-in user for build with id " + associatedBuildId + ">";
     }
-    throw new AuthorizationFailedException("Authority holder does not have " + permissionsPart);
+    if (authorityHolder.equals(SecurityContextImpl.NO_PERMISSIONS)) {
+      return "<no user, anonymous>";
+    }
+    return "<authority holder>";
+  }
+
+  @NotNull
+  public AuthorityHolder getCurrent() {
+    return mySecurityContext.getAuthorityHolder();
+  }
+
+  @NotNull
+  public String getCurrentUserDescription() {
+    return describe(getCurrent());
   }
 
   public void checkProjectPermission(@NotNull final Permission permission, @Nullable final String internalProjectId) throws AuthorizationFailedException{

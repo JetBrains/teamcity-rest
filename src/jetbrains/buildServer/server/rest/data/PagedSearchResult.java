@@ -60,4 +60,8 @@ public class PagedSearchResult<T> {
   public T getLastProcessedItem() {
     return myLastProcessedItem;
   }
+
+  public boolean isNextPageAvailable(){
+    return myCount != null && myActualCount >= myCount || myLookupLimit != null && myLookupLimitReached;
+  }
 }

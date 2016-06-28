@@ -56,7 +56,6 @@ import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
 import jetbrains.buildServer.serverSide.db.*;
 import jetbrains.buildServer.serverSide.db.queries.GenericQuery;
 import jetbrains.buildServer.serverSide.db.queries.QueryOptions;
-import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.vcs.OperationRequestor;
@@ -153,6 +152,7 @@ public class DebugRequest {
 
   /**
    * Experimental use only!
+   * @deprecated Use .../app/rest/vcs-root-instances/vcsCheckingForChangesQueue or .../app/rest/vcs-root-instances/commitHookNotification
    */
   @POST
   @Path("/vcsCheckingForChangesQueue")
@@ -193,12 +193,7 @@ public class DebugRequest {
     result.append("Scheme: ").append(request.getScheme()).append("\n");
     result.append("Session id: ").append(request.getSession().getId()).append("\n");
     result.append("\n");
-    SUser currentUser = myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser();
-    if (currentUser != null) {
-      result.append("Current TeamCity user: ").append(currentUser.describe(false)).append("\n");
-    } else {
-      result.append("No current TeamCity user\n");
-    }
+    result.append("Current TeamCity user: ").append(myServiceLocator.getSingletonService(PermissionChecker.class).getCurrentUserDescription()).append("\n");
     result.append("\n");
     result.append("Headers:\n");
     Enumeration<String> headerNames = request.getHeaderNames();

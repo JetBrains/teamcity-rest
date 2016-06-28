@@ -490,7 +490,7 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   @NotNull
-  private static <T extends Enum> T getEnumValue(@NotNull final String value, @NotNull final Class<T> enumClass) {
+  public static <T extends Enum> T getEnumValue(@NotNull final String value, @NotNull final Class<T> enumClass) {
     T[] consts = enumClass.getEnumConstants();
     assert consts != null;
     for (T c : consts) {
