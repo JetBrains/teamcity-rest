@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.request;
 import io.swagger.annotations.Api;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -41,6 +42,7 @@ import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.RepositoryStateManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.joda.time.format.ISODateTimeFormat;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
@@ -180,6 +182,7 @@ public class VcsRootInstanceRequest {
     if (StringUtil.isEmpty(vcsRootInstancesLocator)) {
       throw new BadRequestException("No 'locator' parameter provided, should be not empty VCS root instances locator");
     }
+    Date requestStartTime = new Date();
     final PagedSearchResult<jetbrains.buildServer.vcs.VcsRootInstance> vcsRootInstances = myVcsRootInstanceFinder.getItems(vcsRootInstancesLocator);
     if (vcsRootInstances.myEntries.isEmpty()) {
       return Response.status(Response.Status.NOT_FOUND).entity("No VCS roots are found for locator '" + vcsRootInstancesLocator + "' with current user " +
@@ -202,7 +205,8 @@ public class VcsRootInstanceRequest {
     } else {
       okMessage.append(" ").append(vcsRootInstances.myEntries.size()).append(" VCS roots.");
     }
-    return Response.status(Response.Status.ACCEPTED).entity(okMessage.toString()).build();  //in XX prpjects
+    okMessage.append(" (Server time: ").append(ISODateTimeFormat.basicDateTime().print(requestStartTime.getTime())).append(")"); //format supported by TimeWithPrecision, can later be used in filtering
+    return Response.status(Response.Status.ACCEPTED).entity(okMessage.toString()).build();  //can also add "in XX projects"
   }
 
 
