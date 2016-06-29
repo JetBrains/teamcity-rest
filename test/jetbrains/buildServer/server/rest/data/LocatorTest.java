@@ -398,9 +398,8 @@ public class LocatorTest {
     check("x:y:z", false, null, "x", "y:z");
     check("x:y:z,a:b", false, null, "x", "y:z", "a", "b");
     check("x:(y:z,a:b)", false, null, "x", "y:z,a:b");
-
-    check("x:y:(a:b,c:d)", false, null, "x", "y:(a:b", "c", "d)"); //documenting current behavior
-
+    check("x:y:(z,a:b)", false, null, "x", "y:(z,a:b)");
+    check("x:y:(a:b,c:d)", false, null, "x", "y:(a:b,c:d)");
     check("a:b)", false, null, "a", "b)");
   }
 

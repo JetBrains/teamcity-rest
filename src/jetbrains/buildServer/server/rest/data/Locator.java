@@ -355,13 +355,13 @@ public class Locator {
           final String valueAndRest = locator.substring(parsedIndex);
           if (valueAndRest.startsWith(DIMENSION_COMPLEX_VALUE_START_DELIMITER)) {
             //complex value detected
-            final int complexValueEnd = findMatchingEndDelimeterIndex(valueAndRest);
-            if (complexValueEnd == -1) {
+            final int complexValueEnd = findNextOrEndOfStringConsideringBraces(valueAndRest, null);
+            if (complexValueEnd < 0) {
               throw new LocatorProcessException(locator, parsedIndex + DIMENSION_COMPLEX_VALUE_START_DELIMITER.length(),
                                                 "Could not find matching '" + DIMENSION_COMPLEX_VALUE_END_DELIMITER + "'");
             }
-            currentDimensionValue = valueAndRest.substring(DIMENSION_COMPLEX_VALUE_START_DELIMITER.length(), complexValueEnd);
-            parsedIndex = parsedIndex + complexValueEnd + DIMENSION_COMPLEX_VALUE_END_DELIMITER.length();
+            currentDimensionValue = valueAndRest.substring(DIMENSION_COMPLEX_VALUE_START_DELIMITER.length(), complexValueEnd - DIMENSION_COMPLEX_VALUE_END_DELIMITER.length());
+            parsedIndex = parsedIndex + complexValueEnd;
             if (parsedIndex != locator.length()) {
               if (!locator.startsWith(DIMENSIONS_DELIMITER, parsedIndex)) {
                 throw new LocatorProcessException(locator, parsedIndex, "No dimensions delimiter '" + DIMENSIONS_DELIMITER + "' after complex value");
@@ -370,8 +370,10 @@ public class Locator {
               }
             }
           } else {
-            int valueEnd = valueAndRest.indexOf(DIMENSIONS_DELIMITER);
-            if (valueEnd == -1) {
+            int valueEnd = findNextOrEndOfStringConsideringBraces(valueAndRest, DIMENSIONS_DELIMITER);
+            if (valueEnd < 0) {
+              throw new LocatorProcessException(locator, parsedIndex, "Could not find matching '" + DIMENSION_COMPLEX_VALUE_END_DELIMITER + "'");
+            } else if (valueEnd == valueAndRest.length()) {
               currentDimensionValue = valueAndRest;
               parsedIndex = locator.length();
             } else {
@@ -395,24 +397,36 @@ public class Locator {
     return result;
   }
 
-  private static int findMatchingEndDelimeterIndex(final String valueAndRest) {
-    int pos = DIMENSION_COMPLEX_VALUE_START_DELIMITER.length();
-    int nesting = 1;
-    while (nesting != 0) {
-      final int endDelimeterPosition = valueAndRest.indexOf(DIMENSION_COMPLEX_VALUE_END_DELIMITER, pos);
-      final int startDelimeterPosition = valueAndRest.indexOf(DIMENSION_COMPLEX_VALUE_START_DELIMITER, pos);
-      if (endDelimeterPosition == -1) {
-        return -1;
-      }
-      if (startDelimeterPosition == -1 || endDelimeterPosition < startDelimeterPosition) {
-        nesting--;
-        pos = endDelimeterPosition + DIMENSION_COMPLEX_VALUE_END_DELIMITER.length();
-      } else if (endDelimeterPosition > startDelimeterPosition) {
+  /**
+   * Scans text skipping blocks wrapped in "()", returns on found stopText, after closing ")" if stopText is null or on reaching end of string
+   *
+   * @param text
+   * @param stopText
+   * @return negative value if text is not well-formed, position of a char before stopText, last char of () sequence if stopText is null or length of the text
+   */
+  private static int findNextOrEndOfStringConsideringBraces(@NotNull final String text, @Nullable final String stopText) {
+    int pos = 0;
+    int nesting = 0;
+    while (pos < text.length()) {
+      if (text.startsWith(DIMENSION_COMPLEX_VALUE_START_DELIMITER, pos)) {
         nesting++;
-        pos = startDelimeterPosition + DIMENSION_COMPLEX_VALUE_START_DELIMITER.length();
+        pos = pos + DIMENSION_COMPLEX_VALUE_START_DELIMITER.length();
+      } else if (text.startsWith(DIMENSION_COMPLEX_VALUE_END_DELIMITER, pos)) {
+        if (nesting == 0) {
+          //out of order ")", ignore
+        } else {
+          nesting--;
+        }
+        pos = pos + DIMENSION_COMPLEX_VALUE_END_DELIMITER.length();
+        if (nesting == 0 && stopText == null) return pos;
+      } else if (nesting == 0 && stopText != null && text.startsWith(stopText, pos)) {
+        return pos;
+      } else {
+        pos++;
       }
     }
-    return pos - DIMENSION_COMPLEX_VALUE_END_DELIMITER.length();
+    if (nesting != 0) return -pos;
+    return pos;
   }
 
   private static boolean isValidName(@Nullable final String name,
