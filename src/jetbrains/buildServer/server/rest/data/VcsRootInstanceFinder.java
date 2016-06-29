@@ -51,7 +51,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   protected static final String AFFECTED_PROJECT = "affectedProject";
   protected static final String PROPERTY = "property";
   protected static final String BUILD_TYPE = "buildType";
-  protected static final String STATE = "state";
+  protected static final String STATUS = "status";
   protected static final String FINISH_VCS_CHECKING_FOR_CHANGES = "checkingForChangesFinishDate";  // experimental
   protected static final String REPOSITORY_STATE = "repositoryState";  // experimental
   protected static final String HAS_VERSIONED_SETTINGS_ONLY = "versionedSettings"; //actually means "withoutBuildTypeUsagesWithinScope"
@@ -84,7 +84,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     myVersionedSettingsManager = versionedSettingsManager;
     myTimeCondition = timeCondition;
-    setHiddenDimensions(PROPERTY, STATE, FINISH_VCS_CHECKING_FOR_CHANGES, REPOSITORY_STATE, COMMIT_HOOK_MODE);
+    setHiddenDimensions(PROPERTY, STATUS, FINISH_VCS_CHECKING_FOR_CHANGES, REPOSITORY_STATE, COMMIT_HOOK_MODE);
     myVcsRootFinder = vcsRootFinder;
     myVcsManager = vcsManager;
     myProjectFinder = projectFinder;
@@ -203,21 +203,29 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       });
     }
 
-    final String state = locator.getSingleDimensionValue(STATE);
-    if (state != null) {
+    final String status = locator.getSingleDimensionValue(STATUS);
+    if (status != null) {
       TypedFinderBuilder<VcsRootInstanceEx> builder = new TypedFinderBuilder<VcsRootInstanceEx>();
       builder.dimensionEnum(TypedFinderBuilder.Dimension.single(), VcsRootStatus.Type.class).description("status of the VCS root instance").
         valueForDefaultFilter(root -> root.getStatus().getType());
 
-      builder.dimensionEnum(new TypedFinderBuilder.Dimension<>("status"), VcsRootStatus.Type.class).description("status of the VCS root instance").
-        valueForDefaultFilter(root -> root.getStatus().getType());
-      builder.dimensionEnum(new TypedFinderBuilder.Dimension<>("requestor"), OperationRequestor.class).description("what invoked the checking for changes operation").
-        valueForDefaultFilter(root -> root.getLastRequestor());
-      builder.dimensionTimeCondition(new TypedFinderBuilder.Dimension<>("timestamp"), myTimeCondition).description("time of the state changing").
-        valueForDefaultFilter(root -> root.getStatus().getTimestamp());
+      final TypedFinderBuilder<VcsRootCheckStatus> statusFilterBuilder = new TypedFinderBuilder<VcsRootCheckStatus>();
+      statusFilterBuilder.dimensionEnum(new TypedFinderBuilder.Dimension<>("status"), VcsRootStatus.Type.class).description("type of operation")
+                         .valueForDefaultFilter(vcsRootCheckStatus -> vcsRootCheckStatus.myStatus.getType());
+      statusFilterBuilder.dimensionTimeCondition(new TypedFinderBuilder.Dimension<>("timestamp"), myTimeCondition).description("time of the operation start")
+                         .valueForDefaultFilter(vcsRootCheckStatus -> vcsRootCheckStatus.myStatus.getTimestamp());
+      statusFilterBuilder.dimensionEnum(new TypedFinderBuilder.Dimension<>("requestorType"), OperationRequestor.class).description("requestor of the operation")
+                         .valueForDefaultFilter(vcsRootCheckStatus -> vcsRootCheckStatus.myRequestor);
+      statusFilterBuilder.multipleConvertToItems(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> Collections.emptyList()); //workaround for at least one condition
+      Finder<VcsRootCheckStatus> vcsRootCheckStatusFinder = statusFilterBuilder.build();
+
+      builder.dimensionFinderFilter(new TypedFinderBuilder.Dimension<>("current"), vcsRootCheckStatusFinder, "VCS check status condition")
+             .description("current VCS root status").valueForDefaultFilter(root -> new VcsRootCheckStatus(root.getStatus(), root.getLastRequestor()));
+      builder.dimensionFinderFilter(new TypedFinderBuilder.Dimension<>("previous"), vcsRootCheckStatusFinder, "VCS check status condition")
+             .description("previous VCS root status").valueForDefaultFilter(root -> new VcsRootCheckStatus(root.getPreviousStatus(), null));
+
       builder.multipleConvertToItems(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> Collections.emptyList()); //workaround for at least one condition
-      builder.containerSetProvider(() -> new HashSet<VcsRootInstanceEx>());
-      final ItemFilter<VcsRootInstanceEx> filter = builder.build().getFilter(state);
+      final ItemFilter<VcsRootInstanceEx> filter = builder.build().getFilter(status);
       result.add(new FilterConditionChecker<VcsRootInstance>() {
         public boolean isIncluded(@NotNull final VcsRootInstance item) {
           return filter.isIncluded((VcsRootInstanceEx)item);
@@ -313,6 +321,15 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
     return result;
   }
 
+  private static class VcsRootCheckStatus {
+    @NotNull final VcsRootStatus myStatus;
+    @Nullable final OperationRequestor myRequestor;
+
+    public VcsRootCheckStatus(@NotNull final VcsRootStatus status, @Nullable final OperationRequestor requestor) {
+      myStatus = status;
+      myRequestor = requestor;
+    }
+  }
   private static Date getFinishCheckingForChanges(@NotNull final VcsRootInstance vcsRootInstance) {
     return ((VcsRootInstanceEx)vcsRootInstance).getLastFinishChangesCollectingTime();
   }

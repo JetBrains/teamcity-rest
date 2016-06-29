@@ -21,7 +21,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
-import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.vcs.OperationRequestor;
 import jetbrains.buildServer.vcs.VcsRootStatus;
@@ -30,27 +29,27 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
- *         Date: 09/06/2016
+ *         Date: 29/06/2016
  */
-@XmlRootElement(name = "vcs-check-status")
-@XmlType(name = "vcs-check-status")
+@XmlRootElement(name = "VcsCheckStatus")
+@XmlType(name = "VcsCheckStatus")
 @SuppressWarnings("PublicField")
-public class VcsCheckState {
+public class VcsCheckStatus {
   @XmlAttribute
   public String status;
 
   @XmlAttribute
-  public String requestor;
+  public String requestorType;
 
   @XmlAttribute
   public String timestamp;
 
-  public VcsCheckState() {
+  public VcsCheckStatus() {
   }
 
-  public VcsCheckState(@NotNull final VcsRootStatus status, @Nullable final OperationRequestor requestor, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+  public VcsCheckStatus(@NotNull final VcsRootStatus status, @Nullable final OperationRequestor requestor, final @NotNull Fields fields) {
     this.status = ValueWithDefault.decideDefault(fields.isIncluded("status"), status.getType().toString().toLowerCase());
     this.timestamp = ValueWithDefault.decideDefault(fields.isIncluded("timestamp"), Util.formatTime(status.getTimestamp()));
-    this.requestor = requestor == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("requestor"), requestor.name().toLowerCase());
+    this.requestorType = requestor == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("requestorType"), requestor.name().toLowerCase());
   }
 }

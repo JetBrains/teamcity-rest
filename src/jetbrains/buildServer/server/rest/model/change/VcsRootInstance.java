@@ -55,7 +55,7 @@ import static jetbrains.buildServer.serverSide.impl.projectSources.SmallPatchCac
 @XmlRootElement(name = "vcs-root-instance")
 @XmlType(name = "vcs-root-instance", propOrder = {"id", "vcsRootId", "vcsRootInternalId", "name", "vcsName",
   "modificationCheckInterval", "commitHookMode", "lastVersion", "lastVersionInternal", "href",
-  "parent", "state", "previousState", "repositoryState", "properties", "repositoryIdStrings"})
+  "parent", "status", "repositoryState", "properties", "repositoryIdStrings"})
 @SuppressWarnings("PublicField")
 public class VcsRootInstance {
   public static final String LAST_VERSION_INTERNAL = "lastVersionInternal";
@@ -163,16 +163,13 @@ public class VcsRootInstance {
       check(new RepositoryState(((VcsRootInstanceEx)myRoot).getLastUsedState(), myFields.getNestedField("repositoryState"), myBeanContext)));
   }
 
-  @XmlElement(name = "state") //todo: review "state" wording here
-  public VcsCheckState getState() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("state", false), () ->
-      check(new VcsCheckState(((VcsRootInstanceEx)myRoot).getStatus(), ((VcsRootInstanceEx)myRoot).getLastRequestor(), myFields.getNestedField("state"), myBeanContext)));
-  }
-
-  @XmlElement(name = "previousState")
-  public VcsCheckState getPreviousState() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("previousState", false), () ->
-      check(new VcsCheckState(((VcsRootInstanceEx)myRoot).getPreviousStatus(), null, myFields.getNestedField("previousState"), myBeanContext)));
+  /**
+   * experimental
+   */
+  @XmlElement(name = "status")
+  public VcsStatus getStatus() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("status", false), () ->
+      check(new VcsStatus((VcsRootInstanceEx)myRoot, myFields.getNestedField("status", Fields.NONE, Fields.SHORT), myBeanContext)));
   }
 
   @XmlElement
