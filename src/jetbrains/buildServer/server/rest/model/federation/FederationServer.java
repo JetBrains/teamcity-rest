@@ -23,7 +23,7 @@ import jetbrains.buildServer.federation.TeamCityServer;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 
-@XmlRootElement(name = "server")
+@XmlRootElement(name = "federationServer")
 @XmlType(propOrder = {"url", "name"})
 public class FederationServer {
 
