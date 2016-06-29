@@ -394,6 +394,17 @@ public class LocatorTest {
   }
 
   @Test
+  public void testComplexValueCommaAndBrackets() {
+    check("x:y:z", false, null, "x", "y:z");
+    check("x:y:z,a:b", false, null, "x", "y:z", "a", "b");
+    check("x:(y:z,a:b)", false, null, "x", "y:z,a:b");
+
+    check("x:y:(a:b,c:d)", false, null, "x", "y:(a:b", "c", "d)"); //documenting current behavior
+
+    check("a:b)", false, null, "a", "b)");
+  }
+
+  @Test
   public void testNestedComplexValues1() {
     final Locator locator = new Locator("buildType:(name:5,project:(id:Project_1))");
     assertEquals(false, locator.isSingleValue());
@@ -635,7 +646,10 @@ public class LocatorTest {
   }
 
   void check(String locatorText, boolean isSingleValue, String singleValue, @Nullable String... dimensions) {
-    Locator locator = new Locator(locatorText);
+    check(new Locator(locatorText), isSingleValue, singleValue, dimensions);
+  }
+
+  void check(Locator locator, boolean isSingleValue, String singleValue, @Nullable String... dimensions) {
     assertEquals("is single value", isSingleValue, locator.isSingleValue());
     assertEquals("single value", singleValue, locator.getSingleValue());
     if (dimensions == null){
@@ -644,7 +658,7 @@ public class LocatorTest {
     }
 
     assertTrue("dimensions passed are invalid - should be [name, value], ...", dimensions.length % 2 == 0);
-    assertEquals("dimensions count", locator.getDimensionsCount(), dimensions.length / 2);
+    assertEquals("dimensions count is wrong. Actual dimensions: " + locator.getDefinedDimensions(), locator.getDimensionsCount(), dimensions.length / 2);
 
     String previousName = null;
     int numberInCurrentName = 0;
