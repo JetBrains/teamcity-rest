@@ -497,9 +497,7 @@ public class TypedFinderBuilder<ITEM> {
 
   @NotNull
   public static <T extends Enum> T getEnumValue(@NotNull final String value, @NotNull final Class<T> enumClass) {
-    if (Locator.HELP_DIMENSION.equals(value)) {
-      throw new LocatorProcessException("Locator help requested: " + "Supported values are: " + getValues(enumClass));
-    }
+    Locator.processHelpRequest(value, "Supported values are: " + getValues(enumClass));
     T[] consts = enumClass.getEnumConstants();
     assert consts != null;
     for (T c : consts) {
@@ -818,6 +816,8 @@ public class TypedFinderBuilder<ITEM> {
     @NotNull
     @Override
     public LocatorDataBinding<ITEM> getLocatorDataBinding(@NotNull final Locator locator) {
+      //rework to calculate items only on request (e.g. when only filter is needed)
+      // see comment "//workaround for at least one condition" in VcsRootInstanceFinder
       final DimensionObjectsImpl dimensionObjects = new DimensionObjectsImpl(locator);
 
       final FinderDataBinding.ItemHolder<ITEM> itemHolderResult = getPrefilteredItems(locator, dimensionObjects);

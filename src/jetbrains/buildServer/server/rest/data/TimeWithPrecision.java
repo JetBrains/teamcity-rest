@@ -59,6 +59,11 @@ public class TimeWithPrecision {
 
   @NotNull
   public static TimeWithPrecision parse(@NotNull String timeString, @NotNull final TimeService timeService) {
+    Locator.processHelpRequest(timeString, "Date/time string in format '" + DateTimeFormat.forPattern(Constants.TIME_FORMAT).withLocale(Locale.ENGLISH).print(Instant.now()) + "'" +
+                                           " or offset in format '-4w2d5h30m5s'");
+    if (timeString.contains(" ")) {
+      throw new BadRequestException("Invalid date/time string '" + timeString + "'. Note that '+' should be escaped in URL as '%2B'.");
+    }
     if (timeString.startsWith("-")) {
       return new TimeWithPrecision(new Date(timeService.now() - TimeWithPrecision.getMsFromRelativeTime(timeString.substring("-".length()))), true);
     } else if (timeString.startsWith("+")) {

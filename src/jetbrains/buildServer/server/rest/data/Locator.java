@@ -441,9 +441,7 @@ public class Locator {
 
   //todo: use this whenever possible
   public void checkLocatorFullyProcessed() {
-    if (isHelpRequested()){
-      throw new LocatorProcessException("Locator help requested: " + getLocatorDescription(helpOptions().getSingleDimensionValueAsStrictBoolean("hidden", false)));
-    }
+    processHelpRequest();
     String reportKindString = TeamCityProperties.getProperty("rest.report.unused.locator", "error");
     if (!TeamCityProperties.getBooleanOrTrue("rest.report.locator.errors")) {
       reportKindString = "off";
@@ -513,6 +511,18 @@ public class Locator {
   @NotNull
   public Locator helpOptions() {
     return createPotentiallyEmptyLocator(getSingleDimensionValue(HELP_DIMENSION));
+  }
+
+  public void processHelpRequest() {
+    if (isHelpRequested()){
+      throw new LocatorProcessException("Locator help requested: " + getLocatorDescription(helpOptions().getSingleDimensionValueAsStrictBoolean("hidden", false)));
+    }
+  }
+
+  public static void processHelpRequest(@Nullable final String singleValue, @NotNull final String helpMessage) {
+    if (HELP_DIMENSION.equals(singleValue)){
+      throw new LocatorProcessException("Locator help requested: " + helpMessage);
+    }
   }
 
   protected interface DescriptionProvider{

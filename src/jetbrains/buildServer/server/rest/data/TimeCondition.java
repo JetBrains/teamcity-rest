@@ -163,6 +163,7 @@ public class TimeCondition {
                                 new Locator(timeLocatorText, DATE, BUILD, CONDITION, INCLUDE_INITIAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME) :
                                 new Locator(timeLocatorText, DATE, CONDITION, INCLUDE_INITIAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     timeLocator.addHiddenDimensions(SHIFT);
+    timeLocator.processHelpRequest();
     final String time = timeLocator.getSingleValue();
     if (time != null) {
       limitingDate = TimeWithPrecision.parse(time, myTimeService);
