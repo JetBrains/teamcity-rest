@@ -91,7 +91,16 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   @Override
   public ItemFilter<ITEM> getFilter(@NotNull final String locatorText) {
     final Locator locator = createLocator(locatorText, null);
-    final ItemFilter<ITEM> result = getFilterWithLogicOpsSupport(locator, myDataBinding.getLocatorDataBinding(locator));
+    final ItemFilter<ITEM> result;
+    try {
+      result = getFilterWithLogicOpsSupport(locator, myDataBinding.getLocatorDataBinding(locator));
+    } catch (LocatorProcessException|BadRequestException e){
+      if (!locator.isHelpRequested()){
+        throw e;
+      }
+      throw new BadRequestException(e.getMessage() +
+                                    "\nLocator details: " + locator.getLocatorDescription(locator.helpOptions().getSingleDimensionValueAsStrictBoolean("hidden", false)), e);
+    }
     locator.checkLocatorFullyProcessed();
     return result;
   }

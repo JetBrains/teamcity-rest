@@ -385,6 +385,12 @@ public class TypedFinderBuilder<ITEM> {
       .defaultFilter((parsedTimeCondition, item) -> parsedTimeCondition.matches(item));
   }
 
+  public <F> TypedFinderDimensionWithDefaultChecker<ITEM, ItemFilter<F>, F> dimensionFinderFilter(@NotNull final Dimension<ItemFilter<F>> dimension,
+                                                                                                  @NotNull final Finder<F> finder,
+                                                                                                  @NotNull final String description) {
+    return dimension(dimension, type(dimensionValue -> finder.getFilter(dimensionValue)).description("").description(description))
+      .defaultFilter((filter, item) -> filter.isIncluded(item));
+  }
 
   //============================= Main definition methods =============================
 
@@ -491,6 +497,9 @@ public class TypedFinderBuilder<ITEM> {
 
   @NotNull
   public static <T extends Enum> T getEnumValue(@NotNull final String value, @NotNull final Class<T> enumClass) {
+    if (Locator.HELP_DIMENSION.equals(value)) {
+      throw new LocatorProcessException("Locator help requested: " + "Supported values are: " + getValues(enumClass));
+    }
     T[] consts = enumClass.getEnumConstants();
     assert consts != null;
     for (T c : consts) {
@@ -1009,6 +1018,7 @@ public class TypedFinderBuilder<ITEM> {
       try {
         result = typedDimension.getType().get(dimensionValue);
       } catch (LocatorProcessException e) {
+        if (Locator.HELP_DIMENSION.equals(dimensionValue)) throw e;
         throw new LocatorProcessException("Error in dimension '" + typedDimension.getDimension().name + "', value: '" + dimensionValue + "'", e);
       }
       return result;
