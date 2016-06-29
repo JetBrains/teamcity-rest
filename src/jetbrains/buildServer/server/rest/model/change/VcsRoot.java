@@ -56,7 +56,7 @@ import static jetbrains.buildServer.serverSide.impl.projectSources.SmallPatchCac
  */
 @XmlRootElement(name = "vcs-root")
 @XmlType(name = "vcs-root", propOrder = { "id", "internalId", "uuid", "name","vcsName", "modificationCheckInterval", "href",
-  "project", "state", "properties", "vcsRootInstances" , "repositoryIdStrings"})  //todo: add webUrl
+  "project", "properties", "vcsRootInstances" , "repositoryIdStrings"})  //todo: add webUrl
 @SuppressWarnings("PublicField")
 public class VcsRoot {
   @XmlAttribute
@@ -83,9 +83,6 @@ public class VcsRoot {
 
   @XmlElement
   public Properties properties;
-
-  @XmlElement
-  public VcsCheckState state;
 
   /**
    * Used only when creating new VCS roots
@@ -184,10 +181,6 @@ public class VcsRoot {
           }
           return null;
         }
-      });
-
-      state = ValueWithDefault.decideDefault(fields.isIncluded("state", false), () -> {
-        return new VcsCheckState(beanContext.getSingletonService(VcsManager.class).getStatus(root), null, fields.getNestedField("state"), beanContext);
       });
     } else {
       properties = null;
