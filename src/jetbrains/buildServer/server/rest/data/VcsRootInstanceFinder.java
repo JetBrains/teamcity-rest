@@ -55,6 +55,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   protected static final String FINISH_VCS_CHECKING_FOR_CHANGES = "checkingForChangesFinishDate";  // experimental
   protected static final String REPOSITORY_STATE = "repositoryState";  // experimental
   protected static final String HAS_VERSIONED_SETTINGS_ONLY = "versionedSettings"; //actually means "withoutBuildTypeUsagesWithinScope"
+  protected static final String COMMIT_HOOK_MODE = "commitHookMode"; // experimental
   protected static final Comparator<VcsRootInstance> VCS_ROOT_INSTANCE_COMPARATOR = new Comparator<VcsRootInstance>() {
     public int compare(final VcsRootInstance o1, final VcsRootInstance o2) {
       return (int)(o1.getId() - o2.getId());
@@ -83,7 +84,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     myVersionedSettingsManager = versionedSettingsManager;
     myTimeCondition = timeCondition;
-    setHiddenDimensions(PROPERTY, STATE, FINISH_VCS_CHECKING_FOR_CHANGES, REPOSITORY_STATE);
+    setHiddenDimensions(PROPERTY, STATE, FINISH_VCS_CHECKING_FOR_CHANGES, REPOSITORY_STATE, COMMIT_HOOK_MODE);
     myVcsRootFinder = vcsRootFinder;
     myVcsManager = vcsManager;
     myProjectFinder = projectFinder;
@@ -220,6 +221,15 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       result.add(new FilterConditionChecker<VcsRootInstance>() {
         public boolean isIncluded(@NotNull final VcsRootInstance item) {
           return filter.isIncluded((VcsRootInstanceEx)item);
+        }
+      });
+    }
+
+    final Boolean commitHookMode = locator.getSingleDimensionValueAsBoolean("commitHookMode");
+    if (commitHookMode != null){
+      result.add(new FilterConditionChecker<VcsRootInstance>() {
+        public boolean isIncluded(@NotNull final VcsRootInstance item) {
+          return FilterUtil.isIncludedByBooleanFilter(commitHookMode, !((VcsRootInstanceEx)item).isPollingMode());
         }
       });
     }

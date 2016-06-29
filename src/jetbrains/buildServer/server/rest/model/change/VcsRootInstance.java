@@ -54,7 +54,7 @@ import static jetbrains.buildServer.serverSide.impl.projectSources.SmallPatchCac
  */
 @XmlRootElement(name = "vcs-root-instance")
 @XmlType(name = "vcs-root-instance", propOrder = {"id", "vcsRootId", "vcsRootInternalId", "name", "vcsName",
-  "modificationCheckInterval", "lastVersion", "lastVersionInternal", "href",
+  "modificationCheckInterval", "commitHookMode", "lastVersion", "lastVersionInternal", "href",
   "parent", "state", "previousState", "repositoryState", "properties", "repositoryIdStrings"})
 @SuppressWarnings("PublicField")
 public class VcsRootInstance {
@@ -82,6 +82,12 @@ public class VcsRootInstance {
 
   @XmlAttribute
   public Integer modificationCheckInterval;
+
+  /**
+   * experimental
+   */
+  @XmlAttribute
+  public Boolean commitHookMode;
 
   @XmlAttribute
   public String href;
@@ -120,6 +126,7 @@ public class VcsRootInstance {
 
     vcsName = ValueWithDefault.decideDefault(fields.isIncluded("vcsName", false), root.getVcsName());
     modificationCheckInterval = ValueWithDefault.decideDefault(fields.isIncluded("modificationCheckInterval", false), (int)root.getEffectiveModificationCheckInterval());
+    commitHookMode = ValueWithDefault.decideDefault(fields.isIncluded("commitHookMode", false, false), !((VcsRootInstanceEx)root).isPollingMode());
   }
 
   @XmlAttribute
@@ -235,7 +242,7 @@ public class VcsRootInstance {
       } catch (VcsException e) {
         throw new InvalidStateException("Error while getting current revision: ", e);
       }
-    } else if ("changesPush".equals(field)) {
+    } else if ("commitHookMode".equals(field)) {
       return String.valueOf(!((VcsRootInstanceEx)rootInstance).isPollingMode());
     }
     throw new NotFoundException(
