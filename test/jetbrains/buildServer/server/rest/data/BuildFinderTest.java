@@ -667,7 +667,8 @@ public class BuildFinderTest extends BuildFinderTestBase {
     checkBuilds("untilBuild:(id:" + build60.getBuildId() + ")", build60, build40, build30, build20, build10);
 //    checkBuilds("untilBuild:(id:" + build50DeletedId + "),state:any", build40, build30, build20, build10);
 
-    checkBuilds("sinceDate:" + fDate(build20.getStartDate()) + ")", build70, build60, build40, build30, build20);
+    checkBuilds("sinceDate:" + fDate(build20.getStartDate()), build70, build60, build40, build30, build20);  //documenting current behavior
+    checkBuilds("sinceDate:" + fDate(build20.getStartDate()) + ")", build70, build60, build40, build30, build20);  //documenting current behavior
     checkBuilds("sinceDate:" + fDate(afterBuild30) + ")", build70, build60, build40);
     checkBuilds("untilDate:" + fDate(build60.getStartDate()) + ")", build40, build30, build20, build10);
     checkBuilds("untilDate:" + fDate(afterBuild30) + ")", build30, build20, build10);

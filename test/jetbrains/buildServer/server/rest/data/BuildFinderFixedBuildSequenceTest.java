@@ -171,7 +171,7 @@ public class BuildFinderFixedBuildSequenceTest extends BuildFinderTestBase {
 //    checkBuilds("untilBuild:(id:" + deleted.getBuildId() + ")", build2failed, build1); //todo: should handle this
 
     final String startDate = fDate(myBuild4conf2FailedPinned.getStartDate());
-    checkBuilds("sinceDate:" + startDate + ")", myBuild12, myBuild10byUser, myBuild9failedToStart, myBuild4conf2FailedPinned);    //build9failedToStart should probbaly not be here
+    checkBuilds("sinceDate:" + startDate, myBuild12, myBuild10byUser, myBuild9failedToStart, myBuild4conf2FailedPinned);    //build9failedToStart should probbaly not be here
     checkBuilds("sinceDate:" + fDate(myTimeAfterBuild4), myBuild12, myBuild10byUser, myBuild9failedToStart);
     checkBuilds("untilDate:" + startDate + ")", myBuild3tagged, myBuild2failed, myBuild1);
     checkBuilds("untilDate:" + fDate(myTimeAfterBuild4) + ")", myBuild4conf2FailedPinned, myBuild3tagged, myBuild2failed, myBuild1);
@@ -226,7 +226,7 @@ public class BuildFinderFixedBuildSequenceTest extends BuildFinderTestBase {
     checkBuild("untilBuild:(id:" + myBuild10byUser.getBuildId() + ")",
                myBuild10byUser);
 
-    checkBuild("sinceDate:" + fDate(myBuild4conf2FailedPinned.getStartDate()) + ")", myBuild12);
+    checkBuild("sinceDate:" + fDate(myBuild4conf2FailedPinned.getStartDate()), myBuild12);
     checkBuild("untilDate:" + fDate(myBuild4conf2FailedPinned.getStartDate()) + ")", myBuild3tagged);
   }
 
