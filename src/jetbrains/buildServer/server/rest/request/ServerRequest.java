@@ -22,6 +22,7 @@ import java.io.File;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.controllers.FileSecurityUtil;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -35,11 +36,13 @@ import jetbrains.buildServer.server.rest.model.server.Server;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.ServerPaths;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.maintenance.BackupConfig;
 import jetbrains.buildServer.serverSide.maintenance.BackupProcess;
 import jetbrains.buildServer.serverSide.maintenance.BackupProcessManager;
 import jetbrains.buildServer.serverSide.maintenance.MaintenanceProcessAlreadyRunningException;
+import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.browser.Element;
 import org.jetbrains.annotations.NotNull;
@@ -114,8 +117,17 @@ public class ServerRequest {
                             @InjectParam BackupProcessManager backupManager) {
     BackupConfig backupConfig = new BackupConfig();
     if (StringUtil.isNotEmpty(fileName)) {
-      if (new File(fileName).isAbsolute()){
-        throw new BadRequestException("Target file name should be relative path.", null);
+      if (!TeamCityProperties.getBoolean("rest.request.server.backup.allowAnyTargetPath")) {
+        File backupDir = new File(myDataProvider.getBean(ServerPaths.class).getBackupDir());
+        try {
+          FileSecurityUtil.checkInsideDirectory(FileUtil.resolvePath(backupDir, fileName), backupDir);
+        } catch (Exception e) {
+          //the message contains absolute paths
+          if (myPermissionChecker.hasGlobalPermission(Permission.CHANGE_SERVER_SETTINGS)) {
+            throw e;
+          }
+          throw new BadRequestException("Target file name (" + fileName + ") should be relative path.", null);
+        }
       }
       if (addTimestamp != null) {
         backupConfig.setFileName(fileName, addTimestamp);

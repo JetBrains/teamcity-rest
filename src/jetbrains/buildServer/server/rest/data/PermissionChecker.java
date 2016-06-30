@@ -51,6 +51,10 @@ public class PermissionChecker {
     throwNoPermission(authorityHolder, permission);
   }
 
+  public boolean hasGlobalPermission(@NotNull final Permission permission) throws AuthorizationFailedException {
+    return hasGlobalPermission(mySecurityContext.getAuthorityHolder(), permission);
+  }
+
   private boolean hasGlobalPermission(@NotNull final AuthorityHolder authorityHolder, @NotNull final Permission permission) {
     if (authorityHolder.isPermissionGrantedGlobally(permission)) {
       return true;
