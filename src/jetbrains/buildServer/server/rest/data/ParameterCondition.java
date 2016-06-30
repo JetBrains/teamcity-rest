@@ -71,7 +71,7 @@ public class ParameterCondition {
       return null;
     }
     final Locator locator = new Locator(propertyConditionLocator, NAME, VALUE, TYPE, IGNORE_CASE, NAME_MATCH_CHECK, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-
+    locator.processHelpRequest();
     final String value = locator.getSingleDimensionValue(VALUE);
 
     RequirementType requirement;
