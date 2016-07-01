@@ -19,6 +19,10 @@ package jetbrains.buildServer.server.rest.request;
 import com.sun.jersey.api.core.InjectParam;
 import io.swagger.annotations.Api;
 import java.io.File;
+import java.util.List;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
@@ -29,14 +33,17 @@ import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.plugin.PluginInfos;
+import jetbrains.buildServer.server.rest.model.server.LicenseKeyEntities;
+import jetbrains.buildServer.server.rest.model.server.LicenseKeyEntity;
+import jetbrains.buildServer.server.rest.model.server.LicensingData;
 import jetbrains.buildServer.server.rest.model.server.Server;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
-import jetbrains.buildServer.serverSide.ServerPaths;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.maintenance.BackupConfig;
 import jetbrains.buildServer.serverSide.maintenance.BackupProcess;
@@ -57,6 +64,8 @@ public class ServerRequest {
   public static final String SERVER_VERSION_RQUEST_PATH = "version";
   public static final String SERVER_REQUEST_PATH = "/server";
   public static final String API_SERVER_URL = Constants.API_URL + SERVER_REQUEST_PATH;
+  protected static final String LICENSING_DATA = "/licensingData";
+  protected static final String LICENSING_KEYS = LICENSING_DATA + "/licenseKeys";
   @Context
   private DataProvider myDataProvider;
   @Context
@@ -69,6 +78,10 @@ public class ServerRequest {
   @SuppressWarnings("NullableProblems") @Context @NotNull private BeanContext myBeanContext;
 
   @SuppressWarnings("NullableProblems") @Context @NotNull private PermissionChecker myPermissionChecker;
+
+  public static String getLicenseKeysListHref() {
+    return API_SERVER_URL + LICENSING_KEYS;
+  }
 
   @GET
   @Produces({"application/xml", "application/json"})
@@ -165,6 +178,89 @@ public class ServerRequest {
       return "Idle";
     }
     return backupProcess.getProgressStatus().name();
+  }
+
+  /**
+   * @return list server license keys
+   */
+  @GET
+  @Path(LICENSING_DATA)
+  @Produces({"application/xml", "application/json"})
+  public LicensingData getLicensingData(@QueryParam("fields") String fields) {
+    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    return new LicensingData(myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager(), new Fields(fields), myBeanContext);
+  }
+
+  @GET
+  @Path(LICENSING_KEYS)
+  @Produces({"application/xml", "application/json"})
+  public LicenseKeyEntities getLicenseKeys(@QueryParam("fields") String fields) {
+    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    LicenseList licenseList = myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager().getLicenseList();
+    return new LicenseKeyEntities(licenseList.getAllLicenses(), licenseList.getActiveLicenses(), ServerRequest.getLicenseKeysListHref(), new Fields(fields));
+  }
+
+  private static final Pattern DELIMITERS = Pattern.compile("[\\n\\r, ]");
+
+  /**
+   * @param licenseKeyCodes newline-delimited list of license keys to add
+   * @return
+   */
+  @POST
+  @Path(LICENSING_KEYS)
+  @Consumes({"text/plain"})
+  @Produces({"application/xml", "application/json"})
+  public LicenseKeyEntities addLicenseKeys(final String licenseKeyCodes, @QueryParam("fields") String fields) {
+    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    LicenseKeysManager licenseKeysManager = myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager();
+    List<String> keysToAdd = Stream.of(DELIMITERS.split(licenseKeyCodes)).map(s -> s.trim()).filter(s -> !StringUtil.isEmpty(s)).collect(Collectors.toList());
+    List<LicenseKey> validatedKeys = licenseKeysManager.validateKeys(keysToAdd); //TeamCity API issue: why return good keys?
+    if (!validatedKeys.isEmpty()) {
+      // is there a way to return entity with not 200 result code???
+      StringBuilder resultMessage = new StringBuilder();
+      resultMessage.append("Invalid keys:\n");
+      boolean invalidKeysFound = false;
+      for (LicenseKey validatedKey : validatedKeys) {
+        invalidKeysFound = invalidKeysFound || !validatedKey.isValid();
+        String validateError = validatedKey.getValidateError();
+        resultMessage.append(validatedKey.getKey()).append(" - ").append(validateError).append("\n");
+      }
+      if (invalidKeysFound) {
+        throw new BadRequestException(resultMessage.toString());
+      }
+    }
+    return new LicenseKeyEntities(licenseKeysManager.addKeys(keysToAdd), null, null, new Fields(fields));
+  }
+
+  @GET
+  @Path(LICENSING_KEYS + "/{licenseKey}")
+  @Produces({"application/xml", "application/json"})
+  public LicenseKeyEntity getLicenseKey(@PathParam("licenseKey") final String licenseKey, @QueryParam("fields") String fields) {
+    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    LicenseKeysManager licenseKeysManager = myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager();
+    LicenseKey key = getLicenseKey(licenseKey, licenseKeysManager);
+    return new LicenseKeyEntity(key, licenseKeysManager.getLicenseList().getActiveLicenses().contains(key), new Fields(fields));
+  }
+
+  @DELETE
+  @Path(LICENSING_KEYS + "/{licenseKey}")
+  public void deleteLicenseKey(@PathParam("licenseKey") final String licenseKey) {
+    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    LicenseKeysManager licenseKeysManager = myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager();
+    getLicenseKey(licenseKey, licenseKeysManager);
+    licenseKeysManager.removeKey(licenseKey);
+  }
+
+  @NotNull
+  private static LicenseKey getLicenseKey(@NotNull final String licenseKey, @NotNull final LicenseKeysManager licenseKeysManager) {
+    //todo: return actual license key data even if not added to the server
+    LicenseList licenseList = licenseKeysManager.getLicenseList();
+    for (LicenseKey license : licenseList.getAllLicenses()) {
+      if (licenseKey.equals(license.getKey())) {
+        return license;
+      }
+    }
+    throw new NotFoundException("No license with key '" + licenseKey + "' is found");
   }
 
   @Path("/files/{areaId}")
