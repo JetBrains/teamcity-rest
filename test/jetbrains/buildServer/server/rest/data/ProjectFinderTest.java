@@ -193,12 +193,12 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
     project20.addFeature("type2", asMap("a", "b2", "c2", "d2"));
 
     check(null, getRootProject(), project10, project20, project30);
-    check("feature:(type:type1)", project10);
-    check("feature:(type:Type1)");
-    check("feature:(type:(matchType:any))", project10, project20);
-    check("feature:(property:(name:a))", project10, project20);
-    check("feature:(property:(name:a,value:b2))", project20);
-    check("feature:(property:(name:a),property:(name:c))", project10);
+    check("projectFeature:(type:type1)", project10);
+    check("projectFeature:(type:Type1)");
+    check("projectFeature:(type:(matchType:any))", project10, project20);
+    check("projectFeature:(property:(name:a))", project10, project20);
+    check("projectFeature:(property:(name:a,value:b2))", project20);
+    check("projectFeature:(property:(name:a),property:(name:c))", project10);
   }
 
   @Test

@@ -60,7 +60,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   public static final String BUILD = "build";
   public static final String BUILD_TYPE = "buildType";
   public static final String VCS_ROOT = "vcsRoot";
-  public static final String FEATURE = "feature";
+  public static final String FEATURE = "projectFeature";
 
   @NotNull private final ProjectManager myProjectManager;
   private final PermissionChecker myPermissionChecker;
