@@ -33,17 +33,21 @@ import java.util.*;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.controllers.login.RememberMe;
 import jetbrains.buildServer.diagnostic.web.ThreadDumpsController;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
+import jetbrains.buildServer.server.rest.model.debug.Session;
 import jetbrains.buildServer.server.rest.model.debug.Sessions;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
@@ -56,6 +60,7 @@ import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
 import jetbrains.buildServer.serverSide.db.*;
 import jetbrains.buildServer.serverSide.db.queries.GenericQuery;
 import jetbrains.buildServer.serverSide.db.queries.QueryOptions;
+import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.vcs.OperationRequestor;
@@ -178,7 +183,7 @@ public class DebugRequest {
    * Experimental use only!
    */
   @GET
-  @Path("/requestDetails")
+  @Path("/currentRequest/details")
   @Produces({"text/plain"})
   public String getRequestDetails(@Context HttpServletRequest request) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
@@ -219,6 +224,64 @@ public class DebugRequest {
       throw new OperationException("Error reading request body: " + e.getMessage(), e);
     }
     return result.toString();
+  }
+
+  @GET
+  @Path("/currentRequest/session")
+  public Session getCurrentSession(@Context HttpServletRequest request, @QueryParam("fields") final String fields, @Context @NotNull final BeanContext beanContext) {
+    User currentUser = myServiceLocator.getSingletonService(PermissionChecker.class).getCurrent().getAssociatedUser();
+    HttpSession session = request.getSession();
+    return new Session(session.getId(), currentUser != null ? currentUser.getId() : null,
+                       new Date(session.getCreationTime()), new Date(session.getLastAccessedTime()), new Fields(fields), beanContext);
+  }
+
+  @GET
+  @Path("/currentRequest/session/maxInactiveSeconds")
+  @Produces("text/plain")
+  public String getCurrentSessionMaxInactiveInterval(@Context HttpServletRequest request, @Context @NotNull final BeanContext beanContext) {
+    HttpSession session = request.getSession();
+    return String.valueOf(session.getMaxInactiveInterval());
+  }
+
+  @PUT
+  @Path("/currentRequest/session/maxInactiveSeconds")
+  @Consumes("text/plain")
+  @Produces("text/plain")
+  public String setCurrentSessionMaxInactiveInterval(String maxInactiveSeconds, @Context HttpServletRequest request,
+                                                     @Context @NotNull final BeanContext beanContext) {
+    if (!TeamCityProperties.getBoolean("rest.debug.currentRequest.session.maxInactiveSeconds.allowChange")){
+      throw new AuthorizationFailedException("Set " + "rest.debug.currentRequest.session.maxInactiveSeconds.allowChange" + " server internal property to enable request");
+    }
+    HttpSession session = request.getSession();
+    session.setMaxInactiveInterval(Integer.valueOf(maxInactiveSeconds));
+    return String.valueOf(session.getMaxInactiveInterval());
+  }
+
+  @DELETE
+  @Path("/currentRequest/session")
+  public void invalidateCurrentSession(@Context HttpServletRequest request, @Context @NotNull final BeanContext beanContext) {
+    HttpSession session = request.getSession(false);
+    if (session != null) {
+      session.invalidate();
+    }
+  }
+
+  @POST
+  @Path("/currentRequest/rememberMe")
+  @Produces("text/plain")
+  public String newRememberMe(@Context HttpServletRequest request, @Context @NotNull final BeanContext beanContext) {
+    if (!TeamCityProperties.getBoolean("rest.debug.currentRequest.rememberMe.allowCreate")){
+      throw new AuthorizationFailedException("Set " + "rest.debug.currentRequest.rememberMe.allowCreate" + " server internal property to enable request");
+    }
+    User currentUser = myServiceLocator.getSingletonService(PermissionChecker.class).getCurrent().getAssociatedUser();
+    if (currentUser == null) throw new BadRequestException("No current user");
+    return beanContext.getSingletonService(RememberMe.class).createUserCookie(currentUser, request).getValue();
+  }
+
+  @DELETE
+  @Path("/currentRequest/rememberMe")
+  public void deleteCurrentRememberMe(@Context HttpServletRequest request, @Context @NotNull final BeanContext beanContext) {
+    beanContext.getSingletonService(RememberMe.class).forgetUserAndGetResponseCookie(request);
   }
 
   /**
