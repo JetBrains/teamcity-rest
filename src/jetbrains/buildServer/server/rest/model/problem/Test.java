@@ -46,7 +46,7 @@ import org.jetbrains.annotations.NotNull;
 @XmlType(name = "test", propOrder = {"id", "name",
   "mutes", "investigations", "testOccurrences"})
 public class Test {
-  @XmlAttribute public Long id;
+  @XmlAttribute public String id;
   @XmlAttribute public String name;
   @XmlAttribute public String href;
 
@@ -58,7 +58,7 @@ public class Test {
   }
 
   public Test(final @NotNull STest test, final @NotNull BeanContext beanContext, @NotNull final Fields fields) {
-    id = ValueWithDefault.decideDefault(fields.isIncluded("id"), test.getTestNameId());
+    id = ValueWithDefault.decideDefault(fields.isIncluded("id"), String.valueOf(test.getTestNameId()));
     name = ValueWithDefault.decideDefault(fields.isIncluded("name"), test.getName().getAsString());
 
     final ApiUrlBuilder apiUrlBuilder = beanContext.getApiUrlBuilder();

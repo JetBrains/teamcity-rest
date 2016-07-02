@@ -63,7 +63,7 @@ public class VcsRoot {
   public String id;
 
   @XmlAttribute
-  public Long internalId;
+  public String internalId;
 
   @XmlAttribute
   public String uuid;
@@ -118,7 +118,7 @@ public class VcsRoot {
   public VcsRoot(@NotNull final SVcsRoot root, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), root.getExternalId());
     final boolean includeInternalId = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME);
-    internalId =  ValueWithDefault.decideDefault(fields.isIncluded("internalId", includeInternalId, includeInternalId), root.getId());
+    internalId =  ValueWithDefault.decideDefault(fields.isIncluded("internalId", includeInternalId, includeInternalId), String.valueOf(root.getId()));
 
     final PermissionChecker permissionChecker = beanContext.getServiceLocator().findSingletonService(PermissionChecker.class);
     assert permissionChecker != null;

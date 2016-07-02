@@ -45,11 +45,11 @@ public class Sessions {
 
   @XmlAttribute public Integer count;
 
-  @XmlAttribute public Long maxActive;
-  @XmlAttribute public Long sessionCounter;
-  @XmlAttribute public Long sessionCreateRate;
-  @XmlAttribute public Long sessionExpireRate;
-  @XmlAttribute public Long sessionMaxAliveTime;
+  @XmlAttribute public Integer maxActive;
+  @XmlAttribute public Integer sessionCounter;
+  @XmlAttribute public Integer sessionCreateRate;
+  @XmlAttribute public Integer sessionExpireRate;
+  @XmlAttribute public Integer sessionMaxAliveTime;
 
   @XmlElement(name = "session")
   public Collection<Session> sessions;
@@ -160,20 +160,21 @@ public class Sessions {
     return (String)serverBean.invoke(managerBean, "getSessionAttribute", new Object[]{sessionId, SESSION_USER_KEY_ATTRIBUTE_NAME}, SIGNATURE_SESSION_ATTRIBUTE);
   }
 
-  private Long retrieve(@NotNull final MBeanServer serverBean, @NotNull final ObjectName managerBean, @NotNull final Fields fields, @NotNull final String attributeName) {
-    return ValueWithDefault.decideIncludeByDefault(fields.isIncluded(attributeName), new ValueWithDefault.Value<Long>() {
+  private Integer retrieve(@NotNull final MBeanServer serverBean, @NotNull final ObjectName managerBean, @NotNull final Fields fields, @NotNull final String attributeName) {
+    return ValueWithDefault.decideIncludeByDefault(fields.isIncluded(attributeName), new ValueWithDefault.Value<Integer>() {
       @Nullable
       @Override
-      public Long get() {
+      public Integer get() {
         final Object result = getBeanAttribute(serverBean, managerBean, attributeName);
         if (result == null) {
           return null;
         }
         if (result instanceof Integer) {
-          return Long.valueOf((Integer)result);
+          return (Integer)result;
         }
         if (result instanceof Long) {
-          return Long.valueOf((Long)result);
+          Long l = (Long)result;
+          return l < Integer.MAX_VALUE ? l.intValue() : -1;
         }
         throw new OperationException("Cannot retrieve numeric value of " + result);
       }
