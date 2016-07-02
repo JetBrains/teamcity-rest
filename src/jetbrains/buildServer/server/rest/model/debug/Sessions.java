@@ -57,6 +57,22 @@ public class Sessions {
   protected static final String[] SIGNATURE_SESSION_ATTRIBUTE = new String[]{String.class.getName(), String.class.getName()};
   //see jetbrains.buildServer.web.util.SessionUser.DEFAULT_USER_KEY
   protected static final String SESSION_USER_KEY_ATTRIBUTE_NAME = "USER_KEY";
+  protected static final Ordering<Session> SESSION_ORDERING = Ordering.natural().nullsLast().onResultOf(new Function<Session, String>() {
+    @Override
+    public String apply(Session input) {
+      return input.user != null ? input.user.getUsername() : null;
+    }
+  }).compound(Ordering.natural().nullsLast().onResultOf(new Function<Session, Comparable>() {
+    @Override
+    public Comparable apply(final Session input) {
+      return input.lastAccessedDate != null ? input.lastAccessedDate : null;
+    }
+  })).compound(Ordering.natural().nullsLast().onResultOf(new Function<Session, Comparable>() {
+    @Override
+    public Comparable apply(final Session input) {
+      return input.creationDate != null ? input.creationDate : null;
+    }
+  }));
 
   @SuppressWarnings("unused")
   public Sessions() {
@@ -66,9 +82,9 @@ public class Sessions {
 //    activeSessions = retrieve(serverBean, managerBean, fields, "activeSessions");
     maxActive = retrieve(serverBean, managerBean, fields, "maxActive");
     sessionCounter = retrieve(serverBean, managerBean, fields, "sessionCounter");
-    sessionCreateRate = retrieve(serverBean, managerBean, fields, "sessionCreateRate"); //todo: why not present???
-    sessionExpireRate = retrieve(serverBean, managerBean, fields, "sessionExpireRate");  //todo: why not present???
-    sessionMaxAliveTime = retrieve(serverBean, managerBean, fields, "sessionMaxAliveTime");  //todo: why not present???
+    sessionCreateRate = retrieve(serverBean, managerBean, fields, "sessionCreateRate");
+    sessionExpireRate = retrieve(serverBean, managerBean, fields, "sessionExpireRate");
+    sessionMaxAliveTime = retrieve(serverBean, managerBean, fields, "sessionMaxAliveTime");
 
     sessions = ValueWithDefault.decideDefault(fields.isIncluded("session", true), new ValueWithDefault.Value<Collection<Session>>() {
       @Nullable
@@ -98,7 +114,7 @@ public class Sessions {
         userId = getSessionUserId(serverBean, managerBean, sessionId);
       } catch (Exception e) {
         userId = null;
-        LOG.debug("Cannot retrieve userId for session with id id '" + sessionId + "': " + e.toString());
+        LOG.debug("Cannot retrieve userId for session with id '" + sessionId + "': " + e.toString());
       }
       Long creationTimestamp = (Long)getBeanOperationResult(serverBean, managerBean, sessionId, "getCreationTimestamp");
       Long lastAccessedTimestamp = (Long)getBeanOperationResult(serverBean, managerBean, sessionId, "getLastAccessedTimestamp");
@@ -106,12 +122,7 @@ public class Sessions {
                              creationTimestamp == null ? null : new Date(creationTimestamp), lastAccessedTimestamp == null ? null : new Date(lastAccessedTimestamp),
                              fields, beanContext));
     }
-    Ordering<Session> ordering = Ordering.natural().nullsLast().onResultOf(new Function<Session, String>() {
-      public String apply(Session item) {
-        return item.user != null ? item.user.getUsername() : null;
-      }
-    });
-    return ordering.sortedCopy(result);
+    return SESSION_ORDERING.sortedCopy(result);
   }
 
   private Object getBeanOperationResult(final MBeanServer serverBean, final ObjectName managerBean, final String sessionId, final String operationName) {
@@ -124,18 +135,23 @@ public class Sessions {
 
   private long getSessionUserId(final @NotNull MBeanServer serverBean, final @NotNull ObjectName managerBean, final String sessionId) throws Exception {
     final String userKeyAttribute = getUserKeySessionAttribute(serverBean, managerBean, sessionId);
-    if (!StringUtil.isEmpty(userKeyAttribute)) {
-      final int index = userKeyAttribute.lastIndexOf("{id=");
-      if (userKeyAttribute.endsWith("}") && index >= 0) {
-        final String userId = userKeyAttribute.substring(index + "{id=".length(), userKeyAttribute.length() - "}".length());
-        if (StringUtil.isEmpty(userId)) {
-          throw new Exception("Parsed user id is empty");
-        }
-        return Long.valueOf(userId);
-      }
+    // parsing UserImpl.toString to get user id
+    if (StringUtil.isEmpty(userKeyAttribute)) {
+      throw new Exception("No '" + SESSION_USER_KEY_ATTRIBUTE_NAME + "' session attribute found"); //todo: support custom user key, see SessionUser.getUser()
+    }
+    final int index = userKeyAttribute.lastIndexOf("{id=");
+    if (!userKeyAttribute.endsWith("}") || index < 0) {
       throw new Exception("Unparsable attribute value '" + userKeyAttribute + "'");
     }
-    throw new Exception("No '" + SESSION_USER_KEY_ATTRIBUTE_NAME + "' session attribute found");
+    final String userId = userKeyAttribute.substring(index + "{id=".length(), userKeyAttribute.length() - "}".length());
+    if (StringUtil.isEmpty(userId)) {
+      throw new Exception("Parsed user id is empty in the userKeyAttribute '" + userKeyAttribute + "'");
+    }
+    try {
+      return Long.valueOf(userId);
+    } catch (NumberFormatException e) {
+      throw new Exception("User id '" + userId + "' parsed from userKeyAttribute '" + userKeyAttribute + "' is not a number.");
+    }
   }
 
   @Nullable
@@ -145,7 +161,7 @@ public class Sessions {
   }
 
   private Long retrieve(@NotNull final MBeanServer serverBean, @NotNull final ObjectName managerBean, @NotNull final Fields fields, @NotNull final String attributeName) {
-    return ValueWithDefault.decideDefault(fields.isIncluded(attributeName), new ValueWithDefault.Value<Long>() {
+    return ValueWithDefault.decideIncludeByDefault(fields.isIncluded(attributeName), new ValueWithDefault.Value<Long>() {
       @Nullable
       @Override
       public Long get() {
