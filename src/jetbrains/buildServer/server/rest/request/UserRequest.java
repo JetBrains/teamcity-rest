@@ -19,10 +19,12 @@ package jetbrains.buildServer.server.rest.request;
 import io.swagger.annotations.Api;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import jetbrains.buildServer.controllers.login.RememberMe;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -37,6 +39,7 @@ import jetbrains.buildServer.server.rest.model.user.Users;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.SimplePropertyKey;
@@ -299,6 +302,23 @@ public class UserRequest {
     }
     SUser user = myUserFinder.getItem(userLocator, true);
     return DebugRequest.getRolesStringPresentation(user, myBeanContext.getSingletonService(ProjectManager.class));
+  }
+
+  /**
+   * Experimental use only
+   */
+  @DELETE
+  @Path("/{userLocator}/debug/rememberMe")
+  @Produces({"text/plain"})
+  public void deleteRememberMe(@PathParam("userLocator") String userLocator) {
+    SUser user = myUserFinder.getItem(userLocator, true);
+    PermissionChecker permissionChecker = myBeanContext.getSingletonService(PermissionChecker.class);
+    jetbrains.buildServer.users.User currentUser = permissionChecker.getCurrent().getAssociatedUser();
+    if (currentUser == null || user.getId() != currentUser.getId()) {
+      permissionChecker.checkGlobalPermission(Permission.CHANGE_USER);
+    }
+
+    myBeanContext.getSingletonService(RememberMe.class).deleteAllForUser(user.getId());
   }
 
   public void initForTests(@NotNull final BeanContext beanContext) {
