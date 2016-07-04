@@ -239,30 +239,38 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
       }
       locator.markAllUnused(); // nothing found - no dimensions should be marked as used then
     }
-
-    FinderDataBinding.LocatorDataBinding<ITEM> locatorDataBinding = getDataBindingWithLogicOpsSupport(locator, myDataBinding);
-    FinderDataBinding.ItemHolder<ITEM> unfilteredItems = locatorDataBinding.getPrefilteredItems();
-    Set<ITEM> containerSet = myDataBinding.createContainerSet();
-    if (containerSet != null) {
-      boolean deduplicate = locator.getSingleDimensionValueAsStrictBoolean(DIMENSION_UNIQUE, locator.isAnyPresent(DIMENSION_ITEM));
-      if (deduplicate) {
-        unfilteredItems = new FinderDataBinding.DeduplicatingItemHolder<>(unfilteredItems, containerSet);
+    FinderDataBinding.ItemHolder<ITEM> unfilteredItems;
+    PagingItemFilter<ITEM> pagingFilter;
+    try {
+      FinderDataBinding.LocatorDataBinding<ITEM> locatorDataBinding = getDataBindingWithLogicOpsSupport(locator, myDataBinding);
+      unfilteredItems = locatorDataBinding.getPrefilteredItems();
+      Set<ITEM> containerSet = myDataBinding.createContainerSet();
+      if (containerSet != null) {
+        boolean deduplicate = locator.getSingleDimensionValueAsStrictBoolean(DIMENSION_UNIQUE, locator.isAnyPresent(DIMENSION_ITEM));
+        if (deduplicate) {
+          unfilteredItems = new FinderDataBinding.DeduplicatingItemHolder<>(unfilteredItems, containerSet);
+        }
       }
+
+      final Long start = locator.getSingleDimensionValueAsLong(PagerData.START);
+      final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT, myDataBinding.getDefaultPageItemsCount());
+      Long lookupLimit = locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT, myDataBinding.getDefaultLookupLimit());
+
+      if (countFromFilter != null && lookupLimit != null && locator.getSingleDimensionValue(DIMENSION_LOOKUP_LIMIT) == null && lookupLimit < countFromFilter) {
+        // if count of items is set, but lookupLimit is not, process at least as many items as count
+        lookupLimit = countFromFilter;
+      }
+
+      pagingFilter = new PagingItemFilter<ITEM>(locatorDataBinding.getFilter(),
+                                                                             start, countFromFilter == null ? null : countFromFilter.intValue(),
+                                                                             lookupLimit);
+    } catch (LocatorProcessException | BadRequestException | IllegalArgumentException e) {
+      if (!locator.isHelpRequested()) {
+        throw e;
+      }
+      throw new BadRequestException(e.getMessage() +
+                                    "\nLocator details: " + locator.getLocatorDescription(locator.helpOptions().getSingleDimensionValueAsStrictBoolean("hidden", false)), e);
     }
-
-    final Long start = locator.getSingleDimensionValueAsLong(PagerData.START);
-    final Long countFromFilter = locator.getSingleDimensionValueAsLong(PagerData.COUNT, myDataBinding.getDefaultPageItemsCount());
-    Long lookupLimit = locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT, myDataBinding.getDefaultLookupLimit());
-
-    if (countFromFilter != null && lookupLimit != null && locator.getSingleDimensionValue(DIMENSION_LOOKUP_LIMIT) == null && lookupLimit < countFromFilter) {
-      // if count of items is set, but lookupLimit is not, process at least as many items as count
-      lookupLimit = countFromFilter;
-    }
-
-    final PagingItemFilter<ITEM> pagingFilter = new PagingItemFilter<ITEM>(locatorDataBinding.getFilter(),
-                                                                           start, countFromFilter == null ? null : countFromFilter.intValue(),
-                                                                           lookupLimit);
-
     locator.checkLocatorFullyProcessed();
     return getItems(pagingFilter, unfilteredItems, locator);
   }

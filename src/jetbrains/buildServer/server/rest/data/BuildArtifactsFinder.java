@@ -111,9 +111,11 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
   }
 
   private void setLocatorDefaults(@NotNull final Locator locator) {
-    locator.setDimensionIfNotPresent(DIMENSION_RECURSIVE, "false");
-    locator.setDimensionIfNotPresent(HIDDEN_DIMENSION_NAME, "false");
-    locator.setDimensionIfNotPresent(ARCHIVES_DIMENSION_NAME, "false");
+    if (!locator.isSingleValue()) {
+      locator.setDimensionIfNotPresent(DIMENSION_RECURSIVE, "false");
+      locator.setDimensionIfNotPresent(HIDDEN_DIMENSION_NAME, "false");
+      locator.setDimensionIfNotPresent(ARCHIVES_DIMENSION_NAME, "false");
+    }
   }
 
   // =============================================================
