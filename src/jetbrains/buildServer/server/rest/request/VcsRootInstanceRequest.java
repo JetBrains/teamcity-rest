@@ -217,7 +217,7 @@ public class VcsRootInstanceRequest {
    * @return the set of VCS root instances scheduled for the checking for changes operation
    */
   @POST
-  @Path("/vcsCheckingForChangesQueue")
+  @Path("/checkingForChangesQueue")
   @Produces({"application/xml", "application/json"})
   public VcsRootInstances scheduleCheckingForChanges(@QueryParam("locator") final String vcsRootInstancesLocator,
                                                      @QueryParam("requestor") final String requestor,
