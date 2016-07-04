@@ -36,25 +36,35 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "licenseKey")
 @XmlType(name = "licenseKey")
 public class LicenseKeyEntity {
-  protected static final String LICENSE_TYPE_EVALUATION = "EVALUATION";
-  protected static final String LICENSE_TYPE_EAP = "EAP";
-  protected static final String LICENSE_TYPE_OPEN_SOURCE = "OPEN_SOURCE";
-  protected static final String LICENSE_TYPE_COMMERCIAL = "COMMERCIAL";
+  protected static final String LICENSE_TYPE_EVALUATION = "evaluation";
+  protected static final String LICENSE_TYPE_EAP = "eap";
+  protected static final String LICENSE_TYPE_OPEN_SOURCE = "open_source";
+  protected static final String LICENSE_TYPE_COMMERCIAL = "commercial";
 
+  /**
+   * The key is recognized and can be used by this server version at this time (check "active" if it is actually used)
+   */
   @XmlAttribute
   public Boolean valid;
 
+  /**
+   * The key is actually used by the server (considering other keys added)
+   */
   @XmlAttribute
   public Boolean active;
 
+  /**
+   * The license key has expiration date and that has been elapsed
+   */
   @XmlAttribute
   public Boolean expired;
 
+  /**
+   * The license cannot be used with this server version as the maintenance period (maintenanceEndDate) does not cover server's effective release date
+   */
   @XmlAttribute
   public Boolean obsolete;
 
-  @XmlAttribute
-  public String type;
 
   @XmlAttribute
   public String expirationDate;
@@ -63,19 +73,22 @@ public class LicenseKeyEntity {
   public String maintenanceEndDate;
 
   @XmlAttribute
-  public Integer serversCount;
+  public String type;
 
   @XmlAttribute
-  public Integer agentsCount;
+  public Integer servers;
 
   @XmlAttribute
-  public Boolean agentsCountUnlimited;
+  public Integer agents;
 
   @XmlAttribute
-  public Integer buildTypesCount;
+  public Boolean unlimitedAgents;
 
   @XmlAttribute
-  public Boolean buildTypesCountUnlimited;
+  public Integer buildTypes;
+
+  @XmlAttribute
+  public Boolean unlimitedBuildTypes;
 
   @XmlAttribute
   public String errorDetails;
@@ -108,18 +121,18 @@ public class LicenseKeyEntity {
       expired = ValueWithDefault.decideDefault(fields.isIncluded("expired"), licenseKeyData.isLicenseExpired());
       maintenanceEndDate = ValueWithDefault.decideDefault(fields.isIncluded("maintenanceEndDate"), Util.formatTime(licenseKeyData.getMaintenanceDueDate()));
 
-      serversCount = ValueWithDefault.decideDefault(fields.isIncluded("serversCount"), licenseKey.isEnterpriseLicense() ? 1 : 0);
+      servers = ValueWithDefault.decideDefault(fields.isIncluded("servers"), licenseKey.isEnterpriseLicense() ? 1 : 0);
 
       final boolean unlimitedAgentsLicense = licenseKey.isUnlimitedAgentsLicense();
-      agentsCountUnlimited = ValueWithDefault.decideDefault(fields.isIncluded("agentsCountUnlimited"), unlimitedAgentsLicense);
+      unlimitedAgents = ValueWithDefault.decideDefault(fields.isIncluded("unlimitedAgents"), unlimitedAgentsLicense);
       if (!unlimitedAgentsLicense) {
-        agentsCount = ValueWithDefault.decideDefault(fields.isIncluded("agentsCount"), licenseKeyData.getNumberOfAgents());
+        agents = ValueWithDefault.decideDefault(fields.isIncluded("agents"), licenseKeyData.getNumberOfAgents());
       }
 
       final boolean unlimitedBuildTypesLicense = licenseKey.isEnterpriseLicense();
-      buildTypesCountUnlimited = ValueWithDefault.decideDefault(fields.isIncluded("buildTypesCountUnlimited"), unlimitedBuildTypesLicense);
+      unlimitedBuildTypes = ValueWithDefault.decideDefault(fields.isIncluded("unlimitedBuildTypes"), unlimitedBuildTypesLicense);
       if (!unlimitedBuildTypesLicense) {
-        buildTypesCount = ValueWithDefault.decideDefault(fields.isIncluded("buildTypesCount"), getNumberOfBuildTypes(licenseKey));
+        buildTypes = ValueWithDefault.decideDefault(fields.isIncluded("buildTypes"), getNumberOfBuildTypes(licenseKey));
       }
     }
   }
@@ -139,6 +152,9 @@ public class LicenseKeyEntity {
     }
   }
 
+  /**
+   * See also {@link jetbrains.buildServer.server.rest.model.server.LicensingData#getServerLicenseType(jetbrains.buildServer.serverSide.LicenseList)}
+   */
   private String getLicenseType(final LicenseKey licenseKey) {
     if (licenseKey.isEvaluationLicenseKey()) {
       return LICENSE_TYPE_EVALUATION;

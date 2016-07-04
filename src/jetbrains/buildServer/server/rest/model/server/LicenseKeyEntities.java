@@ -16,9 +16,9 @@
 
 package jetbrains.buildServer.server.rest.model.server;
 
-import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -26,9 +26,12 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.LicenseKey;
+import jetbrains.buildServer.serverSide.LicenseKeyData;
 import jetbrains.buildServer.util.CollectionsUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import static com.google.common.collect.Ordering.natural;
 
 /**
  * @author Yegor.Yarko
@@ -57,18 +60,15 @@ public class LicenseKeyEntities {
   }
 
   private List<LicenseKeyEntity> getLicenseKeys(final @NotNull Collection<LicenseKey> licenseKeys, final @Nullable Collection<LicenseKey> activeLicenseKeys, final @NotNull Fields fields) {
-    List<LicenseKey> originalList = new ArrayList<>(licenseKeys);
-    Collections.sort(originalList, new Comparator<LicenseKey>() {
-      @Override
-      public int compare(final LicenseKey o1, final LicenseKey o2) {
-        return ComparisonChain.start()
-                              .compareTrueFirst(o1.isValid(), o2.isValid())
-                              .compare(o1.getLicenseKeyData(), o2.getLicenseKeyData(),
-                                       Ordering.natural().nullsLast().onResultOf(input -> input == null ? null : input.getLicenseType()))
-                              .result();
-      }
-    });
-    return CollectionsUtil.convertCollection(originalList, (source) ->
+    Ordering<LicenseKeyData> licenseKeyDataComparator = Ordering
+      .natural().reverse().nullsFirst().onResultOf((LicenseKeyData input) -> input == null ? null : input.getExpirationDate())
+      .compound(Ordering.natural().reverse().nullsFirst().onResultOf((LicenseKeyData input) -> input == null ? null : input.getMaintenanceDueDate()));
+    Ordering<LicenseKey> ordering = Ordering
+      .natural().reverse().nullsLast().onResultOf((LicenseKey input) -> activeLicenseKeys == null || input == null ? null : activeLicenseKeys.contains(input))
+      .compound(natural().reverse().onResultOf((LicenseKey item) -> item == null ? null : item.isValid()))
+      .compound(licenseKeyDataComparator.onResultOf(item -> item == null ? null : item.getLicenseKeyData()));
+
+    return CollectionsUtil.convertCollection(ordering.sortedCopy(licenseKeys), (source) ->
       new LicenseKeyEntity(source, activeLicenseKeys == null ? null : activeLicenseKeys.contains(source), fields.getNestedField("licenseKey", Fields.LONG, Fields.LONG)));
   }
 }

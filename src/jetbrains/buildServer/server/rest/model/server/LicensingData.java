@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.model.server;
 
-import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -40,28 +39,34 @@ import org.jetbrains.annotations.NotNull;
 @XmlType(name = "licensingData")
 public class LicensingData {
   @XmlAttribute
-  public Integer maxAgentsCount;
+  public Boolean licenseUseExceeded;
 
   @XmlAttribute
-  public Boolean maxAgentsCountUnlimited;
+  public Integer maxAgents;
 
   @XmlAttribute
-  public Integer agentsLeftCount;
+  public Boolean unlimitedAgents;
 
   @XmlAttribute
-  public Integer maxBuildTypesCount;
+  public Integer agentsLeft;
 
   @XmlAttribute
-  public Boolean maxBuildTypesCountUnlimited;
+  public Integer maxBuildTypes;
 
   @XmlAttribute
-  public Integer buildTypesLeftCount;
+  public Boolean unlimitedBuildTypes;
 
   @XmlAttribute
-  public String serverLicenseMode;
+  public Integer buildTypesLeft;
 
   @XmlAttribute
-  public String serverReleaseDate;
+  public String serverLicenseType;
+
+  /**
+   * Effective release date of the server (the date which is compared to license's maintenance end date)
+   */
+  @XmlAttribute
+  public String serverEffectiveReleaseDate;
 
 
   @XmlElement(name = "licenseKeys")
@@ -80,50 +85,60 @@ public class LicensingData {
                                                                               fields.getNestedField("licenseKeys", Fields.SHORT, Fields.LONG)));
 
     final boolean unlimitedBuildTypes = licenseList.isUnlimitedBuildTypes();
-    maxBuildTypesCountUnlimited = ValueWithDefault.decideDefault(fields.isIncluded("maxBuildTypesCountUnlimited"), unlimitedBuildTypes);
+    this.unlimitedBuildTypes = ValueWithDefault.decideDefault(fields.isIncluded("unlimitedBuildTypes"), unlimitedBuildTypes);
     if (!unlimitedBuildTypes) {
-      maxBuildTypesCount = ValueWithDefault.decideDefault(fields.isIncluded("maxBuildTypesCount"), licenseList.getLicensedBuildTypesCount());
+      maxBuildTypes = ValueWithDefault.decideDefault(fields.isIncluded("maxBuildTypes"), licenseList.getLicensedBuildTypesCount());
     }
 
     final boolean unlimitedAgents = licenseList.isUnlimitedAgents();
-    maxAgentsCountUnlimited = ValueWithDefault.decideDefault(fields.isIncluded("maxAgentsCountUnlimited"), unlimitedAgents);
+    this.unlimitedAgents = ValueWithDefault.decideDefault(fields.isIncluded("unlimitedAgents"), unlimitedAgents);
     if (!unlimitedAgents) {
-      maxAgentsCount = ValueWithDefault.decideDefault(fields.isIncluded("maxAgentsCount"), licenseList.getLicensedAgentCount());
+      maxAgents = ValueWithDefault.decideDefault(fields.isIncluded("maxAgents"), licenseList.getLicensedAgentCount());
     }
 
     final LicensingPolicyEx licensingPolicy = licenseKeysManager.getLicensingPolicy();
 
-    serverLicenseMode = ValueWithDefault.decideDefault(fields.isIncluded("serverLicenseMode"), getMode(licenseList));
+    licenseUseExceeded = ValueWithDefault.decideDefault(fields.isIncluded("licenseUseExceeded"), licensingPolicy.isMaxNumberOfBuildTypesExceeded());
 
-    serverReleaseDate = ValueWithDefault.decideDefault(fields.isIncluded("serverReleaseDate"), Util.formatTime(getReleaseDate(beanContext)));
+    serverLicenseType = ValueWithDefault.decideDefault(fields.isIncluded("serverLicenseType"), getServerLicenseType(licenseList));
+
+    serverEffectiveReleaseDate = ValueWithDefault.decideDefault(fields.isIncluded("serverEffectiveReleaseDate"), Util.formatTime(licenseList.getReleaseDate()));
 
     if (licensingPolicy.getAgentsLicensesLeft() != -1) {
-      agentsLeftCount = ValueWithDefault.decideDefault(fields.isIncluded("agentsLeftCount"), licensingPolicy.getAgentsLicensesLeft());
+      agentsLeft = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("agentsLeft"), licensingPolicy.getAgentsLicensesLeft());
     }
 
     if (licensingPolicy.getBuildTypesLicensesLeft() != -1) {
-      buildTypesLeftCount = ValueWithDefault.decideDefault(fields.isIncluded("buildTypesLeftCount"), licensingPolicy.getBuildTypesLicensesLeft());
+      buildTypesLeft = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("buildTypesLeft"), licensingPolicy.getBuildTypesLicensesLeft());
     }
   }
 
-  private Date getReleaseDate(final BeanContext beanContext) {
-    return null; //todo fix!  effective release date
-//    return new ServerLicenseBean().getReleaseDate(); //should now use ReleaseDateHolder.getReleaseDate ?
-  }
+  protected static final String SERVER_LICENSE_TYPE_ENTERPRISE = "enterprise";
+  protected static final String SERVER_LICENSE_TYPE_PROFESSIONAL = "professional";
+  protected static final String SERVER_LICENSE_TYPE_EVALUATION = LicenseKeyEntity.LICENSE_TYPE_EVALUATION;
+  protected static final String SERVER_LICENSE_TYPE_EAP = LicenseKeyEntity.LICENSE_TYPE_EAP;
+  protected static final String SERVER_LICENSE_TYPE_OPEN_SOURCE = LicenseKeyEntity.LICENSE_TYPE_OPEN_SOURCE;
 
-  private String getMode(final LicenseList licenseList) {
+  /**
+   * See also {@link jetbrains.buildServer.server.rest.model.server.LicenseKeyEntity#getLicenseType(jetbrains.buildServer.serverSide.LicenseKey)}
+   */
+  private String getServerLicenseType(final LicenseList licenseList) {
     if (licenseList.isEvaluationMode()) {
-      return LicenseKeyEntity.LICENSE_TYPE_EVALUATION;
+      return SERVER_LICENSE_TYPE_EVALUATION;
     }
 
     if (licenseList.isEAPEvaluationMode()) {
-      return LicenseKeyEntity.LICENSE_TYPE_EAP;
+      return SERVER_LICENSE_TYPE_EAP;
     }
 
     if (licenseList.isOpenSourceMode()) {
-      return LicenseKeyEntity.LICENSE_TYPE_OPEN_SOURCE;
+      return SERVER_LICENSE_TYPE_OPEN_SOURCE;
     }
 
-    return LicenseKeyEntity.LICENSE_TYPE_COMMERCIAL;
+    if (licenseList.hasEnterpriseLicense()) {
+      return SERVER_LICENSE_TYPE_ENTERPRISE;
+    }
+
+    return SERVER_LICENSE_TYPE_PROFESSIONAL;
   }
 }
