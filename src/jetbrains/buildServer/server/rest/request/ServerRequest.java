@@ -203,8 +203,7 @@ public class ServerRequest {
   private static final Pattern DELIMITERS = Pattern.compile("[\\n\\r, ]");
 
   /**
-   * @param licenseKeyCodes newline-delimited list of license keys to add
-   * @return
+   * Adds newline-delimited list of license keys to the server or returns textual description is there are not valid keys
    */
   @POST
   @Path(LICENSING_KEYS)
