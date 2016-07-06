@@ -19,6 +19,8 @@ package jetbrains.buildServer.server.rest.data;
 import com.google.common.base.Objects;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
@@ -54,6 +56,8 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
 
     int testRunId = build10.getFullStatistics().getAllTests().get(0).getTestRunId();
     check("build:(id:" + build10.getBuildId() + "),id:" + testRunId, TEST_MATCHER, t("aaa", Status.NORMAL, 1));
+    checkExceptionOnItemSearch(BadRequestException.class, "id:" + testRunId);
+    checkExceptionOnItemsSearch(BadRequestException.class, "id:" + testRunId);
     check("build:(id:" + build10.getBuildId() + "),id:" + testRunId + 1);
 
     check("build:(id:" + build10.getBuildId() + "),test:(name:aaa)", TEST_MATCHER, t("aaa", Status.NORMAL, 1));
@@ -127,6 +131,13 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
           t("aaa", Status.NORMAL, 2),
           t("aaa", Status.FAILURE, 6),
           t("aaa", Status.NORMAL, 7));
+
+    check("build:(id:" + build10.getBuildId() + "),invocations:(search:(status:FAILURE))", TEST_MATCHER,
+          t("aaa", Status.FAILURE, 1),
+          t("ccc", Status.FAILURE, 4));
+    check("build:(id:" + build10.getBuildId() + "),invocations:(search:(count:100),match:(status:SUCCESS))", TEST_MATCHER,
+          t("bbb", Status.NORMAL, 3),
+          t("ddd", Status.NORMAL, 8));
   }
 
   @Test
@@ -161,6 +172,40 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
           t("ddd", Status.NORMAL, 8, build10.getBuildId()),
           t("xxx", Status.NORMAL, 1, build20.getBuildId()),
           t("aaa", Status.NORMAL, 2, build20.getBuildId()));
+  }
+
+  @Test
+  public void testTestOccurrenceEntityInvocations() throws Exception {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build10 = build().in(buildType)
+                                          .withTest("aaa", true)
+                                          .withTest("aaa", true)
+                                          .withTest("bbb", true)
+                                          .withTest("ccc", false)
+                                          .withTest("bbb", true)
+                                          .withTest("aaa", false)
+                                          .withTest("aaa", true)
+                                          .withTest("ddd", true)
+                                          .finish();
+
+    STestRun testRunAAA = build10.getFullStatistics().getAllTests().get(0);
+
+    {
+      TestOccurrence testOccurrence = new TestOccurrence(testRunAAA, getBeanContext(myServer), new Fields("invocations($long)"));
+      assertEquals(Integer.valueOf(4), testOccurrence.invocations.count);
+      assertEquals(Integer.valueOf(1), testOccurrence.invocations.failed);
+      assertNotNull(testOccurrence.invocations.items);
+      assertEquals(4, testOccurrence.invocations.items.size());
+      assertEquals("SUCCESS", testOccurrence.invocations.items.get(0).status);
+      assertEquals("FAILURE", testOccurrence.invocations.items.get(2).status);
+    }
+    {
+      TestOccurrence testOccurrence = new TestOccurrence(testRunAAA, getBeanContext(myServer), new Fields("invocations($long,$locator(status:FAILURE))"));
+      assertEquals(Integer.valueOf(1), testOccurrence.invocations.count);
+      assertNotNull(testOccurrence.invocations.items);
+      assertEquals(1, testOccurrence.invocations.items.size());
+      assertEquals("FAILURE", testOccurrence.invocations.items.get(0).status);
+    }
   }
 
   private static final Matcher<TestRunData, STestRun> TEST_MATCHER = new Matcher<TestRunData, STestRun>() {

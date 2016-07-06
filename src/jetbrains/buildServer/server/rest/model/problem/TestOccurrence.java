@@ -16,11 +16,11 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
-import java.util.ArrayList;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.build.Build;
@@ -158,9 +158,10 @@ public class TestOccurrence {
     invocations = ValueWithDefault.decideDefault(fields.isIncluded("invocations", false, false), new ValueWithDefault.Value<TestOccurrences>() {
       public TestOccurrences get() {
         if (!(testRun instanceof CompositeTestRun)) return null;
-        CompositeTestRun compositeRun = (CompositeTestRun)testRun;
-        return new TestOccurrences(new ArrayList<STestRun>(compositeRun.getTestRuns()), testRun.getInvocationCount(), null, testRun.getFailedInvocationCount(),
-                                   null, null, null, null, null, fields.getNestedField("invocations"), beanContext);
+        Fields nestedField = fields.getNestedField("invocations");
+        String invocationsLocator = Locator.merge(TestOccurrenceFinder.getTestInvocationsLocator(testRun), nestedField.getLocator());
+        return new TestOccurrences(testOccurrenceFinder.getItems(invocationsLocator).myEntries, testRun.getInvocationCount(), null, testRun.getFailedInvocationCount(),
+                                   null, null, null, null, null, nestedField, beanContext);
       }
     });
   }

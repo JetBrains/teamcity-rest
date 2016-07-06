@@ -50,6 +50,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   public static final String MUTED = "muted";
   public static final String CURRENTLY_MUTED = "currentlyMuted";
   protected static final String EXPAND_INVOCATIONS = "expandInvocations"; //experimental
+  protected static final String INVOCATIONS = "invocations"; //experimental
 
   @NotNull private final TestFinder myTestFinder;
   @NotNull private final BuildFinder myBuildFinder;
@@ -67,6 +68,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
                               final @NotNull CurrentProblemsManager currentProblemsManager) {
     super(DIMENSION_ID, TEST, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED);
     setHiddenDimensions(EXPAND_INVOCATIONS);
+    setHiddenDimensions(INVOCATIONS);
     myTestFinder = testFinder;
     myBuildFinder = buildFinder;
     myBuildTypeFinder = buildTypeFinder;
@@ -89,6 +91,14 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   public static String getTestRunLocator(final @NotNull STestRun testRun) {
     return Locator.createEmptyLocator().setDimension(DIMENSION_ID, String.valueOf(testRun.getTestRunId())).
       setDimension(BUILD, BuildRequest.getBuildLocator(testRun.getBuild())).getStringRepresentation();
+  }
+
+  public static String getTestInvocationsLocator(final @NotNull STestRun testRun) {
+    return Locator.createEmptyLocator()
+                  .setDimension(TEST, TestFinder.getTestLocator(testRun.getTest()))
+                  .setDimension(BUILD, BuildRequest.getBuildLocator(testRun.getBuild()))
+                  .setDimension(EXPAND_INVOCATIONS, Locator.BOOLEAN_TRUE)
+                  .getStringRepresentation();
   }
 
   public static String getTestRunLocator(final @NotNull STest test) {
@@ -149,8 +159,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
             return processInvocationExpansion(item, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
           }
           if (!(item instanceof CompositeTestRun)) return null;
-          CompositeTestRun compositeRun = (CompositeTestRun)item;
-          for (STestRun testRun : compositeRun.getTestRuns()) {
+          for (STestRun testRun : getInvocations(item)) {
             if ((long)testRun.getTestRunId() == idDimension) {
               return processInvocationExpansion(testRun, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
             }
@@ -252,9 +261,14 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     if (expandInvocations == null || !expandInvocations) {
       return item;
     }
-    if (!(item instanceof CompositeTestRun)) return item;
+    return getInvocations(item).iterator().next();
+  }
+
+  @NotNull
+  private Collection<STestRun> getInvocations(@NotNull final STestRun item) {
+    if (!(item instanceof CompositeTestRun)) return Collections.singletonList(item);
     CompositeTestRun compositeRun = (CompositeTestRun)item;
-    return compositeRun.getTestRuns().iterator().next();
+    return compositeRun.getTestRuns();
   }
 
   @NotNull
@@ -269,8 +283,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
           if (!(entry instanceof CompositeTestRun)) {
             processor.processItem(entry);
           } else {
-            CompositeTestRun compositeRun = (CompositeTestRun)entry;
-            for (STestRun nestedTestRun : compositeRun.getTestRuns()) {
+            for (STestRun nestedTestRun : getInvocations(entry)) {
               processor.processItem(nestedTestRun);
             }
           }
@@ -315,12 +328,22 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   public ItemFilter<STestRun> getFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<STestRun> result = new MultiCheckerFilter<STestRun>();
 
+    if (locator.isUnused(DIMENSION_ID)){
+      Long testRunId = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
+      if (testRunId != null) {
+        result.add(new FilterConditionChecker<STestRun>() {
+          public boolean isIncluded(@NotNull final STestRun item) {
+            return testRunId.intValue() == item.getTestRunId();
+          }
+        });
+      }
+    }
 
     final String statusDimension = locator.getSingleDimensionValue(STATUS);
     if (statusDimension != null) {
       result.add(new FilterConditionChecker<STestRun>() {
         public boolean isIncluded(@NotNull final STestRun item) {
-          return statusDimension.equals(item.getStatus().getText());
+          return statusDimension.equals(item.getStatus().getText()); //todo: support $help here
         }
       });
     }
@@ -402,6 +425,32 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       }
     }
 
+    if (locator.getUnusedDimensions().contains(INVOCATIONS)) {
+      final String dimensionValue = locator.getSingleDimensionValue(INVOCATIONS);
+      if (dimensionValue != null) {
+        result.add(new FilterConditionChecker<STestRun>() {
+          public boolean isIncluded(@NotNull final STestRun item) {
+            Collection<STestRun> testRuns = getInvocations(item);
+            FinderSearchMatcher<STestRun> matcher =
+              new FinderSearchMatcher<>(dimensionValue, new DelegatingAbstractFinder<STestRun>(TestOccurrenceFinder.this) {
+                @Nullable
+                @Override
+                public STestRun findSingleItem(@NotNull final Locator locator) {
+                  return null;
+                }
+
+                @NotNull
+                @Override
+                public ItemHolder getPrefilteredItems(@NotNull final Locator locator) {
+                  return getItemHolder(testRuns);
+                }
+              });
+            return matcher.matches(null);
+          }
+        });
+      }
+    }
+
     return result;
   }
 
@@ -449,5 +498,61 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     //todo: TeamCity API (MP) how to implement this without build?
     //todo: TeamCity API: if stacktraces are not loaded,should I then load them somehow to get them for the returned STestRun (see TestOccurrence)
     return build.getBuildStatistics(ALL_TESTS_NO_DETAILS).findTestByTestRunId(testRunId);
+  }
+
+  private class DelegatingAbstractFinder<T> extends AbstractFinder<T> {
+    private final AbstractFinder<T> myDelegate;
+
+    public DelegatingAbstractFinder(final AbstractFinder<T> delegate) {
+      myDelegate = delegate;
+    }
+
+    @NotNull
+    @Override
+    public String[] getKnownDimensions() {
+      return myDelegate.getKnownDimensions();
+    }
+
+    @NotNull
+    @Override
+    public String[] getHiddenDimensions() {
+      return myDelegate.getHiddenDimensions();
+    }
+
+    @Nullable
+    @Override
+    public Locator.DescriptionProvider getLocatorDescriptionProvider() {
+      return myDelegate.getLocatorDescriptionProvider();
+    }
+
+    @Nullable
+    @Override
+    public T findSingleItem(@NotNull final Locator locator) {
+      return myDelegate.findSingleItem(locator);
+    }
+
+    @NotNull
+    @Override
+    public ItemHolder getPrefilteredItems(@NotNull final Locator locator) {
+      return myDelegate.getPrefilteredItems(locator);
+    }
+
+    @NotNull
+    @Override
+    public ItemFilter getFilter(@NotNull final Locator locator) {
+      return myDelegate.getFilter(locator);
+    }
+
+    @NotNull
+    @Override
+    public String getItemLocator(@NotNull final T item) {
+      return myDelegate.getItemLocator(item);
+    }
+
+    @Nullable
+    @Override
+    public Set<T> createContainerSet() {
+      return myDelegate.createContainerSet();
+    }
   }
 }

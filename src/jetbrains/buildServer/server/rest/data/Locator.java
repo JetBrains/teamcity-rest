@@ -525,7 +525,7 @@ public class Locator {
     }
   }
 
-  protected interface DescriptionProvider{
+  public interface DescriptionProvider{
     @NotNull String get(@NotNull Locator locator, boolean includeHidden);
   }
 
