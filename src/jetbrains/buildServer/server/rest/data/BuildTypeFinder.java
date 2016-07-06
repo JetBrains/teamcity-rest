@@ -323,32 +323,17 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
     final String filterBuilds = locator.getSingleDimensionValue(FILTER_BUILDS); //experimental
     if (filterBuilds != null) {
-      final Locator filterBuildsLocator = new Locator(filterBuilds, "search", "match");  // support for conditions like "in which the last build is successful"
-      final String search = filterBuildsLocator.getSingleDimensionValue("search");
-      final String match = filterBuildsLocator.getSingleDimensionValue("match");
-      if (search != null) {
-        result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-          @Override
-          public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
-            if (item.getBuildType() == null) return false;
-            final BuildPromotionFinder buildFinder = myServiceLocator.getSingletonService(BuildPromotionFinder.class);
-            final String patchedSearch = Locator.setDimensionIfNotPresent(search, PagerData.COUNT, "1");
-            final List<BuildPromotion> buildPromotions = buildFinder.getBuildPromotions(item.getBuildType(), patchedSearch).myEntries;
-            if (buildPromotions.isEmpty()) {
-              return false;
-            }
-            if (match == null) {
-              return buildPromotions.size() > 0;
-            }
-
-            final ItemFilter<BuildPromotion> filter = buildFinder.getFilter(match);
-            for (BuildPromotion buildPromotion : buildPromotions) {
-              if (!filter.isIncluded(buildPromotion)) return false;
-            }
-            return true;
-          }
-        });
-      }
+      BuildPromotionFinder promotionFinder = myServiceLocator.getSingletonService(BuildPromotionFinder.class);
+      FinderSearchMatcher<BuildPromotion> matcher = new FinderSearchMatcher<>(filterBuilds, promotionFinder);
+      result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
+        @Override
+        public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+          SBuildType buildType = item.getBuildType();
+          if (buildType == null) return false;
+          String defaults = Locator.getStringLocator(BuildPromotionFinder.BUILD_TYPE, BuildTypeFinder.getLocator(buildType), PagerData.COUNT, "1");
+          return matcher.matches(defaults);
+        }
+      });
     }
 
     final String snapshotDependencies = locator.getSingleDimensionValue(SNAPSHOT_DEPENDENCY);

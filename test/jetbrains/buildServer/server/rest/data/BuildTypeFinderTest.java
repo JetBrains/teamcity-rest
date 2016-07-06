@@ -21,6 +21,7 @@ import java.util.Collections;
 import jetbrains.LicenseTestUtil;
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
@@ -544,6 +545,9 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
 
     checkBuildTypes("filterByBuilds:(search:(count:1))", buildConf10, buildConf20, buildConf30);
     checkBuildTypes("filterByBuilds:(search:(count:100),match:(status:SUCCESS))", buildConf30);
+    checkExceptionOnItemsSearch(BadRequestException.class, "filterByBuilds:(match:(status:SUCCESS))");
+    checkExceptionOnItemsSearch(LocatorProcessException.class, "filterByBuilds:($help)");
+    checkExceptionOnItemsSearch(BadRequestException.class, "filterByBuilds:(a:b)");
   }
 
   @Test
