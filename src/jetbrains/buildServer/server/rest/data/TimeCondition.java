@@ -75,7 +75,12 @@ public class TimeCondition {
     //need BuildPromotionFinder, but do not use that because of the cyclic dependency
     myServiceLocator = serviceLocator;
     myDefaultBuildValueExtractor = STARTED_BUILD_TIME;
-    myTimeService = serviceLocator.getSingletonService(RunningBuildsManagerEx.class).getTimeService();
+    myTimeService = getTimeService(serviceLocator);
+  }
+
+  @NotNull
+  public static TimeService getTimeService(final @NotNull ServiceLocator serviceLocator) {
+    return serviceLocator.getSingletonService(RunningBuildsManagerEx.class).getTimeService();
   }
 
   private BuildPromotionFinder myBuildPromotionFinder;

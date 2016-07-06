@@ -62,8 +62,8 @@ public class Agent {
   @XmlAttribute public String ip;
   @XmlAttribute public String protocol;
   @XmlAttribute public String href;
-  @XmlElement public BooleanStatus enabledInfo;
-  @XmlElement public BooleanStatus authorizedInfo;
+  @XmlElement public AgentEnabledInfo enabledInfo;
+  @XmlElement public AgentAuthorizedInfo authorizedInfo;
   @XmlElement public Properties properties;
   @XmlElement public AgentPool pool;
   @XmlElement public BuildTypes compatibleBuildTypes;
@@ -117,17 +117,17 @@ public class Agent {
         }
       });
 
-      enabledInfo = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("enabledInfo", false), new ValueWithDefault.Value<BooleanStatus>() {
+      enabledInfo = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("enabledInfo", false), new ValueWithDefault.Value<AgentEnabledInfo>() {
         @Nullable
-        public BooleanStatus get() {
-          return new BooleanStatus(agent.isEnabled(), agent.getStatusComment(), fields.getNestedField("enabledInfo", Fields.NONE, Fields.LONG), beanContext);
+        public AgentEnabledInfo get() {
+          return new AgentEnabledInfo(agent, fields.getNestedField("enabledInfo", Fields.NONE, Fields.LONG), beanContext);
         }
       });
 
-      authorizedInfo = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("authorizedInfo", false), new ValueWithDefault.Value<BooleanStatus>() {
+      authorizedInfo = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("authorizedInfo", false), new ValueWithDefault.Value<AgentAuthorizedInfo>() {
         @Nullable
-        public BooleanStatus get() {
-          return new BooleanStatus(agent.isAuthorized(), agent.getAuthorizeComment(), fields.getNestedField("authorizedInfo", Fields.NONE, Fields.LONG), beanContext);
+        public AgentAuthorizedInfo get() {
+          return new AgentAuthorizedInfo(agent.isAuthorized(), agent.getAuthorizeComment(), fields.getNestedField("authorizedInfo", Fields.NONE, Fields.LONG), beanContext);
         }
       });
 

@@ -64,7 +64,7 @@ public class BooleanStatus {
   }
 
   @Nullable
-  public Boolean getValueFromPosted() {
+  public Boolean getStatusFromPosted() {
     if (status == null) return null;
     return Locator.getStrictBoolean(status);
   }

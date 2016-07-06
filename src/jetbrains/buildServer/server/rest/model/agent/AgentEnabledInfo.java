@@ -16,11 +16,20 @@
 
 package jetbrains.buildServer.server.rest.model.agent;
 
+import java.util.Date;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.TimeCondition;
+import jetbrains.buildServer.server.rest.data.TimeWithPrecision;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.comments.Comment;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.SBuildAgent;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -29,10 +38,23 @@ import jetbrains.buildServer.serverSide.comments.Comment;
 @XmlType(name = "enabledInfo")
 @XmlRootElement(name = "enabledInfo")
 public class AgentEnabledInfo extends BooleanStatus {
+  @XmlAttribute(name = "statusSwitchTime")
+  public String statusSwitchTime;
+
   public AgentEnabledInfo() {
   }
 
-  public AgentEnabledInfo(final boolean enabled, final Comment statusComment, final Fields fields, final BeanContext beanContext) {
-    super(enabled, statusComment, fields, beanContext);
+  public AgentEnabledInfo(@NotNull final SBuildAgent agent, final Fields fields, final BeanContext beanContext) {
+    super(agent.isEnabled(), agent.getStatusComment(), fields, beanContext);
+    Boolean restoreEnabled = agent.getAgentStatusToRestore();
+    if (restoreEnabled != null && (restoreEnabled ^ agent.isEnabled())) {
+      statusSwitchTime = ValueWithDefault.decideDefault(fields.isIncluded("statusSwitchTime"), Util.formatTime(agent.getAgentStatusRestoringTimestamp()));
+    }
+  }
+
+  @Nullable
+  public Date getStatusSwitchTimeFromPosted(@NotNull final ServiceLocator serviceLocator) {
+    if (statusSwitchTime == null) return null;
+    return TimeWithPrecision.parse(statusSwitchTime, TimeCondition.getTimeService(serviceLocator)).getTime();
   }
 }

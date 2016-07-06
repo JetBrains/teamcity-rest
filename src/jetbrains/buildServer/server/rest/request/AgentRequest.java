@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.util.text.StringUtil;
 import io.swagger.annotations.Api;
+import java.util.Date;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -33,6 +34,7 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.BuildAgentManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
+import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -141,7 +143,7 @@ public class AgentRequest {
   @Produces({"application/xml", "application/json"})
   public AgentEnabledInfo getEnabledInfo(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    return new AgentEnabledInfo(agent.isEnabled(), agent.getStatusComment(), new Fields(fields), myBeanContext);
+    return new AgentEnabledInfo(agent, new Fields(fields), myBeanContext);
   }
 
   @PUT
@@ -152,11 +154,17 @@ public class AgentRequest {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     if (enabledInfo == null) throw new BadRequestException("No data is sent as payload.");
     String commentText = enabledInfo.getCommentTextFromPosted();
-    Boolean value = enabledInfo.getValueFromPosted();
+    Boolean value = enabledInfo.getStatusFromPosted();
     if (value == null && commentText == null) throw new BadRequestException("Neither value nor comment are provided, nothing to change");
-    agent.setEnabled(value != null ? value : agent.isEnabled(), myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser(), Agent.getActualActionComment(commentText));
+    Date switchTime = enabledInfo.getStatusSwitchTimeFromPosted(myServiceLocator);
+    SUser currentUser = myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser();
+    if (switchTime == null){
+      agent.setEnabled(value != null ? value : agent.isEnabled(), currentUser, Agent.getActualActionComment(commentText));
+    } else{
+      agent.setEnabled(value != null ? value : agent.isEnabled(), currentUser, Agent.getActualActionComment(commentText), switchTime.getTime());
+    }
 
-    return new AgentEnabledInfo(agent.isEnabled(), agent.getStatusComment(), new Fields(fields), myBeanContext);
+    return new AgentEnabledInfo(agent, new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -175,7 +183,7 @@ public class AgentRequest {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     if (authorizedInfo == null) throw new BadRequestException("No data is sent as payload.");
     String commentText = authorizedInfo.getCommentTextFromPosted();
-    Boolean value = authorizedInfo.getValueFromPosted();
+    Boolean value = authorizedInfo.getStatusFromPosted();
     if (value == null && commentText == null) throw new BadRequestException("Neither value nor comment are provided, nothing to change");
     agent.setAuthorized(value != null ? value : agent.isAuthorized(), myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser(), Agent.getActualActionComment(commentText));
 
