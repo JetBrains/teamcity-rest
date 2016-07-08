@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.request;
 import io.swagger.annotations.Api;
 import javax.ws.rs.*;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.ParameterType;
 import jetbrains.buildServer.server.rest.model.Property;
@@ -32,7 +33,7 @@ import org.jetbrains.annotations.NotNull;
 @Api(hidden = true) // To prevent appearing in Swagger#definitions
 public class TypedParametersSubResource extends ParametersSubResource{
   public TypedParametersSubResource(@NotNull final ServiceLocator serviceLocator,
-                                    @NotNull final EntityWithParameters entityWithParameters, @NotNull final String parametersHref) {
+                                    @NotNull final ParametersPersistableEntity entityWithParameters, @NotNull final String parametersHref) {
     super(serviceLocator, entityWithParameters, parametersHref);
   }
 

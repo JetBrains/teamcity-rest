@@ -390,8 +390,8 @@ public class Build {
   public Properties getProperties() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
-        return new Properties(myBuildPromotion.getParameters(), myBuildPromotion.getCustomParameters(), null,
-                              myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myServiceLocator);
+        return new Properties(Properties.createEntity(myBuildPromotion.getParameters(), myBuildPromotion.getCustomParameters()), null,
+                              null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myServiceLocator);
       }
     });
   }

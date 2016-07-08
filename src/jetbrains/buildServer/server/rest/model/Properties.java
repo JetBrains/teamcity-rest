@@ -26,14 +26,17 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.FilterUtil;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.ParameterCondition;
+import jetbrains.buildServer.server.rest.data.parameters.EntityWithModifiableParameters;
+import jetbrains.buildServer.server.rest.data.parameters.EntityWithParameters;
+import jetbrains.buildServer.server.rest.data.parameters.MapBackedEntityWithParameters;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.InheritableUserParametersHolder;
+import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.serverSide.SimpleParameter;
-import jetbrains.buildServer.serverSide.UserParametersHolder;
 import jetbrains.buildServer.util.CaseInsensitiveStringComparator;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -63,58 +66,37 @@ public class Properties  implements DefaultValueAware {
 
   //todo: review all null usages for href to include due URL
   public Properties(@Nullable final Map<String, String> properties, @Nullable String href, @NotNull final Fields fields, @NotNull final ServiceLocator serviceLocator) {
-    this(properties, null, href, fields, serviceLocator);
+    this(properties == null ? null : createEntity(properties, null), href, null, fields, serviceLocator);
   }
 
-  public Properties(@Nullable final Map<String, String> parameters,
-                    @Nullable final Map<String, String> ownParameters,
+  public Properties(@Nullable final EntityWithParameters parameters,
                     @Nullable String href,
-                    @NotNull final Fields fields,
-                    @NotNull final ServiceLocator serviceLocator) {
-    this(convertToSimpleParameters(parameters), convertToSimpleParameters(ownParameters), href, null, fields, serviceLocator);
-  }
-
-  public Properties(@Nullable final Collection<Parameter> parameters,
-                    @Nullable final Collection<Parameter> ownParameters,
-                    @Nullable String href,
-                    @NotNull final Fields fields,
-                    @NotNull final ServiceLocator serviceLocator) {
-    this(parameters, ownParameters, href, null, fields, serviceLocator);
-  }
-
-  public Properties(@Nullable final Collection<Parameter> parameters,
-                    @Nullable final Collection<Parameter> ownParameters,
-                    @Nullable String href,
-                    @Nullable Locator propertiesLocator,
+                    @Nullable Locator externalLocator,
                     @NotNull final Fields fields,
                     @NotNull final ServiceLocator serviceLocator) {
     if (parameters == null) {
       this.count = null;
       this.properties = null;
     } else {
+      Collection<Parameter> parametersCollection = parameters.getParametersCollection();
       if (fields.isIncluded(PROPERTY, false, true)) {
         this.properties = getEmptyProperties();
         final Fields propertyFields = fields.getNestedField(PROPERTY, Fields.NONE, Fields.LONG);
-        final ParameterCondition parameterCondition = getParameterCondition(propertiesLocator != null ? propertiesLocator.getStringRepresentation() : fields.getLocator());
-        Set<String> ownParameterNames = new HashSet<>();
-        if (ownParameters != null) {
-          for (Parameter parameter : ownParameters) {
-            ownParameterNames.add(parameter.getName());
-          }
-        }
-        for (Parameter parameter : parameters) {
-          Boolean inherited = ownParameters == null ? null : !ownParameterNames.contains(parameter.getName());
+        final ParameterCondition parameterCondition = getParameterCondition(externalLocator != null ? externalLocator.getStringRepresentation() : fields.getLocator());
+        for (Parameter parameter : parametersCollection) {
+          Boolean inherited = parameters.isInherited(parameter.getName());
           if (parameterCondition == null || parameterCondition.parameterMatches(parameter, inherited)) {
             this.properties.add(new Property(parameter, inherited, propertyFields, serviceLocator));
           }
         }
         this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), this.properties.size());  //count of the properties included
       } else {
-        this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), parameters.size()); //actual count when no properties are included
+        this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), parametersCollection.size()); //actual count when no properties are included
       }
     }
     this.href = ValueWithDefault.decideDefault(fields.isIncluded("href"), href);
   }
+
 
   @NotNull
   private static SortedList<Property> getEmptyProperties() {
@@ -149,6 +131,7 @@ public class Properties  implements DefaultValueAware {
       result.add(new SimpleParameter(source.getKey(), source.getValue()));
     }
     return result;
+//    return parametersMap.entrySet().stream().filter(entry ->  entry.getValue() != null).map(entry -> new SimpleParameter(entry.getKey(), entry.getValue())).collect(Collectors.toList());
   }
 
   @NotNull
@@ -176,19 +159,19 @@ public class Properties  implements DefaultValueAware {
     return ValueWithDefault.isAllDefault(count, href, properties);
   }
 
-  public boolean setTo(@NotNull final InheritableUserParametersHolder holder, @NotNull final ServiceLocator serviceLocator) {
-    return setTo(holder, holder.getOwnParametersCollection(), serviceLocator);
+  public boolean setTo(@NotNull final BuildTypeSettings buildType, @NotNull final ServiceLocator serviceLocator) {
+    return setTo(BuildType.createEntity(buildType), serviceLocator);
   }
 
-  public boolean setTo(@NotNull final UserParametersHolder holder,
-                       @Nullable final Collection<Parameter> ownParameters,
+  public boolean setTo(@NotNull final EntityWithModifiableParameters holder,
                        @NotNull final ServiceLocator serviceLocator) {
+    Collection<Parameter> ownParameters = holder.getOwnParametersCollection();
     Collection<Parameter> original = ownParameters != null ? ownParameters : holder.getParametersCollection();
     try {
       BuildTypeUtil.removeAllParameters(holder);
       if (properties != null) {
         for (Property entity : properties) {
-          entity.addTo(holder, getNames(ownParameters), serviceLocator);
+          entity.addTo(holder, serviceLocator);
         }
       }
       return true;
@@ -217,4 +200,10 @@ public class Properties  implements DefaultValueAware {
           (count == null || that.count == null || com.google.common.base.Objects.equal(count, that.count)) &&
           (properties == null || that.properties == null || com.google.common.base.Objects.equal(properties, that.properties));
   }
+
+  @NotNull
+  public static EntityWithParameters createEntity(@NotNull final Map<String, String> params, @Nullable final Map<String, String> ownParams) {
+    return new MapBackedEntityWithParameters(params, ownParams);
+  }
+
 }

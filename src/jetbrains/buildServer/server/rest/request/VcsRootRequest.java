@@ -230,7 +230,7 @@ public class VcsRootRequest {
   @Produces("text/plain")
   public String serveProperty(@PathParam("vcsRootLocator") String vcsRootLocator, @PathParam("name") String parameterName) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
-    return BuildTypeUtil.getParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot), true, true, myServiceLocator);
+    return BuildTypeUtil.getParameter(parameterName, VcsRoot.getEntityWithParameters(vcsRoot), true, true, myServiceLocator);
   }
 
   @PUT
@@ -241,10 +241,10 @@ public class VcsRootRequest {
                                     @PathParam("name") String parameterName,
                                     String newValue) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
-    BuildTypeUtil.changeParameter(parameterName, newValue, VcsRoot.getUserParametersHolder(vcsRoot),
+    BuildTypeUtil.changeParameter(parameterName, newValue, VcsRoot.getEntityWithParameters(vcsRoot),
                                   myServiceLocator);
     vcsRoot.persist();
-    return BuildTypeUtil.getParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot), false, true, myServiceLocator);
+    return BuildTypeUtil.getParameter(parameterName, VcsRoot.getEntityWithParameters(vcsRoot), false, true, myServiceLocator);
   }
 
   @DELETE
@@ -252,7 +252,7 @@ public class VcsRootRequest {
   public void deleteParameter(@PathParam("vcsRootLocator") String vcsRootLocator,
                                        @PathParam("name") String parameterName) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
-    BuildTypeUtil.deleteParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot));
+    BuildTypeUtil.deleteParameter(parameterName, VcsRoot.getEntityWithParameters(vcsRoot));
     vcsRoot.persist();
   }
 

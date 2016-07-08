@@ -34,6 +34,7 @@ import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
+import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -230,7 +231,7 @@ public class BuildTypeRequest {
   @Path("/{btLocator}" + PARAMETERS)
   public TypedParametersSubResource getParametersSubResource(@PathParam("btLocator") String buildTypeLocator){
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    return new TypedParametersSubResource(myServiceLocator, new ParametersSubResource.BuildTypeEntityWithParameters(buildType), getParametersHref(buildType));
+    return new TypedParametersSubResource(myServiceLocator, BuildType.createEntity(buildType.get()), getParametersHref(buildType));
   }
 
   @Path("/{btLocator}/settings")
@@ -1371,7 +1372,7 @@ public class BuildTypeRequest {
     myVcsRootFinder = myBeanContext.getSingletonService(VcsRootFinder.class);
   }
 
-  public static class BuildTypeSettingsEntityWithParams extends ParametersSubResource.EntityWithParameters {
+  public static class BuildTypeSettingsEntityWithParams implements ParametersPersistableEntity {
     @NotNull private final BuildTypeOrTemplate myBuildType;
 
     public BuildTypeSettingsEntityWithParams(@NotNull final BuildTypeOrTemplate buildType) {
@@ -1386,13 +1387,17 @@ public class BuildTypeRequest {
     @Nullable
     @Override
     public Collection<Parameter> getOwnParametersCollection() {
-      return Properties.convertToSimpleParameters(getOwnParameters());
+      return Properties.convertToSimpleParameters(BuildTypeUtil.getSettingsParameters(myBuildType, true));
     }
 
     @Nullable
     @Override
-    public Map<String, String> getOwnParameters() {
-      return BuildTypeUtil.getSettingsParameters(myBuildType, true);
+    public Parameter getOwnParameter(@NotNull final String paramName) {
+      String value = BuildTypeUtil.getSettingsParameters(myBuildType, true).get(paramName);
+      if (value != null) {
+        return new SimpleParameter(paramName, value);
+      }
+      return null;
     }
 
     @Override
@@ -1424,19 +1429,7 @@ public class BuildTypeRequest {
     @NotNull
     @Override
     public Collection<Parameter> getParametersCollection() {
-      return Properties.convertToSimpleParameters(getParameters());
-    }
-
-    @NotNull
-    @Override
-    public Map<String, String> getParameters() {
-      return BuildTypeUtil.getSettingsParameters(myBuildType, false);
-    }
-
-    @Nullable
-    @Override
-    public String getParameterValue(@NotNull final String paramName) {
-      return null;
+      return Properties.convertToSimpleParameters(BuildTypeUtil.getSettingsParameters(myBuildType, false));
     }
   }
 }

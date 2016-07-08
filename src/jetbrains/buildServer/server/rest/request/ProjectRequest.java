@@ -24,13 +24,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
-import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.parameters.MapBackedEntityWithModifiableParameters;
+import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
-import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.agent.AgentPool;
@@ -50,7 +50,6 @@ import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.identifiers.DuplicateExternalIdException;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectsLoader;
-import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -361,7 +360,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}" + PARAMETERS)
   public TypedParametersSubResource getParametersSubResource(@PathParam("projectLocator") String projectLocator){
     SProject project = myProjectFinder.getItem(projectLocator, true);
-    return new TypedParametersSubResource(myServiceLocator, new ParametersSubResource.ProjectEntityWithParameters(project), getParametersHref(project));
+    return new TypedParametersSubResource(myServiceLocator, Project.createEntity(project), getParametersHref(project));
   }
 
   @GET
@@ -494,7 +493,7 @@ public class ProjectRequest {
         }
 
         @Override
-        public UserParametersHolder getParametersHolder(@NotNull final String featureLocator) {
+        public ParametersPersistableEntity getParametersHolder(@NotNull final String featureLocator) {
           return new ProjectFeatureDescriptionUserParametersHolder(project, featureLocator);
         }
 
@@ -714,51 +713,33 @@ public class ProjectRequest {
     return map.size() > 0 ? map : null;
   }
 
-  private class ProjectFeatureDescriptionUserParametersHolder implements UserParametersHolder {
+  private class ProjectFeatureDescriptionUserParametersHolder extends MapBackedEntityWithModifiableParameters implements ParametersPersistableEntity {
     @NotNull private final SProject myProject;
-    @NotNull private final String myProjectFeatureId;
 
     public ProjectFeatureDescriptionUserParametersHolder(@NotNull final SProject project, @NotNull final String projectFeatureId) {
+      super(new PropProxy() {
+        @Override
+        public Map<String, String> get() {
+          return getFeature().getParameters();
+        }
+
+        @Override
+        public void set(final Map<String, String> params) {
+          project.updateFeature(projectFeatureId, getFeature().getType(), params);
+
+        }
+
+        @NotNull
+        private SProjectFeatureDescriptor getFeature() {
+          return PropEntityProjectFeature.getFeatureByLocator(project, projectFeatureId);
+        }
+      });
       myProject = project;
-      myProjectFeatureId = projectFeatureId;
     }
 
     @Override
-    public void addParameter(@NotNull final Parameter param) {
-      Map<String, String> newParameters = new HashMap<>(getParameters());
-      newParameters.put(param.getName(), param.getValue());
-      myProject.updateFeature(myProjectFeatureId, PropEntityProjectFeature.getFeatureByLocator(myProject, myProjectFeatureId).getType(), newParameters);
-    }
-
-    @Override
-    public void removeParameter(@NotNull final String paramName) {
-      Map<String, String> newParameters = new HashMap<>(getParameters());
-      newParameters.remove(paramName);
-      myProject.updateFeature(myProjectFeatureId, PropEntityProjectFeature.getFeatureByLocator(myProject, myProjectFeatureId).getType(), newParameters);
-    }
-
-    @NotNull
-    @Override
-    public Collection<Parameter> getParametersCollection() {
-      return CollectionsUtil.convertCollection(getParameters().entrySet(), source -> new SimpleParameter(source.getKey(), source.getValue()));
-    }
-
-    @Nullable
-    @Override
-    public Parameter getParameter(@NotNull final String paramName) {
-      return new SimpleParameter(paramName, getParameters().get(paramName));
-    }
-
-    @NotNull
-    @Override
-    public Map<String, String> getParameters() {
-      return PropEntityProjectFeature.getFeatureByLocator(myProject, myProjectFeatureId).getParameters();
-    }
-
-    @Nullable
-    @Override
-    public String getParameterValue(@NotNull final String paramName) {
-      return getParameters().get(paramName);
+    public void persist() {
+      myProject.persist();
     }
   }
 }

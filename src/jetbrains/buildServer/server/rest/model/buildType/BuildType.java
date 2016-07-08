@@ -28,6 +28,8 @@ import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
+import jetbrains.buildServer.server.rest.data.parameters.InheritableUserParametersHolderEntityWithParameters;
+import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
@@ -286,7 +288,7 @@ public class BuildType {
     return myBuildType == null ? null : ValueWithDefault
       .decideIncludeByDefault(myFields.isIncluded("parameters", false), check(new ValueWithDefault.Value<Properties>() {
         public Properties get() {
-          return new Properties(myBuildType.get().getParametersCollection(), myBuildType.get().getOwnParametersCollection(), BuildTypeRequest.getParametersHref(myBuildType),
+          return new Properties(createEntity(myBuildType.get()), BuildTypeRequest.getParametersHref(myBuildType), null,
                                 myFields.getNestedField("parameters", Fields.NONE, Fields.LONG), myBeanContext.getServiceLocator());
         }
       }));
@@ -362,8 +364,8 @@ public class BuildType {
   public Properties getSettings() {
     return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("settings", false), check(new ValueWithDefault.Value<Properties>() {
       public Properties get() {
-        return new Properties(BuildTypeUtil.getSettingsParameters(myBuildType, false), BuildTypeUtil.getSettingsParameters(myBuildType, true),
-                              null, myFields.getNestedField("settings", Fields.NONE, Fields.LONG), myBeanContext.getServiceLocator());
+        return new Properties(Properties.createEntity(BuildTypeUtil.getSettingsParameters(myBuildType, false), BuildTypeUtil.getSettingsParameters(myBuildType, true)),
+                              null, null, myFields.getNestedField("settings", Fields.NONE, Fields.LONG), myBeanContext.getServiceLocator());
       }
     }));
   }
@@ -816,7 +818,7 @@ public class BuildType {
       //need to remove all settings if submittedSettings.properties == null???
       for (Property property : submittedSettings.properties) {
         try {
-          property.addTo(new BuildTypeRequest.BuildTypeSettingsEntityWithParams(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate()), null, serviceLocator);
+          property.addTo(new BuildTypeRequest.BuildTypeSettingsEntityWithParams(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate()), serviceLocator);
           result = true;
         } catch (java.lang.UnsupportedOperationException e) {  //can be thrown from EditableBuildTypeCopy
           LOG.debug("Error setting property '" + property.name + "' to value '" + property.value + "': " + e.getMessage());
@@ -850,4 +852,31 @@ public class BuildType {
     }
   }
 
+  @NotNull
+  public static ParametersPersistableEntity createEntity(@NotNull final BuildTypeSettings buildType) {
+    return new BuildTypeEntityWithParameters(buildType);
+  }
+
+  private static class BuildTypeEntityWithParameters extends InheritableUserParametersHolderEntityWithParameters
+    implements ParametersPersistableEntity {
+    @NotNull private final BuildTypeSettings myBuildType;
+
+    public BuildTypeEntityWithParameters(@NotNull final BuildTypeSettings buildType) {
+      super(buildType);
+      myBuildType = buildType;
+    }
+
+    public void persist() {
+      myBuildType.persist();
+    }
+
+    @Nullable
+    @Override
+    public Boolean isInherited(@NotNull final String paramName) {
+      Parameter ownParameter = getOwnParameter(paramName);
+      if (ownParameter == null) return true;
+      // might need to add check for read-only parameter here...
+      return false;
+    }
+  }
 }

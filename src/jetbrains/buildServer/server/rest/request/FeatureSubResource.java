@@ -19,9 +19,9 @@ package jetbrains.buildServer.server.rest.request;
 import io.swagger.annotations.Api;
 import javax.ws.rs.*;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.UserParametersHolder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -61,7 +61,7 @@ public class FeatureSubResource<M, S> {
 
     public void replaceAll(final @NotNull M newEntities, final @NotNull ServiceLocator serviceLocator);
 
-    UserParametersHolder getParametersHolder(final @NotNull String featureLocator);
+    ParametersPersistableEntity getParametersHolder(final @NotNull String featureLocator);
 
     String getHref();
 
@@ -131,12 +131,8 @@ public class FeatureSubResource<M, S> {
 
   @Path("/{featureLocator}" + PROPERTIES)
   public ParametersSubResource getParametersSubResource(@PathParam("featureLocator") String featureLocator, @QueryParam("fields") String fields) {
-    return new ParametersSubResource(myBeanContext.getServiceLocator(), new ParametersSubResource.UserParametersHolderEntityWithParameters(myEntity.getParametersHolder(featureLocator)){
-      @Override
-      public void persist() {
-        myEntity.persist();
-      }
-    }, myEntity.getHref() == null ? null : myEntity.getHref() + "/" + featureLocator + "/properties");
+    return new ParametersSubResource(myBeanContext.getServiceLocator(), myEntity.getParametersHolder(featureLocator),
+                                     myEntity.getHref() == null ? null : myEntity.getHref() + "/" + featureLocator + "/properties");
   }
 
   //@GET

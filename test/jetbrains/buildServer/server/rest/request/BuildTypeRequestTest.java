@@ -222,6 +222,68 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     }
 
     buildType1.getSettings().addListener(new BuildTypeSettingsAdapter() {
+      private int myTriggerOnCall = 5;  //4 removals and one set
+
+      @Override
+      public void textValueChanged() {
+        if (--myTriggerOnCall == 0) {
+          throw new RuntimeException("I need error here ");
+        }
+      }
+    });
+
+    {
+      Properties submitted = new Properties();
+      submitted.properties = Arrays.asList(new Property(new SimpleParameter("t1", "new"), false, Fields.LONG, myFixture));
+
+      checkException(BadRequestException.class, new Runnable() {
+        public void run() {
+          myBuildTypeRequest.getParametersSubResource(btLocator).setParameters(submitted, "$long");
+        }
+      }, null);
+
+      assertEquals(4, buildType1.getParameters().size());
+      assertEquals(3, buildType1.getOwnParameters().size());
+    }
+
+    buildType1.getSettings().addListener(new BuildTypeSettingsAdapter() {
+      private int myTriggerOnCall = 1;
+
+      @Override
+      public void textValueChanged() {
+        if (--myTriggerOnCall == 0) {
+          throw new RuntimeException("I need error here ");
+        }
+      }
+    });
+
+    {
+      checkException(BadRequestException.class, new Runnable() {
+        public void run() {
+          myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property(new SimpleParameter("t1", "new"), false, Fields.LONG, myFixture), "$long");
+        }
+      }, null);
+
+      assertEquals(4, buildType1.getParameters().size());
+      assertEquals(3, buildType1.getOwnParameters().size());
+    }
+
+    {
+      myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property(new SimpleParameter("t1", "a5"), true, Fields.LONG, myFixture), "$long");
+
+      assertEquals(4, buildType1.getParameters().size());
+      assertEquals(3, buildType1.getOwnParameters().size());
+    }
+
+    {
+      myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property(new SimpleParameter("t1", "a5"), false, Fields.LONG, myFixture), "$long");
+
+      assertEquals(4, buildType1.getParameters().size());
+      assertEquals(4, buildType1.getOwnParameters().size());
+      buildType1.removeParameter("t1");
+    }
+
+    buildType1.getSettings().addListener(new BuildTypeSettingsAdapter() {
       private int myTriggerOnCall = 1;
 
       @Override

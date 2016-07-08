@@ -28,6 +28,8 @@ import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.data.UserFinder;
+import jetbrains.buildServer.server.rest.data.parameters.InheritableUserParametersHolderEntityWithParameters;
+import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.*;
@@ -191,8 +193,8 @@ public class Project {
 
       parameters = ValueWithDefault.decideDefault(fields.isIncluded("parameters", false), new ValueWithDefault.Value<Properties>() {
         public Properties get() {
-          return new Properties(project.getParametersCollection(), project.getOwnParametersCollection(), ProjectRequest.getParametersHref(project),
-                                fields.getNestedField("parameters", Fields.NONE, Fields.LONG), beanContext.getServiceLocator());
+          return new Properties(createEntity(project), ProjectRequest.getParametersHref(project),
+                                null, fields.getNestedField("parameters", Fields.NONE, Fields.LONG), beanContext.getServiceLocator());
         }
       });
       vcsRoots = ValueWithDefault.decideDefault(fields.isIncluded("vcsRoots", false), new ValueWithDefault.Value<VcsRoots>() {
@@ -351,4 +353,22 @@ public class Project {
     }
     return false;
   }
+
+  public static ParametersPersistableEntity createEntity(@NotNull final SProject project) {
+    return new ProjectEntityWithParameters(project);
+  }
+
+  private static class ProjectEntityWithParameters extends InheritableUserParametersHolderEntityWithParameters implements
+                                                                                                                                              ParametersPersistableEntity {
+    @NotNull private final SProject myProject;
+
+    public ProjectEntityWithParameters(@NotNull final SProject project) {
+      super(project);
+      myProject = project;
+    }
+
+    public void persist() {
+      myProject.persist();
+    }
+ }
 }

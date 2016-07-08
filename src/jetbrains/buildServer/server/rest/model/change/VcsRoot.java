@@ -17,13 +17,18 @@
 package jetbrains.buildServer.server.rest.model.change;
 
 import com.intellij.openapi.util.text.StringUtil;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.parameters.EntityWithModifiableParameters;
+import jetbrains.buildServer.server.rest.data.parameters.MapBackedEntityWithModifiableParameters;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -37,7 +42,9 @@ import jetbrains.buildServer.server.rest.request.VcsRootInstanceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.ProjectManager;
+import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.vcs.*;
@@ -201,50 +208,18 @@ public class VcsRoot {
   }
 
   @NotNull
-  public static UserParametersHolder getUserParametersHolder(@NotNull final SVcsRoot root) {
-    //todo (TeamCity) open API: make VCS root UserParametersHolder
-    return new UserParametersHolder() {
-      public void addParameter(@NotNull final Parameter param) {
-        final Map<String, String> newProperties = new HashMap<String, String>(root.getProperties());
-        newProperties.put(param.getName(), param.getValue());
-        root.setProperties(newProperties);
-      }
-
-      public void removeParameter(@NotNull final String paramName) {
-        final Map<String, String> newProperties = new HashMap<String, String>(root.getProperties());
-        newProperties.remove(paramName);
-        root.setProperties(newProperties);
-      }
-
-      @NotNull
-      public Collection<Parameter> getParametersCollection() {
-        final ArrayList<Parameter> result = new ArrayList<Parameter>();
-        for (Map.Entry<String, String> item : getParameters().entrySet()) {
-          result.add(new SimpleParameter(item.getKey(), item.getValue()));
-        }
-        return result;
-      }
-
-      @Nullable
+  public static EntityWithModifiableParameters getEntityWithParameters(@NotNull final SVcsRoot root) {
+    return new MapBackedEntityWithModifiableParameters(new MapBackedEntityWithModifiableParameters.PropProxy() {
       @Override
-      public Parameter getParameter(@NotNull final String paramName) {
-        final String value = getParameters().get(paramName);
-        if (value != null) {
-          return new SimpleParameter(paramName, value);
-        }
-        return null;
-      }
-
-      @NotNull
-      public Map<String, String> getParameters() {
+      public Map<String, String> get() {
         return root.getProperties();
       }
 
-      @Nullable
-      public String getParameterValue(@NotNull final String paramName) {
-        return getParameters().get(paramName);
+      @Override
+      public void set(final Map<String, String> params) {
+        root.setProperties(params);
       }
-    };
+    });
   }
 
   public static String getFieldValue(final SVcsRoot vcsRoot, final String field, final DataProvider dataProvider) {
