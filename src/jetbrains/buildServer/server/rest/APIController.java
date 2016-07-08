@@ -79,6 +79,7 @@ public class APIController extends BaseController implements ServletContextAware
   private final ClassLoader myClassloader;
   private String myAuthToken;
   private RequestPathTransformInfo myRequestPathTransformInfo;
+  public static String ourFirstBindPath;
 
   public APIController(final SBuildServer server,
                        WebControllerManager webControllerManager,
@@ -99,6 +100,9 @@ public class APIController extends BaseController implements ServletContextAware
     myRequestPathTransformInfo = requestPathTransformInfo;
 
     final List<String> originalBindPaths = getBindPaths(pluginDescriptor);
+    if (!originalBindPaths.isEmpty()) {
+	  ourFirstBindPath = originalBindPaths.get(0);
+	}
     List<String> bindPaths = new ArrayList<String>(originalBindPaths);
     bindPaths.addAll(addPrefix(originalBindPaths, StringUtil.removeTailingSlash(WebUtil.HTTP_AUTH_PREFIX)));
     bindPaths.addAll(addPrefix(originalBindPaths, StringUtil.removeTailingSlash(WebUtil.GUEST_AUTH_PREFIX)));
