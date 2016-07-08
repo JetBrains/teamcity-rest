@@ -16,12 +16,17 @@
 
 package jetbrains.buildServer.server.rest.jersey;
 
+import com.sun.jersey.api.model.AbstractResource;
 import com.sun.jersey.api.wadl.config.WadlGeneratorConfig;
 import com.sun.jersey.api.wadl.config.WadlGeneratorDescription;
 import com.sun.jersey.server.wadl.generators.WadlGeneratorApplicationDoc;
 import com.sun.jersey.server.wadl.generators.WadlGeneratorJAXBGrammarGenerator;
 import com.sun.jersey.server.wadl.generators.resourcedoc.WadlGeneratorResourceDocSupport;
+import com.sun.research.ws.wadl.Resource;
 import java.util.List;
+import jetbrains.buildServer.server.rest.APIController;
+import jetbrains.buildServer.server.rest.request.Constants;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 
 /**
  * @author Yegor.Yarko
@@ -36,7 +41,11 @@ public class WadlGenerator extends WadlGeneratorConfig {
     WadlGeneratorConfigDescriptionBuilder builder = generator(WadlGeneratorApplicationDoc.class)
       .prop("applicationDocsStream", "jetbrains/buildServer/server/rest/jersey/application-doc.xml");
 
-    builder = builder.generator(WadlGeneratorJAXBGrammarGenerator.class);
+    if (TeamCityProperties.getBooleanOrTrue("rest.wadl.patchResourcePathWithAPIVersion")){
+      builder = builder.generator(PatchedWadlGenerator.class);
+    } else{
+      builder = builder.generator(WadlGeneratorJAXBGrammarGenerator.class);
+    }
 
     if (getClass().getClassLoader().getResource(RESOURCE_JAVADOC_XML) != null) {
       builder = builder.generator(WadlGeneratorResourceDocSupport.class).
@@ -44,5 +53,17 @@ public class WadlGenerator extends WadlGeneratorConfig {
     }
 
     return builder.descriptions();
+  }
+
+  public static class PatchedWadlGenerator extends WadlGeneratorJAXBGrammarGenerator {
+    @Override
+    public Resource createResource(final AbstractResource ar, final String path) {
+      Resource resource = super.createResource(ar, path);
+      String originalPath = resource.getPath();
+      if (originalPath.startsWith(Constants.API_URL) && APIController.ourFirstBindPath != null){
+        resource.setPath(APIController.ourFirstBindPath + originalPath.substring(Constants.API_URL.length(), originalPath.length()));
+      }
+      return resource;
+    }
   }
 }

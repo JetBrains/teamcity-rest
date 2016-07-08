@@ -115,6 +115,7 @@ public class APIController extends BaseController implements ServletContextAware
 
   private final CachingValuesFromInternalProperty myAllowedOrigins = new CachingValuesFromInternalProperty(REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME, ",");
   private final CachingValues myDisabledRequests = new CachingValues();
+  public static String ourFirstBindPath;
 
   public APIController(final SBuildServer server,
                        WebControllerManager webControllerManager,
@@ -164,6 +165,7 @@ public class APIController extends BaseController implements ServletContextAware
       LOG.error(message + " Reporting plugin load error.");
       throw new RuntimeException(message);
     }
+    ourFirstBindPath = unfilteredOriginalBindPaths.get(0);
 
     final List<String> originalBindPaths = filterOtherPlugins(unfilteredOriginalBindPaths);
     if (originalBindPaths.isEmpty()) {
