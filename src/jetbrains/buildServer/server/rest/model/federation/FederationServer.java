@@ -27,24 +27,22 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 @XmlType(propOrder = {"url", "name"})
 public class FederationServer {
 
-  private TeamCityServer mySource;
-  private Fields myFields;
+  @XmlAttribute public String url;
+  @XmlAttribute public String name;
 
   public FederationServer() {
   }
 
   public FederationServer(final TeamCityServer source, final Fields fields) {
-    mySource = source;
-    myFields = fields;
+    url = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("url"), source.getUrl());
+    name = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), source.getName());
   }
 
-  @XmlAttribute
   public String getUrl() {
-    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("url"), mySource.getUrl());
+    return url;
   }
 
-  @XmlAttribute
   public String getName() {
-    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("name"), mySource.getName());
+    return name;
   }
 }
