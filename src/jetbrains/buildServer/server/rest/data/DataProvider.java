@@ -323,11 +323,11 @@ public class DataProvider {
     return myApplicationContext.getBean(type);
   }
 
-  public void addAgentToPool(@NotNull final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool, @NotNull final SBuildAgent postedAgent) {
+  public void addAgentToPool(@NotNull final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool, final int agentTypeId) {
     final AgentPoolManager agentPoolManager = myServiceLocator.getSingletonService(AgentPoolManager.class);
     final int agentPoolId = agentPool.getAgentPoolId();
     try {
-      agentPoolManager.moveAgentTypesToPool(agentPoolId, Collections.singleton(postedAgent.getAgentTypeId())); //this moves the entire agent type to the pool, not only the agent, TW-40502
+      agentPoolManager.moveAgentTypesToPool(agentPoolId, Collections.singleton(agentTypeId)); //this moves the entire agent type to the pool, not only the agent, TW-40502
     } catch (NoSuchAgentPoolException e) {
       throw new IllegalStateException("Agent pool with id \'" + agentPoolId + "' is not found.");
     } catch (PoolQuotaExceededException e) {

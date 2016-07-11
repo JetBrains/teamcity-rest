@@ -131,11 +131,11 @@ public class AgentRequest {
   @Path("/{agentLocator}/pool")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public AgentPool setAgentPool(@PathParam("agentLocator") String agentLocator, AgentPool agentPool) {
+  public AgentPool setAgentPool(@PathParam("agentLocator") String agentLocator, AgentPool agentPool, @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    myDataProvider.addAgentToPool(agentPool.getAgentPoolFromPosted(myAgentPoolFinder), agent);
+    myDataProvider.addAgentToPool(agentPool.getAgentPoolFromPosted(myAgentPoolFinder), agent.getAgentTypeId());
     final jetbrains.buildServer.serverSide.agentPools.AgentPool foundPool = myAgentPoolFinder.getAgentPool(agent);
-    return foundPool == null ? null : new AgentPool(foundPool, Fields.LONG, myBeanContext);
+    return new AgentPool(foundPool, new Fields(fields), myBeanContext);
   }
 
   @GET

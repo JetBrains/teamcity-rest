@@ -29,6 +29,7 @@ import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.build.Build;
@@ -38,6 +39,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolCannotBeRenamedException;
 import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
 import jetbrains.buildServer.serverSide.agentPools.PoolQuotaExceededException;
+import jetbrains.buildServer.serverSide.agentTypes.AgentTypeKey;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.impl.AgentRestrictorFactoryImpl;
@@ -124,8 +126,8 @@ public class BuildTest extends BaseFinderTest<SBuild> {
 
     SQueuedBuild queuedBuild = build.triggerBuild(triggeringUser, myFixture, new HashMap<Long, Long>());
     assertNotNull(queuedBuild.getAgentRestrictor());
-    assertEquals(AgentRestrictorType.AGENT_POOL, queuedBuild.getAgentRestrictor().getType());
-    assertEquals(poolId1, queuedBuild.getAgentRestrictor().getId());
+    assertEquals(AgentRestrictorType.SINGLE_AGENT, queuedBuild.getAgentRestrictor().getType());
+    assertEquals(agent2.getId(), queuedBuild.getAgentRestrictor().getId());
 
 
     submittedAgent = new Agent();
@@ -147,6 +149,60 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     assertNotNull(queuedBuild.getAgentRestrictor());
     assertEquals(AgentRestrictorType.AGENT_POOL, queuedBuild.getAgentRestrictor().getType());
     assertEquals(poolId1, queuedBuild.getAgentRestrictor().getId());
+  }
+
+  @Test
+  public void testBuildOnCloudAgentTriggering() throws NoSuchAgentPoolException, AgentPoolCannotBeRenamedException, PoolQuotaExceededException {
+    int cloudAgentTypeId = myFixture.getAgentTypeManager().getOrCreateAgentTypeId(new AgentTypeKey("Cloud", "Profile", "Image"));
+
+    final SUser triggeringUser = getOrCreateUser("user");
+    {
+      final Build build = new Build();
+      final BuildType buildType = new BuildType();
+      buildType.setId(myBuildType.getExternalId());
+      build.setBuildType(buildType);
+
+      Agent submittedAgent = new Agent();
+      submittedAgent.typeId = cloudAgentTypeId;
+      build.setAgent(submittedAgent);
+
+      SQueuedBuild queuedBuild = build.triggerBuild(triggeringUser, myFixture, new HashMap<Long, Long>());
+      assertNotNull(queuedBuild.getAgentRestrictor());
+      assertEquals(AgentRestrictorType.CLOUD_IMAGE, queuedBuild.getAgentRestrictor().getType());
+      assertEquals(cloudAgentTypeId, queuedBuild.getAgentRestrictor().getId());
+    }
+
+    {
+      final Build build = new Build();
+      final BuildType buildType = new BuildType();
+      buildType.setId(myBuildType.getExternalId());
+      build.setBuildType(buildType);
+
+      final MockBuildAgent agent2 = myFixture.createEnabledAgent("agent2", "Ant");
+
+      Agent submittedAgent = new Agent();
+      submittedAgent.locator = "id:" + agent2.getId();
+      submittedAgent.typeId = cloudAgentTypeId;
+      build.setAgent(submittedAgent);
+
+      SQueuedBuild queuedBuild = build.triggerBuild(triggeringUser, myFixture, new HashMap<Long, Long>());
+      assertNotNull(queuedBuild.getAgentRestrictor());
+      assertEquals(AgentRestrictorType.SINGLE_AGENT, queuedBuild.getAgentRestrictor().getType());
+      assertEquals(agent2.getId(), queuedBuild.getAgentRestrictor().getId());
+    }
+
+    {
+      final Build build = new Build();
+      final BuildType buildType = new BuildType();
+      buildType.setId(myBuildType.getExternalId());
+      build.setBuildType(buildType);
+
+      Agent submittedAgent = new Agent();
+      submittedAgent.typeId = cloudAgentTypeId + 10;
+      build.setAgent(submittedAgent);
+
+      checkException(NotFoundException.class, () -> build.triggerBuild(triggeringUser, myFixture, new HashMap<Long, Long>()), "triggering build on not existent agent type");
+    }
   }
 
   @Test

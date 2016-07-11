@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentTypes.AgentType;
+import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
 import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -532,5 +533,20 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       return agentPoolFinder.getItem(poolDimension);
     }
     return null; //reporting no errors by method contract
+  }
+
+  public static SAgentType getAgentType(@NotNull final String agentTypeLocator, @NotNull final AgentTypeFinder agentTypeFinder) {
+    //support only int single value for now
+    Integer agentTypeId = null;
+    try {
+      agentTypeId = Integer.valueOf(agentTypeLocator);
+    } catch (NumberFormatException e) {
+      throw new BadRequestException("Bad agent type id '" + agentTypeLocator + "': should be a number");
+    }
+    SAgentType agentType = agentTypeFinder.findAgentType(agentTypeId); //make AgentFinder finding agent types in the future
+    if (agentType == null) {
+      throw new NotFoundException("No agent type is found by id '" + agentTypeId + "'");
+    }
+    return agentType;
   }
 }

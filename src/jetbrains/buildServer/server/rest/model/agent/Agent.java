@@ -26,6 +26,7 @@ import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
@@ -35,6 +36,7 @@ import jetbrains.buildServer.serverSide.AgentRestrictorFactory;
 import jetbrains.buildServer.serverSide.SAgentRestrictor;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.agent.DeadAgent;
 import jetbrains.buildServer.serverSide.impl.agent.PollingRemoteAgentConnection;
@@ -255,21 +257,33 @@ public class Agent {
   @Nullable
   public SAgentRestrictor getAgentRestrictor(@NotNull final ServiceLocator serviceLocator) {
     final AgentRestrictorFactory agentRestrictorFactory = serviceLocator.getSingletonService(AgentRestrictorFactory.class);
-    if (pool != null) {
-      final AgentPoolFinder agentPoolFinder = serviceLocator.getSingletonService(AgentPoolFinder.class);
-      return agentRestrictorFactory.createFor(AgentRestrictorType.AGENT_POOL, pool.getAgentPoolFromPosted(agentPoolFinder).getAgentPoolId());
-    }
-    if (locator != null) {
-      final AgentPoolFinder agentPoolFinder = serviceLocator.getSingletonService(AgentPoolFinder.class);
-      final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = AgentFinder.getAgentPoolFromLocator(locator, agentPoolFinder);
-      if (agentPool != null){
-        return agentRestrictorFactory.createFor(AgentRestrictorType.AGENT_POOL, agentPool.getAgentPoolId());
-      }
-    }
-
-    //not a pool. Agent?
     final AgentFinder agentFinder = serviceLocator.getSingletonService(AgentFinder.class);
-    //todo: retrieve ID right away to support running on not connected agent; same for pool
-    return agentRestrictorFactory.createFor(AgentRestrictorType.SINGLE_AGENT, getAgentFromPosted(agentFinder).getId());
+    try {
+      int agentIdFromPosted = getAgentFromPosted(agentFinder).getId();
+      return agentRestrictorFactory.createFor(AgentRestrictorType.SINGLE_AGENT, agentIdFromPosted);
+    } catch (BadRequestException | NotFoundException e) {
+      //agent not found
+      if (locator != null || id != null) throw e; // agent should be found
+      if (pool != null) {
+        final AgentPoolFinder agentPoolFinder = serviceLocator.getSingletonService(AgentPoolFinder.class);
+        return agentRestrictorFactory.createFor(AgentRestrictorType.AGENT_POOL, pool.getAgentPoolFromPosted(agentPoolFinder).getAgentPoolId());
+      }
+      if (typeId != null) {
+        return agentRestrictorFactory.createFor(AgentRestrictorType.CLOUD_IMAGE,
+                                                AgentFinder.getAgentType(String.valueOf(typeId), serviceLocator.getSingletonService(AgentTypeFinder.class)).getAgentTypeId());
+      }
+      throw e;
+    }
+  }
+
+  public int getAgentTypeIdFromPosted(@NotNull final ServiceLocator serviceLocator) {
+    try {
+      return getAgentFromPosted(serviceLocator.getSingletonService(AgentFinder.class)).getAgentTypeId();
+    } catch (BadRequestException | NotFoundException e) {
+      //agent not found
+      if (locator != null || id != null) throw e; // agent should be found
+      if (typeId != null) return AgentFinder.getAgentType(String.valueOf(typeId), serviceLocator.getSingletonService(AgentTypeFinder.class)).getAgentTypeId();
+      throw e;
+    }
   }
 }

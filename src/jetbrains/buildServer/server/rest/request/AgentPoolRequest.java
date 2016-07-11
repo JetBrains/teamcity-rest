@@ -38,7 +38,6 @@ import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.*;
 import org.jetbrains.annotations.NotNull;
@@ -238,9 +237,13 @@ public class AgentPoolRequest {
   @Produces({"application/xml", "application/json"})
   public Agent addAgent(@PathParam("agentPoolLocator") String agentPoolLocator, Agent agent, @QueryParam("fields") String fields) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolFinder.getItem(agentPoolLocator);
-    SBuildAgent postedAgent = agent.getAgentFromPosted(myAgentFinder);
-    myDataProvider.addAgentToPool(agentPool, postedAgent);
-    return new Agent(postedAgent, myAgentPoolFinder, new Fields(fields), myBeanContext);
+    myDataProvider.addAgentToPool(agentPool, agent.getAgentTypeIdFromPosted(myServiceLocator));
+    try {
+      return new Agent(agent.getAgentFromPosted(myAgentFinder), myAgentPoolFinder, new Fields(fields), myBeanContext);
+    } catch (Exception e) {
+      //ignore for agent type
+      return null;
+    }
   }
 
   @GET
