@@ -37,6 +37,7 @@ import jetbrains.buildServer.serverSide.SAgentRestrictor;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
+import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.agent.DeadAgent;
 import jetbrains.buildServer.serverSide.impl.agent.PollingRemoteAgentConnection;
@@ -79,9 +80,6 @@ public class Agent {
   public Agent() {
   }
 
-  /**
-   * Used only for triggering builds on a pool
-   */
   public Agent(@NotNull final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     pool = ValueWithDefault.decideDefault(fields.isIncluded("pool", true), new ValueWithDefault.Value<AgentPool>() {
       @Nullable
@@ -89,6 +87,10 @@ public class Agent {
         return new AgentPool(agentPool, fields.getNestedField("pool", Fields.SHORT, Fields.SHORT), beanContext);
       }
     });
+  }
+
+  public Agent(@NotNull final SAgentType agentType, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+    typeId = ValueWithDefault.decideDefault(fields.isIncluded("typeId", true), agentType.getAgentTypeId());
   }
 
   public Agent(@NotNull final SBuildAgent agent, @NotNull final AgentPoolFinder agentPoolFinder, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {

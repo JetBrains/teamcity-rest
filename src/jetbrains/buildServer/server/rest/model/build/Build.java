@@ -59,6 +59,8 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
+import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
+import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
@@ -320,6 +322,11 @@ public class Build {
               final int agentPoolId = agentRestrictor.getId();
               final AgentPool agentPool = myBeanContext.getSingletonService(AgentPoolFinder.class).getAgentPoolById(agentPoolId);
               return new Agent(agentPool, myFields.getNestedField("agent"), myBeanContext);
+            }
+            if (agentRestrictor.getType() == AgentRestrictorType.CLOUD_IMAGE) {
+              final int agentTypeId = agentRestrictor.getId();
+              final SAgentType agentType = AgentFinder.getAgentType(String.valueOf(agentTypeId), myBeanContext.getSingletonService(AgentTypeFinder.class));
+              return new Agent(agentType, myFields.getNestedField("agent"), myBeanContext);
             }
           }
         }
