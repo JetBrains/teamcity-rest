@@ -43,6 +43,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   private static final Logger LOG = Logger.getInstance(AgentFinder.class.getName());
 
   protected static final String NAME = "name";
+  protected static final String AGENT_TYPE_ID = "typeId";  //"imageId" might suiite better, but "typeId" is already used in Agent
   public static final String CONNECTED = "connected";
   public static final String AUTHORIZED = "authorized";
   public static final String PARAMETER = "parameter";
@@ -62,7 +63,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
 
   public AgentFinder(final @NotNull BuildAgentManager agentManager, @NotNull final ServiceLocator serviceLocator) {
     super(DIMENSION_ID, NAME, CONNECTED, AUTHORIZED, ENABLED, PARAMETER, IP, POOL, BUILD, COMPATIBLE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-    setHiddenDimensions(PROTOCOL, INCOMPATIBLE, DEFAULT_FILTERING, DIMENSION_LOOKUP_LIMIT);
+    setHiddenDimensions(PROTOCOL, INCOMPATIBLE, AGENT_TYPE_ID, DEFAULT_FILTERING, DIMENSION_LOOKUP_LIMIT);
     myAgentManager = agentManager;
     myServiceLocator = serviceLocator;
   }
@@ -174,13 +175,25 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       });
     }
 
-    if (!locator.isUnused(BUILD)) {
+    if (locator.isUnused(BUILD)) {
       final String buildDimension = locator.getSingleDimensionValue(BUILD);
       if (buildDimension != null) {
         Set<SBuildAgent> agents = getBuildRelatedAgents(buildDimension);
         result.add(new FilterConditionChecker<SBuildAgent>() {
           public boolean isIncluded(@NotNull final SBuildAgent item) {
             return agents.contains(item);
+          }
+        });
+      }
+    }
+
+    if (locator.isUnused(AGENT_TYPE_ID)) {
+      final String agentTypeLocator = locator.getSingleDimensionValue(AGENT_TYPE_ID);
+      if (agentTypeLocator != null) {
+        int agentTypeId = getAgentType(agentTypeLocator, myServiceLocator.getSingletonService(AgentTypeFinder.class)).getAgentTypeId();
+        result.add(new FilterConditionChecker<SBuildAgent>() {
+          public boolean isIncluded(@NotNull final SBuildAgent item) {
+            return agentTypeId == item.getId();
           }
         });
       }
