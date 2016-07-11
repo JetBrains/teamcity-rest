@@ -196,7 +196,11 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
           //returning empty collection for multiple items query
           return new PagedSearchResult<ITEM>(Collections.<ITEM>emptyList(), null, null);
         }
-        throw e;
+        if (!locator.isHelpRequested()){
+          throw e;
+        }
+        throw new BadRequestException(e.getMessage() +
+                                      "\nLocator details: " + locator.getLocatorDescription(locator.helpOptions().getSingleDimensionValueAsStrictBoolean("hidden", false)), e);
       } catch (LocatorProcessException|BadRequestException e){
         if (!locator.isHelpRequested()){
           throw e;
