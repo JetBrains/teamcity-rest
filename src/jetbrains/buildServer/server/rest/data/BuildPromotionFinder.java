@@ -439,25 +439,27 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     }
 
-    final String tag = locator.getSingleDimensionValue(TAG); //support multiple dimensions here, https://youtrack.jetbrains.com/issue/TW-44203
-    if (tag != null) {
-      if (tag.startsWith("format:extended")) { //pre-9.1 compatibility
+    final List<String> tag = locator.getDimensionValue(TAG); //support multiple dimensions here, https://youtrack.jetbrains.com/issue/TW-44203
+    if (!tag.isEmpty()) {
+      if (tag.size() == 1 && tag.get(0).startsWith("format:extended")) { //pre-9.1 compatibility
         //todo: log this?
         result.add(new FilterConditionChecker<BuildPromotion>() {
           public boolean isIncluded(@NotNull final BuildPromotion item) {
             try {
-              return isTagsMatchLocator(item.getTags(), new Locator(tag));
+              return isTagsMatchLocator(item.getTags(), new Locator(tag.get(0)));
             } catch (LocatorProcessException e) {
               throw new BadRequestException("Invalid locator 'tag' (legacy format is used): " + e.getMessage(), e);
             }
           }
         });
       } else {
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
-            return new TagFinder(myUserFinder, item).getItems(tag, TagFinder.getDefaultLocator()).myEntries.size() > 0;
-          }
-        });
+        for (String singleTag : tag) {
+          result.add(new FilterConditionChecker<BuildPromotion>() {
+            public boolean isIncluded(@NotNull final BuildPromotion item) {
+              return new TagFinder(myUserFinder, item).getItems(singleTag, TagFinder.getDefaultLocator()).myEntries.size() > 0;
+            }
+          });
+        }
       }
     }
 

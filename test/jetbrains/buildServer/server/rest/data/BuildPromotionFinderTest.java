@@ -1416,6 +1416,23 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     check("pinned:true");
   }
 
+  @Test
+  public void testMultipleTags() {
+    final SProject project = createProject("prj", "project");
+    final BuildTypeEx buildConf1 = (BuildTypeEx)project.createBuildType("buildConf1", "buildConf1");
+
+    final BuildPromotion build10 = build().in(buildConf1).finish().getBuildPromotion();
+    final BuildPromotion build20 = build().in(buildConf1).tag("tag1").tag("tag2").finish().getBuildPromotion();
+    final BuildPromotion build30 = build().in(buildConf1).tag("tag1").tag("tag3").finish().getBuildPromotion();
+
+    check(null, build30, build20, build10);
+    check("tag:tag1", build30, build20);
+    check("tag:tag1,tag:tag2", build20);
+    check("tag:(name:tag1),tag:tag2", build20);
+    check("tag:tag1,tag:tag1", build30, build20);
+    check("or(tag:tag2,tag:tag3)", build30, build20);
+  }
+
   //==================================================
 
   public void checkBuilds(final String locator, BuildPromotion... builds) {

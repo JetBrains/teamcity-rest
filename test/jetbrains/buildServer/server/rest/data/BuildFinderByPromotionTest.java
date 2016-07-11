@@ -442,7 +442,7 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     checkBuilds("tag:aa", build50);
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "tag:(a:b)");
     checkBuilds("tag:(name:(a:b))", build40);
-    checkExceptionOnBuildsSearch(LocatorProcessException.class, "tag:a,tag:b");
+    checkBuilds("tag:a,tag:b", build40, build30);
 
     checkBuilds("tags:(a,b)", build40, build30); //???
     checkBuilds("tags:(a:b)", build40);
