@@ -89,9 +89,9 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
                       @NotNull final VcsModificationHistory vcsModificationHistory,
                       @NotNull final BranchFinder branchFinder,
                       @NotNull final ServiceLocator serviceLocator, @NotNull final PermissionChecker permissionChecker) {
-    super(DIMENSION_ID, PROJECT, BUILD_TYPE, BUILD, VCS_ROOT, VCS_ROOT_INSTANCE, USERNAME, USER, VERSION, INTERNAL_VERSION, COMMENT, FILE,
+    super(DIMENSION_ID, PROJECT, BUILD_TYPE, BUILD, VCS_ROOT, VCS_ROOT_INSTANCE, USERNAME, USER, VERSION, INTERNAL_VERSION, COMMENT, FILE, PENDING,
           SINCE_CHANGE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-    setHiddenDimensions(BRANCH, PERSONAL, PENDING, CHILD_CHANGE, PARENT_CHANGE, DAG_TRAVERSE, PROMOTION, //hide these for now
+    setHiddenDimensions(BRANCH, PERSONAL, CHILD_CHANGE, PARENT_CHANGE, DAG_TRAVERSE, PROMOTION, //hide these for now
                         DIMENSION_LOOKUP_LIMIT //not supported in fact
     );
     myPermissionChecker = permissionChecker;
