@@ -580,6 +580,9 @@ public class ProjectRequest {
     return new AgentPool(agentPoolFromPosted, Fields.LONG, myBeanContext);
   }
 
+  /**
+   * Empty collection means no custom ordering
+   */
   @GET
   @Path("/{projectLocator}/order/projects")
   @Produces({"application/xml", "application/json"})
@@ -588,6 +591,9 @@ public class ProjectRequest {
     return new Projects(((ProjectEx)project).getOwnProjectsOrder(), null, new Fields(fields), myBeanContext);
   }
 
+  /**
+   * Put empty collection to remove custom ordering
+   */
   @PUT
   @Path("/{projectLocator}/order/projects")
   @Produces({"application/xml", "application/json"})
@@ -611,6 +617,9 @@ public class ProjectRequest {
     return new Projects(((ProjectEx)project).getOwnProjectsOrder(), null, new Fields(fields), myBeanContext);
   }
 
+  /**
+   * Empty collection means no custom ordering
+   */
   @GET
   @Path("/{projectLocator}/order/buildTypes")
   @Produces({"application/xml", "application/json"})
@@ -619,6 +628,9 @@ public class ProjectRequest {
     return new BuildTypes(BuildTypes.fromBuildTypes(((ProjectEx)project).getOwnBuildTypesOrder()), null, new Fields(fields), myBeanContext);
   }
 
+  /**
+   * Put empty collection to remove custom ordering
+   */
   @PUT
   @Path("/{projectLocator}/order/buildTypes")
   @Produces({"application/xml", "application/json"})
