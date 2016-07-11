@@ -39,7 +39,6 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 07.11.13
  */
 public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
-  public static final String DIMENSION_ID = "id";
   @NotNull private final AgentPoolManager myAgentPoolManager;
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final AgentFinder myAgentFinder;
@@ -63,8 +62,8 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
     return Locator.getStringLocator(PROJECT.name, ProjectFinder.getLocator(project));
   }
 
-  private static final Dimension<Long> ID = new Dimension<>("id");
-  private static final Dimension<String> NAME = new Dimension<>("name");
+  public static final Dimension<Long> ID = new Dimension<>("id");
+  public static final Dimension<String> NAME = new Dimension<>("name");
   private static final Dimension<List<SBuildAgent>> AGENT = new Dimension<>("agent");
   private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
 
