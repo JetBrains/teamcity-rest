@@ -22,6 +22,7 @@
       <class name="jetbrains.buildServer.server.rest.data.UserFinderTest"/>
       <class name="jetbrains.buildServer.server.rest.model.BuildTest"/>
       <class name="jetbrains.buildServer.server.rest.model.BuildTypeTest"/>
+      <class name="jetbrains.buildServer.server.rest.model.AgentTest"/>
 
       <class name="jetbrains.buildServer.server.rest.model.PagerDataTest"/>
       <class name="jetbrains.buildServer.server.rest.model.PropertiesTest"/>

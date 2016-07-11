@@ -20,7 +20,6 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -36,7 +35,7 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "booleanStatus")
 public class BooleanStatus {
   @XmlAttribute(name = "status")
-  public String status;
+  public Boolean status;
   @XmlElement(name = "comment")
   public Comment comment;
 
@@ -47,7 +46,7 @@ public class BooleanStatus {
                        @Nullable final jetbrains.buildServer.serverSide.comments.Comment lastCommentP,
                        @NotNull final Fields fields,
                        @NotNull final BeanContext beanContext) {
-    status = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("status"), String.valueOf(statusP));
+    status = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("status"), statusP);
     comment = lastCommentP == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("comment", false), new ValueWithDefault.Value<Comment>() {
       @Nullable
       public Comment get() {
@@ -65,7 +64,6 @@ public class BooleanStatus {
 
   @Nullable
   public Boolean getStatusFromPosted() {
-    if (status == null) return null;
-    return Locator.getStrictBoolean(status);
+    return status;
   }
 }

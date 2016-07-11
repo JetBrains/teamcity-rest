@@ -228,4 +228,13 @@ public class AgentRequest {
     Agent.setFieldValue(agent, fieldName, value, myServiceLocator);
     return Agent.getFieldValue(agent, fieldName, myServiceLocator);
   }
+
+  public static AgentRequest createForTests(@NotNull final BeanContext beanContext) {
+    AgentRequest result = new AgentRequest();
+    result.myBeanContext = beanContext;
+    result.myServiceLocator = beanContext.getServiceLocator();
+    result.myAgentFinder = beanContext.getSingletonService(AgentFinder.class);
+    result.myAgentPoolFinder = beanContext.getSingletonService(AgentPoolFinder.class);
+    return result;
+  }
 }
