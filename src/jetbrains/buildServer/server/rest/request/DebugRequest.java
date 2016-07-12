@@ -188,16 +188,16 @@ public class DebugRequest {
   public String getRequestDetails(@Context HttpServletRequest request) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     StringBuilder result = new StringBuilder();
-    result.append("Remote address: " ).append(request.getRemoteAddr()).append("\n");
-    result.append("Refined remote address and port: ").append(WebUtil.getRemoteAddress(request)).append(" ").append(request.getRemotePort()).append("\n");
-    result.append("Local address and port: ").append(request.getLocalAddr()).append(" ").append(request.getLocalPort()).append("\n");
+    result.append("Remote address: " ).append(hostAndPort(request.getRemoteAddr(), request.getRemotePort())).append("\n");
+    result.append("Refined remote address: ").append(hostAndPort(WebUtil.getRemoteAddress(request), request.getRemotePort())).append("\n");
+    result.append("Local address: ").append(hostAndPort(request.getLocalAddr(), request.getLocalPort())).append("\n");
     if (request.getLocalPort() != request.getServerPort()) {
       result.append("Server port: ").append(request.getServerPort()).append("\n");
     }
     result.append("Method: ").append(request.getMethod()).append("\n");
     result.append("Scheme: ").append(request.getScheme()).append("\n");
+    result.append("Path and query: ").append(WebUtil.getRequestUrl(request)).append("\n");
     result.append("Session id: ").append(request.getSession().getId()).append("\n");
-    result.append("\n");
     result.append("Current TeamCity user: ").append(myServiceLocator.getSingletonService(PermissionChecker.class).getCurrentUserDescription()).append("\n");
     result.append("\n");
     result.append("Headers:\n");
@@ -224,6 +224,15 @@ public class DebugRequest {
       throw new OperationException("Error reading request body: " + e.getMessage(), e);
     }
     return result.toString();
+  }
+
+  private static String hostAndPort(@NotNull final String host, final int portNumber) {
+    if (host.contains(":")) {
+      //looks like IPv6 address
+      return "[" + host + "]:" + portNumber;
+    } else {
+      return host + portNumber;
+    }
   }
 
   @GET
