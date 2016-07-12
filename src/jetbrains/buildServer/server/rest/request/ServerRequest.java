@@ -85,8 +85,8 @@ public class ServerRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
-  public Server serveServerInfo() {
-    return new Server(new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+  public Server serveServerInfo(@QueryParam("fields") String fields) {
+    return new Server(new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   @GET

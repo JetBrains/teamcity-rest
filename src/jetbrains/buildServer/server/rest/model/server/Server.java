@@ -28,10 +28,12 @@ import jetbrains.buildServer.maintenance.StartupContext;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.request.*;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import org.jetbrains.annotations.NotNull;
@@ -42,19 +44,21 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 17.11.2009
  */
 @XmlRootElement(name = "server")
-@XmlType(name = "server", propOrder={"version", "versionMajor", "versionMinor", "startTime", "currentTime", "buildNumber", "buildDate", "internalId", "role", "webUrl",
-"projects", "vcsRoots", "builds", "users", "userGroups", "agents", "buildQueue", "agentPools"})
+@XmlType(name = "server", propOrder = {"version", "versionMajor", "versionMinor", "startTime", "currentTime", "buildNumber", "buildDate", "internalId", "role", "webUrl",
+  "projects", "vcsRoots", "builds", "users", "userGroups", "agents", "buildQueue", "agentPools"})
 public class Server {
   private SBuildServer myServer;
   private ServerSettings myServerSettings;
 
+  private Fields myFields;
   private BeanContext myBeanContext;
   private ApiUrlBuilder myApiUrlBuilder;
 
   public Server() {
   }
 
-  public Server(final BeanContext beanContext) {
+  public Server(@NotNull final Fields fields, final BeanContext beanContext) {
+    myFields = fields;
     myBeanContext = beanContext;
     myServer = beanContext.getSingletonService(SBuildServer.class);
     myServerSettings = beanContext.getSingletonService(ServerSettings.class);
@@ -63,29 +67,30 @@ public class Server {
 
   @XmlAttribute
   public String getVersion() {
-    return myServer.getFullServerVersion();
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("version"), myServer.getFullServerVersion());
   }
 
   @XmlAttribute
-  public byte getVersionMajor() {
-    return myServer.getServerMajorVersion();
+  public Integer getVersionMajor() {
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("versionMajor"), (int)myServer.getServerMajorVersion());
   }
 
   @XmlAttribute
-  public byte getVersionMinor() {
-    return myServer.getServerMinorVersion();
+  public Integer getVersionMinor() {
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("versionMinor"), (int)myServer.getServerMinorVersion());
   }
 
   @XmlAttribute
   public String getBuildNumber() {
-    return myServer.getBuildNumber();
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("buildNumber"), myServer.getBuildNumber());
   }
 
   @XmlAttribute
   public String getStartTime() {
     try {
       //workaround for https://youtrack.jetbrains.com/issue/TW-25260
-      return Util.formatTime(myBeanContext.getSingletonService(DataProvider.class).getBean(StartupContext.class).getServerStartupTimestamp());
+      StartupContext startupContext = myBeanContext.getSingletonService(DataProvider.class).getBean(StartupContext.class);
+      return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("startTime"), Util.formatTime(startupContext.getServerStartupTimestamp()));
     } catch (Exception e) {
       return null;
     }
@@ -93,70 +98,72 @@ public class Server {
 
   @XmlAttribute
   public String getCurrentTime() {
-    return Util.formatTime(new Date());
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("currentTime"), Util.formatTime(new Date()));
   }
 
   @XmlAttribute
   public String getBuildDate() {
-    return Util.formatTime(myServer.getBuildDate());
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("buildDate"), Util.formatTime(myServer.getBuildDate()));
   }
 
   @XmlAttribute
   public String getInternalId() {
-    return myServerSettings.getServerUUID();
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("internalId"), myServerSettings.getServerUUID());
   }
 
   @XmlAttribute
   public String getRole() {
     TeamCityNode currentNode = myBeanContext.getSingletonService(TeamCityNodes.class).getOnlineNodes().get(0); //current is always the first one
     CurrentNodeInfo.ServerMode mode = currentNode.getMode();
-//    if (CurrentNodeInfo.ServerMode.MAIN_SERVER.equals(mode)) return null;
-    return mode.name().toLowerCase();
+    if (!CurrentNodeInfo.ServerMode.MAIN_SERVER.equals(mode)) {
+      return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("role"), mode.name().toLowerCase());
+    }
+    return ValueWithDefault.decide(myFields.isIncluded("role"), mode.name().toLowerCase(), null, false);
   }
 
   @XmlAttribute
   public String getWebUrl() {
-    return myServer.getRootUrl();
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("webUrl"), myServer.getRootUrl());
   }
 
   @XmlElement
   public Href getProjects() {
-    return new Href(ProjectRequest.API_PROJECTS_URL,myApiUrlBuilder);
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("projects"), new Href(ProjectRequest.API_PROJECTS_URL, myApiUrlBuilder));
   }
 
   @XmlElement
   public Href getVcsRoots() {
-    return new Href(VcsRootRequest.API_VCS_ROOTS_URL, myApiUrlBuilder);
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("vcsRoots"), new Href(VcsRootRequest.API_VCS_ROOTS_URL, myApiUrlBuilder));
   }
 
   @XmlElement
   public Href getBuilds() {
-    return new Href(BuildRequest.API_BUILDS_URL, myApiUrlBuilder);
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("builds"), new Href(BuildRequest.API_BUILDS_URL, myApiUrlBuilder));
   }
 
   @XmlElement
   public Href getUsers() {
-    return new Href(UserRequest.API_USERS_URL, myApiUrlBuilder);
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("users"), new Href(UserRequest.API_USERS_URL, myApiUrlBuilder));
   }
 
   @XmlElement
   public Href getUserGroups() {
-    return new Href(GroupRequest.API_USER_GROUPS_URL, myApiUrlBuilder);
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("userGroups"), new Href(GroupRequest.API_USER_GROUPS_URL, myApiUrlBuilder));
   }
 
   @XmlElement
   public Href getAgents() {
-    return new Href(AgentRequest.API_AGENTS_URL, myApiUrlBuilder);
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("agents"), new Href(AgentRequest.API_AGENTS_URL, myApiUrlBuilder));
   }
 
   @XmlElement
   public Href getBuildQueue() {
-    return new Href(BuildQueueRequest.getHref(), myApiUrlBuilder);
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("buildQueue"), new Href(BuildQueueRequest.getHref(), myApiUrlBuilder));
   }
 
   @XmlElement
   public Href getAgentPools() {
-    return new Href(AgentPoolRequest.getHref(), myApiUrlBuilder);
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("agentPools"), new Href(AgentPoolRequest.getHref(), myApiUrlBuilder));
   }
 
   @Nullable
