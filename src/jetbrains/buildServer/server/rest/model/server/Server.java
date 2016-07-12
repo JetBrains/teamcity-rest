@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.RootUrlHolder;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.maintenance.CurrentNodeInfo;
 import jetbrains.buildServer.maintenance.StartupContext;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -31,9 +32,7 @@ import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.request.*;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.SBuildServer;
-import jetbrains.buildServer.serverSide.ServerPaths;
-import jetbrains.buildServer.serverSide.ServerSettings;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -43,7 +42,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 17.11.2009
  */
 @XmlRootElement(name = "server")
-@XmlType(name = "server", propOrder={"version", "versionMajor", "versionMinor", "startTime", "currentTime", "buildNumber", "buildDate", "internalId", "webUrl",
+@XmlType(name = "server", propOrder={"version", "versionMajor", "versionMinor", "startTime", "currentTime", "buildNumber", "buildDate", "internalId", "role", "webUrl",
 "projects", "vcsRoots", "builds", "users", "userGroups", "agents", "buildQueue", "agentPools"})
 public class Server {
   private SBuildServer myServer;
@@ -105,6 +104,14 @@ public class Server {
   @XmlAttribute
   public String getInternalId() {
     return myServerSettings.getServerUUID();
+  }
+
+  @XmlAttribute
+  public String getRole() {
+    TeamCityNode currentNode = myBeanContext.getSingletonService(TeamCityNodes.class).getOnlineNodes().get(0); //current is always the first one
+    CurrentNodeInfo.ServerMode mode = currentNode.getMode();
+//    if (CurrentNodeInfo.ServerMode.MAIN_SERVER.equals(mode)) return null;
+    return mode.name().toLowerCase();
   }
 
   @XmlAttribute
@@ -175,6 +182,8 @@ public class Server {
     } else if ("dataDirectoryPath".equals(field)) { //experimental
       serviceLocator.getSingletonService(DataProvider.class).checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
       return serviceLocator.getSingletonService(DataProvider.class).getBean(ServerPaths.class).getDataDirectory().getAbsolutePath();
+    } else if ("role".equals(field)) {
+      return serviceLocator.getSingletonService(TeamCityNodes.class).getOnlineNodes().get(0).getMode().name().toLowerCase();
     } else if ("webUrl".equals(field) || "url".equals(field)) {
       return serviceLocator.getSingletonService(RootUrlHolder.class).getRootUrl();
     }
