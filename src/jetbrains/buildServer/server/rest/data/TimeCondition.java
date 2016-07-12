@@ -210,6 +210,9 @@ public class TimeCondition {
     }
 
     final String conditionText = timeLocator.getSingleDimensionValue(CONDITION);
+    if (Locator.HELP_DIMENSION.equals(conditionText)) {
+      throw new BadRequestException("Supported names are: " + Arrays.toString(getAllConditions()));
+    }
     final String conditionName = conditionText == null ? DATE_CONDITION_AFTER : conditionText; //todo: should it be "equal" instead???
     final Condition<Date> definedCondition = getCondition(conditionName);
     if (definedCondition == null) {

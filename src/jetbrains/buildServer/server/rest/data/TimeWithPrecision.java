@@ -87,7 +87,8 @@ public class TimeWithPrecision {
         return new TimeWithPrecision(DateTimeFormat.forPattern(Constants.TIME_FORMAT).withLocale(Locale.ENGLISH).parseDateTime(timeString).toDate(), true);
       } catch (Exception e) {
         firstError = new BadRequestException("Was not able to parse date '" + timeString + "' using format '" + Constants.TIME_FORMAT + "' and others." +
-                                             " Supported format example: '" + DateTimeFormat.forPattern(Constants.TIME_FORMAT).withLocale(Locale.ENGLISH).print(Instant.now()) +
+                                             " Supported format example: '" +
+                                             DateTimeFormat.forPattern(Constants.TIME_FORMAT).withLocale(Locale.ENGLISH).withZone(DateTimeZone.getDefault()).print(Instant.now()) +
                                              "'. Error: " + e.toString(), e);
       }
     }
