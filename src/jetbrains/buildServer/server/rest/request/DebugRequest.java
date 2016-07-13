@@ -169,7 +169,7 @@ public class DebugRequest {
     //todo: check whether permission checks are necessary
     final PagedSearchResult<VcsRootInstance> vcsRootInstances = myVcsRootInstanceFinder.getItems(vcsRootInstancesLocator);
     myDataProvider.getVcsModificationChecker().forceCheckingFor(vcsRootInstances.myEntries, getRequestor(requestor));
-    return new VcsRootInstances(CachingValue.simple(((Collection<VcsRootInstance>)vcsRootInstances.myEntries)), null, new Fields(fields), beanContext);
+    return new VcsRootInstances(CachingValue.simple(vcsRootInstances.myEntries), null, new Fields(fields), beanContext);
   }
 
   @NotNull
