@@ -261,6 +261,11 @@ public class ParametersSubResource {
     public Map<String, String> getOwnParameters() {
       return myBuildTypeOrTemplate.get().getOwnParameters();
     }
+
+    @Nullable
+    public Parameter getOwnParameter(@NotNull final String paramName) {
+      return myBuildTypeOrTemplate.get().getOwnParameter(paramName);
+    }
   }
 
   public static class ProjectEntityWithParameters implements EntityWithParameters {
@@ -314,6 +319,11 @@ public class ParametersSubResource {
     @NotNull
     public Map<String, String> getOwnParameters() {
       return myProject.getOwnParameters();
+    }
+
+    @Nullable
+    public Parameter getOwnParameter(@NotNull final String paramName) {
+      return myProject.getOwnParameter(paramName);
     }
   }
 }
