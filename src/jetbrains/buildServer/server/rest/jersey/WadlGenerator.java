@@ -59,9 +59,11 @@ public class WadlGenerator extends WadlGeneratorConfig {
     @Override
     public Resource createResource(final AbstractResource ar, final String path) {
       Resource resource = super.createResource(ar, path);
-      String originalPath = resource.getPath();
-      if (originalPath.startsWith(Constants.API_URL) && APIController.ourFirstBindPath != null){
-        resource.setPath(APIController.ourFirstBindPath + originalPath.substring(Constants.API_URL.length(), originalPath.length()));
+      if (resource != null) {
+        String originalPath = resource.getPath();
+        if (originalPath != null && originalPath.startsWith(Constants.API_URL) && APIController.ourFirstBindPath != null) {
+          resource.setPath(APIController.ourFirstBindPath + originalPath.substring(Constants.API_URL.length(), originalPath.length()));
+        }
       }
       return resource;
     }
