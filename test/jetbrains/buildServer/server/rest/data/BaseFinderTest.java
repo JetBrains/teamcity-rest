@@ -196,10 +196,15 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     check(locator, matcher, getFinder(), items);
   }
 
-  public static <S, R> void check(@Nullable final String locator, @NotNull Matcher<S, R> matcher, @NotNull final Finder<R> finder, S... items) {
+  public <S, R> void check(@Nullable final String locator, @NotNull Matcher<S, R> matcher, @NotNull final Finder<R> finder, S... items) {
+    check(locator, matcher, r -> getDescription(r), r -> getDescription(r), finder, items);
+  }
+
+  public <S, R> void check(@Nullable final String locator, @NotNull Matcher<S, R> matcher,
+                           @NotNull DescriptionProvider <R> loggerActual, @NotNull DescriptionProvider <S> loggerExpected, @NotNull final Finder<R> finder, S... items) {
     final List<R> result = finder.getItems(locator).myEntries;
-    final String expected = getDescription(Arrays.asList(items));
-    final String actual = getDescription(result);
+    final String expected = getDescription(Arrays.asList(items), loggerExpected);
+    final String actual = getDescription(result, loggerActual);
     assertEquals("For itemS locator \"" + locator + "\"\n" +
                  "Expected:\n" + expected + "\n\n" +
                  "Actual:\n" + actual, items.length, result.size());
@@ -217,7 +222,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
       if (items.length == 0) {
         try {
           R singleResult = finder.getItem(locator);
-          fail("No items should be found by locator \"" + locator + "\", but found: " + getDescription(singleResult));
+          fail("No items should be found by locator \"" + locator + "\", but found: " + loggerActual.describe(singleResult));
         } catch (NotFoundException e) {
           //exception is expected
         }
@@ -226,18 +231,22 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
         final S item = items[0];
         if (!matcher.matches(item, singleResult)) {
           fail("While searching for single item with locator \"" + locator + "\"\n" +
-               "Expected: " + getDescription(item) + "\n" +
-               "Actual: " + getDescription(singleResult));
+               "Expected: " + loggerExpected.describe(item) + "\n" +
+               "Actual: " + loggerActual.describe(singleResult));
         }
       }
     }
   }
 
-  public static interface Matcher<S, T>{
+  public static interface Matcher<S, T> {
     boolean matches(@NotNull S s, @NotNull T t);
   }
 
-  private static <U> String getDescription(final U singleResult) {
+  public static interface DescriptionProvider<S> {
+    String describe(@NotNull S s);
+  }
+
+  protected static <U> String getDescription(final U singleResult) {
     if (singleResult instanceof Loggable){
       return LogUtil.describeInDetail(((Loggable)singleResult));
     }
@@ -281,6 +290,10 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   }
 
   public static <S> String getDescription(final List<S> result) {
+    return getDescription(result, s -> getDescription(s));
+  }
+
+  public static <S> String getDescription(final List<S> result, @NotNull DescriptionProvider <S> logger) {
     if (result == null) {
       return LogUtil.describe((Object)null);
     }
@@ -290,7 +303,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     while(it.hasNext()) {
       S item = it.next();
       if (item != null) {
-        result1.append("").append(LogUtil.describe(item)).append("");
+        result1.append("").append(logger.describe(item)).append("");
         if (it.hasNext()) {
           result1.append("\n");
         }

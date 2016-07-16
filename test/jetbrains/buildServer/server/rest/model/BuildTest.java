@@ -547,10 +547,10 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
 
     assertEquals(3, result.getBuildPromotion().getArtifactDependencies().size());
-    assertContains(result.getBuildPromotion().getArtifactDependencies(), EQUALS_TEST,
-                   new TestArtifactDep(buildType2.getBuildTypeId(), "path2_1", true, RevisionRules.newBuildNumberRule(build2_2.getBuildNumber())),
-                   new TestArtifactDep(buildType2.getBuildTypeId(), "path2_2=>a", false, RevisionRules.LAST_FINISHED_RULE),
-                   new TestArtifactDep(buildType3.getBuildTypeId(), "path3=>b", false, RevisionRules.newBuildIdRule(build3_1.getBuildId(), build3_1.getBuildNumber())));
+    assertEquals(result.getBuildPromotion().getArtifactDependencies(), EQUALS_TEST,
+                 new TestArtifactDep(buildType2.getBuildTypeId(), "path2_1", true, RevisionRules.newBuildNumberRule(build2_2.getBuildNumber())),
+                 new TestArtifactDep(buildType2.getBuildTypeId(), "path2_2=>a", false, RevisionRules.LAST_FINISHED_RULE),
+                 new TestArtifactDep(buildType3.getBuildTypeId(), "path3=>b", false, RevisionRules.newBuildIdRule(build3_1.getBuildId(), build3_1.getBuildNumber())));
 
     Builds builds1 = new Builds();
     Build build1 = new Build();
@@ -560,8 +560,8 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
 
     assertEquals(1, result.getBuildPromotion().getArtifactDependencies().size());
-    assertContains(result.getBuildPromotion().getArtifactDependencies(), EQUALS_TEST,
-                   new TestArtifactDep(buildType3.getBuildTypeId(), "path3=>b", false, RevisionRules.newBuildIdRule(build3_1.getBuildId(), build3_1.getBuildNumber())));
+    assertEquals(result.getBuildPromotion().getArtifactDependencies(), EQUALS_TEST,
+                 new TestArtifactDep(buildType3.getBuildTypeId(), "path3=>b", false, RevisionRules.newBuildIdRule(build3_1.getBuildId(), build3_1.getBuildNumber())));
 
     builds1 = new Builds();
     build1 = new Build();
@@ -571,8 +571,8 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
 
     assertEquals(1, result.getBuildPromotion().getArtifactDependencies().size());
-    assertContains(result.getBuildPromotion().getArtifactDependencies(), EQUALS_TEST,
-                   new TestArtifactDep(buildType2.getBuildTypeId(), "path2_1", true, RevisionRules.newBuildIdRule(build2_1.getBuildId(), build2_1.getBuildNumber())));
+    assertEquals(result.getBuildPromotion().getArtifactDependencies(), EQUALS_TEST,
+                 new TestArtifactDep(buildType2.getBuildTypeId(), "path2_1", true, RevisionRules.newBuildIdRule(build2_1.getBuildId(), build2_1.getBuildNumber())));
 
     builds1 = new Builds();
     build1 = new Build();
@@ -585,9 +585,9 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
 
     assertEquals(2, result.getBuildPromotion().getArtifactDependencies().size());
-    assertContains(result.getBuildPromotion().getArtifactDependencies(), EQUALS_TEST,
-                   new TestArtifactDep(buildType2.getBuildTypeId(), "path2_1", true, RevisionRules.newBuildIdRule(build2_1.getBuildId(), build2_1.getBuildNumber())),
-                   new TestArtifactDep(buildType2.getBuildTypeId(), "path2_2=>a", false, RevisionRules.newBuildIdRule(build2_2.getBuildId(), build2_2.getBuildNumber())));
+    assertEquals(result.getBuildPromotion().getArtifactDependencies(), EQUALS_TEST,
+                 new TestArtifactDep(buildType2.getBuildTypeId(), "path2_1", true, RevisionRules.newBuildIdRule(build2_1.getBuildId(), build2_1.getBuildNumber())),
+                 new TestArtifactDep(buildType2.getBuildTypeId(), "path2_2=>a", false, RevisionRules.newBuildIdRule(build2_2.getBuildId(), build2_2.getBuildNumber())));
 
     builds1 = new Builds();
     build1 = new Build();
@@ -601,9 +601,9 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
 
     assertEquals(2, result.getBuildPromotion().getArtifactDependencies().size());
-    assertContains(result.getBuildPromotion().getArtifactDependencies(), EQUALS_TEST,
-                   new TestArtifactDep(buildType2.getBuildTypeId(), "path2_1", true, RevisionRules.newBuildIdRule(build2_2.getBuildId(), build2_2.getBuildNumber())),
-                   new TestArtifactDep(buildType2.getBuildTypeId(), "path2_2=>a", false, RevisionRules.newBuildIdRule(build2_1.getBuildId(), build2_1.getBuildNumber())));
+    assertEquals(result.getBuildPromotion().getArtifactDependencies(), EQUALS_TEST,
+                 new TestArtifactDep(buildType2.getBuildTypeId(), "path2_1", true, RevisionRules.newBuildIdRule(build2_2.getBuildId(), build2_2.getBuildNumber())),
+                 new TestArtifactDep(buildType2.getBuildTypeId(), "path2_2=>a", false, RevisionRules.newBuildIdRule(build2_1.getBuildId(), build2_1.getBuildNumber())));
 
     builds1 = new Builds();
     build1 = new Build();
@@ -667,10 +667,10 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
 
     assertEquals(3, result.getBuildPromotion().getArtifactDependencies().size());
-    assertContains(result.getBuildPromotion().getArtifactDependencies(), EQUALS_TEST,
-                   new TestArtifactDep(buildType2.getBuildTypeId(), "path2_1", true, RevisionRules.newBuildIdRule(build2_1.getBuildId(), build2_1.getBuildNumber())),
-                   new TestArtifactDep(buildType2.getBuildTypeId(), "path2_2=>a", false, RevisionRules.newBuildIdRule(build2_2.getBuildId(), build2_2.getBuildNumber())),
-                   new TestArtifactDep(buildType3.getBuildTypeId(), "path3=>b", false, RevisionRules.newBuildIdRule(build3_1.getBuildId(), build3_1.getBuildNumber())));
+    assertEquals(result.getBuildPromotion().getArtifactDependencies(), EQUALS_TEST,
+                 new TestArtifactDep(buildType2.getBuildTypeId(), "path2_1", true, RevisionRules.newBuildIdRule(build2_1.getBuildId(), build2_1.getBuildNumber())),
+                 new TestArtifactDep(buildType2.getBuildTypeId(), "path2_2=>a", false, RevisionRules.newBuildIdRule(build2_2.getBuildId(), build2_2.getBuildNumber())),
+                 new TestArtifactDep(buildType3.getBuildTypeId(), "path3=>b", false, RevisionRules.newBuildIdRule(build3_1.getBuildId(), build3_1.getBuildNumber())));
 
 
     builds1 = new Builds();
@@ -698,42 +698,67 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
 
     assertEquals(4, result.getBuildPromotion().getArtifactDependencies().size());
-    assertContains(result.getBuildPromotion().getArtifactDependencies(), EQUALS_TEST,
-                   new TestArtifactDep(buildType2.getBuildTypeId(), "path2_1", true, RevisionRules.newBuildIdRule(build2_2.getBuildId(), build2_2.getBuildNumber())),
-                   new TestArtifactDep(buildType2.getBuildTypeId(), "path2_2=>a", false, RevisionRules.newBuildIdRule(build2_1.getBuildId(), build2_1.getBuildNumber())),
-                   new TestArtifactDep(buildType2.getBuildTypeId(), "path3=>x", true, RevisionRules.newBuildIdRule(build2_1.getBuildId(), build2_1.getBuildNumber())),
-                   new TestArtifactDep(buildType3.getBuildTypeId(), "path3=>b", false, RevisionRules.newBuildIdRule(build3_1.getBuildId(), build3_1.getBuildNumber())));
+    assertEquals(result.getBuildPromotion().getArtifactDependencies(), EQUALS_TEST,
+                 new TestArtifactDep(buildType2.getBuildTypeId(), "path2_1", true, RevisionRules.newBuildIdRule(build2_2.getBuildId(), build2_2.getBuildNumber())),
+                 new TestArtifactDep(buildType2.getBuildTypeId(), "path2_2=>a", false, RevisionRules.newBuildIdRule(build2_1.getBuildId(), build2_1.getBuildNumber())),
+                 new TestArtifactDep(buildType2.getBuildTypeId(), "path3=>x", true, RevisionRules.newBuildIdRule(build2_1.getBuildId(), build2_1.getBuildNumber())),
+                 new TestArtifactDep(buildType3.getBuildTypeId(), "path3=>b", false, RevisionRules.newBuildIdRule(build3_1.getBuildId(), build3_1.getBuildNumber())));
   }
 
-  public static <T> void assertContains(@Nullable final List<T> collection, EqualsTest<T> equalsTest, final T... items) {
-    if (collection == null || (collection.isEmpty() && items.length != 0)) {
-      fail("Expected and actual collection sizes are different");
-    }
+  public static <E, A> void assertEquals(@Nullable final List<A> collection, EqualsTest<E, A> equalsTest, final E... items) {
+    assertEquals(null, collection, equalsTest, (e) -> BaseFinderTest.getDescription(e), (e) -> BaseFinderTest.getDescription(e), items);
+  }
 
-    for (T item : items) {
+  public static <E, A> void assertEquals(final String description, @Nullable final List<A> collection, EqualsTest<E, A> equalsTest,
+                                         @NotNull DescriptionProvider<E> loggerExpected, @NotNull DescriptionProvider<A> loggerActual, final E... items) {
+    final String expected = BaseFinderTest.getDescription(Arrays.asList(items), loggerExpected);
+    final String actual = getDescription(collection, loggerActual);
+    if (collection == null && items.length == 0) return;
+    assertEquals("Expected and actual collection sizes are different for '" + description + "'\n" +
+                 "Expected:\n" + expected + "\n\n" +
+                 "Actual:\n" + actual,
+                 items.length, collection == null ? 0 : collection.size());
+
+    for (E item : items) {
       boolean ok = false;
-      for (T t : collection) {
+      for (A t : collection) {
         if (equalsTest.equals(item, t)) {
           ok = true;
           break;
         }
       }
       if (!ok) {
-        fail("Actual collection does not have item " + item + "\n" +
-             "Collection: " + collection.toString());
+        fail("Actual collection does not have item " + loggerExpected.describe(item) + " for '" + description + "'\n" +
+             "Expected:\n" + expected + "\n\n" +
+             "Actual:\n" + actual);
+      }
+    }
+
+    for (A t : collection) {
+      boolean ok = false;
+      for (E item : items) {
+        if (equalsTest.equals(item, t)) {
+          ok = true;
+          break;
+        }
+      }
+      if (!ok) {
+        fail("Actual collection does not have item " + loggerActual.describe(t) + " for '" + description + "'\n" +
+             "Expected:\n" + expected + "\n\n" +
+             "Actual:\n" + actual);
       }
     }
   }
 
-  protected static final EqualsTest<SArtifactDependency> EQUALS_TEST = new EqualsTest<SArtifactDependency>() {
+  protected static final EqualsTest<SArtifactDependency, SArtifactDependency> EQUALS_TEST = new EqualsTest<SArtifactDependency, SArtifactDependency>() {
     @Override
-    public boolean equals(final SArtifactDependency o1, final SArtifactDependency o2) {
+    public boolean equals(@NotNull final SArtifactDependency o1, @NotNull final SArtifactDependency o2) {
       return o1.isSimilarTo(o2);
     }
   };
 
-  private interface EqualsTest<T> {
-    public boolean equals(final T o1, final T o2);
+  public interface EqualsTest<A, T> {
+    public boolean equals(@NotNull final A o1, @NotNull final T o2);
   }
 
   private static class TestArtifactDep implements SArtifactDependency {

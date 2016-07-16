@@ -876,7 +876,7 @@ public class Build {
       public Agents get() {
         //do not calculate agents if not asked for
         final Fields nestedFields = myFields.getNestedField("compatibleAgents");
-        final Collection<SBuildAgent> agentObjects = ValueWithDefault.decideDefault(nestedFields.isIncludedOr(new String[]{Agents.AGENT, Agents.COUNT}, false, false),
+        final Collection<SBuildAgent> agentObjects = ValueWithDefault.decideDefault(nestedFields.isLong() || nestedFields.isIncludedOr(new String[]{Agents.AGENT, Agents.COUNT}, false, false),
                                                                                     new ValueWithDefault.Value<Collection<SBuildAgent>>() {
           @Nullable
           public Collection<SBuildAgent> get() {
