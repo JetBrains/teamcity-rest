@@ -27,12 +27,11 @@ import java.util.List;
 import jetbrains.BuildServerCreator;
 import jetbrains.buildServer.BaseTestCase;
 import jetbrains.buildServer.TempFiles;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SRunningBuild;
 import jetbrains.buildServer.serverSide.db.TestDB;
-import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
-import jetbrains.buildServer.util.Dates;
+import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
 import jetbrains.buildServer.zip.FileZipFactory;
@@ -642,6 +641,45 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
 
     artifacts = getArtifacts("", "modified:-30m,modified:(condition:before,date:-6m),recursive:true");
     checkOrderedCollection(getNames(artifacts), "file.txt");
+  }
+
+  @Test
+  public void testSize() throws Exception {
+    File dir = new File(myBuildWithArtifacts.getArtifactsDirectory(), "sizeTest");
+    dir.mkdir();
+    createFileOfSize(dir, "file0", 0);
+    createFileOfSize(dir, "file1", 1023);
+    createFileOfSize(dir, "file2", 1024);
+    createFileOfSize(dir, "file3", 1025);
+    createFileOfSize(dir, "file4", 2 * 1024 + 1);
+
+    File dir1 = new File(dir, "dir");
+    dir1.mkdir();
+    createFileOfSize(dir1, "file0", 0);
+
+    checkOrderedCollection(getNames(getArtifacts(dir.getName(), null)), "sizeTest/dir", "sizeTest/file0", "sizeTest/file1", "sizeTest/file2", "sizeTest/file3", "sizeTest/file4");
+    checkOrderedCollection(getNames(getArtifacts(dir.getName(), "recursive:true")),
+                           "sizeTest/dir", "sizeTest/dir/file0", "sizeTest/file0", "sizeTest/file1", "sizeTest/file2", "sizeTest/file3", "sizeTest/file4");
+    checkOrderedCollection(getNames(getArtifacts(dir.getName(), "size:1023")), "sizeTest/dir", "sizeTest/file0", "sizeTest/file1");
+    checkOrderedCollection(getNames(getArtifacts(dir.getName(), "size:1024")), "sizeTest/dir", "sizeTest/file0", "sizeTest/file1", "sizeTest/file2");
+    checkOrderedCollection(getNames(getArtifacts(dir.getName(), "size:1Kb")), "sizeTest/dir", "sizeTest/file0", "sizeTest/file1", "sizeTest/file2");
+    checkOrderedCollection(getNames(getArtifacts(dir.getName(), "size:1050")), "sizeTest/dir", "sizeTest/file0", "sizeTest/file1", "sizeTest/file2", "sizeTest/file3");
+    checkOrderedCollection(getNames(getArtifacts(dir.getName(), "size:2Kb")), "sizeTest/dir", "sizeTest/file0", "sizeTest/file1", "sizeTest/file2", "sizeTest/file3");
+
+    checkOrderedCollection(getNames(getArtifacts(dir.getName(), "size:0")), "sizeTest/dir", "sizeTest/file0");
+    checkOrderedCollection(getNames(getArtifacts(dir.getName(), "size:-1")), "sizeTest/dir");
+    checkOrderedCollection(getNames(getArtifacts(dir.getName(), "size:-10")), "sizeTest/dir");
+
+    checkOrderedCollection(getNames(getArtifacts(dir.getName(), "recursive:true,size:0")), "sizeTest/dir", "sizeTest/dir/file0", "sizeTest/file0");
+    checkOrderedCollection(getNames(getArtifacts(dir.getName(), "directory:false,recursive:true,size:-1")));
+
+    assertExceptionThrown(() -> getArtifacts(dir.getName(), "size:aa"), BadRequestException.class);
+  }
+
+  private File createFileOfSize(final File dir, String name, int size) throws IOException {
+    File result = new File(dir, name);
+    FileUtil.writeFile(result, StringUtil.repeat("a", "", size), "US-ASCII");
+    return result;
   }
 
   @NotNull

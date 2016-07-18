@@ -61,6 +61,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
   public static final String DIMENSION_RECURSIVE = "recursive";  //whether to list direct children or recursive children
   public static final String DIMENSION_PATTERNS = "pattern";
   public static final String DIMENSION_MODIFIED = "modified";
+  public static final String DIMENSION_SIZE = "size";
 
   protected static final Comparator<ArtifactTreeElement> ARTIFACT_COMPARATOR = new Comparator<ArtifactTreeElement>() {
     public int compare(final ArtifactTreeElement o1, final ArtifactTreeElement o2) {
@@ -77,7 +78,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
   @NotNull private final TimeCondition myTimeCondition;
 
   public BuildArtifactsFinder(@NotNull final Element baseElement, @NotNull final TimeCondition timeCondition) {
-    super(HIDDEN_DIMENSION_NAME, ARCHIVES_DIMENSION_NAME, DIRECTORY_DIMENSION_NAME, DIMENSION_RECURSIVE, DIMENSION_PATTERNS, DIMENSION_MODIFIED);
+    super(HIDDEN_DIMENSION_NAME, ARCHIVES_DIMENSION_NAME, DIRECTORY_DIMENSION_NAME, DIMENSION_RECURSIVE, DIMENSION_PATTERNS, DIMENSION_MODIFIED, DIMENSION_SIZE);
     myBaseElement = baseElement;
     myTimeCondition = timeCondition;
   }
@@ -105,6 +106,21 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
 
     if (dateFiltering != null){
       result.add(dateFiltering.getFilter());
+    }
+
+    final String sizeDimension = locator.getSingleDimensionValue(DIMENSION_SIZE);
+    if (sizeDimension != null) {
+      final long sizeLimit; //only one value is supported so far, treated as "less than"
+      try {
+        sizeLimit = StringUtil.parseFileSize(sizeDimension);
+      } catch (NumberFormatException e) {
+        throw new BadRequestException("Cannot parse size from '" + sizeDimension + "'. Should be a number (bytes) or <number>kb, <number>mb");
+      }
+      result.add(new FilterConditionChecker<ArtifactTreeElement>() {
+        public boolean isIncluded(@NotNull final ArtifactTreeElement item) {
+          return !item.isContentAvailable() || item.getSize() <= sizeLimit;
+        }
+      });
     }
 
     return result;
