@@ -222,7 +222,7 @@ public class AgentPoolRequest {
   @Produces({"application/xml", "application/json"})
   public Agents getPoolAgents(@PathParam("agentPoolLocator") String agentPoolLocator, @QueryParam("locator") String locator, @QueryParam("fields") String fields) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolFinder.getItem(agentPoolLocator);
-    return new Agents(myAgentFinder.getItems(locator, new Locator(AgentFinder.getLocator(agentPool))).myEntries, null, new Fields(fields), myBeanContext);
+    return new Agents(Locator.merge(AgentFinder.getLocator(agentPool), locator), null, new Fields(fields), myBeanContext);
   }
 
   /**

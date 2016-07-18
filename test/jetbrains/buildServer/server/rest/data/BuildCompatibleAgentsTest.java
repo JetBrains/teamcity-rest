@@ -17,10 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.google.common.collect.Ordering;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.LicenseTestUtil;
@@ -131,7 +128,7 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
     myAgent30.addConfigParameter("x", "2");
     myAgent30.pushAgentTypeData();
 
-    final int poolId1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1").getAgentPoolId();
+    final int poolId1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1").getAgentPoolId(); //pool without projects
     myFixture.getAgentPoolManager().moveAgentTypesToPool(poolId1, createSet(myAgent30.getId()));
 
     //compatible, but excluded by policy - can only run myBt30
@@ -166,7 +163,8 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
     myAgentManager.unregisterAgent(myAgent70.getId());
 
 
-    myPoolId20 = myFixture.getAgentPoolManager().createNewAgentPool("pool20").getAgentPoolId();
+    myPoolId20 = myFixture.getAgentPoolManager().createNewAgentPool("pool20").getAgentPoolId();  //pool without agents
+    myFixture.getAgentPoolManager().associateProjectsWithPool(myPoolId20, new HashSet<String>(Arrays.asList(String.valueOf(myPoolId20))));
 
 
     myBuild10 = build().in(myBt10).addToQueue().getBuildPromotion();
@@ -182,18 +180,6 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
     myExpected.setAllBuildTypes(myBuildType, myBt10, myBt30, myBt40, myBt50);
     myExpected.setAllBuilds(myBuild10, myBuild20, myBuild30, myBuild40, myBuild50);
 
-    //todo: these are for TeamCity 10 EAP3 behavior, need to be fixed, see below
-    myExpected.add(ExpectedCompatibility.agent(myBuildAgent).buildTypes(myBuildType, myBt30, myBt50).builds());  //current behavior
-    myExpected.add(ExpectedCompatibility.agent(myAgent10).buildTypes(myBuildType, myBt30, myBt40, myBt50).builds());
-    myExpected.add(ExpectedCompatibility.agent(myAgent15).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds(myBuild10, myBuild30, myBuild50));
-    myExpected.add(ExpectedCompatibility.agent(myAgent20).buildTypes(myBuildType, myBt10, myBt30, myBt40, myBt50).builds(myBuild10, myBuild20, myBuild30, myBuild50));
-    myExpected.add(ExpectedCompatibility.agent(myAgent30).buildTypes().builds(myBuild10, myBuild20, myBuild30, myBuild50));
-    myExpected.add(ExpectedCompatibility.agent(myAgent40).buildTypes(myBt30).builds(myBuild10, myBuild20, myBuild30, myBuild50));
-    myExpected.add(ExpectedCompatibility.agent(myAgent50).buildTypes().builds());
-    myExpected.add(ExpectedCompatibility.agent(myAgent60).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds(myBuild10, myBuild20, myBuild30, myBuild50));
-    myExpected.add(ExpectedCompatibility.agent(myAgent70).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds(myBuild10, myBuild20, myBuild30, myBuild50));
-
-/* good config:
 //should be    myExpected.add(ExpectedCompatibility.agent(myBuildAgent).buildTypes(myBuildType, myBt30).builds());
     myExpected.add(ExpectedCompatibility.agent(myBuildAgent).buildTypes(myBuildType, myBt30, myBt50).builds());  //current behavior
     myExpected.add(ExpectedCompatibility.agent(myAgent10).buildTypes(myBuildType, myBt30, myBt40, myBt50).builds());
@@ -204,7 +190,8 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
     myExpected.add(ExpectedCompatibility.agent(myAgent50).buildTypes().builds());
 //should be    myExpected.add(ExpectedCompatibility.agent(myAgent60).buildTypes().builds(myBuild30));
     myExpected.add(ExpectedCompatibility.agent(myAgent60).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds(myBuild10, myBuild20, myBuild30));  //current behavior
-*/
+//should be    myExpected.add(ExpectedCompatibility.agent(myAgent70).buildTypes().builds());
+    myExpected.add(ExpectedCompatibility.agent(myAgent70).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds(myBuild10, myBuild20, myBuild30, myBuild50));  //current behavior
   }
 
   private void addSnapshotBuilds() {
@@ -358,6 +345,9 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
 
   @Test
   public void testBuildPromotionFinder() throws AgentPoolCannotBeRenamedException, PoolQuotaExceededException, NoSuchAgentPoolException {
+    //as it should be
+    myExpected.replace(ExpectedCompatibility.agent(myAgent70).buildTypes().builds());
+
     for (SBuildAgent agent : myExpected.getAllAgents()) {
       checkBuilds("compatibleAgent:(name:" + agent.getName() + "),state:queued", myExpected.compatibleBuilds(agent));
     }
@@ -375,10 +365,8 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
   public void testBuildPromotionFinder_QueuedBuildsWithSnapshotDep() throws AgentPoolCannotBeRenamedException, PoolQuotaExceededException, NoSuchAgentPoolException {
     addSnapshotBuilds();
 
-    //todo: these are for TeamCity 10 EAP3 behavior, need to be fixed
-    myExpected.add(ExpectedCompatibility.agent(myAgent30).builds(myBuild110));
-    myExpected.add(ExpectedCompatibility.agent(myAgent40).builds(myBuild100, myBuild110));
-    myExpected.replace(ExpectedCompatibility.agent(myAgent60).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds(myBuild10, myBuild20, myBuild30, myBuild50, myBuild110));
+    //as it should be
+    myExpected.replace(ExpectedCompatibility.agent(myAgent70).buildTypes().builds());
 
     for (SBuildAgent agent : myExpected.getAllAgents()) {
       checkBuilds("compatibleAgent:(name:" + agent.getName() + "),state:queued", myExpected.compatibleBuilds(agent));
@@ -393,11 +381,6 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
     myExpected.add(ExpectedCompatibility.agent(myAgent15).builds(myBuild30, myBuild50));
     myExpected.add(ExpectedCompatibility.agent(myAgent20).builds(myBuild30, myBuild50));
     myExpected.add(ExpectedCompatibility.agent(myAgent60).builds(myBuild50));
-
-    //todo: these are for TeamCity 10 EAP3 behavior, need to be fixed
-    myExpected.add(ExpectedCompatibility.agent(myAgent30).builds(myBuild110));
-    myExpected.add(ExpectedCompatibility.agent(myAgent40).builds(myBuild100, myBuild110));
-    myExpected.replace(ExpectedCompatibility.agent(myAgent60).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds(myBuild10, myBuild20, myBuild30, myBuild50, myBuild110));
 
     for (BuildPromotion build : myExpected.getAllBuilds()) {
       assertCollectionEquals("build id: " + build.getId(),
@@ -420,15 +403,10 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
   public void testAgentFinder() throws AgentPoolCannotBeRenamedException, PoolQuotaExceededException, NoSuchAgentPoolException {
     addSnapshotBuilds();
 
-
     //todo: fix
     myExpected.add(ExpectedCompatibility.agent(myAgent15).builds(myBuild30, myBuild50));
     myExpected.add(ExpectedCompatibility.agent(myAgent20).builds(myBuild30, myBuild50));
     myExpected.add(ExpectedCompatibility.agent(myAgent60).builds(myBuild50));
-
-    //todo: these are for TeamCity 10 EAP3 behavior, need to be fixed
-    myExpected.replace(ExpectedCompatibility.agent(myAgent30).buildTypes().builds(myBuild10, myBuild20, myBuild30, myBuild50, myBuild110));
-    myExpected.replace(ExpectedCompatibility.agent(myAgent40).buildTypes(myBt30).builds());
 
     for (BuildPromotion build : myExpected.getAllBuilds()) {
       checkAgents("compatible:(build:(id:" + build.getId() + "))", myExpected.compatibleAgents(build));

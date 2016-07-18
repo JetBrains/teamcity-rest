@@ -76,11 +76,6 @@ public class BuildQueueRequest {
     return API_BUILD_QUEUE_URL + "/" + QueuedBuildFinder.getLocator(build);
   }
 
-  @NotNull
-  public static String getCompatibleAgentsHref(SQueuedBuild build) {
-    return getQueuedBuildHref(build) + COMPATIBLE_AGENTS;
-  }
-
   /**
    * Serves build queue.
    *
@@ -302,7 +297,7 @@ public class BuildQueueRequest {
   @Path("/{queuedBuildLocator}" + COMPATIBLE_AGENTS)
   @Produces({"application/xml", "application/json"})
   public Agents serveCompatibleAgents(@PathParam("queuedBuildLocator") String queuedBuildLocator, @QueryParam("fields") String fields) {
-    return new Agents(myQueuedBuildFinder.getItem(queuedBuildLocator).getCompatibleAgents(), null,  new Fields(fields), myBeanContext);
+    return new Agents(AgentFinder.getCompatibleAgentsLocator(myQueuedBuildFinder.getItem(queuedBuildLocator).getBuildPromotion()), null,  new Fields(fields), myBeanContext);
   }
 
   @GET

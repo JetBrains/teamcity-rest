@@ -167,7 +167,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
       final SBuildAgent agent = myAgentFinder.getItem(compatibleAagentLocator);
       result.add(new FilterConditionChecker<SQueuedBuild>() {
         public boolean isIncluded(@NotNull final SQueuedBuild item) {
-          return item.getCompatibleAgents().contains(agent);
+          return item.getCanRunOnAgents().contains(agent);
         }
       });
     }
@@ -176,7 +176,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
     if (compatibleAgentsCount != null) {
       result.add(new FilterConditionChecker<SQueuedBuild>() {
         public boolean isIncluded(@NotNull final SQueuedBuild item) {
-          return compatibleAgentsCount.equals(Integer.valueOf(item.getCompatibleAgents().size()).longValue());
+          return compatibleAgentsCount.equals(Integer.valueOf(item.getCanRunOnAgents().size()).longValue());
         }
       });
     }

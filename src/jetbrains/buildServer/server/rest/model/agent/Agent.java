@@ -21,10 +21,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.AgentRestrictorType;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.data.AgentFinder;
-import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
-import jetbrains.buildServer.server.rest.data.PermissionChecker;
-import jetbrains.buildServer.server.rest.data.UserFinder;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -72,6 +69,8 @@ public class Agent {
   @XmlElement public BuildTypes compatibleBuildTypes;
   @XmlElement public Compatibilities incompatibleBuildTypes;
 
+  public static final String COMPATIBLE_BUILD_TYPES = "compatibleBuildTypes";
+  public static final String INCOMPATIBLE_BUILD_TYPES = "incompatibleBuildTypes";
   /**
    * This is used only when posting a link to an agent.
    */
@@ -152,18 +151,18 @@ public class Agent {
 
       final Compatibilities.CompatibilityLists[] compatibilityResults = new Compatibilities.CompatibilityLists[1];
       compatibleBuildTypes =
-        ValueWithDefault.decideDefault(fields.isIncluded("compatibleBuildTypes", false, false), new ValueWithDefault.Value<BuildTypes>() {
+        ValueWithDefault.decideDefault(fields.isIncluded(COMPATIBLE_BUILD_TYPES, false, false), new ValueWithDefault.Value<BuildTypes>() {
           @Nullable
           public BuildTypes get() {
-            if (compatibilityResults[0] == null) compatibilityResults[0] = Compatibilities.getCompatiblityLists(agent, null, beanContext);
-            return new BuildTypes(compatibilityResults[0].getCompatibleBuildTypes(), null, fields.getNestedField("compatibleBuildTypes"), beanContext);
+            BuildTypeFinder buildTypeFinder = beanContext.getSingletonService(BuildTypeFinder.class);
+            return new BuildTypes(buildTypeFinder.getItems(BuildTypeFinder.getLocatorCompatible(agent)).myEntries, null, fields.getNestedField(COMPATIBLE_BUILD_TYPES), beanContext);
           }
         });
-      incompatibleBuildTypes = ValueWithDefault.decideDefault(fields.isIncluded("incompatibleBuildTypes", false, false), new ValueWithDefault.Value<Compatibilities>() {
+      incompatibleBuildTypes = ValueWithDefault.decideDefault(fields.isIncluded(INCOMPATIBLE_BUILD_TYPES, false, false), new ValueWithDefault.Value<Compatibilities>() {
         @Nullable
         public Compatibilities get() {
           if (compatibilityResults[0] == null) compatibilityResults[0] = Compatibilities.getCompatiblityLists(agent, null, beanContext);
-          return new Compatibilities(compatibilityResults[0].incompatibleBuildTypes, agent, null, fields.getNestedField("incompatibleBuildTypes"), beanContext);
+          return new Compatibilities(compatibilityResults[0].incompatibleBuildTypes, agent, null, fields.getNestedField(INCOMPATIBLE_BUILD_TYPES), beanContext);
         }
       });
     }

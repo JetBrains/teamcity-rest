@@ -419,7 +419,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
           final SQueuedBuild queuedBuild = item.getQueuedBuild(); //for queued build using compatible agents
           if (queuedBuild != null) {
-            return !CollectionsUtil.intersect(queuedBuild.getCompatibleAgents(), agents).isEmpty();
+            return !CollectionsUtil.intersect(queuedBuild.getCanRunOnAgents(), agents).isEmpty();
           }
           return false;
         }
@@ -470,7 +470,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
           final SQueuedBuild queuedBuild = item.getQueuedBuild();
           if (queuedBuild != null) {
-            return queuedBuild.getCompatibleAgents().contains(agent);
+            return queuedBuild.getCanRunOnAgents().contains(agent);
           }
           return false;
         }
@@ -483,7 +483,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
           final SQueuedBuild queuedBuild = item.getQueuedBuild();
           if (queuedBuild != null) {
-            return compatibleAgentsCount.equals(Integer.valueOf(queuedBuild.getCompatibleAgents().size()).longValue());
+            return compatibleAgentsCount.equals(Integer.valueOf(queuedBuild.getCanRunOnAgents().size()).longValue());
           }
           return false;
         }

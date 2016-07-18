@@ -29,7 +29,6 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -106,6 +105,11 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   @NotNull
   public static String getLocator(@NotNull final BuildTypeTemplate template) {
     return Locator.createEmptyLocator().setDimension(DIMENSION_ID, template.getExternalId()).getStringRepresentation();
+  }
+
+  @NotNull
+  public static String getLocatorCompatible(@NotNull final SBuildAgent agent) {
+    return Locator.getStringLocator(COMPATIBLE_AGENT, AgentFinder.getLocator(agent));
   }
 
   @Override
@@ -271,17 +275,11 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     final String compatibleAagentLocator = locator.getSingleDimensionValue(COMPATIBLE_AGENT); //experimental
     if (compatibleAagentLocator != null) {
       final List<SBuildAgent> agents = myAgentFinder.getItems(compatibleAagentLocator).myEntries;
-      final List<SAgentType> agentTypes = CollectionsUtil.convertCollection(agents, new Converter<SAgentType, SBuildAgent>() {
-        @Override
-        public SAgentType createFrom(@NotNull final SBuildAgent source) {
-          return AgentFinder.getAgentType(source);
-        }
-      });
       result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
         public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
           if (item.getBuildType() == null) return false;
-          for (SAgentType agentType : agentTypes) {
-            if (AgentFinder.canActuallyRun(agentType, item.getBuildType())) return true;
+          for (SBuildAgent agent : agents) {
+            if (AgentFinder.canActuallyRun(agent, item.getBuildType())) return true;
           }
           return false;
         }
@@ -292,7 +290,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     if (compatibleAgentsCount != null) {
       result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
         public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
-          return item.getBuildType() != null && compatibleAgentsCount.equals(Integer.valueOf(item.getBuildType().getCompatibleAgents().size()).longValue());
+          return item.getBuildType() != null && compatibleAgentsCount.equals(Integer.valueOf(item.getBuildType().getCanRunAgents().size()).longValue()); //pools!!!
         }
       });
     }

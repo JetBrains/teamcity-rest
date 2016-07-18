@@ -872,18 +872,11 @@ public class Build {
 
   @XmlElement(name = "compatibleAgents")
   public Agents getCompatibleAgents() {
-    return myQueuedBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("compatibleAgents", false), new ValueWithDefault.Value<Agents>() {
+    return myQueuedBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("compatibleAgents", false, true), new ValueWithDefault.Value<Agents>() {
       public Agents get() {
-        //do not calculate agents if not asked for
         final Fields nestedFields = myFields.getNestedField("compatibleAgents");
-        final Collection<SBuildAgent> agentObjects = ValueWithDefault.decideDefault(nestedFields.isLong() || nestedFields.isIncludedOr(new String[]{Agents.AGENT, Agents.COUNT}, false, false),
-                                                                                    new ValueWithDefault.Value<Collection<SBuildAgent>>() {
-          @Nullable
-          public Collection<SBuildAgent> get() {
-            return myQueuedBuild.getCompatibleAgents();
-          }
-        });
-        return new Agents(agentObjects, new PagerData(BuildQueueRequest.getCompatibleAgentsHref(myQueuedBuild)), nestedFields, myBeanContext);
+        String  actualLocatorText = Locator.merge(nestedFields.getLocator(), AgentFinder.getCompatibleAgentsLocator(myBuildPromotion));
+        return new Agents(actualLocatorText, new PagerData(AgentRequest.getItemsHref(actualLocatorText)), nestedFields, myBeanContext);
       }
     });
   }

@@ -205,7 +205,8 @@ public class AgentRequest {
   @Produces({"application/xml", "application/json"})
   public BuildTypes getCompatibleBuildTypes(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    return new BuildTypes(Compatibilities.getCompatiblityLists(agent, null, myBeanContext).getCompatibleBuildTypes(), null, new Fields(fields, Fields.LONG), myBeanContext);
+    Fields fieldsDefinition = new Fields(Agent.COMPATIBLE_BUILD_TYPES + "(" + (StringUtil.isEmpty(fields) ? "$long" : fields) + ")");
+    return new Agent(agent, myAgentPoolFinder, fieldsDefinition, myBeanContext).compatibleBuildTypes;
   }
 
   /**
@@ -216,7 +217,8 @@ public class AgentRequest {
   @Produces({"application/xml", "application/json"})
   public Compatibilities geIncompatibleBuildTypes(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    return new Compatibilities(Compatibilities.getCompatiblityLists(agent, null, myBeanContext).incompatibleBuildTypes, agent, null, new Fields(fields, Fields.LONG), myBeanContext);
+    Fields fieldsDefinition = new Fields(Agent.INCOMPATIBLE_BUILD_TYPES + "(" + (StringUtil.isEmpty(fields) ? "$long" : fields) + ")");
+    return new Agent(agent, myAgentPoolFinder, fieldsDefinition, myBeanContext).incompatibleBuildTypes;
   }
 
   @PUT

@@ -79,8 +79,14 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     return AgentFinder.getLocator(buildAgent);
   }
 
+  @NotNull
   public static String getCompatibleAgentsLocator(final SBuildType buildType) {
     return Locator.getStringLocator(COMPATIBLE, Locator.getStringLocator(COMPATIBLE_BUILD_TYPE, BuildTypeFinder.getLocator(buildType)));
+  }
+
+  @NotNull
+  public static String getCompatibleAgentsLocator(final BuildPromotion build) {
+    return Locator.getStringLocator(COMPATIBLE, Locator.getStringLocator(COMPATIBLE_BUILD, BuildPromotionFinder.getLocator(build)));
   }
 
   @NotNull
@@ -341,63 +347,57 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   }
 
   private boolean isCompatibleWithAny(@NotNull final SBuildAgent agent, @NotNull final List<SBuildType> buildTypes) {
-    SAgentType agentType = getAgentType(agent);
     for (final SBuildType buildType : buildTypes) {
-      if (canActuallyRun(agentType, buildType)) return true;
+      if (canActuallyRun(agent, buildType)) return true;
     }
     return false;
   }
 
   private boolean isCompatibleWithAll(@NotNull final SBuildAgent agent, @NotNull final List<SBuildType> buildTypes) {
-    SAgentType agentType = getAgentType(agent);
     for (final SBuildType buildType : buildTypes) {
-      if (!canActuallyRun(agentType, buildType)) return false;
+      if (!canActuallyRun(agent, buildType)) return false;
     }
     return true;
   }
 
   private boolean isCompatibleWithAnyBuild(final @NotNull SBuildAgent agent, final List<BuildPromotion> buildPromotions) {
-    SAgentType agentType = getAgentType(agent);
     for (BuildPromotion buildPromotion : buildPromotions) {
-      if (canActuallyRun(agentType, buildPromotion)) return true;
+      if (canActuallyRun(agent, buildPromotion)) return true;
     }
     return false;
   }
 
   private boolean isCompatibleWithAllBuild(final @NotNull SBuildAgent agent, final List<BuildPromotion> buildPromotions) {
-    SAgentType agentType = getAgentType(agent);
     for (BuildPromotion buildPromotion : buildPromotions) {
-      if (!canActuallyRun(agentType, buildPromotion)) return false;
+      if (!canActuallyRun(agent, buildPromotion)) return false;
     }
     return true;
   }
 
-  public static boolean canActuallyRun(@NotNull final SAgentType agentType, @NotNull final SBuildType buildType) {
-    if (agentType.getPolicy().isBuildTypeAllowed(buildType.getBuildTypeId())) {
-      final AgentCompatibility compatibility = ((BuildTypeEx)buildType).getAgentTypeCompatibility(agentType);
+  public static boolean canActuallyRun(@NotNull final SBuildAgent agent, @NotNull final SBuildType buildType) {
+    if (getAgentType(agent).getPolicy().isBuildTypeAllowed(buildType.getBuildTypeId())) {
+      final AgentCompatibility compatibility = buildType.getAgentCompatibility(agent);
       if (compatibility.isActive() && compatibility.isCompatible()) return true;
     }
     return false;
   }
 
-  public static boolean canActuallyRun(@NotNull final SAgentType agentType, @NotNull final BuildPromotion build) {
-    if (agentType.getPolicy().isBuildTypeAllowed(build.getBuildTypeId())) {
-      return !build.getCompatibleAgents(Collections.singletonList(agentType.getRealAgent())).isEmpty();
+  public static boolean canActuallyRun(@NotNull final SBuildAgent agent, @NotNull final BuildPromotion build) {
+    if (getAgentType(agent).getPolicy().isBuildTypeAllowed(build.getBuildTypeId())) {
+      return !build.getCanRunOnAgents(Collections.singletonList(agent)).isEmpty();
     }
     return false;
   }
 
   private boolean canActuallyRun(@NotNull final SBuildAgent agent, @NotNull final BuildPromotion build, @NotNull final CompatibilityResult compatibilityResult) {
-    AgentType agentType = getAgentType(agent);
-    if (agentType.getPolicy().isBuildTypeAllowed(build.getBuildTypeId())) {
+    if (getAgentType(agent).getPolicy().isBuildTypeAllowed(build.getBuildTypeId())) {
       if (compatibilityResult.isCompatible()) return true;
     }
     return false;
   }
 
   public static boolean canActuallyRun(@NotNull final AgentCompatibility compatibility) {
-    AgentType agentType = getAgentType(compatibility);
-    if (agentType.getPolicy().isBuildTypeAllowed(compatibility.getBuildType().getBuildTypeId())) {
+    if (getAgentType(compatibility).getPolicy().isBuildTypeAllowed(compatibility.getBuildType().getBuildTypeId())) {
       if (compatibility.isActive() && compatibility.isCompatible()) return true;
     }
     return false;
@@ -458,7 +458,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
         allAgents.addAll(myAgentManager.getUnregisteredAgents());
         assert compatibleData.buildPromotions != null;
         for (BuildPromotion build : compatibleData.buildPromotions) {
-          result.addAll(build.getCompatibleAgents(allAgents));
+          result.addAll(build.getCanRunOnAgents(allAgents));
         }
       }
       return getItemHolder(result);
