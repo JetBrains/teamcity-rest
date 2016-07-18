@@ -75,6 +75,7 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
   private MockBuildAgent myAgent40;
   private MockBuildAgent myAgent50;
   private MockBuildAgent myAgent60;
+  private MockBuildAgent myAgent70;
   private int myPoolId20;
   private BuildPromotion myBuild10;
   private BuildPromotion myBuild20;
@@ -156,6 +157,15 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
     myAgent60.pushAgentTypeData();
     myAgent60.setEnabled(false, null, "");
 
+    //compatible, but disconnected
+    myAgent70 = myFixture.createEnabledAgent("agent70", "Ant");
+    myAgent70.addConfigParameter("a", "b");
+    myAgent70.addConfigParameter("x", "2");
+    myAgent70.pushAgentTypeData();
+    myAgent70.setIsAvailable(false);
+    myAgentManager.unregisterAgent(myAgent70.getId());
+
+
     myPoolId20 = myFixture.getAgentPoolManager().createNewAgentPool("pool20").getAgentPoolId();
 
 
@@ -181,6 +191,7 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
     myExpected.add(ExpectedCompatibility.agent(myAgent40).buildTypes(myBt30).builds(myBuild10, myBuild20, myBuild30, myBuild50));
     myExpected.add(ExpectedCompatibility.agent(myAgent50).buildTypes().builds());
     myExpected.add(ExpectedCompatibility.agent(myAgent60).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds(myBuild10, myBuild20, myBuild30, myBuild50));
+    myExpected.add(ExpectedCompatibility.agent(myAgent70).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds(myBuild10, myBuild20, myBuild30, myBuild50));
 
 /* good config:
 //should be    myExpected.add(ExpectedCompatibility.agent(myBuildAgent).buildTypes(myBuildType, myBt30).builds());
@@ -210,6 +221,8 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
     myExpected.add(ExpectedCompatibility.agent(myAgent20).builds(myBuild100, myBuild110));
 // should not be necessary
     myExpected.add(ExpectedCompatibility.agent(myAgent60).builds(myBuild110)); //current behavior
+// should not be necessary
+    myExpected.add(ExpectedCompatibility.agent(myAgent70).builds(myBuild110)); //current behavior
   }
 
   static class ExpectedCompatibilities {
@@ -391,10 +404,11 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
                              new Build(build, new Fields("compatibleAgents($long)"), getBeanContext(myFixture)).getCompatibleAgents(), myExpected.compatibleAgents(build));
     }
 
-    //test node presence
-    assertNull(new Build(myBuild10, new Fields("$short"), getBeanContext(myFixture)).getCompatibleAgents()); //not included by default
-    assertNull(new Build(myBuild10, new Fields("$long"), getBeanContext(myFixture)).getCompatibleAgents().agents); //not included by default
-    assertNull(new Build(myBuild10, new Fields("$long"), getBeanContext(myFixture)).getCompatibleAgents().count); //not included by default
+    //test node presence,  not included by default
+    assertNull(new Build(myBuild10, new Fields("$short"), getBeanContext(myFixture)).getCompatibleAgents());
+    assertNotNull(new Build(myBuild10, new Fields("$long"), getBeanContext(myFixture)).getCompatibleAgents());
+    assertNull(new Build(myBuild10, new Fields("$long"), getBeanContext(myFixture)).getCompatibleAgents().agents);
+    assertNull(new Build(myBuild10, new Fields("$long"), getBeanContext(myFixture)).getCompatibleAgents().count);
     assertNotNull(new Build(myBuild10, new Fields("$long"), getBeanContext(myFixture)).getCompatibleAgents().href); //not included by default
     assertCollectionEquals(null, new Build(myBuild10, new Fields("compatibleAgents(agent)"), getBeanContext(myFixture)).getCompatibleAgents(),
                            myExpected.compatibleAgents(myBuild10));
@@ -439,9 +453,11 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
 
 //    checkAgents("compatible:(buildType:(id:" + myBt10.getExternalId() + "),buildType:(id:" + myBt40.getExternalId() + "))", myAgent20); is not supported so far
     checkAgents("compatible:(buildType:(id:" + myBt10.getExternalId() + ")),and(compatible:(buildType:(id:" + myBt40.getExternalId() + ")))", myAgent20);
-    checkAgents("compatible:(buildType:(item:(id:" + myBt10.getExternalId() + "),item:(id:" + myBt40.getExternalId() + ")))", myAgent10, myAgent15, myAgent20, myAgent60);
+//should be    checkAgents("compatible:(buildType:(item:(id:" + myBt10.getExternalId() + "),item:(id:" + myBt40.getExternalId() + ")))", myAgent10, myAgent15, myAgent20, myAgent60);
+    checkAgents("compatible:(buildType:(item:(id:" + myBt10.getExternalId() + "),item:(id:" + myBt40.getExternalId() + ")))", myAgent10, myAgent15, myAgent20, myAgent60, myAgent70); //current behavior
 
-    checkAgents("compatible:(buildType:(id:" + myBt10.getExternalId() + ")),incompatible:(buildType:(id:" + myBt40.getExternalId() + "))", myAgent15, myAgent60);
+//should be    checkAgents("compatible:(buildType:(id:" + myBt10.getExternalId() + ")),incompatible:(buildType:(id:" + myBt40.getExternalId() + "))", myAgent15, myAgent60);
+    checkAgents("compatible:(buildType:(id:" + myBt10.getExternalId() + ")),incompatible:(buildType:(id:" + myBt40.getExternalId() + "))", myAgent15, myAgent60, myAgent70); //current behavior
   }
 
   @Test
@@ -541,6 +557,11 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
     }
     */
   }
+
+  //todo: tests to add
+  // agentType with several agents, agentType has different compatibility
+  // under user who does not have permissions to see all (regular tests, tests with "*Count")
+
 
   //==================================================
 
