@@ -51,7 +51,7 @@ public class Compatibility {
   public Compatibility(@NotNull final AgentCompatibilityData compatibility,
                        @Nullable final SBuildAgent contextAgent, @Nullable final SBuildType contextBuildType,
                        @NotNull final Fields fields, @NotNull final BeanContext context) {
-    compatible = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("compatible", true, true), compatibility.getCompatibility().isCompatible());
+    compatible = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("compatible", true, true), compatibility.isCompatible());
 
     final boolean sameAgent = contextAgent != null && compatibility.getAgent().getId() == contextAgent.getId();
     agent = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("agent", !sameAgent, !sameAgent), new ValueWithDefault.Value<Agent>() {
@@ -68,85 +68,139 @@ public class Compatibility {
         return new BuildType(new BuildTypeOrTemplate(compatibility.getBuildType()), fields.getNestedField("buildType", Fields.SHORT, Fields.SHORT), context);
       }
     });
-    unmetRequirements = compatibility.getCompatibility().isCompatible() ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("unmetRequirements", true, true),
-                                                                                                                   new ValueWithDefault.Value<Requirements>() {
+    unmetRequirements = compatibility.isCompatible() ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("unmetRequirements", true, true),
+                                                                                                      new ValueWithDefault.Value<Requirements>() {
       @Nullable
       public Requirements get() {
-        return new Requirements(getDescription(compatibility.getCompatibility()), fields.getNestedField("unmetRequirements", Fields.LONG, Fields.LONG), context);
+        return new Requirements(compatibility.getDescription(), fields.getNestedField("unmetRequirements", Fields.LONG, Fields.LONG), context);
       }
     });
   }
 
-  static String getDescription(@NotNull final AgentCompatibility compatibility) {
-    if (compatibility.isCompatible()) {
-      return null;
-    }
-    StringBuilder sb = new StringBuilder();
-    if (compatibility.getIncompatibleRunner() != null) {
-      sb.append("Incompatible runner: '").append(compatibility.getIncompatibleRunner().getDisplayName()).append("'\n");
-    }
-    if (!compatibility.getNonMatchedRequirements().isEmpty()) {
-      sb.append("Unmet requirements:\n");
-      for (Requirement r : compatibility.getNonMatchedRequirements()) {
-        final RequirementType type = r.getType();
-        sb.append("\tParameter '").append(r.getPropertyName()).append("' ").append(type.getDisplayName());
-        if (!StringUtil.isEmpty(r.getPropertyValue())) {
-          sb.append(" '").append(r.getPropertyValue()).append("'");
-        }
-        sb.append("; ");
-      }
-      sb.delete(sb.length() - "; ".length(), sb.length());
-    }
-    if (!compatibility.getMissedVcsPluginsOnAgent().isEmpty()) {
-      final Map<String, String> missed = compatibility.getMissedVcsPluginsOnAgent();
-      sb.append("Missing VCS plugins on agent:\n");
-      for (String v : missed.values()) {
-        sb.append("\t'").append(v).append("'\n");
-      }
-    }
-    if (!compatibility.getInvalidRunParameters().isEmpty()) {
-      final List<InvalidProperty> irp = compatibility.getInvalidRunParameters();
-      sb.append("Missing or invalid build configuration parameters:\n");
-      for (InvalidProperty ip : irp) {
-        sb.append("\t'").append(ip.getPropertyName()).append("': ").append(ip.getInvalidReason()).append('\n');
-      }
-    }
+  public interface AgentCompatibilityData {
+    @NotNull
+    SBuildAgent getAgent();
 
-    if (!compatibility.getUndefinedParameters().isEmpty()) {
-      final Map<String, String> undefined = compatibility.getUndefinedParameters();
-      sb.append("Implicit requirements:\n");
-      for (Map.Entry<String, String> entry : undefined.entrySet()) {
-        sb.append("\tParameter '").append(entry.getKey()).append("' defined in ").append(entry.getValue()).append('\n');
-      }
-    }
-    return sb.toString();
+    @NotNull
+    SBuildType getBuildType();
+
+    public boolean isCompatible();
+
+    @Nullable
+    String getDescription();
   }
 
-  public static class AgentCompatibilityData {
+  public static class BasicAgentCompatibilityData implements AgentCompatibilityData {
+    @NotNull private final SBuildAgent myAgent;
+    @NotNull private final SBuildType myBuildType;
+    private final boolean myCompatible;
+    private final String myDescription;
+
+    public BasicAgentCompatibilityData(final @NotNull SBuildAgent agent, final @NotNull SBuildType buildType, boolean compatible, String description) {
+      myAgent = agent;
+      myBuildType = buildType;
+      myCompatible = compatible;
+      myDescription = description;
+    }
+
+    @Override
+    @NotNull
+    public SBuildAgent getAgent() {
+      return myAgent;
+    }
+
+    @Override
+    @NotNull
+    public SBuildType getBuildType() {
+      return myBuildType;
+    }
+
+    @Override
+    public boolean isCompatible() {
+      return myCompatible;
+    }
+
+    @Nullable
+    @Override
+    public String getDescription() {
+      return myDescription;
+    }
+  }
+
+  public static class ActualAgentCompatibilityData implements AgentCompatibilityData {
     @NotNull
     public final SBuildAgent myAgent;
 
     @NotNull
     private final AgentCompatibility myCompatibility;
 
-    public AgentCompatibilityData(final @NotNull AgentCompatibility compatibility, final @NotNull SBuildAgent agent) {
+    public ActualAgentCompatibilityData(final @NotNull AgentCompatibility compatibility, final @NotNull SBuildAgent agent) {
       myAgent = agent;
       myCompatibility = compatibility;
     }
 
     @NotNull
+    @Override
     public SBuildAgent getAgent() {
       return myAgent;
     }
 
     @NotNull
+    @Override
     public SBuildType getBuildType() {
       return myCompatibility.getBuildType();
     }
 
-    @NotNull
-    public AgentCompatibility getCompatibility() {
-      return myCompatibility;
+    @Override
+    public boolean isCompatible() {
+      return myCompatibility.isCompatible();
+    }
+
+    @Nullable
+    @Override
+    public String getDescription() {
+      if (myCompatibility.isCompatible()) {
+        return null;
+      }
+      StringBuilder sb = new StringBuilder();
+      if (myCompatibility.getIncompatibleRunner() != null) {
+        sb.append("Incompatible runner: '").append(myCompatibility.getIncompatibleRunner().getDisplayName()).append("'\n");
+      }
+      if (!myCompatibility.getNonMatchedRequirements().isEmpty()) {
+        sb.append("Unmet requirements:\n");
+        for (Requirement r : myCompatibility.getNonMatchedRequirements()) {
+          final RequirementType type = r.getType();
+          sb.append("\tParameter '").append(r.getPropertyName()).append("' ").append(type.getDisplayName());
+          if (!StringUtil.isEmpty(r.getPropertyValue())) {
+            sb.append(" '").append(r.getPropertyValue()).append("'");
+          }
+          sb.append("; ");
+        }
+        sb.delete(sb.length() - "; ".length(), sb.length());
+      }
+      if (!myCompatibility.getMissedVcsPluginsOnAgent().isEmpty()) {
+        final Map<String, String> missed = myCompatibility.getMissedVcsPluginsOnAgent();
+        sb.append("Missing VCS plugins on agent:\n");
+        for (String v : missed.values()) {
+          sb.append("\t'").append(v).append("'\n");
+        }
+      }
+      if (!myCompatibility.getInvalidRunParameters().isEmpty()) {
+        final List<InvalidProperty> irp = myCompatibility.getInvalidRunParameters();
+        sb.append("Missing or invalid build configuration parameters:\n");
+        for (InvalidProperty ip : irp) {
+          sb.append("\t'").append(ip.getPropertyName()).append("': ").append(ip.getInvalidReason()).append('\n');
+        }
+      }
+
+      if (!myCompatibility.getUndefinedParameters().isEmpty()) {
+        final Map<String, String> undefined = myCompatibility.getUndefinedParameters();
+        sb.append("Implicit requirements:\n");
+        for (Map.Entry<String, String> entry : undefined.entrySet()) {
+          sb.append("\tParameter '").append(entry.getKey()).append("' defined in ").append(entry.getValue()).append('\n');
+        }
+      }
+      return sb.toString();
     }
   }
 }

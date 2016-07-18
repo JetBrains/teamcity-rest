@@ -16,19 +16,14 @@
 
 package jetbrains.buildServer.server.rest.model.agent;
 
-import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.controllers.agent.AgentDetailsFormFactory;
-import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.AgentCompatibility;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -65,61 +60,5 @@ public class Compatibilities {
       });
 
     count = compatibilitiesP == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), compatibilitiesP.size());
-  }
-
-  @NotNull
-  public static CompatibilityLists getCompatiblityLists(final @NotNull SBuildAgent agent, final @Nullable List<SBuildType> buildTypes, final @NotNull BeanContext beanContext) {
-    final CompatibilityLists result = new CompatibilityLists();
-
-    final AgentDetailsFormFactory factory = beanContext.getServiceLocator().getSingletonService(AgentDetailsFormFactory.class);
-    for (AgentCompatibility compatibility : factory.createAgentDetailsForm(agent).getActiveCompatibilities().getCompatibilities()) {
-      processCompatibility(result, compatibility, agent, buildTypes);
-    }
-    return result;
-  }
-
-  private static void processCompatibility(final @NotNull CompatibilityLists result,
-                                           final @NotNull AgentCompatibility compatibility,
-                                           final @NotNull SBuildAgent agent,
-                                           final @Nullable List<SBuildType> buildTypes) {
-    if (buildTypes != null && !buildTypes.contains(compatibility.getBuildType())) return;
-    if (!compatibility.isActive()) return;
-    if (compatibility.isCompatible()) {
-      result.compatibleBuildTypes.add(new Compatibility.AgentCompatibilityData(compatibility, agent));
-    } else {
-      result.incompatibleBuildTypes.add(new Compatibility.AgentCompatibilityData(compatibility, agent));
-    }
-  }
-
-  @NotNull
-  public static CompatibilityLists getCompatiblityLists(@Nullable List<SBuildAgent> agents, final @Nullable List<SBuildType> buildTypes,
-                                                        final @NotNull BeanContext beanContext) {
-    final CompatibilityLists result = new CompatibilityLists();
-    if (agents == null) agents = beanContext.getSingletonService(AgentFinder.class).getItems(null).myEntries;
-    for (SBuildAgent agent : agents) {
-      final CompatibilityLists agentResult = getCompatiblityLists(agent, buildTypes, beanContext);
-      result.compatibleBuildTypes.addAll(agentResult.compatibleBuildTypes);
-      result.incompatibleBuildTypes.addAll(agentResult.incompatibleBuildTypes);
-    }
-    return result;
-  }
-
-  public static class CompatibilityLists {
-    public List<Compatibility.AgentCompatibilityData> compatibleBuildTypes = new ArrayList<Compatibility.AgentCompatibilityData>();
-    public List<Compatibility.AgentCompatibilityData> incompatibleBuildTypes = new ArrayList<Compatibility.AgentCompatibilityData>();
-
-    public List<BuildTypeOrTemplate> getCompatibleBuildTypes() {
-      return CollectionsUtil.convertCollection(compatibleBuildTypes, new Converter<BuildTypeOrTemplate, Compatibility.AgentCompatibilityData>() {
-        public BuildTypeOrTemplate createFrom(@NotNull final Compatibility.AgentCompatibilityData source) {
-          return new BuildTypeOrTemplate(source.getBuildType());
-        }
-      });
-    }
-
-    public List<Compatibility.AgentCompatibilityData> getAll() {
-      final ArrayList<Compatibility.AgentCompatibilityData> result = new ArrayList<Compatibility.AgentCompatibilityData>(compatibleBuildTypes);
-      result.addAll(incompatibleBuildTypes);
-      return result;
-    }
   }
 }

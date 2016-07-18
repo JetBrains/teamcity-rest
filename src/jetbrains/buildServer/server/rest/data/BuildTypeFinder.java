@@ -279,7 +279,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
         public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
           if (item.getBuildType() == null) return false;
           for (SBuildAgent agent : agents) {
-            if (AgentFinder.canActuallyRun(agent, item.getBuildType())) return true;
+            if (AgentFinder.canActuallyRun(agent, item.getBuildType(), myServiceLocator)) return true;
           }
           return false;
         }
@@ -290,7 +290,13 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     if (compatibleAgentsCount != null) {
       result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
         public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
-          return item.getBuildType() != null && compatibleAgentsCount.equals(Integer.valueOf(item.getBuildType().getCanRunAgents().size()).longValue()); //pools!!!
+          if (item.getBuildType() == null) return false;
+          long count = 0;
+          for (SBuildAgent agent : myAgentFinder.getItems(null).myEntries) { //or should process unauthorized as well?
+            if (AgentFinder.canActuallyRun(agent, item.getBuildType(), myServiceLocator)) count++;
+            if (count > compatibleAgentsCount) return false;
+          }
+          return count == compatibleAgentsCount;
         }
       });
     }

@@ -149,7 +149,6 @@ public class Agent {
         }
       });
 
-      final Compatibilities.CompatibilityLists[] compatibilityResults = new Compatibilities.CompatibilityLists[1];
       compatibleBuildTypes =
         ValueWithDefault.decideDefault(fields.isIncluded(COMPATIBLE_BUILD_TYPES, false, false), new ValueWithDefault.Value<BuildTypes>() {
           @Nullable
@@ -161,8 +160,7 @@ public class Agent {
       incompatibleBuildTypes = ValueWithDefault.decideDefault(fields.isIncluded(INCOMPATIBLE_BUILD_TYPES, false, false), new ValueWithDefault.Value<Compatibilities>() {
         @Nullable
         public Compatibilities get() {
-          if (compatibilityResults[0] == null) compatibilityResults[0] = Compatibilities.getCompatiblityLists(agent, null, beanContext);
-          return new Compatibilities(compatibilityResults[0].incompatibleBuildTypes, agent, null, fields.getNestedField(INCOMPATIBLE_BUILD_TYPES), beanContext);
+          return new Compatibilities(AgentFinder.getIncompatible(agent, null, beanContext.getServiceLocator()), agent, null, fields.getNestedField(INCOMPATIBLE_BUILD_TYPES), beanContext);
         }
       });
     }

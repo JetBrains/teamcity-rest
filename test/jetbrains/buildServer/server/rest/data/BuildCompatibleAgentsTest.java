@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.LicenseTestUtil;
 import jetbrains.buildServer.AgentRestrictorType;
-import jetbrains.buildServer.controllers.agent.AgentDetailsFormFactory;
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.model.BuildTest;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -162,6 +161,7 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
     myAgent70.addConfigParameter("x", "2");
     myAgent70.pushAgentTypeData();
     myAgent70.setIsAvailable(false);
+    myAgent70.setUnregistrationComment("comment");
     myAgentManager.unregisterAgent(myAgent70.getId());
 
 
@@ -198,8 +198,7 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
     myExpected.add(ExpectedCompatibility.agent(myAgent50).buildTypes().builds());
 //should be    myExpected.add(ExpectedCompatibility.agent(myAgent60).buildTypes().builds(myBuild30));
     myExpected.add(ExpectedCompatibility.agent(myAgent60).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds(myBuild10, myBuild20, myBuild30));  //current behavior
-//should be    myExpected.add(ExpectedCompatibility.agent(myAgent70).buildTypes().builds());
-    myExpected.add(ExpectedCompatibility.agent(myAgent70).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds(myBuild10, myBuild20, myBuild30, myBuild50));  //current behavior
+    myExpected.add(ExpectedCompatibility.agent(myAgent70).buildTypes().builds());
   }
 
   private void addSnapshotBuilds() {
@@ -216,8 +215,6 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
     myExpected.add(ExpectedCompatibility.agent(myAgent20).builds(myBuild100, myBuild110));
 // should not be necessary
     myExpected.add(ExpectedCompatibility.agent(myAgent60).builds(myBuild110)); //current behavior
-// should not be necessary
-    myExpected.add(ExpectedCompatibility.agent(myAgent70).builds(myBuild110)); //current behavior
   }
 
   static class ExpectedCompatibilities {
@@ -385,11 +382,6 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
   public void testBuildEntity() throws AgentPoolCannotBeRenamedException, PoolQuotaExceededException, NoSuchAgentPoolException {
     addSnapshotBuilds();
 
-    //todo: fix
-    myExpected.add(ExpectedCompatibility.agent(myAgent15).builds(myBuild30, myBuild50));
-    myExpected.add(ExpectedCompatibility.agent(myAgent20).builds(myBuild30, myBuild50));
-    myExpected.add(ExpectedCompatibility.agent(myAgent60).builds(myBuild50));
-
     for (BuildPromotion build : myExpected.getAllBuilds()) {
       assertCollectionEquals("build id: " + build.getId(),
                              new Build(build, new Fields("compatibleAgents($long)"), getBeanContext(myFixture)).getCompatibleAgents(), myExpected.compatibleAgents(build));
@@ -411,39 +403,32 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
   public void testAgentFinder() throws AgentPoolCannotBeRenamedException, PoolQuotaExceededException, NoSuchAgentPoolException {
     addSnapshotBuilds();
 
-    //todo: fix
-    myExpected.add(ExpectedCompatibility.agent(myAgent15).builds(myBuild30, myBuild50));
-    myExpected.add(ExpectedCompatibility.agent(myAgent20).builds(myBuild30, myBuild50));
-    myExpected.add(ExpectedCompatibility.agent(myAgent60).builds(myBuild50));
-
     for (BuildPromotion build : myExpected.getAllBuilds()) {
       checkAgents("compatible:(build:(id:" + build.getId() + "))", myExpected.compatibleAgents(build));
     }
 
-    /* todo: fix
     for (BuildPromotion build : myExpected.getAllBuilds()) {
-      checkAgents("incompatible:(build:(id:" + build.getId() + "))", myExpected.incompatibleAgents(build));
+      checkAgents("authorized:any,incompatible:(build:(id:" + build.getId() + "))", myExpected.incompatibleAgents(build));
     }
-    */
+    checkAgents("authorized:any,incompatible:(build:(id:" + myBuild10.getId() + "))", myBuildAgent, myAgent10, myAgent30, myAgent40, myAgent50, myAgent70);
+    checkAgents("incompatible:(build:(id:" + myBuild10.getId() + "))", myBuildAgent, myAgent10, myAgent30, myAgent40, myAgent70);
 
 
     for (SBuildType buildType : myExpected.getAllBuildTypes()) {
       checkAgents("compatible:(buildType:(id:" + buildType.getExternalId() + "))", myExpected.compatibleAgents(buildType));
     }
 
-    /* todo: fix
     for (SBuildType buildType : myExpected.getAllBuildTypes()) {
-      checkAgents("incompatible:(buildType:(id:" + buildType.getExternalId() + "))", myExpected.incompatibleAgents(buildType));
+      checkAgents("authorized:any,incompatible:(buildType:(id:" + buildType.getExternalId() + "))", myExpected.incompatibleAgents(buildType));
     }
-    */
+    checkAgents("authorized:any,incompatible:(buildType:(id:" + myBt10.getExternalId() + "))", myBuildAgent, myAgent10, myAgent30, myAgent40, myAgent50, myAgent70);
+    checkAgents("incompatible:(buildType:(id:" + myBt10.getExternalId() + "))", myBuildAgent, myAgent10, myAgent30, myAgent40, myAgent70);
 
 //    checkAgents("compatible:(buildType:(id:" + myBt10.getExternalId() + "),buildType:(id:" + myBt40.getExternalId() + "))", myAgent20); is not supported so far
     checkAgents("compatible:(buildType:(id:" + myBt10.getExternalId() + ")),and(compatible:(buildType:(id:" + myBt40.getExternalId() + ")))", myAgent20);
-//should be    checkAgents("compatible:(buildType:(item:(id:" + myBt10.getExternalId() + "),item:(id:" + myBt40.getExternalId() + ")))", myAgent10, myAgent15, myAgent20, myAgent60);
-    checkAgents("compatible:(buildType:(item:(id:" + myBt10.getExternalId() + "),item:(id:" + myBt40.getExternalId() + ")))", myAgent10, myAgent15, myAgent20, myAgent60, myAgent70); //current behavior
+    checkAgents("compatible:(buildType:(item:(id:" + myBt10.getExternalId() + "),item:(id:" + myBt40.getExternalId() + ")))", myAgent10, myAgent15, myAgent20, myAgent60);
 
-//should be    checkAgents("compatible:(buildType:(id:" + myBt10.getExternalId() + ")),incompatible:(buildType:(id:" + myBt40.getExternalId() + "))", myAgent15, myAgent60);
-    checkAgents("compatible:(buildType:(id:" + myBt10.getExternalId() + ")),incompatible:(buildType:(id:" + myBt40.getExternalId() + "))", myAgent15, myAgent60, myAgent70); //current behavior
+    checkAgents("compatible:(buildType:(id:" + myBt10.getExternalId() + ")),incompatible:(buildType:(id:" + myBt40.getExternalId() + "))", myAgent15, myAgent60);
   }
 
   @Test
@@ -459,12 +444,8 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
   public void testAgentEntity() throws AgentPoolCannotBeRenamedException, PoolQuotaExceededException, NoSuchAgentPoolException {
     addSnapshotBuilds();
 
-    myFixture.addService(new AgentDetailsFormFactory(myFixture.getProjectManager(), myFixture.getAgentTypeManager(), myFixture.getAgentPoolManager(), myServer,
-                                                     myFixture.getSecurityContext())); //todo: drop this
-
-    //override for unauthorized agent
-    //todo: is this OK?
-    myExpected.replace(ExpectedCompatibility.agent(myAgent50).buildTypes(myBuildType, myBt10, myBt30, myBt50));
+    //todo: find a way to provide compatibility for unauthorized agent
+//    myExpected.replace(ExpectedCompatibility.agent(myAgent50).buildTypes(myBuildType, myBt10, myBt30, myBt50));
 
     for (SBuildAgent agent : myExpected.getAllAgents()) {
       assertCollectionEquals(agent.getName(), new Agent(agent, myAgentPoolFinder, new Fields("compatibleBuildTypes($long)"), getBeanContext(myFixture)).compatibleBuildTypes,
@@ -478,13 +459,6 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
                            myExpected.compatibleBuildTypes(myBuildAgent));
     assertEquals(Integer.valueOf(myExpected.compatibleBuildTypes(myBuildAgent).length),
                  new Agent(myBuildAgent, myAgentPoolFinder, new Fields("compatibleBuildTypes(count)"), getBeanContext(myFixture)).compatibleBuildTypes.count);
-
-    //todo: fix!
-    myExpected.replace(ExpectedCompatibility.agent(myAgent30).buildTypes(myExpected.getAllBuildTypes().toArray(new SBuildType[0])));
-    myExpected.replace(ExpectedCompatibility.agent(myAgent40).buildTypes(myExpected.getAllBuildTypes().toArray(new SBuildType[0])));
-    for (SBuildAgent agent : myExpected.getAllAgents()) {
-      myExpected.add(ExpectedCompatibility.agent(agent).buildTypes(myBt60));
-    }
 
     for (SBuildAgent agent : myExpected.getAllAgents()) {
       assertCollectionEquals(agent.getName(), new Agent(agent, myAgentPoolFinder, new Fields("incompatibleBuildTypes($long)"), getBeanContext(myFixture)).incompatibleBuildTypes,
@@ -501,24 +475,13 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
 
   @Test
   public void testAgentRequest() {
-    myFixture.addService(new AgentDetailsFormFactory(myFixture.getProjectManager(), myFixture.getAgentTypeManager(), myFixture.getAgentPoolManager(), myServer,
-                                                     myFixture.getSecurityContext())); //todo: drop this
-
     AgentRequest resource = AgentRequest.createForTests(getBeanContext(myFixture));
 
-    //override for unauthorized agent
-    //todo: is this OK?
-    myExpected.replace(ExpectedCompatibility.agent(myAgent50).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds());
+    //todo: find a way to provide compatibility for unauthorized agent
+//    myExpected.replace(ExpectedCompatibility.agent(myAgent50).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds());
 
     for (SBuildAgent agent : myExpected.getAllAgents()) {
       assertCollectionEquals(agent.getName(), resource.getCompatibleBuildTypes("id:" + agent.getId(), null), myExpected.compatibleBuildTypes(agent));
-    }
-
-    //todo: fix!
-    myExpected.replace(ExpectedCompatibility.agent(myAgent30).buildTypes(myExpected.getAllBuildTypes().toArray(new SBuildType[0])));
-    myExpected.replace(ExpectedCompatibility.agent(myAgent40).buildTypes(myExpected.getAllBuildTypes().toArray(new SBuildType[0])));
-    for (SBuildAgent agent : myExpected.getAllAgents()) {
-      myExpected.add(ExpectedCompatibility.agent(agent).buildTypes(myBt60));
     }
 
     for (SBuildAgent agent : myExpected.getAllAgents()) {
@@ -528,11 +491,12 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
 
   @Test
   public void testBuildTypeFinder() throws Exception {
-    BuildTypeEx bt100 = myProject10.createBuildType("bt100", "bt 100");
-    bt100.addRequirement(myFixture.findSingletonService(RequirementFactory.class).createRequirement("abra", "1", RequirementType.EQUALS));
+    BuildTypeEx bt90 = myProject10.createBuildType("bt90", "bt 90");
+    bt90.addRequirement(myFixture.findSingletonService(RequirementFactory.class).createRequirement("abra", "1", RequirementType.EQUALS));
+    myExpected.setAllBuildTypes(myBuildType, myBt10, myBt30, myBt40, myBt50, bt90, myBt60); //order is important here
 
-    //is this OK?
-    myExpected.replace(ExpectedCompatibility.agent(myAgent50).buildTypes(myBuildType, myBt10, myBt30, myBt50)); //current behavior
+    //todo: find a way to provide compatibility for unauthorized agent
+//    myExpected.replace(ExpectedCompatibility.agent(myAgent50).buildTypes(myBuildType, myBt10, myBt30, myBt50)); //current behavior
 
     for (SBuildAgent agent : myExpected.getAllAgents()) {
       checkBuildTypes("compatibleAgent:(name:" + agent.getName() + ")", myExpected.compatibleBuildTypes(agent));
@@ -540,14 +504,11 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
 
     checkBuildTypes("compatibleAgent:(item:(id:" + myAgent10.getId() + "),item:(id:" + myAgent15.getId() + "))", myBuildType, myBt10, myBt30, myBt40, myBt50);
 
-//todo: fix
-    /*
     for (int i = 0; i < myExpected.getAllAgents().size() + 1; i++) {
       final int finalI = i;
       checkBuildTypes("compatibleAgentsCount:" + i + "",
                   myExpected.getAllBuildTypes().stream().filter(b -> myExpected.compatibleAgents(b).length == finalI).toArray(s -> new SBuildType[s]));
     }
-    */
   }
 
   //todo: tests to add
