@@ -61,9 +61,11 @@ import static java.util.stream.Collectors.toList;
 public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
 
   private ProjectEx myProject10;
+  private ProjectEx myProject20;
   private BuildTypeEx myBt10;
   private BuildTypeEx myBt40;
   private BuildTypeEx myBt50;
+  private BuildTypeEx myBt60;
 
   private MockBuildAgent myAgent10;
   private MockBuildAgent myAgent15;
@@ -164,7 +166,13 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
 
 
     myPoolId20 = myFixture.getAgentPoolManager().createNewAgentPool("pool20").getAgentPoolId();  //pool without agents
-    myFixture.getAgentPoolManager().associateProjectsWithPool(myPoolId20, new HashSet<String>(Arrays.asList(String.valueOf(myPoolId20))));
+    myFixture.getAgentPoolManager().associateProjectsWithPool(myPoolId20, new HashSet<String>(Arrays.asList(String.valueOf(myProject10.getProjectId()))));
+
+    myProject20 = createProject("project20", "project 20");
+    myBt60 = myProject20.createBuildType("bt60", "bt 60");
+    int poolId30 = myFixture.getAgentPoolManager().createNewAgentPool("pool30").getAgentPoolId();  //pool without agents
+    myFixture.getAgentPoolManager().associateProjectsWithPool(poolId30, new HashSet<String>(Arrays.asList(String.valueOf(myProject20.getProjectId()))));
+    myFixture.getAgentPoolManager().dissociateProjectsFromOtherPools(poolId30, new HashSet<String>(Arrays.asList(String.valueOf(myProject20.getProjectId()))));
 
 
     myBuild10 = build().in(myBt10).addToQueue().getBuildPromotion();
@@ -177,7 +185,7 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
     myBuild50 = myBt10.addToQueue(agentRestrictor, (BuildPromotionEx)customizer.createPromotion(), new TriggeredByBuilder().toString()).getBuildPromotion();
 
     myExpected = new ExpectedCompatibilities();
-    myExpected.setAllBuildTypes(myBuildType, myBt10, myBt30, myBt40, myBt50);
+    myExpected.setAllBuildTypes(myBuildType, myBt10, myBt30, myBt40, myBt50, myBt60);
     myExpected.setAllBuilds(myBuild10, myBuild20, myBuild30, myBuild40, myBuild50);
 
 //should be    myExpected.add(ExpectedCompatibility.agent(myBuildAgent).buildTypes(myBuildType, myBt30).builds());
@@ -463,15 +471,6 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
                              myExpected.compatibleBuildTypes(agent));
     }
 
-    //todo: fix!
-    myExpected.replace(ExpectedCompatibility.agent(myAgent30).buildTypes(myExpected.getAllBuildTypes().toArray(new SBuildType[0])));
-    myExpected.replace(ExpectedCompatibility.agent(myAgent40).buildTypes(myExpected.getAllBuildTypes().toArray(new SBuildType[0])));
-
-    for (SBuildAgent agent : myExpected.getAllAgents()) {
-      assertCollectionEquals(agent.getName(), new Agent(agent, myAgentPoolFinder, new Fields("incompatibleBuildTypes($long)"), getBeanContext(myFixture)).incompatibleBuildTypes,
-                             myExpected.incompatibleBuildTypes(agent));
-    }
-
     //test node presence
     assertNull(new Agent(myBuildAgent, myAgentPoolFinder, new Fields("$short"), getBeanContext(myFixture)).compatibleBuildTypes); //not included by default
     assertNull(new Agent(myBuildAgent, myAgentPoolFinder, new Fields("$long"), getBeanContext(myFixture)).compatibleBuildTypes); //not included by default, todo: add href by default
@@ -479,6 +478,18 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
                            myExpected.compatibleBuildTypes(myBuildAgent));
     assertEquals(Integer.valueOf(myExpected.compatibleBuildTypes(myBuildAgent).length),
                  new Agent(myBuildAgent, myAgentPoolFinder, new Fields("compatibleBuildTypes(count)"), getBeanContext(myFixture)).compatibleBuildTypes.count);
+
+    //todo: fix!
+    myExpected.replace(ExpectedCompatibility.agent(myAgent30).buildTypes(myExpected.getAllBuildTypes().toArray(new SBuildType[0])));
+    myExpected.replace(ExpectedCompatibility.agent(myAgent40).buildTypes(myExpected.getAllBuildTypes().toArray(new SBuildType[0])));
+    for (SBuildAgent agent : myExpected.getAllAgents()) {
+      myExpected.add(ExpectedCompatibility.agent(agent).buildTypes(myBt60));
+    }
+
+    for (SBuildAgent agent : myExpected.getAllAgents()) {
+      assertCollectionEquals(agent.getName(), new Agent(agent, myAgentPoolFinder, new Fields("incompatibleBuildTypes($long)"), getBeanContext(myFixture)).incompatibleBuildTypes,
+                             myExpected.incompatibleBuildTypes(agent));
+    }
 
     assertNull(new Agent(myBuildAgent, myAgentPoolFinder, new Fields("$short"), getBeanContext(myFixture)).incompatibleBuildTypes); //not included by default
     assertNull(new Agent(myBuildAgent, myAgentPoolFinder, new Fields("$long"), getBeanContext(myFixture)).incompatibleBuildTypes); //not included by default
@@ -506,6 +517,9 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
     //todo: fix!
     myExpected.replace(ExpectedCompatibility.agent(myAgent30).buildTypes(myExpected.getAllBuildTypes().toArray(new SBuildType[0])));
     myExpected.replace(ExpectedCompatibility.agent(myAgent40).buildTypes(myExpected.getAllBuildTypes().toArray(new SBuildType[0])));
+    for (SBuildAgent agent : myExpected.getAllAgents()) {
+      myExpected.add(ExpectedCompatibility.agent(agent).buildTypes(myBt60));
+    }
 
     for (SBuildAgent agent : myExpected.getAllAgents()) {
       assertCollectionEquals(agent.getName(), resource.geIncompatibleBuildTypes("id:" + agent.getId(), null), myExpected.incompatibleBuildTypes(agent));
