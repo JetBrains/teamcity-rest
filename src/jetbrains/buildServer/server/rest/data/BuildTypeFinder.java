@@ -293,7 +293,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
           if (item.getBuildType() == null) return false;
           long count = 0;
           for (SBuildAgent agent : myAgentFinder.getItems(null).myEntries) { //or should process unauthorized as well?
-            if (AgentFinder.canActuallyRun(agent, item.getBuildType(), myServiceLocator)) count++;
+            if (AgentFinder.canActuallyRun(agent, item.getBuildType(), myServiceLocator) && agent.isRegistered()&& agent.isAuthorized()) count++;
             if (count > compatibleAgentsCount) return false;
           }
           return count == compatibleAgentsCount;

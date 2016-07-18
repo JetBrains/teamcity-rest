@@ -407,12 +407,8 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     //if (!agent.isEnabled()) { //when uncommented, build assigned on agent should still be compatible
     //  return new Compatibility.BasicAgentCompatibilityData(agent, buildType, false, "Agent is disabled");
     //}
-    if (!agent.isRegistered()) {
-      return new Compatibility.BasicAgentCompatibilityData(agent, buildType, false, "Agent is disconnected");
-    }
-    if (!agent.isAuthorized()) {
-      return new Compatibility.BasicAgentCompatibilityData(agent, buildType, false, "Agent is not authorized");
-    }
+    //if (!agent.isRegistered()) //considered compatible
+    //if (!agent.isAuthorized()) //considered compatible
 
     AgentCompatibility compatibility = buildType.getAgentCompatibility(agent);
     if (compatibility == null) {
@@ -516,6 +512,10 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
 
     if (defaultFiltering == null && locator.isAnyPresent(BUILD, POOL, IP, PROTOCOL)) {
       return;
+    }
+
+    if ((defaultFiltering == null || defaultFiltering) && locator.isAnyPresent(COMPATIBLE)) {
+      locator.setDimensionIfNotPresent(CONNECTED, "true");
     }
 
     locator.setDimensionIfNotPresent(AUTHORIZED, "true");
