@@ -23,6 +23,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.federation.ConnectedServers;
 import jetbrains.buildServer.federation.TeamCityServer;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.federation.FederationServer;
@@ -37,6 +38,7 @@ public class FederationRequest {
   public static final String API_FEDERATION_URL = Constants.API_URL + "/federation";
   @Context private ServiceLocator myServiceLocator;
   @Context private ApiUrlBuilder myApiUrlBuilder;
+  @Context private PermissionChecker myPermissionChecker;
 
   @GET
   @Path("/servers")
@@ -55,8 +57,10 @@ public class FederationRequest {
       throw new BadRequestException("Server url cannot be empty.");
     }
 
-    myServiceLocator.getSingletonService(ConnectedServers.class)
-                    .setAttachedServer(servers.servers.stream().map(server -> new TeamCityServer(server.getUrl(), server.getName())).collect(toList()));
+    ConnectedServers connectedServers = myServiceLocator.getSingletonService(ConnectedServers.class);
+    myPermissionChecker.checkGlobalPermission(connectedServers.getRequiredPermissionForSetServers());
+
+    connectedServers.setAttachedServer(servers.servers.stream().map(server -> new TeamCityServer(server.getUrl(), server.getName())).collect(toList()));
 
     return servers;
   }
