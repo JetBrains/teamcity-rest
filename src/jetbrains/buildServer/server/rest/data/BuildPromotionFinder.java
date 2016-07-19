@@ -468,11 +468,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       final SBuildAgent agent = myAgentFinder.getItem(compatibleAagentLocator);
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
-          final SQueuedBuild queuedBuild = item.getQueuedBuild();
-          if (queuedBuild != null) {
-            return queuedBuild.getCanRunOnAgents().contains(agent);
-          }
-          return false;
+          return myAgentFinder.canActuallyRun(agent, item);
         }
       });
     }
@@ -481,11 +477,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     if (compatibleAgentsCount != null) {
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
-          final SQueuedBuild queuedBuild = item.getQueuedBuild();
-          if (queuedBuild != null) {
-            return compatibleAgentsCount.equals(Integer.valueOf(queuedBuild.getCanRunOnAgents().size()).longValue());
+          long count = 0;
+          for (SBuildAgent agent : myAgentFinder.getItems(null).myEntries) { //or should process unauthorized as well?
+            if (myAgentFinder.canActuallyRun(agent, item)) count++;
+            if (count > compatibleAgentsCount) return false;
           }
-          return false;
+          return count == compatibleAgentsCount;
         }
       });
     }

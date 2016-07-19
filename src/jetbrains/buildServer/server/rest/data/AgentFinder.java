@@ -19,9 +19,11 @@ package jetbrains.buildServer.server.rest.data;
 import com.google.common.collect.ComparisonChain;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
+import jetbrains.buildServer.AgentRestrictor;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
@@ -33,6 +35,7 @@ import jetbrains.buildServer.serverSide.agentTypes.AgentType;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
 import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.impl.buildDistribution.restrictors.SingleAgentRestrictor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -404,9 +407,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     if (!serviceLocator.getSingletonService(AgentPoolManager.class).getProjectPools(buildType.getProjectId()).contains(agent.getAgentPoolId())) {
       return new Compatibility.BasicAgentCompatibilityData(agent, buildType, false, "Agent belongs to the pool not associated with the project");
     }
-    //if (!agent.isEnabled()) { //when uncommented, build assigned on agent should still be compatible
-    //  return new Compatibility.BasicAgentCompatibilityData(agent, buildType, false, "Agent is disabled");
-    //}
+    //if (!agent.isEnabled()) //considered compatible
     //if (!agent.isRegistered()) //considered compatible
     //if (!agent.isAuthorized()) //considered compatible
 
@@ -423,13 +424,30 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     return new Compatibility.ActualAgentCompatibilityData(compatibility, agent);
   }
 
+  public boolean canActuallyRun(@NotNull final SBuildAgent agent, @NotNull final BuildPromotion build) {
+    return canActuallyRun(agent, build, myServiceLocator);
+  }
+
   public static boolean canActuallyRun(@NotNull final SBuildAgent agent, @NotNull final BuildPromotion build, final @NotNull ServiceLocator serviceLocator) {
+    if (!agent.isRegistered() || !agent.isAuthorized()) return false; //is this separate check necessary?
     if (build.getCanRunOnAgents(Collections.singletonList(agent)).isEmpty()) {
       return false;
     }
     SQueuedBuild queuedBuild = build.getQueuedBuild(); // doing this after  build.getCanRunOnAgents as this does not take agent as argument
-    if (queuedBuild != null && !queuedBuild.getCanRunOnAgents().stream().filter(a -> AGENT_COMPARATOR.compare(a, agent) == 0).findAny().isPresent()) {
-      return false;
+    if (queuedBuild != null) {
+      if (!agent.isEnabled()) {
+        AgentRestrictor agentRestrictor = queuedBuild.getAgentRestrictor();
+        if (agentRestrictor == null) {
+          return false;
+        }
+        if (!agentRestrictor.accept(agent)) {
+          return false;
+        }
+        return agentRestrictor instanceof SingleAgentRestrictor;
+      }
+      if (!queuedBuild.getCanRunOnAgents().stream().filter(a -> AGENT_COMPARATOR.compare(a, agent) == 0).findAny().isPresent()) {
+        return false;
+      }
     }
     SBuildType buildType = build.getBuildType();
     if (buildType != null && !getCompatibilityData(agent, buildType, serviceLocator).isCompatible()) {
@@ -516,6 +534,14 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
 
     if ((defaultFiltering == null || defaultFiltering) && locator.isAnyPresent(COMPATIBLE)) {
       locator.setDimensionIfNotPresent(CONNECTED, "true");
+      String compatible = locator.lookupSingleDimensionValue(COMPATIBLE);
+      try {
+        if (new Locator(compatible).getSingleDimensionValue(COMPATIBLE_BUILD_TYPE) != null) {
+          locator.setDimensionIfNotPresent(ENABLED, "true");
+        }
+      } catch (LocatorProcessException e) {
+        //ignore
+      }
     }
 
     locator.setDimensionIfNotPresent(AUTHORIZED, "true");

@@ -232,9 +232,11 @@ public class AgentFinderTest extends BaseFinderTest<SBuildAgent> {
 
     checkAgents("defaultFilter:false", myAgent1, myAgent2, myAgent3, myAgent4, agent10, agent15, agent20, agent30, agent40, agent50);
     checkAgents(null, myAgent1, myAgent2, agent10, agent15, agent20, agent30, agent40, agent50);
-    checkAgents("compatible:(buildType:(id:" + bt10.getExternalId() + "))", agent10, agent15, agent50);
+    checkAgents("compatible:(buildType:(id:" + bt10.getExternalId() + "))", agent10, agent15);
+    checkAgents("enabled:any,compatible:(buildType:(id:" + bt10.getExternalId() + "))", agent10, agent15, agent50);
     checkAgents("compatible:(buildType:(id:" + bt30.getExternalId() + "))", myAgent1, agent10);
-    checkAgents("compatible:(buildType:(item:(id:" + bt10.getExternalId() + "),item:(id:" + bt30.getExternalId() + ")))", myAgent1, agent10, agent15, agent50);
+    checkAgents("compatible:(buildType:(item:(id:" + bt10.getExternalId() + "),item:(id:" + bt30.getExternalId() + ")))", myAgent1, agent10, agent15);
+    checkAgents("enabled:any,compatible:(buildType:(item:(id:" + bt10.getExternalId() + "),item:(id:" + bt30.getExternalId() + ")))", myAgent1, agent10, agent15, agent50);
 //    checkAgents("compatible:(buildType:(id:" + bt10.getExternalId() + ")),compatible:(buildType:(id:" + bt30.getExternalId() + "))", agent10);
 
     checkAgents("incompatible:(buildType:(id:" + bt10.getExternalId() + "))", myAgent1, myAgent2, agent20, agent30, agent40);

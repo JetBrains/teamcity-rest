@@ -189,16 +189,22 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
     myExpected.setAllBuilds(myBuild10, myBuild20, myBuild30, myBuild40, myBuild50);
 
 //should be    myExpected.add(ExpectedCompatibility.agent(myBuildAgent).buildTypes(myBuildType, myBt30).builds());
-    myExpected.add(ExpectedCompatibility.agent(myBuildAgent).buildTypes(myBuildType, myBt30, myBt50).builds());  //current behavior
+    myExpected.add(ExpectedCompatibility.agent(myBuildAgent).buildTypes(myBuildType, myBt30, myBt50).builds());  //current behavior: "run on the same agent" for snapshot dep is ignored
     myExpected.add(ExpectedCompatibility.agent(myAgent10).buildTypes(myBuildType, myBt30, myBt40, myBt50).builds());
     myExpected.add(ExpectedCompatibility.agent(myAgent15).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds(myBuild10));
     myExpected.add(ExpectedCompatibility.agent(myAgent20).buildTypes(myBuildType, myBt10, myBt30, myBt40, myBt50).builds(myBuild10, myBuild20));
     myExpected.add(ExpectedCompatibility.agent(myAgent30).buildTypes().builds());
     myExpected.add(ExpectedCompatibility.agent(myAgent40).buildTypes(myBt30).builds());
     myExpected.add(ExpectedCompatibility.agent(myAgent50).buildTypes().builds());
-//should be    myExpected.add(ExpectedCompatibility.agent(myAgent60).buildTypes().builds(myBuild30));
-    myExpected.add(ExpectedCompatibility.agent(myAgent60).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds(myBuild10, myBuild20, myBuild30));  //current behavior
+    myExpected.add(ExpectedCompatibility.agent(myAgent60).buildTypes().builds(myBuild30));
     myExpected.add(ExpectedCompatibility.agent(myAgent70).buildTypes().builds());
+  }
+
+  private void patchExpectationsForAgentRequests() {
+    //unauthorized, disconnected, disabled agents provide compatibility when requested
+    myExpected.replace(ExpectedCompatibility.agent(myAgent50).buildTypes(myBuildType, myBt10, myBt30, myBt50));
+    myExpected.replace(ExpectedCompatibility.agent(myAgent60).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds(myBuild10, myBuild20, myBuild30));
+    myExpected.replace(ExpectedCompatibility.agent(myAgent70).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds(myBuild10, myBuild20, myBuild30));
   }
 
   private void addSnapshotBuilds() {
@@ -208,13 +214,11 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
     myExpected.setAllBuilds(Stream.concat(myExpected.getAllBuilds().stream(), Stream.of(myBuild100, myBuild110)).toArray(BuildPromotion[]::new));
 
 // should not be necessary
-    myExpected.add(ExpectedCompatibility.agent(myBuildAgent).builds(myBuild110)); //current behavior
+    myExpected.add(ExpectedCompatibility.agent(myBuildAgent).builds(myBuild110));  //current behavior: "run on the same agent" for snapshot dep is ignored
     myExpected.add(ExpectedCompatibility.agent(myAgent10).builds(myBuild100, myBuild110));
 // should not be necessary
-    myExpected.add(ExpectedCompatibility.agent(myAgent15).builds(myBuild110)); //current behavior
+    myExpected.add(ExpectedCompatibility.agent(myAgent15).builds(myBuild110));  //current behavior: "run on the same agent" for snapshot dep is ignored
     myExpected.add(ExpectedCompatibility.agent(myAgent20).builds(myBuild100, myBuild110));
-// should not be necessary
-    myExpected.add(ExpectedCompatibility.agent(myAgent60).builds(myBuild110)); //current behavior
   }
 
   static class ExpectedCompatibilities {
@@ -350,9 +354,6 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
 
   @Test
   public void testBuildPromotionFinder() throws AgentPoolCannotBeRenamedException, PoolQuotaExceededException, NoSuchAgentPoolException {
-    //as it should be
-    myExpected.replace(ExpectedCompatibility.agent(myAgent70).buildTypes().builds());
-
     for (SBuildAgent agent : myExpected.getAllAgents()) {
       checkBuilds("compatibleAgent:(name:" + agent.getName() + "),state:queued", myExpected.compatibleBuilds(agent));
     }
@@ -369,9 +370,6 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
   @Test
   public void testBuildPromotionFinder_QueuedBuildsWithSnapshotDep() throws AgentPoolCannotBeRenamedException, PoolQuotaExceededException, NoSuchAgentPoolException {
     addSnapshotBuilds();
-
-    //as it should be
-    myExpected.replace(ExpectedCompatibility.agent(myAgent70).buildTypes().builds());
 
     for (SBuildAgent agent : myExpected.getAllAgents()) {
       checkBuilds("compatibleAgent:(name:" + agent.getName() + "),state:queued", myExpected.compatibleBuilds(agent));
@@ -410,21 +408,20 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
     for (BuildPromotion build : myExpected.getAllBuilds()) {
       checkAgents("authorized:any,incompatible:(build:(id:" + build.getId() + "))", myExpected.incompatibleAgents(build));
     }
-    checkAgents("authorized:any,incompatible:(build:(id:" + myBuild10.getId() + "))", myBuildAgent, myAgent10, myAgent30, myAgent40, myAgent50, myAgent70);
-    checkAgents("incompatible:(build:(id:" + myBuild10.getId() + "))", myBuildAgent, myAgent10, myAgent30, myAgent40, myAgent70);
+    checkAgents("authorized:any,incompatible:(build:(id:" + myBuild10.getId() + "))", myBuildAgent, myAgent10, myAgent30, myAgent40, myAgent50, myAgent60, myAgent70);
+    checkAgents("incompatible:(build:(id:" + myBuild10.getId() + "))", myBuildAgent, myAgent10, myAgent30, myAgent40, myAgent60, myAgent70);
 
 
     for (SBuildType buildType : myExpected.getAllBuildTypes()) {
       checkAgents("compatible:(buildType:(id:" + buildType.getExternalId() + "))", myExpected.compatibleAgents(buildType));
     }
 
-    //unauthorized and disconnected agents provide compatibility when requested
-    myExpected.replace(ExpectedCompatibility.agent(myAgent50).buildTypes(myBuildType, myBt10, myBt30, myBt50));
-    myExpected.replace(ExpectedCompatibility.agent(myAgent70).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds(myBuild10, myBuild20, myBuild30));
+    patchExpectationsForAgentRequests();
 
-    checkAgents("compatible:(buildType:(id:" + myBt10.getExternalId() + "))", myAgent15, myAgent20, myAgent60);
-    checkAgents("authorized:any,compatible:(buildType:(id:" + myBt10.getExternalId() + "))", myAgent15, myAgent20, myAgent50, myAgent60);
-    checkAgents("connected:any,authorized:any,compatible:(buildType:(id:" + myBt10.getExternalId() + "))", myAgent15, myAgent20, myAgent50, myAgent60, myAgent70);
+    checkAgents("compatible:(buildType:(id:" + myBt10.getExternalId() + "))", myAgent15, myAgent20);
+    checkAgents("enabled:any,compatible:(buildType:(id:" + myBt10.getExternalId() + "))", myAgent15, myAgent20, myAgent60);
+    checkAgents("authorized:any,compatible:(buildType:(id:" + myBt10.getExternalId() + "))", myAgent15, myAgent20, myAgent50);
+    checkAgents("connected:any,authorized:any,compatible:(buildType:(id:" + myBt10.getExternalId() + "))", myAgent15, myAgent20, myAgent50, myAgent70);
 
     for (SBuildType buildType : myExpected.getAllBuildTypes()) {
       checkAgents("authorized:any,incompatible:(buildType:(id:" + buildType.getExternalId() + "))", myExpected.incompatibleAgents(buildType));
@@ -435,9 +432,9 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
 
 //    checkAgents("compatible:(buildType:(id:" + myBt10.getExternalId() + "),buildType:(id:" + myBt40.getExternalId() + "))", myAgent20); is not supported so far
     checkAgents("compatible:(buildType:(id:" + myBt10.getExternalId() + ")),and(compatible:(buildType:(id:" + myBt40.getExternalId() + ")))", myAgent20);
-    checkAgents("compatible:(buildType:(item:(id:" + myBt10.getExternalId() + "),item:(id:" + myBt40.getExternalId() + ")))", myAgent10, myAgent15, myAgent20, myAgent60);
+    checkAgents("compatible:(buildType:(item:(id:" + myBt10.getExternalId() + "),item:(id:" + myBt40.getExternalId() + ")))", myAgent10, myAgent15, myAgent20);
 
-    checkAgents("compatible:(buildType:(id:" + myBt10.getExternalId() + ")),incompatible:(buildType:(id:" + myBt40.getExternalId() + "))", myAgent15, myAgent60);
+    checkAgents("compatible:(buildType:(id:" + myBt10.getExternalId() + ")),incompatible:(buildType:(id:" + myBt40.getExternalId() + "))", myAgent15);
   }
 
   @Test
@@ -459,10 +456,7 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
   @Test
   public void testAgentEntity() throws AgentPoolCannotBeRenamedException, PoolQuotaExceededException, NoSuchAgentPoolException {
     addSnapshotBuilds();
-
-    //unauthorized and disconnected agents provide compatibility when requested
-    myExpected.replace(ExpectedCompatibility.agent(myAgent50).buildTypes(myBuildType, myBt10, myBt30, myBt50));
-    myExpected.replace(ExpectedCompatibility.agent(myAgent70).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds(myBuild10, myBuild20, myBuild30));
+    patchExpectationsForAgentRequests();
 
     for (SBuildAgent agent : myExpected.getAllAgents()) {
       assertCollectionEquals(agent.getName(), new Agent(agent, myAgentPoolFinder, new Fields("compatibleBuildTypes($long)"), getBeanContext(myFixture)).compatibleBuildTypes,
@@ -494,9 +488,7 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
   public void testAgentRequest() {
     AgentRequest resource = AgentRequest.createForTests(getBeanContext(myFixture));
 
-    //unauthorized and disconnected agents provide compatibility when requested
-    myExpected.replace(ExpectedCompatibility.agent(myAgent50).buildTypes(myBuildType, myBt10, myBt30, myBt50));
-    myExpected.replace(ExpectedCompatibility.agent(myAgent70).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds(myBuild10, myBuild20, myBuild30));
+    patchExpectationsForAgentRequests();
 
     for (SBuildAgent agent : myExpected.getAllAgents()) {
       assertCollectionEquals(agent.getName(), resource.getCompatibleBuildTypes("id:" + agent.getId(), null), myExpected.compatibleBuildTypes(agent));
@@ -519,9 +511,7 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
                   myExpected.getAllBuildTypes().stream().filter(b -> myExpected.compatibleAgents(b).length == finalI).toArray(s -> new SBuildType[s]));
     }
 
-    //unauthorized and disconnected agents provide compatibility when requested
-    myExpected.replace(ExpectedCompatibility.agent(myAgent50).buildTypes(myBuildType, myBt10, myBt30, myBt50));
-    myExpected.replace(ExpectedCompatibility.agent(myAgent70).buildTypes(myBuildType, myBt10, myBt30, myBt50).builds(myBuild10, myBuild20, myBuild30));
+    patchExpectationsForAgentRequests();
 
     for (SBuildAgent agent : myExpected.getAllAgents()) {
       checkBuildTypes("compatibleAgent:(name:" + agent.getName() + ")", myExpected.compatibleBuildTypes(agent));
