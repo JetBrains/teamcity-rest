@@ -30,6 +30,7 @@ import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.PropEntityProjectFeature;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -281,7 +282,20 @@ public class ProjectFinder extends AbstractFinder<SProject> {
       return getItemHolder(getSelectedProjects(user));
     }
 
-    final SProject parentProject = getParentProject(locator);
+    final SProject parentProject;
+     try {
+      parentProject = getParentProject(locator);
+    } catch (AccessDeniedException e) {
+       //workaround for https://youtrack.jetbrains.com/issue/TW-46290
+      // note: finding affectedProject under system is a bad approach as that can be used to probe server data without due permissions, so support only some hardcoded cases here
+      String affectedProjectDimension = locator.lookupSingleDimensionValue(DIMENSION_AFFECTED_PROJECT);
+      if (getRootProject().getExternalId().equals(affectedProjectDimension) || getLocator(getRootProject()).equals(affectedProjectDimension)) {
+        // it was a request with affectedProject==_Root, but user got access denied on finding, returning empty collection instead of 403/Forbidden
+        return getItemHolder(Collections.emptyList());
+      }
+      throw e; //throw original error
+    }
+
     final String name = locator.getSingleDimensionValue(DIMENSION_NAME);
     if (name != null) {
       if (parentProject != null) {
