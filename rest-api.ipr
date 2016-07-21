@@ -35,7 +35,7 @@
         <processorPath useClasspath="true" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel target="1.6" />
+    <bytecodeTargetLevel target="1.8" />
   </component>
   <component name="CopyrightManager" default="">
     <copyright>
@@ -115,7 +115,7 @@
     <option name="USE_PROJECT_PROFILE" value="true" />
     <version value="1.0" />
     <list size="7">
-      <item index="0" class="java.lang.String" itemvalue="UNUSED ENTRY" />
+      <item index="0" class="java.lang.String" itemvalue="INFORMATION" />
       <item index="1" class="java.lang.String" itemvalue="TYPO" />
       <item index="2" class="java.lang.String" itemvalue="WEAK WARNING" />
       <item index="3" class="java.lang.String" itemvalue="INFO" />
@@ -316,7 +316,7 @@
   <component name="ProjectResources">
     <default-html-doctype>http://www.w3.org/1999/xhtml</default-html-doctype>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_5" assert-keyword="true" jdk-15="true" project-jdk-name="1.6" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_8" default="false" assert-keyword="true" jdk-15="true" project-jdk-name="1.8" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/out" />
   </component>
   <component name="ResourceManagerContainer">
@@ -417,7 +417,6 @@
         <root url="jar://$PROJECT_DIR$/lib/annotations-2.0.1.jar!/" />
         <root url="jar://$PROJECT_DIR$/lib/commons-lang3-3.2.1.jar!/" />
         <root url="jar://$PROJECT_DIR$/lib/javassist-3.18.2-GA.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/jersey-client-1.13.jar!/" />
         <root url="jar://$PROJECT_DIR$/lib/reflections-0.9.10.jar!/" />
         <root url="jar://$PROJECT_DIR$/lib/swagger-annotations-1.5.4.jar!/" />
         <root url="jar://$PROJECT_DIR$/lib/swagger-core-1.5.4.jar!/" />

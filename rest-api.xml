@@ -57,7 +57,7 @@
     <include name="**/?*.tld"/>
     <include name="**/?*.ftl"/>
   </patternset>
-  
+
 
   <!-- Project Libraries -->
   
@@ -96,7 +96,6 @@
     <pathelement location="${basedir}/lib/annotations-2.0.1.jar"/>
     <pathelement location="${basedir}/lib/commons-lang3-3.2.1.jar"/>
     <pathelement location="${basedir}/lib/javassist-3.18.2-GA.jar"/>
-    <pathelement location="${basedir}/lib/jersey-client-1.13.jar"/>
     <pathelement location="${basedir}/lib/reflections-0.9.10.jar"/>
     <pathelement location="${basedir}/lib/swagger-annotations-1.5.4.jar"/>
     <pathelement location="${basedir}/lib/swagger-core-1.5.4.jar"/>
@@ -167,7 +166,7 @@
   <path id="library.tomcat.classpath">
     <pathelement location="${path.variable.teamcitydistribution}/lib/servlet-api.jar"/>
   </path>
-  
+
 
   <!-- Application Server Libraries -->
   <!-- Register Custom Compiler Taskdefs -->
@@ -189,11 +188,10 @@
   <!-- Module rest-api -->
   
   <dirname property="module.rest-api.basedir" file="${ant.file}"/>
-  
 
 
-  <property name="compiler.args.rest-api" value="${compiler.args}"/>
-  
+  <property name="compiler.args.rest-api" value="-encoding UTF-8 -source 8 -target 1.8 ${compiler.args}"/>
+
   <property name="rest-api.output.dir" value="${module.rest-api.basedir}/out/production/rest-api"/>
   <property name="rest-api.testoutput.dir" value="${module.rest-api.basedir}/out/test/rest-api"/>
   
@@ -327,7 +325,8 @@
   
   <dirname property="module.contrib.basedir" file="${ant.file}"/>
 
-  <property name="compiler.args.contrib" value="${compiler.args}"/>
+
+  <property name="compiler.args.contrib" value="-encoding UTF-8 -source 8 -target 1.8 ${compiler.args}"/>
 
   <property name="contrib.output.dir" value="${module.contrib.basedir}/out/production/contrib"/>
   <property name="contrib.testoutput.dir" value="${module.contrib.basedir}/out/test/contrib"/>
