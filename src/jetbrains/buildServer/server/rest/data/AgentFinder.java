@@ -404,7 +404,8 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     if (!getAgentType(agent).getPolicy().isBuildTypeAllowed(buildType.getBuildTypeId())) {
       return new Compatibility.BasicAgentCompatibilityData(agent, buildType, false, "Restricted by agent policy");
     }
-    if (!serviceLocator.getSingletonService(AgentPoolManager.class).getProjectPools(buildType.getProjectId()).contains(agent.getAgentPoolId())) {
+    //TeamCity API issue: AgentPoolManager.getProjectPools is much less effective then AgentPoolManager.getPoolProjects
+    if (!serviceLocator.getSingletonService(AgentPoolManager.class).getPoolProjects(agent.getAgentPoolId()).contains(buildType.getProjectId())) {
       return new Compatibility.BasicAgentCompatibilityData(agent, buildType, false, "Agent belongs to the pool not associated with the project");
     }
     //if (!agent.isEnabled()) //considered compatible
@@ -429,6 +430,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   }
 
   public static boolean canActuallyRun(@NotNull final SBuildAgent agent, @NotNull final BuildPromotion build, final @NotNull ServiceLocator serviceLocator) {
+    //consider passing checkEnabled flag from outside (from agent locator), so that one can find disabled agents compatible with a build
     if (!agent.isRegistered() || !agent.isAuthorized()) return false; //is this separate check necessary?
     if (build.getCanRunOnAgents(Collections.singletonList(agent)).isEmpty()) {
       return false;
