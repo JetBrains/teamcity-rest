@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data.parameters;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.serverSide.Parameter;
@@ -37,14 +38,14 @@ public class MapBackedEntityWithModifiableParameters implements EntityWithModifi
 
   @Override
   public void addParameter(@NotNull final Parameter param) {
-    Map<String, String> params = myProvider.get();
+    Map<String, String> params = new HashMap<>(myProvider.get());
     params.put(param.getName(), param.getValue());
     myProvider.set(params);
   }
 
   @Override
   public void removeParameter(@NotNull final String paramName) {
-    Map<String, String> params = myProvider.get();
+    Map<String, String> params = new HashMap<>(myProvider.get());
     params.remove(paramName);
     myProvider.set(params);
   }

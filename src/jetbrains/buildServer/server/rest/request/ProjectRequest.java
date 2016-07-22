@@ -728,7 +728,7 @@ public class ProjectRequest {
   private class ProjectFeatureDescriptionUserParametersHolder extends MapBackedEntityWithModifiableParameters implements ParametersPersistableEntity {
     @NotNull private final SProject myProject;
 
-    public ProjectFeatureDescriptionUserParametersHolder(@NotNull final SProject project, @NotNull final String projectFeatureId) {
+    public ProjectFeatureDescriptionUserParametersHolder(@NotNull final SProject project, @NotNull final String featureLocator) {
       super(new PropProxy() {
         @Override
         public Map<String, String> get() {
@@ -737,13 +737,14 @@ public class ProjectRequest {
 
         @Override
         public void set(final Map<String, String> params) {
-          project.updateFeature(projectFeatureId, getFeature().getType(), params);
+          SProjectFeatureDescriptor feature = getFeature();
+          project.updateFeature(feature.getId(), feature.getType(), params);
 
         }
 
         @NotNull
         private SProjectFeatureDescriptor getFeature() {
-          return PropEntityProjectFeature.getFeatureByLocator(project, projectFeatureId);
+          return PropEntityProjectFeature.getFeatureByLocator(project, featureLocator);
         }
       });
       myProject = project;
@@ -753,5 +754,19 @@ public class ProjectRequest {
     public void persist() {
       myProject.persist();
     }
+  }
+
+  public static ProjectRequest createForTests(final BeanContext beanContext) {
+    ProjectRequest result = new ProjectRequest();
+    result.myBeanContext = beanContext;
+    result.myServiceLocator = beanContext.getServiceLocator();
+    result.myAgentPoolFinder = beanContext.getSingletonService(AgentPoolFinder.class);
+    result.myProjectFinder = beanContext.getSingletonService(ProjectFinder.class);
+    result.myBuildTypeFinder = beanContext.getSingletonService(BuildTypeFinder.class);
+    result.myBuildFinder = beanContext.getSingletonService(BuildFinder.class);
+    result.myPermissionChecker = beanContext.getSingletonService(PermissionChecker.class);
+    result.myApiUrlBuilder = beanContext.getApiUrlBuilder();
+    //myDataProvider
+    return result;
   }
 }
