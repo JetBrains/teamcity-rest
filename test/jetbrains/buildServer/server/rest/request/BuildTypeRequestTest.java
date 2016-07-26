@@ -25,10 +25,7 @@ import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.ParameterType;
-import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.server.rest.model.Property;
+import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.buildType.*;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
@@ -44,6 +41,7 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.vcs.CheckoutRules;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -1081,4 +1079,79 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     //check submitting with different enabled state
     //check submitting with different id
   }
+
+  @Test
+  void testBuildTypeSettings() {
+    BuildTypeImpl bt10 = registerBuildType("bt10", "projectName");
+
+    bt10.setArtifactPaths("bbbb");
+    bt10.setOption(BuildTypeOptions.BT_ALLOW_EXTERNAL_STATUS, false);
+    bt10.setOption(BuildTypeOptions.BT_FAIL_IF_TESTS_FAIL, false);
+    bt10.setOption(BuildTypeOptions.BT_CHECKOUT_DIR, "checkout_bt");
+    bt10.setOption(BuildTypeOptions.BT_CHECKOUT_MODE, "ON_SERVER");
+    bt10.setOption(BuildTypeOptions.BT_EXECUTION_TIMEOUT, 17);
+
+    final String btLocator = "id:" + bt10.getExternalId();
+
+    ParametersSubResource settingsSubResource = myBuildTypeRequest.getSettingsSubResource(btLocator);
+    String fields = "$long,settings($long)";
+    assertCollectionEquals("", settingsSubResource.getParameters(null, fields), p("artifactRules", "bbbb"), p("buildNumberCounter", "1"),
+                           p("checkoutDirectory", "checkout_bt"), p("checkoutMode", "ON_SERVER"),
+                           p("executionTimeoutMin", "17"), p("shouldFailBuildIfTestsFailed", "false"));
+
+//    assertEquals("0", settingsSubResource.getParameter("maximumNumberOfBuilds", "$long").value);  // default value for specific get
+
+    settingsSubResource.setParameter(new Property(new SimpleParameter("maximumNumberOfBuilds", "4"), false, Fields.LONG, myFixture), "$long");
+    assertEquals("4", settingsSubResource.getParameter("maximumNumberOfBuilds", "$long").value);
+    assertCollectionEquals("", settingsSubResource.getParameters(null, fields), p("artifactRules", "bbbb"), p("buildNumberCounter", "1"),
+                           p("checkoutDirectory", "checkout_bt"), p("checkoutMode", "ON_SERVER"),
+                           p("executionTimeoutMin", "17"), p("maximumNumberOfBuilds", "4"), p("shouldFailBuildIfTestsFailed", "false"));
+
+    assertEquals("5", settingsSubResource.setParameter("maximumNumberOfBuilds",
+                                                       new Property(new SimpleParameter("maximumNumberOfBuilds", "5"), false, Fields.LONG, myFixture), "$long").value);
+    assertEquals("5", settingsSubResource.getParameter("maximumNumberOfBuilds", "$long").value);
+
+    assertEquals("6", settingsSubResource.setParameterValue("maximumNumberOfBuilds", "6"));
+    assertEquals("6", settingsSubResource.getParameter("maximumNumberOfBuilds", "$long").value);
+
+    assertEquals("7", settingsSubResource.setParameterValueLong("maximumNumberOfBuilds", "7"));
+    assertEquals("7", settingsSubResource.getParameter("maximumNumberOfBuilds", "$long").value);
+
+//    settingsSubResource.setParameter(new Property(new SimpleParameter("maximumNumberOfBuilds", "0"), false, Fields.LONG, myFixture), "$long"); //set to defualt value
+//    assertCollectionEquals("", settingsSubResource.getParameters(null, fields), p("artifactRules", "bbbb"), p("buildNumberCounter", "1"),
+//                           p("checkoutDirectory", "checkout_bt"), p("checkoutMode", "ON_SERVER"),
+//                           p("executionTimeoutMin", "17"), p("shouldFailBuildIfTestsFailed", "false"));
+
+    settingsSubResource.deleteParameter("checkoutDirectory");
+    assertCollectionEquals("", settingsSubResource.getParameters(null, fields), p("artifactRules", "bbbb"), p("buildNumberCounter", "1"),
+                           p("checkoutMode", "ON_SERVER"),
+                           p("executionTimeoutMin", "17"), p("maximumNumberOfBuilds", "7"), p("shouldFailBuildIfTestsFailed", "false"));
+
+    //assertCollectionEquals("", settingsSubResource.getParameters(new Locator("defaultValues:any"), fields), p("artifactRules", "bbbb"), p("buildNumberCounter", "1"),
+    //                       p("checkoutDirectory", "checkout_bt"), p("checkoutMode", "ON_SERVER"),
+    //                       p("executionTimeoutMin", "17"), p("maximumNumberOfBuilds", "4"), p("todo", "4"), p("shouldFailBuildIfTestsFailed", "false"));
+
+    checkException(BadRequestException.class, () -> settingsSubResource.setParameter(new Property(new SimpleParameter("aaa", "b"), false, Fields.LONG, myFixture), "$long"), "");
+  }
+
+  @NotNull
+  private Property p(final String name, final String value) {
+    return p(name, value, null, null);
+  }
+
+  @NotNull
+  private Property p(final String name, final String value, final String type, final Boolean inherited) {
+    if (type == null) {
+      return new Property(new SimpleParameter(name, value), inherited, new Fields("$long"), myFixture);
+    }
+    final ParameterFactory parameterFactory = myFixture.getSingletonService(ParameterFactory.class);
+    return new Property(parameterFactory.createTypedParameter(name, value, type), inherited, new Fields("$long"), myFixture);
+  }
+
+  public static void assertCollectionEquals(final String description, @Nullable final Properties actual, final Property... expected) {
+    BuildTest.assertEquals(description, actual == null ? null : actual.properties, PROPERTY_EQUALS, Property::toString,
+                           Property::toString, expected);
+  }
+
+  protected static final BuildTest.EqualsTest<Property, Property> PROPERTY_EQUALS = (o1, o2) -> o1.equals(o2);
 }
