@@ -1387,13 +1387,13 @@ public class BuildTypeRequest {
     @Nullable
     @Override
     public Collection<Parameter> getOwnParametersCollection() {
-      return Properties.convertToSimpleParameters(BuildTypeUtil.getSettingsParameters(myBuildType, true));
+      return Properties.convertToSimpleParameters(BuildTypeUtil.getSettingsParameters(myBuildType, null, true, false));
     }
 
     @Nullable
     @Override
     public Parameter getOwnParameter(@NotNull final String paramName) {
-      String value = BuildTypeUtil.getSettingsParameters(myBuildType, true).get(paramName);
+      String value = BuildTypeUtil.getSettingsParameters(myBuildType, null, true, false).get(paramName);
       if (value != null) {
         return new SimpleParameter(paramName, value);
       }
@@ -1419,7 +1419,7 @@ public class BuildTypeRequest {
     @Nullable
     @Override
     public Parameter getParameter(@NotNull final String paramName) {
-      String value = BuildTypeUtil.getSettingsParameters(myBuildType, false).get(paramName);
+      String value = BuildTypeUtil.getSettingsParameters(myBuildType, null, null, null).get(paramName);
       if (value != null) {
         return new SimpleParameter(paramName, value);
       }
@@ -1429,7 +1429,7 @@ public class BuildTypeRequest {
     @NotNull
     @Override
     public Collection<Parameter> getParametersCollection() {
-      return Properties.convertToSimpleParameters(BuildTypeUtil.getSettingsParameters(myBuildType, false));
+      return Properties.convertToSimpleParameters(BuildTypeUtil.getSettingsParameters(myBuildType, null, null, false));
     }
   }
 }

@@ -1099,7 +1099,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
                            p("checkoutDirectory", "checkout_bt"), p("checkoutMode", "ON_SERVER"),
                            p("executionTimeoutMin", "17"), p("shouldFailBuildIfTestsFailed", "false"));
 
-//    assertEquals("0", settingsSubResource.getParameter("maximumNumberOfBuilds", "$long").value);  // default value for specific get
+    assertEquals("0", settingsSubResource.getParameter("maximumNumberOfBuilds", "$long").value);  // default value for direct get
 
     settingsSubResource.setParameter(new Property(new SimpleParameter("maximumNumberOfBuilds", "4"), false, Fields.LONG, myFixture), "$long");
     assertEquals("4", settingsSubResource.getParameter("maximumNumberOfBuilds", "$long").value);
@@ -1117,19 +1117,19 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     assertEquals("7", settingsSubResource.setParameterValueLong("maximumNumberOfBuilds", "7"));
     assertEquals("7", settingsSubResource.getParameter("maximumNumberOfBuilds", "$long").value);
 
-//    settingsSubResource.setParameter(new Property(new SimpleParameter("maximumNumberOfBuilds", "0"), false, Fields.LONG, myFixture), "$long"); //set to defualt value
-//    assertCollectionEquals("", settingsSubResource.getParameters(null, fields), p("artifactRules", "bbbb"), p("buildNumberCounter", "1"),
-//                           p("checkoutDirectory", "checkout_bt"), p("checkoutMode", "ON_SERVER"),
-//                           p("executionTimeoutMin", "17"), p("shouldFailBuildIfTestsFailed", "false"));
+    settingsSubResource.setParameter(new Property(new SimpleParameter("maximumNumberOfBuilds", "0"), false, Fields.LONG, myFixture), "$long"); //set to defualt value
+    assertCollectionEquals("", settingsSubResource.getParameters(null, fields), p("artifactRules", "bbbb"), p("buildNumberCounter", "1"),
+                           p("checkoutDirectory", "checkout_bt"), p("checkoutMode", "ON_SERVER"),
+                           p("executionTimeoutMin", "17"), p("shouldFailBuildIfTestsFailed", "false"));
 
     settingsSubResource.deleteParameter("checkoutDirectory");
     assertCollectionEquals("", settingsSubResource.getParameters(null, fields), p("artifactRules", "bbbb"), p("buildNumberCounter", "1"),
                            p("checkoutMode", "ON_SERVER"),
-                           p("executionTimeoutMin", "17"), p("maximumNumberOfBuilds", "7"), p("shouldFailBuildIfTestsFailed", "false"));
+                           p("executionTimeoutMin", "17"), p("shouldFailBuildIfTestsFailed", "false"));
 
-    //assertCollectionEquals("", settingsSubResource.getParameters(new Locator("defaultValues:any"), fields), p("artifactRules", "bbbb"), p("buildNumberCounter", "1"),
+    //assertCollectionEquals("", settingsSubResource.getParameters(new Locator("defaults:any"), fields), p("artifactRules", "bbbb"), p("buildNumberCounter", "1"),
     //                       p("checkoutDirectory", "checkout_bt"), p("checkoutMode", "ON_SERVER"),
-    //                       p("executionTimeoutMin", "17"), p("maximumNumberOfBuilds", "4"), p("todo", "4"), p("shouldFailBuildIfTestsFailed", "false"));
+    //                       p("executionTimeoutMin", "17"), p("todo", "4"), p("shouldFailBuildIfTestsFailed", "false"));
 
     checkException(BadRequestException.class, () -> settingsSubResource.setParameter(new Property(new SimpleParameter("aaa", "b"), false, Fields.LONG, myFixture), "$long"), "");
   }

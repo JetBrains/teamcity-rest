@@ -364,8 +364,10 @@ public class BuildType {
   public Properties getSettings() {
     return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("settings", false), check(new ValueWithDefault.Value<Properties>() {
       public Properties get() {
-        return new Properties(Properties.createEntity(BuildTypeUtil.getSettingsParameters(myBuildType, false), BuildTypeUtil.getSettingsParameters(myBuildType, true)),
-                              null, null, myFields.getNestedField("settings", Fields.NONE, Fields.LONG), myBeanContext.getServiceLocator());
+        Fields nestedField = myFields.getNestedField("settings", Fields.NONE, Fields.LONG);
+        return new Properties(Properties.createEntity(BuildTypeUtil.getSettingsParameters(myBuildType, nestedField.getLocator(), null, false),
+                                                      BuildTypeUtil.getSettingsParameters(myBuildType, nestedField.getLocator(), true, false)),
+                              null, null, nestedField, myBeanContext.getServiceLocator());
       }
     }));
   }

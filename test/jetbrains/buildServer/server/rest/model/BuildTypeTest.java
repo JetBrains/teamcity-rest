@@ -536,9 +536,10 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
   }
 
   private void parameterEquals(final Property property, final String name, final String value, final Boolean inherited) {
-    assertEquals(name, property.name);
-    assertEquals(value, property.value);
-    assertEquals(inherited, property.inherited);
+    assertNotNull(property);
+    assertEquals("name", name, property.name);
+    assertEquals("value", value, property.value);
+    assertEquals("inherited", inherited, property.inherited);
   }
 
   private static WebLinks getWebLinks(@NotNull final String rootUrl) {

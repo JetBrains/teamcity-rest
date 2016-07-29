@@ -21,6 +21,7 @@ import java.lang.reflect.Field;
 import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.ParametersProvider;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.parameters.EntityWithModifiableParameters;
 import jetbrains.buildServer.server.rest.data.parameters.EntityWithParameters;
@@ -49,17 +50,48 @@ public class BuildTypeUtil {
   private static final Logger LOG = Logger.getInstance(BuildTypeUtil.class.getName());
   protected static final String BUILD_NUMBER_COUNTER = "buildNumberCounter";
 
+  @Nullable
+  static String getSettingsLocator(@Nullable String baseLocator, @Nullable Boolean own, @Nullable Boolean includeDefaultSettings) {
+    if (own == null && includeDefaultSettings == null) return baseLocator == null ? null : baseLocator;
+    Locator result = Locator.createEmptyLocator();
+    if (own != null) {
+      result.setDimension("own", own.toString());
+    }
+    if (includeDefaultSettings != null) {
+      result.setDimension("defaults", includeDefaultSettings.toString());
+    }
+    return Locator.merge(baseLocator, result.getStringRepresentation());
+  }
+
+  public static HashMap<String, String> getSettingsParameters(@NotNull final BuildTypeOrTemplate buildType,
+                                                              @Nullable String baseLocator, @Nullable Boolean own, @Nullable Boolean includeDefaultSettings) {
+    return getSettingsParameters(buildType, getSettingsLocator(baseLocator, own, includeDefaultSettings));
+  }
+
   @NotNull
-  public static HashMap<String, String> getSettingsParameters(@NotNull final BuildTypeOrTemplate buildType, final boolean onlyOwn) {
+  public static HashMap<String, String> getSettingsParameters(@NotNull final BuildTypeOrTemplate buildType, @Nullable final String locatorText) {
     HashMap<String, String> properties = new HashMap<String, String>();
 //    getOptionsAsMap(properties, buildType.get(), onlyOwn && buildType.get().isTemplateBased());
 
+    Locator locator = locatorText == null ? null : new Locator(locatorText, "own", "defaults");
+    Boolean own = locator == null ? null : locator.getSingleDimensionValueAsBoolean("own");
+    Boolean defaultValue = locator == null ? null : locator.getSingleDimensionValueAsBoolean("defaults");
+    if (locator != null) locator.checkLocatorFullyProcessed();
+
     BuildTypeTemplate template = buildType.get().getTemplate();
-    if (!onlyOwn && template != null) {
+    if ((own == null || !own) && template != null) {
       properties.putAll(getOptionsAsMap(buildType.get(), template.getOwnOptions()));
     }
-    properties.putAll(getOptionsAsMap(buildType.get(), buildType.get().getOwnOptions()));
-    if (buildType.getBuildType() != null) {
+    if (defaultValue == null) {
+      properties.putAll(getOptionsAsMap(buildType.get(), null));
+    } else if (!defaultValue) {
+      properties.putAll(getOptionsAsMap(buildType.get(), buildType.get().getOwnOptions()));
+    } else { //defaultValue == true
+      Collection<Option> allOptions = getAllSupportedOptions(buildType.get());
+      allOptions.removeAll(buildType.get().getOwnOptions());
+      properties.putAll(getOptionsAsMap(buildType.get(), allOptions));  //todo: do not add those which are there already!!!!!!!!!!!
+    }
+    if ((own == null || own) && (defaultValue == null || !defaultValue) && buildType.getBuildType() != null) {
       properties.put(BUILD_NUMBER_COUNTER, String.valueOf(buildType.getBuildType().getBuildNumbers().getBuildCounter()));
     }
     return properties;
