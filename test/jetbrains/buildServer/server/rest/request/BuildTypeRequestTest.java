@@ -24,7 +24,9 @@ import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.buildType.*;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
@@ -1127,10 +1129,50 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
                            p("checkoutMode", "ON_SERVER"),
                            p("executionTimeoutMin", "17"), p("shouldFailBuildIfTestsFailed", "false"));
 
-    //assertCollectionEquals("", settingsSubResource.getParameters(new Locator("defaults:any"), fields), p("artifactRules", "bbbb"), p("buildNumberCounter", "1"),
-    //                       p("checkoutDirectory", "checkout_bt"), p("checkoutMode", "ON_SERVER"),
-    //                       p("executionTimeoutMin", "17"), p("todo", "4"), p("shouldFailBuildIfTestsFailed", "false"));
+    assertCollectionEquals("", settingsSubResource.getParameters(new Locator("defaults:any"), fields),
+                           p("allowExternalStatus", "false", true, null),
+                           p("allowPersonalBuildTriggering", "true", true, null),
+                           p("artifactRules", "bbbb", null, null),
+                           p("buildNumberCounter", "1", null, null),
+                           p("buildNumberPattern", "%build.counter%", true, null),
+                           p("checkoutDirectory", "", true, null),
+                           p("checkoutMode", "ON_SERVER", null, null),
+                           p("cleanBuild", "false", true, null),
+                           p("enableHangingBuildsDetection", "true", true, null),
+                           p("executionTimeoutMin", "17", null, null),
+                           p("maximumNumberOfBuilds", "0", true, null),
+                           p("shouldFailBuildIfTestsFailed", "false", null, null),
+                           p("shouldFailBuildOnAnyErrorMessage", "false", true, null),
+                           p("shouldFailBuildOnBadExitCode", "true", true, null),
+                           p("shouldFailBuildOnOOMEOrCrash", "true", true, null),
+                           p("showDependenciesChanges", "false", true, null),
+                           p("vcsLabelingBranchFilter", "+:<default>", true, null));
 
+    assertCollectionEquals("", settingsSubResource.getParameters(new Locator("defaults:true"), fields),
+                           p("allowExternalStatus", "false", true, null),
+                           p("allowPersonalBuildTriggering", "true", true, null),
+                           p("buildNumberPattern", "%build.counter%", true, null),
+                           p("checkoutDirectory", "", true, null),
+                           p("cleanBuild", "false", true, null),
+                           p("enableHangingBuildsDetection", "true", true, null),
+                           p("maximumNumberOfBuilds", "0", true, null),
+                           p("shouldFailBuildOnAnyErrorMessage", "false", true, null),
+                           p("shouldFailBuildOnBadExitCode", "true", true, null),
+                           p("shouldFailBuildOnOOMEOrCrash", "true", true, null),
+                           p("showDependenciesChanges", "false", true, null),
+                           p("vcsLabelingBranchFilter", "+:<default>", true, null));
+
+    assertCollectionEquals("", settingsSubResource.getParameters(new Locator("defaults:false"), fields),
+                           p("artifactRules", "bbbb", null, null),
+                           p("buildNumberCounter", "1", null, null),
+                           p("checkoutMode", "ON_SERVER", null, null),
+                           p("executionTimeoutMin", "17", null, null),
+                           p("shouldFailBuildIfTestsFailed", "false", null, null));
+
+    assertCollectionEquals("", settingsSubResource.getParameters(new Locator("defaults:false,name:buildNumberCounter"), fields),
+                           p("buildNumberCounter", "1", null, null));
+
+    checkException(LocatorProcessException.class, () -> settingsSubResource.getParameters(new Locator("a:b"), "$long"), "");
     checkException(BadRequestException.class, () -> settingsSubResource.setParameter(new Property(new SimpleParameter("aaa", "b"), false, Fields.LONG, myFixture), "$long"), "");
   }
 
@@ -1140,7 +1182,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
   }
 
   @NotNull
-  private Property p(final String name, final String value, final String type, final Boolean inherited) {
+  private Property p(final String name, final String value, final Boolean inherited, final String type) {
     if (type == null) {
       return new Property(new SimpleParameter(name, value), inherited, new Fields("$long"), myFixture);
     }

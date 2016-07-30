@@ -280,6 +280,14 @@ public class Locator {
     return mySingleValue == null && myDimensions.isEmpty();
   }
 
+  public void addSupportedDimensions(final String... dimensions) {
+    if (mySupportedDimensions == null) {
+      mySupportedDimensions = dimensions;
+    } else{
+      mySupportedDimensions = CollectionsUtil.join(Arrays.asList(mySupportedDimensions), Arrays.asList(dimensions)).toArray(mySupportedDimensions);
+    }
+  }
+
   public void addIgnoreUnusedDimensions(final String... ignoreUnusedDimensions) {
     myIgnoreUnusedDimensions.addAll(Arrays.asList(ignoreUnusedDimensions));
   }

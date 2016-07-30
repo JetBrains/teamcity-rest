@@ -51,32 +51,31 @@ public class BuildTypeUtil {
   protected static final String BUILD_NUMBER_COUNTER = "buildNumberCounter";
 
   @Nullable
-  static String getSettingsLocator(@Nullable String baseLocator, @Nullable Boolean own, @Nullable Boolean includeDefaultSettings) {
-    if (own == null && includeDefaultSettings == null) return baseLocator == null ? null : baseLocator;
-    Locator result = Locator.createEmptyLocator();
+  private static Locator getSettingsLocator(@Nullable Locator baseLocator, @Nullable Boolean own, @Nullable Boolean includeDefaultSettings) {
+    if (baseLocator != null) baseLocator.addSupportedDimensions("own", "defaults");
+    if (own == null && includeDefaultSettings == null) return baseLocator;
+    Locator result = baseLocator != null ? baseLocator : Locator.createEmptyLocator();
     if (own != null) {
-      result.setDimension("own", own.toString());
+      result.setDimension("own", own.toString()); // do not let to override
     }
     if (includeDefaultSettings != null) {
-      result.setDimension("defaults", includeDefaultSettings.toString());
+      result.setDimensionIfNotPresent("defaults", includeDefaultSettings.toString()); //allow to override
     }
-    return Locator.merge(baseLocator, result.getStringRepresentation());
+    return result.isEmpty() ? null : result;
   }
 
   public static HashMap<String, String> getSettingsParameters(@NotNull final BuildTypeOrTemplate buildType,
-                                                              @Nullable String baseLocator, @Nullable Boolean own, @Nullable Boolean includeDefaultSettings) {
+                                                              @Nullable Locator baseLocator, @Nullable Boolean own, @Nullable Boolean includeDefaultSettings) {
     return getSettingsParameters(buildType, getSettingsLocator(baseLocator, own, includeDefaultSettings));
   }
 
   @NotNull
-  public static HashMap<String, String> getSettingsParameters(@NotNull final BuildTypeOrTemplate buildType, @Nullable final String locatorText) {
+  private static HashMap<String, String> getSettingsParameters(@NotNull final BuildTypeOrTemplate buildType, @Nullable final Locator locator) {
     HashMap<String, String> properties = new HashMap<String, String>();
 //    getOptionsAsMap(properties, buildType.get(), onlyOwn && buildType.get().isTemplateBased());
 
-    Locator locator = locatorText == null ? null : new Locator(locatorText, "own", "defaults");
     Boolean own = locator == null ? null : locator.getSingleDimensionValueAsBoolean("own");
     Boolean defaultValue = locator == null ? null : locator.getSingleDimensionValueAsBoolean("defaults");
-    if (locator != null) locator.checkLocatorFullyProcessed();
 
     BuildTypeTemplate template = buildType.get().getTemplate();
     if ((own == null || !own) && template != null) {
@@ -292,7 +291,7 @@ public class BuildTypeUtil {
   }
 
   public static void removeAllParameters(final EntityWithModifiableParameters holder) {
-    for (Parameter p : holder.getParametersCollection()) {
+    for (Parameter p : holder.getParametersCollection(null)) {
       holder.removeParameter(p.getName());
     }
   }

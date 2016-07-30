@@ -1428,8 +1428,8 @@ public class BuildTypeRequest {
 
     @NotNull
     @Override
-    public Collection<Parameter> getParametersCollection() {
-      return Properties.convertToSimpleParameters(BuildTypeUtil.getSettingsParameters(myBuildType, null, null, false));
+    public Collection<Parameter> getParametersCollection(@Nullable final Locator locator) {
+      return Properties.convertToSimpleParameters(BuildTypeUtil.getSettingsParameters(myBuildType, locator, null, false));
     }
   }
 }

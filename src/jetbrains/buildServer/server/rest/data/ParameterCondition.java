@@ -70,7 +70,19 @@ public class ParameterCondition {
     if (propertyConditionLocator == null){
       return null;
     }
-    final Locator locator = new Locator(propertyConditionLocator, NAME, VALUE, TYPE, IGNORE_CASE, NAME_MATCH_CHECK, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    Locator locator = new Locator(propertyConditionLocator);
+    ParameterCondition result = create(locator);
+    locator.checkLocatorFullyProcessed();
+    return result;
+  }
+
+  @Nullable
+  @Contract("!null -> !null; null -> null")
+  public static ParameterCondition create(@Nullable final Locator locator) {
+    if (locator == null){
+      return null;
+    }
+    locator.addSupportedDimensions(NAME, VALUE, TYPE, IGNORE_CASE, NAME_MATCH_CHECK, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     locator.processHelpRequest();
     final String value = locator.getSingleDimensionValue(VALUE);
 
@@ -110,7 +122,6 @@ public class ParameterCondition {
 
     Boolean ignoreCase = locator.getSingleDimensionValueAsBoolean(IGNORE_CASE);
     Boolean inherited = locator.getSingleDimensionValueAsBoolean(INHERITED);
-    locator.checkLocatorFullyProcessed();
     return new ParameterCondition(nameCondition, new ValueCondition(requirement, value, ignoreCase), nameCheckShouldMatchAll, inherited);
   }
 

@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data.parameters;
 
 import java.util.Collection;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.serverSide.Parameter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -27,14 +28,8 @@ import org.jetbrains.annotations.Nullable;
  */
 public interface EntityWithParameters {
 
-  /**
-   * Returns build and configuration parameters in single collection.
-   *
-   * @return see above
-   * @since 5.1
-   */
   @NotNull
-  Collection<Parameter> getParametersCollection();
+  Collection<Parameter> getParametersCollection(@Nullable final Locator locator);
 
   @Nullable
   Parameter getParameter(@NotNull String paramName);

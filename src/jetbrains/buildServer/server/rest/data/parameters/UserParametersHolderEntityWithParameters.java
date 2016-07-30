@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data.parameters;
 
 import java.util.Collection;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.serverSide.UserParametersHolder;
 import org.jetbrains.annotations.NotNull;
@@ -42,7 +43,7 @@ public abstract class UserParametersHolderEntityWithParameters implements Entity
   }
 
   @NotNull
-  public Collection<Parameter> getParametersCollection() {
+  public Collection<Parameter> getParametersCollection(@Nullable final Locator locator) {
     return myEntity.getParametersCollection();
   }
 

@@ -52,7 +52,9 @@ public class ParametersSubResource {
   @GET
   @Produces({"application/xml", "application/json"})
   public Properties getParameters(@QueryParam("locator") Locator locator, @QueryParam("fields") String fields) {
-    return new Properties(myEntityWithParameters, myParametersHref, locator, new Fields(fields), myServiceLocator);
+    Properties result = new Properties(myEntityWithParameters, myParametersHref, locator, new Fields(fields), myServiceLocator);
+    if (locator != null) locator.checkLocatorFullyProcessed();
+    return result;
   }
 
   @POST

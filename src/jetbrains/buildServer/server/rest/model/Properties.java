@@ -69,6 +69,9 @@ public class Properties  implements DefaultValueAware {
     this(properties == null ? null : createEntity(properties, null), href, null, fields, serviceLocator);
   }
 
+  /**
+   * @param externalLocator locator to override the one from "fields"
+   */
   public Properties(@Nullable final EntityWithParameters parameters,
                     @Nullable String href,
                     @Nullable Locator externalLocator,
@@ -78,11 +81,14 @@ public class Properties  implements DefaultValueAware {
       this.count = null;
       this.properties = null;
     } else {
-      Collection<Parameter> parametersCollection = parameters.getParametersCollection();
       if (fields.isIncluded(PROPERTY, false, true)) {
-        this.properties = getEmptyProperties();
         final Fields propertyFields = fields.getNestedField(PROPERTY, Fields.NONE, Fields.LONG);
-        final ParameterCondition parameterCondition = getParameterCondition(externalLocator != null ? externalLocator.getStringRepresentation() : fields.getLocator());
+        // locator form "fields" is ignored is externalLocator is specified. This is used e.g. in BuildType#getSettings()
+        Locator propertiesLocator = externalLocator != null ? externalLocator : (fields.getLocator() == null ? null : new Locator(fields.getLocator()));
+        Collection<Parameter> parametersCollection = parameters.getParametersCollection(propertiesLocator); // pass locator here
+        final ParameterCondition parameterCondition = ParameterCondition.create(propertiesLocator); // pass locator here and make sure it's used and supported dimensions are preserved
+        if (externalLocator == null && propertiesLocator != null) propertiesLocator.checkLocatorFullyProcessed();
+        this.properties = getEmptyProperties();
         for (Parameter parameter : parametersCollection) {
           Boolean inherited = parameters.isInherited(parameter.getName());
           if (parameterCondition == null || parameterCondition.parameterMatches(parameter, inherited)) {
@@ -91,7 +97,7 @@ public class Properties  implements DefaultValueAware {
         }
         this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), this.properties.size());  //count of the properties included
       } else {
-        this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), parametersCollection.size()); //actual count when no properties are included
+        this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), parameters.getParametersCollection(null).size()); //actual count when no properties are included
       }
     }
     this.href = ValueWithDefault.decideDefault(fields.isIncluded("href"), href);
@@ -107,17 +113,6 @@ public class Properties  implements DefaultValueAware {
         return comp.compare(o1.name, o2.name);
       }
     });
-  }
-
-  /**
-   * Ignores any errors in the syntax: they will be logged but null will be returned as in the current usages it is already too late to report errors
-   */
-  @Nullable
-  public static ParameterCondition getParameterCondition(@Nullable final String propertiesLocator) {
-    if (propertiesLocator != null) {
-      return ParameterCondition.create(propertiesLocator);
-    }
-    return null;
   }
 
   @Nullable
@@ -166,7 +161,7 @@ public class Properties  implements DefaultValueAware {
   public boolean setTo(@NotNull final EntityWithModifiableParameters holder,
                        @NotNull final ServiceLocator serviceLocator) {
     Collection<Parameter> ownParameters = holder.getOwnParametersCollection();
-    Collection<Parameter> original = ownParameters != null ? ownParameters : holder.getParametersCollection();
+    Collection<Parameter> original = ownParameters != null ? ownParameters : holder.getParametersCollection(null);
     try {
       BuildTypeUtil.removeAllParameters(holder);
       if (properties != null) {

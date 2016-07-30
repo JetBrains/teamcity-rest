@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data.parameters;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.serverSide.SimpleParameter;
@@ -52,7 +53,7 @@ public class MapBackedEntityWithModifiableParameters implements EntityWithModifi
 
   @NotNull
   @Override
-  public Collection<Parameter> getParametersCollection() {
+  public Collection<Parameter> getParametersCollection(@Nullable final Locator locator) {
     return Properties.convertToSimpleParameters(myProvider.get());
   }
 

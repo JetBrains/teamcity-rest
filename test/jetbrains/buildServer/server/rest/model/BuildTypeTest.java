@@ -492,6 +492,21 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
       parameterEquals(find(buildType.getSettings().properties, "shouldFailBuildOnAnyErrorMessage"), "shouldFailBuildOnAnyErrorMessage", "true", null);
       parameterEquals(find(buildType.getSettings().properties, "showDependenciesChanges"), "showDependenciesChanges", "true", null);
     }
+
+    {
+      BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("$long,settings($long,$locator(defaults:any))"), myBeanContext);
+
+      assertEquals(17, buildType.getSettings().properties.size());
+      parameterEquals(find(buildType.getSettings().properties, "buildNumberCounter"), "buildNumberCounter", "1", null);
+      parameterEquals(find(buildType.getSettings().properties, "buildNumberPattern"), "buildNumberPattern", "aaa", null);
+    }
+
+    {
+      BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("$long,settings($long,$locator(defaults:any,name:buildNumberCounter))"), myBeanContext);
+
+      assertEquals(1, buildType.getSettings().properties.size());
+      parameterEquals(find(buildType.getSettings().properties, "buildNumberCounter"), "buildNumberCounter", "1", null);
+    }
   }
 
   @Test

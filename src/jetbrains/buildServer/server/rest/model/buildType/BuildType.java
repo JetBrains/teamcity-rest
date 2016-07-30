@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
+import jetbrains.buildServer.server.rest.data.parameters.EntityWithParameters;
 import jetbrains.buildServer.server.rest.data.parameters.InheritableUserParametersHolderEntityWithParameters;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -365,9 +366,12 @@ public class BuildType {
     return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("settings", false), check(new ValueWithDefault.Value<Properties>() {
       public Properties get() {
         Fields nestedField = myFields.getNestedField("settings", Fields.NONE, Fields.LONG);
-        return new Properties(Properties.createEntity(BuildTypeUtil.getSettingsParameters(myBuildType, nestedField.getLocator(), null, false),
-                                                      BuildTypeUtil.getSettingsParameters(myBuildType, nestedField.getLocator(), true, false)),
-                              null, null, nestedField, myBeanContext.getServiceLocator());
+        Locator locator = nestedField.getLocator() == null ? null : new Locator(nestedField.getLocator());
+        EntityWithParameters entity = Properties.createEntity(BuildTypeUtil.getSettingsParameters(myBuildType, locator, null, false),
+                                                              BuildTypeUtil.getSettingsParameters(myBuildType, null, true, false));
+        Properties result = new Properties(entity, null, locator, nestedField, myBeanContext.getServiceLocator());
+        if (locator != null) locator.checkLocatorFullyProcessed();
+        return result;
       }
     }));
   }

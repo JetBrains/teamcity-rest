@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data.parameters;
 
 import java.util.Collection;
 import java.util.Map;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.serverSide.SimpleParameter;
@@ -39,7 +40,7 @@ public class MapBackedEntityWithParameters implements EntityWithParameters {
 
   @NotNull
   @Override
-  public Collection<Parameter> getParametersCollection() {   //todo: test without filter!
+  public Collection<Parameter> getParametersCollection(@Nullable final Locator locator) {   //todo: test without filter!
     return Properties.convertToSimpleParameters(myParams);
   }
 
