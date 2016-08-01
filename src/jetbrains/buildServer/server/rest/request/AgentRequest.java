@@ -26,6 +26,7 @@ import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -205,6 +206,9 @@ public class AgentRequest {
   @Produces({"application/xml", "application/json"})
   public BuildTypes getCompatibleBuildTypes(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
+    if (!Agent.canViewAgentDetails(myBeanContext)){
+      throw new AuthorizationFailedException("No permission to view agent details");
+    }
     Fields fieldsDefinition = new Fields(Agent.COMPATIBLE_BUILD_TYPES + "(" + (StringUtil.isEmpty(fields) ? "$long" : fields) + ")");
     return new Agent(agent, myAgentPoolFinder, fieldsDefinition, myBeanContext).compatibleBuildTypes;
   }
@@ -217,6 +221,9 @@ public class AgentRequest {
   @Produces({"application/xml", "application/json"})
   public Compatibilities geIncompatibleBuildTypes(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
+    if (!Agent.canViewAgentDetails(myBeanContext)){
+      throw new AuthorizationFailedException("No permission to view agent details");
+    }
     Fields fieldsDefinition = new Fields(Agent.INCOMPATIBLE_BUILD_TYPES + "(" + (StringUtil.isEmpty(fields) ? "$long" : fields) + ")");
     return new Agent(agent, myAgentPoolFinder, fieldsDefinition, myBeanContext).incompatibleBuildTypes;
   }

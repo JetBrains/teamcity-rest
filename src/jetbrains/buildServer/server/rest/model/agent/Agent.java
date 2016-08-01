@@ -104,7 +104,7 @@ public class Agent {
     authorized = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("authorized", false), agent.isAuthorized());
 
     //check permission to match UI
-    if (beanContext.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.VIEW_AGENT_DETAILS, null)) {
+    if (canViewAgentDetails(beanContext)) {
       uptodate = unknownAgent ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("uptodate", false), !agent.isOutdated() && !agent.isPluginsOutdated());
       ip = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("ip", false), new ValueWithDefault.Value<String>() {
         @Nullable
@@ -164,6 +164,10 @@ public class Agent {
         }
       });
     }
+  }
+
+  public static boolean canViewAgentDetails(final @NotNull BeanContext beanContext) {
+    return beanContext.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.VIEW_AGENT_DETAILS, null);
   }
 
   @NotNull
