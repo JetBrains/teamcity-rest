@@ -86,6 +86,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected static final String TAGS = "tags";
   protected static final String TAG = "tag";
   protected static final String COMPATIBLE_AGENT = "compatibleAgent";
+  protected static final String HISTORY = "history";
   protected static final String SINCE_BUILD = "sinceBuild"; //use startDate:(build:(<locator>),condition:after) instead
   protected static final String SINCE_DATE = "sinceDate"; //use startDate:(date:<date>,condition:after) instead
   protected static final String UNTIL_BUILD = "untilBuild"; //use startDate:(build:(<locator>),condition:before) instead
@@ -145,8 +146,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                               final TimeCondition timeCondition,
                               final PermissionChecker permissionChecker,
                               final MetadataStorageEx metadataStorage) {
-    super(DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, USER, PERSONAL, STATE, TAG, PROPERTY, COMPATIBLE_AGENT,
-          NUMBER, STATUS, CANCELED, PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, HANGING,
+    super(DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, USER, PERSONAL, STATE, TAG, PROPERTY, COMPATIBLE_AGENT, NUMBER, STATUS, CANCELED,
+          PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, HANGING, HISTORY,
           DEFAULT_FILTERING, SINCE_BUILD_ID_LOOK_AHEAD_COUNT,
           Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     myPermissionChecker = permissionChecker;
@@ -492,6 +493,15 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
           return FilterUtil.isIncludedByBooleanFilter(personal, item.isPersonal());
+        }
+      });
+    }
+
+    final Boolean history = locator.getSingleDimensionValueAsBoolean(HISTORY);
+    if (history != null) {
+      result.add(new FilterConditionChecker<BuildPromotion>() {
+        public boolean isIncluded(@NotNull final BuildPromotion item) {
+          return FilterUtil.isIncludedByBooleanFilter(history, item.isOutOfChangesSequence());
         }
       });
     }
