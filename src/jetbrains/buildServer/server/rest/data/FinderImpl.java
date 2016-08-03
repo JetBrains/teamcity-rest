@@ -330,7 +330,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     final String notDimension = locator.getSingleDimensionValue(LOGIC_OP_NOT);  //consider adding for multiple support here, use getItemsAnd()
     if (notDimension != null) {
       ItemFilter<ITEM> notFilter = getFilter(notDimension);
-      return new ItemFilter<ITEM>() {
+      result.add(new ItemFilter<ITEM>() {
         @Override
         public boolean shouldStop(@NotNull final ITEM item) {
           return false;
@@ -340,7 +340,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
         public boolean isIncluded(@NotNull final ITEM item) {
           return !notFilter.isIncluded(item);
         }
-      };
+      });
     }
 
     return result.build();

@@ -664,6 +664,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("startDate:(build:(id:" + finishedBuild20.getBuildId() + "),condition:after)", 4, getBuildPromotions(finishedBuild30, finishedBuild10));
 
     checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild10.getStartDate()) + ",condition:after),state:any", 5, getBuildPromotions(runningBuild50, finishedBuild30));
+    checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild10.getStartDate()) + ",condition:before),state:any", 7, getBuildPromotions(finishedBuild20, finishedBuild05, finishedBuild03));
     checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild20.getStartDate()) + ",condition:after),state:any", 6,
                 getBuildPromotions(runningBuild50, finishedBuild30, finishedBuild10));
     checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild30.getStartDate()) + ",condition:after),state:any", 4, getBuildPromotions(runningBuild50));
@@ -1192,6 +1193,9 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("property:(name:b),item:(status:FAILURE)", build20);
     checkBuilds("or:(property:(name:b),status:FAILURE)", build40, build30, build20);
     checkBuilds("not:(status:FAILURE)", build40, build10);
+    checkBuilds("property:(name:b),not:(status:FAILURE)", build40);
+    checkBuilds("status:FAILURE,not:(status:FAILURE)");
+    checkBuilds("id:FAILURE,not:(status:FAILURE)");
 
     checkBuilds("status:FAILURE,start:1", build20);
     checkMultipleBuilds("item:(status:FAILURE),property:(name:a,value:10)", build20); //search by item, filter by top-level

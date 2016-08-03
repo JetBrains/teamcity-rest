@@ -225,8 +225,7 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
     check("pool:(item:(id:" + poolId0 + "),item:(id:" + poolId20 + ")),pool:(id:" + poolId10 + ")", project20);
     check("pool:(id:" + poolId10 + "),pool:(id:" + poolId20 + ")");
     check("pool:(id:" + poolId0 + "),pool:(id:" + poolId10 + ")", project20);
-    //check("pool:(id:" + poolId0 + "),not(pool:(id:" + poolId10 + "))", myProjectManager.getRootProject(), project10);
-    //check("pool:(id:" + poolId0 + "),not(pool:(id:" + poolId0 + "))", project20, project30);
+    check("pool:(id:" + poolId0 + "),not(pool:(id:" + poolId10 + "))", myProjectManager.getRootProject(), project10);
   }
 
   @Test
