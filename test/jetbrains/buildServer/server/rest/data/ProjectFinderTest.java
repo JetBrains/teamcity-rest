@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.Arrays;
 import java.util.List;
+import jetbrains.buildServer.BuildAgent;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.PropEntityProjectFeature;
@@ -199,6 +200,33 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
     check("projectFeature:(property:(name:a))", project10, project20);
     check("projectFeature:(property:(name:a,value:b2))", project20);
     check("projectFeature:(property:(name:a),property:(name:c))", project10);
+  }
+
+  @Test
+  public void testAgentPoolDimension() throws Exception {
+    final SProject project10 = createProject("p10", "project 10");
+    final SProject project20 = createProject("p20", "project 20");
+    final SProject project30 = createProject("p30", "project 30");
+
+    final int poolId0 = BuildAgent.DEFAULT_POOL_ID; // - project10, project20
+    final int poolId10 = myFixture.getAgentPoolManager().createNewAgentPool("pool10").getAgentPoolId(); // - project20
+    final int poolId20 = myFixture.getAgentPoolManager().createNewAgentPool("pool20").getAgentPoolId(); // - project30
+    myFixture.getAgentPoolManager().associateProjectsWithPool(poolId10, createSet(project20.getProjectId()));
+    myFixture.getAgentPoolManager().associateProjectsWithPool(poolId20, createSet(project30.getProjectId()));
+    myFixture.getAgentPoolManager().dissociateProjectsFromOtherPools(poolId20, createSet(project30.getProjectId()));
+
+    check(null, getRootProject(), project10, project20, project30);
+    check("pool:(id:" + poolId0 + ")", myProjectManager.getRootProject(), project10, project20);
+    check("pool:(id:" + poolId10 + ")", project20);
+    check("pool:(id:" + poolId20 + ")", project30);
+    check("pool:(item:(id:" + poolId0 + "),item:(id:" + poolId10 + "))", myProjectManager.getRootProject(), project10, project20);
+    check("pool:(item:(id:" + poolId0 + "),item:(id:" + poolId20 + "))", myProjectManager.getRootProject(), project10, project20, project30);
+    check("pool:(item:(id:" + poolId0 + "),item:(id:" + poolId20 + ")),id:" + project20.getExternalId(), project20);
+    check("pool:(item:(id:" + poolId0 + "),item:(id:" + poolId20 + ")),pool:(id:" + poolId10 + ")", project20);
+    check("pool:(id:" + poolId10 + "),pool:(id:" + poolId20 + ")");
+    check("pool:(id:" + poolId0 + "),pool:(id:" + poolId10 + ")", project20);
+    //check("pool:(id:" + poolId0 + "),not(pool:(id:" + poolId10 + "))", myProjectManager.getRootProject(), project10);
+    //check("pool:(id:" + poolId0 + "),not(pool:(id:" + poolId0 + "))", project20, project30);
   }
 
   @Test

@@ -17,10 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.APIController;
@@ -30,6 +27,7 @@ import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.PropEntityProjectFeature;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.users.SUser;
@@ -61,6 +59,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   public static final String BUILD = "build";
   public static final String BUILD_TYPE = "buildType";
   public static final String VCS_ROOT = "vcsRoot";
+  public static final String AGENT_POOL = "pool";
   public static final String FEATURE = "projectFeature";
 
   @NotNull private final ProjectManager myProjectManager;
@@ -69,7 +68,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
   public ProjectFinder(@NotNull final ProjectManager projectManager, final PermissionChecker permissionChecker, @NotNull final ServiceLocator serviceLocator){
     super(DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, DIMENSION_AFFECTED_PROJECT, DIMENSION_NAME, DIMENSION_ARCHIVED,
-          BUILD, BUILD_TYPE, VCS_ROOT, FEATURE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+          BUILD, BUILD_TYPE, VCS_ROOT, FEATURE, AGENT_POOL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     setHiddenDimensions(DIMENSION_PARAMETER, DIMENSION_SELECTED, DIMENSION_READ_ONLY_UI,
                         DIMENSION_LOOKUP_LIMIT,
                         DIMENSION_PARENT_PROJECT //compatibility mode for versions <9.1
@@ -266,6 +265,27 @@ public class ProjectFinder extends AbstractFinder<SProject> {
           return new PropEntityProjectFeature.ProjectFeatureFinder(item).getItems(featureDimension).myEntries.size() > 0;
         }
       });
+    }
+
+    final List<String> poolDimensions = locator.getDimensionValue(AGENT_POOL);
+    if (!poolDimensions.isEmpty()) {
+      AgentPoolFinder agentPoolFinder = myServiceLocator.getSingletonService(AgentPoolFinder.class);
+      // streams API alternative
+      //Optional<Set<String>> filterProjectInternalIds = poolDimensions.stream().
+      //  map(poolLocator -> agentPoolFinder.getItems(poolLocator).myEntries.stream().flatMap(pool -> pool.getProjectIds().stream()).collect(Collectors.toSet())).
+      //  reduce((projectIds, projectIds2) -> projectIds.stream().filter(projectIds2::contains).collect(Collectors.toSet()));
+      //if (filterProjectInternalIds.isPresent()){
+      //  result.add(item -> filterProjectInternalIds.get().contains(item.getProjectId()));
+      //}
+
+      for (String poolDimension : poolDimensions) {
+        List<AgentPool> pools = agentPoolFinder.getItems(poolDimension).myEntries;
+        Set<String> filterProjectInternalIds = new HashSet<>();
+        for (AgentPool pool : pools) {
+          filterProjectInternalIds.addAll(pool.getProjectIds());
+        }
+        result.add(item -> filterProjectInternalIds.contains(item.getProjectId()));
+      }
     }
 
     return result;
