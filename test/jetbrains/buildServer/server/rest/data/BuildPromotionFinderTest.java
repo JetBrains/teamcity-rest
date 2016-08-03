@@ -1195,7 +1195,6 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("not:(status:FAILURE)", build40, build10);
     checkBuilds("property:(name:b),not:(status:FAILURE)", build40);
     checkBuilds("status:FAILURE,not:(status:FAILURE)");
-    checkBuilds("id:FAILURE,not:(status:FAILURE)");
 
     checkBuilds("status:FAILURE,start:1", build20);
     checkMultipleBuilds("item:(status:FAILURE),property:(name:a,value:10)", build20); //search by item, filter by top-level
