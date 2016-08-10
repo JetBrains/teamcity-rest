@@ -20,10 +20,7 @@ import com.sun.jersey.spi.resource.Singleton;
 import io.swagger.annotations.Api;
 import java.io.File;
 import java.io.IOException;
-import java.lang.management.LockInfo;
-import java.lang.management.ManagementFactory;
-import java.lang.management.MonitorInfo;
-import java.lang.management.ThreadInfo;
+import java.lang.management.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -496,10 +493,12 @@ public class DebugRequest {
   @GET
   @Path("/threadDump")
   @Produces({"text/plain"})
-  public String getThreadDump(@QueryParam("lockedMonitors") String lockedMonitors, @QueryParam("lockedSynchronizers") String lockedSynchronizers) {
+  public String getThreadDump(@QueryParam("lockedMonitors") String lockedMonitors, @QueryParam("lockedSynchronizers") String lockedSynchronizers,
+                              @QueryParam("detectLocks") String detectLocks) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     final Date startTime = Dates.now();
-    ThreadInfo[] infos = ManagementFactory.getThreadMXBean().dumpAllThreads(Boolean.getBoolean(lockedMonitors), Boolean.getBoolean(lockedSynchronizers));
+    ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+    ThreadInfo[] infos = threadMXBean.dumpAllThreads(Boolean.getBoolean(lockedMonitors), Boolean.getBoolean(lockedSynchronizers));
     final StringBuilder result = new StringBuilder();
     result.append(ThreadDumpsController.makeServerInfoSummary(myDataProvider.getServer()));
     result.append("\n");
@@ -530,6 +529,13 @@ public class DebugRequest {
     DiagnosticUtil.printCpuUsage(printer, new DiagnosticUtil.ThreadDumpData());
     result.append("\n");
     result.append("Dump taken in ").append(TimePrinter.createMillisecondsFormatter().formatTime(Dates.now().getTime() - startTime.getTime()));
+
+    if (Boolean.getBoolean(detectLocks)) {
+      long[] deadlockedThreads = threadMXBean.findDeadlockedThreads();
+      if (deadlockedThreads != null) {
+        result.append("Found ").append(deadlockedThreads.length).append(" deadlocked threads with ids: ").append(Arrays.toString(deadlockedThreads));
+      }
+    }
 
     return result.toString();
   }
@@ -564,6 +570,9 @@ public class DebugRequest {
   @Produces({"text/plain"})
   public String getHashed(@PathParam("method") String method, @QueryParam("value") String value) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    if (value == null) {
+      throw new BadRequestException("Mandatory parameter 'value' is missing");
+    }
     if ("md5".equalsIgnoreCase(method)){
       return EncryptUtil.md5(value);
     }
