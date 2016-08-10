@@ -28,6 +28,7 @@ import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
@@ -178,14 +179,28 @@ public class VcsRootInstanceRequest {
   @POST
   @Path("/commitHookNotification")
   @Produces({"text/plain"})
-  public Response scheduleCheckingForChanges(@QueryParam("locator") final String vcsRootInstancesLocator, @Context @NotNull final BeanContext beanContext) {
+  public Response scheduleCheckingForChanges(@QueryParam("locator") final String vcsRootInstancesLocator, @QueryParam("okOnNothingFound") final Boolean okOnNothingFound,
+                                             @Context @NotNull final BeanContext beanContext) {
     if (StringUtil.isEmpty(vcsRootInstancesLocator)) {
       throw new BadRequestException("No 'locator' parameter provided, should be not empty VCS root instances locator");
     }
     Date requestStartTime = new Date();
-    final PagedSearchResult<jetbrains.buildServer.vcs.VcsRootInstance> vcsRootInstances = myVcsRootInstanceFinder.getItems(vcsRootInstancesLocator);
-    if (vcsRootInstances.myEntries.isEmpty()) {
-      return Response.status(Response.Status.NOT_FOUND).entity("No VCS roots are found for locator '" + vcsRootInstancesLocator + "' with current user " +
+    PagedSearchResult<jetbrains.buildServer.vcs.VcsRootInstance> vcsRootInstances = null;
+    boolean nothingFound;
+    try {
+      vcsRootInstances = myVcsRootInstanceFinder.getItems(vcsRootInstancesLocator);
+      nothingFound = vcsRootInstances.myEntries.isEmpty();
+    } catch (NotFoundException e) {
+      nothingFound = true;
+    }
+    if (nothingFound) {
+      Response.ResponseBuilder responseBuilder;
+      if (okOnNothingFound != null && okOnNothingFound) {
+        responseBuilder = Response.status(Response.Status.OK);
+      } else {
+        responseBuilder = Response.status(Response.Status.NOT_FOUND);
+      }
+      return responseBuilder.entity("No VCS roots are found for locator '" + vcsRootInstancesLocator + "' with current user " +
                                                                myBeanContext.getSingletonService(PermissionChecker.class).getCurrentUserDescription() +
                                                                ". Check locator and permissions using '" +
                                                                API_VCS_ROOT_INSTANCES_URL + "?locator=" + Locator.HELP_DIMENSION + "' URL.").build();
