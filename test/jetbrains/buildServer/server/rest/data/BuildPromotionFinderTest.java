@@ -844,6 +844,23 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
+  public void testBuildNumberAndBranch() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    SBuild build10 = build().in(buildConf).finish();
+    SBuild build20 = build().in(buildConf).number("100").finish();
+    SBuild build30 = build().in(buildConf).withBranch("branch").number("100").finish();
+    SBuild build40 = build().in(buildConf).withDefaultBranch().number("100").finish();
+
+    final String buildTypeDimension = ",buildType:(id:" + buildConf.getExternalId() + ")";
+
+    checkBuilds("number:100" + buildTypeDimension, getBuildPromotions(build40, build20));
+    checkBuilds("number:100,branch:(default:any)" + buildTypeDimension, getBuildPromotions(build40, build30, build20));
+    checkBuilds("number:100,branch:(name:branch)" + buildTypeDimension, getBuildPromotions(build30));
+    checkBuilds("number:100,defaultFilter:false" + buildTypeDimension, getBuildPromotions(build40, build30, build20));
+  }
+
+  @Test
   public void testWithProject() {
     final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
 
