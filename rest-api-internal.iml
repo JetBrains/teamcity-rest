@@ -88,7 +88,6 @@
           <root url="jar://$MODULE_DIR$/lib/annotations-2.0.1.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/commons-lang3-3.2.1.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/javassist-3.18.2-GA.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jersey-client-1.13.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/reflections-0.9.10.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/swagger-annotations-1.5.4.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/swagger-core-1.5.4.jar!/" />
