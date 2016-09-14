@@ -57,6 +57,7 @@ import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.LoginConfiguration;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.tags.TagsManager;
 import jetbrains.buildServer.users.SUser;
@@ -771,9 +772,15 @@ public class BuildRequest {
     };
 
     final String mediaType = WebUtil.getMimeType(request, resultIconFileName);
-    return Response.ok(streamingOutput, mediaType).header("Cache-Control", "no-cache").build();
-    //todo: consider using ETag for better caching/cache resets, might also use "Expires" header
+    final Response.ResponseBuilder response = Response.ok(streamingOutput, mediaType).header("Cache-Control", "no-cache");
     //see also setting no caching headers in jetbrains.buildServer.server.rest.request.FilesSubResource.getContentByStream()
+    response.header("ETag", "W/\"" + EncryptUtil.md5(String.valueOf(stateName)) + "\"");  //mark ETag as "weak"
+    // see jetbrains.buildServer.web.util.WebUtil.addCacheHeadersForIE and http://youtrack.jetbrains.com/issue/TW-9821 for details)
+    if (WebUtil.isIE(request)) {
+      response.header("Cache-Control", "private,must-revalidate");
+      response.header("Pragma", "private");
+    }
+    return response.build();
   }
 
   enum BuildIconStatus {
