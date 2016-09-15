@@ -772,7 +772,7 @@ public class BuildRequest {
     };
 
     final String mediaType = WebUtil.getMimeType(request, resultIconFileName);
-    final Response.ResponseBuilder response = Response.ok(streamingOutput, mediaType).header("Cache-Control", "no-cache");
+    final Response.ResponseBuilder response = Response.ok(streamingOutput, mediaType).header("Cache-Control", "no-cache, private");
     //see also setting no caching headers in jetbrains.buildServer.server.rest.request.FilesSubResource.getContentByStream()
     response.header("ETag", "W/\"" + EncryptUtil.md5(String.valueOf(stateName)) + "\"");  //mark ETag as "weak"
     // see jetbrains.buildServer.web.util.WebUtil.addCacheHeadersForIE and http://youtrack.jetbrains.com/issue/TW-9821 for details)
