@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.request;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
@@ -1119,7 +1120,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     assertEquals("7", settingsSubResource.setParameterValueLong("maximumNumberOfBuilds", "7"));
     assertEquals("7", settingsSubResource.getParameter("maximumNumberOfBuilds", "$long").value);
 
-    settingsSubResource.setParameter(new Property(new SimpleParameter("maximumNumberOfBuilds", "0"), false, Fields.LONG, myFixture), "$long"); //set to defualt value
+    settingsSubResource.setParameter(new Property(new SimpleParameter("maximumNumberOfBuilds", "0"), false, Fields.LONG, myFixture), "$long"); //set to default value
     assertCollectionEquals("", settingsSubResource.getParameters(null, fields), p("artifactRules", "bbbb"), p("buildNumberCounter", "1"),
                            p("checkoutDirectory", "checkout_bt"), p("checkoutMode", "ON_SERVER"),
                            p("executionTimeoutMin", "17"), p("shouldFailBuildIfTestsFailed", "false"));
@@ -1172,8 +1173,34 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     assertCollectionEquals("", settingsSubResource.getParameters(new Locator("defaults:false,name:buildNumberCounter"), fields),
                            p("buildNumberCounter", "1", null, null));
 
-    checkException(LocatorProcessException.class, () -> settingsSubResource.getParameters(new Locator("a:b"), "$long"), "");
-    checkException(BadRequestException.class, () -> settingsSubResource.setParameter(new Property(new SimpleParameter("aaa", "b"), false, Fields.LONG, myFixture), "$long"), "");
+
+    HashMap<String, String> newParametersMap = new HashMap<>();
+    // all the same
+    newParametersMap.put("artifactRules", "bbbb");
+    newParametersMap.put("buildNumberCounter", "1");
+    newParametersMap.put("checkoutMode", "ON_SERVER");
+    newParametersMap.put("executionTimeoutMin", "17");
+    newParametersMap.put("shouldFailBuildIfTestsFailed", "false");
+    settingsSubResource.setParameters(new Properties(newParametersMap, null, new Fields("**"), myFixture), "$long");
+    assertCollectionEquals("", settingsSubResource.getParameters(null, fields), p("artifactRules", "bbbb"), p("buildNumberCounter", "1"),
+                           p("checkoutMode", "ON_SERVER"),
+                           p("executionTimeoutMin", "17"), p("shouldFailBuildIfTestsFailed", "false"));
+
+    newParametersMap.remove("artifactRules");
+    newParametersMap.put("buildNumberCounter", "2");
+    settingsSubResource.setParameters(new Properties(newParametersMap, null, new Fields("**"), myFixture), "$long");
+    assertCollectionEquals("", settingsSubResource.getParameters(null, fields), p("buildNumberCounter", "2"),
+                           p("checkoutMode", "ON_SERVER"),
+                           p("executionTimeoutMin", "17"), p("shouldFailBuildIfTestsFailed", "false"));
+
+    newParametersMap.remove("buildNumberCounter");
+    settingsSubResource.setParameters(new Properties(newParametersMap, null, new Fields("**"), myFixture), "$long");
+    assertCollectionEquals("", settingsSubResource.getParameters(null, fields), p("buildNumberCounter", "1"), //is reset to "1"
+                           p("checkoutMode", "ON_SERVER"),
+                           p("executionTimeoutMin", "17"), p("shouldFailBuildIfTestsFailed", "false"));
+
+    checkException(LocatorProcessException.class, () -> settingsSubResource.getParameters(new Locator("a:b"), "$long"), null);
+    checkException(BadRequestException.class, () -> settingsSubResource.setParameter(new Property(new SimpleParameter("aaa", "b"), false, Fields.LONG, myFixture), "$long"), null);
   }
 
   @NotNull

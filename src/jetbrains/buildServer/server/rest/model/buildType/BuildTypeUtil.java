@@ -157,7 +157,8 @@ public class BuildTypeUtil {
 
   public static void resetSettingsParameter(final BuildTypeOrTemplate buildType, final String paramName) {
     if (BUILD_NUMBER_COUNTER.equals(paramName)) {
-      throw new BadRequestException("Setting '" + paramName + "' is always present and cannot be deleted");
+      setSettingsParameter(buildType, paramName, String.valueOf(1));
+      return;
     }
     Option option = Option.fromKey(paramName);
     if (option == null) {
