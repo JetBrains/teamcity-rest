@@ -21,6 +21,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
@@ -82,6 +83,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected static final String RUNNING = "running";
   protected static final String HANGING = "hanging";
   protected static final String SNAPSHOT_DEP = "snapshotDependency";
+  protected static final String ARTIFACT_DEP = "artifactDependency";
   protected static final String COMPATIBLE_AGENTS_COUNT = "compatibleAgentsCount";
   protected static final String TAGS = "tags";
   protected static final String TAG = "tag";
@@ -108,6 +110,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   public static final String REVISION = "revision"; /*experimental*/
   public static final BuildPromotionComparator BUILD_PROMOTIONS_COMPARATOR = new BuildPromotionComparator();
   public static final SnapshotDepsTraverser SNAPSHOT_DEPENDENCIES_TRAVERSER = new SnapshotDepsTraverser();
+  public static final ArtifactDepsTraverser ARTIFACT_DEPENDENCIES_TRAVERSER = new ArtifactDepsTraverser();
   protected static final String STROB_BUILD_LOCATOR = "locator";
 
   private final BuildPromotionManager myBuildPromotionManager;
@@ -147,7 +150,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                               final PermissionChecker permissionChecker,
                               final MetadataStorageEx metadataStorage) {
     super(DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, USER, PERSONAL, STATE, TAG, PROPERTY, COMPATIBLE_AGENT, NUMBER, STATUS, CANCELED,
-          PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, HANGING, HISTORY,
+          PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, ARTIFACT_DEP, HANGING, HISTORY,
           DEFAULT_FILTERING, SINCE_BUILD_ID_LOOK_AHEAD_COUNT,
           Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     myPermissionChecker = permissionChecker;
@@ -543,6 +546,18 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         result.add(new FilterConditionChecker<BuildPromotion>() {
           public boolean isIncluded(@NotNull final BuildPromotion item) {
             return snapshotRelatedBuilds.contains(item);
+          }
+        });
+      }
+    }
+
+    if (locator.getUnusedDimensions().contains(ARTIFACT_DEP)) { //performance optimization: do not filter if already processed
+      final String artifactDepDimension = locator.getSingleDimensionValue(ARTIFACT_DEP);
+      if (artifactDepDimension != null) {
+        final Set<BuildPromotion> artifactRelatedBuilds = new HashSet<>(getArtifactRelatedBuilds(artifactDepDimension));
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            return artifactRelatedBuilds.contains(item);
           }
         });
       }
@@ -1103,6 +1118,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       return getItemHolder(getSnapshotRelatedBuilds(snapshotDepDimension));
     }
 
+    final String artifactDepDimension = locator.getSingleDimensionValue(ARTIFACT_DEP);
+    if (artifactDepDimension != null) {
+      return getItemHolder(getArtifactRelatedBuilds(artifactDepDimension));
+    }
+
     final String number = locator.getSingleDimensionValue(NUMBER);
     if (number != null) {
       final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
@@ -1373,6 +1393,14 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   }
 
   @NotNull
+  private List<BuildPromotion> getArtifactRelatedBuilds(@NotNull final String depDimension) {
+    final GraphFinder<BuildPromotion> graphFinder = new GraphFinder<BuildPromotion>(this, ARTIFACT_DEPENDENCIES_TRAVERSER);
+    final List<BuildPromotion> result = graphFinder.getItems(depDimension).myEntries;
+    Collections.sort(result, BUILD_PROMOTIONS_COMPARATOR);
+    return result; //todo: patch branch locator, personal, etc.???
+  }
+
+  @NotNull
   private Locator createStateLocator(@NotNull final String stateDimension) {
     final Locator locator = new Locator(stateDimension, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, STATE_QUEUED, STATE_RUNNING, STATE_FINISHED);
     if (locator.isSingleValue()) {
@@ -1469,6 +1497,37 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                   return source.getDependent();
                 }
               });
+        }
+      };
+    }
+  }
+
+  private static class ArtifactDepsTraverser implements GraphFinder.Traverser<BuildPromotion> {
+    @NotNull
+    public GraphFinder.LinkRetriever<BuildPromotion> getChildren() {
+      return new GraphFinder.LinkRetriever<BuildPromotion>() {
+        @NotNull
+        public List<BuildPromotion> getLinked(@NotNull final BuildPromotion item) {
+          //see also jetbrains.buildServer.server.rest.model.build.Build.getBuildArtifactDependencies
+          SBuild build = item.getAssociatedBuild();
+          if (build == null)
+            return Collections.emptyList();
+          return build.getDownloadedArtifacts().getArtifacts().keySet().stream().map(v -> ((SBuild)v).getBuildPromotion())
+                      .sorted(new Build.BuildPromotionDependenciesComparator()).collect(Collectors.toList());
+        }
+      };
+    }
+
+    @NotNull
+    public GraphFinder.LinkRetriever<BuildPromotion> getParents() {
+      return new GraphFinder.LinkRetriever<BuildPromotion>() {
+        @NotNull
+        public List<BuildPromotion> getLinked(@NotNull final BuildPromotion item) {
+          SBuild build = item.getAssociatedBuild();
+          if (build == null)
+            return Collections.emptyList();
+          return build.getProvidedArtifacts().getArtifacts().keySet().stream().map(v -> ((SBuild)v).getBuildPromotion())
+                      .sorted(new Build.BuildPromotionDependenciesComparator()).collect(Collectors.toList());
         }
       };
     }

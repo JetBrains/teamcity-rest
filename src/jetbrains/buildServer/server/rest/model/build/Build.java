@@ -842,7 +842,7 @@ public class Build {
     }
   }
 
-  private static class BuildPromotionDependenciesComparator implements Comparator<BuildPromotion> {
+  public static class BuildPromotionDependenciesComparator implements Comparator<BuildPromotion> {
     public int compare(final BuildPromotion o1, final BuildPromotion o2) {
       final int buildTypesCompare = o1.getBuildTypeId().compareTo(o2.getBuildTypeId());
       return buildTypesCompare != 0 ? buildTypesCompare : (int)(o1.getId() - o2.getId());

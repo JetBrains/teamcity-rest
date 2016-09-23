@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
@@ -29,6 +30,7 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -65,6 +67,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   protected static final String PARAMETER = "parameter";
   protected static final String FILTER_BUILDS = "filterByBuilds";
   protected static final String SNAPSHOT_DEPENDENCY = "snapshotDependency";
+  protected static final String ARTIFACT_DEPENDENCY = "artifactDependency";
   protected static final String DIMENSION_SELECTED = "selectedByUser";
   public static final String VCS_ROOT_DIMENSION = "vcsRoot";
   public static final String VCS_ROOT_INSTANCE_DIMENSION = "vcsRootInstance";
@@ -84,7 +87,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     super(DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, AFFECTED_PROJECT, DIMENSION_NAME, TEMPLATE_FLAG_DIMENSION_NAME,
       TEMPLATE_DIMENSION_NAME, PAUSED, VCS_ROOT_DIMENSION, VCS_ROOT_INSTANCE_DIMENSION, BUILD,
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-    setHiddenDimensions(COMPATIBLE_AGENT, COMPATIBLE_AGENTS_COUNT, PARAMETER, FILTER_BUILDS, SNAPSHOT_DEPENDENCY, DIMENSION_SELECTED, DIMENSION_LOOKUP_LIMIT);
+    setHiddenDimensions(COMPATIBLE_AGENT, COMPATIBLE_AGENTS_COUNT, PARAMETER, FILTER_BUILDS, SNAPSHOT_DEPENDENCY, ARTIFACT_DEPENDENCY, DIMENSION_SELECTED, DIMENSION_LOOKUP_LIMIT);
     myProjectManager = projectManager;
     myProjectFinder = projectFinder;
     myAgentFinder = agentFinder;
@@ -351,6 +354,17 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       });
     }
 
+    final String artifactDependencies = locator.getSingleDimensionValue(ARTIFACT_DEPENDENCY);
+    if (artifactDependencies != null) {
+      final GraphFinder<BuildTypeOrTemplate> graphFinder = new GraphFinder<BuildTypeOrTemplate>(this, new ArtifactDepsTraverser(myPermissionChecker));
+      final List<BuildTypeOrTemplate> boundingList = graphFinder.getItems(artifactDependencies).myEntries;
+      result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
+        public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+          return boundingList.contains(item);
+        }
+      });
+    }
+
     final String templateLocator = locator.getSingleDimensionValue(TEMPLATE_DIMENSION_NAME);
     if (templateLocator != null) {
       try {
@@ -437,6 +451,12 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     if (snapshotDependencies != null) {
       final GraphFinder<BuildTypeOrTemplate> graphFinder = new GraphFinder<BuildTypeOrTemplate>(this, new SnapshotDepsTraverser(myPermissionChecker));
       return getItemHolder(graphFinder.getItems(snapshotDependencies).myEntries);
+    }
+
+    final String artifactDependencies = locator.getSingleDimensionValue(ARTIFACT_DEPENDENCY);
+    if (artifactDependencies != null) {
+      final GraphFinder<BuildTypeOrTemplate> graphFinder = new GraphFinder<BuildTypeOrTemplate>(this, new ArtifactDepsTraverser(myPermissionChecker));
+      return getItemHolder(graphFinder.getItems(artifactDependencies).myEntries);
     }
 
     final String vcsRoot = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
@@ -781,7 +801,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
           if (BuildType.shouldRestrictSettingsViewing(item.get(), myPermissionChecker)){
             return new ArrayList<BuildTypeOrTemplate>(); //conceal dependencies
           }
-          return getNotNullBuildTypes(item.get().getDependencies());
+          return item.get().getDependencies().stream().map(Dependency::getDependOn).filter(Objects::nonNull).map(v -> new BuildTypeOrTemplate(v)).collect(Collectors.toList());
         }
       };
     }
@@ -801,6 +821,43 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     }
   }
 
+  private class ArtifactDepsTraverser implements GraphFinder.Traverser<BuildTypeOrTemplate> {
+    @NotNull private final PermissionChecker myPermissionChecker;
+
+    public ArtifactDepsTraverser(@NotNull final PermissionChecker permissionChecker) {
+      myPermissionChecker = permissionChecker;
+    }
+
+    @NotNull
+    public GraphFinder.LinkRetriever<BuildTypeOrTemplate> getChildren() {
+      return new GraphFinder.LinkRetriever<BuildTypeOrTemplate>() {
+        @NotNull
+        public List<BuildTypeOrTemplate> getLinked(@NotNull final BuildTypeOrTemplate item) {
+          if (BuildType.shouldRestrictSettingsViewing(item.get(), myPermissionChecker)) {
+            return new ArrayList<BuildTypeOrTemplate>(); //conceal dependencies
+          }
+          return item.get().getArtifactDependencies().stream().map(SArtifactDependency::getSourceBuildType).filter(Objects::nonNull).map(v -> new BuildTypeOrTemplate(v))
+                     .collect(Collectors.toList());
+        }
+      };
+    }
+
+    @NotNull
+    public GraphFinder.LinkRetriever<BuildTypeOrTemplate> getParents() {
+      return new GraphFinder.LinkRetriever<BuildTypeOrTemplate>() {
+        @NotNull
+        public List<BuildTypeOrTemplate> getLinked(@NotNull final BuildTypeOrTemplate item) {
+          final SBuildType buildType = item.getBuildType();
+          if (buildType == null) {
+            return new ArrayList<BuildTypeOrTemplate>(); //template should have no dependencies on it
+          }
+          return buildType.getArtifactsReferences().stream().filter(Objects::nonNull).filter(v -> !BuildType.shouldRestrictSettingsViewing(v, myPermissionChecker))
+                          .map(v -> new BuildTypeOrTemplate(v)).collect(Collectors.toList());
+        }
+      };
+    }
+  }
+
   @NotNull
   private List<BuildTypeOrTemplate> getDependingOn(@NotNull final SBuildType buildType, @NotNull final PermissionChecker permissionChecker) {
     final Set<String> internalIds = ((BuildTypeEx)buildType).getDependedOnMe().keySet(); //TeamCity open API issue
@@ -810,19 +867,6 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       if (buildTypeById != null && !BuildType.shouldRestrictSettingsViewing(buildTypeById, permissionChecker)){ //conceal dependencies
         result.add(new BuildTypeOrTemplate(buildTypeById));
       }
-    }
-    return result;
-  }
-
-  @NotNull
-  private List<BuildTypeOrTemplate> getNotNullBuildTypes(@NotNull final List<Dependency> dependencies) {
-    final ArrayList<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
-    for (Dependency dependency : dependencies) {
-      final SBuildType dependOn = dependency.getDependOn();
-      if (dependOn != null) {
-        result.add(new BuildTypeOrTemplate(dependOn));
-      }
-      //todo: else expose this somehow
     }
     return result;
   }

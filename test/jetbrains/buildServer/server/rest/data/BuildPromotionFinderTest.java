@@ -16,6 +16,8 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
@@ -214,6 +216,55 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 
     final BuildPromotion build3_20 = build().in(buildConf2).withBranch("branch1").finish().getBuildPromotion();
     checkBuilds("snapshotDependency:(from:(id:" + build2_00.getId() + ")),equivalent:(id:" + build3_20.getId() + ")", build2_20);
+  }
+
+  @Test
+  public void testArtifactDependencies() throws Exception {
+    final BuildTypeImpl buildConf0 = registerBuildType("buildConf0", "project");
+    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
+    final BuildTypeImpl buildConf3 = registerBuildType("buildConf3", "project");
+    final BuildTypeImpl buildConf4 = registerBuildType("buildConf4", "project");
+    addArtifactDependency(buildConf4, buildConf3);
+    addArtifactDependency(buildConf3, buildConf2);
+    addArtifactDependency(buildConf2, buildConf1);
+    addArtifactDependency(buildConf1, buildConf0);
+
+    DownloadedArtifactsLoggerImpl artifactsLogger = myFixture.getSingletonService(DownloadedArtifactsLoggerImpl.class);
+
+    final BuildPromotion build0 = build().in(buildConf0).finish().getBuildPromotion();
+    addArtifact(build0, ARTIFACT_DEP_FILE_NAME);
+    final BuildPromotion build1 = build().in(buildConf1).finish().getBuildPromotion();
+    artifactsLogger.logArtifactDownload(build1.getAssociatedBuildId(), build0.getAssociatedBuildId(), ARTIFACT_DEP_FILE_NAME);
+    addArtifact(build1, ARTIFACT_DEP_FILE_NAME);
+    final BuildPromotion build2 = build().in(buildConf2).finish().getBuildPromotion();
+    artifactsLogger.logArtifactDownload(build2.getAssociatedBuildId(), build1.getAssociatedBuildId(), ARTIFACT_DEP_FILE_NAME);
+    addArtifact(build2, ARTIFACT_DEP_FILE_NAME);
+    final BuildPromotion build3 = build().in(buildConf3).run().getBuildPromotion();
+    artifactsLogger.logArtifactDownload(build3.getAssociatedBuildId(), build2.getAssociatedBuildId(), ARTIFACT_DEP_FILE_NAME);
+    addArtifact(build3, ARTIFACT_DEP_FILE_NAME);
+    final BuildPromotion build4 = build().in(buildConf4).addToQueue().getBuildPromotion();
+
+    artifactsLogger.waitForQueuePersisting();
+
+    final String baseToLocatorStart = "artifactDependency:(to:(id:" + build2.getId() + ")";
+    checkBuilds(baseToLocatorStart + ")", build1, build0);
+    checkBuilds(baseToLocatorStart + "),state:any", build1, build0);
+    checkBuilds(baseToLocatorStart + ",includeInitial:true)", build2, build1, build0); //by default only finished builds
+    checkBuilds(baseToLocatorStart + ",recursive:false)", build1);
+
+    checkBuilds("artifactDependency:(to:(id:" + build3.getId() + "))", build2, build1, build0);
+
+    final String baseFromLocatorStart = "artifactDependency:(from:(id:" + build1.getId() + ")";
+    checkBuilds(baseFromLocatorStart + ")", build2);
+    checkBuilds(baseFromLocatorStart + "),state:any", build3, build2);
+  }
+
+  private void addArtifact(final BuildPromotion build, final String artifactName) throws IOException {
+    final File artifactsDir = build.getArtifactsDirectory();
+    artifactsDir.mkdirs();
+    File myFile1 = new File(artifactsDir, artifactName);
+    myFile1.createNewFile();
   }
 
   @Test

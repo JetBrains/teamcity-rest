@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.log.Loggable;
 import jetbrains.buildServer.responsibility.ResponsibilityFacadeEx;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -32,8 +33,11 @@ import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.serverSide.ArtifactDependencyFactory;
 import jetbrains.buildServer.serverSide.CurrentProblemsManager;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TestName2IndexImpl;
+import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -50,6 +54,7 @@ import org.testng.annotations.BeforeMethod;
  * Created by yaegor on 13/06/2015.
  */
 public abstract class BaseFinderTest<T> extends BaseServerTestCase{
+  protected static final String ARTIFACT_DEP_FILE_NAME = "aaa";
   private Finder<T> myFinder;
   protected VcsManagerImpl myVcsManager;
   protected PermissionChecker myPermissionChecker;
@@ -236,6 +241,12 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
         }
       }
     }
+  }
+
+  protected SArtifactDependency addArtifactDependency(final SBuildType dependent, final SBuildType dependOn) {
+    SArtifactDependency dep = myFixture.getSingletonService(ArtifactDependencyFactory.class).createArtifactDependency(dependOn, ARTIFACT_DEP_FILE_NAME, RevisionRules.LAST_FINISHED_RULE);
+    dependent.addArtifactDependency(dep);
+    return dep;
   }
 
   public static interface Matcher<S, T> {

@@ -192,6 +192,68 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
   }
 
   @Test
+  public void testArtifactDependencies() throws Exception {
+    final BuildTypeOrTemplate buildConf01 = new BuildTypeOrTemplate(registerBuildType("buildConf01", "project"));
+    final BuildTypeOrTemplate buildConf02 = new BuildTypeOrTemplate(registerBuildType("buildConf02", "project"));
+    final BuildTypeOrTemplate buildConf1 = new BuildTypeOrTemplate(registerBuildType("buildConf1", "project"));
+    final BuildTypeOrTemplate buildConf2 = new BuildTypeOrTemplate(registerBuildType("buildConf2", "project"));
+    final BuildTypeOrTemplate buildConf31 = new BuildTypeOrTemplate(registerBuildType("buildConf31", "project"));
+    final BuildTypeOrTemplate buildConf32 = new BuildTypeOrTemplate(registerBuildType("buildConf32", "project"));
+    final BuildTypeOrTemplate buildConf4 = new BuildTypeOrTemplate(registerBuildType("buildConf4", "project"));
+    final BuildTypeOrTemplate buildConf5 = new BuildTypeOrTemplate(registerBuildType("buildConf5", "project"));
+    final BuildTypeOrTemplate buildConf6 = new BuildTypeOrTemplate(registerBuildType("buildConf6", "project"));
+
+    addArtifactDependency(buildConf6.getBuildType() , buildConf5.getBuildType());
+    addArtifactDependency(buildConf5.getBuildType() , buildConf31.getBuildType());
+
+    addArtifactDependency(buildConf4.getBuildType() , buildConf31.getBuildType());
+    addArtifactDependency(buildConf4.getBuildType() , buildConf32.getBuildType());
+    addArtifactDependency(buildConf31.getBuildType() , buildConf2.getBuildType());
+    addArtifactDependency(buildConf32.getBuildType() , buildConf2.getBuildType());
+    addArtifactDependency(buildConf2.getBuildType() , buildConf1.getBuildType());
+    addArtifactDependency(buildConf2.getBuildType() , buildConf01.getBuildType());
+    addArtifactDependency(buildConf1.getBuildType() , buildConf01.getBuildType());
+    addArtifactDependency(buildConf1.getBuildType() , buildConf02.getBuildType());
+
+
+    final String baseToLocatorStart1 = "artifactDependency:(from:(id:" + buildConf4.getId() + ")";
+    check(baseToLocatorStart1 + ")");
+    check(baseToLocatorStart1 + ",includeInitial:true)", buildConf4);
+    check(baseToLocatorStart1 + ",includeInitial:false)");
+    check(baseToLocatorStart1 + ",recursive:true)");
+    check(baseToLocatorStart1 + ",includeInitial:true,recursive:false)", buildConf4);
+
+    final String baseToLocatorStart2 = "artifactDependency:(to:(id:" + buildConf4.getId() + ")";
+    check(baseToLocatorStart2 + ")", buildConf31, buildConf32, buildConf2, buildConf1, buildConf01, buildConf02);
+    check(baseToLocatorStart2 + ",includeInitial:true)", buildConf4, buildConf31, buildConf32, buildConf2, buildConf1, buildConf01, buildConf02);
+    check(baseToLocatorStart2 + ",includeInitial:false)", buildConf31, buildConf32, buildConf2, buildConf1, buildConf01, buildConf02);
+    check(baseToLocatorStart2 + ",recursive:true)", buildConf31, buildConf32, buildConf2, buildConf1, buildConf01, buildConf02);
+    check(baseToLocatorStart2 + ",recursive:false)", buildConf31, buildConf32);
+    check(baseToLocatorStart2 + ",includeInitial:true,recursive:true)", buildConf4, buildConf31, buildConf32, buildConf2, buildConf1, buildConf01, buildConf02);
+
+    final String baseToLocatorStart3 = "artifactDependency:(to:(id:" + buildConf31.getId() + ")";
+    check(baseToLocatorStart3 + ")", buildConf2, buildConf1, buildConf01, buildConf02);
+    check(baseToLocatorStart3 + ",includeInitial:true)", buildConf31, buildConf2, buildConf1, buildConf01, buildConf02);
+    check(baseToLocatorStart3 + ",includeInitial:false)", buildConf2, buildConf1, buildConf01, buildConf02);
+    check(baseToLocatorStart3 + ",recursive:true)", buildConf2, buildConf1, buildConf01, buildConf02);
+    check(baseToLocatorStart3 + ",recursive:false)", buildConf2);
+    check(baseToLocatorStart3 + ",includeInitial:true,recursive:true)", buildConf31, buildConf2, buildConf1, buildConf01, buildConf02);
+
+    final String baseToLocatorStart4 = "artifactDependency:(from:(id:" + buildConf31.getId() + ")";
+    check(baseToLocatorStart4 + ")", buildConf4, buildConf5, buildConf6);
+    check(baseToLocatorStart4 + ",includeInitial:true)", buildConf31, buildConf4, buildConf5, buildConf6);
+    check(baseToLocatorStart4 + ",includeInitial:false)", buildConf4, buildConf5, buildConf6);
+    check(baseToLocatorStart4 + ",recursive:true)", buildConf4, buildConf5, buildConf6);
+    check(baseToLocatorStart4 + ",recursive:false)", buildConf4, buildConf5);
+    check(baseToLocatorStart4 + ",includeInitial:true,recursive:true)", buildConf31, buildConf4, buildConf5, buildConf6);
+
+    check("artifactDependency:(from:(id:" + buildConf2.getId() + "),to:(id:" + buildConf31.getId() + "),includeInitial:true)", buildConf31, buildConf2);
+    check("artifactDependency:(from:(id:" + buildConf1.getId() + "),to:(id:" + buildConf4.getId() + "))", buildConf31, buildConf32, buildConf2);
+    check("artifactDependency:(from:(id:" + buildConf1.getId() + "),to:(id:" + buildConf5.getId() + "))", buildConf31, buildConf2);
+    check("artifactDependency:(from:(id:" + buildConf31.getId() + "),to:(id:" + buildConf32.getId() + "))");
+  }
+
+  @Test
   public void testProject() throws Exception {
     myBuildType.remove();
     final SProject project10 = createProject("p10");
