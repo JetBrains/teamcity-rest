@@ -19,6 +19,8 @@ package jetbrains.buildServer.server.rest.request;
 import com.sun.jersey.api.core.InjectParam;
 import io.swagger.annotations.Api;
 import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -53,6 +55,7 @@ import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.browser.Element;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /*
  * User: Yegor Yarko
@@ -278,6 +281,14 @@ public class ServerRequest {
       @NotNull
       public String getArchiveName(@NotNull final String path) {
         return "server_" + areaId + (StringUtil.isEmpty(path) ? "" : "-" + path.replaceAll("[^a-zA-Z0-9-#.]+", "_"));
+      }
+
+      @NotNull
+      @Override
+      public String preprocess(@Nullable final String path) {
+        String result = super.preprocess(path);
+        result = StringUtil.replace(result, "%timestamp%", new SimpleDateFormat("yyyy-MM-dd_HHmm").format(new Date()));
+        return result;
       }
     }, urlPrefix, myBeanContext, false);
   }
