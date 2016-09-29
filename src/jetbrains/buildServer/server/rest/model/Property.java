@@ -70,7 +70,7 @@ public class Property {
     name = !fields.isIncluded("name", true, true) ? null : parameter.getName();
     if (!isSecure(parameter, serviceLocator)) {
       value = !fields.isIncluded("value", true, true) ? null : parameter.getValue();
-    } else if (includeSecureProperties(serviceLocator)) {
+    } else if (getAllowedValues().contains(getSecureValue(parameter, serviceLocator)) || includeSecureProperties(serviceLocator)) {
       value = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("value", true, true), () -> getSecureValue(parameter, serviceLocator));
     }
     this.inherited = ValueWithDefault.decideDefault(fields.isIncluded("inherited"), inherited);
@@ -83,7 +83,7 @@ public class Property {
 
   public static boolean isSecure(@NotNull final Parameter parameter, @NotNull final ServiceLocator serviceLocator) {
     if (serviceLocator.getSingletonService(PasswordType.class).isPassword(parameter.getControlDescription()) && !includeSecureProperties(serviceLocator)) {
-      return !getAllowedValues().contains(getSecureValue(parameter, serviceLocator));
+      return true;
     }
     return isPropertyToExclude(parameter.getName(), parameter.getValue(), serviceLocator);
   }
@@ -181,7 +181,7 @@ public class Property {
     Parameter originalOwnParameter = entity.getOwnParameter(name);
 
     if (inherited != null && inherited) {
-      if (originalParameter != null && isSimilar(new Property(originalParameter, true, Fields.LONG, serviceLocator))) return originalParameter;
+      if (originalParameter != null && isSimilar(originalParameter, serviceLocator)) return originalParameter;
     }
 
     Parameter fromPosted = getFromPosted(serviceLocator);
@@ -199,27 +199,42 @@ public class Property {
     }
   }
 
-  public boolean isSimilar(final Property that) {
-    if (that == null) {
+  public boolean isSimilar(final Parameter parameter, final ServiceLocator serviceLocator) {
+    if (parameter == null) {
       return false;
     }
-    if (!Objects.equal(name, that.name)) {
+    if (!Objects.equal(name, parameter.getName())) {
       return false;
     }
+    ControlDescription controlDescription = parameter.getControlDescription();
     if (inherited == null || !inherited) {
-      if (!Objects.equal(type, that.type)) {
+      if (!Objects.equal(type, controlDescription == null ? null : new ParameterType(controlDescription, Fields.LONG, serviceLocator))) {
         return false;
       }
-      if (!Objects.equal(value, that.value)) {
-        return false;
+      if (!isSecure(parameter, serviceLocator)) {
+        if (!Objects.equal(value, parameter.getValue())) {
+          return false;
+        }
+      } else {
+        if (!Objects.equal(value, getSecureValue(parameter, serviceLocator))) {
+          return false;
+        }
       }
     } else {
       // allow to omit type and value for inherited parameters
-      if (type != null && !Objects.equal(type, that.type)) {
+      if (type != null && !Objects.equal(type, controlDescription == null ? null : new ParameterType(controlDescription, Fields.LONG, serviceLocator))) {
         return false;
       }
-      if (value != null && !Objects.equal(value, that.value)) {
-        return false;
+      if (value != null) {
+        if (!isSecure(parameter, serviceLocator)) {
+          if (!Objects.equal(value, parameter.getValue())) {
+            return false;
+          }
+        } else {
+          if (!Objects.equal(value, getSecureValue(parameter, serviceLocator))) {
+            return false;
+          }
+        }
       }
     }
     return true;

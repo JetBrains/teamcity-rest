@@ -1150,7 +1150,59 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       checkException(BadRequestException.class, () -> myBuildTypeRequest.addBuildType(buildType, Fields.LONG.getFieldsSpec()), null);
       buildType.setParameters(buildType.getParameters()); //reset params
     }
+
+    {
+      Properties parameters = buildType.getParameters();
+      parameters.properties.get(0).value = "secret";
+      buildType.setParameters(parameters);
+
+      BuildType buildType_copy = myBuildTypeRequest.addBuildType(buildType, Fields.LONG.getFieldsSpec());
+      BuildTypeImpl bt10_copy = myFixture.getProjectManager().findBuildTypeByExternalId("bt10_copy");
+      assertNotNull(bt10_copy);
+      assertNull(BuildTypeUtil.compareBuildTypes(bt10.getSettings(), bt10_copy.getSettings(), true, false));
+
+      bt10_copy.remove();
+      buildType.setParameters(buildType.getParameters()); //reset params
+    }
+
+    {
+      Properties parameters = buildType.getParameters();
+      parameters.properties.get(0).value = "secret2";
+      buildType.setParameters(parameters);
+
+      BuildType buildType_copy = myBuildTypeRequest.addBuildType(buildType, Fields.LONG.getFieldsSpec());
+      BuildTypeImpl bt10_copy = myFixture.getProjectManager().findBuildTypeByExternalId("bt10_copy");
+      assertNotNull(bt10_copy);
+      assertNotNull(bt10_copy.getOwnParameter("a_pwd")); // present - another value
+      assertEquals("secret2", parameterFactory.getRawValue(bt10_copy.getOwnParameter("a_pwd")));
+
+      bt10_copy.remove();
+      buildType.setParameters(buildType.getParameters()); //reset params
+    }
   }
+
+  @Test
+  public void testPasswordParams() {
+
+    //see also alike setup in BuildTypeTest.testInheritance()
+    ProjectEx project10 = createProject("project10", "project 10");
+
+    final ParameterFactory parameterFactory = myFixture.getSingletonService(ParameterFactory.class);
+    project10.addParameter(parameterFactory.createTypedParameter("a_pwd", "secret", "password"));
+    project10.addParameter(new SimpleParameter("b_normal", "value"));
+
+    BuildTypeEx bt10 = project10.createBuildType("bt10", "bt 10");
+
+
+    // get buildType
+    BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("$long"), getBeanContext(myServer));
+
+    assertNull(buildType.getParameters().properties.get(0).value);
+
+    project10.addParameter(parameterFactory.createTypedParameter("a_pwd", "", "password"));
+    assertEquals("", buildType.getParameters().properties.get(0).value);
+
+   }
 
   @Test
   void testBuildTypeSettings() {
