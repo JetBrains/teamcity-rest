@@ -1084,6 +1084,75 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
   }
 
   @Test
+  public void testCreatingWithInheritedParams() {
+
+    //see also alike setup in BuildTypeTest.testInheritance()
+    ProjectEx project10 = createProject("project10", "project 10");
+
+    final ParameterFactory parameterFactory = myFixture.getSingletonService(ParameterFactory.class);
+    project10.addParameter(parameterFactory.createTypedParameter("a_pwd", "secret", "password"));
+    project10.addParameter(new SimpleParameter("b_normal", "value"));
+
+    BuildTypeEx bt10 = project10.createBuildType("bt10", "bt 10");
+
+
+    // get buildType
+    BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("$long"), getBeanContext(myServer));
+
+    // post buildType to create new one
+    buildType.initializeSubmittedFromUsual();
+    buildType.setId("bt10_copy");
+    buildType.setName("bt 10 - copy");
+
+    {
+      BuildType buildType_copy = myBuildTypeRequest.addBuildType(buildType, Fields.LONG.getFieldsSpec());
+      BuildTypeImpl bt10_copy = myFixture.getProjectManager().findBuildTypeByExternalId("bt10_copy");
+      assertNotNull(bt10_copy);
+      assertNull(BuildTypeUtil.compareBuildTypes(bt10.getSettings(), bt10_copy.getSettings(), true, false));
+
+      bt10_copy.remove();
+    }
+
+    {
+      Properties parameters = buildType.getParameters();
+      parameters.properties.get(1).value = null;
+      buildType.setParameters(parameters);
+
+      BuildType buildType_copy = myBuildTypeRequest.addBuildType(buildType, Fields.LONG.getFieldsSpec());
+      BuildTypeImpl bt10_copy = myFixture.getProjectManager().findBuildTypeByExternalId("bt10_copy");
+      assertNotNull(bt10_copy);
+      assertNull(BuildTypeUtil.compareBuildTypes(bt10.getSettings(), bt10_copy.getSettings(), true, false));
+
+      bt10_copy.remove();
+      buildType.setParameters(buildType.getParameters()); //reset params
+    }
+
+    {
+      Properties parameters = buildType.getParameters();
+      parameters.properties.get(0).type.rawValue = "text";
+      buildType.setParameters(parameters);
+      checkException(BadRequestException.class, () -> myBuildTypeRequest.addBuildType(buildType, Fields.LONG.getFieldsSpec()), null);
+      buildType.setParameters(buildType.getParameters()); //reset params
+    }
+
+    {
+      {
+        Properties parameters = buildType.getParameters();
+        parameters.properties.get(0).inherited = null;
+        buildType.setParameters(parameters);
+      }
+      checkException(BadRequestException.class, () -> myBuildTypeRequest.addBuildType(buildType, Fields.LONG.getFieldsSpec()), null);
+      {
+        Properties parameters = buildType.getParameters();
+        parameters.properties.get(0).inherited = false;
+        buildType.setParameters(parameters);
+      }
+      checkException(BadRequestException.class, () -> myBuildTypeRequest.addBuildType(buildType, Fields.LONG.getFieldsSpec()), null);
+      buildType.setParameters(buildType.getParameters()); //reset params
+    }
+  }
+
+  @Test
   void testBuildTypeSettings() {
     BuildTypeImpl bt10 = registerBuildType("bt10", "projectName");
 

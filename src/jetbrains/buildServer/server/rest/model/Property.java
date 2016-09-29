@@ -174,32 +174,55 @@ public class Property {
 
   @NotNull
   public Parameter addTo(@NotNull final EntityWithModifiableParameters entity, @NotNull final ServiceLocator serviceLocator) {
-    Parameter fromPosted = getFromPosted(serviceLocator);
-    Parameter originalParameter = entity.getParameter(fromPosted.getName());
-    Parameter originalOwnParameter = entity.getOwnParameter(fromPosted.getName());
-    try {
-      if (inherited != null && inherited) {
-        if (originalParameter != null && isSimilar(new Property(originalParameter, true, Fields.LONG, serviceLocator))) return originalParameter;
-      }
+    if (StringUtil.isEmpty(name)) {
+      throw new BadRequestException("Parameter name cannot be empty.");
+    }
+    Parameter originalParameter = entity.getParameter(name);
+    Parameter originalOwnParameter = entity.getOwnParameter(name);
 
+    if (inherited != null && inherited) {
+      if (originalParameter != null && isSimilar(new Property(originalParameter, true, Fields.LONG, serviceLocator))) return originalParameter;
+    }
+
+    Parameter fromPosted = getFromPosted(serviceLocator);
+    try {
       entity.addParameter(fromPosted);
       return fromPosted;
     } catch (Exception e) {
       //restore
       if (originalOwnParameter != null) {
         entity.addParameter(originalOwnParameter);
-      } else if (entity.getParameter(fromPosted.getName()) != null) {
-        entity.removeParameter(fromPosted.getName());
+      } else if (entity.getParameter(name) != null) {
+        entity.removeParameter(name);
       }
-      throw new BadRequestException("Cannot set parameter '" + fromPosted.getName() + "' to value '" + fromPosted.getValue() + "': " + e.toString(), e);
+      throw new BadRequestException("Cannot set parameter '" + name + "' to value '" + fromPosted.getValue() + "': " + e.toString(), e);
     }
   }
 
   public boolean isSimilar(final Property that) {
-    return that != null &&
-           Objects.equal(name, that.name) &&
-           Objects.equal(value, that.value) &&
-           Objects.equal(type, that.type);
+    if (that == null) {
+      return false;
+    }
+    if (!Objects.equal(name, that.name)) {
+      return false;
+    }
+    if (inherited == null || !inherited) {
+      if (!Objects.equal(type, that.type)) {
+        return false;
+      }
+      if (!Objects.equal(value, that.value)) {
+        return false;
+      }
+    } else {
+      // allow to omit type and value for inherited parameters
+      if (type != null && !Objects.equal(type, that.type)) {
+        return false;
+      }
+      if (value != null && !Objects.equal(value, that.value)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override
