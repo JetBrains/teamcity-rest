@@ -607,6 +607,21 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     checkExceptionOnItemsSearch(BadRequestException.class, "filterByBuilds:(a:b)");
   }
 
+  @Test
+  public void testHelp() throws Exception {
+    String message = checkException(BadRequestException.class, new Runnable() {
+      public void run() {
+        getFinder().getItems("$help");
+      }
+    }, null).getMessage();
+
+    assertContains(message, "id");
+    assertContains(message, "name");
+    assertContains(message, "project");
+    assertContainsWithCount(message, "count", 1);
+    assertContainsWithCount(message, "start", 1);
+  }
+
   private void checkBuildTypes(@Nullable final String locator, BuildTypeSettings... items) {
     check(locator, CollectionsUtil.convertCollection(Arrays.asList(items), new Converter<BuildTypeOrTemplate, BuildTypeSettings>() {
       public BuildTypeOrTemplate createFrom(@NotNull final BuildTypeSettings source) {

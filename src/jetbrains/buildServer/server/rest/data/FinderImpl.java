@@ -118,7 +118,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
 
   @NotNull
   protected Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    List<String> knownDimensions = new ArrayList<>(Arrays.asList(myDataBinding.getKnownDimensions()));
+    LinkedHashSet<String> knownDimensions = new LinkedHashSet<>(Arrays.asList(myDataBinding.getKnownDimensions()));
     knownDimensions.add(PagerData.START);
     knownDimensions.add(PagerData.COUNT);
     knownDimensions.add(DIMENSION_LOOKUP_LIMIT);

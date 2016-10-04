@@ -19,7 +19,6 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.HashSet;
 import java.util.Set;
-import jetbrains.buildServer.server.rest.model.PagerData;
 import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -37,7 +36,7 @@ public abstract class AbstractFinder<ITEM> extends FinderImpl<ITEM> implements F
 
   public AbstractFinder(@NotNull final String... knownDimensions) {
     setDataBinding(this);
-    myKnownDimensions = ArrayUtils.addAll(knownDimensions, PagerData.START, PagerData.COUNT, DIMENSION_LOOKUP_LIMIT);
+    myKnownDimensions = ArrayUtils.addAll(knownDimensions);
   }
 
   @Nullable
