@@ -73,7 +73,6 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
                        final @NotNull PermissionChecker permissionChecker) {
     super(DIMENSION_ID, NAME, TYPE, PROJECT, AFFECTED_PROJECT, PROPERTY, REPOSITORY_ID_STRING, INTERNAL_ID, UUID,
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-    setHiddenDimensions(PROPERTY);
     myVcsManager = vcsManager;
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;

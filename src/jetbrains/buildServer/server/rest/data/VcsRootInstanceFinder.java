@@ -84,7 +84,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     myVersionedSettingsManager = versionedSettingsManager;
     myTimeCondition = timeCondition;
-    setHiddenDimensions(PROPERTY, STATUS, FINISH_VCS_CHECKING_FOR_CHANGES, REPOSITORY_STATE, COMMIT_HOOK_MODE);
+    setHiddenDimensions(STATUS, FINISH_VCS_CHECKING_FOR_CHANGES, REPOSITORY_STATE, COMMIT_HOOK_MODE);
     myVcsRootFinder = vcsRootFinder;
     myVcsManager = vcsManager;
     myProjectFinder = projectFinder;
@@ -427,6 +427,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
     return result;
   }
 
+  //todo: use getAllProjectUsages here?
   private Set<VcsRootInstance> getSettingsRootInstances(@NotNull final Collection<SProject> projectsInRoot) {
     HashSet<VcsRootInstance> result = new HashSet<>();
     for (SProject project : projectsInRoot) {
