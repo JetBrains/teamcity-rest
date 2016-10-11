@@ -187,6 +187,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     } else {
       locator = originalLocator;
 
+      locator.processHelpRequest();
       ITEM singleItem = null;
       try {
         singleItem = myDataBinding.findSingleItem(locator);
@@ -196,17 +197,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
           //returning empty collection for multiple items query
           return new PagedSearchResult<ITEM>(Collections.<ITEM>emptyList(), null, null);
         }
-        if (!locator.isHelpRequested()){
-          throw e;
-        }
-        throw new BadRequestException(e.getMessage() +
-                                      "\nLocator details: " + locator.getLocatorDescription(locator.helpOptions().getSingleDimensionValueAsStrictBoolean("hidden", false)), e);
-      } catch (LocatorProcessException|BadRequestException e){
-        if (!locator.isHelpRequested()){
-          throw e;
-        }
-        throw new BadRequestException(e.getMessage() +
-                                      "\nLocator details: " + locator.getLocatorDescription(locator.helpOptions().getSingleDimensionValueAsStrictBoolean("hidden", false)), e);
+        throw e;
       }
       if (singleItem != null) {
         final Set<String> singleItemUsedDimensions = locator.getUsedDimensions();

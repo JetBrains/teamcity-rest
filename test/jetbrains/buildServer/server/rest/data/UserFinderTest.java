@@ -402,4 +402,13 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
     check("email:(value:@acme.com,matchType:ends-with)", user10, user20);
 //    check("name:(matchType:exists)", user06, user10, user20, user30);
   }
+
+  @Test
+  public void testHelp() throws Throwable {
+    String message = checkException(LocatorProcessException.class, () -> getFinder().getItems("$help"), null).getMessage();
+    assertContains(message, "help requested");
+
+    message = checkException(LocatorProcessException.class, () -> getFinder().getItem("$help"), null).getMessage();
+    assertContains(message, "help requested");
+  }
 }

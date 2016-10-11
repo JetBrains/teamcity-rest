@@ -609,7 +609,7 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
 
   @Test
   public void testHelp() throws Exception {
-    String message = checkException(BadRequestException.class, new Runnable() {
+    String message = checkException(LocatorProcessException.class, new Runnable() {
       public void run() {
         getFinder().getItems("$help");
       }

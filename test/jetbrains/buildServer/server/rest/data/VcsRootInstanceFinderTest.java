@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
@@ -304,5 +305,14 @@ public class VcsRootInstanceFinderTest extends BaseFinderTest<VcsRootInstance> {
       check("affectedProject:(id:" + project70.getExternalId() + "),versionedSettings:false");
       check("affectedProject:(id:" + project70.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p70);
     }
+  }
+
+  @Test
+  public void testHelp() throws Exception {
+    String message = checkException(LocatorProcessException.class, () -> getFinder().getItems("$help"), null).getMessage();
+    assertNotContains(message, "Invalid single value", false);
+
+    message = checkException(LocatorProcessException.class, () -> getFinder().getItem("$help"), null).getMessage();
+    assertNotContains(message, "Invalid single value", false);
   }
 }
