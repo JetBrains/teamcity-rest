@@ -228,7 +228,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   }
 
   public List<ProblemWrapper> getCurrentlyMutedProblems(final SProject affectedProject) {
-    final Map<Integer,CurrentMuteInfo> currentMutes = myProblemMutingService.getBuildProblemCurrentMuteInfos(affectedProject);
+    final Map<Integer,CurrentMuteInfo> currentMutes = myProblemMutingService.getBuildProblemsCurrentMuteInfo(affectedProject);
     final HashSet<ProblemWrapper> result = new HashSet<ProblemWrapper>(currentMutes.size());
     for (Map.Entry<Integer, CurrentMuteInfo> mutedData : currentMutes.entrySet()) {
       result.add(new ProblemWrapper(mutedData.getKey(), myServiceLocator));
