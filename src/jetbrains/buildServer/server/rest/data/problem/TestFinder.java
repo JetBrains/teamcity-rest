@@ -177,7 +177,7 @@ public class TestFinder extends AbstractFinder<STest> {
   }
 
   Set<STest> getCurrentlyMutedTests(final SProject affectedProject) {
-    final Map<Long,CurrentMuteInfo> currentMutes = myProblemMutingService.getCurrentMuteInfoForProject(affectedProject);
+    final Map<Long,CurrentMuteInfo> currentMutes = myProblemMutingService.getTestsCurrentMuteInfo(affectedProject);
     final TreeSet<STest> result = new TreeSet<STest>();
     for (Map.Entry<Long, CurrentMuteInfo> mutedTestData : currentMutes.entrySet()) {
       result.add(findTest(mutedTestData.getKey()));
