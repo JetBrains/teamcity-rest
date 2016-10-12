@@ -59,8 +59,8 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
                        final @NotNull ProjectManager projectManager,
                        final @NotNull ServiceLocator serviceLocator,
                        final @NotNull ProblemMutingService problemMutingService) {
-    super(new String[]{DIMENSION_ID, IDENTITY, TYPE, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED,
-      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME});
+    super(DIMENSION_ID, IDENTITY, TYPE, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED,
+          Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     setHiddenDimensions(BUILD); //ineffective perfomance-wise
     myProjectFinder = projectFinder;
     myBuildPromotionFinder = buildPromotionFinder;
