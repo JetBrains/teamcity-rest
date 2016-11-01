@@ -41,8 +41,10 @@ import jetbrains.buildServer.serverSide.dependency.CyclicDependencyFoundExceptio
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
 import jetbrains.buildServer.serverSide.dependency.DependencyOptions;
+import jetbrains.buildServer.serverSide.impl.dependency.DependencyImpl;
 import jetbrains.buildServer.util.Option;
 import jetbrains.buildServer.util.StringUtil;
+import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -216,6 +218,13 @@ public class PropEntitySnapshotDep extends PropEntity implements PropEntityEdit<
   }
 
   private void setDependencyOption(final String name, final String value, final Dependency dependency) {
+    //workaround for https://youtrack.jetbrains.com/issue/TW-47511
+    try {
+      ((DependencyImpl)dependency).readFrom(new Element("fake", ""));
+    } catch (Throwable e) {
+      //ignore
+    }
+
     final Option option = Option.fromKey(name);
     if (option == null) {
       throw new IllegalArgumentException("No option found for name '" + name + "'");
