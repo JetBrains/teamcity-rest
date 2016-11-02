@@ -20,7 +20,7 @@ import javax.ws.rs.core.MediaType;
 
 public class AdditionalMediaTypes {
 
-  public static final MediaType APPLICATION_JSON_TYPE = new MediaType("application", "yaml");
+  public static final MediaType APPLICATION_YAML_TYPE = new MediaType("application", "yaml");
   public static final String APPLICATION_YAML = "application/yaml";
 
   private AdditionalMediaTypes() {

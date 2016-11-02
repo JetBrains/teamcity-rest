@@ -66,7 +66,7 @@ public class SwaggerResource {
   public Response getSwagger(@Context HttpHeaders headers, @Context UriInfo uriInfo, @PathParam("type") String type) {
     final MediaType mediaType;
     if (!StringUtil.isEmptyOrSpaces(type) && type.trim().equalsIgnoreCase("yaml")) {
-      mediaType = AdditionalMediaTypes.APPLICATION_JSON_TYPE;
+      mediaType = AdditionalMediaTypes.APPLICATION_YAML_TYPE;
     } else {
       mediaType = MediaType.APPLICATION_JSON_TYPE;
     }
