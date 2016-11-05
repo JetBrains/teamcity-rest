@@ -30,7 +30,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
@@ -55,9 +54,7 @@ import jetbrains.buildServer.serverSide.BuildServerAdapter;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SecurityContextEx;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
-import jetbrains.buildServer.util.FuncThrow;
-import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.util.TimePrinter;
+import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
 import jetbrains.buildServer.web.util.SessionUser;
@@ -190,6 +187,47 @@ public class APIController extends BaseController implements ServletContextAware
     registerController(originalBindPaths);
 
     myClassloader = getClass().getClassLoader();
+
+    initJerseyWebComponentAsync();
+  }
+
+  private void initJerseyWebComponentAsync() {
+    new NamedDaemonThreadFactory("REST API initializer").newThread(() -> {
+      initJerseyWebComponent();
+    }).start();
+  }
+
+  private void initJerseyWebComponent() {
+    if (!myWebComponentInitialized.get()) {
+      synchronized (myWebComponentInitialized) {
+        if (myWebComponentInitialized.get()) return;
+
+        try {
+          // workaround for http://jetbrains.net/tracker/issue2/TW-7656
+          doUnderContextClassLoader(myClassloader, new FuncThrow<Void, Throwable>() {
+            public Void apply() throws Throwable {
+              final Set<ConfigurableApplicationContext> contexts = new HashSet<ConfigurableApplicationContext>();
+              contexts.add(myConfigurableApplicationContext);
+              for (RESTControllerExtension extension : getExtensions()) {
+                contexts.add(extension.getContext());
+              }
+              myWebComponent.setContexts(contexts);
+              // ExtensionsAwareResourceConfig not initialized yet. We should wait for all extensions to load first.
+              // Now it's time to initialize and scan for extensions.
+              final ExtensionsAwareResourceConfig config = getApplicationContext().getBean(ExtensionsAwareResourceConfig.class);
+              config.onReload();
+              myWebComponent.init(createJerseyConfig());
+              return null;
+            }
+          });
+
+          myWebComponentInitialized.set(true);
+        } catch (Throwable e) {
+          LOG.error("Error initializing REST API: ", e);
+          ExceptionUtil.rethrowAsRuntimeException(e);
+        }
+      }
+    }
   }
 
   private List<String> filterOtherPlugins(final List<String> bindPaths) {
@@ -304,25 +342,6 @@ public class APIController extends BaseController implements ServletContextAware
     return Arrays.asList(bindPaths);
   }
 
-  private void init() throws ServletException {
-    if (myWebComponentInitialized.get()) return;
-    synchronized (myWebComponentInitialized) {
-      if (myWebComponentInitialized.get()) return;
-      final Set<ConfigurableApplicationContext> contexts = new HashSet<ConfigurableApplicationContext>();
-      contexts.add(myConfigurableApplicationContext);
-      for (RESTControllerExtension extension : getExtensions()) {
-        contexts.add(extension.getContext());
-      }
-      myWebComponent.setContexts(contexts);
-      // ExtensionsAwareResourceConfig not initialized yet. We should wait for all extensions to load first.
-      // Now it's time to initialize and scan for extensions.
-      final ExtensionsAwareResourceConfig config = getApplicationContext().getBean(ExtensionsAwareResourceConfig.class);
-      config.onReload();
-      myWebComponent.init(createJerseyConfig());
-      myWebComponentInitialized.compareAndSet(false, true);
-    }
-  }
-
   private FilterConfig createJerseyConfig() {
     return new FilterConfig() {
       private final Map<String, String> initParameters = new HashMap<String, String>();
@@ -381,8 +400,9 @@ public class APIController extends BaseController implements ServletContextAware
     if (LOG.isDebugEnabled()) {
       LOG.debug("REST API request received: " + WebUtil.getRequestDump(request) + ", " + getPluginIdentifyingText());
     }
+
     try {
-      ensureInitialized();
+      initJerseyWebComponent();
     } catch (Throwable throwable) {
       reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, "Error initializing REST API", Level.ERROR, request);
       return null;
@@ -655,30 +675,6 @@ public class APIController extends BaseController implements ServletContextAware
         return super.getHeaders(name);
       }
     };
-  }
-
-  private void ensureInitialized() throws Throwable {
-    // TODO: Consider run #ensureInitialized() on jetbrains.buildServer.serverSide.BuildServerListener#pluginsLoaded event (in #initializeController method)
-    if (myWebComponentInitialized.get()) return;
-    try {
-      // workaround for http://jetbrains.net/tracker/issue2/TW-7656
-      doUnderContextClassLoader(myClassloader, new FuncThrow<Void, Throwable>() {
-        public Void apply() throws Throwable {
-          init();
-          return null;
-        }
-      });
-    } catch (RuntimeException e) {
-      //otherwise exception here is swallowed and logged nowhere
-      LOG.error("Error initializing REST API: ", e);
-      throw e;
-    } catch (Error e) {
-      LOG.error("Error initializing REST API: ", e);
-      throw e;
-    } catch (ServletException e) {
-      LOG.error("Error initializing REST API: ", e);
-      throw e;
-    }
   }
 
   private String getAuthToken() {
