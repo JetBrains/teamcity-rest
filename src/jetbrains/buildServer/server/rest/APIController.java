@@ -18,7 +18,6 @@ package jetbrains.buildServer.server.rest;
 
 import com.google.common.base.Stopwatch;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.util.ArrayUtil;
 import com.sun.jersey.api.core.ResourceConfig;
 import com.sun.jersey.api.json.JSONConfiguration;
 import com.sun.jersey.core.util.FeaturesAndProperties;
@@ -80,7 +79,6 @@ public class APIController extends BaseController implements ServletContextAware
   public static final String REST_COMPATIBILITY_ALLOW_EXTERNAL_ID_AS_INTERNAL = "rest.compatibility.allowExternalIdAsInternal";
   public static final String INCLUDE_INTERNAL_ID_PROPERTY_NAME = "rest.beans.includeInternalId";
   private Logger LOG = Logger.getInstance(APIController.class.getName());
-  public static final String REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME = CorsOrigins.CORS_ORIGINS_PROPERTY;
   public static final String REST_RESPONSE_PRETTYFORMAT = "rest.response.prettyformat";
   public static final String REST_PREFER_OWN_BIND_PATHS = "rest.allow.bind.paths.override.for.plugins";
 
@@ -111,7 +109,7 @@ public class APIController extends BaseController implements ServletContextAware
   private final RequestPathTransformInfo myRequestPathTransformInfo;
   private final PathSet myUnauthenticatedPathSet = new PathSet();
 
-  private final CachingValuesFromInternalProperty myAllowedOrigins = new CachingValuesFromInternalProperty(REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME, ",");
+  private final CorsOrigins myAllowedOrigins = new CorsOrigins();
   private final CachingValues myDisabledRequests = new CachingValues();
   public static String ourFirstBindPath;
 
@@ -430,7 +428,7 @@ public class APIController extends BaseController implements ServletContextAware
     final boolean runAsSystemActual = runAsSystem;
     try {
 
-      final boolean corsRequest = processCorsRequest(request, response);
+      final boolean corsRequest = processCorsOrigin(request, response);
       if (corsRequest && request.getMethod().equalsIgnoreCase("OPTIONS")){
         //handling browser pre-flight requests
         LOG.debug("Pre-flight OPTIONS request detected, replying with status 204");
@@ -526,27 +524,31 @@ public class APIController extends BaseController implements ServletContextAware
     return result;
   }
 
-  private boolean processCorsRequest(final HttpServletRequest request, final HttpServletResponse response) {
-    final String origin = request.getHeader("Origin");
-    if (StringUtil.isNotEmpty(origin)) {
-      final String[] originsArray = myAllowedOrigins.getParsedValues();
-      if (ArrayUtil.contains(origin, originsArray)) {
-        addOriginHeaderToResponse(response, origin);
-        addOtherHeadersToResponse(request, response);
-        return true;
-      } else if (ArrayUtil.contains("*", originsArray)) {
-        LOG.debug("Got CORS request from origin '" + origin + "', but this origin is not allowed. However, '*' is. Replying with '*'." +
-                  " Add the origin to '" + REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME +
+  private boolean processCorsOrigin(final HttpServletRequest request, final HttpServletResponse response) {
+    final String originHeader = request.getHeader("Origin");
+    if (StringUtil.isNotEmpty(originHeader)) {
+
+      for (String origin : originHeader.split(" ")) {
+        if (myAllowedOrigins.allows(origin)) {
+          addOriginHeaderToResponse(response, originHeader);
+          addOtherHeadersToResponse(request, response);
+          return true;
+        }
+      }
+
+      if (myAllowedOrigins.allowsAllHosts()) {
+        LOG.debug("Got CORS request from origin '" + originHeader + "', but this origin is not allowed. However, '*' is. Replying with '*'." +
+                  " Add the origin to '" + CorsOrigins.CORS_ORIGINS_PROPERTY +
                   "' internal property (comma-separated) to trust the applications hosted on the domain. Current allowed origins are: " +
-                  Arrays.toString(originsArray));
+                  myAllowedOrigins.describe(false));
         addOriginHeaderToResponse(response, "*");
         return true;
-      } else {
-        LOG.debug("Got CORS request from origin '" + origin + "', but this origin is not allowed. Add the origin to '" +
-                  REST_CORS_ORIGINS_INTERNAL_PROPERTY_NAME +
-                  "' internal property (comma-separated) to trust the applications hosted on the domain. Current allowed origins are: " +
-                  Arrays.toString(originsArray));
       }
+
+      LOG.debug("Got CORS request from origin '" + originHeader + "', but this origin is not allowed. Add the origin to '" +
+                CorsOrigins.CORS_ORIGINS_PROPERTY +
+                "' internal property (comma-separated) to trust the applications hosted on the domain. Current allowed origins are: " +
+                myAllowedOrigins.describe(false));
     }
     return false;
   }
@@ -575,35 +577,6 @@ public class APIController extends BaseController implements ServletContextAware
   @NotNull
   public Collection<RESTControllerExtension> getExtensions() {
     return myServer.getExtensions(RESTControllerExtension.class);
-  }
-
-  class CachingValuesFromInternalProperty {
-    private String myCachedValue;
-    private String[] myParsedValues;
-    private final String myPropertyName;
-    private final String myDelimiter;
-
-    CachingValuesFromInternalProperty(@NotNull final String propertyName, @Nullable final String delimiter) {
-      myPropertyName = propertyName;
-      myDelimiter = delimiter;
-    }
-
-    @NotNull
-    synchronized String[] getParsedValues() {
-      final String property = TeamCityProperties.getProperty(myPropertyName);
-      if (isShouldReparse(property)) {
-        myCachedValue = property;
-        myParsedValues = property.split(StringUtil.isEmpty(myDelimiter) ? "," : myDelimiter);
-        for (int i = 0; i < myParsedValues.length; i++) {
-          myParsedValues[i] = myParsedValues[i].trim();
-        }
-      }
-      return myParsedValues;
-    }
-
-    synchronized boolean isShouldReparse(String value) {
-      return !equalsNullable(myCachedValue, value);
-    }
   }
 
   class CachingValues {
