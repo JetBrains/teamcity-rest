@@ -75,7 +75,7 @@ import org.jetbrains.annotations.Nullable;
 */
 
 @Path(BuildTypeRequest.API_BUILD_TYPES_URL)
-@Api
+@Api("BuildType")
 public class BuildTypeRequest {
   private static final Logger LOG = Logger.getInstance(BuildTypeRequest.class.getName());
 

@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import javax.ws.rs.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.Locator;
@@ -116,6 +117,7 @@ public class ParametersSubResource {
   @GET
   @Path("/{name}")
   @Produces("text/plain")
+  @ApiOperation(hidden = true, value = "Use getParameter instead")
   public String getParameterValue(@PathParam("name") String parameterName) {
     return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, true, false, myServiceLocator);
   }
@@ -127,6 +129,7 @@ public class ParametersSubResource {
   @Path("/{name}")
   @Consumes("text/plain")
   @Produces("text/plain")
+  @ApiOperation(hidden = true, value = "Use setParameter instead")
   public String setParameterValue(@PathParam("name") String parameterName, String newValue) {
     BuildTypeUtil.changeParameter(parameterName, newValue, myEntityWithParameters, myServiceLocator);
     myEntityWithParameters.persist();

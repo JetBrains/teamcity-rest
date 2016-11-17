@@ -43,7 +43,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 01.08.2009
  */
 @Path(AgentRequest.API_AGENTS_URL)
-@Api
+@Api("Agent")
 public class AgentRequest {
   @Context private DataProvider myDataProvider;
   @Context private ApiUrlBuilder myApiUrlBuilder;

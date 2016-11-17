@@ -76,7 +76,7 @@ import org.joda.time.format.DateTimeFormatter;
  */
 @Path(Constants.API_URL + "/debug")
 @Singleton
-@Api
+@Api("Debug")
 public class DebugRequest {
   public static final String REST_VALID_QUERY_PROPERTY_NAME = "rest.debug.database.allow.query.prefixes";
 

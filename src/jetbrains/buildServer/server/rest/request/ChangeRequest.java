@@ -49,7 +49,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Path(ChangeRequest.API_CHANGES_URL)
-@Api
+@Api("Change")
 public class ChangeRequest {
   public static final String API_CHANGES_URL = Constants.API_URL + "/changes";
   @Context @NotNull private ServiceLocator myServiceLocator;

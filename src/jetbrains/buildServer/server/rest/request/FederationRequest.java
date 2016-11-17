@@ -33,7 +33,7 @@ import jetbrains.buildServer.util.StringUtil;
 import static java.util.stream.Collectors.toList;
 
 @Path(FederationRequest.API_FEDERATION_URL)
-@Api
+@Api("Federation")
 public class FederationRequest {
   public static final String API_FEDERATION_URL = Constants.API_URL + "/federation";
   @Context private ServiceLocator myServiceLocator;

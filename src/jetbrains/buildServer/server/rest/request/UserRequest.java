@@ -49,7 +49,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Path(UserRequest.API_USERS_URL)
-@Api
+@Api("User")
 public class UserRequest {
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private UserFinder myUserFinder;

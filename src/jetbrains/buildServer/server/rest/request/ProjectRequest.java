@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import java.io.File;
 import java.util.*;
 import javax.servlet.http.HttpServletRequest;
@@ -59,7 +60,7 @@ import org.jetbrains.annotations.Nullable;
  * Date: 11.04.2009
  */
 @Path(ProjectRequest.API_PROJECTS_URL)
-@Api
+@Api("Project")
 public class ProjectRequest {
   private static final Logger LOG = Logger.getInstance(ProjectRequest.class.getName());
   public static final boolean ID_GENERATION_FLAG = true;
@@ -116,6 +117,7 @@ public class ProjectRequest {
   @POST
   @Consumes({"text/plain"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(hidden = true, value = "Use createProject instead")
   public Project createEmptyProject(String name) {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Project name cannot be empty.");
@@ -246,6 +248,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/buildTypes")
   @Produces({"application/xml", "application/json"})
   @Consumes({"text/plain"})
+  @ApiOperation(hidden = true, value = "Use createBuildType instead")
   public BuildType createEmptyBuildType(@PathParam("projectLocator") String projectLocator, String name, @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
     if (StringUtil.isEmpty(name)) {
@@ -307,6 +310,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/templates")
   @Produces({"application/xml", "application/json"})
   @Consumes({"text/plain"})
+  @ApiOperation(hidden = true, value = "Use createBuildTypeTemplate instead")
   public BuildType createEmptyBuildTypeTemplate(@PathParam("projectLocator") String projectLocator, String name, @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator, true);
     if (StringUtil.isEmpty(name)) {

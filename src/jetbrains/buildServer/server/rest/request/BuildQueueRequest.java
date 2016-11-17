@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.request;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.Function;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -52,7 +53,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 03.11.13
  */
 @Path(BuildQueueRequest.API_BUILD_QUEUE_URL)
-@Api
+@Api("BuildQueue")
 public class BuildQueueRequest {
   private static final Logger LOG = Logger.getInstance(BuildRequest.class.getName());
 
@@ -355,6 +356,7 @@ public class BuildQueueRequest {
   @Path("/{buildLocator}/tags/")
   @Consumes({"text/plain"})
   @Produces({"text/plain"})
+  @ApiOperation(hidden = true, value = "Use addTags instead")
   public String addTag(@PathParam("buildLocator") String buildLocator, String tagName, @Context HttpServletRequest request) {
     if (StringUtil.isEmpty(tagName)) { //check for empty tags: http://youtrack.jetbrains.com/issue/TW-34426
       throw new BadRequestException("Cannot apply empty tag, should have non empty request body");

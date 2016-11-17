@@ -39,7 +39,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 16.11.13
  */
 @Path(TestRequest.API_SUB_URL)
-@Api
+@Api("Test")
 public class TestRequest {
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private TestFinder myTestFinder;

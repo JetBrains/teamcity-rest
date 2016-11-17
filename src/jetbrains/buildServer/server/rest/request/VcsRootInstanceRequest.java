@@ -51,7 +51,7 @@ import org.joda.time.format.ISODateTimeFormat;
 */
 
 @Path(VcsRootInstanceRequest.API_VCS_ROOT_INSTANCES_URL)
-@Api
+@Api("VcsRootInstance")
 public class VcsRootInstanceRequest {
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private BeanContext myBeanContext;

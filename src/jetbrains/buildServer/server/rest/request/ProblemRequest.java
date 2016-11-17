@@ -38,7 +38,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 11.11.13
  */
 @Path(ProblemRequest.API_SUB_URL)
-@Api
+@Api("Problem")
 public class ProblemRequest {
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private ProblemFinder myProblemFinder;

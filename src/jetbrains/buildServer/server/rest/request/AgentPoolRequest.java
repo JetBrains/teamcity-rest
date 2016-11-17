@@ -47,7 +47,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 07.11.13
  */
 @Path(AgentPoolRequest.API_AGENT_POOLS_URL)
-@Api
+@Api("AgentPool")
 public class AgentPoolRequest {
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;

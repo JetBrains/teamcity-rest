@@ -41,7 +41,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 16.11.13
  */
 @Path(TestOccurrenceRequest.API_SUB_URL)
-@Api
+@Api("TestOccurrence")
 public class TestOccurrenceRequest {
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private TestOccurrenceFinder myTestOccurrenceFinder;

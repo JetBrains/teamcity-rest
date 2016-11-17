@@ -51,7 +51,7 @@ import org.jetbrains.annotations.NotNull;
 */
 
 @Path(VcsRootRequest.API_VCS_ROOTS_URL)
-@Api
+@Api("VcsRoot")
 public class VcsRootRequest {
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private ProjectFinder myProjectFinder;

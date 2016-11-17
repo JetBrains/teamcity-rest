@@ -62,7 +62,7 @@ import org.jetbrains.annotations.Nullable;
  * Date: 11.04.2009
  */
 @Path(ServerRequest.API_SERVER_URL)
-@Api
+@Api("Server")
 public class ServerRequest {
   public static final String SERVER_VERSION_RQUEST_PATH = "version";
   public static final String SERVER_REQUEST_PATH = "/server";

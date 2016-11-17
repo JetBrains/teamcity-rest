@@ -49,7 +49,7 @@ import org.jetbrains.annotations.Nullable;
 */
 
 @Path(GroupRequest.API_USER_GROUPS_URL)
-@Api
+@Api("Group")
 public class GroupRequest {
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private UserGroupFinder myUserGroupFinder;
