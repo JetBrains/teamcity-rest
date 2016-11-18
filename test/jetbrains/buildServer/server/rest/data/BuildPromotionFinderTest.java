@@ -19,10 +19,7 @@ package jetbrains.buildServer.server.rest.data;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import jetbrains.buildServer.MockTimeService;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.log.Loggable;
@@ -42,6 +39,10 @@ import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.SVcsRootEx;
 import jetbrains.buildServer.vcs.VcsRootInstance;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.spi.LoggingEvent;
+import org.apache.log4j.varia.NullAppender;
 import org.jetbrains.annotations.NotNull;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -1504,6 +1505,45 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     check("or(tag:tag2,tag:tag3)", build30, build20);
   }
 
+  @Test
+  public void testUnusedLocatorDimensionLogging() {
+    final SProject project = createProject("prj", "project");
+    final BuildTypeEx buildConf1 = (BuildTypeEx)project.createBuildType("buildConf1", "buildConf1");
+
+    final BuildPromotion build10 = build().in(buildConf1).finish().getBuildPromotion();
+
+    final TestingLogAppender testAppender = new TestingLogAppender();
+
+    Logger restLogger = Logger.getLogger("jetbrains.buildServer.server.rest");
+
+    restLogger.setLevel(Level.INFO);
+    restLogger.addAppender(testAppender);
+
+    check(null, build10);
+    assertEmpty(testAppender.getLoggedMessages());
+    testAppender.reset();
+
+    check("buildType:buildConf1", build10);
+    assertEmpty(testAppender.getLoggedMessages());
+    testAppender.reset();
+
+    checkExceptionOnBuildsSearch(LocatorProcessException.class, "a:b");
+    assertEmpty(testAppender.getLoggedMessages());
+    testAppender.reset();
+
+
+    setInternalProperty("rest.report.unused.locator", "reportKnownButNotReportedDimensions");
+
+    check(null, build10);
+    assertEmpty(testAppender.getLoggedMessages());
+    testAppender.reset();
+
+
+    //cleanup logging settings
+    restLogger.setLevel(null);
+    restLogger.removeAllAppenders();
+  }
+
   //==================================================
 
   public void checkBuilds(final String locator, BuildPromotion... builds) {
@@ -1604,4 +1644,24 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     return buildPromotions;
   }
 
+  private static class TestingLogAppender extends NullAppender {
+    private final List<String> myLoggedMessages = new ArrayList<>();
+    @Override
+    public void doAppend(final LoggingEvent event) {
+      append(event);
+    }
+
+    @Override
+    protected void append(final LoggingEvent event) {
+      myLoggedMessages.add(event.getRenderedMessage());
+    }
+
+    public List<String> getLoggedMessages() {
+      return myLoggedMessages;
+    }
+
+    public void reset() {
+      myLoggedMessages.clear();
+    }
+  }
 }

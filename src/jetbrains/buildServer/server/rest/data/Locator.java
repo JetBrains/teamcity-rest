@@ -208,6 +208,8 @@ public class Locator {
     mySingleValue = null;
     myDimensions = new LinkedHashMap<String, List<String>>();
     mySupportedDimensions = null;
+    myHiddenSupportedDimensions.add(HELP_DIMENSION);
+    myIgnoreUnusedDimensions.add(HELP_DIMENSION);
     myExtendedMode = false;
   }
 
