@@ -81,11 +81,6 @@ public class UserGroupFinder {
 
   @NotNull
   public Collection<UserGroup> getAllGroups() {
-    final Collection<SUserGroup> serverUserGroups = myUserGroupManager.getUserGroups();
-    final Collection<UserGroup> result = new ArrayList<UserGroup>(serverUserGroups.size());
-    for (SUserGroup group : serverUserGroups) {
-      result.add(group);
-    }
-    return result;
+    return new ArrayList<>(myUserGroupManager.getUserGroups());
   }
 }
