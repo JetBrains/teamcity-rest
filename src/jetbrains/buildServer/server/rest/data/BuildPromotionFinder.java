@@ -1592,7 +1592,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
             if (branch == null) {
               return Collections.emptyList();
             }
-            final List<OrderedBuild> buildsBefore = ((BuildTypeEx)buildType).getBuildTypeOrderedBuilds().getBuildsBefore(item, new Filter<String>() {
+            final List<OrderedBuild> buildsBefore = ((BuildTypeEx)buildType).getBuildTypeOrderedBuilds().getBuildsBeforeInBranches(item, new Filter<String>() {
               @Override
               public boolean accept(@NotNull final String data) {
                 return true;
