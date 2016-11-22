@@ -31,7 +31,11 @@ import io.swagger.jackson.ModelResolver;
 import io.swagger.jaxrs.Reader;
 import io.swagger.jaxrs.config.DefaultJaxrsScanner;
 import io.swagger.jaxrs.config.ReaderConfig;
+import io.swagger.models.Model;
+import io.swagger.models.SecurityRequirement;
 import io.swagger.models.Swagger;
+import io.swagger.models.Tag;
+import io.swagger.models.auth.BasicAuthDefinition;
 import io.swagger.util.Json;
 import io.swagger.util.Yaml;
 import java.util.*;
@@ -104,12 +108,21 @@ public class SwaggerResource {
       final Reader reader = new Reader(swagger, myReaderConfig);
       swagger = reader.read(classes);
 
-      // Sort output maps
+      // Add default 'Basic' authorization, so all api methods would require it
+      swagger.addSecurityDefinition("Basic", new BasicAuthDefinition());
+      swagger.addSecurity(new SecurityRequirement().requirement("Basic"));
+
+      // Sort output maps and lists
       swagger.setPaths(SwaggerUtil.getOrderedMap(swagger.getPaths()));
       swagger.setDefinitions(SwaggerUtil.getOrderedMap(swagger.getDefinitions()));
       swagger.setParameters(SwaggerUtil.getOrderedMap(swagger.getParameters()));
       swagger.setResponses(SwaggerUtil.getOrderedMap(swagger.getResponses()));
       swagger.setSecurityDefinitions(SwaggerUtil.getOrderedMap(swagger.getSecurityDefinitions()));
+      swagger.getTags().sort(Comparator.comparing(Tag::getName));
+
+      for (Model model : swagger.getDefinitions().values()) {
+        model.setProperties(SwaggerUtil.getOrderedMap(model.getProperties()));
+      }
 
       // Analyze for unused definitions
       SwaggerUtil.doAnalyzeSwaggerDefinitionReferences(swagger);
