@@ -25,7 +25,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -502,7 +501,7 @@ public class DebugRequest {
     final StringBuilder result = new StringBuilder();
     result.append(ThreadDumpsController.makeServerInfoSummary(myDataProvider.getServer()));
     result.append("\n");
-    result.append(new SimpleDateFormat(DiagnosticUtil.THREAD_DUMP_DATE_PATTERN).format(startTime)).append("\n");
+    result.append(DiagnosticUtil.getThreadDumpDateFormat().format(startTime)).append("\n");
     result.append("Full thread dump ").append(System.getProperty("java.vm.name"));
     result.append(" (").append(System.getProperty("java.vm.version")).append(" ").append(System.getProperty("java.vm.info")).append("):").append("\n");
     result.append("\n");
@@ -526,7 +525,7 @@ public class DebugRequest {
     };
     DiagnosticUtil.printMemoryUsage(printer);
     result.append("\n");
-    DiagnosticUtil.printCpuUsage(printer, new DiagnosticUtil.ThreadDumpData());
+    DiagnosticUtil.printCpuUsage(printer, new DiagnosticUtil.ThreadDumpData(), startTime);
     result.append("\n");
     result.append("Dump taken in ").append(TimePrinter.createMillisecondsFormatter().formatTime(Dates.now().getTime() - startTime.getTime()));
 
