@@ -1,0 +1,11 @@
+swagger.config.json
+swagger.json
+generate.sh
+
+# Do not generate:
+.travis.yml
+git_push.sh
+build.sbt
+src/main/AndroidManifest.xml
+
+generator.readme.md

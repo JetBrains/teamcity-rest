@@ -1,0 +1,17 @@
+{
+  "modelPackage": "com.jetbrains.teamcity.rest.client.model",
+  "apiPackage": "com.jetbrains.teamcity.rest.client.api",
+  "invokerPackage": "com.jetbrains.teamcity.rest.client",
+
+  "groupId": "com.jetbrains.teamcity",
+  "artifactId": "rest-client-java",
+  "artifactVersion": "0.1.0-SNAPSHOT",
+
+  "localVariablePrefix": "__",
+  "fullJavaUtil": "true",
+
+  "dateLibrary": "joda",
+  "library": "okhttp-gson",
+
+  "hideGenerationTimestamp":true
+}
