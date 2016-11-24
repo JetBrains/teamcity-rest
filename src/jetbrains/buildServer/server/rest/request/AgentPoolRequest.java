@@ -104,10 +104,10 @@ public class AgentPoolRequest {
     }
     final jetbrains.buildServer.serverSide.agentPools.AgentPool newAgentPool;
     try {
-      AgentPoolDetails agentDetails = AgentPoolDetails.DEFAULT;
+      AgentPoolLimits agentDetails = AgentPoolLimits.DEFAULT;
       if (agentPool.maxAgents != null) {
-        agentDetails = new AgentPoolDetailsImpl(AgentPoolDetails.DEFAULT.getMinAgents(),
-                                                agentPool.maxAgents != null ? Integer.valueOf(agentPool.maxAgents) : AgentPoolDetails.DEFAULT.getMaxAgents());
+        agentDetails = new AgentPoolLimitsImpl(AgentPoolLimits.DEFAULT.getMinAgents(),
+                                                agentPool.maxAgents != null ? Integer.valueOf(agentPool.maxAgents) : AgentPoolLimits.DEFAULT.getMaxAgents());
       }
       newAgentPool = myServiceLocator.getSingletonService(AgentPoolManager.class).createNewAgentPool(agentPool.name, agentDetails);
     } catch (AgentPoolCannotBeRenamedException e) {

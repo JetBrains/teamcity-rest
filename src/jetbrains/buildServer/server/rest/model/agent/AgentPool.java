@@ -125,7 +125,7 @@ public class AgentPool {
   @Nullable
   private static Integer getMaxAgents(final @NotNull jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool) {
     int maxAgents = agentPool.getMaxAgents();
-    return maxAgents == AgentPoolDetails.DEFAULT.getMaxAgents() ? null : agentPool.getMaxAgents();
+    return maxAgents == AgentPoolLimits.DEFAULT.getMaxAgents() ? null : agentPool.getMaxAgents();
   }
 
   public static void setFieldValue(@NotNull final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool,
@@ -144,7 +144,7 @@ public class AgentPool {
       modificationsFound = true;
     } else if ("maxAgents".equals(fieldName)) {
       if (StringUtil.isEmpty(newValue)) {
-        maxAgents = AgentPoolDetails.DEFAULT.getMaxAgents();
+        maxAgents = AgentPoolLimits.DEFAULT.getMaxAgents();
       } else {
         maxAgents = Integer.valueOf(newValue);
       }
@@ -154,7 +154,7 @@ public class AgentPool {
       throw new BadRequestException("Setting field '" + fieldName + "' is not supported. Supported are: name, maxAgents.");
     }
     try {
-      beanContext.getSingletonService(AgentPoolManager.class).updateAgentPool(agentPool.getAgentPoolId(), newName, new AgentPoolDetailsImpl(minAgents, maxAgents));
+      beanContext.getSingletonService(AgentPoolManager.class).updateAgentPool(agentPool.getAgentPoolId(), newName, new AgentPoolLimitsImpl(minAgents, maxAgents));
     } catch (NoSuchAgentPoolException e) {
       throw new BadRequestException(e.getMessage());
     } catch (AgentPoolCannotBeRenamedException e) {
