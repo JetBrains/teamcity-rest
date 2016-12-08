@@ -227,7 +227,7 @@ public class DebugRequest {
       //looks like IPv6 address
       return "[" + host + "]:" + portNumber;
     } else {
-      return host + portNumber;
+      return host + ":" + portNumber;
     }
   }
 
