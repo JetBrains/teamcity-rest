@@ -99,8 +99,8 @@ public class ProblemOccurrenceFinderTest extends BaseFinderTest<BuildProblem> {
                  pd(1, "id1", "type1", build10.getId()),
                  pd(2, "id1", "type2", build10.getId()),
                  pd(3, "id1", "type3", build10.getId()),
-                 pd(2, "id1", "type2", build30.getId()),
-                 pd(4, "id2", "type1", build30.getId()));
+                 pd(4, "id2", "type1", build30.getId()),
+                 pd(2, "id1", "type2", build30.getId()));
   }
 
   @Test
@@ -121,8 +121,8 @@ public class ProblemOccurrenceFinderTest extends BaseFinderTest<BuildProblem> {
                  pd(1, "id1", "type1", build10.getId()),
                  pd(2, "id1", "type2", build10.getId()),
                  pd(3, "id1", "type3", build10.getId()),
-                 pd(2, "id1", "type2", build30.getId()),
-                 pd(4, "id2", "type1", build30.getId()));
+                 pd(4, "id2", "type1", build30.getId()),
+                 pd(2, "id1", "type2", build30.getId()));
 
     checkProblem("build:(item:(id:" + build10.getId() + "),item:(id:" + build30.getId() + ")),count:2",
                  pd(1, "id1", "type1", build10.getId()),
@@ -130,8 +130,8 @@ public class ProblemOccurrenceFinderTest extends BaseFinderTest<BuildProblem> {
 
     checkProblem("build:(item:(id:" + build10.getId() + "),item:(id:" + build30.getId() + ")),start:2,count:3",
                  pd(3, "id1", "type3", build10.getId()),
-                 pd(2, "id1", "type2", build30.getId()),
-                 pd(4, "id2", "type1", build30.getId()));
+                 pd(4, "id2", "type1", build30.getId()),
+                 pd(2, "id1", "type2", build30.getId()));
   }
 
   @Test
@@ -149,8 +149,8 @@ public class ProblemOccurrenceFinderTest extends BaseFinderTest<BuildProblem> {
     final BuildPromotionEx build40 = (BuildPromotionEx)build().in(buildType).withProblem(BuildProblemData.createBuildProblem("id1", "type2", "descr")).finish().getBuildPromotion();
 
     checkProblem("build:(item:(id:" + build30.getId() + "),item:(id:" + build10.getId() + "))",
-                 pd(2, "id1", "type2", build30.getId()),
                  pd(4, "id2", "type1", build30.getId()),
+                 pd(2, "id1", "type2", build30.getId()),
                  pd(1, "id1", "type1", build10.getId()),
                  pd(2, "id1", "type2", build10.getId()),
                  pd(3, "id1", "type3", build10.getId()));
