@@ -26,6 +26,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.stream.Collectors;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.servlet.http.HttpServletRequest;
@@ -56,6 +57,9 @@ import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
 import jetbrains.buildServer.serverSide.db.*;
 import jetbrains.buildServer.serverSide.db.queries.GenericQuery;
 import jetbrains.buildServer.serverSide.db.queries.QueryOptions;
+import jetbrains.buildServer.serverSide.impl.BuildPromotionReplacementLog;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.impl.dependency.GraphOptimizer;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.filters.Filter;
@@ -82,6 +86,7 @@ public class DebugRequest {
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private VcsRootInstanceFinder myVcsRootInstanceFinder;
   @Context @NotNull private ServiceLocator myServiceLocator;
+  @Context @NotNull private PermissionChecker myPermissionChecker;
 
   @GET
    @Path("/database/tables")
@@ -461,6 +466,41 @@ public class DebugRequest {
       }
     }
     return result.toString();
+  }
+
+  /**
+   * Experimental use only!
+   * Related to https://youtrack.jetbrains.com/issue/TW-37419
+   */
+  @GET
+  @Path("/buildChainOptimizationLog/{buildLocator}")
+  @Produces({"text/plain"})
+  public String getBuildChainOptimizationLog(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
+    final BuildPromotion build = myServiceLocator.getSingletonService(BuildPromotionFinder.class).getItem(buildLocator);
+    myPermissionChecker.checkPermission(Permission.EDIT_PROJECT, build);
+
+    StringBuffer log = new StringBuffer();
+    log.append("Optimization log for ").append(LogUtil.describe(build)).append('\n');
+
+    GraphOptimizer optimizer = new GraphOptimizer((BuildPromotionEx)build, myServiceLocator.getSingletonService(BuildPromotionReplacementLog.class));
+    optimizer.dryRunOptimization(new GraphOptimizer.OptimizationListener() {
+      @Override
+      public void buildPromotionIgnored(@NotNull final BuildPromotionEx promotion, @NotNull final String reason) {
+        log.append("ignored ").append(LogUtil.describe(promotion)).append(", reason: ").append(reason).append('\n');
+      }
+
+      @Override
+      public void buildPromotionReplaced(@NotNull final BuildPromotionEx orig, @NotNull final BuildPromotionEx replacement) {
+        log.append("replaced ").append(LogUtil.describe(orig)).append(" -> ").append(LogUtil.describe(replacement)).append('\n');
+      }
+
+      @Override
+      public void equivalentBuildPromotionsFound(@NotNull final BuildPromotionEx orig, @NotNull final List<BuildPromotionEx> equivalentPromotions) {
+        log.append("found equivalent ")
+           .append(LogUtil.describe(orig)).append(" == ").append(equivalentPromotions.stream().map(p -> LogUtil.describe(p)).collect(Collectors.toList())).append('\n');
+      }
+    });
+    return log.toString();
   }
 
   /**
