@@ -146,5 +146,6 @@
     </orderEntry>
     <orderEntry type="module" module-name="federation-server" />
     <orderEntry type="library" name="JodaTime" level="project" />
+    <orderEntry type="module" module-name="server-diagnostic" />
   </component>
 </module>

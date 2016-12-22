@@ -35,6 +35,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.controllers.login.RememberMe;
+import jetbrains.buildServer.diagnostic.MemoryUsageMonitor;
 import jetbrains.buildServer.diagnostic.web.ThreadDumpsController;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
@@ -570,7 +571,14 @@ public class DebugRequest {
     };
     DiagnosticUtil.printMemoryUsage(printer);
     result.append("\n");
-    DiagnosticUtil.printCpuUsage(printer, new DiagnosticUtil.ThreadDumpData(), startTime);
+    DiagnosticUtil.ThreadDumpData data;
+    MemoryUsageMonitor memoryUsageMonitor = myServiceLocator.findSingletonService(MemoryUsageMonitor.class);
+    if (memoryUsageMonitor != null){
+      data = memoryUsageMonitor.getThreadDumpData();
+    } else {
+      data = new DiagnosticUtil.ThreadDumpData();
+    }
+    DiagnosticUtil.printCpuUsage(printer, data, startTime);
     result.append("\n");
     result.append("Dump taken in ").append(TimePrinter.createMillisecondsFormatter().formatTime(Dates.now().getTime() - startTime.getTime()));
 
