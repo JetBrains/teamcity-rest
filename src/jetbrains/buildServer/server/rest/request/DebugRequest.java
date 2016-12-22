@@ -647,7 +647,8 @@ public class DebugRequest {
       buf.append(" on ").append(threadInfo.getLockName());
     }
     if (threadInfo.getLockOwnerName() != null) {
-      buf.append(" owned by \"").append(threadInfo.getLockOwnerName()).append("\" Id=").append(threadInfo.getLockOwnerId());
+      buf.append("\n       "); //buf.append(" owned");  using non-standard newline, indent and "by" (instead of standard "owned by") for easier reading
+      buf.append(" by \"").append(threadInfo.getLockOwnerName()).append("\" Id=").append(threadInfo.getLockOwnerId());
     }
     if (threadInfo.isSuspended()) {
       buf.append(" (suspended)");
