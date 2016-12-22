@@ -496,8 +496,13 @@ public class DebugRequest {
 
       @Override
       public void equivalentBuildPromotionsFound(@NotNull final BuildPromotionEx orig, @NotNull final List<BuildPromotionEx> equivalentPromotions) {
-        log.append("found equivalent ")
-           .append(LogUtil.describe(orig)).append(" == ").append(equivalentPromotions.stream().map(p -> LogUtil.describe(p)).collect(Collectors.toList())).append('\n');
+        if (!equivalentPromotions.isEmpty()){
+          log.append("found equivalent ")
+             .append(LogUtil.describe(orig)).append(" == ").append(equivalentPromotions.stream().map(p -> LogUtil.describe(p)).collect(Collectors.toList())).append('\n');
+        } else {
+          log.append("found no equivalent ")
+             .append(LogUtil.describe(orig)).append('\n');
+        }
       }
     });
     return log.toString();
