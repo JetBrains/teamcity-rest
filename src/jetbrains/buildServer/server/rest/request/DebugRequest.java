@@ -486,13 +486,18 @@ public class DebugRequest {
     GraphOptimizer optimizer = new GraphOptimizer((BuildPromotionEx)build, myServiceLocator.getSingletonService(BuildPromotionReplacementLog.class));
     optimizer.dryRunOptimization(new GraphOptimizer.OptimizationListener() {
       @Override
-      public void buildPromotionIgnored(@NotNull final BuildPromotionEx promotion, @NotNull final String reason) {
-        log.append("ignored ").append(LogUtil.describe(promotion)).append(", reason: ").append(reason).append('\n');
+      public void equivalentBuildPromotionIgnored(@NotNull final BuildPromotionEx promotion, @NotNull final String reason) {
+        log.append("equivalent build promotion ignored ").append(LogUtil.describe(promotion)).append(", reason: ").append(reason).append('\n');
       }
 
       @Override
       public void buildPromotionReplaced(@NotNull final BuildPromotionEx orig, @NotNull final BuildPromotionEx replacement) {
         log.append("replaced ").append(LogUtil.describe(orig)).append(" -> ").append(LogUtil.describe(replacement)).append('\n');
+      }
+
+      @Override
+      public void buildPromotionCannotBeReplaced(@NotNull final BuildPromotionEx promotion, @NotNull final String reason) {
+        log.append("cannot be replaced ").append(LogUtil.describe(promotion)).append(", reason: ").append(reason).append('\n');
       }
 
       @Override
