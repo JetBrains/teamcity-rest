@@ -31,8 +31,6 @@ import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.users.SUser;
-import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
@@ -236,7 +234,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
         final SProject directParent = getItem(directParentLocator);
         result.add(new FilterConditionChecker<SProject>() {
           public boolean isIncluded(@NotNull final SProject item) {
-            return directParent.equals(item.getParent());
+            return directParent.getProjectId().equals(item.getParentProjectId());
           }
         });
       }
@@ -344,11 +342,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
     //TeamCity API issue: the order of the projects is not completely clear: is project's hierarchy is applied (seems like it is not)
     // also, if user has not configured visibility, what the order will be?
     final List<String> visibleProjects = user.getVisibleProjects();
-    return visibleProjects == null ? Collections.<SProject>emptyList() : CollectionsUtil.convertAndFilterNulls(visibleProjects, new Converter<SProject, String>() {
-      public SProject createFrom(@NotNull final String projectInternalId) {
-        return myProjectManager.findProjectById(projectInternalId);
-      }
-    });
+    return visibleProjects == null ? Collections.<SProject>emptyList() :  myProjectManager.findProjects(visibleProjects);
   }
 
   @NotNull
@@ -397,8 +391,9 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
   public static boolean isSameOrParent(@NotNull final BuildProject parent, @NotNull final BuildProject project) {
     if (parent.getProjectId().equals(project.getProjectId())) return true;
-    if (project.getParentProject() == null) return false;
-    return isSameOrParent(parent, project.getParentProject());
+    BuildProject parentProject = project.getParentProject();
+    if (parentProject == null) return false;
+    return isSameOrParent(parent, parentProject);
   }
 
   @NotNull
