@@ -58,7 +58,7 @@ public class SwaggerConfigImpl implements SwaggerConfig {
     if (!StringUtil.isEmptyOrSpaces(version)) {
       info.setVersion(version);
     } else {
-      info.setVersion("" + server.getServerMajorVersion() + "." + server.getServerMinorVersion());
+      info.setVersion("" + server.getVersion().getDisplayVersionMajor() + "." + server.getVersion().getDisplayVersionMinor());
     }
 
     swagger.setInfo(info);

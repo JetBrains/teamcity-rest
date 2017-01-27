@@ -72,12 +72,12 @@ public class Server {
 
   @XmlAttribute
   public Integer getVersionMajor() {
-    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("versionMajor"), (int)myServer.getServerMajorVersion());
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("versionMajor"), myServer.getVersion().getDisplayVersionMajor());
   }
 
   @XmlAttribute
   public Integer getVersionMinor() {
-    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("versionMinor"), (int)myServer.getServerMinorVersion());
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("versionMinor"), myServer.getVersion().getDisplayVersionMinor());
   }
 
   @XmlAttribute
@@ -174,9 +174,9 @@ public class Server {
     } else if ("buildNumber".equals(field) || "build".equals(field)) {
       return serviceLocator.getSingletonService(SBuildServer.class).getBuildNumber();
     } else if ("versionMajor".equals(field) || "majorVersion".equals(field)) {
-      return Byte.toString(serviceLocator.getSingletonService(SBuildServer.class).getServerMajorVersion());
+      return Integer.toString(serviceLocator.getSingletonService(SBuildServer.class).getVersion().getDisplayVersionMajor());
     } else if ("versionMinor".equals(field) || "minorVersion".equals(field)) {
-      return Byte.toString(serviceLocator.getSingletonService(SBuildServer.class).getServerMinorVersion());
+      return Integer.toString(serviceLocator.getSingletonService(SBuildServer.class).getVersion().getDisplayVersionMinor());
     } else if ("startTime".equals(field)) {
       return Util.formatTime(serviceLocator.getSingletonService(DataProvider.class).getServerStartTime());
     } else if ("currentTime".equals(field)) {
