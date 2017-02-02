@@ -38,26 +38,31 @@ public class Entries implements DefaultValueAware{
   public Integer count;
 
   @XmlElement(name = "entry")
-  public List<Entry> entries = new SortedList<Entry>(new Comparator<Entry>() {
-    private final CaseInsensitiveStringComparator comp = new CaseInsensitiveStringComparator();
-
-    public int compare(final Entry o1, final Entry o2) {
-      return comp.compare(o1.name, o2.name);
-    }
-  });
+  public List<Entry> entries;
 
   public Entries() {
   }
 
   public Entries(@NotNull final java.util.Map<String, String> propertiesP, final @NotNull Fields fields) {
     this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), propertiesP.size());
-    for (java.util.Map.Entry<String, String> prop : propertiesP.entrySet()) {
-      entries.add(new Entry(prop.getKey(), prop.getValue(), fields.getNestedField("entry")));
+    Fields entryFields = fields.getNestedField("entry");
+    if (!entryFields.isNone()) {
+      entries = new SortedList<Entry>(new Comparator<Entry>() {
+        private final CaseInsensitiveStringComparator comp = new CaseInsensitiveStringComparator();
+
+        public int compare(final Entry o1, final Entry o2) {
+          return comp.compare(o1.name, o2.name);
+        }
+      });
+      for (java.util.Map.Entry<String, String> prop : propertiesP.entrySet()) {
+        entries.add(new Entry(prop.getKey(), prop.getValue(), entryFields));
+      }
     }
   }
 
   @NotNull
   public java.util.Map<String, String> getMap() {
+    if (entries == null) return new HashMap<>();
     final HashMap<String, String> result = new HashMap<String, String>(entries.size());
     for (Entry Entry : entries) {
       result.put(Entry.name, Entry.value);

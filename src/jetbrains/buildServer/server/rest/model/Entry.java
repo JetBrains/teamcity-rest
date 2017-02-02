@@ -40,8 +40,8 @@ public class Entry {
   }
 
   public Entry(@Nullable String name, @Nullable String value, final @NotNull Fields fields) {
-    this.name =  ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), name);
-    this.value = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("value"), value);
+    this.name =  ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name", true, true), name);
+    this.value = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("value", true, true), value);
   }
 }
 

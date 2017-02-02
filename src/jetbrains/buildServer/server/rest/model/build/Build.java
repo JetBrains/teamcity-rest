@@ -430,17 +430,36 @@ public class Build {
       public Entries get() {
         final Map<String, Object> buildAttributes = ((BuildPromotionEx)myBuildPromotion).getAttributes();
         final LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
-        if (TeamCityProperties.getBoolean(REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES)) {
-          for (Map.Entry<String, Object> attribute : buildAttributes.entrySet()) {
-            result.put(attribute.getKey(), attribute.getValue().toString());
+        Fields nestedFields = myFields.getNestedField("attributes", Fields.LONG, Fields.LONG);
+        boolean supportLocator = TeamCityProperties.getPropertyOrNull(REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES) == null;
+        if (!supportLocator) {
+          if (TeamCityProperties.getBoolean(REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES)) {
+            for (Map.Entry<String, Object> attribute : buildAttributes.entrySet()) {
+              result.put(attribute.getKey(), attribute.getValue().toString());
+            }
+          } else {
+            final Object value = buildAttributes.get(BuildAttributes.CLEAN_SOURCES);
+            if (value != null) {
+              result.put(BuildAttributes.CLEAN_SOURCES, value.toString());
+            }
           }
         } else {
-          final Object value = buildAttributes.get(BuildAttributes.CLEAN_SOURCES);
-          if (value != null) {
-            result.put(BuildAttributes.CLEAN_SOURCES, value.toString());
+          String locator = nestedFields.getLocator();
+          if (locator == null) {
+            final Object value = buildAttributes.get(BuildAttributes.CLEAN_SOURCES);
+            if (value != null) {
+              result.put(BuildAttributes.CLEAN_SOURCES, value.toString());
+            }
+          } else {
+            final ParameterCondition parameterCondition = ParameterCondition.create(locator);
+            for (Map.Entry<String, Object> attribute : buildAttributes.entrySet()) {
+              if (parameterCondition.parameterMatches(new SimpleParameter(attribute.getKey(), attribute.getValue().toString()), null)) {
+                result.put(attribute.getKey(), attribute.getValue().toString());
+              }
+            }
           }
         }
-        return new Entries(result, myFields.getNestedField("attributes"));
+        return new Entries(result, nestedFields);
       }
     });
   }
@@ -1211,6 +1230,14 @@ public class Build {
     if (submittedBranchName != null) customizer.setDesiredBranchName(submittedBranchName);
     if (submittedPersonal != null) customizer.setPersonal(submittedPersonal);
     if (submittedTriggeringOptions != null && submittedTriggeringOptions.cleanSources != null) customizer.setCleanSources(submittedTriggeringOptions.cleanSources);
+
+    /*
+    ((BuildCustomizerEx)customizer).setApplyCleanSourcesToDependencies();
+    //todo: also other methods
+    customizer.setCleanSources();
+    //todo: consider using attributes...
+    */
+
     if (submittedTriggeringOptions != null && submittedTriggeringOptions.rebuildAllDependencies != null) {
       customizer.setRebuildDependencies(submittedTriggeringOptions.rebuildAllDependencies);
     }
