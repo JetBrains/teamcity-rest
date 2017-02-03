@@ -64,6 +64,11 @@ public class ParameterCondition {
     myInheritedCondition = inherited;
   }
 
+  @NotNull
+  public static String getNameAndNotEmptyValueLocator(@NotNull String name) {
+    return Locator.getStringLocator(NAME, name, TYPE, RequirementType.EXISTS.name().toLowerCase());
+  }
+
   @Nullable
   @Contract("!null -> !null; null -> null")
   public static ParameterCondition create(@Nullable final String propertyConditionLocator) {
@@ -82,7 +87,7 @@ public class ParameterCondition {
     if (locator == null){
       return null;
     }
-    locator.addSupportedDimensions(NAME, VALUE, TYPE, IGNORE_CASE, NAME_MATCH_CHECK, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    locator.addSupportedDimensions(NAME, VALUE, TYPE, IGNORE_CASE, NAME_MATCH_CHECK, INHERITED, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     locator.processHelpRequest();
     final String value = locator.getSingleDimensionValue(VALUE);
 
@@ -92,7 +97,7 @@ public class ParameterCondition {
     if (type != null){
       requirement = RequirementType.findByName(type);
       if (requirement == null){
-        throw new BadRequestException("Unsupported value for '" + TYPE + "'. Supported are: " + getAllRequirementTypes());
+        throw new BadRequestException("Unsupported value '" + type + "' for '" + TYPE + "'. Supported are: " + getAllRequirementTypes());
       }
     } else{
       requirement = value != null ? RequirementType.CONTAINS : RequirementType.EXISTS;

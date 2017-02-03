@@ -428,35 +428,21 @@ public class Build {
   public Entries getAttributes() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("attributes", false), new ValueWithDefault.Value<Entries>() {
       public Entries get() {
-        final Map<String, Object> buildAttributes = ((BuildPromotionEx)myBuildPromotion).getAttributes();
         final LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
         Fields nestedFields = myFields.getNestedField("attributes", Fields.LONG, Fields.LONG);
-        boolean supportLocator = TeamCityProperties.getPropertyOrNull(REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES) == null;
-        if (!supportLocator) {
-          if (TeamCityProperties.getBoolean(REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES)) {
-            for (Map.Entry<String, Object> attribute : buildAttributes.entrySet()) {
-              result.put(attribute.getKey(), attribute.getValue().toString());
-            }
-          } else {
-            final Object value = buildAttributes.get(BuildAttributes.CLEAN_SOURCES);
-            if (value != null) {
-              result.put(BuildAttributes.CLEAN_SOURCES, value.toString());
-            }
-          }
-        } else {
-          String locator = nestedFields.getLocator();
-          if (locator == null) {
-            final Object value = buildAttributes.get(BuildAttributes.CLEAN_SOURCES);
-            if (value != null) {
-              result.put(BuildAttributes.CLEAN_SOURCES, value.toString());
-            }
-          } else {
-            final ParameterCondition parameterCondition = ParameterCondition.create(locator);
-            for (Map.Entry<String, Object> attribute : buildAttributes.entrySet()) {
-              if (parameterCondition.parameterMatches(new SimpleParameter(attribute.getKey(), attribute.getValue().toString()), null)) {
-                result.put(attribute.getKey(), attribute.getValue().toString());
-              }
-            }
+        String locator = ParameterCondition.getNameAndNotEmptyValueLocator(BuildAttributes.CLEAN_SOURCES);
+        boolean supportCustomLocator = TeamCityProperties.getPropertyOrNull(REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES) == null;
+        if (supportCustomLocator) {
+          String locatorFromFields = nestedFields.getLocator();
+          if (locatorFromFields != null) locator = locatorFromFields;
+        } else if (TeamCityProperties.getBoolean(REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES)) {
+          locator = null; //include all
+        }
+        final ParameterCondition parameterCondition = ParameterCondition.create(locator);
+        final Map<String, Object> buildAttributes = ((BuildPromotionEx)myBuildPromotion).getAttributes();
+        for (Map.Entry<String, Object> attribute : buildAttributes.entrySet()) {
+          if (parameterCondition == null || parameterCondition.parameterMatches(new SimpleParameter(attribute.getKey(), attribute.getValue().toString()), null)) {
+            result.put(attribute.getKey(), attribute.getValue().toString());
           }
         }
         return new Entries(result, nestedFields);

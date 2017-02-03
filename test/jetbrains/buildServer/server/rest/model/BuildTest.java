@@ -65,6 +65,51 @@ public class BuildTest extends BaseFinderTest<SBuild> {
   }
 
   @Test
+  public void testBuildNodeAttributes() {
+    {
+      final BuildCustomizer customizer = myFixture.getSingletonService(BuildCustomizerFactory.class).createBuildCustomizer(myBuildType, getOrCreateUser("user"));
+      SQueuedBuild queuedBuild = myBuildType.addToQueue((BuildPromotionEx)customizer.createPromotion(), "");
+      Build buildNode = new Build(queuedBuild.getBuildPromotion(), Fields.LONG, getBeanContext(myFixture));
+      assertNull(buildNode.getAttributes());
+      queuedBuild.removeFromQueue(null, "");
+    }
+
+    {
+      final BuildCustomizer customizer = myFixture.getSingletonService(BuildCustomizerFactory.class).createBuildCustomizer(myBuildType, getOrCreateUser("user"));
+      customizer.setCleanSources(true);
+      SQueuedBuild queuedBuild = myBuildType.addToQueue((BuildPromotionEx)customizer.createPromotion(), "");
+      Build buildNode = new Build(queuedBuild.getBuildPromotion(), Fields.LONG, getBeanContext(myFixture));
+      assertNotNull(buildNode.getAttributes());
+      assertNotNull(buildNode.getAttributes().entries);
+      assertEquals(1, buildNode.getAttributes().entries.size());
+      assertEquals("teamcity.cleanSources", buildNode.getAttributes().entries.get(0).name);
+      assertEquals("true", buildNode.getAttributes().entries.get(0).value);
+      queuedBuild.removeFromQueue(null, "");
+    }
+
+    {
+      final BuildCustomizer customizer = myFixture.getSingletonService(BuildCustomizerFactory.class).createBuildCustomizer(myBuildType, getOrCreateUser("user"));
+      customizer.setAttributes(jetbrains.buildServer.util.Util.map("a", "b"));
+      SQueuedBuild queuedBuild = myBuildType.addToQueue((BuildPromotionEx)customizer.createPromotion(), "");
+      Build buildNode = new Build(queuedBuild.getBuildPromotion(), Fields.LONG, getBeanContext(myFixture));
+      assertNull(buildNode.getAttributes());
+      queuedBuild.removeFromQueue(null, "");
+    }
+
+    {
+      final BuildCustomizer customizer = myFixture.getSingletonService(BuildCustomizerFactory.class).createBuildCustomizer(myBuildType, getOrCreateUser("user"));
+      customizer.setAttributes(jetbrains.buildServer.util.Util.map("a", "b", "c", "d"));
+      SQueuedBuild queuedBuild = myBuildType.addToQueue((BuildPromotionEx)customizer.createPromotion(), "");
+      Build buildNode = new Build(queuedBuild.getBuildPromotion(), new Fields("attributes($long,$locator(name:$any))"), getBeanContext(myFixture));
+      assertNotNull(buildNode.getAttributes());
+      assertNotNull(buildNode.getAttributes().entries);
+      assertTrue(buildNode.getAttributes().entries.size() >= 2); //there are also some always present attributes
+      assertEquals("b", buildNode.getAttributes().entries.stream().filter(entry -> "a".equals(entry.name)).findFirst().get().value);
+      queuedBuild.removeFromQueue(null, "");
+    }
+  }
+
+  @Test
   public void testBuildTriggering1() {
     final Build build = new Build();
     final BuildType buildType = new BuildType();
