@@ -28,13 +28,21 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
  *         Date: 18.01.14
  */
 @XmlRootElement(name = "buildTriggeringOptions")
-@XmlType(name = "buildTriggeringOptions", propOrder = {"cleanSources", "cleanSourcesInAllDependencies", "rebuildAllDependencies", "queueAtTop",
+@XmlType(name = "buildTriggeringOptions", propOrder = {"cleanSources", "cleanSourcesInAllDependencies", "rebuildAllDependencies", "queueAtTop", "freezeSettings", "tagDependencies",
   "rebuildDependencies"})
 public class BuildTriggeringOptions {
     @XmlAttribute public Boolean cleanSources;
     @XmlAttribute public Boolean cleanSourcesInAllDependencies;
     @XmlAttribute public Boolean rebuildAllDependencies;
     @XmlAttribute public Boolean queueAtTop;
+    /**
+     * Experimental
+     */
+    @XmlAttribute public Boolean freezeSettings;
+    /**
+     * Experimental
+     */
+    @XmlAttribute public Boolean tagDependencies;
     /**
      * Specifies which of the snapshot dependnecies to rebuild. Build types of direct or indirect dependencies can be specified.
      * Makes sence only if "rebuildAllDependencies" is not set to "true"

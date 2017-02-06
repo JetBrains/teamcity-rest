@@ -1233,6 +1233,12 @@ public class Build {
       if (submittedTriggeringOptions.cleanSourcesInAllDependencies != null) {
         ((BuildCustomizerEx)customizer).setApplyCleanSourcesToDependencies(submittedTriggeringOptions.cleanSourcesInAllDependencies);
       }
+      if (submittedTriggeringOptions.freezeSettings != null) {
+        ((BuildCustomizerEx)customizer).setFreezeSettings(submittedTriggeringOptions.freezeSettings);
+      }
+      if (submittedTriggeringOptions.tagDependencies != null) {
+        ((BuildCustomizerEx)customizer).setApplyTagsToDependencies(submittedTriggeringOptions.tagDependencies);
+      }
       if (submittedTriggeringOptions.rebuildAllDependencies != null) {
         customizer.setRebuildDependencies(submittedTriggeringOptions.rebuildAllDependencies);
       }
@@ -1278,18 +1284,7 @@ public class Build {
         customizer.setTagDatas(new HashSet<TagData>(submittedTags.getFromPosted(serviceLocator.getSingletonService(UserFinder.class))));
     }
     if (submittedAttributes != null){
-      if (TeamCityProperties.getBoolean(REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES)) {
         customizer.setAttributes(submittedAttributes.getMap());
-      } else {
-        final String cleanSources = submittedAttributes.getMap().get(BuildAttributes.CLEAN_SOURCES);
-        if (cleanSources != null) {
-          customizer.setCleanSources(Boolean.valueOf(cleanSources));
-        }
-        final String freezeSettings = submittedAttributes.getMap().get(BuildAttributes.FREEZE_SETTINGS);
-        if (freezeSettings != null) {
-          ((BuildCustomizerEx)customizer).setFreezeSettings(Boolean.valueOf(freezeSettings));
-        }
-      }
     }
     final BuildPromotion result;
     try {
