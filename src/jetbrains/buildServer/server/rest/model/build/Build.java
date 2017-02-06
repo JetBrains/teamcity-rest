@@ -1215,18 +1215,7 @@ public class Build {
 
     if (submittedBranchName != null) customizer.setDesiredBranchName(submittedBranchName);
     if (submittedPersonal != null) customizer.setPersonal(submittedPersonal);
-    if (submittedTriggeringOptions != null && submittedTriggeringOptions.cleanSources != null) customizer.setCleanSources(submittedTriggeringOptions.cleanSources);
 
-    /*
-    ((BuildCustomizerEx)customizer).setApplyCleanSourcesToDependencies();
-    //todo: also other methods
-    customizer.setCleanSources();
-    //todo: consider using attributes...
-    */
-
-    if (submittedTriggeringOptions != null && submittedTriggeringOptions.rebuildAllDependencies != null) {
-      customizer.setRebuildDependencies(submittedTriggeringOptions.rebuildAllDependencies);
-    }
     if (submittedBuildDependencies != null) {
       try {
         customizer.setSnapshotDependencyNodes(submittedBuildDependencies.getFromPosted(serviceLocator, buildPromotionIdReplacements));
@@ -1236,17 +1225,29 @@ public class Build {
         throw new BadRequestException("Error searching for snapshot dependency" + getRelatedBuildDescription() + ": " + e.getMessage(), e);
       }
     }
-    if (submittedTriggeringOptions != null && submittedTriggeringOptions.rebuildDependencies != null) {
-      customizer.setRebuildDependencies(CollectionsUtil.convertCollection(
-        submittedTriggeringOptions.rebuildDependencies.getFromPosted(serviceLocator.getSingletonService(BuildTypeFinder.class)), new Converter<String, BuildTypeOrTemplate>() {
-        public String createFrom(@NotNull final BuildTypeOrTemplate source) {
-          if (source.getBuildType() == null) {
-            //noinspection ConstantConditions
-            throw new BadRequestException("Template is specified instead of a build type. Template id: '" + source.getTemplate().getExternalId() + "'");
+
+    if (submittedTriggeringOptions != null) {
+      if (submittedTriggeringOptions.cleanSources != null) {
+        customizer.setCleanSources(submittedTriggeringOptions.cleanSources);
+      }
+      if (submittedTriggeringOptions.cleanSourcesInAllDependencies != null) {
+        ((BuildCustomizerEx)customizer).setApplyCleanSourcesToDependencies(submittedTriggeringOptions.cleanSourcesInAllDependencies);
+      }
+      if (submittedTriggeringOptions.rebuildAllDependencies != null) {
+        customizer.setRebuildDependencies(submittedTriggeringOptions.rebuildAllDependencies);
+      }
+      if (submittedTriggeringOptions.rebuildDependencies != null) {
+        customizer.setRebuildDependencies(CollectionsUtil.convertCollection(
+          submittedTriggeringOptions.rebuildDependencies.getFromPosted(serviceLocator.getSingletonService(BuildTypeFinder.class)), new Converter<String, BuildTypeOrTemplate>() {
+          public String createFrom(@NotNull final BuildTypeOrTemplate source) {
+            if (source.getBuildType() == null) {
+              //noinspection ConstantConditions
+              throw new BadRequestException("Template is specified instead of a build type. Template id: '" + source.getTemplate().getExternalId() + "'");
+            }
+            return source.getBuildType().getInternalId();
           }
-          return source.getBuildType().getInternalId();
-        }
-      }));
+        }));
+      }
     }
 
     List<BuildPromotion> artifactDepsBuildsPosted = null;

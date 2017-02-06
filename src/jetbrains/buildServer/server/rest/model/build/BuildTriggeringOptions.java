@@ -28,10 +28,11 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
  *         Date: 18.01.14
  */
 @XmlRootElement(name = "buildTriggeringOptions")
-@XmlType(name = "buildTriggeringOptions", propOrder = {"cleanSources", "rebuildAllDependencies", "queueAtTop",
+@XmlType(name = "buildTriggeringOptions", propOrder = {"cleanSources", "cleanSourcesInAllDependencies", "rebuildAllDependencies", "queueAtTop",
   "rebuildDependencies"})
 public class BuildTriggeringOptions {
     @XmlAttribute public Boolean cleanSources;
+    @XmlAttribute public Boolean cleanSourcesInAllDependencies;
     @XmlAttribute public Boolean rebuildAllDependencies;
     @XmlAttribute public Boolean queueAtTop;
     /**
