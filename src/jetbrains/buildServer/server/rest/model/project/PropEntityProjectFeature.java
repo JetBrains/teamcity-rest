@@ -122,9 +122,6 @@ public class PropEntityProjectFeature extends PropEntity {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Project feature cannot have empty 'type'.");
     }
-    if (!type.equals(entityToReplace.getType())) {
-      throw new BadRequestException("Cannot change type of existing build feature.");
-    }
     if (properties != null && !project.updateFeature(entityToReplace.getId(), type, properties.getMap())) {
       throw new InvalidStateException("Update of the project feature with id '" + entityToReplace.getId() + "' failed");
     }

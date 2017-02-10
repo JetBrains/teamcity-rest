@@ -125,9 +125,6 @@ public class PropEntityTrigger extends PropEntity implements PropEntityEdit<Buil
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Build trigger cannot have empty 'type'.");
     }
-    if (!type.equals(trigger.getType())) {
-      throw new BadRequestException("Cannot change type of existing trigger.");
-    }
     if (properties != null && !buildType.updateBuildTrigger(trigger.getId(), type, properties.getMap())) {
       throw new OperationException("Update failed");
     }

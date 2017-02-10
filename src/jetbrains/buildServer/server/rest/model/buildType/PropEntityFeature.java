@@ -135,9 +135,6 @@ public class PropEntityFeature extends PropEntity implements PropEntityEdit<SBui
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Build feature cannot have empty 'type'.");
     }
-    if (!type.equals(feature.getType())) {
-      throw new BadRequestException("Cannot change type of existing build feature.");
-    }
     if (properties != null && !buildType.updateBuildFeature(feature.getId(), type, properties.getMap())) {
       throw new InvalidStateException("Update failed");
     }
