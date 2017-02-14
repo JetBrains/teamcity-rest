@@ -65,6 +65,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.context.ServletContextAware;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.ModelAndView;
@@ -432,7 +433,7 @@ public class APIController extends BaseController implements ServletContextAware
       if (corsRequest && request.getMethod().equalsIgnoreCase("OPTIONS")){
         //handling browser pre-flight requests
         LOG.debug("Pre-flight OPTIONS request detected, replying with status 204");
-        response.setStatus(204);
+        response.setStatus(HttpServletResponse.SC_NO_CONTENT);
         return null;
       }
       if (myInternalAuthProcessing && SessionUser.getUser(request) == null && !requestForMyPathNotRequiringAuth(request)){
@@ -442,7 +443,7 @@ public class APIController extends BaseController implements ServletContextAware
         //TeamCity API issue: SecurityContext.getAuthorityHolder is "SYSTEM" if request is not authorized
         final boolean notAuthorizedRequest = ((SecurityContextEx)mySecurityContext).isSystemAccess();
         if (notAuthorizedRequest) {
-          response.setStatus(401);
+          response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
           response.getWriter().write("TeamCity core was unable to handle authentication (no current user).");
           LOG.warn("TeamCity core was unable to handle authentication (no current user), replying with 401 status. Request details: " + WebUtil.getRequestDump(request));
           return null;
@@ -525,7 +526,7 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   private boolean processCorsOrigin(final HttpServletRequest request, final HttpServletResponse response) {
-    final String originHeader = request.getHeader("Origin");
+    final String originHeader = request.getHeader(HttpHeaders.ORIGIN);
     if (StringUtil.isNotEmpty(originHeader)) {
 
       for (String origin : originHeader.split(" ")) {
@@ -554,15 +555,15 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   private void addOriginHeaderToResponse(final HttpServletResponse response, final String origin) {
-    response.addHeader("Access-Control-Allow-Origin", origin);
+    response.addHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin);
   }
 
   private void addOtherHeadersToResponse(final HttpServletRequest request, final HttpServletResponse response) {
-    response.addHeader("Access-Control-Allow-Methods", request.getHeader("Access-Control-Request-Method"));
-    response.addHeader("Access-Control-Allow-Credentials", "true");
+    response.addHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, request.getHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD));
+    response.addHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
 
     //this will actually not function for OPTION request until http://youtrack.jetbrains.com/issue/TW-22019 is fixed
-    response.addHeader("Access-Control-Allow-Headers", request.getHeader("Access-Control-Request-Headers"));
+    response.addHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, request.getHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS));
   }
 
   @NotNull

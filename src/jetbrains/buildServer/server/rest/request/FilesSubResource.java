@@ -27,6 +27,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
+import javax.ws.rs.core.MediaType;
 import jetbrains.buildServer.server.rest.data.ArchiveElement;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.data.Locator;
@@ -51,6 +52,8 @@ import jetbrains.buildServer.web.util.HttpByteRange;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.http.*;
+import org.springframework.http.HttpHeaders;
 
 /**
  * @author Yegor.Yarko
@@ -253,7 +256,7 @@ public class FilesSubResource {
     if (!element.isContentAvailable()) {
       throw new NotFoundException("Cannot provide content for '" + element.getFullName() + "' (not a file).");
     }
-    final String rangeHeader = request.getHeader("Range");
+    final String rangeHeader = request.getHeader(HttpHeaders.RANGE);
 
     Long fullFileSize = null;
     try {
