@@ -518,10 +518,14 @@ public class Build {
   public static String getBuildStatisticValue(@NotNull final SBuild build, @NotNull final String statisticValueName) {
     Map<String, String> stats = getBuildStatisticsValues(build);
     String val = stats.get(statisticValueName);
-    if (val == null) {
-      throw new NotFoundException("No statistics data for key: " + statisticValueName + "' in build " + LogUtil.describe(build));
+    if (val != null) {
+      return val;
     }
-    return val;
+    BigDecimal directValue = build.getStatisticValue(statisticValueName); //TeamCity API issue: this can actually provide a value which is not returned in the list
+    if (directValue != null) {
+      return directValue.stripTrailingZeros().toPlainString();
+    }
+    throw new NotFoundException("No statistics data for key: " + statisticValueName + "' in build " + LogUtil.describe(build));
   }
 
   /**
