@@ -190,9 +190,9 @@ public class DebugRequest {
   public String getRequestDetails(@PathParam("extra") final String extra, @Context HttpServletRequest request) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     StringBuilder result = new StringBuilder();
-    result.append("Remote address: " ).append(hostAndPort(request.getRemoteAddr(), request.getRemotePort())).append("\n");
-    result.append("Refined remote address: ").append(hostAndPort(WebUtil.getRemoteAddress(request), request.getRemotePort())).append("\n");
-    result.append("Local address: ").append(hostAndPort(request.getLocalAddr(), request.getLocalPort())).append("\n");
+    result.append("Remote address: " ).append(WebUtil.hostAndPort(request.getRemoteAddr(), request.getRemotePort())).append("\n");
+    result.append("Refined remote address: ").append(WebUtil.hostAndPort(WebUtil.getRemoteAddress(request), request.getRemotePort())).append("\n");
+    result.append("Local address: ").append(WebUtil.hostAndPort(request.getLocalAddr(), request.getLocalPort())).append("\n");
     if (request.getLocalPort() != request.getServerPort()) {
       result.append("Server port: ").append(request.getServerPort()).append("\n");
     }
@@ -240,16 +240,6 @@ public class DebugRequest {
   @Produces({"text/plain"})
   public String putRequestDetails(@PathParam("extra") final String extra, @Context HttpServletRequest request) {
     return getRequestDetails(extra, request);
-  }
-
-  private static String hostAndPort(@NotNull final String host, final int portNumber) {
-    /* See also jetbrains.buildServer.maintenance.StartupProcessor.constructServerAddress and jetbrains.buildServer.web.util.WebUtil.getRequestDump*/
-    if (host.contains(":")) {
-      //looks like IPv6 address
-      return "[" + host + "]:" + portNumber;
-    } else {
-      return host + ":" + portNumber;
-    }
   }
 
   @GET
