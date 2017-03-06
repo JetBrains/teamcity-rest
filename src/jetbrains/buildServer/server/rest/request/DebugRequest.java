@@ -185,9 +185,9 @@ public class DebugRequest {
    * Experimental use only!
    */
   @GET
-  @Path("/currentRequest/details")
+  @Path("/currentRequest/details"+ "{extra:(/.*)?}") //"extra" here is to allow checking arbitrary chars in the URL path
   @Produces({"text/plain"})
-  public String getRequestDetails(@Context HttpServletRequest request) {
+  public String getRequestDetails(@PathParam("extra") final String extra, @Context HttpServletRequest request) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     StringBuilder result = new StringBuilder();
     result.append("Remote address: " ).append(hostAndPort(request.getRemoteAddr(), request.getRemotePort())).append("\n");
@@ -228,7 +228,22 @@ public class DebugRequest {
     return result.toString();
   }
 
+  @POST
+  @Path("/currentRequest/details"+ "{extra:(/.*)?}")
+  @Produces({"text/plain"})
+  public String postRequestDetails(@PathParam("extra") final String extra, @Context HttpServletRequest request) {
+    return getRequestDetails(extra, request);
+  }
+
+  @PUT
+  @Path("/currentRequest/details"+ "{extra:(/.*)?}")
+  @Produces({"text/plain"})
+  public String putRequestDetails(@PathParam("extra") final String extra, @Context HttpServletRequest request) {
+    return getRequestDetails(extra, request);
+  }
+
   private static String hostAndPort(@NotNull final String host, final int portNumber) {
+    /* See also jetbrains.buildServer.maintenance.StartupProcessor.constructServerAddress and jetbrains.buildServer.web.util.WebUtil.getRequestDump*/
     if (host.contains(":")) {
       //looks like IPv6 address
       return "[" + host + "]:" + portNumber;
@@ -277,6 +292,9 @@ public class DebugRequest {
     }
   }
 
+  /**
+   * Experimental use only
+   */
   @POST
   @Path("/currentRequest/rememberMe")
   @Produces("text/plain")
@@ -289,6 +307,9 @@ public class DebugRequest {
     return beanContext.getSingletonService(RememberMe.class).createUserCookie(currentUser, request).getValue();
   }
 
+  /**
+   * Experimental use only
+   */
   @DELETE
   @Path("/currentRequest/rememberMe")
   public void deleteCurrentRememberMe(@Context HttpServletRequest request, @Context @NotNull final BeanContext beanContext) {
