@@ -1268,7 +1268,9 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
                            p("shouldFailBuildOnBadExitCode", "true", true, null),
                            p("shouldFailBuildOnOOMEOrCrash", "true", true, null),
                            p("showDependenciesChanges", "false", true, null),
-                           p("vcsLabelingBranchFilter", "+:<default>", true, null));
+                           p("vcsLabelingBranchFilter", "+:<default>", true, null),
+                           p("excludeDefaultBranchChanges", "false", true, null),
+                           p("buildDefaultBranch", "true", true, null));
 
     assertCollectionEquals("", settingsSubResource.getParameters(new Locator("defaults:true"), fields),
                            p("allowExternalStatus", "false", true, null),
@@ -1282,7 +1284,9 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
                            p("shouldFailBuildOnBadExitCode", "true", true, null),
                            p("shouldFailBuildOnOOMEOrCrash", "true", true, null),
                            p("showDependenciesChanges", "false", true, null),
-                           p("vcsLabelingBranchFilter", "+:<default>", true, null));
+                           p("vcsLabelingBranchFilter", "+:<default>", true, null),
+                           p("excludeDefaultBranchChanges", "false", true, null),
+                           p("buildDefaultBranch", "true", true, null));
 
     assertCollectionEquals("", settingsSubResource.getParameters(new Locator("defaults:false"), fields),
                            p("artifactRules", "bbbb", null, null),
