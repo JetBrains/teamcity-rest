@@ -126,7 +126,7 @@ public class AgentFinderTest extends BaseFinderTest<SBuildAgent> {
   }
 
   @Test
-  public void testLocatorPool() throws AgentPoolCannotBeRenamedException, NoSuchAgentPoolException, PoolQuotaExceededException {
+  public void testLocatorPool() throws Exception {
     final int poolId1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1").getAgentPoolId();
     myFixture.getAgentPoolManager().moveAgentTypesToPool(poolId1, createSet(myAgent3.getId()));
 

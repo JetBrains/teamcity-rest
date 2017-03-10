@@ -153,7 +153,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
   }
 
   @Test
-  public void testBuildOnAgentPoolTriggering() throws NoSuchAgentPoolException, AgentPoolCannotBeRenamedException, PoolQuotaExceededException {
+  public void testBuildOnAgentPoolTriggering() throws Exception {
 
     final MockBuildAgent agent2 = myFixture.createEnabledAgent("agent2", "Ant");
     final int poolId1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1").getAgentPoolId();
