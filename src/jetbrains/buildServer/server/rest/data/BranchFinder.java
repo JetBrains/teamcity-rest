@@ -22,10 +22,8 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
-import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -59,6 +57,13 @@ public class BranchFinder extends AbstractFinder<Branch> {
 
   public String getDefaultBranchLocator() {
     return Locator.getStringLocator(DEFAULT, "true");
+  }
+
+
+  @Nullable
+  @Contract("_, !null -> !null; !null,_ -> !null")
+  public static String patchLocatorWithBuildType(final @Nullable String branchLocator, final @Nullable String buildTypeLocator) {
+    return Locator.setDimensionIfNotPresent(branchLocator, BUILD_TYPE, buildTypeLocator);
   }
 
   @NotNull
@@ -192,9 +197,20 @@ public class BranchFinder extends AbstractFinder<Branch> {
     if (buildTypeLocator == null) {
       throw new BadRequestException("No '" + BUILD_TYPE + "' dimension is present but it is required for searching branches. Locator: '" + locator.getStringRepresentation() + "'");
     }
-    final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
+    final List<SBuildType> buildTypes = myBuildTypeFinder.getBuildTypes(null, buildTypeLocator);
 
-    return getItemHolder(getBranches(buildType, getBranchSearchOptionsWithDefaults(locator)));
+    BranchSearchOptions searchOptions = getBranchSearchOptionsWithDefaults(locator);
+    Set<Branch> result = new TreeSet<>((o1, o2) -> {
+      if (o1 == o2) return 0;
+      if (o1 == null) return -1;
+      if (o2 == null) return 1;
+      return o1.getName().compareToIgnoreCase(o2.getName()); //todo: consider default, same-named branches, same display name, etc.
+    });
+    for (SBuildType buildType : buildTypes) {
+      result.addAll(getBranches(buildType, searchOptions));
+    }
+    
+    return getItemHolder(result);
   }
 
   private class BranchSearchOptions {
@@ -245,15 +261,9 @@ public class BranchFinder extends AbstractFinder<Branch> {
     return new BranchSearchOptions(branchesPolicy, changesFromDependenciesDimension);
   }
 
-  private List<Branch> getBranches(final @NotNull SBuildType buildType, @NotNull final BranchSearchOptions branchSearchOptions) {
-    final BuildTypeImpl buildTypeImpl = (BuildTypeImpl)buildType; //TeamCity openAPI issue: cast
-    final List<BranchEx> branches = buildTypeImpl.getBranches(branchSearchOptions.getBranchesPolicy(), branchSearchOptions.isIncludeBranchesFromDependencies());
-    return CollectionsUtil.convertCollection(branches, new Converter<Branch, BranchEx>() {
-      @Override
-      public Branch createFrom(@NotNull final BranchEx source) {
-        return source;
-      }
-    });
+  private List<BranchEx> getBranches(final @NotNull SBuildType buildType, @NotNull final BranchSearchOptions branchSearchOptions) {
+    final BuildTypeEx buildTypeImpl = (BuildTypeEx)buildType; //TeamCity openAPI issue: cast
+    return buildTypeImpl.getBranches(branchSearchOptions.getBranchesPolicy(), branchSearchOptions.isIncludeBranchesFromDependencies());
   }
 
   @NotNull

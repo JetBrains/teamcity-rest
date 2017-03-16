@@ -36,6 +36,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.agent.AgentPools;
+import jetbrains.buildServer.server.rest.model.build.Branches;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
@@ -70,6 +71,7 @@ public class ProjectRequest {
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
   @Context @NotNull private ProjectFinder myProjectFinder;
   @Context @NotNull private AgentPoolFinder myAgentPoolFinder;
+  @Context @NotNull private BranchFinder myBranchFinder;
 
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private ServiceLocator myServiceLocator;
@@ -79,6 +81,12 @@ public class ProjectRequest {
   public static final String API_PROJECTS_URL = Constants.API_URL + "/projects";
   protected static final String PARAMETERS = BuildTypeRequest.PARAMETERS;
   protected static final String FEATURES = "/projectFeatures";
+
+
+  public void setInTests(@NotNull ProjectFinder projectFinder, @NotNull BranchFinder branchFinder){
+    myProjectFinder = projectFinder;
+    myBranchFinder = branchFinder;
+  }
 
   @NotNull
   public static String getHref() {
@@ -656,6 +664,21 @@ public class ProjectRequest {
     ((ProjectEx)project).setOwnBuildTypesOrder(new ArrayList<>(ids));
     //see serveBuildTypesInProject()
     return new BuildTypes(BuildTypes.fromBuildTypes(((ProjectEx)project).getOwnBuildTypesOrder()), null, new Fields(fields), myBeanContext);
+  }
+
+  /**
+   * Experimental support only.
+   * Lists branches from the build configurations of the project
+   * @param branchesLocator experimental use only!
+   * @return
+   */
+  @GET
+  @Path("/{projectLocator}/branches")
+  @Produces({"application/xml", "application/json"})
+  public Branches getBranches(@PathParam("projectLocator") String projectLocator, @QueryParam("locator") String branchesLocator, @QueryParam("fields") String fields) {
+    final SProject project = myProjectFinder.getItem(projectLocator);
+    String updatedBranchLocator = BranchFinder.patchLocatorWithBuildType(branchesLocator, BuildTypeFinder.patchLocator(null, project));
+    return new Branches(myBranchFinder.getItems(updatedBranchLocator).myEntries, new Fields(fields));
   }
 
   /**

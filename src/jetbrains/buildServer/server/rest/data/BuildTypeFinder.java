@@ -115,6 +115,13 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     return Locator.getStringLocator(COMPATIBLE_AGENT, AgentFinder.getLocator(agent));
   }
 
+  @Nullable
+  public static String patchLocator(final @Nullable String buildTypeLocator, final @Nullable SProject project) {
+    if (project == null) return buildTypeLocator;
+    return Locator.setDimensionIfNotPresent(buildTypeLocator, DIMENSION_PROJECT, ProjectFinder.getLocator(project));
+  }
+
+
   @Override
   @Nullable
   public BuildTypeOrTemplate findSingleItem(@NotNull final Locator locator) {
@@ -560,7 +567,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     } else {
       final Locator locator = buildTypeLocator != null ? new Locator(buildTypeLocator) : null;
       if (locator == null || !locator.isSingleValue()) {
-        result = getItem(Locator.setDimensionIfNotPresent(buildTypeLocator, DIMENSION_PROJECT, ProjectFinder.getLocator(project)));
+        result = getItem(patchLocator(buildTypeLocator, project));
       } else {
         // single value locator
         result = getItem(buildTypeLocator);
@@ -629,11 +636,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
     String actualLocator = Locator.setDimensionIfNotPresent(buildTypeLocator, TEMPLATE_FLAG_DIMENSION_NAME, String.valueOf(!buildType));
 
-    if (project != null) {
-      actualLocator = Locator.setDimensionIfNotPresent(actualLocator, DIMENSION_PROJECT, ProjectFinder.getLocator(project));
-    }
-
-    return getItems(actualLocator);
+    return getItems(patchLocator(actualLocator, project));
   }
 
   @Nullable

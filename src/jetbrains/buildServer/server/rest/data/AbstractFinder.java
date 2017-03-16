@@ -104,7 +104,7 @@ public abstract class AbstractFinder<ITEM> extends FinderImpl<ITEM> implements F
   }
 
   @NotNull
-  public static <P> ItemHolder<P> getItemHolder(@NotNull Iterable<P> items){
+  public static <P> ItemHolder<P> getItemHolder(@NotNull Iterable<? extends P> items){
     return FinderDataBinding.getItemHolder(items);
   }
 

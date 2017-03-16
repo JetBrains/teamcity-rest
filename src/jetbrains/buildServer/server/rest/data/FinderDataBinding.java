@@ -85,14 +85,14 @@ public interface FinderDataBinding<ITEM> {
   }
 
   @NotNull
-  static <P> ItemHolder<P> getItemHolder(@NotNull Iterable<P> items) {
+  static <P> ItemHolder<P> getItemHolder(@NotNull Iterable<? extends P> items) {
     return new CollectionItemHolder<P>(items);
   }
 
   static class CollectionItemHolder<P> implements ItemHolder<P> {
-    @NotNull final private Iterable<P> myEntries;
+    @NotNull final private Iterable<? extends P> myEntries;
 
-    public CollectionItemHolder(@NotNull final Iterable<P> entries) {
+    public CollectionItemHolder(@NotNull final Iterable<? extends P> entries) {
       myEntries = entries;
     }
 
