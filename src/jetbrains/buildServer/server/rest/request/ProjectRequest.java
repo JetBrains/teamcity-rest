@@ -528,11 +528,11 @@ public class ProjectRequest {
   @Path("/{projectLocator}/parentProject")
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
-  public Project setParentProject(@PathParam("projectLocator") String projectLocator, Project parentProject) {
+  public Project setParentProject(@PathParam("projectLocator") String projectLocator, Project parentProject, @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
     project.moveToProject(parentProject.getProjectFromPosted(myProjectFinder));
     project.persist();
-    return new Project(project, Fields.LONG, myBeanContext);
+    return new Project(project, new Fields(fields), myBeanContext);
   }
 
   @GET
