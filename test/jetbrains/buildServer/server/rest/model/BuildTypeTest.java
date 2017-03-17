@@ -161,6 +161,12 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
                                             "master", true, null,
                                             "branch1", null, null,
                                             "branch2", null, null);
+    assertNull(branches.branches.get(0).getInternalName());
+
+    branches = buildTypeRequest.serveBranches("id:testBT", "policy:ALL_BRANCHES", Fields.ALL_NESTED.getFieldsSpec());
+    assertEquals("<default>", branches.branches.get(0).getInternalName());
+    assertEquals("branch1", branches.branches.get(1).getInternalName());
+    assertEquals("branch2", branches.branches.get(2).getInternalName());
 
     branches = buildTypeRequest.serveBranches("id:testBT", "policy:all_branches", null);
     ProjectRequestTest.assertBranchesEquals(branches.branches,

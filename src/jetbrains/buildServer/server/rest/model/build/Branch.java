@@ -28,7 +28,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 28.07.12
  */
 @XmlRootElement(name = "branch")
-@XmlType(name = "branch", propOrder = {"name", "default", "unspecified"})
+@XmlType(name = "branch", propOrder = {"name", "internalName", "default", "unspecified"})
 public class Branch {
   private jetbrains.buildServer.serverSide.Branch myBranch;
   private Fields myFields;
@@ -43,17 +43,26 @@ public class Branch {
 
   @XmlAttribute(name = "name")
   public String getName(){
-    return ValueWithDefault.decideDefault(myFields.isIncluded("name"), myBranch.getDisplayName());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("name"), () -> myBranch.getDisplayName());
+  }
+
+  /**
+   * experimental support only
+   * @return same as "name", but always "<default>" for the default branch: this is faster than calculating true name value
+   */
+  @XmlAttribute(name = "internalName")
+  public String getInternalName(){
+    return ValueWithDefault.decideDefault(myFields.isIncluded("internalName", false, false), () -> myBranch.getName());
   }
 
   @XmlAttribute(name = "default")
   public Boolean isDefault(){
-    return ValueWithDefault.decideDefault(myFields.isIncluded("default"), myBranch.isDefaultBranch());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("default"), () -> myBranch.isDefaultBranch());
   }
 
   @XmlAttribute(name = "unspecified")
   public Boolean isUnspecified(){
     return ValueWithDefault.decideDefault(myFields.isIncluded("unspecified"),
-                                          jetbrains.buildServer.serverSide.Branch.UNSPECIFIED_BRANCH_NAME.equals(myBranch.getName()));
+                                          () -> jetbrains.buildServer.serverSide.Branch.UNSPECIFIED_BRANCH_NAME.equals(myBranch.getName()));
   }
 }
