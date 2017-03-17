@@ -177,6 +177,22 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     branches = buildTypeRequest.serveBranches("id:testBT", "default:true", null);
     ProjectRequestTest.assertBranchesEquals(branches.branches,"master", true, null);
 
+    bt.addVcsRoot(bt.getProject().createVcsRoot("vcs", "extId2", "name2"));
+
+    final VcsRootInstance vcsRootInstance2 = bt.getVcsRootInstances().get(1);
+    collectChangesPolicy.setCurrentState(vcsRootInstance2, createVersionState("master2", map("master2", "1", "branch1", "2", "branch2", "3")));
+    setBranchSpec(vcsRootInstance2, "+:*");
+    bt.forceCheckingForChanges();
+    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+
+    branches = buildTypeRequest.serveBranches("id:testBT", "policy:ALL_BRANCHES", Fields.ALL_NESTED.getFieldsSpec());
+    ProjectRequestTest.assertBranchesEquals(branches.branches,
+                                            "<default>", true, false,
+                                            "branch1", false, false,
+                                            "branch2", false, false);
+    assertEquals("<default>", branches.branches.get(0).getInternalName());
+
+
     checkException(BadRequestException.class, new Runnable() {
       public void run() {
         buildTypeRequest.serveBranches("id:testBT", "changesFromDependencies:any", null);
@@ -188,6 +204,9 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
         buildTypeRequest.serveBranches("id:testBT", "policy:INVALID_POLICY", null);
       }
     }, "searching with wrong changesFromDependencies");
+
+    //can also add test for branches from builds
+    //can also add test for "changesFromDependencies:true" locator and several defaults in different branches
   }
 
   @Test

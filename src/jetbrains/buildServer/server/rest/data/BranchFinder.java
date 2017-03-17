@@ -18,11 +18,19 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.google.common.collect.ComparisonChain;
 import java.util.*;
+import jetbrains.buildServer.BuildTypeStatusDescriptor;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.impl.AbstractBuildTypeBranch;
+import jetbrains.buildServer.serverSide.impl.DummyBuild;
+import jetbrains.buildServer.serverSide.impl.DummyBuildPromotion;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.vcs.SelectPrevBuildPolicy;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -200,17 +208,13 @@ public class BranchFinder extends AbstractFinder<Branch> {
     final List<SBuildType> buildTypes = myBuildTypeFinder.getBuildTypes(null, buildTypeLocator);
 
     BranchSearchOptions searchOptions = getBranchSearchOptionsWithDefaults(locator);
-    Set<Branch> result = new TreeSet<>((o1, o2) -> {
-      if (o1 == o2) return 0;
-      if (o1 == null) return -1;
-      if (o2 == null) return 1;
-      return o1.getName().compareToIgnoreCase(o2.getName()); //todo: consider default, same-named branches, same display name, etc.
-    });
+
+    Accumulator result = new Accumulator();
     for (SBuildType buildType : buildTypes) {
       result.addAll(getBranches(buildType, searchOptions));
     }
-    
-    return getItemHolder(result);
+
+    return getItemHolder(result.get());
   }
 
   private class BranchSearchOptions {
@@ -294,12 +298,176 @@ public class BranchFinder extends AbstractFinder<Branch> {
     return new TreeSet<>(new Comparator<Branch>() {
       @Override
       public int compare(final Branch o1, final Branch o2) {
+        //this is used for de-duplication
         return ComparisonChain.start()
                               .compareTrueFirst(o1.isDefaultBranch(), o2.isDefaultBranch())
                               .compare(o1.getName(), o2.getName())
                               .result();
       }
     });
+  }
+
+  static private class Accumulator {
+    //this is used for ordering, while being de-duplicated by name
+    private final TreeMap<String, BranchEx> myMap = new TreeMap<String, BranchEx>((o1, o2) -> {
+      return ComparisonChain.start()
+                            .compareTrueFirst(Branch.DEFAULT_BRANCH_NAME.equals(o1), Branch.DEFAULT_BRANCH_NAME.equals(o2))
+                            .compareFalseFirst(Branch.UNSPECIFIED_BRANCH_NAME.equals(o1), Branch.UNSPECIFIED_BRANCH_NAME.equals(o2))
+                            .compare(o1, o2, String.CASE_INSENSITIVE_ORDER)
+                            .result();
+    });
+
+    void addAll(@NotNull final List<BranchEx> buildTypeBranches) {
+      for (BranchEx branch : buildTypeBranches) {
+        //assuming that branch.isDefaultBranch() means Branch.DEFAULT_BRANCH_NAME.equals(name)
+        myMap.put(branch.getName(), merge(branch, myMap.get(branch.getName())));
+      }
+    }
+
+    @NotNull
+    Iterable<BranchEx> get() {
+      return myMap.values();
+    }
+
+    @NotNull
+    private BranchEx merge(@NotNull final BranchEx b1, @Nullable final BranchEx b2) {
+      if (b2 == null) {
+        return b1;
+      }
+
+      if (b1.compareTo(b2) == 0 && !b1.isDefaultBranch()) {
+        //compares only the basic values, but that should be enough until we expose more
+        //does not trust comparison for default branch as displayNames can be different
+        return b1;
+      }
+
+      return new MyMergedBranch(b1, b2);
+    }
+
+    @NotNull
+    private static String getMergeConflictMessage(final @NotNull BranchEx b1, final @NotNull BranchEx b2, @NotNull final String details) {
+      return "While merging branches, found branches " + details + ". Please report to JetBrains." +
+             " 1: " + b1.getName() + "/" + b1.getDisplayName() + "/" + b1.isDefaultBranch() +
+             ", 2: " + b2.getName() + "/" + b2.getDisplayName() + "/" + b2.isDefaultBranch();
+    }
+
+    private static class MyMergedBranch extends AbstractBuildTypeBranch {
+      @NotNull private final BranchEx myB1;
+      @NotNull private final BranchEx myB2;
+
+      MyMergedBranch(@NotNull final BranchEx b1, @NotNull final BranchEx b2) {
+        super(b1.getName());
+        myB1 = b1;
+        myB2 = b2;
+        if (!myB1.getName().equals(myB2.getName())) {
+          throw new OperationException(getMergeConflictMessage(myB1, myB2, "with different name"));
+        }
+        if (myB1.isDefaultBranch() != myB2.isDefaultBranch()) {
+          //should never happen as default branch should have "<default>"
+          throw new OperationException(getMergeConflictMessage(myB1, myB2, "with different default state"));
+        }
+      }
+
+      @NotNull
+      @Override
+      public String getDisplayName() {
+        String b1_displayName = myB1.getDisplayName();
+        String b2_displayName = myB2.getDisplayName();
+        if (b1_displayName.equals(b2_displayName)) return b1_displayName;
+        if (myB1.isDefaultBranch()) return Branch.DEFAULT_BRANCH_NAME;
+        throw new OperationException(getMergeConflictMessage(myB1, myB2, "with different default state"));
+      }
+
+      @Override
+      public boolean isDefaultBranch() {
+        return myB1.isDefaultBranch();
+      }
+
+      @Nullable
+      @Override
+      public SFinishedBuild getLastChangesFinished() {
+        return null;
+      }
+
+      @Nullable
+      @Override
+      public SFinishedBuild getLastChangesSuccessfullyFinished() {
+        return null;
+      }
+
+      @Nullable
+      @Override
+      public SBuild getLastChangesStarted() {
+        return null;
+      }
+
+      @NotNull
+      @Override
+      public List<ChangeDescriptor> getDetectedChanges(@NotNull final SelectPrevBuildPolicy prevBuildPolicy, @Nullable final Boolean includeDependencyChanges) {
+        throw new OperationException("Should not be called");
+      }
+
+      @NotNull
+      @Override
+      public List<ChangeDescriptor> getDetectedChanges(@NotNull final SelectPrevBuildPolicy prevBuildPolicy,
+                                                       @Nullable final Boolean includeDependencyChanges,
+                                                       @NotNull final VcsModificationProcessor callback) {
+        throw new OperationException("Should not be called");
+      }
+
+      @NotNull
+      @Override
+      public DummyBuild getDummyBuild() {
+        throw new OperationException("Should not be called");
+      }
+
+      @NotNull
+      @Override
+      public DummyBuildPromotion getDummyBuildPromotion() {
+        throw new OperationException("Should not be called");
+      }
+
+      @NotNull
+      @Override
+      public Status getStatus() {
+        throw new OperationException("Should not be called");
+      }
+
+      @NotNull
+      @Override
+      public BuildTypeStatusDescriptor getStatusDescriptor() {
+        throw new OperationException("Should not be called");
+      }
+
+      @NotNull
+      @Override
+      public List<SBuild> getLatestBuilds() {
+        throw new OperationException("Should not be called");
+      }
+
+      @NotNull
+      @Override
+      public List<SRunningBuild> getRunningBuilds(@Nullable final SUser user) {
+        throw new OperationException("Should not be called");
+      }
+
+      @NotNull
+      @Override
+      public List<SQueuedBuild> getQueuedBuilds() {
+        throw new OperationException("Should not be called");
+      }
+
+      @Override
+      public boolean isActive() {
+        throw new OperationException("Should not be called");
+      }
+
+      @Nullable
+      @Override
+      public Date getTimestamp() {
+        throw new OperationException("Should not be called");
+      }
+    }
   }
 
   public static class BranchFilterDetails {
