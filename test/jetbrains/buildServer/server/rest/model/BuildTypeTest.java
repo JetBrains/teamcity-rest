@@ -26,13 +26,13 @@ import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
 import jetbrains.buildServer.server.rest.data.BuildFinderTestBase;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.model.build.Branch;
 import jetbrains.buildServer.server.rest.model.build.Branches;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
 import jetbrains.buildServer.server.rest.model.buildType.PropEntity;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootEntry;
 import jetbrains.buildServer.server.rest.request.BuildTypeRequest;
+import jetbrains.buildServer.server.rest.request.ProjectRequestTest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
@@ -129,18 +129,10 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     buildTypeRequest.setInTests(myBuildTypeFinder, myBranchFinder);
 
     Branches branches = buildTypeRequest.serveBranches("id:testBT", null, null);
-    assertEquals(1, branches.branches.size());
-    Branch branch = branches.branches.get(0);
-    assertEquals("<default>", branch.getName());
-    assertEquals(Boolean.TRUE, branch.isDefault());
-    assertEquals(null, branch.isUnspecified());
+    ProjectRequestTest.assertBranchesEquals(branches.branches, "<default>", true, null);
 
     branches = buildTypeRequest.serveBranches("id:testBT", null, Fields.ALL_NESTED.getFieldsSpec());
-    assertEquals(1, branches.branches.size());
-    branch = branches.branches.get(0);
-    assertEquals("<default>", branch.getName());
-    assertEquals(Boolean.TRUE, branch.isDefault());
-    assertEquals(Boolean.FALSE, branch.isUnspecified());
+    ProjectRequestTest.assertBranchesEquals(branches.branches, "<default>", true, false);
 
 
     MockVcsSupport vcs = vcsSupport().withName("vcs").dagBased(true).register();
@@ -156,46 +148,28 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     setBranchSpec(vcsRootInstance, "+:*");
 
     branches = buildTypeRequest.serveBranches("id:testBT", null, null);
-    assertEquals(1, branches.branches.size());
-    branch = branches.branches.get(0);
-    assertEquals("<default>", branch.getName()); // why default before checking for changes???
-    assertEquals(Boolean.TRUE, branch.isDefault());
-    assertEquals(null, branch.isUnspecified());
+    ProjectRequestTest.assertBranchesEquals(branches.branches, "<default>", true, null); // why default before checking for changes???
 
     bt.forceCheckingForChanges();
     myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
 
     branches = buildTypeRequest.serveBranches("id:testBT", null, null);
-    assertEquals(1, branches.branches.size());
-    branch = branches.branches.get(0);
-    assertEquals("master", branch.getName());
-    assertEquals(Boolean.TRUE, branch.isDefault());
-    assertEquals(null, branch.isUnspecified());
+    ProjectRequestTest.assertBranchesEquals(branches.branches, "master", true, null);
 
     branches = buildTypeRequest.serveBranches("id:testBT", "policy:ALL_BRANCHES", null);
-    assertEquals(3, branches.branches.size());
-    branch = branches.branches.get(0);
-    assertEquals("master", branch.getName());
-    assertEquals(Boolean.TRUE, branch.isDefault());
-    assertEquals(null, branch.isUnspecified());
-    branch = branches.branches.get(1);
-    assertEquals("branch1", branch.getName());
-    assertEquals(null, branch.isDefault());
-    assertEquals(null, branch.isUnspecified());
-    branch = branches.branches.get(2);
-    assertEquals("branch2", branch.getName());
-    assertEquals(null, branch.isDefault());
-    assertEquals(null, branch.isUnspecified());
+    ProjectRequestTest.assertBranchesEquals(branches.branches,
+                                            "master", true, null,
+                                            "branch1", null, null,
+                                            "branch2", null, null);
 
     branches = buildTypeRequest.serveBranches("id:testBT", "policy:all_branches", null);
-    assertEquals(3, branches.branches.size());
+    ProjectRequestTest.assertBranchesEquals(branches.branches,
+                                            "master", true, null,
+                                            "branch1", null, null,
+                                            "branch2", null, null);
 
     branches = buildTypeRequest.serveBranches("id:testBT", "default:true", null);
-    assertEquals(1, branches.branches.size());
-    branch = branches.branches.get(0);
-    assertEquals("master", branch.getName());
-    assertEquals(Boolean.TRUE, branch.isDefault());
-    assertEquals(null, branch.isUnspecified());
+    ProjectRequestTest.assertBranchesEquals(branches.branches,"master", true, null);
 
     checkException(BadRequestException.class, new Runnable() {
       public void run() {

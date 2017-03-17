@@ -151,7 +151,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
   private static final DescriptionProvider<Branch> BRANCH_DESCRIPTION_PROVIDER =
     b -> b.getName() + "/" + b.isDefault() + "/" + b.isUnspecified();
 
-  private void assertBranchesEquals(final List<Branch> branches, Object... values) {
+  public static void assertBranchesEquals(final List<Branch> branches, Object... values) {
     String actualBranches = getDescription(branches, BRANCH_DESCRIPTION_PROVIDER);
     Iterator<Branch> branchIt = branches.iterator();
     int i = 0;
