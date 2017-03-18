@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import jetbrains.buildServer.ServiceLocator;
@@ -96,71 +97,13 @@ public abstract class BranchData implements Branch {
       return b1;
     }
 
-    if (!b1.getName().equals(b2.getName())) {
-      throw new OperationException(getMergeConflictMessage(b1, b2, "with different name"));
+    if (b1 instanceof MergingBranchData) {
+      return ((MergingBranchData)b1).add(b2);
     }
-    if (b1.isDefaultBranch() != b2.isDefaultBranch()) {
-      //should never happen as default branch should have "<default>"
-      throw new OperationException(getMergeConflictMessage(b1, b2, "with different default state"));
+    if (b2 instanceof MergingBranchData) {
+      return ((MergingBranchData)b2).add(b1);
     }
-
-    return new BranchData("") {
-      @NotNull
-      @Override
-      public String getName() {
-        return b1.getName();
-      }
-
-      @NotNull
-      @Override
-      public String getDisplayName() {
-        String b1_displayName = b1.getDisplayName();
-        String b2_displayName = b2.getDisplayName();
-        if (b1_displayName.equals(b2_displayName)) return b1_displayName;
-        if (b1.isDefaultBranch()) return Branch.DEFAULT_BRANCH_NAME;
-        throw new OperationException(getMergeConflictMessage(b1, b2, "with different default state"));
-      }
-
-      @Override
-      public boolean isDefaultBranch() {
-        return b1.isDefaultBranch();
-      }
-
-      @Override
-      public boolean isUnspecifiedBranch() {
-        return Branch.UNSPECIFIED_BRANCH_NAME.equals(b1.getName());
-      }
-
-      @Override
-      public Boolean isActive() {
-        Boolean active1 = b1.isActive();
-        Boolean active2 = b2.isActive();
-        return (active1 != null && active1) || (active2 != null && active2);
-      }
-
-      @Nullable
-      @Override
-      public Date getActivityTimestamp() {
-        if (b1.getActivityTimestamp() == null) return b2.getActivityTimestamp();
-        if (b2.getActivityTimestamp() == null) return b1.getActivityTimestamp();
-        if (b1.getActivityTimestamp().after(b2.getActivityTimestamp())) return b1.getActivityTimestamp();
-        return b2.getActivityTimestamp();
-      }
-
-      // merged branches do not support these kind of details
-
-      @Nullable
-      @Override
-      public SBuildType getBuildType() {
-        return null;
-      }
-
-      @Nullable
-      @Override
-      public PagedSearchResult<BuildPromotion> getBuilds(@Nullable final String locator) {
-        return null;
-      }
-    };
+    return new MergingBranchData(b1, b2);
   }
 
   public static BranchData fromBuild(@NotNull final BuildPromotion build) {
@@ -267,5 +210,115 @@ public abstract class BranchData implements Branch {
                                             @Nullable Boolean includeDependencyChanges) {
     //todo: implement in more places and use
     throw new OperationException("Should not be called");
+  }
+
+  private static class MergingBranchData extends BranchData {
+    private final List<BranchData> myBranches = new ArrayList<>();
+    private @NotNull final String myName;
+    private final boolean myIsDefault;
+
+    public MergingBranchData(@NotNull final BranchData b1, @NotNull final BranchData b2) {
+      super("");
+      myBranches.add(b1);
+      myName = b1.getName();
+      myIsDefault = b1.isDefaultBranch();
+      check(b2);
+      myBranches.add(b2);
+    }
+
+    public MergingBranchData add(@NotNull final BranchData b) {
+      check(b);
+      myBranches.add(b);
+      return this;
+    }
+
+    private void check(@NotNull final BranchData b) {
+      if (!myName.equals(b.getName())) {
+        throw new OperationException(getMergeConflictMessage(myBranches.get(0), b, "with different name"));
+      }
+      if (myIsDefault != b.isDefaultBranch()) {
+        //should never happen as default branch should have "<default>"
+        throw new OperationException(getMergeConflictMessage(myBranches.get(0), b, "with different default state"));
+      }
+    }
+
+    @NotNull
+    @Override
+    public String getName() {
+      return myName;
+    }
+
+    @NotNull
+    @Override
+    public String getDisplayName() {
+      String result = null;
+      for (BranchData branch : myBranches) {
+        String value = branch.getDisplayName();
+        if (result == null) {
+          result = value;
+        } else if (!result.equals(value)) {
+          if (myIsDefault) return Branch.DEFAULT_BRANCH_NAME;
+          throw new OperationException(getMergeConflictMessage(myBranches.get(0), branch, "with different display names"));
+        }
+      }
+      //noinspection ConstantConditions
+      return result;
+    }
+
+    @Override
+    public boolean isDefaultBranch() {
+      return myIsDefault;
+    }
+
+    @Override
+    public boolean isUnspecifiedBranch() {
+      return Branch.UNSPECIFIED_BRANCH_NAME.equals(myName);
+    }
+
+    @Override
+    public Boolean isActive() {
+      Boolean result = null;
+      for (BranchData branch : myBranches) {
+        Boolean value = branch.isActive();
+        if (value != null) {
+          if (value) {
+            return true;
+          }
+          result = value;
+        }
+      }
+      return result;
+    }
+
+    @Nullable
+    @Override
+    public Date getActivityTimestamp() {
+      Date result = null;
+      for (BranchData branch : myBranches) {
+        Date value = branch.getActivityTimestamp();
+        if (value != null) {
+          if (result == null) {
+            result = value;
+          } else if (result.before(value)) {
+            result = value;
+          }
+        }
+      }
+      return result;
+    }
+
+    // merged branches do not support these kind of details
+
+    @Nullable
+    @Override
+    public SBuildType getBuildType() {
+      return null;
+    }
+
+    @Nullable
+    @Override
+    public PagedSearchResult<BuildPromotion> getBuilds(@Nullable final String locator) {
+      return null;
+    }
   }
 }
