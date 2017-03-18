@@ -330,9 +330,6 @@ public class BranchFinder extends AbstractFinder<BranchData> {
         } else {
           myMap.put(branch.getName(), BranchData.mergeSameNamed(branch, previousData));
         }
-if(branch.getName().equals("refs/heads/newtest16")){
-  System.out.println("aaaaa");
-}
       }
     }
 
