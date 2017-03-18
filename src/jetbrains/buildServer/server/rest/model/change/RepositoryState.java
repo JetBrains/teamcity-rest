@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.data.BranchData;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -68,11 +69,12 @@ public class RepositoryState {
     this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), branchRevisions.size());
   }
 
-  private static class Branch implements jetbrains.buildServer.serverSide.Branch {
+  private static class Branch extends BranchData {
     @NotNull private final String myName;
     private final boolean myDefaultBranch;
 
     public Branch(@NotNull final String name, @NotNull final String defaultName) {
+      super(name);
       myName = name;
       myDefaultBranch = defaultName.equals(myName);
     }

@@ -19,7 +19,9 @@ package jetbrains.buildServer.server.rest.model.build;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.data.BranchData;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
 
@@ -28,15 +30,15 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 28.07.12
  */
 @XmlRootElement(name = "branch")
-@XmlType(name = "branch", propOrder = {"name", "internalName", "default", "unspecified"})
+@XmlType(name = "branch", propOrder = {"name", "internalName", "default", "unspecified", "active", "lastActivity"})
 public class Branch {
-  private jetbrains.buildServer.serverSide.Branch myBranch;
+  private BranchData myBranch;
   private Fields myFields;
 
   public Branch() {
   }
 
-  public Branch(jetbrains.buildServer.serverSide.Branch branch, @NotNull final Fields fields) {
+  public Branch(@NotNull BranchData branch, @NotNull final Fields fields) {
     myBranch = branch;
     myFields = fields;
   }
@@ -62,7 +64,16 @@ public class Branch {
 
   @XmlAttribute(name = "unspecified")
   public Boolean isUnspecified(){
-    return ValueWithDefault.decideDefault(myFields.isIncluded("unspecified"),
-                                          () -> jetbrains.buildServer.serverSide.Branch.UNSPECIFIED_BRANCH_NAME.equals(myBranch.getName()));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("unspecified"), () -> myBranch.isUnspecifiedBranch());
+  }
+
+  @XmlAttribute(name = "active")
+  public Boolean isActive() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("active", false), () -> myBranch.isActive());
+  }
+
+  @XmlAttribute(name = "lastActivity")
+  public String getLastActivity() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("lastActivity", false), () -> Util.formatTime(myBranch.getActivityTimestamp()));
   }
 }

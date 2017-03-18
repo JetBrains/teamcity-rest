@@ -367,14 +367,14 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final String branchLocatorValue = locator.getSingleDimensionValue(BRANCH);
     if (branchLocatorValue != null) {
-      final PagedSearchResult<Branch> branches = myBranchFinder.getItemsIfValidBranchListLocator(buildTypeLocator, branchLocatorValue);
+      final PagedSearchResult<? extends Branch> branches = myBranchFinder.getItemsIfValidBranchListLocator(buildTypeLocator, branchLocatorValue);
       if (branches != null) {
         //branches found - use them
         Set<String> branchNames = getBranchNamesSet(branches.myEntries);
         Set<String> branchDisplayNames = getBranchDisplayNamesSet(branches.myEntries);
         result.add(new FilterConditionChecker<BuildPromotion>() {
           public boolean isIncluded(@NotNull final BuildPromotion item) {
-            final Branch buildBranch = BranchFinder.getBuildBranch(item);
+            final Branch buildBranch = BranchData.fromBuild(item);
             return branchNames.contains(buildBranch.getName()) || branchDisplayNames.contains(buildBranch.getDisplayName());
           }
         });
@@ -779,7 +779,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     return getFilterWithProcessingCutOff(result, locator.getSingleDimensionValueAsLong(SINCE_BUILD_ID_LOOK_AHEAD_COUNT), sinceBuildPromotion, sinceBuildId, sinceStartDate);
   }
 
-  private Set<String> getBranchNamesSet(final List<Branch> branches) {
+  private Set<String> getBranchNamesSet(final List<? extends Branch> branches) {
     final HashSet<String> result = new HashSet<>(branches.size());
     for (Branch branch : branches) {
       result.add(branch.getName());
@@ -787,7 +787,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     return result;
   }
 
-  private Set<String> getBranchDisplayNamesSet(final List<Branch> branches) {
+  private Set<String> getBranchDisplayNamesSet(final List<? extends Branch> branches) {
     final HashSet<String> result = new HashSet<>(branches.size());
     for (Branch branch : branches) {
       result.add(branch.getDisplayName());

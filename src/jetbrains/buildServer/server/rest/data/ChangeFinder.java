@@ -402,13 +402,15 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   @Override
   public ItemHolder<SVcsModification> getPrefilteredItems(@NotNull final Locator locator) {
 
+    //todo: implement effective search by VCSRootInstance and internalVersion
+
     SBuildType buildType = null;
     final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE); //todo: support multiple buildTypes here
     if (buildTypeLocator != null) {
       buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
     }
 
-    @Nullable List<Branch> filterBranches = getFilterBranches(locator, buildType);
+    @Nullable List<BranchData> filterBranches = getFilterBranches(locator, buildType);
 
     Boolean pending = locator.getSingleDimensionValueAsBoolean(PENDING);
     if (pending != null) {
@@ -536,7 +538,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   }
 
   @Nullable
-  private List<Branch> getFilterBranches(@NotNull final Locator locator, @Nullable final SBuildType buildType) {
+  private List<BranchData> getFilterBranches(@NotNull final Locator locator, @Nullable final SBuildType buildType) {
     String branchDimension = locator.getSingleDimensionValue(BRANCH);
     if (branchDimension != null) {
       if (buildType == null) {
@@ -565,7 +567,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   }
 
   @NotNull
-  private List<SVcsModification> getPendingChanges(@Nullable final SBuildType buildType, @Nullable final List<Branch> filterBranches) {
+  private List<SVcsModification> getPendingChanges(@Nullable final SBuildType buildType, @Nullable final List<BranchData> filterBranches) {
     if (buildType == null) {
       throw new BadRequestException("Getting pending changes is only supported when buildType is specified.");
     }
@@ -612,13 +614,13 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
 
   @NotNull
-  private List<SVcsModification> getBranchChanges(@NotNull final SBuildType buildType, @NotNull final List<Branch> filterBranches, @NotNull final SelectPrevBuildPolicy policy) {
+  private List<SVcsModification> getBranchChanges(@NotNull final SBuildType buildType, @NotNull final List<BranchData> filterBranches, @NotNull final SelectPrevBuildPolicy policy) {
     //todo: buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES) == false => do not include???
     //todo: 2 - allow to set the option in request
     final boolean includeDependencyChanges = TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) || !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES);
     final List<ChangeDescriptor> changes = new ArrayList<>();
-    for (Branch branch : filterBranches) {
-      changes.addAll(((BranchEx)branch).getDetectedChanges(policy, includeDependencyChanges)); //TeamCity API issue: cast
+    for (BranchData branch : filterBranches) {
+      changes.addAll(branch.getChanges(policy, includeDependencyChanges)); //TeamCity API issue: cast
     }
     return convertChanges(changes);
   }

@@ -17,15 +17,14 @@
 package jetbrains.buildServer.server.rest.model.build;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.data.BranchData;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -42,17 +41,9 @@ public class Branches {
   public Branches() {
   }
 
-  public Branches(@NotNull final List<jetbrains.buildServer.serverSide.Branch> branchesP, @NotNull final Fields fields) {
-    branches = ValueWithDefault.decideDefault(fields.isIncluded("branch"), new ValueWithDefault.Value<List<Branch>>() {
-      @Nullable
-      public List<Branch> get() {
-        return CollectionsUtil.convertCollection(branchesP, new Converter<Branch, jetbrains.buildServer.serverSide.Branch>() {
-          public Branch createFrom(@NotNull final jetbrains.buildServer.serverSide.Branch source) {
-            return new Branch(source, fields.getNestedField("branch"));
-          }
-        });
-      }
-    });
+  public Branches(@NotNull final List<BranchData> branchesP, @NotNull final Fields fields) {
+    branches = ValueWithDefault.decideDefault(fields.isIncluded("branch"),
+                                              () -> branchesP.stream().map(b -> new Branch(b, fields.getNestedField("branch"))).collect(Collectors.toList()));
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), branchesP.size());
   }
 }

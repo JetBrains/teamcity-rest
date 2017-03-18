@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.model.change;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.data.BranchData;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.build.Branch;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -38,7 +39,7 @@ public class BranchVersion extends Branch {
   public BranchVersion() {
   }
 
-  public BranchVersion(@NotNull final jetbrains.buildServer.serverSide.Branch branch, @Nullable String version, @NotNull final Fields fields) {
+  public BranchVersion(@NotNull final BranchData branch, @Nullable String version, @NotNull final Fields fields) {
     super(branch, fields);
     myVersion = version;
     myFields = fields;
