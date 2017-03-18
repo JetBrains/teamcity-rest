@@ -176,6 +176,16 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     myTimeCondition = timeCondition;
   }
 
+  @NotNull
+  public static String getLocator(@NotNull final SBuildType buildType, @Nullable final Branch branch, @Nullable final String additionalLocator){
+    String result = Locator.getStringLocator(BUILD_TYPE, BuildTypeFinder.getLocator(buildType));
+    if (branch != null) {
+      result = Locator.setDimension(result, BRANCH, BranchFinder.getLocator(branch));
+    }
+    if (additionalLocator == null) return result;
+    return Locator.merge(result, additionalLocator);
+  }
+
   @Override
   public Long getDefaultPageItemsCount() {
     return (long)Constants.getDefaultPageItemsCount();

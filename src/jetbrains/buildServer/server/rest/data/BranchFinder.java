@@ -57,6 +57,14 @@ public class BranchFinder extends AbstractFinder<BranchData> {
     myServiceLocator = serviceLocator;
   }
 
+  @NotNull
+  public static String getLocator(@NotNull final Branch branch) {
+    if (branch.isDefaultBranch()) return getDefaultBranchLocator();
+    return Locator.getStringLocator(NAME, branch.getName());
+    // this is a better approach, but it should correspond to the code in getBranchFilterDetails
+    // return Locator.getStringLocator(NAME, ParameterCondition.getLocatorExactValueMatch(branch.getName()));
+  }
+
   public static String getDefaultBranchLocator() {
     return Locator.getStringLocator(DEFAULT, "true");
   }
@@ -182,8 +190,7 @@ public class BranchFinder extends AbstractFinder<BranchData> {
   @NotNull
   @Override
   public String getItemLocator(@NotNull final BranchData branch) {
-    if (branch.isDefaultBranch()) return Locator.getStringLocator(DEFAULT, "true");
-    return Locator.getStringLocator(NAME, branch.getName());
+    return getLocator(branch);
   }
 
   @NotNull

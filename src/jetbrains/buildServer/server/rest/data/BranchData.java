@@ -16,15 +16,12 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import com.google.common.collect.ComparisonChain;
 import java.util.Date;
 import java.util.List;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.OperationException;
-import jetbrains.buildServer.serverSide.Branch;
-import jetbrains.buildServer.serverSide.BranchEx;
-import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.ChangeDescriptor;
+import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.vcs.SelectPrevBuildPolicy;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -33,7 +30,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 17/03/2017
  */
-public abstract class BranchData implements Branch, Comparable<BranchData> {
+public abstract class BranchData implements Branch {
   public static BranchData fromBranch(@NotNull final Branch branch) {
     return new BranchData(branch.getName()) {
       @NotNull
@@ -77,13 +74,25 @@ public abstract class BranchData implements Branch, Comparable<BranchData> {
       public List<ChangeDescriptor> getChanges(@NotNull final SelectPrevBuildPolicy prevBuildPolicy, @Nullable final Boolean includeDependencyChanges) {
         return branch.getDetectedChanges(prevBuildPolicy, includeDependencyChanges);
       }
+
+      @NotNull
+      @Override
+      public SBuildType getBuildType() {
+        return branch.getDummyBuildPromotion().getBuildType(); //TeamCity API issue: would be much more effective to get the build type directly
+      }
+
+      @NotNull
+      @Override
+      public PagedSearchResult<BuildPromotion> getBuilds(@Nullable final String locator) {
+        BuildPromotionFinder buildPromotionFinder = serviceLocator.getSingletonService(BuildPromotionFinder.class);
+        return buildPromotionFinder.getItems(Locator.setDimensionIfNotPresent(
+          BuildPromotionFinder.getLocator(getBuildType(), branch, locator), PagerData.COUNT, String.valueOf(1)));
+      }
     };
   }
 
   public static BranchData mergeSameNamed(@NotNull final BranchData b1, @NotNull final BranchData b2) {
-    if (b1.compareTo(b2) == 0 && !b1.isDefaultBranch()) {
-      //compares only the basic values, but that should be enough until we expose more
-      //does not trust comparison for default branch as displayNames can be different
+    if (b1 == b2) {
       return b1;
     }
 
@@ -136,6 +145,20 @@ public abstract class BranchData implements Branch, Comparable<BranchData> {
         if (b2.getActivityTimestamp() == null) return b1.getActivityTimestamp();
         if (b1.getActivityTimestamp().after(b2.getActivityTimestamp())) return b1.getActivityTimestamp();
         return b2.getActivityTimestamp();
+      }
+
+      // merged branches do not support these kind of details
+
+      @Nullable
+      @Override
+      public SBuildType getBuildType() {
+        return null;
+      }
+
+      @Nullable
+      @Override
+      public PagedSearchResult<BuildPromotion> getBuilds(@Nullable final String locator) {
+        return null;
       }
     };
   }
@@ -222,17 +245,27 @@ public abstract class BranchData implements Branch, Comparable<BranchData> {
     return null;
   }
 
+  /**
+   * @return associated build type, null if the operation is not supported for the branch
+   */
+  @Nullable
+  public SBuildType getBuildType() {
+    return null;
+  }
+
+
+  /**
+   * @return null if the operation is not supported for the branch
+   */
+  @Nullable
+  public PagedSearchResult<BuildPromotion> getBuilds(@Nullable String locator) {
+    return null;
+  }
+
   @NotNull
   public List<ChangeDescriptor> getChanges(@NotNull SelectPrevBuildPolicy prevBuildPolicy,
                                             @Nullable Boolean includeDependencyChanges) {
     //todo: implement in more places and use
     throw new OperationException("Should not be called");
-  }
-
-  public int compareTo(@NotNull final BranchData o) {
-    return ComparisonChain.start()
-                          .compareTrueFirst(isDefaultBranch(), o.isDefaultBranch())
-                          .compare(getName(), o.getName())
-                          .result();
   }
 }

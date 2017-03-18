@@ -59,12 +59,12 @@ public class RepositoryState {
       this.branches =
         ValueWithDefault.decideDefault(fields.isIncluded("branch", false, true), () ->
           Collections.singletonList(new BranchVersion(new Branch(defaultBranchName, defaultBranchName), repositoryState.getDefaultBranchRevision(),
-                                                      fields.getNestedField("branch", Fields.NONE, Fields.LONG))));
+                                                      fields.getNestedField("branch", Fields.NONE, Fields.LONG), beanContext)));
     } else {
       this.branches =
         ValueWithDefault.decideDefault(fields.isIncluded("branch", false, true), () ->
           CollectionsUtil.convertCollection(branchRevisions.entrySet(), entry -> new BranchVersion(new Branch(entry.getKey(), defaultBranchName), entry.getValue(),
-                                                                                                   fields.getNestedField("branch", Fields.NONE, Fields.LONG))));
+                                                                                                   fields.getNestedField("branch", Fields.NONE, Fields.LONG), beanContext)));
     }
     this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), branchRevisions.size());
   }

@@ -1221,7 +1221,7 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public Branches serveBranches(@PathParam("btLocator") String buildTypeLocator, @QueryParam("locator") String branchesLocator, @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
-    return new Branches(myBranchFinder.getItems(buildType, branchesLocator).myEntries, new Fields(fields));
+    return new Branches(myBranchFinder.getItems(buildType, branchesLocator).myEntries, new Fields(fields), myBeanContext);
   }
 
   /**

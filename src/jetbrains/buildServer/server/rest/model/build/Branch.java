@@ -17,12 +17,18 @@
 package jetbrains.buildServer.server.rest.model.build;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.data.BranchData;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.request.BuildRequest;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.BuildPromotion;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -30,17 +36,20 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 28.07.12
  */
 @XmlRootElement(name = "branch")
-@XmlType(name = "branch", propOrder = {"name", "internalName", "default", "unspecified", "active", "lastActivity"})
+@XmlType(name = "branch", propOrder = {"name", "internalName", "default", "unspecified", "active", "lastActivity",
+  "builds"})
 public class Branch {
   private BranchData myBranch;
   private Fields myFields;
+  private BeanContext myBeanContext;
 
   public Branch() {
   }
 
-  public Branch(@NotNull BranchData branch, @NotNull final Fields fields) {
+  public Branch(@NotNull BranchData branch, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     myBranch = branch;
     myFields = fields;
+    myBeanContext = beanContext;
   }
 
   @XmlAttribute(name = "name")
@@ -75,5 +84,28 @@ public class Branch {
   @XmlAttribute(name = "lastActivity")
   public String getLastActivity() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("lastActivity", false), () -> Util.formatTime(myBranch.getActivityTimestamp()));
+  }
+
+  /**
+   * Experimental support only
+   */
+  @XmlElement(name = "builds")
+  public Builds getBuilds() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("builds", false),
+                                          () -> {
+                                            String buildsHref = null;
+                                            PagedSearchResult<BuildPromotion> builds = null;
+                                            final Fields buildsFields = myFields.getNestedField("builds");
+                                            final String buildsLocator = buildsFields.getLocator();
+                                            if (buildsLocator != null) {
+                                              builds = myBranch.getBuilds(buildsFields.getLocator());
+                                              buildsHref = BuildRequest.getBuildsHref(myBranch, buildsLocator);
+                                            } else {
+                                              buildsHref = BuildRequest.getBuildsHref(myBranch, null);
+                                            }
+                                            if (builds == null && buildsHref == null) return null;
+                                            return new Builds(builds == null ? null : builds.myEntries, buildsHref == null ? null : new PagerData(buildsHref), buildsFields,
+                                                              myBeanContext);
+                                          });
   }
 }

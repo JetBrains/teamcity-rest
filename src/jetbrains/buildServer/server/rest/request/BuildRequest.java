@@ -118,6 +118,13 @@ public class BuildRequest {
     return API_BUILDS_URL + "/" + getBuildLocator(build);
   }
 
+  @Nullable
+  public static String getBuildsHref(@NotNull final BranchData branch, @Nullable final String buildsLocator) {
+    SBuildType buildType = branch.getBuildType();
+    if (buildType == null) return null;
+    return API_BUILDS_URL + "?locator=" + BuildPromotionFinder.getLocator(buildType, branch, buildsLocator);
+  }
+
   public static String getBuildLocator(@NotNull final SBuild build) {
     return getBuildLocator(build.getBuildPromotion());
   }
