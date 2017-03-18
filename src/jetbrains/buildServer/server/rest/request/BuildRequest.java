@@ -20,9 +20,11 @@ import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import java.io.*;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
@@ -35,6 +37,7 @@ import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.parameters.ProcessingResult;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
+import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -193,6 +196,44 @@ public class BuildRequest {
     for (BuildPromotion build : builds) {
       deleteBuild(request, build);
     }
+  }
+
+  /**
+   * Experimental support only
+   * Changing of some attributes is not supported and can result in strange and "unpredictable" behavior.
+   */
+  @Path("/{buildLocator}/attributes")
+  public ParametersSubResource getAttributes(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
+    BuildPromotionEx build = (BuildPromotionEx)myBuildPromotionFinder.getItem(buildLocator);
+    myPermissionChecker.checkPermission(Permission.EDIT_PROJECT, build);
+    return new ParametersSubResource(myBeanContext.getServiceLocator(), new ParametersPersistableEntity() {
+      @Override
+      public void addParameter(@NotNull final Parameter param) {
+        build.setAttribute(param.getName(), param.getValue());
+      }
+
+      @Override
+      public void removeParameter(@NotNull final String paramName) {
+        build.setAttribute(paramName, null);
+      }
+
+      @NotNull
+      @Override
+      public Collection<Parameter> getParametersCollection(@Nullable final Locator locator) {
+        return build.getAttributes().entrySet().stream().map(entry -> new SimpleParameter(entry.getKey(), String.valueOf(entry.getValue()))).collect(Collectors.toList());
+      }
+
+      @Nullable
+      @Override
+      public Parameter getParameter(@NotNull final String paramName) {
+        return new SimpleParameter(paramName, String.valueOf(build.getAttribute(paramName)));
+      }
+
+      @Override
+      public void persist() {
+        //should not need a separate action
+      }
+    }, getBuildHref(build) + "/attributes");
   }
 
   /**
