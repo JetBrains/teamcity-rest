@@ -104,15 +104,15 @@ public class TriggeredBy {
   private void setType(final jetbrains.buildServer.serverSide.TriggeredBy triggeredBy, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     final String rawTriggeredBy = triggeredBy.getRawTriggeredBy();
     if (rawTriggeredBy != null && !rawTriggeredBy.startsWith(TriggeredByBuilder.PARAMETERS_PREFIX)) {
-      type = "unknown";
-      details = rawTriggeredBy;
+      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "unknown");
+      details = ValueWithDefault.decideDefault(fields.isIncluded("details"), rawTriggeredBy);
     }
 
     final Map<String, String> triggeredByParams = triggeredBy.getParameters();
 
     String buildTypeId = triggeredByParams.get(TriggeredByBuilder.BUILD_TYPE_ID_PARAM_NAME);
     if (buildTypeId != null) {
-      type = "buildType";
+      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "buildType");
       try {
         final SBuildType foundBuildType = beanContext.getSingletonService(ProjectManager.class).findBuildTypeById(buildTypeId);
         buildType = foundBuildType == null
@@ -130,31 +130,31 @@ public class TriggeredBy {
 
     if (triggeredByParams.get(BuildServerImpl.UNEXPECTED_FINISH) != null ||
         triggeredByParams.get(TriggeredByBuilder.RE_ADDED_AFTER_STOP_NAME) != null) {
-      type = "restarted";
+      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "restarted");
       return;
     }
 
     String idePlugin = triggeredByParams.get(TriggeredByBuilder.IDE_PLUGIN_PARAM_NAME);
     if (idePlugin != null) {
-      type = "idePlugin";
-      details = idePlugin;
+      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "idePlugin");
+      details = ValueWithDefault.decideDefault(fields.isIncluded("details"), idePlugin);
       return;
     }
 
     String vcsName = triggeredByParams.get(TriggeredByBuilder.VCS_NAME_PARAM_NAME);
     if (vcsName != null) {
-      type = "vcs";
-      details = vcsName;
+      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "vcs");
+      details = ValueWithDefault.decideDefault(fields.isIncluded("details"), vcsName);
       return;
     }
 
     String user = triggeredByParams.get(TriggeredByBuilder.USER_PARAM_NAME);
     if (user != null) {
-      type = "user";
+      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "user");
       return;
     }
 
-    type = "unknown";
-    details = rawTriggeredBy;
+    type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "unknown");
+    details = ValueWithDefault.decideDefault(fields.isIncluded("details"), rawTriggeredBy);
   }
 }
