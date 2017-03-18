@@ -99,9 +99,10 @@ public class BuildTypeRequest {
   public static final String VCS_FILES_LATEST = "/vcs/files/latest";
   public static final String PARAMETERS = "/parameters";
 
-  public void setInTests(@NotNull BuildTypeFinder buildTypeFinder, @NotNull BranchFinder branchFinder){
+  public void setInTests(@NotNull BuildTypeFinder buildTypeFinder, @NotNull BranchFinder branchFinder, @NotNull BeanContext beanContext){
     myBuildTypeFinder = buildTypeFinder;
     myBranchFinder = branchFinder;
+    myBeanContext = beanContext;
   }
 
   public static String getBuildTypeHref(@NotNull final BuildTypeOrTemplate buildType) {

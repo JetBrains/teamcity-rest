@@ -126,7 +126,7 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     final BuildTypeEx bt = getRootProject().createProject("Project1", "Project test 1").createBuildType("testBT", "My test build type");
 
     final BuildTypeRequest buildTypeRequest = new BuildTypeRequest();
-    buildTypeRequest.setInTests(myBuildTypeFinder, myBranchFinder);
+    buildTypeRequest.setInTests(myBuildTypeFinder, myBranchFinder, myBeanContext);
 
     Branches branches = buildTypeRequest.serveBranches("id:testBT", null, null);
     ProjectRequestTest.assertBranchesEquals(branches.branches, "<default>", true, null);

@@ -83,9 +83,10 @@ public class ProjectRequest {
   protected static final String FEATURES = "/projectFeatures";
 
 
-  public void setInTests(@NotNull ProjectFinder projectFinder, @NotNull BranchFinder branchFinder){
+  public void setInTests(@NotNull ProjectFinder projectFinder, @NotNull BranchFinder branchFinder, @NotNull BeanContext beanContext){
     myProjectFinder = projectFinder;
     myBranchFinder = branchFinder;
+    myBeanContext = beanContext;
   }
 
   @NotNull

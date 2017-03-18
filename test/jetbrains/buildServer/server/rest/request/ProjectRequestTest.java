@@ -25,6 +25,7 @@ import jetbrains.buildServer.server.rest.data.BuildFinderTestBase;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.build.Branch;
 import jetbrains.buildServer.server.rest.model.build.Branches;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.SProjectFeatureDescriptor;
@@ -46,12 +47,14 @@ import static jetbrains.buildServer.vcs.RepositoryStateData.createVersionState;
  */
 public class ProjectRequestTest extends BaseFinderTest<SProject> {
   private ProjectRequest myRequest;
+  private BeanContext myBeanContext;
 
   @Override
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
     myRequest = ProjectRequest.createForTests(BaseFinderTest.getBeanContext(myFixture));
+    myBeanContext = getBeanContext(myServer);
   }
 
   @Test
@@ -99,7 +102,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
     final BuildTypeEx bt2 = project1.createBuildType(bt2Id, "My test build type 2");
 
     final ProjectRequest request = new ProjectRequest();
-    request.setInTests(myProjectFinder, myBranchFinder);
+    request.setInTests(myProjectFinder, myBranchFinder, myBeanContext);
 
     Branches branches = request.getBranches("id:" + prjId, null, null);
     assertBranchesEquals(branches.branches, "<default>", true, null);
