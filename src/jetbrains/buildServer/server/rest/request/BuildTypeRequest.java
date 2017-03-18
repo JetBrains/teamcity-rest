@@ -132,6 +132,11 @@ public class BuildTypeRequest {
     return getBuildTypeHref(buildType) + "/builds" + "?locator=" + locator; //todo: URL-escape
   }
 
+  @NotNull
+  public static String getBranchesHref(@NotNull final SBuildType buildType, @Nullable final String branchesLocator) {
+    return getBuildTypeHref(buildType) + "/branches" + (branchesLocator == null ? "" : "?locator=" + branchesLocator);
+  }
+
   public static String getParametersHref(final BuildTypeOrTemplate buildType) {
     return getBuildTypeHref(buildType) + PARAMETERS;
   }
@@ -1222,7 +1227,8 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public Branches serveBranches(@PathParam("btLocator") String buildTypeLocator, @QueryParam("locator") String branchesLocator, @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
-    return new Branches(myBranchFinder.getItems(buildType, branchesLocator).myEntries, new Fields(fields), myBeanContext);
+    return new Branches(myBranchFinder.getItems(buildType, branchesLocator).myEntries,
+                        new PagerData(BuildTypeRequest.getBranchesHref(buildType, branchesLocator)), new Fields(fields), myBeanContext);
   }
 
   /**

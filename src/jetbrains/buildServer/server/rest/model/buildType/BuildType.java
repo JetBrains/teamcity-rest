@@ -34,6 +34,7 @@ import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEn
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
+import jetbrains.buildServer.server.rest.model.build.Branches;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.request.AgentRequest;
@@ -58,7 +59,7 @@ import org.jetbrains.annotations.Nullable;
   "href", "webUrl",
   "links", "project", "template", "vcsRootEntries", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
   "artifactDependencies", "agentRequirements",
-  "builds", "investigations", "compatibleAgents"})
+  "branches", "builds", "investigations", "compatibleAgents"})
 public class BuildType {
   private static final Logger LOG = Logger.getInstance(BuildType.class.getName());
 
@@ -254,6 +255,27 @@ public class BuildType {
         return myBuildType == null ? null : new VcsRootEntries(myBuildType, myFields.getNestedField("vcs-root-entries"), myBeanContext);
       }
     }));
+  }
+
+  @XmlElement(name = "branches")
+  public Branches getBranches() {
+    if (myBuildType == null || myBuildType.getBuildType() == null) return null;
+    return ValueWithDefault.decideDefault(myFields.isIncluded("branches", false, false), // do not include until asked as should only include for branched build types
+                                          new ValueWithDefault.Value<Branches>() {
+      public Branches get() {
+        String href;
+        List<BranchData> result = null;
+        final Fields nestedFields = myFields.getNestedField("branches");
+        final String locator = nestedFields.getLocator();
+        if (locator != null) {
+          result = myBeanContext.getSingletonService(BranchFinder.class).getItems(myBuildType.getBuildType(), locator).myEntries;
+          href = BuildTypeRequest.getBranchesHref(myBuildType.getBuildType(), locator);
+          return new Branches(result, new PagerData(href), nestedFields, myBeanContext);
+        }
+        href = BuildTypeRequest.getBranchesHref(myBuildType.getBuildType(), null);
+        return new Branches(null, new PagerData(href), nestedFields, myBeanContext);
+      }
+    });
   }
 
   /**

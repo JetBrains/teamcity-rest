@@ -23,9 +23,11 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.data.BranchData;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -36,15 +38,22 @@ public class Branches {
   @XmlAttribute
   public Integer count;
 
+  @XmlAttribute(required = false)
+  @Nullable
+  public String href;
+
   @XmlElement(name = "branch")
   public List<Branch> branches;
 
   public Branches() {
   }
 
-  public Branches(@NotNull final List<BranchData> branchesP, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
-    branches = ValueWithDefault.decideDefault(fields.isIncluded("branch"),
-                                              () -> branchesP.stream().map(b -> new Branch(b, fields.getNestedField("branch"), beanContext)).collect(Collectors.toList()));
-    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), branchesP.size());
+  public Branches(@Nullable final List<BranchData> branchesP, @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    if (branchesP != null) {
+      branches = ValueWithDefault.decideDefault(fields.isIncluded("branch"),
+                                                () -> branchesP.stream().map(b -> new Branch(b, fields.getNestedField("branch"), beanContext)).collect(Collectors.toList()));
+      count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), branchesP.size());
+    }
+    href = pagerData == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("href"), pagerData.getHref());
   }
 }

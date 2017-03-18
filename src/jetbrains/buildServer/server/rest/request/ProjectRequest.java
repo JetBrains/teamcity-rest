@@ -679,7 +679,7 @@ public class ProjectRequest {
   public Branches getBranches(@PathParam("projectLocator") String projectLocator, @QueryParam("locator") String branchesLocator, @QueryParam("fields") String fields) {
     final SProject project = myProjectFinder.getItem(projectLocator);
     String updatedBranchLocator = BranchFinder.patchLocatorWithBuildType(branchesLocator, BuildTypeFinder.patchLocator(null, project));
-    return new Branches(myBranchFinder.getItems(updatedBranchLocator).myEntries, new Fields(fields), myBeanContext);
+    return new Branches(myBranchFinder.getItems(updatedBranchLocator).myEntries, null, new Fields(fields), myBeanContext);
   }
 
   /**
