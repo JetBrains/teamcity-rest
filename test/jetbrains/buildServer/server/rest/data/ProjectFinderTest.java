@@ -19,11 +19,14 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.Arrays;
 import java.util.List;
 import jetbrains.buildServer.BuildAgent;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.PropEntityProjectFeature;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
+import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.ProjectFeatureDescriptorFactory;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -148,6 +151,7 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
   @Test
   public void testUserSelectedDimension() throws Exception {
     myFixture.getServerSettings().setPerProjectPermissionsEnabled(true);
+    ProjectEx root = myProjectManager.getRootProject();
 
     final SProject project10 = createProject("p10", "project 10");
     final SProject project20 = createProject("p20", "project 20");
@@ -163,6 +167,9 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
     user2.addRole(RoleScope.projectScope(project10.getProjectId()), getProjectViewerRole());
     //default sorting is hierarchy-based + name-based within the same level
     check("selectedByUser:(username:user2)", project10, project10_10, project10_10_20, project10_10_30, project10_10_10, project10_20);
+    check("selectedByUser:(user:(username:user2),mode:selected_and_unknown)", project10, project10_10, project10_10_20, project10_10_30, project10_10_10, project10_20);
+    check("selectedByUser:(user:(username:user2),mode:all_with_order)", root, project10, project10_10, project10_10_20, project10_10_30, project10_10_10, project10_20);
+    check("selectedByUser:(user:(username:user2),mode:selected)");
 
     final SUser user1 = createUser("user1");
     user1.addRole(RoleScope.projectScope(project10.getProjectId()), getProjectViewerRole());
@@ -172,14 +179,33 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
 
     user1.setVisibleProjects(Arrays.asList(project10.getProjectId(), project10_10_20.getProjectId(), project10_10_10.getProjectId(), project40.getProjectId(), project30.getProjectId()));
     user1.setProjectsOrder(Arrays.asList(project10.getProjectId(), project10_10_20.getProjectId(), project10_10_10.getProjectId(), project40.getProjectId(), project30.getProjectId()));
+
     check("selectedByUser:(username:user1)", project10, project10_10_20, project10_10_10, project30);
+    check("selectedByUser:(user:(username:user1))", project10, project10_10_20, project10_10_10, project30);
+    check("selectedByUser:(user:(username:user1),mode:selected_and_unknown)", project10, project10_10_20, project10_10_10, project30);
+    check("selectedByUser:(user:(username:user1),mode:all_with_order)",
+          root, project10, project10_10, project10_10_20, project10_10_10, project10_10_30, project10_20, project30,project20);
+    check("selectedByUser:(user:(username:user1),mode:selected)", project10, project10_10_20, project10_10_10, project30);
+
     check("selectedByUser:(username:user1),project:(id:_Root)", project10, project30);
+    check("selectedByUser:(user:(username:user1),mode:selected_and_unknown),project:(id:_Root)", project10, project30);
+    check("selectedByUser:(user:(username:user1),mode:all_with_order),project:(id:_Root)", project10, project30, project20);
+    check("selectedByUser:(user:(username:user1),mode:selected),project:(id:_Root)", project10, project30);
+
     check("selectedByUser:(username:user1),project:(id:p10)");
+    check("selectedByUser:(user:(username:user1),mode:selected_and_unknown),project:(id:p10)");
+    check("selectedByUser:(user:(username:user1),mode:all_with_order),project:(id:p10)", project10_10, project10_20);
+    check("selectedByUser:(user:(username:user1),mode:selected),project:(id:p10)");
 
     user1.setVisibleProjects(Arrays.asList(project30.getProjectId(), project10_10_20.getProjectId(), project10_10_10.getProjectId()));
     user1.setProjectsOrder(Arrays.asList(project30.getProjectId(), project10_10_20.getProjectId(), project10_10_10.getProjectId()));
     check("selectedByUser:(username:user1)", project30, project10_10_20, project10_10_10);
     check("selectedByUser:(username:user1),project:(id:_Root)", project30);
+
+    checkExceptionOnItemsSearch(LocatorProcessException.class, "selectedByUser:(username:user2,mode:selected)");
+    checkExceptionOnItemsSearch(BadRequestException.class, "selectedByUser:(user:(username:user2),mode:aaa)");
+    checkExceptionOnItemsSearch(LocatorProcessException.class, "selectedByUser:(user:(username:user2),mode:aaa,ccc:ddd)");
+    checkExceptionOnItemsSearch(LocatorProcessException.class, "selectedByUser:(user:(username:user2,aaa:bbb))");
 
     //add checks after    ProjectEx.setOwnProjectsOrder / setOwnBuildTypesOrder
   }

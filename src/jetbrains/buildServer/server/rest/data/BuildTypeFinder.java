@@ -878,7 +878,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   public List<BuildTypeOrTemplate> getBuildTypesSelectedForUser(@NotNull final SUser user, @Nullable final List<SProject> projects) {
     Collection<SProject> selectedProjects = projects;
     if (selectedProjects == null){
-      selectedProjects = myProjectFinder.getSelectedProjects(user);
+      selectedProjects = myProjectFinder.getSelectedProjects(user, ProjectFinder.SelectedByUserMode.SELECTED_AND_UNKNOWN); //for other values, use "project:(XXX)" locator
     }
     final List<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
     for (SProject project : selectedProjects) {

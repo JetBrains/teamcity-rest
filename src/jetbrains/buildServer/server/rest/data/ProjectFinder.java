@@ -31,6 +31,7 @@ import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.impl.UserEx;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
@@ -296,8 +297,17 @@ public class ProjectFinder extends AbstractFinder<SProject> {
     //this should be the first one as the order returned here is important!
     final String selectedForUser = locator.getSingleDimensionValue(DIMENSION_SELECTED);
     if (selectedForUser != null) {
-      final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getItem(selectedForUser);
-      return getItemHolder(getSelectedProjects(user));
+      Locator selectedByUserLocator = new Locator(selectedForUser, "user", "mode");
+      String userLocator = selectedByUserLocator.getSingleDimensionValue("user");
+      String modeLocator = selectedByUserLocator.getSingleDimensionValue("mode");
+      if (userLocator == null && modeLocator == null) {
+        //assume it's user locator - the only supported way before 2017.1
+        userLocator = selectedForUser;
+      } else {
+        selectedByUserLocator.checkLocatorFullyProcessed();
+      }
+      final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getItem(userLocator);
+      return getItemHolder(getSelectedProjects(user, getSelectedByUserMode(modeLocator)));
     }
 
     final SProject parentProject;
@@ -337,12 +347,30 @@ public class ProjectFinder extends AbstractFinder<SProject> {
     return getItemHolder(myProjectManager.getProjects());
   }
 
+
+  public static enum SelectedByUserMode {
+    SELECTED, //those which are selected on Overview, in Overview-configured order
+    SELECTED_AND_UNKNOWN, //as in SELECTED plus those which has mo mark on selection or hiding, in Overview-configured order
+    ALL_WITH_ORDER; //all the projects which user can see in the order defined on Overview, but abiding the hierarchy depth-first traversing (i.e. as should be shown in projects pop-up)
+  }
+
   @NotNull
-  public Collection<SProject> getSelectedProjects(@NotNull final SUser user) {
-    //TeamCity API issue: the order of the projects is not completely clear: is project's hierarchy is applied (seems like it is not)
-    // also, if user has not configured visibility, what the order will be?
-    final List<String> visibleProjects = user.getVisibleProjects();
-    return visibleProjects == null ? Collections.<SProject>emptyList() :  myProjectManager.findProjects(visibleProjects);
+  private SelectedByUserMode getSelectedByUserMode(@Nullable final String textName) {
+    return TypedFinderBuilder.getEnumValue(textName != null ? textName : SelectedByUserMode.SELECTED_AND_UNKNOWN.name(), SelectedByUserMode.class);
+  }
+
+  @NotNull
+  public Collection<SProject> getSelectedProjects(@NotNull final SUser user, @NotNull final SelectedByUserMode mode) {
+    switch (mode) {
+      case SELECTED:
+        //TeamCity API issue: cast
+        return myProjectManager.findProjects(((UserEx)user).getProjectVisibilityHolder().getKnownVisibleProjects());
+      case ALL_WITH_ORDER:
+        return ((UserEx)user).getProjectVisibilityHolder().getAllProjectsOrdered();
+      default:
+      case SELECTED_AND_UNKNOWN: //this is pre-2017.1 behavior
+        return myProjectManager.findProjects(user.getVisibleProjects());
+    }
   }
 
   @NotNull
