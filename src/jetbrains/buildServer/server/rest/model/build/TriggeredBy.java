@@ -20,6 +20,7 @@ import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.data.BuildFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
@@ -28,10 +29,7 @@ import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.ProjectManager;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
-import jetbrains.buildServer.serverSide.TriggeredByBuilder;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.impl.BuildServerImpl;
 import jetbrains.buildServer.users.SUser;
@@ -43,7 +41,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @SuppressWarnings("PublicField")
 @XmlType(propOrder = {"type", "details", "date", "rawValue",
-"user", "buildType", "properties"})
+  "user", "build", "buildType", "properties"})
 public class TriggeredBy {
   @XmlAttribute
   public String date;
@@ -60,6 +58,9 @@ public class TriggeredBy {
 
   @XmlElement(name = "buildType")
   public BuildType buildType;
+
+  @XmlElement(name = "build")
+  public Build build;
 
   /**
    * Internal use only
@@ -110,6 +111,18 @@ public class TriggeredBy {
 
     final Map<String, String> triggeredByParams = triggeredBy.getParameters();
 
+    String buildId = triggeredByParams.get(TriggeredByBuilder.BUILD_ID_PARAM_NAME);
+    if (buildId != null) {
+      build = ValueWithDefault.decideDefault(fields.isIncluded("build"), () -> {
+        try {
+          final BuildPromotion foundBuild = beanContext.getSingletonService(BuildFinder.class).getBuildByPromotionId(Long.valueOf(buildId));
+          return new Build(foundBuild, fields.getNestedField("build"), beanContext);
+        } catch (Exception e) {
+          return null;
+        }
+      });
+    }
+
     String typeInParams = triggeredByParams.get(TriggeredByBuilder.TYPE_PARAM_NAME);
     if (typeInParams != null) {
       type = ValueWithDefault.decideDefault(fields.isIncluded("type"), () -> typeInParams);
@@ -123,6 +136,7 @@ public class TriggeredBy {
       }
       try {
         final SBuildType foundBuildType = beanContext.getSingletonService(ProjectManager.class).findBuildTypeById(buildTypeId);
+        //this mostly duplicates the data from the "build" sub-node, but can be useful (when build is deleted) and this was also part of API before 2017.1
         buildType = foundBuildType == null
                     ? null
                     : ValueWithDefault.decideDefault(fields.isIncluded("buildType"), new ValueWithDefault.Value<BuildType>() {
