@@ -1445,10 +1445,16 @@ public class Build {
   }
 
   private String getTriggeredBy(final @Nullable SUser user) {
+    TriggeredByBuilder result;
     if (user != null) {
-      return new TriggeredByBuilder(user).toString();
+      result = new TriggeredByBuilder(user);
+      result.addParameter(TriggeredByBuilder.TYPE_PARAM_NAME, "user");
+    } else {
+      result = new TriggeredByBuilder();
+      result.addParameter(TriggeredByBuilder.TYPE_PARAM_NAME, "request");
     }
-    return new TriggeredByBuilder().toString();
+    result.addParameter("origin", "rest");
+    return result.toString();
   }
 
   @Nullable

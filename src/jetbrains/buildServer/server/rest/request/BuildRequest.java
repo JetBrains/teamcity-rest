@@ -650,6 +650,8 @@ public class BuildRequest {
     TriggeredByBuilder tbb = new TriggeredByBuilder();
     tbb.addParameters(origTriggeredBy.getParameters());
     tbb.addParameter(TriggeredByBuilder.RE_ADDED_AFTER_STOP_NAME, String.valueOf(user.getId()));
+    tbb.addParameter(TriggeredByBuilder.TYPE_PARAM_NAME, "reAddedOnStop");
+    tbb.addParameter("origin", "rest");
 
     myBeanContext.getSingletonService(BuildQueueEx.class).restoreInQueue(promotionEx, agentRestrictor, tbb.toString());
   }
