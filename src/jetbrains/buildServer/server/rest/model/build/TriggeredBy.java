@@ -110,9 +110,17 @@ public class TriggeredBy {
 
     final Map<String, String> triggeredByParams = triggeredBy.getParameters();
 
+    String typeInParams = triggeredByParams.get(TriggeredByBuilder.TYPE_PARAM_NAME);
+    if (typeInParams != null) {
+      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), () -> typeInParams);
+    }
+
+
     String buildTypeId = triggeredByParams.get(TriggeredByBuilder.BUILD_TYPE_ID_PARAM_NAME);
     if (buildTypeId != null) {
-      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "buildType");
+      if (typeInParams == null) {
+        type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "buildType");
+      }
       try {
         final SBuildType foundBuildType = beanContext.getSingletonService(ProjectManager.class).findBuildTypeById(buildTypeId);
         buildType = foundBuildType == null
@@ -130,31 +138,43 @@ public class TriggeredBy {
 
     if (triggeredByParams.get(BuildServerImpl.UNEXPECTED_FINISH) != null ||
         triggeredByParams.get(TriggeredByBuilder.RE_ADDED_AFTER_STOP_NAME) != null) {
-      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "restarted");
+      if (typeInParams == null || "unexpectedFinish".equals(typeInParams)) {
+        //compatibility with "type" value prior to 2017.1
+        type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "restarted");
+      }
       return;
     }
 
     String idePlugin = triggeredByParams.get(TriggeredByBuilder.IDE_PLUGIN_PARAM_NAME);
     if (idePlugin != null) {
-      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "idePlugin");
+      if (typeInParams == null || "xmlRpc".equals(typeInParams)) {
+        //compatibility with "type" value prior to 2017.1
+        type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "idePlugin");
+      }
       details = ValueWithDefault.decideDefault(fields.isIncluded("details"), idePlugin);
       return;
     }
 
     String vcsName = triggeredByParams.get(TriggeredByBuilder.VCS_NAME_PARAM_NAME);
     if (vcsName != null) {
-      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "vcs");
+      if (typeInParams == null) {
+        type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "vcs");
+      }
       details = ValueWithDefault.decideDefault(fields.isIncluded("details"), vcsName);
       return;
     }
 
     String user = triggeredByParams.get(TriggeredByBuilder.USER_PARAM_NAME);
     if (user != null) {
-      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "user");
+      if (typeInParams == null) {
+        type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "user");
+      }
       return;
     }
 
-    type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "unknown");
-    details = ValueWithDefault.decideDefault(fields.isIncluded("details"), rawTriggeredBy);
+    if (typeInParams == null) {
+      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "unknown");
+      details = ValueWithDefault.decideDefault(fields.isIncluded("details"), rawTriggeredBy);
+    }
   }
 }
