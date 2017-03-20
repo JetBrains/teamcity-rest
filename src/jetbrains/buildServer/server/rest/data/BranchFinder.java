@@ -269,8 +269,34 @@ public class BranchFinder extends AbstractFinder<BranchData> {
 
   private List<BranchData> getBranches(final @NotNull SBuildType buildType, @NotNull final BranchSearchOptions branchSearchOptions, final boolean computeTimestamps) {
     final BuildTypeEx buildTypeImpl = (BuildTypeEx)buildType; //TeamCity openAPI issue: cast
-    List<BranchEx> branches = buildTypeImpl.getBranches(branchSearchOptions.getBranchesPolicy(), branchSearchOptions.isIncludeBranchesFromDependencies(), computeTimestamps);
-    return branches.stream().map(b -> BranchData.fromBranchEx(b, myServiceLocator)).collect(Collectors.toList());
+    BranchesPolicy mainPolicy = branchSearchOptions.getBranchesPolicy();
+    List<BranchEx> branches = buildTypeImpl.getBranches(mainPolicy, branchSearchOptions.isIncludeBranchesFromDependencies(), computeTimestamps);
+    // return branches.stream().map(b -> BranchData.fromBranchEx(b, myServiceLocator)).collect(Collectors.toList());
+    // workaround for the TeamCity core performance issue of getting activity status per branch: it's ineffective, see implementation of BuildTypeBranchImpl.isActive()
+    boolean disableActive = TeamCityProperties.getBoolean("rest.beans.branch.disableActive");
+    boolean computeActive = TeamCityProperties.getBooleanOrTrue("rest.beans.branch.computeActive");
+    BranchesPolicy activeBranchesPolicy;
+    switch (mainPolicy) {
+      case ACTIVE_HISTORY_AND_ACTIVE_VCS_BRANCHES:
+      case ACTIVE_VCS_BRANCHES:
+      case ACTIVE_HISTORY_BRANCHES:
+        //al branches are active
+        return branches.stream().map(b -> BranchData.fromBranchEx(b, myServiceLocator, computeActive ? true : null, disableActive)).collect(Collectors.toList());
+      case HISTORY_BRANCHES:
+        activeBranchesPolicy = BranchesPolicy.ACTIVE_HISTORY_BRANCHES;
+        break;
+      case VCS_BRANCHES:
+        activeBranchesPolicy = BranchesPolicy.ACTIVE_VCS_BRANCHES;
+        break;
+      case ALL_BRANCHES:
+      default:
+        activeBranchesPolicy = BranchesPolicy.ACTIVE_HISTORY_AND_ACTIVE_VCS_BRANCHES;
+    }
+    Set<String> activeBranches = computeActive ? buildTypeImpl.getBranches(activeBranchesPolicy, false, false)
+                                                              .stream().map(b -> b.getName()).collect(Collectors.toSet())
+                                               : null;
+    return branches.stream().map(b -> BranchData.fromBranchEx(b, myServiceLocator, computeActive ? activeBranches.contains(b.getName()) : null, disableActive))
+                   .collect(Collectors.toList());
   }
 
   @NotNull

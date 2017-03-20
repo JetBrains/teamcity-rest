@@ -47,7 +47,10 @@ public abstract class BranchData implements Branch {
     };
   }
 
-  public static BranchData fromBranchEx(@NotNull final BranchEx branch, @NotNull final ServiceLocator serviceLocator) {
+  public static BranchData fromBranchEx(@NotNull final BranchEx branch,
+                                        @NotNull final ServiceLocator serviceLocator,
+                                        @Nullable final Boolean overrideActive,
+                                        final boolean disableActive) {
     return new BranchData(branch.getName()) {
       @NotNull
       @Override
@@ -60,9 +63,10 @@ public abstract class BranchData implements Branch {
         return branch.isDefaultBranch();
       }
 
-      @NotNull
+      @Nullable
       public Boolean isActive() {
-        return branch.isActive();
+        if (disableActive) return null;
+        return overrideActive != null ? overrideActive : branch.isActive(); //call to isActive can be expensive
       }
 
       @Nullable
