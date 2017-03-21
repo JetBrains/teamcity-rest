@@ -33,6 +33,7 @@ import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.ProjectFeatureDescriptorFactory;
 import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Option;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.testng.annotations.BeforeMethod;
@@ -149,6 +150,26 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
                          "branch10", null, null,
                          "branch20", null, null,
                          "branch30", null, null);
+
+    //no default branch option test
+    bt1.setOption(Option.fromKey("buildDefaultBranch"), false);
+    branches = request.getBranches("id:" + prjId, "policy:ALL_BRANCHES", null);
+    assertBranchesEquals(branches.branches,
+                         "master2", true, null,
+                         "branch10", null, null,
+                         "branch20", null, null,
+                         "branch30", null, null);
+    bt2.setOption(Option.fromKey("buildDefaultBranch"), false);
+    branches = request.getBranches("id:" + prjId, "policy:ALL_BRANCHES", null);
+    assertBranchesEquals(branches.branches,
+                         "branch10", null, null,
+                         "branch20", null, null,
+                         "branch30", null, null);
+    //revert
+    bt1.setOption(Option.fromKey("buildDefaultBranch"), true);
+    bt2.setOption(Option.fromKey("buildDefaultBranch"), true);
+
+
 
     branches = request.getBranches("id:" + prjId, "policy:ALL_BRANCHES,default:true", null);
     assertBranchesEquals(branches.branches,
