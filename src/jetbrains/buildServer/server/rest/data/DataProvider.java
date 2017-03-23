@@ -66,7 +66,6 @@ public class DataProvider {
   @NotNull private final WebLinks myWebLinks;
   @NotNull private final ServerPluginInfo myPluginInfo;
   @NotNull private final ServerListener myServerListener;
-  @NotNull private final SecurityContext mySecurityContext;
   @NotNull private final PluginManager myPluginManager;
   @NotNull private final RunningBuildsManager myRunningBuildsManager;
   @NotNull private final ValueProviderRegistry myValueProviderRegistry;
@@ -78,7 +77,6 @@ public class DataProvider {
   @NotNull private final DBFunctionsProvider myDbFunctionsProvider;
   @NotNull private final StartupContext myStartupContext;
   @NotNull private final ServiceLocator myServiceLocator;
-  @NotNull private final RootUrlHolder myRootUrlHolder;
   @NotNull private final PermissionChecker myPermissionChecker;
 
   public DataProvider(@NotNull final SBuildServer myServer,
@@ -111,7 +109,6 @@ public class DataProvider {
     myWebLinks = webLinks;
     myPluginInfo = pluginInfo;
     myServerListener = serverListener;
-    mySecurityContext = securityContext;
     myPluginManager = pluginManager;
     myRunningBuildsManager = runningBuildsManager;
     myValueProviderRegistry = valueProviderRegistry;
@@ -123,7 +120,6 @@ public class DataProvider {
     myDbFunctionsProvider = dbFunctionsProvider;
     myStartupContext = startupContext;
     myServiceLocator = serviceLocator;
-    myRootUrlHolder = rootUrlHolder;
     myPermissionChecker = permissionChecker;
   }
 
