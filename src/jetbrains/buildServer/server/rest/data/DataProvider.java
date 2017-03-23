@@ -62,7 +62,6 @@ public class DataProvider {
   @NotNull private final ServerPluginInfo myPluginInfo;
   @NotNull private final ServerListener myServerListener;
   @NotNull private final SecurityContext mySecurityContext;
-  @NotNull private final SourceVersionProvider mySourceVersionProvider;
   @NotNull private final PluginManager myPluginManager;
   @NotNull private final RunningBuildsManager myRunningBuildsManager;
   @NotNull private final ValueProviderRegistry myValueProviderRegistry;
@@ -79,7 +78,6 @@ public class DataProvider {
                       @NotNull final ServerPluginInfo pluginInfo,
                       @NotNull final ServerListener serverListener,
                       @NotNull final SecurityContext securityContext,
-                      @NotNull final SourceVersionProvider sourceVersionProvider,
                       @NotNull final PluginManager pluginManager,
                       @NotNull final RunningBuildsManager runningBuildsManager,
                       @NotNull final ValueProviderRegistry valueProviderRegistry,
@@ -96,7 +94,6 @@ public class DataProvider {
     myPluginInfo = pluginInfo;
     myServerListener = serverListener;
     mySecurityContext = securityContext;
-    mySourceVersionProvider = sourceVersionProvider;
     myPluginManager = pluginManager;
     myRunningBuildsManager = runningBuildsManager;
     myValueProviderRegistry = valueProviderRegistry;
@@ -899,10 +896,6 @@ public class DataProvider {
 
   public VcsManager getVcsManager() {
     return myVcsManager;
-  }
-
-  public SourceVersionProvider getSourceVersionProvider() {
-    return mySourceVersionProvider;
   }
 
   public Collection<ServerPluginInfo> getPlugins() {
