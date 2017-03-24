@@ -881,6 +881,10 @@ public class Locator {
     myUsedDimensions.removeAll(Arrays.asList(dimensionNames));
   }
 
+  public void markUsed(@NotNull Collection<String> dimensionNames) {
+    myUsedDimensions.addAll(dimensionNames);
+  }
+
   /**
    * Marks all the used dimensions as not used.
    * This also has a side effect of not reporting the dimensions as known but not reported, see "reportKnownButNotReportedDimensions" method.

@@ -581,6 +581,8 @@ public class TypedFinderBuilder<ITEM> {
   public static interface DimensionObjects {
     @Nullable
     <TYPE> List<TYPE> get(@NotNull Dimension<TYPE> dimension);
+
+    Set<String> getUsedDimensions();
   }
 
   public static interface DimensionConditions {
@@ -816,30 +818,35 @@ public class TypedFinderBuilder<ITEM> {
     @NotNull
     @Override
     public LocatorDataBinding<ITEM> getLocatorDataBinding(@NotNull final Locator locator) {
-      //rework to calculate items only on request (e.g. when only filter is needed)
-      // see comment "//workaround for at least one condition" in VcsRootInstanceFinder
-      final DimensionObjectsImpl dimensionObjects = new DimensionObjectsImpl(locator);
-
-      final FinderDataBinding.ItemHolder<ITEM> itemHolderResult = getPrefilteredItems(locator, dimensionObjects);
-      final ItemFilter<ITEM> itemFilterResult = getFilter(locator, dimensionObjects);
-
-      // proper mark unused dimensions if they were not queried
-      Set<String> unusedDimensions = dimensionObjects.getUnusedDimensions();    //todo: remove to use not init-first DimensionObjectsImpl
-      for (String unusedDimension : unusedDimensions) {
-        locator.markUnused(unusedDimension);
-      }
-
       return new LocatorDataBinding<ITEM>() {
+        private DimensionObjects myDimensionObjects;
+        private final Locator myLocator = locator;
+        private FinderDataBinding.ItemHolder<ITEM> myItemHolderResult;
+        private ItemFilter<ITEM> myItemFilterResult;
+
+        private DimensionObjects getDimensionObjects(){
+          if (myDimensionObjects == null){
+            myDimensionObjects = TypedFinderBuilder.this.getDimensionObjects(myLocator);
+          }
+          return myDimensionObjects;
+        }
+
         @NotNull
         @Override
         public ItemHolder<ITEM> getPrefilteredItems() {
-          return itemHolderResult;
+          if (myItemHolderResult == null) {
+            myItemHolderResult = TypedFinderDataBindingImpl.this.getPrefilteredItems(myLocator, getDimensionObjects());
+          }
+          return myItemHolderResult;
         }
 
         @NotNull
         @Override
         public ItemFilter<ITEM> getFilter() {
-          return itemFilterResult;
+          if (myItemFilterResult == null) {
+            myItemFilterResult = TypedFinderDataBindingImpl.this.getFilter(myLocator, getDimensionObjects());
+          }
+          return myItemFilterResult;
         }
       };
     }
@@ -898,7 +905,7 @@ public class TypedFinderBuilder<ITEM> {
     }
 
     @NotNull
-    protected ItemHolder<ITEM> getPrefilteredItems(@NotNull final Locator locator, @NotNull DimensionObjectsImpl dimensionObjects) {
+    protected ItemHolder<ITEM> getPrefilteredItems(@NotNull final Locator locator, @NotNull DimensionObjects dimensionObjects) {
       if (mySingleDimensionHandler != null && locator.isSingleValue()) {
         //noinspection ConstantConditions
         List<ITEM> items = mySingleDimensionHandler.get(locator.getSingleValue());
@@ -921,8 +928,14 @@ public class TypedFinderBuilder<ITEM> {
       for (DimensionCondition conditions : myItemsConditions.keySet()) {
         if (conditions.complies(locator)) {
           ItemsFromDimensions<ITEM> itemsFromDimensions = myItemsConditions.get(conditions);
-          List<ITEM> itemsList = itemsFromDimensions.get(dimensionObjects);
-          if (itemsList != null) return FinderDataBinding.getItemHolder(itemsList);
+          DimensionObjectsWrapper wrapper = new DimensionObjectsWrapper(dimensionObjects);
+          List<ITEM> itemsList = itemsFromDimensions.get(wrapper);
+          if (itemsList != null) {
+            if (!wrapper.getUsedDimensions().isEmpty()) {
+              locator.markUsed(wrapper.getUsedDimensions());
+            }
+            return FinderDataBinding.getItemHolder(itemsList);
+          }
           //add debug mode to collect all toItems and report their sizes if another order would be more effective
         }
         //consider processing other items as well and intersecting???
@@ -930,7 +943,12 @@ public class TypedFinderBuilder<ITEM> {
       }
       for (Map.Entry<DimensionCondition, ItemHolderFromDimensions<ITEM>> entry : myItemHoldersConditions.entrySet()) {
         if (entry.getKey().complies(locator)) {
-          return entry.getValue().get(dimensionObjects);
+          DimensionObjectsWrapper wrapper = new DimensionObjectsWrapper(dimensionObjects);
+          ItemHolder<ITEM> itemItemHolder = entry.getValue().get(wrapper);
+          if (!wrapper.getUsedDimensions().isEmpty()) {
+            locator.markUsed(wrapper.getUsedDimensions());
+          }
+          return itemItemHolder;
         }
         //consider processing other items as well and intersecting???
       }
@@ -941,22 +959,18 @@ public class TypedFinderBuilder<ITEM> {
 
 
     @NotNull
-    protected ItemFilter<ITEM> getFilter(@NotNull final Locator locator, @NotNull DimensionObjectsImpl dimensionObjects) {
+    protected ItemFilter<ITEM> getFilter(@NotNull final Locator locator, @NotNull DimensionObjects dimensionObjects) {
       MultiCheckerFilter<ITEM> result = new MultiCheckerFilter<>();
       for (Map.Entry<DimensionCondition, ItemFilterFromDimensions<ITEM>> entry : myFiltersConditions.entrySet()) {
-        final Set<String> alreadyUsedDimensions = new HashSet<>(dimensionObjects.myUsedDimensions);
         if (entry.getKey().complies(locator)) {
-          final Set<String> usedDimensions = new HashSet<>();
-          ItemFilter<ITEM> checker = entry.getValue().get(new DimensionObjects() {
-            @Nullable
-            @Override
-            public <TYPE> List<TYPE> get(@NotNull final Dimension<TYPE> dimension) {
-              usedDimensions.add(dimension.name);
-              return dimensionObjects.get(dimension);
-            }
-          });
+          final Set<String> alreadyUsedDimensions = new HashSet<>(dimensionObjects.getUsedDimensions());
+          DimensionObjectsWrapper wrapper = new DimensionObjectsWrapper(dimensionObjects);
+          ItemFilter<ITEM> checker = entry.getValue().get(wrapper);
+          if (!wrapper.getUsedDimensions().isEmpty()) {
+            locator.markUsed(wrapper.getUsedDimensions());
+            if (alreadyUsedDimensions.containsAll(wrapper.getUsedDimensions())) continue; //all the dimensions were already used. Is this logic at all needed?
+          }
           if (checker == null) continue;
-          if (!usedDimensions.isEmpty() && alreadyUsedDimensions.containsAll(usedDimensions)) continue; //all the dimensions were already used. Is this logic at all needed?
           result.add(checker); //also support shouldStop
         }
       }
@@ -975,6 +989,33 @@ public class TypedFinderBuilder<ITEM> {
     public Set<ITEM> createContainerSet() {
       return myContainerSetProvider == null ? null : myContainerSetProvider.createContainerSet();
     }
+
+    private class DimensionObjectsWrapper implements DimensionObjects {
+      @NotNull private final Set<String> usedDimensions = new HashSet<>();
+      @NotNull private final DimensionObjects myDimensionObjects;
+
+      public DimensionObjectsWrapper(final @NotNull DimensionObjects dimensionObjects) {
+        myDimensionObjects = dimensionObjects;
+      }
+
+      @Nullable
+      @Override
+      public <TYPE> List<TYPE> get(@NotNull final Dimension<TYPE> dimension) {
+        usedDimensions.add(dimension.name);
+        return myDimensionObjects.get(dimension);
+      }
+
+      @NotNull
+      @Override
+      public Set<String> getUsedDimensions() {
+        return usedDimensions;
+      }
+    }
+  }
+
+  @NotNull
+  public DimensionObjects getDimensionObjects(@NotNull Locator locator) {
+    return new DimensionObjectsImpl(locator);
   }
 
   class DimensionObjectsImpl implements DimensionObjects {
@@ -991,13 +1032,13 @@ public class TypedFinderBuilder<ITEM> {
     @Nullable
     private <TYPE> List<TYPE> getTypedDimensionByLocator(@NotNull final Locator locator, @NotNull final TypedFinderDimensionImpl<TYPE> typedDimension) {
       if (Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME.equals(typedDimension.getDimension().name)){
-        String singleValue = locator.getSingleValue();
+        String singleValue = locator.lookupSingleValue();
         if (singleValue != null){
           return Collections.singletonList(getByDimensionValue(typedDimension, singleValue));
         }
       }
       //noinspection unchecked
-      List<String> dimensionValues = locator.getDimensionValue(typedDimension.getDimension().name);
+      List<String> dimensionValues = locator.lookupDimensionValue(typedDimension.getDimension().name);
       if (dimensionValues.isEmpty()) return null;
       List<TYPE> results = new ArrayList<>(dimensionValues.size());
       for (String dimensionValue : dimensionValues) {
@@ -1037,6 +1078,11 @@ public class TypedFinderBuilder<ITEM> {
       myUsedDimensions.add(dimension.name);
       //noinspection unchecked
       return (List<TYPE>)myCache.get(dimension.name);
+    }
+
+    @Override
+    public Set<String> getUsedDimensions() {
+      return myUsedDimensions;
     }
   }
 }

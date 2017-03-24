@@ -216,7 +216,6 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
                          .valueForDefaultFilter(vcsRootCheckStatus -> vcsRootCheckStatus.myStatus.getTimestamp());
       statusFilterBuilder.dimensionEnum(new TypedFinderBuilder.Dimension<>("requestorType"), OperationRequestor.class).description("requestor of the operation")
                          .valueForDefaultFilter(vcsRootCheckStatus -> vcsRootCheckStatus.myRequestor);
-      statusFilterBuilder.multipleConvertToItems(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> Collections.emptyList()); //workaround for at least one condition
       Finder<VcsRootCheckStatus> vcsRootCheckStatusFinder = statusFilterBuilder.build();
 
       builder.dimensionFinderFilter(new TypedFinderBuilder.Dimension<>("current"), vcsRootCheckStatusFinder, "VCS check status condition")
@@ -224,7 +223,6 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       builder.dimensionFinderFilter(new TypedFinderBuilder.Dimension<>("previous"), vcsRootCheckStatusFinder, "VCS check status condition")
              .description("previous VCS root status").valueForDefaultFilter(root -> new VcsRootCheckStatus(root.getPreviousStatus(), null));
 
-      builder.multipleConvertToItems(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> Collections.emptyList()); //workaround for at least one condition
       final ItemFilter<VcsRootInstanceEx> filter = builder.build().getFilter(status);
       result.add(new FilterConditionChecker<VcsRootInstance>() {
         public boolean isIncluded(@NotNull final VcsRootInstance item) {
@@ -259,7 +257,6 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
         return false;
       });
 
-      builder.multipleConvertToItems(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> Collections.emptyList()); //workaround for at least one condition
       final ItemFilter<RepositoryState> filter = builder.build().getFilter(repositoryState);
       result.add(new FilterConditionChecker<VcsRootInstance>() {
         public boolean isIncluded(@NotNull final VcsRootInstance item) {

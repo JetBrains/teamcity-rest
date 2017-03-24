@@ -19,6 +19,8 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import jetbrains.buildServer.MockTimeService;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
@@ -26,6 +28,7 @@ import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.ProjectFeatureDescriptorFactory;
 import jetbrains.buildServer.serverSide.versionedSettings.VersionedSettingsManager;
 import jetbrains.buildServer.util.CollectionsUtil;
+import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.vcs.*;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
@@ -202,6 +205,64 @@ public class VcsRootInstanceFinderTest extends BaseFinderTest<VcsRootInstance> {
 
     setInternalProperty("rest.defaultPageSize", "12");
     assertEquals(12, getFinder().getItems(null).myEntries.size());
+  }
+
+  @SuppressWarnings("ConstantConditions")
+  @Test
+  public void testStatusFiltering() throws Exception {
+    final MockTimeService time = new MockTimeService(Dates.now().getTime());
+    myServer.setTimeService(time);
+
+    myFixture.registerVcsSupport("svn");
+
+    final ProjectEx project10 = getRootProject().createProject("project10", "Project name 10");
+
+    final SVcsRoot vcsRoot = getRootProject().createVcsRoot("svn", "id1", "VCS root 1 name");
+    final SBuildType bt = project10.createBuildType("id1", "name 1");
+    attachVcsRoot(bt, vcsRoot);
+
+    final SVcsRoot vcsRoot2 = getRootProject().createVcsRoot("svn", "id2", "VCS root 2 name");
+    final SBuildType bt2 = project10.createBuildType("id2", "name 2");
+    attachVcsRoot(bt2, vcsRoot2);
+
+    assertEquals(2, getFinder().getItems("status:not_monitored").myEntries.size());
+    assertEquals(0, getFinder().getItems("status:scheduled").myEntries.size());
+    assertEquals(0, getFinder().getItems("status:started").myEntries.size());
+    assertEquals(0, getFinder().getItems("status:finished").myEntries.size());
+    assertEquals(0, getFinder().getItems("status:unknown").myEntries.size());
+
+    ((VcsRootInstanceEx)bt.getVcsRootInstances().get(0)).setStatus(VcsRootStatus.Type.FINISHED);
+
+    assertEquals(1, getFinder().getItems("status:not_monitored").myEntries.size());
+    assertEquals(0, getFinder().getItems("status:scheduled").myEntries.size());
+    assertEquals(0, getFinder().getItems("status:started").myEntries.size());
+    assertEquals(1, getFinder().getItems("status:finished").myEntries.size());
+    assertEquals(0, getFinder().getItems("status:unknown").myEntries.size());
+
+    ((VcsRootInstanceEx)bt2.getVcsRootInstances().get(0)).setStatus(VcsRootStatus.Type.STARTED);
+
+    assertEquals(0, getFinder().getItems("status:not_monitored").myEntries.size());
+    assertEquals(0, getFinder().getItems("status:scheduled").myEntries.size());
+    assertEquals(1, getFinder().getItems("status:started").myEntries.size());
+    assertEquals(1, getFinder().getItems("status:finished").myEntries.size());
+    assertEquals(0, getFinder().getItems("status:unknown").myEntries.size());
+
+    checkExceptionOnItemsSearch(BadRequestException.class, "status:aaa");
+
+    assertEquals(1, getFinder().getItems("status:(current:(status:started))").myEntries.size());
+
+    ((VcsRootInstanceEx)bt2.getVcsRootInstances().get(0)).setStatus(VcsRootStatus.Type.FINISHED);
+
+    assertEquals(2, getFinder().getItems("status:(current:(status:finished))").myEntries.size());
+    assertEquals(1, getFinder().getItems("status:(previous:(status:started))").myEntries.size());
+
+    time.jumpTo(10);
+
+    assertEquals(0, getFinder().getItems("status:(current:(timestamp:-2s))").myEntries.size());
+    assertEquals(2, getFinder().getItems("status:(current:(timestamp:-20s))").myEntries.size());
+
+    assertEquals(0, getFinder().getItems("checkingForChangesFinishDate:-2s").myEntries.size());
+    assertEquals(2, getFinder().getItems("checkingForChangesFinishDate:-20s").myEntries.size());
   }
 
   private VcsRootInstance attachVcsRoot(final SBuildType buildType, final SVcsRoot vcsRoot) {

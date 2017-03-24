@@ -411,4 +411,32 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
     message = checkException(LocatorProcessException.class, () -> getFinder().getItem("$help"), null).getMessage();
     assertContains(message, "help requested");
   }
+
+  @Test
+  public void testLogicOps() throws Throwable {
+    SUserGroup group1 = myFixture.createUserGroup("key1", "name1", "description");
+    final SUser user1 = createUser("user1");
+    final SUser user2 = createUser("user2");
+    final SUser user3 = createUser("user3");
+    final SUser user4 = createUser("user4");
+
+    group1.addUser(user1);
+    group1.addUser(user2);
+
+    SUserGroup group2 = myFixture.createUserGroup("key2", "name2", "description");
+    group2.addUser(user3);
+    group2.addUser(user2);
+
+    check (null, user1, user2, user3, user4);
+    check("group:(key:" + group1.getKey() + ")", user1, user2);
+    check("group:(key:" + group2.getKey() + ")", user3, user2);  //todo: should actually return sorted
+    check("group:(key:" + group1.getKey() + "),group:(key:" + group2.getKey() + ")", user2);
+    check("group:(key:" + group1.getKey() + "),and:(group:(key:" + group2.getKey() + "))", user2);
+    check("and:(group:(key:" + group1.getKey() + "),group:(key:" + group2.getKey() + "))", user2);
+    check("or:(group:(key:" + group1.getKey() + "),group:(key:" + group2.getKey() + "))", user1, user2, user3);
+    check("not:(group:(key:" + group1.getKey() + "))", user3, user4);
+    check("not:(or:(group:(key:" + group1.getKey() + "),group:(key:" + group2.getKey() + ")))", user4);
+
+    checkExceptionOnItemsSearch(LocatorProcessException.class, "and:(group:(key:" + group1.getKey() + ")),and:group:(key:" + group2.getKey() + "))");  //Only single 'and' dimension is supported in locator
+  }
 }
