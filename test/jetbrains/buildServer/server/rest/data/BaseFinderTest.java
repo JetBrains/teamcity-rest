@@ -134,7 +134,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myGroupFinder = new UserGroupFinder(getUserGroupManager());
     myFixture.addService(myGroupFinder);
     myUserFinder = new UserFinder(getUserModelEx(), myGroupFinder, myProjectFinder, myTimeCondition,
-                                  myFixture.getRolesManager(), myPermissionChecker, myServer.getSecurityContext());
+                                  myFixture.getRolesManager(), myPermissionChecker, myServer.getSecurityContext(), myServer);
     myFixture.addService(myUserFinder);
 
     myBranchFinder = new BranchFinder(myBuildTypeFinder, myFixture);
@@ -280,7 +280,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     }, "searching for item with locator \"" + singleSearchLocator + "\"");
   }
 
-  @Nullable
+  @NotNull
   public static <E extends Throwable> E checkException(final Class<E> exception, final Runnable runnable, final String operationDescription) {
     final String details = operationDescription != null ? " while " + operationDescription : "";
     try {
@@ -297,7 +297,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     }
     fail("No exception is thrown" + details +
          ". Expected: " + exception.getName());
-    return null;
+    return null; //this is never reached
   }
 
   public static <S> String getDescription(final List<S> result) {

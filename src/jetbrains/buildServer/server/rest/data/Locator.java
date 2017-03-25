@@ -466,6 +466,10 @@ public class Locator {
                                         CollectionsUtil.intersect(unusedDimensions, CollectionsUtil.join(Arrays.asList(mySupportedDimensions), myHiddenSupportedDimensions));
         Set<String> unknownDimensions = CollectionsUtil.minus(unusedDimensions, ignoredDimensions);
         StringBuilder message = new StringBuilder();
+        if (unusedDimensions.size() == myDimensions.size()){
+          //nothing is used
+          message.append("Unsupported locator: no dimensions are used, try another combination of the dimensions. ");
+        }
         if (unusedDimensions.size() > 1) {
           message.append("Locator dimensions ");
           if (!ignoredDimensions.isEmpty()) {

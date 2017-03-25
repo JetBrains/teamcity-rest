@@ -273,6 +273,56 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
   }
 
   @Test
+  public void testSearchByPermissions() throws Throwable {
+    myFixture.getServerSettings().setPerProjectPermissionsEnabled(true);
+
+    final SUser user10 = createUser("user10");
+    final SUser user20 = createUser("user20");
+    final SUser user30 = createUser("user30");
+    final SUser user40 = createUser("user40");
+    final SUser user50 = createUser("user50");
+    final SUser user60 = createUser("user60");
+    final SUser user70 = createUser("user70");
+    final SUser user100 = createUser("user100");
+
+    final SUserGroup group10 = myFixture.createUserGroup("group1", "group 1", "");
+    final SUserGroup group20 = myFixture.createUserGroup("group1.1", "group 1.1", "");
+    group10.addSubgroup(group20);
+    group20.addUser(user70);
+
+    ProjectEx prj1 = createProject("prj1");
+    ProjectEx prj1_1 = prj1.createProject("prj1_1", "prj1.1");
+    ProjectEx prj3 = createProject("prj3");
+
+    RoleImpl role10 = new RoleImpl("role10", "custom role", new Permissions(Permission.RUN_BUILD), null);
+    myFixture.getRolesManager().addRole(role10);
+    RoleImpl role20 = new RoleImpl("role20", "custom role", new Permissions(Permission.VIEW_PROJECT, Permission.CHANGE_SERVER_SETTINGS), myFixture.getRolesManager());
+    role20.addIncludedRole(role10);
+    myFixture.getRolesManager().addRole(role20);
+    RoleImpl role30 = new RoleImpl("role30", "custom role", new Permissions(Permission.LABEL_BUILD, Permission.CANCEL_BUILD), myFixture.getRolesManager());
+    myFixture.getRolesManager().addRole(role30);
+
+    user10.addRole(RoleScope.globalScope(), getSysAdminRole());
+    user30.addRole(RoleScope.projectScope(prj3.getProjectId()), role10);
+
+    group10.addRole(RoleScope.projectScope(prj1.getProjectId()), role20);
+
+    check(null, user10, user20, user30, user40, user50, user60, user70, user100);
+    check("permission:(permission:run_build,project:(id:" + prj1_1.getExternalId() + "))", user10, user70);
+    checkExceptionOnItemsSearch(LocatorProcessException.class, "permission:(permission:run_build,permission:label_build,project:(id:" + prj1_1.getExternalId() + "))");
+    checkExceptionOnItemsSearch(LocatorProcessException.class, "permission:(permission:run_build,project:(id:a),project:(id:b))");
+
+    assertContains(checkException(LocatorProcessException.class, () -> getFinder().getItems("permission:(project:(id:a))"), null).getMessage(), "unsupported locator");
+
+    check("permission:(permission:run_build)", user10); //global permission check
+
+    check("permission:(permission:run_build,project:(item:" + prj3.getExternalId() + "))", user10, user30);
+    check("permission:(permission:run_build,project:(item:" + prj1_1.getExternalId() + ",item:" + prj3.getExternalId() + "))",
+          user10, user30, user70); //permission in one of the projects
+    check("permission:(permission:run_build,project:(count:100))", user10, user30, user70);  //permission in any project of the first 100
+  }
+
+  @Test
   public void testSearchByRoles() throws Throwable {
     myFixture.getServerSettings().setPerProjectPermissionsEnabled(true);
 

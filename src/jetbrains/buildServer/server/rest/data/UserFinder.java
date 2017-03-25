@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.Function;
 import java.util.*;
 import jetbrains.buildServer.BuildProject;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
@@ -62,6 +63,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
   private static final Dimension<String> PASSWORD = new Dimension<>("password");
   private static final Dimension<TimeCondition.ParsedTimeCondition> LAST_LOGIN_TIME = new Dimension<>("lastLogin");
   private static final Dimension<RoleEntryDatas> ROLE = new Dimension<>("role");
+  private static final Dimension<ItemFilter<SUser>> PERMISSION = new Dimension<>("permission");
 
   @NotNull private final UserModel myUserModel;
   @NotNull private final UserGroupFinder myGroupFinder;
@@ -70,6 +72,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
   @NotNull private final RolesManager myRolesManager;
   @NotNull private final PermissionChecker myPermissionChecker;
   @NotNull private final SecurityContext mySecurityContext;
+  @NotNull private final ServiceLocator myServiceLocator;
 
   public UserFinder(@NotNull final UserModel userModel,
                     @NotNull final UserGroupFinder groupFinder,
@@ -77,7 +80,8 @@ public class UserFinder extends DelegatingFinder<SUser> {
                     @NotNull final TimeCondition timeCondition,
                     @NotNull final RolesManager rolesManager,
                     @NotNull final PermissionChecker permissionChecker,
-                    @NotNull final SecurityContext securityContext) {
+                    @NotNull final SecurityContext securityContext,
+                    @NotNull final ServiceLocator serviceLocator) {
     myUserModel = userModel;
     myGroupFinder = groupFinder;
     myProjectFinder = projectFinder;
@@ -85,6 +89,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
     myRolesManager = rolesManager;
     myPermissionChecker = permissionChecker;
     mySecurityContext = securityContext;
+    myServiceLocator = serviceLocator;
     setDelegate(new UserFinderBuilder().build());
   }
 
@@ -197,7 +202,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
                           @NotNull final RolesManager rolesManager,
                           @NotNull final ProjectFinder projectFinder,
                           @NotNull final PermissionChecker permissionChecker) {
-      Locator roleLocator = new Locator(roleLocatorText, "item", "method", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+      Locator roleLocator = new Locator(roleLocatorText, "item", "method", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);  //consider using generic "item" support from FinderImpl
       List<String> roleAssignmentsLocatorTexts;
       String method = null;
       if (roleLocator.isSingleValue()) {
@@ -497,7 +502,10 @@ public class UserFinder extends DelegatingFinder<SUser> {
         .description("user's role")
         .filter((roleEntryDatas, item) -> roleEntryDatas.matches(item));
 
-      //todo: add PERMISSION
+      PermissionCheck permissionCheck = new PermissionCheck();
+      dimension(PERMISSION, type(dimensionValue ->  permissionCheck.matches(dimensionValue)).description("permission check locator"))
+        .description("user's permission (experimental)").hidden()
+        .filter((type, item) -> type.isIncluded(item));
 
       multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> {
         checkViewAllUsersPermissionEnforced();
@@ -506,6 +514,60 @@ public class UserFinder extends DelegatingFinder<SUser> {
 
       locatorProvider(user -> getLocator(user));
       containerSetProvider(() -> new HashSet<SUser>());
+    }
+  }
+
+
+  private class PermissionCheck {
+    private final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
+    private final Dimension<Permission> PERMISSION = new Dimension<>("permission");
+
+    private final Finder<SUser> myFinder;
+
+    PermissionCheck() {
+      TypedFinderBuilder<SUser> builder = new TypedFinderBuilder<SUser>();
+      builder.dimensionProjects(PROJECT, myServiceLocator).description("project to check permission in (matching when permission is present at least in one of the matched projects), when omitted checking globally");
+      builder.dimensionEnum(PERMISSION, Permission.class).description("permission to check, should be present");
+      //todo: check that condition does not mark as used
+      builder.filter(locator -> locator.lookupSingleDimensionValue(PERMISSION.name) != null && locator.lookupDimensionValue(PROJECT.name).size() <= 1,
+                     dimensions -> new UserPermissionFilter(dimensions));
+      myFinder = builder.build();
+    }
+
+    boolean userHasPermission(@NotNull final SUser user, @NotNull final Permission permission, @Nullable final List<SProject> projects) {
+      if (projects == null) {
+        return user.isPermissionGrantedGlobally(permission);
+      }
+      for (SProject project : projects) {
+        if (user.isPermissionGrantedForProject(project.getProjectId(), permission)) return true;
+      }
+      return false;
+    }
+
+    ItemFilter<SUser> matches(@NotNull String permissionCheckLocator) {
+      return myFinder.getFilter(permissionCheckLocator);
+    }
+
+    private class UserPermissionFilter implements ItemFilter<SUser> {
+      private final Permission myPermission;
+      private final List<SProject> myProjects;
+
+      UserPermissionFilter(final TypedFinderBuilder.DimensionObjects dimensions) {
+        //noinspection ConstantConditions - is checked in a filter condition earlier
+        myPermission = dimensions.get(PERMISSION).get(0);
+        List<List<SProject>> projects = dimensions.get(PROJECT);
+        myProjects = projects == null ? null : projects.get(0);
+      }
+
+      @Override
+      public boolean shouldStop(@NotNull final SUser item) {
+        return false;
+      }
+
+      @Override
+      public boolean isIncluded(@NotNull final SUser item) {
+        return userHasPermission(item, myPermission, myProjects);
+      }
     }
   }
 }

@@ -854,48 +854,19 @@ public class TypedFinderBuilder<ITEM> {
     @NotNull
     @Override
     public String[] getKnownDimensions() {
-      ArrayList<String> result = new ArrayList<>();
-      for (TypedFinderDimensionImpl dimension : myDimensions.values()) {
-        if (!dimension.getHidden()) result.add(dimension.getDimension().name);
-      }
-      if (mySingleDimensionHandler != null) result.add(Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-      return CollectionsUtil.toArray(result, String.class);
+      return TypedFinderBuilder.this.getKnownDimensions();
     }
 
     @NotNull
     @Override
     public String[] getHiddenDimensions() {
-      List<String> result = new ArrayList<>();
-      for (TypedFinderDimensionImpl dimension : myDimensions.values()) {
-        if (dimension.getHidden()) result.add(dimension.getDimension().name);
-      }
-      return CollectionsUtil.toArray(result, String.class);
+      return TypedFinderBuilder.this.getHiddenDimensions();
     }
 
     @NotNull
     @Override
     public Locator.DescriptionProvider getLocatorDescriptionProvider() {
-      return (locator, includeHidden) -> {
-        StringBuilder result = new StringBuilder();
-        result.append("Supported locator dimensions:\n");
-        for (TypedFinderDimensionImpl dimension : myDimensions.values()) {
-          if (!includeHidden && dimension.getHidden() && locator.getDimensionValue(dimension.getDimension().name).isEmpty() && !locator.isHelpRequested()) {
-            continue;
-          }
-          result.append(dimension.getDimension().name);
-          String dimensionDescription = dimension.getDescription();
-          if (dimensionDescription != null) {
-            result.append(" - ");
-            result.append(dimensionDescription);
-          }
-          String typeDescription = dimension.getType().getDescription();
-          if (typeDescription != null) {
-            result.append(" (type: ").append(typeDescription).append(")");
-          }
-          result.append("\n");
-        }
-        return result.toString();
-      };
+      return TypedFinderBuilder.this.getLocatorDescriptionProvider();
     }
 
     @Nullable
@@ -962,7 +933,7 @@ public class TypedFinderBuilder<ITEM> {
     protected ItemFilter<ITEM> getFilter(@NotNull final Locator locator, @NotNull DimensionObjects dimensionObjects) {
       MultiCheckerFilter<ITEM> result = new MultiCheckerFilter<>();
       for (Map.Entry<DimensionCondition, ItemFilterFromDimensions<ITEM>> entry : myFiltersConditions.entrySet()) {
-        if (entry.getKey().complies(locator)) {
+        if (entry.getKey().complies(new Locator(locator))) { //wrapping locator so that it is not marked as used on condition checking
           final Set<String> alreadyUsedDimensions = new HashSet<>(dimensionObjects.getUsedDimensions());
           DimensionObjectsWrapper wrapper = new DimensionObjectsWrapper(dimensionObjects);
           ItemFilter<ITEM> checker = entry.getValue().get(wrapper);
@@ -1011,6 +982,50 @@ public class TypedFinderBuilder<ITEM> {
         return usedDimensions;
       }
     }
+  }
+
+  @NotNull
+  public String[] getKnownDimensions() {
+    ArrayList<String> result = new ArrayList<>();
+    for (TypedFinderDimensionImpl dimension : myDimensions.values()) {
+      if (!dimension.getHidden()) result.add(dimension.getDimension().name);
+    }
+    if (mySingleDimensionHandler != null) result.add(Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    return CollectionsUtil.toArray(result, String.class);
+  }
+
+  @NotNull
+  public String[] getHiddenDimensions() {
+    List<String> result = new ArrayList<>();
+    for (TypedFinderDimensionImpl dimension : myDimensions.values()) {
+      if (dimension.getHidden()) result.add(dimension.getDimension().name);
+    }
+    return CollectionsUtil.toArray(result, String.class);
+  }
+
+  @NotNull
+  public Locator.DescriptionProvider getLocatorDescriptionProvider() {
+    return (locator, includeHidden) -> {
+      StringBuilder result = new StringBuilder();
+      result.append("Supported locator dimensions:\n");
+      for (TypedFinderDimensionImpl dimension : myDimensions.values()) {
+        if (!includeHidden && dimension.getHidden() && locator.getDimensionValue(dimension.getDimension().name).isEmpty() && !locator.isHelpRequested()) {
+          continue;
+        }
+        result.append(dimension.getDimension().name);
+        String dimensionDescription = dimension.getDescription();
+        if (dimensionDescription != null) {
+          result.append(" - ");
+          result.append(dimensionDescription);
+        }
+        String typeDescription = dimension.getType().getDescription();
+        if (typeDescription != null) {
+          result.append(" (type: ").append(typeDescription).append(")");
+        }
+        result.append("\n");
+      }
+      return result.toString();
+    };
   }
 
   @NotNull
