@@ -60,6 +60,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   public static final String VCS_ROOT = "vcsRoot";
   public static final String AGENT_POOL = "pool";
   public static final String FEATURE = "projectFeature";
+  public static final String USER_PERMISSION = "userPermission";
 
   @NotNull private final ProjectManager myProjectManager;
   private final PermissionChecker myPermissionChecker;
@@ -68,7 +69,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   public ProjectFinder(@NotNull final ProjectManager projectManager, final PermissionChecker permissionChecker, @NotNull final ServiceLocator serviceLocator){
     super(DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, DIMENSION_AFFECTED_PROJECT, DIMENSION_NAME, DIMENSION_ARCHIVED,
           BUILD, BUILD_TYPE, VCS_ROOT, FEATURE, AGENT_POOL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-    setHiddenDimensions(DIMENSION_PARAMETER, DIMENSION_SELECTED, DIMENSION_READ_ONLY_UI,
+    setHiddenDimensions(DIMENSION_PARAMETER, DIMENSION_SELECTED, DIMENSION_READ_ONLY_UI, USER_PERMISSION,
                         DIMENSION_LOOKUP_LIMIT,
                         DIMENSION_PARENT_PROJECT //compatibility mode for versions <9.1
     );
@@ -266,6 +267,11 @@ public class ProjectFinder extends AbstractFinder<SProject> {
       });
     }
 
+    final String userPermissionDimension = locator.getSingleDimensionValue(USER_PERMISSION);
+    if (userPermissionDimension != null) {
+      result.add(new PermissionCheck().matches(userPermissionDimension));
+    }
+
     final List<String> poolDimensions = locator.getDimensionValue(AGENT_POOL);
     if (!poolDimensions.isEmpty()) {
       AgentPoolFinder agentPoolFinder = myServiceLocator.getSingletonService(AgentPoolFinder.class);
@@ -447,6 +453,49 @@ public class ProjectFinder extends AbstractFinder<SProject> {
     if (Project.shouldRestrictSettingsViewing(project, permissionChecker)) {
       throw new AuthorizationFailedException(
         "User does not have '" + Permission.VIEW_BUILD_CONFIGURATION_SETTINGS.getName() + "' permission in project " + project.describe(false));
+    }
+  }
+
+  //See also jetbrains.buildServer.server.rest.data.UserFinder.PermissionCheck
+  private class PermissionCheck {
+    private final TypedFinderBuilder.Dimension<List<SUser>> USER = new TypedFinderBuilder.Dimension<>("user");
+    private final TypedFinderBuilder.Dimension<Permission> PERMISSION = new TypedFinderBuilder.Dimension<>("permission");
+
+    private final Finder<SProject> myFinder;
+
+    PermissionCheck() {
+      TypedFinderBuilder<SProject> builder = new TypedFinderBuilder<SProject>();
+      builder.dimensionUsers(USER, myServiceLocator).description("user to check permission for, should be present");
+      builder.dimensionEnum(PERMISSION, Permission.class).description("permission to check, should be present");
+      builder.filter(locator -> locator.lookupSingleDimensionValue(PERMISSION.name) != null && locator.lookupSingleDimensionValue(USER.name) != null,
+                     dimensions -> new PermissionFilter(dimensions));
+      myFinder = builder.build();
+    }
+
+    ItemFilter<SProject> matches(@NotNull String permissionCheckLocator) {
+      return myFinder.getFilter(permissionCheckLocator);
+    }
+
+    private class PermissionFilter implements ItemFilter<SProject> {
+      private final Permission myPermission;
+      private final List<SUser> myUsers;
+
+      PermissionFilter(final TypedFinderBuilder.DimensionObjects dimensions) {
+        //noinspection ConstantConditions - is checked in a filter condition earlier
+        myPermission = dimensions.get(PERMISSION).get(0);
+        //noinspection ConstantConditions - is checked in a filter condition earlier
+        myUsers = dimensions.get(USER).get(0);
+      }
+
+      @Override
+      public boolean shouldStop(@NotNull final SProject item) {
+        return false;
+      }
+
+      @Override
+      public boolean isIncluded(@NotNull final SProject item) {
+        return PermissionChecker.usersHavePermissions(myUsers, myPermission, Collections.singletonList(item));
+      }
     }
   }
 }

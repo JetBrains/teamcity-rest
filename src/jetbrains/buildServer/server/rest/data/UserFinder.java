@@ -528,20 +528,9 @@ public class UserFinder extends DelegatingFinder<SUser> {
       TypedFinderBuilder<SUser> builder = new TypedFinderBuilder<SUser>();
       builder.dimensionProjects(PROJECT, myServiceLocator).description("project to check permission in (matching when permission is present at least in one of the matched projects), when omitted checking globally");
       builder.dimensionEnum(PERMISSION, Permission.class).description("permission to check, should be present");
-      //todo: check that condition does not mark as used
       builder.filter(locator -> locator.lookupSingleDimensionValue(PERMISSION.name) != null && locator.lookupDimensionValue(PROJECT.name).size() <= 1,
                      dimensions -> new UserPermissionFilter(dimensions));
       myFinder = builder.build();
-    }
-
-    boolean userHasPermission(@NotNull final SUser user, @NotNull final Permission permission, @Nullable final List<SProject> projects) {
-      if (projects == null) {
-        return user.isPermissionGrantedGlobally(permission);
-      }
-      for (SProject project : projects) {
-        if (user.isPermissionGrantedForProject(project.getProjectId(), permission)) return true;
-      }
-      return false;
     }
 
     ItemFilter<SUser> matches(@NotNull String permissionCheckLocator) {
@@ -566,7 +555,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
 
       @Override
       public boolean isIncluded(@NotNull final SUser item) {
-        return userHasPermission(item, myPermission, myProjects);
+        return PermissionChecker.usersHavePermissions(Collections.singletonList(item), myPermission, myProjects);
       }
     }
   }

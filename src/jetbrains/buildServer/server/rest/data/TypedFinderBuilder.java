@@ -26,6 +26,7 @@ import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.InheritableUserParametersHolder;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -316,6 +317,11 @@ public class TypedFinderBuilder<ITEM> {
   public TypedFinderDimensionWithDefaultChecker<ITEM, List<SProject>, Set<SProject>> dimensionProjects(@NotNull final Dimension<List<SProject>> dimension,
                                                                                                        @NotNull final ServiceLocator serviceLocator) {
     return dimensionWithFinder(dimension, () -> serviceLocator.getSingletonService(ProjectFinder.class), "project locator");
+  }
+
+  public TypedFinderDimensionWithDefaultChecker<ITEM, List<SUser>, Set<SUser>> dimensionUsers(@NotNull final Dimension<List<SUser>> dimension,
+                                                                                              @NotNull final ServiceLocator serviceLocator) {
+    return dimensionWithFinder(dimension, () -> serviceLocator.getSingletonService(UserFinder.class), "user locator");
   }
 
   /**

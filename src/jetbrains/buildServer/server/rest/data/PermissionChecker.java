@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.util.text.StringUtil;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import jetbrains.buildServer.controllers.interceptors.auth.impl.BuildAuthorityHolder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
@@ -27,6 +28,7 @@ import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.auth.SecurityContextImpl;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectUtil;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.vcs.SVcsModification;
 import org.jetbrains.annotations.NotNull;
@@ -171,4 +173,20 @@ public class PermissionChecker {
     final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
     return authorityHolder.isPermissionGrantedForAnyProject(permission);
   }
+
+  public static boolean usersHavePermissions(@NotNull final List<SUser> users, @NotNull final Permission permission, @Nullable final List<SProject> projects) {
+    if (users.isEmpty()) return false;
+    for (SUser user : users) {
+      if (projects == null || !permission.isProjectAssociationSupported()) {
+        if (user.isPermissionGrantedGlobally(permission)) return true;
+      } else {
+        for (SProject project : projects) {
+          if (user.isPermissionGrantedForProject(project.getProjectId(), permission)) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+
 }

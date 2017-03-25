@@ -19,15 +19,19 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.Arrays;
 import java.util.List;
 import jetbrains.buildServer.BuildAgent;
+import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.PropEntityProjectFeature;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.auth.Permissions;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.ProjectFeatureDescriptorFactory;
+import jetbrains.buildServer.serverSide.impl.auth.RoleImpl;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -208,6 +212,60 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
     checkExceptionOnItemsSearch(LocatorProcessException.class, "selectedByUser:(user:(username:user2,aaa:bbb))");
 
     //add checks after    ProjectEx.setOwnProjectsOrder / setOwnBuildTypesOrder
+  }
+
+  @Test
+  public void testUserPermissionDimension() throws Exception {
+    myFixture.getServerSettings().setPerProjectPermissionsEnabled(true);
+    ProjectEx root = myProjectManager.getRootProject();
+
+    final SProject project10 = createProject("p10", "project 10");
+    final SProject project10_10 = project10.createProject("p10_10", "p10 child1");
+    final SProject project20 = createProject("p20", "project 20");
+    final SProject project30 = createProject("p30", "project 30");
+
+    RoleImpl role10 = new RoleImpl("role10", "custom role", new Permissions(Permission.TAG_BUILD), myFixture.getRolesManager());
+    myFixture.getRolesManager().addRole(role10);
+    RoleImpl role20 = new RoleImpl("role20", "custom role", new Permissions(Permission.CHANGE_SERVER_SETTINGS, Permission.LABEL_BUILD), myFixture.getRolesManager());
+    myFixture.getRolesManager().addRole(role20);
+    RoleImpl role30 = new RoleImpl("role30", "custom role", new Permissions(Permission.RUN_BUILD), myFixture.getRolesManager());
+    myFixture.getRolesManager().addRole(role30);
+    role30.addIncludedRole(role10);
+
+    final SUser user10 = createUser("user10");
+    final SUser user20 = createUser("user20");
+    final SUser user30 = createUser("user30");
+    final SUser user40 = createUser("user40");
+
+    final SUserGroup group10 = myFixture.createUserGroup("group1", "group 1", "");
+    final SUserGroup group20 = myFixture.createUserGroup("group1.1", "group 1.1", "");
+    group10.addSubgroup(group20);
+    group20.addUser(user20);
+
+    group10.addRole(RoleScope.projectScope(project10.getProjectId()), role30);
+
+    user10.addRole(RoleScope.projectScope(project10_10.getProjectId()), role10);
+    user30.addRole(RoleScope.globalScope(), role30);
+    user40.addRole(RoleScope.projectScope(project10_10.getProjectId()), role20);
+
+
+    check(null, getRootProject(), project10, project10_10, project20, project30);
+
+    check("userPermission:(user:(id:" + user10.getId() + "),permission:tag_build)", project10_10);
+    checkExceptionOnItemsSearch(LocatorProcessException.class, "userPermission:(user:(id:" + user10.getId() + "))");
+    checkExceptionOnItemsSearch(LocatorProcessException.class, "userPermission:(permission:view_project)");
+
+    check("userPermission:(user:(id:" + user20.getId() + "),permission:tag_build)", project10, project10_10);
+    check("userPermission:(user:(id:" + user30.getId() + "),permission:TAG_BUILD)", getRootProject(), project10, project10_10, project20, project30); //project permission granted globally
+    check("userPermission:(user:(id:" + user30.getId() + "),permission:change_server_settings)");
+    check("userPermission:(user:(id:" + user40.getId() + "),permission:change_server_settings)", getRootProject(), project10, project10_10, project20, project30); //global permission
+    check("userPermission:(user:(id:" + user40.getId() + "),permission:TAG_BUILD)");
+
+
+    RoleImpl role11 = new RoleImpl("role11", "custom role", new Permissions(Permission.VIEW_PROJECT), myFixture.getRolesManager());
+    myFixture.getRolesManager().addRole(role11);
+    user10.addRole(RoleScope.projectScope(project10_10.getProjectId()), role11);
+    check("userPermission:(user:(id:" + user10.getId() + "),permission:view_project)", getRootProject(), project10, project10_10); //view project is propagated on top
   }
 
   @Test
