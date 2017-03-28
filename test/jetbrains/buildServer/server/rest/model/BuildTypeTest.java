@@ -209,6 +209,34 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     //can also add test for "changesFromDependencies:true" locator and several defaults in different branches
   }
 
+  @Test //TW-49294
+  public void testBranchesCaseDiff() {
+    final BuildTypeEx bt = getRootProject().createProject("Project1", "Project test 1").createBuildType("testBT", "My test build type");
+
+    final BuildTypeRequest buildTypeRequest = new BuildTypeRequest();
+    buildTypeRequest.setInTests(myBuildTypeFinder, myBranchFinder, myBeanContext);
+
+    MockVcsSupport vcs = vcsSupport().withName("vcs").dagBased(true).register();
+
+    BuildFinderTestBase.MockCollectRepositoryChangesPolicy collectChangesPolicy = new BuildFinderTestBase.MockCollectRepositoryChangesPolicy();
+    vcs.setCollectChangesPolicy(collectChangesPolicy);
+
+    final SVcsRoot vcsRoot = bt.getProject().createVcsRoot("vcs", "extId", "name");
+    bt.addVcsRoot(vcsRoot);
+
+    final VcsRootInstance vcsRootInstance = bt.getVcsRootInstances().get(0);
+    collectChangesPolicy.setCurrentState(vcsRootInstance, createVersionState("master", map("master", "1", "aaa", "2", "bbb", "2", "Aaa", "3")));
+    setBranchSpec(vcsRootInstance, "+:*");
+    bt.forceCheckingForChanges();
+    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+    
+    Branches branches = buildTypeRequest.serveBranches("id:testBT", "policy:ALL_BRANCHES", Fields.ALL_NESTED.getFieldsSpec());
+    assertEquals("<default>", branches.branches.get(0).getInternalName());
+    assertEquals("Aaa", branches.branches.get(1).getInternalName());
+    assertEquals("aaa", branches.branches.get(2).getInternalName());
+    assertEquals("bbb", branches.branches.get(3).getInternalName());
+  }
+
   @Test
   public void testLinks() {
     final BuildTypeEx bt = getRootProject().createProject("Project1", "Project test 1").createBuildType("testBT", "My test build type");

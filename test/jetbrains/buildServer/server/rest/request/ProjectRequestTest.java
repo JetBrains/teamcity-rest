@@ -283,6 +283,38 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
                          "branch30", null, null);
   }
 
+
+  @Test
+  public void testBranchesDiffInCaseOnly() {
+    String prjId = "Project1";
+    ProjectEx project1 = getRootProject().createProject(prjId, "Project test 1");
+    String bt1Id = "testBT1";
+    String bt2Id = "testBT2";
+    final BuildTypeEx bt1 = project1.createBuildType(bt1Id, "My test build type 1");
+    final BuildTypeEx bt2 = project1.createBuildType(bt2Id, "My test build type 2");
+
+    final ProjectRequest request = new ProjectRequest();
+    request.setInTests(myProjectFinder, myBranchFinder, myBeanContext);
+
+    MockVcsSupport vcs = vcsSupport().withName("vcs").dagBased(true).register();
+
+    BuildFinderTestBase.MockCollectRepositoryChangesPolicy collectChangesPolicy = new BuildFinderTestBase.MockCollectRepositoryChangesPolicy();
+    vcs.setCollectChangesPolicy(collectChangesPolicy);
+
+    setCurrentBranches(bt1, collectChangesPolicy, "master", map("master", "1", "aaa", "2", "bbb", "3", "Aaa", "3"));
+    setCurrentBranches(bt2, collectChangesPolicy, "Master", map("Master", "1", "bBb", "2", "ccc", "3"));
+
+
+    Branches branches = request.getBranches("id:" + prjId, "policy:ALL_BRANCHES", null);
+    assertBranchesEquals(branches.branches,
+                         "<default>", true, null,
+                         "Aaa", null, null,
+                         "aaa", null, null,
+                         "bBb", null, null,
+                         "bbb", null, null,
+                         "ccc", null, null);
+  }
+
   private void setCurrentBranches(final BuildTypeEx bt,
                                   final BuildFinderTestBase.MockCollectRepositoryChangesPolicy collectChangesPolicy,
                                   final String defaultBranchName, final Map<String, String> state) {

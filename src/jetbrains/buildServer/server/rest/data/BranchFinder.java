@@ -337,14 +337,8 @@ public class BranchFinder extends AbstractFinder<BranchData> {
   }
 
   static private class Accumulator {
-    //this is used for ordering, while being de-duplicated by name
-    private final TreeMap<String, BranchData> myMap = new TreeMap<String, BranchData>((o1, o2) -> {
-      return ComparisonChain.start()
-                            .compareTrueFirst(Branch.DEFAULT_BRANCH_NAME.equals(o1), Branch.DEFAULT_BRANCH_NAME.equals(o2))
-                            .compareFalseFirst(Branch.UNSPECIFIED_BRANCH_NAME.equals(o1), Branch.UNSPECIFIED_BRANCH_NAME.equals(o2))
-                            .compare(o1, o2, String.CASE_INSENSITIVE_ORDER)
-                            .result();
-    });
+    //de-duplicate by name, ordering is not important here
+    private final Map<String, BranchData> myMap = new HashMap<String, BranchData>();
 
     void addAll(@NotNull final List<BranchData> buildTypeBranches) {
       for (BranchData branch : buildTypeBranches) {
@@ -361,7 +355,15 @@ public class BranchFinder extends AbstractFinder<BranchData> {
 
     @NotNull
     Iterable<BranchData> get() {
-      return myMap.values();
+      ArrayList<BranchData> result = new ArrayList<>(myMap.values());
+      result.sort((o1, o2) -> {
+            return ComparisonChain.start()
+                                  .compareTrueFirst(Branch.DEFAULT_BRANCH_NAME.equals(o1.getName()), Branch.DEFAULT_BRANCH_NAME.equals(o2.getName()))
+                                  .compareFalseFirst(Branch.UNSPECIFIED_BRANCH_NAME.equals(o1.getName()), Branch.UNSPECIFIED_BRANCH_NAME.equals(o2.getName()))
+                                  .compare(o1.getName(), o2.getName())
+                                  .result();
+          });
+      return result;
     }
   }
 
