@@ -138,7 +138,7 @@
     </sequential>
   </macrodef>
 
-  <target name="check.teamcitydistribution" description="checks whether TeamCity distribution ready to be used by IDEA-generated build">
+  <target name="check.teamcitydistribution" description="checks whether TeamCity distribution ready to be used by IntelliJ IDEA-generated build">
     <check.property name="path.variable.teamcitydistribution"
                     fail-message="Please define 'teamcity.distribution' or 'path.variable.teamcitydistribution' property (e.g. in build.properties file). The property should point to unpacked TeamCity .tar.gz or .exe distribution."
         />
