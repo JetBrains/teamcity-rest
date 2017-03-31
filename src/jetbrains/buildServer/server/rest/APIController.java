@@ -199,34 +199,36 @@ public class APIController extends BaseController implements ServletContextAware
 
   private void initJerseyWebComponent() {
     if (!myWebComponentInitialized.get()) {
-      synchronized (myWebComponentInitialized) {
-        if (myWebComponentInitialized.get()) return;
+      NamedThreadFactory.executeWithNewThreadName("Initializing Jersey for " + getPluginIdentifyingText(), () -> {
+        synchronized (myWebComponentInitialized) {
+          if (myWebComponentInitialized.get()) return;
 
-        try {
-          // workaround for http://jetbrains.net/tracker/issue2/TW-7656
-          doUnderContextClassLoader(myClassloader, new FuncThrow<Void, Throwable>() {
-            public Void apply() throws Throwable {
-              final Set<ConfigurableApplicationContext> contexts = new HashSet<ConfigurableApplicationContext>();
-              contexts.add(myConfigurableApplicationContext);
-              for (RESTControllerExtension extension : getExtensions()) {
-                contexts.add(extension.getContext());
+          try {
+            // workaround for http://jetbrains.net/tracker/issue2/TW-7656
+            doUnderContextClassLoader(myClassloader, new FuncThrow<Void, Throwable>() {
+              public Void apply() throws Throwable {
+                final Set<ConfigurableApplicationContext> contexts = new HashSet<ConfigurableApplicationContext>();
+                contexts.add(myConfigurableApplicationContext);
+                for (RESTControllerExtension extension : getExtensions()) {
+                  contexts.add(extension.getContext());
+                }
+                myWebComponent.setContexts(contexts);
+                // ExtensionsAwareResourceConfig not initialized yet. We should wait for all extensions to load first.
+                // Now it's time to initialize and scan for extensions.
+                final ExtensionsAwareResourceConfig config = getApplicationContext().getBean(ExtensionsAwareResourceConfig.class);
+                config.onReload();
+                myWebComponent.init(createJerseyConfig());
+                return null;
               }
-              myWebComponent.setContexts(contexts);
-              // ExtensionsAwareResourceConfig not initialized yet. We should wait for all extensions to load first.
-              // Now it's time to initialize and scan for extensions.
-              final ExtensionsAwareResourceConfig config = getApplicationContext().getBean(ExtensionsAwareResourceConfig.class);
-              config.onReload();
-              myWebComponent.init(createJerseyConfig());
-              return null;
-            }
-          });
+            });
 
-          myWebComponentInitialized.set(true);
-        } catch (Throwable e) {
-          LOG.error("Error initializing REST API: ", e);
-          ExceptionUtil.rethrowAsRuntimeException(e);
+            myWebComponentInitialized.set(true);
+          } catch (Throwable e) {
+            LOG.error("Error initializing REST API: " + e.toString(), e);
+            ExceptionUtil.rethrowAsRuntimeException(e);
+          }
         }
-      }
+      });
     }
   }
 
@@ -450,27 +452,29 @@ public class APIController extends BaseController implements ServletContextAware
         }
       }
 
-      // workaround for http://jetbrains.net/tracker/issue2/TW-7656
-      doUnderContextClassLoader(getClass().getClassLoader(), new FuncThrow<Void, Throwable>() {
-        public Void apply() throws Throwable {
-          // patching request
-          final HttpServletRequest actualRequest =
-            new RequestWrapper(patchRequest(request, "Accept", "overrideAccept"), myRequestPathTransformInfo);
+      NamedThreadFactory.executeWithNewThreadNameFuncThrow("Processing REST request", () -> {
+        // workaround for http://jetbrains.net/tracker/issue2/TW-7656
+        doUnderContextClassLoader(getClass().getClassLoader(), new FuncThrow<Void, Throwable>() {
+          public Void apply() throws Throwable {
+            // patching request
+            final HttpServletRequest actualRequest =
+              new RequestWrapper(patchRequest(request, "Accept", "overrideAccept"), myRequestPathTransformInfo);
 
-          if (runAsSystemActual) {
-            LOG.debug("Executing request with system security level");
-            mySecurityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
-              public void run() throws Throwable {
-                myWebComponent.doFilter(actualRequest, response, null);
-              }
-            });
-          } else {
-            myWebComponent.doFilter(actualRequest, response, null);
+            if (runAsSystemActual) {
+              LOG.debug("Executing request with system security level");
+              mySecurityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
+                public void run() throws Throwable {
+                  myWebComponent.doFilter(actualRequest, response, null);
+                }
+              });
+            } else {
+              myWebComponent.doFilter(actualRequest, response, null);
+            }
+            return null;
           }
-          return null;
-        }
+        });
+        return null;
       });
-
     } catch (Throwable throwable) {
       errorEncountered = true;
       // Sometimes Jersey throws IllegalArgumentException and probably other without utilizing ExceptionMappers
