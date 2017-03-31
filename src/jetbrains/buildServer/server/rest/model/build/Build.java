@@ -238,22 +238,27 @@ public class Build {
 
   @XmlAttribute
   public String getBranchName() {
-    Branch branch = myBuildPromotion.getBranch();
-    return branch == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("branchName"), branch.getDisplayName());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("branchName"), () -> {
+      Branch branch = myBuildPromotion.getBranch();
+      return branch == null ? null : branch.getDisplayName();
+    });
   }
 
   @XmlAttribute
   public Boolean getDefaultBranch() {
-    Branch branch = myBuildPromotion.getBranch();
-    return branch == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("defaultBranch"), branch.isDefaultBranch());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("defaultBranch"), () -> {
+      Branch branch = myBuildPromotion.getBranch();
+      return branch == null ? null : branch.isDefaultBranch();
+    });
   }
 
   @XmlAttribute
   public Boolean getUnspecifiedBranch() {
-    Branch branch = myBuildPromotion.getBranch();
-    if (branch == null) return null;
-    final boolean result = Branch.UNSPECIFIED_BRANCH_NAME.equals(branch.getName());
-    return ValueWithDefault.decideDefault(myFields.isIncluded("unspecifiedBranch"), result);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("unspecifiedBranch"), () -> {
+      Branch branch = myBuildPromotion.getBranch();
+      if (branch == null) return null;
+      return Branch.UNSPECIFIED_BRANCH_NAME.equals(branch.getName());
+    });
   }
 
   @XmlAttribute
@@ -337,10 +342,10 @@ public class Build {
 
   @XmlElement(name = "buildType")
   public BuildType getBuildType() {
-    final SBuildType buildType = myBuildPromotion.getParentBuildType();
-    return buildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("buildType", false), new ValueWithDefault.Value<BuildType>() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("buildType", false), new ValueWithDefault.Value<BuildType>() {
       public BuildType get() {
-        return new BuildType(new BuildTypeOrTemplate(buildType), myFields.getNestedField("buildType"), myBeanContext);
+        final SBuildType buildType = myBuildPromotion.getParentBuildType();
+        return buildType == null ? null : new BuildType(new BuildTypeOrTemplate(buildType), myFields.getNestedField("buildType"), myBeanContext);
       }
     });
   }
@@ -357,11 +362,9 @@ public class Build {
 
   @XmlElement(defaultValue = "") //todo: remove comment
   public Comment getComment() {
-    final jetbrains.buildServer.serverSide.comments.Comment comment = myBuildPromotion.getBuildComment();
-    return comment == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("comment", false), new ValueWithDefault.Value<Comment>() {
-      public Comment get() {
-        return new Comment(comment, myFields.getNestedField("comment", Fields.NONE, Fields.LONG), myBeanContext);
-      }
+    return ValueWithDefault.decideDefault(myFields.isIncluded("comment", false), () -> {
+      jetbrains.buildServer.serverSide.comments.Comment comment = myBuildPromotion.getBuildComment();
+      return comment == null ? null : new Comment(comment, myFields.getNestedField("comment", Fields.NONE, Fields.LONG), myBeanContext);
     });
   }
 
@@ -870,13 +873,15 @@ public class Build {
 
   @XmlElement
   public String getQueuedDate() {
-    Date result = null;
-    if (myBuild != null) {
-      result = myBuild.getQueuedDate();
-    } else if (myQueuedBuild != null) {
-      result = myQueuedBuild.getWhenQueued();
-    }
-    return result == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("queuedDate", false), Util.formatTime(result));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("queuedDate", false), () -> {
+      Date result = null;
+      if (myBuild != null) {
+        result = myBuild.getQueuedDate();
+      } else if (myQueuedBuild != null) {
+        result = myQueuedBuild.getWhenQueued();
+      }
+      return result == null ? null : Util.formatTime(result);
+    });
   }
 
   @XmlElement(name = "compatibleAgents")
@@ -1012,7 +1017,7 @@ public class Build {
       assert userId != null;
       user = context.getSingletonService(UserModel.class).findUserById(userId);
     }
-    return new Comment(user, new Date(canceledInfo.getCreatedAt()), canceledInfo.getComment(), fields, context);
+    return new Comment(user, new Date(canceledInfo.getCreatedAt()), canceledInfo.getComment(), fields, context);  //todo: returns wrong date after server restart!
   }
 
   /**
