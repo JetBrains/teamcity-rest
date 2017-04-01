@@ -114,8 +114,10 @@ public class BuildFinder {
     if (locatorText != null || !legacyFieldsPresent) {
       resultingLocatorText = locatorText;
       // legacy: override start and count only if set in URL query parameters and not set in locator
-      if (start != null) resultingLocatorText = Locator.setDimensionIfNotPresent(resultingLocatorText, PagerData.START, String.valueOf(start));
-      if (count != null) resultingLocatorText = Locator.setDimensionIfNotPresent(resultingLocatorText, PagerData.COUNT, String.valueOf(count));
+      if (resultingLocatorText != null && !(new Locator(resultingLocatorText)).isSingleValue()) {
+        if (start != null) resultingLocatorText = Locator.setDimensionIfNotPresent(resultingLocatorText, PagerData.START, String.valueOf(start));
+        if (count != null) resultingLocatorText = Locator.setDimensionIfNotPresent(resultingLocatorText, PagerData.COUNT, String.valueOf(count));
+      }
     } else {
       locator = Locator.createEmptyLocator();
       if (buildType != null) locator.setDimension("buildType", BuildTypeFinder.getLocator(buildType));
