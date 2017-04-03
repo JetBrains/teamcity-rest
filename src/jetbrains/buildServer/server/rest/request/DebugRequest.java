@@ -16,7 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import com.sun.jersey.spi.resource.Singleton;
+import gnu.trove.list.array.TByteArrayList;
 import io.swagger.annotations.Api;
 import java.io.File;
 import java.io.IOException;
@@ -79,7 +79,6 @@ import org.joda.time.format.DateTimeFormatter;
  * These should never be used for non-debug purposes and the API here can change in future versions of TeamCity without any notice.
  */
 @Path(Constants.API_URL + "/debug")
-@Singleton
 @Api("Debug")
 public class DebugRequest {
   public static final String REST_VALID_QUERY_PROPERTY_NAME = "rest.debug.database.allow.query.prefixes";
@@ -88,6 +87,7 @@ public class DebugRequest {
   @Context @NotNull private VcsRootInstanceFinder myVcsRootInstanceFinder;
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private PermissionChecker myPermissionChecker;
+  @Context @NotNull private BeanContext myBeanContext;
 
   @GET
    @Path("/database/tables")
@@ -188,7 +188,10 @@ public class DebugRequest {
   @Path("/currentRequest/details"+ "{extra:(/.*)?}") //"extra" here is to allow checking arbitrary chars in the URL path
   @Produces({"text/plain"})
   public String getRequestDetails(@PathParam("extra") final String extra, @Context HttpServletRequest request) {
-    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    if (!TeamCityProperties.getBoolean("rest.debug.currentRequest.details.allowUnauthorized")) {
+      myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    }
+
     StringBuilder result = new StringBuilder();
     result.append("Remote address: " ).append(WebUtil.hostAndPort(request.getRemoteAddr(), request.getRemotePort())).append("\n");
     result.append("Refined remote address: ").append(WebUtil.hostAndPort(WebUtil.getRemoteAddress(request), request.getRemotePort())).append("\n");
@@ -244,6 +247,7 @@ public class DebugRequest {
 
   @GET
   @Path("/currentRequest/session")
+  @Produces({"application/xml", "application/json"})
   public Session getCurrentSession(@Context HttpServletRequest request, @QueryParam("fields") final String fields, @Context @NotNull final BeanContext beanContext) {
     User currentUser = myServiceLocator.getSingletonService(PermissionChecker.class).getCurrent().getAssociatedUser();
     HttpSession session = request.getSession();
@@ -403,7 +407,8 @@ public class DebugRequest {
   @POST
   @Path("/emptyTask")
   @Produces({"text/plain"})
-  public String emptyTask(@QueryParam("time") String totalTime, @QueryParam("load") Integer loadPercentage) {
+  public String emptyTask(@QueryParam("time") String totalTime, @QueryParam("load") Integer loadPercentage,
+                          @QueryParam("memory") Integer memoryToAllocateBytes, @QueryParam("memoryChunks") @DefaultValue("1") Integer memoryChunksCount) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     long totalTimeMs = 0;
     if (totalTime != null) {
@@ -417,6 +422,13 @@ public class DebugRequest {
     long loadMsInSecond = Math.round((Math.max(Math.min(loadPercentage, 100), 0) / 100.0) * 1000);
 
     final long startTime = System.currentTimeMillis();
+    TByteArrayList[] memoryHog = null;
+    if (memoryToAllocateBytes != null) {
+      memoryHog = new TByteArrayList[memoryChunksCount];
+      for (int i = 0; i < memoryChunksCount; i++) {
+        memoryHog[0] = new TByteArrayList(memoryToAllocateBytes/memoryChunksCount);
+      }
+    }
     try {
       while (System.currentTimeMillis() - startTime < totalTimeMs) {
         if (loadMsInSecond > 0){
@@ -430,7 +442,18 @@ public class DebugRequest {
           Thread.sleep(totalTimeMs);
         }
       }
-      return "Request time: " + (System.currentTimeMillis() - startTime) + "ms";
+      StringBuilder resultMessage = new StringBuilder();
+      resultMessage.append("Request time: ").append(System.currentTimeMillis() - startTime).append("ms");
+      if (loadPercentage > 0) {
+        resultMessage.append(", generated CPU load of ").append(loadPercentage).append("%");
+      }
+      if (memoryToAllocateBytes != null) {
+        resultMessage.append(", allocated ").append(StringUtil.formatFileSize(memoryToAllocateBytes));
+        if (memoryChunksCount > 1) {
+          resultMessage.append(" in ").append(memoryChunksCount).append(" chunks");
+        }
+      }
+      return resultMessage.toString();
     } catch (InterruptedException e) {
       return "Interrupted. Request time: " + (System.currentTimeMillis() - startTime) + "ms";
     }
