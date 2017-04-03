@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import gnu.trove.list.array.TByteArrayList;
 import io.swagger.annotations.Api;
 import java.io.File;
 import java.io.IOException;
@@ -422,11 +421,11 @@ public class DebugRequest {
     long loadMsInSecond = Math.round((Math.max(Math.min(loadPercentage, 100), 0) / 100.0) * 1000);
 
     final long startTime = System.currentTimeMillis();
-    TByteArrayList[] memoryHog = null;
+    List<byte[]> memoryHog = null;
     if (memoryToAllocateBytes != null) {
-      memoryHog = new TByteArrayList[memoryChunksCount];
+      memoryHog = new ArrayList<>(memoryChunksCount);
       for (int i = 0; i < memoryChunksCount; i++) {
-        memoryHog[0] = new TByteArrayList(memoryToAllocateBytes/memoryChunksCount);
+        memoryHog.add(i, new byte[memoryToAllocateBytes/memoryChunksCount]);
       }
     }
     try {
