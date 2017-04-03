@@ -40,7 +40,6 @@ import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.parameters.ParameterDescriptionFactory;
 import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
-import jetbrains.buildServer.serverSide.parameters.types.PasswordType;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
@@ -68,11 +67,7 @@ public class Property {
 
   public Property(@NotNull final Parameter parameter, @Nullable final Boolean inherited, @NotNull final Fields fields, @NotNull final ServiceLocator serviceLocator) {
     name = !fields.isIncluded("name", true, true) ? null : parameter.getName();
-    if (!isSecure(parameter, serviceLocator)) {
-      value = !fields.isIncluded("value", true, true) ? null : parameter.getValue();
-    } else if (getAllowedValues().contains(getSecureValue(parameter, serviceLocator)) || includeSecureProperties(serviceLocator)) {
-      value = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("value", true, true), () -> getSecureValue(parameter, serviceLocator));
-    }
+    value = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("value", true, true), () -> getParameterValue(parameter, serviceLocator));
     this.inherited = ValueWithDefault.decideDefault(fields.isIncluded("inherited"), inherited);
     final ControlDescription parameterSpec = parameter.getControlDescription();
     if (parameterSpec != null) {
@@ -81,8 +76,24 @@ public class Property {
     }
   }
 
+  /**
+   * @return value of a regular parameter, secure value for the secure parameter, null if the value is secure and cannot be seen by the current user
+   */
+  @Nullable
+  public static String getParameterValue(final Parameter parameter, final ServiceLocator serviceLocator) {
+    if (!isSecure(parameter, serviceLocator)) {
+      return parameter.getValue();
+    }
+
+    String secureValue = getSecureValue(parameter, serviceLocator);
+    if (getAllowedValues().contains(secureValue) || includeSecureProperties(serviceLocator)) {
+      return secureValue;
+    }
+    return null;
+  }
+
   public static boolean isSecure(@NotNull final Parameter parameter, @NotNull final ServiceLocator serviceLocator) {
-    if (serviceLocator.getSingletonService(PasswordType.class).isPassword(parameter.getControlDescription()) && !includeSecureProperties(serviceLocator)) {
+    if (serviceLocator.getSingletonService(ParameterFactory.class).isSecureParameter(parameter.getControlDescription())) {
       return true;
     }
     return isPropertyToExclude(parameter.getName(), parameter.getValue(), serviceLocator);
@@ -90,7 +101,7 @@ public class Property {
 
   public static boolean isPropertyToExclude(@NotNull final String key, @Nullable final String value, final @NotNull ServiceLocator serviceLocator) {
     //TeamCity API question: or should jetbrains.buildServer.agent.Constants.SECURE_PROPERTY_PREFIX be used here?
-    if (key.startsWith(SVcsRoot.SECURE_PROPERTY_PREFIX) && !includeSecureProperties(serviceLocator)) {
+    if (key.startsWith(SVcsRoot.SECURE_PROPERTY_PREFIX)) {
       return !getAllowedValues().contains(value);
     }
     return false;
@@ -102,7 +113,7 @@ public class Property {
     return parameterFactory.getRawValue(parameter);
   }
 
-  private static boolean includeSecureProperties(final @NotNull ServiceLocator serviceLocator) {
+  public static boolean includeSecureProperties(final @NotNull ServiceLocator serviceLocator) {
     //noinspection ConstantConditions
     return TeamCityProperties.getBoolean("rest.listSecureProperties") &&
            serviceLocator.findSingletonService(PermissionChecker.class).isPermissionGranted(Permission.EDIT_PROJECT, null);

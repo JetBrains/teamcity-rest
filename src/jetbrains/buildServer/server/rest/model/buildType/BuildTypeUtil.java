@@ -199,10 +199,11 @@ public class BuildTypeUtil {
     if (parameter == null) {
       throw new NotFoundException((nameItProperty ? "No property" : "No parameter") + " with name '" + parameterName + "' is found.");
     }
-    if (checkSecure && Property.isSecure(parameter, serviceLocator)) {
+    if (!checkSecure) return parameter.getValue();
+    String parameterValue = Property.getParameterValue(parameter, serviceLocator);
+    if (parameterValue == null)
       throw new BadRequestException("Secure " + (nameItProperty ? "properties" : "parameters") + " cannot be retrieved via remote API by default.");
-    }
-    return parameter.getValue();
+    return parameterValue;
   }
 
   public static String getParameter(@Nullable final String parameterName, @NotNull final Map<String, String> parameters, final boolean checkSecure, final boolean nameItProperty,
@@ -212,7 +213,7 @@ public class BuildTypeUtil {
     }
     if (parameters.containsKey(parameterName)) { // this processes stored "null" values duly, but this might not be necessary...
       String value = parameters.get(parameterName);
-      if (!checkSecure || !Property.isPropertyToExclude(parameterName, value, serviceLocator)) {
+      if (!checkSecure || !Property.isPropertyToExclude(parameterName, value, serviceLocator) || Property.includeSecureProperties(serviceLocator)) {
         return value;
       } else {
         throw new BadRequestException("Secure " + (nameItProperty ? "properties" : "parameters") + " cannot be retrieved via remote API by default.");
@@ -228,7 +229,7 @@ public class BuildTypeUtil {
     }
     final String value = parameters.get(parameterName);
     if (value != null) {
-      if (!checkSecure || !Property.isPropertyToExclude(parameterName, value, serviceLocator)) {
+      if (!checkSecure || !Property.isPropertyToExclude(parameterName, value, serviceLocator) || Property.includeSecureProperties(serviceLocator)) {
         return value;
       } else {
         throw new BadRequestException("Secure " + (nameItProperty ? "properties" : "parameters") + " cannot be retrieved via remote API by default.");
