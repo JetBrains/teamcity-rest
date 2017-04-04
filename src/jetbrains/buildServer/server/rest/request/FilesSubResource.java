@@ -205,9 +205,9 @@ public class FilesSubResource {
 
         @NotNull
         public String getFileDigest() {
-          //todo see other implementations
-          //todo: ideally, should also include "root" of the Browser as that can resolve to different roots at different times
-          return EncryptUtil.md5(element.getFullName() + getFileSize() + getLastModified());
+          //including full "resolved" path into the tag to make sure same-name, same-size files available under the same URL produce different tags
+          //note: "aggregated" build artifacts are still not handled in due way here
+          return EncryptUtil.md5(fileApiUrlBuilder(null, myUrlPrefix).getContentHref(element) + "_" + getFileSize() + "_" + getLastModified());
         }
 
         @NotNull
