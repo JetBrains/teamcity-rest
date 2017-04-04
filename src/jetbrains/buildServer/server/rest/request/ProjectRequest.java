@@ -594,6 +594,52 @@ public class ProjectRequest {
   }
 
   /**
+   * Creates token for the value submitted. The token can then be used in the raw settings files to represent a secure value like password.
+   * The kind of the token generated can depend on the project settings
+   */
+  @POST
+  @Path("/{projectLocator}/secure/tokens")
+  @Produces({"text/plain"})
+  @Consumes({"text/plain"})
+  public String createSecureToken(@PathParam("projectLocator") String projectLocator, String secureValue) {
+    SProject project = myProjectFinder.getItem(projectLocator);
+    myPermissionChecker.checkProjectPermission(Permission.EDIT_PROJECT, project.getProjectId());
+    return ((ProjectEx)project).getOrCreateToken(secureValue);
+  }
+
+  /* TeamCity API note:
+    It is also worth supporting for tokens:
+    check if token exists for the value: GET /{projectLocator}/secure/tokens/{secureValue}
+    list tokens: GET /{projectLocator}/secure/tokens
+    delete token and associated secure value: DELETE /{projectLocator}/secure/tokens/{token}
+    (may be) update secure value for the specific token: PUT /{projectLocator}/secure/tokens/{token} - but this should probably be done for all the projects, tbd
+   */
+
+  /**
+   * Experimental support only.
+   */
+  @GET
+  @Path("/{projectLocator}/secure/values/{token}")
+  @Produces({"text/plain"})
+  @Consumes({"text/plain"})
+  public String getSecureValue(@PathParam("projectLocator") String projectLocator, @PathParam("token") String token) {
+    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS); //checking global admin for now
+    SProject project = myProjectFinder.getItem(projectLocator);
+    return getSecureValueByToken(project, token);
+  }
+
+  @NotNull
+  private synchronized String getSecureValueByToken(@NotNull final SProject project, String token) {
+    // synchronized with timeout to reduce brute-forcing ability in case this will ever be exposed to non-server admins
+    try {
+      Thread.sleep(TeamCityProperties.getLong("rest.projectRequest.secureValueByTokenDelay", 5000));
+    } catch (InterruptedException e) {
+      //ignore
+    }
+    return ((ProjectEx)project).getSecureValue(token, "Requested via REST");
+  }
+
+  /**
    * Empty collection means no custom ordering
    */
   @GET
