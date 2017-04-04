@@ -30,6 +30,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
+import jetbrains.buildServer.controllers.HttpDownloadProcessor;
 import jetbrains.buildServer.server.rest.data.ArchiveElement;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.data.Locator;
@@ -49,6 +50,7 @@ import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.TCStreamUtil;
 import jetbrains.buildServer.util.browser.Element;
+import jetbrains.buildServer.web.artifacts.browser.ArtifactElement;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
 import jetbrains.buildServer.web.util.HttpByteRange;
 import jetbrains.buildServer.web.util.WebUtil;
@@ -144,24 +146,82 @@ public class FilesSubResource {
   @GET
   @Path("files" + "{path:(/.*)?}")
   @Produces({MediaType.WILDCARD})
-  public Response getContentAlias(@PathParam("path") @DefaultValue("") final String path, @Context HttpServletRequest request) {
-    return getContent(path, request);
+  public Response getContentAlias(@PathParam("path") @DefaultValue("") final String path, @Context HttpServletRequest request, @Context HttpServletResponse response) {
+    return getContent(path, null, request, response);
   }
 
   @GET
   @Path(FilesSubResource.CONTENT + "{path:(/.*)?}")
   @Produces({MediaType.WILDCARD})
-  public Response getContent(@PathParam("path") final String path, @Context HttpServletRequest request) {
+  public Response getContent(@PathParam("path") final String path,
+                             @QueryParam("responseBuilder") final String responseBuilder,
+                             @Context HttpServletRequest request,
+                             @Context HttpServletResponse response) {
     final String preprocessedPath = myProvider.preprocess(StringUtil.removeLeadingSlash(path));
     final Element initialElement = myProvider.getElement(preprocessedPath);
     if (!initialElement.isContentAvailable()) {
       throw new NotFoundException("Cannot provide content for '" + initialElement.getFullName() + "'. To get children use '" +
                                   fileApiUrlBuilder(null, myUrlPrefix).getChildrenHref(initialElement) + "'.");
     }
-    final Response.ResponseBuilder builder = getContent(initialElement, request);
-    myProvider.fileContentServed(preprocessedPath, request);
-    return builder.build();
+    String contentResponseBuilder = responseBuilder != null ? responseBuilder : TeamCityProperties.getProperty("rest.files.contentResponseBuilder", "rest");
+    if ("rest".equals(contentResponseBuilder)) {
+      final Response.ResponseBuilder builder = getContent(initialElement, request);
+      myProvider.fileContentServed(preprocessedPath, request);
+      return builder.build();
+    } else if ("coreDownloadProcessor".equals(contentResponseBuilder)) {
+      processCoreDownload(initialElement, request, response);
+      myProvider.fileContentServed(preprocessedPath, request);
+      return null;
+    } else {
+      throw new BadRequestException("Unknown responseBuilder: '" + contentResponseBuilder + "'. Supported values are: '" + "rest" + "', '" + "coreDownloadProcessor" + "'");
+    }
   }
+
+  private void processCoreDownload(@NotNull final Element element, @NotNull final HttpServletRequest request, @NotNull final HttpServletResponse response) {
+    if (TeamCityProperties.getBooleanOrTrue("rest.build.artifacts.forceContentDisposition.Attachment")) {
+      WebUtil.setContentDisposition(request, response, element.getName(), false);
+    } else {
+      response.setHeader("Content-Disposition", element.getName());
+    }
+
+    try {
+      myBeanContext.getSingletonService(HttpDownloadProcessor.class).processDownload(new HttpDownloadProcessor.FileInfo() {
+        public long getLastModified() {
+          if (element instanceof ArtifactElement) {
+            Long lastModified = ((ArtifactElement)element).getLastModified();
+            if (lastModified != null) return lastModified;
+          }
+          return -1;
+        }
+
+        public long getFileSize() {
+          return element.getSize();
+        }
+
+        @NotNull
+        public String getFileName() {
+          return element.getName();
+        }
+
+        @NotNull
+        public String getFileDigest() {
+          //todo see other implementations
+          //todo: ideally, should also include "root" of the Browser as that can resolve to different roots at different times
+          return EncryptUtil.md5(element.getFullName() + getFileSize() + getLastModified());
+        }
+
+        @NotNull
+        public InputStream getInputStream() throws IOException {
+          //todo: see this method in HttpDownloadProcessor
+          return element.getInputStream();
+        }
+      }, false /*header is forced to attachment above*/, request, response);
+    } catch (IOException e) {
+      //todo add better processing
+      throw new OperationException("Error while processing file '" + element.getFullName() + "': " + e.toString(), e);
+    }
+  }
+
 
   @GET
   @Path(FilesSubResource.METADATA + "{path:(/.*)?}")
@@ -251,8 +311,8 @@ public class FilesSubResource {
 
   public static Response.ResponseBuilder getContentByStream(@NotNull final Element element, @NotNull final HttpServletRequest request,
                                                             @NotNull final StreamingOutputProvider streamingOutputProvider) {
-    //todo: review possibility to reuse HttpDownloadProcessor.processDownload here instead of custom logic
 
+    // support ETag in request to response with 304/not modified, see also jetbrains.buildServer.controllers.artifacts.DownloadArtifactsController.doHandle()
     //TeamCity API: need to lock artifacts while reading???  e.g. see JavaDoc for jetbrains.buildServer.serverSide.artifacts.BuildArtifacts.iterateArtifacts()
     if (!element.isContentAvailable()) {
       throw new NotFoundException("Cannot provide content for '" + element.getFullName() + "' (not a file).");
