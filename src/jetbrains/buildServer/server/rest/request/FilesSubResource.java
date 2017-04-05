@@ -169,6 +169,9 @@ public class FilesSubResource {
       myProvider.fileContentServed(preprocessedPath, request);
       return builder.build();
     } else if ("coreDownloadProcessor".equals(contentResponseBuilder)) {
+      if (myProvider instanceof DownloadProcessor) {
+        if (((DownloadProcessor)myProvider).processDownload(initialElement, request, response)) return null;
+      }
       processCoreDownload(initialElement, request, response);
       myProvider.fileContentServed(preprocessedPath, request);
       return null;
@@ -447,5 +450,13 @@ public class FilesSubResource {
     public boolean fileContentServed(@Nullable final String path, @NotNull final HttpServletRequest request) {
       return false;
     }
+  }
+
+  interface DownloadProcessor {
+    /**
+     * @param response true if the request is processed and response is complete. false if the response is not written into and the processing should be continued
+     * @return
+     */
+    public boolean processDownload(@NotNull Element element, @NotNull HttpServletRequest request, @NotNull HttpServletResponse response);
   }
 }

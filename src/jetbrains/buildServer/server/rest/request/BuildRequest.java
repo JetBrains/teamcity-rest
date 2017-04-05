@@ -27,12 +27,14 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
+import jetbrains.buildServer.controllers.HttpDownloadProcessor;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.parameters.ProcessingResult;
 import jetbrains.buildServer.server.rest.data.*;
@@ -282,42 +284,8 @@ public class BuildRequest {
     final BuildPromotion buildPromotion = myBuildFinder.getBuildPromotion(null, buildLocator);
 
     final String urlPrefix = getArtifactsUrlPrefix(buildPromotion, myBeanContext);
-    return new FilesSubResource(new FilesSubResource.Provider() {
-      @Override
-      @NotNull
-      public Element getElement(@NotNull final String path) {
-        return BuildArtifactsFinder.getArtifactElement(buildPromotion, path, myBeanContext.getServiceLocator());
-      }
-
-      @NotNull
-      @Override
-      public String preprocess(@Nullable final String path) {
-        return getResolvedIfNecessary(buildPromotion, path, resolveParameters);
-      }
-
-      @NotNull
-      @Override
-      public String getArchiveName(@NotNull final String path) {
-        return getBuildFileName(buildPromotion, path) + "_artifacts";
-      }
-
-      @Override
-      public boolean fileContentServed(@Nullable final String path, @NotNull final HttpServletRequest request) {
-        if (logBuildUsage == null || logBuildUsage) {
-          //see RepositoryUtil.logArtifactDownload
-          Long authenticatedBuild = WebAuthUtil.getAuthenticatedBuildId(request);
-          if (authenticatedBuild != null) {
-            myBeanContext.getSingletonService(DownloadedArtifactsLogger.class).logArtifactDownload(authenticatedBuild, BuildPromotionFinder.getBuildId(buildPromotion), path);
-            return true;
-          } else {
-            if (logBuildUsage != null) {
-              throw new BadRequestException("No build authentication found while 'logBuildUsage' parameter is set");
-            }
-          }
-        }
-        return false;
-      }
-    }, urlPrefix, myBeanContext, true);
+    //convert anonymous to inner here, implement DownloadProcessor
+    return new FilesSubResource(new BuildArtifactsProvider(buildPromotion, resolveParameters, logBuildUsage), urlPrefix, myBeanContext, true);
   }
 
   @NotNull
@@ -969,5 +937,72 @@ public class BuildRequest {
     myBuildPromotionFinder = myBeanContext.getSingletonService(BuildPromotionFinder.class);
     myBuildTypeFinder = myBeanContext.getSingletonService(BuildTypeFinder.class);
     myPermissionChecker = myBeanContext.getSingletonService(PermissionChecker.class);
+  }
+
+  private class BuildArtifactsProvider extends FilesSubResource.Provider implements FilesSubResource.DownloadProcessor{
+    private final BuildPromotion myBuildPromotion;
+    private final Boolean myResolveParameters;
+    private final Boolean myLogBuildUsage;
+
+    public BuildArtifactsProvider(final BuildPromotion buildPromotion, final Boolean resolveParameters, final Boolean logBuildUsage) {
+      myBuildPromotion = buildPromotion;
+      myResolveParameters = resolveParameters;
+      myLogBuildUsage = logBuildUsage;
+    }
+
+    @Override
+    @NotNull
+    public Element getElement(@NotNull final String path) {
+      return BuildArtifactsFinder.getArtifactElement(myBuildPromotion, path, myBeanContext.getServiceLocator());
+    }
+
+    @NotNull
+    @Override
+    public String preprocess(@Nullable final String path) {
+      return getResolvedIfNecessary(myBuildPromotion, path, myResolveParameters);
+    }
+
+    @NotNull
+    @Override
+    public String getArchiveName(@NotNull final String path) {
+      return getBuildFileName(myBuildPromotion, path) + "_artifacts";
+    }
+
+    @Override
+    public boolean fileContentServed(@Nullable final String path, @NotNull final HttpServletRequest request) {
+      if (myLogBuildUsage == null || myLogBuildUsage) {
+        //see RepositoryUtil.logArtifactDownload
+        Long authenticatedBuild = WebAuthUtil.getAuthenticatedBuildId(request);
+        if (authenticatedBuild != null) {
+          myBeanContext.getSingletonService(DownloadedArtifactsLogger.class).logArtifactDownload(authenticatedBuild, BuildPromotionFinder.getBuildId(myBuildPromotion), path);
+          return true;
+        } else {
+          if (myLogBuildUsage != null) {
+            throw new BadRequestException("No build authentication found while 'logBuildUsage' parameter is set");
+          }
+        }
+      }
+      return false;
+    }
+
+    @Override
+    public boolean processDownload(@NotNull final Element element, @NotNull final HttpServletRequest request, @NotNull final HttpServletResponse response) {
+      boolean useCoreLogic = TeamCityProperties.getBooleanOrTrue("rest.buildRequest.artifacts.download.useCoreDownloadProcessor");
+      if (!useCoreLogic) return false;
+
+      if (element instanceof BuildArtifactsFinder.BuildHoldingElement){
+        BuildArtifactsFinder.BuildHoldingElement buildArtifact = (BuildArtifactsFinder.BuildHoldingElement)element;
+        try {
+          SBuild build = buildArtifact.getBuildPromotion().getAssociatedBuild();
+          if (build == null) return false; //TeamCity API issue: cannot download artifacts from a queued build
+          myBeanContext.getSingletonService(HttpDownloadProcessor.class).processArtifactDownload(build, buildArtifact.getBuildArtifact(), request, response);
+          return true;
+        } catch (IOException e) {
+          //TeamCity API issue: not clear what can be done here.
+          throw new OperationException("Error processing build artifact download" + e.toString(), e);
+        }
+      }
+      return false;
+    }
   }
 }

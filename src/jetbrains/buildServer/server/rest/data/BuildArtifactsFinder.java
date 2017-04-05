@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.files.FileApiUrlBuilder;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.BuildPromotionEx;
+import jetbrains.buildServer.serverSide.artifacts.BuildArtifact;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactHolder;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifacts;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactsViewMode;
@@ -330,7 +331,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
     if (!holder.isAccessible()) {
       throw new AuthorizationFailedException("Artifact is not accessible with current user permissions. Relative path: '" + holder.getRelativePath() + "'");
     }
-    return new ArtifactElement(holder.getArtifact());
+    return new BuildHoldingElement(holder.getArtifact(), buildPromotion);
   }
 
   @Nullable
@@ -544,6 +545,27 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
     @Override
     public String toString() {
       return myElement.toString() + " unified";
+    }
+  }
+
+  public static class BuildHoldingElement extends ArtifactElement {
+    @NotNull private final BuildArtifact myBuildArtifact;
+    @NotNull private final BuildPromotion myBuildPromotion;
+
+    public BuildHoldingElement(@NotNull BuildArtifact e, @NotNull BuildPromotion build) {
+      super(e);
+      myBuildArtifact = e;
+      myBuildPromotion = build;
+    }
+
+    @NotNull
+    public BuildArtifact getBuildArtifact() {
+      return myBuildArtifact;
+    }
+
+    @NotNull
+    public BuildPromotion getBuildPromotion() {
+      return myBuildPromotion;
     }
   }
 
