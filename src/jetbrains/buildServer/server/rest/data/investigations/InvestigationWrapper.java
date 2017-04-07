@@ -21,10 +21,7 @@ import java.util.Date;
 import java.util.List;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.BuildType;
-import jetbrains.buildServer.responsibility.BuildProblemResponsibilityEntry;
-import jetbrains.buildServer.responsibility.BuildTypeResponsibilityEntry;
-import jetbrains.buildServer.responsibility.ResponsibilityEntry;
-import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
+import jetbrains.buildServer.responsibility.*;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -46,6 +43,7 @@ public class InvestigationWrapper implements ResponsibilityEntry, Comparable<Inv
   private final BuildTypeResponsibilityEntry myBuildTypeRE;
   private final TestNameResponsibilityEntry myTestRE;
   private final BuildProblemResponsibilityEntry myProblemRE;
+  private String myExId;
 
   public InvestigationWrapper(@NotNull BuildTypeResponsibilityEntry entry) {
     myRE = entry;
@@ -66,6 +64,17 @@ public class InvestigationWrapper implements ResponsibilityEntry, Comparable<Inv
     myBuildTypeRE = null;
     myTestRE = null;
     myProblemRE = entry;
+  }
+
+  /**
+   * internal use only
+   */
+  public InvestigationWrapper(@NotNull ResponsibilityEntryEx entry) {
+    myRE = entry;
+    myExId = entry.getProblemId();
+    myBuildTypeRE = null;
+    myTestRE = null;
+    myProblemRE = null;
   }
 
   public boolean isBuildType() {
@@ -114,10 +123,9 @@ public class InvestigationWrapper implements ResponsibilityEntry, Comparable<Inv
   }
 
 
-  @SuppressWarnings("ConstantConditions")
   @NotNull
   public String getId() {
-    return InvestigationFinder.getLocator(this);
+    return myExId != null ? myExId : InvestigationFinder.getLocator(this);
   }
 
   @NotNull

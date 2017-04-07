@@ -71,7 +71,11 @@ public class Investigation {
     }
 
     id = ValueWithDefault.decideDefault(fields.isIncluded("id"), investigation.getId());
-    href = ValueWithDefault.decideDefault(fields.isIncluded("href"), InvestigationRequest.getHref(investigation));
+    try {
+      href = ValueWithDefault.decideDefault(fields.isIncluded("href"), InvestigationRequest.getHref(investigation));
+    } catch (Exception e) {
+      //ignore: InvestigationFinder.getLocator can throw exception
+    }
 
     target = ValueWithDefault.decideDefault(fields.isIncluded("target", false), new ValueWithDefault.Value<ProblemTarget>() {
       public ProblemTarget get() {

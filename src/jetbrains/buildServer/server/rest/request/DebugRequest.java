@@ -36,7 +36,9 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.controllers.login.RememberMe;
 import jetbrains.buildServer.diagnostic.MemoryUsageMonitor;
 import jetbrains.buildServer.diagnostic.web.ThreadDumpsController;
+import jetbrains.buildServer.responsibility.ResponsibilityManager;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -44,6 +46,7 @@ import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.model.buildType.Investigations;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.model.debug.Session;
 import jetbrains.buildServer.server.rest.model.debug.Sessions;
@@ -682,6 +685,20 @@ public class DebugRequest {
       return new String(Base64.getUrlEncoder().encode(value.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
     }
     throw new BadRequestException("Unknown method '" + method + "'. Supported are: " + "md5"+ ", " + "encodeBase64Url" + ", " + "decodeBase64" + ".");
+  }
+
+  /**
+   * experimental use only.
+   * Allow to get raw investigations without filtering by no longer present projects, etc.
+   */
+  @GET
+  @Path("/investigations")
+  @Produces({"application/xml", "application/json"})
+  public Investigations getRawInvestigations(@QueryParam("fields") final String fields) {
+    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    List<InvestigationWrapper> investigations =
+      myServiceLocator.getSingletonService(ResponsibilityManager.class).getAllEntries(null).stream().map(r -> new InvestigationWrapper(r)).collect(Collectors.toList());
+    return new Investigations(investigations, null, new Fields(fields), myBeanContext);
   }
 
   @GET
