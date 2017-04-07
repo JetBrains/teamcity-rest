@@ -39,6 +39,7 @@ import jetbrains.buildServer.diagnostic.web.ThreadDumpsController;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -60,6 +61,7 @@ import jetbrains.buildServer.serverSide.db.queries.QueryOptions;
 import jetbrains.buildServer.serverSide.impl.BuildPromotionReplacementLog;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.dependency.GraphOptimizer;
+import jetbrains.buildServer.serverSide.impl.history.DBBuildHistory;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.filters.Filter;
@@ -680,6 +682,18 @@ public class DebugRequest {
       return new String(Base64.getUrlEncoder().encode(value.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
     }
     throw new BadRequestException("Unknown method '" + method + "'. Supported are: " + "md5"+ ", " + "encodeBase64Url" + ", " + "decodeBase64" + ".");
+  }
+
+  @GET
+  @Path("/caches/builds/stats")
+  @Produces({"application/xml", "application/json"})
+  public Properties getCachedBuildsStat(@QueryParam("fields") final String fields) {
+    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    Map<String, String> cacheStat = myServiceLocator.getSingletonService(DBBuildHistory.class).getCacheStat();
+    if ("0".equals(cacheStat.get("hitCount"))) {
+      throw new NotFoundException("Build cache statistics does not seem enabled on server start via \"teamcity.buildhistory.buildsCache.statistics.enabled\" property");
+    }
+    return new Properties(cacheStat, null, new Fields(fields), myServiceLocator);
   }
 
   /**
