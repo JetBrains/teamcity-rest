@@ -290,11 +290,4 @@ public class InvestigationWrapper implements ResponsibilityEntry, Comparable<Inv
     result = 31 * result + a.getProject().getProjectId().hashCode();
     return result;
   }
-
-
-  @NotNull
-  @Override
-  public String describe(final boolean verbose) {
-    return myRE.describe(verbose);
-  }
 }
