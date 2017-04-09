@@ -163,22 +163,24 @@ public class FilesSubResource {
       throw new NotFoundException("Cannot provide content for '" + initialElement.getFullName() + "'. To get children use '" +
                                   fileApiUrlBuilder(null, myUrlPrefix).getChildrenHref(initialElement) + "'.");
     }
-    String contentResponseBuilder = responseBuilder != null ? responseBuilder : TeamCityProperties.getProperty("rest.files.contentResponseBuilder", "coreDownloadProcessor");
+    String contentResponseBuilder = responseBuilder != null ? responseBuilder : TeamCityProperties.getProperty("rest.files.contentResponseBuilder", "coreWithDownloadProcessor");
     if ("rest".equals(contentResponseBuilder)) {
       //pre-2017.1 way of downloading files
       final Response.ResponseBuilder builder = getContent(initialElement, request);
       myProvider.fileContentServed(preprocessedPath, request);
       return builder.build();
-    } else if ("coreDownloadProcessor".equals(contentResponseBuilder)) {
-      if (myProvider instanceof DownloadProcessor) {
-        if (((DownloadProcessor)myProvider).processDownload(initialElement, request, response)) return null;
-      }
+    } else if ("core".equals(contentResponseBuilder)) {
       processCoreDownload(initialElement, request, response);
-      myProvider.fileContentServed(preprocessedPath, request);
-      return null;
+    } else if ("coreWithDownloadProcessor".equals(contentResponseBuilder)) {
+      if (!(myProvider instanceof DownloadProcessor) || !((DownloadProcessor)myProvider).processDownload(initialElement, request, response)) {
+        processCoreDownload(initialElement, request, response);
+      }
     } else {
-      throw new BadRequestException("Unknown responseBuilder: '" + contentResponseBuilder + "'. Supported values are: '" + "rest" + "', '" + "coreDownloadProcessor" + "'");
+      throw new BadRequestException("Unknown responseBuilder: '" + contentResponseBuilder + "'. Supported values are: '" + "rest" + "', '" + "core" + "', '" + "coreWithDownloadProcessor" + "'");
     }
+    //todo: register only if no errors occurred?
+    myProvider.fileContentServed(preprocessedPath, request);
+    return null;
   }
 
   private void processCoreDownload(@NotNull final Element element, @NotNull final HttpServletRequest request, @NotNull final HttpServletResponse response) {
