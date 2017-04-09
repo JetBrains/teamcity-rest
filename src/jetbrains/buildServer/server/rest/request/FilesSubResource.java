@@ -180,6 +180,11 @@ public class FilesSubResource {
     }
     //todo: register only if no errors occurred?
     myProvider.fileContentServed(preprocessedPath, request);
+    
+    if (!response.isCommitted()) {
+      //let Jersey know what the response should be, otherwise 304 responses can turn to 204
+      return Response.status(response.getStatus()).build();
+    }
     return null;
   }
 
