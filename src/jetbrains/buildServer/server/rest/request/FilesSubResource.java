@@ -163,7 +163,7 @@ public class FilesSubResource {
       throw new NotFoundException("Cannot provide content for '" + initialElement.getFullName() + "'. To get children use '" +
                                   fileApiUrlBuilder(null, myUrlPrefix).getChildrenHref(initialElement) + "'.");
     }
-    String contentResponseBuilder = responseBuilder != null ? responseBuilder : TeamCityProperties.getProperty("rest.files.contentResponseBuilder", "rest");
+    String contentResponseBuilder = responseBuilder != null ? responseBuilder : TeamCityProperties.getProperty("rest.files.contentResponseBuilder", "coreWithDownloadProcessor");
     if ("rest".equals(contentResponseBuilder)) {
       //pre-2017.1 way of downloading files
       final Response.ResponseBuilder builder = getContent(initialElement, request);
