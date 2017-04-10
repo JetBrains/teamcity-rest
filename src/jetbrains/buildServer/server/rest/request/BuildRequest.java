@@ -285,7 +285,7 @@ public class BuildRequest {
 
     final String urlPrefix = getArtifactsUrlPrefix(buildPromotion, myBeanContext);
     //convert anonymous to inner here, implement DownloadProcessor
-    return new FilesSubResource(new BuildArtifactsProvider(buildPromotion, resolveParameters, logBuildUsage), urlPrefix, myBeanContext, true);
+    return new FilesSubResource(new BuildArtifactsProvider(buildPromotion, resolveParameters, logBuildUsage, urlPrefix), urlPrefix, myBeanContext, true);
   }
 
   @NotNull
@@ -943,11 +943,13 @@ public class BuildRequest {
     private final BuildPromotion myBuildPromotion;
     private final Boolean myResolveParameters;
     private final Boolean myLogBuildUsage;
+    private final String myUrlPrefix;
 
-    public BuildArtifactsProvider(final BuildPromotion buildPromotion, final Boolean resolveParameters, final Boolean logBuildUsage) {
+    public BuildArtifactsProvider(final BuildPromotion buildPromotion, final Boolean resolveParameters, final Boolean logBuildUsage, final String urlPrefix) {
       myBuildPromotion = buildPromotion;
       myResolveParameters = resolveParameters;
       myLogBuildUsage = logBuildUsage;
+      myUrlPrefix = urlPrefix;
     }
 
     @Override
@@ -995,7 +997,14 @@ public class BuildRequest {
         try {
           SBuild build = buildArtifact.getBuildPromotion().getAssociatedBuild();
           if (build == null) return false; //TeamCity API issue: cannot download artifacts from a queued build
-          myBeanContext.getSingletonService(HttpDownloadProcessor.class).processArtifactDownload(build, buildArtifact.getBuildArtifact(), request, response);
+
+          boolean setContentDisposition = FilesSubResource.getSetContentDisposition(element, request, response);
+          String eTag = null;
+          if (!TeamCityProperties.getBoolean("rest.buildRequest.artifacts.download.useCoreETag")) {
+            eTag = FilesSubResource.getETag(element, myUrlPrefix);
+          }
+          myBeanContext.getSingletonService(HttpDownloadProcessor.class)
+                       .processArtifactDownload(build, buildArtifact.getBuildArtifact(), setContentDisposition, eTag, request, response);
           return true;
         } catch (IOException e) {
           //TeamCity API issue: not clear what can be done here.

@@ -16,11 +16,13 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
@@ -64,6 +66,8 @@ import org.springframework.http.HttpHeaders;
  */
 @Api(hidden = true) // To prevent appearing in Swagger#definitions
 public class FilesSubResource {
+  private static Logger LOG = Logger.getInstance(FilesSubResource.class.getName());
+
   public static final String METADATA = "/metadata";
   public static final String CONTENT = "/content";
   public static final String CHILDREN = "/children";
@@ -163,7 +167,7 @@ public class FilesSubResource {
       throw new NotFoundException("Cannot provide content for '" + initialElement.getFullName() + "'. To get children use '" +
                                   fileApiUrlBuilder(null, myUrlPrefix).getChildrenHref(initialElement) + "'.");
     }
-    String contentResponseBuilder = responseBuilder != null ? responseBuilder : TeamCityProperties.getProperty("rest.files.contentResponseBuilder", "rest");
+    String contentResponseBuilder = getSetting("rest.files.contentResponseBuilder", "rest", "responseBuilder", responseBuilder, true, "rest", "core", "coreWithDownloadProcessor");
     if ("rest".equals(contentResponseBuilder)) {
       //pre-2017.1 way of downloading files
       final Response.ResponseBuilder builder = getContent(initialElement, request);
@@ -189,20 +193,11 @@ public class FilesSubResource {
   }
 
   private void processCoreDownload(@NotNull final Element element, @NotNull final HttpServletRequest request, @NotNull final HttpServletResponse response) {
-    if (TeamCityProperties.getBooleanOrTrue("rest.build.artifacts.forceContentDisposition.Attachment")) {
-      WebUtil.setContentDisposition(request, response, element.getName(), false);
-    } else {
-      response.setHeader("Content-Disposition", element.getName());
-    }
-
+    boolean setContentDisposition = getSetContentDisposition(element, request, response);
     try {
       myBeanContext.getSingletonService(HttpDownloadProcessor.class).processDownload(new HttpDownloadProcessor.FileInfo() {
         public long getLastModified() {
-          if (element instanceof ArtifactElement) {
-            Long lastModified = ((ArtifactElement)element).getLastModified();
-            if (lastModified != null) return lastModified;
-          }
-          return -1;
+          return FilesSubResource.getLastModified(element);
         }
 
         public long getFileSize() {
@@ -218,7 +213,7 @@ public class FilesSubResource {
         public String getFileDigest() {
           //including full "resolved" path into the tag to make sure same-name, same-size files available under the same URL produce different tags
           //note: "aggregated" build artifacts are still not handled in due way here
-          return EncryptUtil.md5(fileApiUrlBuilder(null, myUrlPrefix).getContentHref(element) + "_" + getFileSize() + "_" + getLastModified());
+          return getETag(element, myUrlPrefix);
         }
 
         @NotNull
@@ -226,11 +221,60 @@ public class FilesSubResource {
           //todo: see this method in HttpDownloadProcessor
           return element.getInputStream();
         }
-      }, false /*header is forced to attachment above*/, request, response);
+      }, setContentDisposition /*header is forced to attachment above*/, request, response);
     } catch (IOException e) {
       //todo add better processing
       throw new OperationException("Error while processing file '" + element.getFullName() + "': " + e.toString(), e);
     }
+  }
+
+  static boolean getSetContentDisposition(final @NotNull Element element, final @NotNull HttpServletRequest request, final @NotNull HttpServletResponse response) {
+    String contentDisposition = getSetting("rest.files.contentResponseBuilder.contentDisposition", "attachment", "contentDisposition", request.getParameter("contentDisposition"),
+                                           false,
+                                           "core", "no", "attachment");
+
+    switch (contentDisposition) {
+      case "core":
+        return true;
+      case "no":
+        return false;
+      case "attachment":
+        response.setHeader("Content-Disposition", element.getName());
+        return false;
+    }
+    throw new OperationException("Wrong value contentDisposition value: \"" + contentDisposition + "\"");
+  }
+
+  @NotNull
+  private static String getSetting(final String internalPropertyName, final String defaultValue,
+                                   final String parameterName, final String parameterValue, final boolean defaultSupportParameter,
+                                   final String... supportedValues) {
+    if (Boolean.parseBoolean(TeamCityProperties.getProperty(internalPropertyName + ".supportParameter", String.valueOf(defaultSupportParameter)).trim())) {
+      if (parameterValue != null) {
+        if (Arrays.asList(supportedValues).contains(parameterValue)) {
+          return parameterValue;
+        }
+        throw new BadRequestException("Wrong value of \"" + parameterName + "\" parameter: \"" + parameterValue + "\". Supported are: " + Arrays.toString(supportedValues));
+      }
+    }
+    String result = TeamCityProperties.getProperty(internalPropertyName, defaultValue);
+    if (Arrays.asList(supportedValues).contains(result)) {
+      return result;
+    }
+    LOG.warn("Wrong value of \"" + internalPropertyName + "\" internal property: \"" + result + "\". Supported are: " + Arrays.toString(supportedValues));
+    return defaultValue;
+  }
+
+  static String getETag(final @NotNull Element element, @NotNull final String uniqueElementBrowserId) {
+    return EncryptUtil.md5(fileApiUrlBuilder(null, uniqueElementBrowserId).getContentHref(element) + "_" + element.getSize() + "_" + getLastModified(element));
+  }
+
+  private static long getLastModified(final @NotNull Element element) {
+    if (element instanceof ArtifactElement) {
+      Long lastModified = ((ArtifactElement)element).getLastModified();
+      if (lastModified != null) return lastModified;
+    }
+    return -1;
   }
 
 
