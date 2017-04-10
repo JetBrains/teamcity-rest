@@ -167,7 +167,7 @@ public class FilesSubResource {
       throw new NotFoundException("Cannot provide content for '" + initialElement.getFullName() + "'. To get children use '" +
                                   fileApiUrlBuilder(null, myUrlPrefix).getChildrenHref(initialElement) + "'.");
     }
-    String contentResponseBuilder = getSetting("rest.files.contentResponseBuilder", "rest", "responseBuilder", responseBuilder, true, "rest", "core", "coreWithDownloadProcessor");
+    String contentResponseBuilder = getSetting("rest.files.contentResponseBuilder", "coreWithDownloadProcessor", "responseBuilder", responseBuilder, true, "rest", "core", "coreWithDownloadProcessor");
     if ("rest".equals(contentResponseBuilder)) {
       //pre-2017.1 way of downloading files
       final Response.ResponseBuilder builder = getContent(initialElement, request);
