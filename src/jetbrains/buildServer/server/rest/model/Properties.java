@@ -77,6 +77,18 @@ public class Properties  implements DefaultValueAware {
                     @Nullable Locator externalLocator,
                     @NotNull final Fields fields,
                     @NotNull final ServiceLocator serviceLocator) {
+    this (parameters, true, href, externalLocator, fields, serviceLocator);
+  }
+
+  /**
+   * @param externalLocator locator to override the one from "fields"
+   */
+  public Properties(@Nullable final EntityWithParameters parameters,
+                    boolean enforceSorting,
+                    @Nullable String href,
+                    @Nullable Locator externalLocator,
+                    @NotNull final Fields fields,
+                    @NotNull final ServiceLocator serviceLocator) {
     if (parameters == null) {
       this.count = null;
       this.properties = null;
@@ -88,7 +100,7 @@ public class Properties  implements DefaultValueAware {
         Collection<Parameter> parametersCollection = parameters.getParametersCollection(propertiesLocator); // pass locator here
         final ParameterCondition parameterCondition = ParameterCondition.create(propertiesLocator); // pass locator here and make sure it's used and supported dimensions are preserved
         if (externalLocator == null && propertiesLocator != null) propertiesLocator.checkLocatorFullyProcessed();
-        this.properties = getEmptyProperties();
+        this.properties = enforceSorting ? getEmptyProperties() : new ArrayList<>();
         for (Parameter parameter : parametersCollection) {
           Boolean inherited = parameters.isInherited(parameter.getName());
           if (parameterCondition == null || parameterCondition.parameterMatches(parameter, inherited)) {

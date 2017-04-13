@@ -41,7 +41,6 @@ import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -707,10 +706,7 @@ public class DebugRequest {
   public Properties getCachedBuildsStat(@QueryParam("fields") final String fields) {
     myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     Map<String, String> cacheStat = myServiceLocator.getSingletonService(DBBuildHistory.class).getCacheStat();
-    if ("0".equals(cacheStat.get("hitCount"))) {
-      throw new NotFoundException("Build cache statistics does not seem enabled on server start via \"teamcity.buildhistory.buildsCache.statistics.enabled\" property");
-    }
-    return new Properties(cacheStat, null, new Fields(fields), myServiceLocator);
+    return new Properties(Properties.createEntity(cacheStat, null), false, null, null, new Fields(fields), myServiceLocator);
   }
 
   /**
