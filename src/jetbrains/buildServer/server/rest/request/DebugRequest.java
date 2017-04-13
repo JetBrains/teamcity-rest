@@ -25,6 +25,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -707,6 +708,21 @@ public class DebugRequest {
     myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     Map<String, String> cacheStat = myServiceLocator.getSingletonService(DBBuildHistory.class).getCacheStat();
     return new Properties(Properties.createEntity(cacheStat, null), false, null, null, new Fields(fields), myServiceLocator);
+  }
+
+  /**
+   * experimental use only.
+   */
+  @GET
+  @Path("/diagnostics/threadPerfStat/stats")
+  @Produces({"application/xml", "application/json"})
+  public Properties getDiagnosticsPerfStats(@QueryParam("fields") final String fields) {
+    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    long timeMs = TimeUnit.MILLISECONDS.convert(NamedThreadUtil.PerfStat.getTotalRetrievalTime(), TimeUnit.NANOSECONDS);
+    Map<String, String> props = new LinkedHashMap<>();
+    props.put("invocationCount", String.valueOf(NamedThreadUtil.PerfStat.getTotalCount()));
+    props.put("time", TimePrinter.createMillisecondsFormatter().formatTime(timeMs));
+    return new Properties(Properties.createEntity(props, null), false, null, null, new Fields(fields), myServiceLocator);
   }
 
   /**
