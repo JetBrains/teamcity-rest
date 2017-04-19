@@ -220,7 +220,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/{field}")
   @Consumes("text/plain")
   @Produces("text/plain")
-  public String setProjectFiled(@PathParam("projectLocator") String projectLocator, @PathParam("field") String fieldName, String newValue) {
+  public String setProjectField(@PathParam("projectLocator") String projectLocator, @PathParam("field") String fieldName, String newValue) {
     final SProject project = myProjectFinder.getItem(projectLocator);
     Project.setFieldValueAndPersist(project, fieldName, newValue, myServiceLocator);
     return Project.getFieldValue(project, fieldName);
