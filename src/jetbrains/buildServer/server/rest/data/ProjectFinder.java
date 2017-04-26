@@ -313,7 +313,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
         selectedByUserLocator.checkLocatorFullyProcessed();
       }
       final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getItem(userLocator);
-      return getItemHolder(getSelectedProjects(user, getSelectedByUserMode(modeLocator)));
+      return getItemHolder(getSelectedProjects(user, getSelectedByUserMode(modeLocator, SelectedByUserMode.SELECTED_AND_UNKNOWN)));
     }
 
     final SProject parentProject;
@@ -361,8 +361,8 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   }
 
   @NotNull
-  private SelectedByUserMode getSelectedByUserMode(@Nullable final String textName) {
-    return TypedFinderBuilder.getEnumValue(textName != null ? textName : SelectedByUserMode.SELECTED_AND_UNKNOWN.name(), SelectedByUserMode.class);
+  public static SelectedByUserMode getSelectedByUserMode(@Nullable final String textName, @NotNull final SelectedByUserMode defaultValue) {
+    return TypedFinderBuilder.getEnumValue(textName != null ? textName : defaultValue.name(), SelectedByUserMode.class);
   }
 
   @NotNull

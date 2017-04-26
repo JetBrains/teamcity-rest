@@ -445,13 +445,22 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     //this should be the first one as the order returned here is important!
     final String selectedForUser = locator.getSingleDimensionValue(DIMENSION_SELECTED);
     if (selectedForUser != null) {
-      final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getItem(selectedForUser);
+      Locator selectedByUserLocator = new Locator(selectedForUser, "user", "mode");
+      String userLocator = selectedByUserLocator.getSingleDimensionValue("user");
+      String modeLocator = selectedByUserLocator.getSingleDimensionValue("mode");
+      if (userLocator == null && modeLocator == null) {
+        //assume it's user locator - the only supported way before 2017.1
+        userLocator = selectedForUser;
+      } else {
+        selectedByUserLocator.checkLocatorFullyProcessed();
+      }
+      final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getItem(userLocator);
       List<SProject> projects = null;
       final String projectLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
       if (projectLocator != null) {
         projects = myProjectFinder.getItems(projectLocator).myEntries;
       }
-      return getItemHolder(getBuildTypesSelectedForUser(user, projects));
+      return getItemHolder(getBuildTypesSelectedForUser(user, ProjectFinder.getSelectedByUserMode(modeLocator, ProjectFinder.SelectedByUserMode.SELECTED_AND_UNKNOWN), projects));
     }
 
     final String snapshotDependencies = locator.getSingleDimensionValue(SNAPSHOT_DEPENDENCY);
@@ -875,19 +884,41 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   }
 
   @NotNull
-  public List<BuildTypeOrTemplate> getBuildTypesSelectedForUser(@NotNull final SUser user, @Nullable final List<SProject> projects) {
+  public List<BuildTypeOrTemplate> getBuildTypesSelectedForUser(@NotNull final SUser user,
+                                                                @NotNull final ProjectFinder.SelectedByUserMode mode,
+                                                                @Nullable final List<SProject> projects) {
     Collection<SProject> selectedProjects = projects;
     if (selectedProjects == null){
       selectedProjects = myProjectFinder.getSelectedProjects(user, ProjectFinder.SelectedByUserMode.SELECTED_AND_UNKNOWN); //for other values, use "project:(XXX)" locator
     }
-    final List<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
-    for (SProject project : selectedProjects) {
-      result.addAll(CollectionsUtil.convertCollection(user.getOrderedBuildTypes(project), new Converter<BuildTypeOrTemplate, SBuildType>() {
-        public BuildTypeOrTemplate createFrom(@NotNull final SBuildType source) {
-          return new BuildTypeOrTemplate(source);
+    switch (mode) {
+      case ALL_WITH_ORDER: {
+        List<SBuildType> result = new ArrayList<>();
+        for (SProject project : selectedProjects) {
+          List<SBuildType> buildTypes = project.getBuildTypes();
+          List<SBuildType> orderedBuildTypes = user.getOrderedBuildTypes(project);
+          buildTypes.removeAll(orderedBuildTypes);
+          if (buildTypes.isEmpty()) {
+            result.addAll(orderedBuildTypes);
+          } else {
+            result.addAll(orderedBuildTypes);
+            result.addAll(buildTypes);
+          }
         }
-      }));
+        return result.stream().map(bt -> new BuildTypeOrTemplate(bt)).collect(Collectors.toList());
+      }
+      case SELECTED_AND_UNKNOWN: //this is pre-2017.1 behavior
+      case SELECTED:
+      default:
+        final List<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
+        for (SProject project : selectedProjects) {
+          result.addAll(CollectionsUtil.convertCollection(user.getOrderedBuildTypes(project), new Converter<BuildTypeOrTemplate, SBuildType>() {
+            public BuildTypeOrTemplate createFrom(@NotNull final SBuildType source) {
+              return new BuildTypeOrTemplate(source);
+            }
+          }));
+        }
+        return result;
     }
-    return result;
   }
 }
