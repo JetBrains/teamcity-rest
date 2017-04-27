@@ -23,7 +23,10 @@ import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.auth.Permissions;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
+import jetbrains.buildServer.serverSide.impl.auth.RoleImpl;
 import jetbrains.buildServer.serverSide.impl.auth.SecurityContextImpl;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -359,10 +362,6 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
 
     SecurityContextImpl securityContext = new SecurityContextImpl();
 
-    securityContext.runAs(user2, () -> checkExceptionOnItemsSearch(AccessDeniedException.class, "selectedByUser:(username:user1)"));
-    securityContext.runAs(user2, () -> checkExceptionOnItemsSearch(AccessDeniedException.class, "selectedByUser:(user:(username:user1),mode:selected_and_unknown)"));
-    securityContext.runAs(user2, () -> checkExceptionOnItemsSearch(AccessDeniedException.class, "selectedByUser:(user:(username:user1),mode:all_with_order)"));
-
     securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
@@ -380,6 +379,59 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
         checkBuildTypes("selectedByUser:(user:(current),mode:all_with_order)", p10_bt30, p10_bt10, p10_bt20, p10_10_bt20, p10_10_bt30, p10_10_bt10, p30_bt10, p30_bt30, p30_bt20);
       }
     });
+
+
+    securityContext.runAs(user2, () -> checkExceptionOnItemsSearch(AccessDeniedException.class, "selectedByUser:(username:user1)"));
+    securityContext.runAs(user2, () -> checkExceptionOnItemsSearch(AccessDeniedException.class, "selectedByUser:(user:(username:user1),mode:selected_and_unknown)"));
+    securityContext.runAs(user2, () -> checkExceptionOnItemsSearch(AccessDeniedException.class, "selectedByUser:(user:(username:user1),mode:all_with_order)"));
+
+    RoleImpl role_viewUsers = new RoleImpl("role_viewUsers", "custom role", new Permissions(Permission.VIEW_USER_PROFILE), null);
+    myFixture.getRolesManager().addRole(role_viewUsers);
+    user2.addRole(RoleScope.globalScope(), role_viewUsers);
+    securityContext.runAs(user2, new SecurityContextEx.RunAsAction() {
+      @Override
+      public void run() throws Throwable {
+        checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
+        checkBuildTypes("selectedByUser:(user:(username:user1),mode:selected_and_unknown)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
+        checkBuildTypes("selectedByUser:(user:(username:user1),mode:all_with_order)", p10_bt30, p10_bt10, p10_bt20, p10_10_bt20, p10_10_bt30, p10_10_bt10, p30_bt10, p30_bt30, p30_bt20);
+      }
+    });
+
+    user2.addRole(RoleScope.projectScope(project40.getProjectId()), getProjectViewerRole());
+    checkBuildTypes("selectedByUser:(username:user2)",  p10_bt20, p10_bt10, p10_bt30, p10_30_bt10, p10_30_bt20, p10_30_bt30, p10_10_bt10, p10_10_bt20, p10_10_bt30, p40_bt10, p40_bt20, p40_bt30);
+    securityContext.runAs(user2, new SecurityContextEx.RunAsAction() {
+      @Override
+      public void run() throws Throwable {
+        checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
+        checkBuildTypes("selectedByUser:(user:(username:user1),mode:selected_and_unknown)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
+        checkBuildTypes("selectedByUser:(user:(username:user1),mode:all_with_order)", p10_bt30, p10_bt10, p10_bt20, p10_10_bt20, p10_10_bt30, p10_10_bt10, p30_bt10, p30_bt30, p30_bt20);
+      }
+    });
+
+    checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
+    user1.addRole(RoleScope.projectScope(project40.getProjectId()), getProjectViewerRole());
+    checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p40_bt10, p40_bt30, p30_bt10, p30_bt30, p30_bt20);
+    securityContext.runAs(user2, new SecurityContextEx.RunAsAction() {
+      @Override
+      public void run() throws Throwable {
+        checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p40_bt10, p40_bt30, p30_bt10, p30_bt30, p30_bt20);
+        checkBuildTypes("selectedByUser:(user:(username:user1),mode:selected_and_unknown)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p40_bt10, p40_bt30, p30_bt10, p30_bt30, p30_bt20);
+        checkBuildTypes("selectedByUser:(user:(username:user1),mode:all_with_order)", p10_bt30, p10_bt10, p10_bt20, p10_10_bt20, p10_10_bt30, p10_10_bt10, p40_bt10, p40_bt30, p40_bt20, p30_bt10, p30_bt30, p30_bt20);
+      }
+    });
+    user2.removeRole(RoleScope.projectScope(project40.getProjectId()), getProjectViewerRole());
+    assertEmpty(user2.getPermissionsGrantedForProject(project40.getProjectId()).toList());
+    /* this fails as ProjectManager is not secure in this test
+    securityContext.runAs(user2, new SecurityContextEx.RunAsAction() {
+      @Override
+      public void run() throws Throwable {
+        checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
+        checkBuildTypes("selectedByUser:(user:(username:user1),mode:selected_and_unknown)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
+        checkBuildTypes("selectedByUser:(user:(username:user1),mode:all_with_order)", p10_bt30, p10_bt10, p10_bt20, p10_10_bt20, p10_10_bt30, p10_10_bt10, p30_bt10, p30_bt30, p30_bt20);
+      }
+    });
+    */
+    user1.removeRole(RoleScope.projectScope(project40.getProjectId()), getProjectViewerRole());
 
     user2.addRole(RoleScope.globalScope(), getProjectAdminRole());
     securityContext.runAs(user2, new SecurityContextEx.RunAsAction() {
