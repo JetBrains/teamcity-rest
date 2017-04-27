@@ -893,16 +893,13 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     }
     switch (mode) {
       case ALL_WITH_ORDER: {
-        List<SBuildType> result = new ArrayList<>();
+        LinkedHashSet<SBuildType> result = new LinkedHashSet<>();
         for (SProject project : selectedProjects) {
 //          result.addAll(((UserEx)user).getProjectVisibilityHolder().getAllBuildTypesOrdered(project));
-          List<SBuildType> buildTypes = project.getOwnBuildTypes();
           List<SBuildType> orderedBuildTypes = user.getOrderedBuildTypes(project);
-          buildTypes.removeAll(orderedBuildTypes);
-          if (buildTypes.isEmpty()) {
-            result.addAll(orderedBuildTypes);
-          } else {
-            result.addAll(orderedBuildTypes);
+          result.addAll(orderedBuildTypes);
+          List<SBuildType> buildTypes = project.getOwnBuildTypes();
+          if (orderedBuildTypes.size() != buildTypes.size()) {
             result.addAll(buildTypes);
           }
         }
