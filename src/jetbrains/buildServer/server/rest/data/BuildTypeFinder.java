@@ -895,7 +895,8 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       case ALL_WITH_ORDER: {
         List<SBuildType> result = new ArrayList<>();
         for (SProject project : selectedProjects) {
-          List<SBuildType> buildTypes = project.getBuildTypes();
+//          result.addAll(((UserEx)user).getProjectVisibilityHolder().getAllBuildTypesOrdered(project));
+          List<SBuildType> buildTypes = project.getOwnBuildTypes();
           List<SBuildType> orderedBuildTypes = user.getOrderedBuildTypes(project);
           buildTypes.removeAll(orderedBuildTypes);
           if (buildTypes.isEmpty()) {
@@ -907,8 +908,10 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
         }
         return result.stream().map(bt -> new BuildTypeOrTemplate(bt)).collect(Collectors.toList());
       }
-      case SELECTED_AND_UNKNOWN: //this is pre-2017.1 behavior
       case SELECTED:
+        throw new BadRequestException("Value \"" + ProjectFinder.SelectedByUserMode.SELECTED.name().toLowerCase() + "\" in \"" + DIMENSION_SELECTED +
+                                      "/mode\" is not supported for build types");
+      case SELECTED_AND_UNKNOWN: //this is pre-2017.1 behavior
       default:
         final List<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
         for (SProject project : selectedProjects) {

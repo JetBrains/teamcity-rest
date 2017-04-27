@@ -321,10 +321,15 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     user2.addRole(RoleScope.projectScope(project10.getProjectId()), getProjectViewerRole());
     //default sorting is hierarchy-based + name-based within the same level
     checkBuildTypes("selectedByUser:(username:user2)", p10_bt20, p10_bt10, p10_bt30, p10_10_bt10, p10_10_bt20, p10_10_bt30, p10_30_bt10, p10_30_bt20, p10_30_bt30);
+    checkBuildTypes("selectedByUser:(user:(username:user2))", p10_bt20, p10_bt10, p10_bt30, p10_10_bt10, p10_10_bt20, p10_10_bt30, p10_30_bt10, p10_30_bt20, p10_30_bt30);
+    checkBuildTypes("selectedByUser:(user:(username:user2),mode:selected_and_unknown)", p10_bt20, p10_bt10, p10_bt30, p10_10_bt10, p10_10_bt20, p10_10_bt30, p10_30_bt10, p10_30_bt20, p10_30_bt30);
+    checkBuildTypes("selectedByUser:(user:(username:user2),mode:all_with_order)", p10_bt20, p10_bt10, p10_bt30, p10_10_bt10, p10_10_bt20, p10_10_bt30, p10_30_bt10, p10_30_bt20, p10_30_bt30);
 
     user2.setVisibleProjects(Arrays.asList(project10.getProjectId(), project10_30.getProjectId(), project10_10.getProjectId(), project40.getProjectId(), project30.getProjectId()));
     user2.setProjectsOrder(Arrays.asList(project10.getProjectId(), project10_30.getProjectId(), project10_10.getProjectId(), project40.getProjectId(), project30.getProjectId()));
     checkBuildTypes("selectedByUser:(username:user2)", p10_bt20, p10_bt10, p10_bt30, p10_30_bt10, p10_30_bt20, p10_30_bt30, p10_10_bt10, p10_10_bt20, p10_10_bt30);
+    checkBuildTypes("selectedByUser:(user:(username:user2),mode:selected_and_unknown)", p10_bt20, p10_bt10, p10_bt30, p10_30_bt10, p10_30_bt20, p10_30_bt30, p10_10_bt10, p10_10_bt20, p10_10_bt30);
+    checkBuildTypes("selectedByUser:(user:(username:user2),mode:all_with_order)", p10_bt20, p10_bt10, p10_bt30, p10_30_bt10, p10_30_bt20, p10_30_bt30, p10_10_bt10, p10_10_bt20, p10_10_bt30);
 
 
     final SUser user1 = createUser("user1");
@@ -335,7 +340,7 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     user1.setVisibleProjects(Arrays.asList(project10.getProjectId(), project10_20.getProjectId(), project10_10.getProjectId(), project40.getProjectId(), project30.getProjectId()));
     user1.setProjectsOrder(Arrays.asList(project10.getProjectId(), project10_20.getProjectId(), project10_10.getProjectId(), project40.getProjectId(), project30.getProjectId()));
     user1.setBuildTypesOrder(project10, Arrays.asList(p10_bt30, p10_bt10), Arrays.asList(p10_bt20));
-    user1.setBuildTypesOrder(project10_10, Arrays.asList(p10_10_bt20), Arrays.asList(p10_10_bt10));
+    user1.setBuildTypesOrder(project10_10, Arrays.asList(p10_10_bt20), Arrays.asList(p10_10_bt10)); //p10_10_bt30 is in "unknown" state
     user1.setBuildTypesOrder(project10_30, Arrays.asList(p10_30_bt30, p10_30_bt20, p10_30_bt10), Collections.<SBuildType>emptyList());
     user1.setBuildTypesOrder(project20, Arrays.asList(p20_bt10, p20_bt30), Arrays.asList(p20_bt20));
     user1.setBuildTypesOrder(project40, Arrays.asList(p40_bt10, p40_bt30), Arrays.asList(p40_bt20));
@@ -344,24 +349,26 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     checkBuildTypes("selectedByUser:(username:user1),project:(id:"+ project10.getExternalId() + ")", p10_bt30, p10_bt10);
     checkBuildTypes("selectedByUser:(username:user1),project:(id:"+ project30.getExternalId() + ")", p30_bt10, p30_bt30, p30_bt20);
 
+    checkBuildTypes("selectedByUser:(user:(username:user1),mode:selected_and_unknown)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
+    checkBuildTypes("selectedByUser:(user:(username:user1),mode:selected_and_unknown),project:(id:"+ project10.getExternalId() + ")", p10_bt30, p10_bt10);
+    checkBuildTypes("selectedByUser:(user:(username:user1),mode:selected_and_unknown),project:(id:"+ project30.getExternalId() + ")", p30_bt10, p30_bt30, p30_bt20);
+
+    checkBuildTypes("selectedByUser:(user:(username:user1),mode:all_with_order)", p10_bt30, p10_bt10, p10_bt20, p10_10_bt20, p10_10_bt30, p10_10_bt10, p30_bt10, p30_bt30, p30_bt20);
+    checkBuildTypes("selectedByUser:(user:(username:user1),mode:all_with_order),project:(id:"+ project10.getExternalId() + ")", p10_bt30, p10_bt10, p10_bt20);
+    checkBuildTypes("selectedByUser:(user:(username:user1),mode:all_with_order),project:(id:"+ project30.getExternalId() + ")", p30_bt10, p30_bt30, p30_bt20);
+
     SecurityContextImpl securityContext = new SecurityContextImpl();
 
-    securityContext.runAs(user2, new SecurityContextEx.RunAsAction() {
-      @Override
-      public void run() throws Throwable {
-        checkException(AccessDeniedException.class, new Runnable() {
-          @Override
-          public void run() {
-            checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
-          }
-        }, null);
-      }
-    });
+    securityContext.runAs(user2, () -> checkExceptionOnItemsSearch(AccessDeniedException.class, "selectedByUser:(username:user1)"));
+    securityContext.runAs(user2, () -> checkExceptionOnItemsSearch(AccessDeniedException.class, "selectedByUser:(user:(username:user1),mode:selected_and_unknown)"));
+    securityContext.runAs(user2, () -> checkExceptionOnItemsSearch(AccessDeniedException.class, "selectedByUser:(user:(username:user1),mode:all_with_order)"));
 
     securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
         checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
+        checkBuildTypes("selectedByUser:(user:(username:user1),mode:selected_and_unknown)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
+        checkBuildTypes("selectedByUser:(user:(username:user1),mode:all_with_order)", p10_bt30, p10_bt10, p10_bt20, p10_10_bt20, p10_10_bt30, p10_10_bt10, p30_bt10, p30_bt30, p30_bt20);
       }
     });
 
@@ -369,6 +376,8 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
       @Override
       public void run() throws Throwable {
         checkBuildTypes("selectedByUser:(current)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
+        checkBuildTypes("selectedByUser:(user:(current),mode:selected_and_unknown)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
+        checkBuildTypes("selectedByUser:(user:(current),mode:all_with_order)", p10_bt30, p10_bt10, p10_bt20, p10_10_bt20, p10_10_bt30, p10_10_bt10, p30_bt10, p30_bt30, p30_bt20);
       }
     });
 
@@ -377,9 +386,12 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
       @Override
       public void run() throws Throwable {
         checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
+        checkBuildTypes("selectedByUser:(user:(username:user1),mode:selected_and_unknown)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
+        checkBuildTypes("selectedByUser:(user:(username:user1),mode:all_with_order)", p10_bt30, p10_bt10, p10_bt20, p10_10_bt20, p10_10_bt30, p10_10_bt10, p30_bt10, p30_bt30, p30_bt20);
       }
     });
 
+    checkExceptionOnItemsSearch(BadRequestException.class, "selectedByUser:(user:(username:user2),mode:selected)");
     //add checks after    ProjectEx.setOwnProjectsOrder / setOwnBuildTypesOrder
   }
 
