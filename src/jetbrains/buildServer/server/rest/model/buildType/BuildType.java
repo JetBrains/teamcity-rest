@@ -181,6 +181,9 @@ public class BuildType {
     }
   }
 
+  /**
+   * "Canonical" URL for the build configuration's web UI page: it is absolute and uses configured Server URL as a base
+   */
   @XmlAttribute
   public String getWebUrl() {
     //template has no user link
@@ -209,11 +212,15 @@ public class BuildType {
           } else if (myBuildType.isTemplate()) {
             builder.add(Link.WEB_EDIT_TYPE, webLinks.getEditTemplatePageUrl(myExternalId), relativeWebLinks.getEditTemplatePageUrl(myExternalId));
           }
-        //} else if (myBeanContext.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, myBuildType.getProject().getProjectId())) {
-        //  if (myBuildType.isBuildType()) {
-        //    builder.add(Link.WEB_VIEW_SETTINGS_TYPE, webLinks.getEditConfigurationPageUrl(myExternalId), relativeWebLinks.getEditConfigurationPageUrl(myExternalId));
-        //  } else if (myBuildType.isTemplate()) {
-        //    builder.add(Link.WEB_VIEW_SETTINGS_TYPE, webLinks.getEditTemplatePageUrl(myExternalId), relativeWebLinks.getEditTemplatePageUrl(myExternalId));
+        //} else { //this code is incorrect so far, as it is not possible to view build type settings in admin UI so far
+        //  PermissionChecker permissionChecker = myBeanContext.getSingletonService(PermissionChecker.class);
+        //  if (permissionChecker.hasPermissionInAnyProject(Permission.EDIT_PROJECT) && //this grants access to administration area
+        //      permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, myBuildType.getProject().getProjectId())) {
+        //    if (myBuildType.isBuildType()) {
+        //      builder.add(Link.WEB_VIEW_SETTINGS_TYPE, webLinks.getEditConfigurationPageUrl(myExternalId), relativeWebLinks.getEditConfigurationPageUrl(myExternalId));
+        //    } else if (myBuildType.isTemplate()) {
+        //      builder.add(Link.WEB_VIEW_SETTINGS_TYPE, webLinks.getEditTemplatePageUrl(myExternalId), relativeWebLinks.getEditTemplatePageUrl(myExternalId));
+        //    }
         //  }
         }
         return builder.build(myFields.getNestedField("links"));
