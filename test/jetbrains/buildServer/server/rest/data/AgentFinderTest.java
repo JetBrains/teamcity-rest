@@ -19,11 +19,9 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.List;
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.agentPools.AgentPoolCannotBeRenamedException;
-import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
-import jetbrains.buildServer.serverSide.agentPools.PoolQuotaExceededException;
 import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
+import jetbrains.buildServer.util.TestFor;
 import org.jetbrains.annotations.NotNull;
 import org.testng.SkipException;
 import org.testng.annotations.BeforeMethod;
@@ -244,6 +242,48 @@ public class AgentFinderTest extends BaseFinderTest<SBuildAgent> {
                 myAgent1, myAgent2, agent15, agent20, agent30, agent40, agent50);
 
     checkAgents("compatible:(buildType:(id:" + bt30.getExternalId() + ")),incompatible:(buildType:(id:" + bt10.getExternalId() + "))", myAgent1);
+  }
+
+  @Test
+  @TestFor(issues = {"TW-49934"})
+  public void testLocatorCompatibleBuildSpecific() throws Exception {
+    ProjectEx project10 = createProject("project10", "project 10");
+    BuildTypeEx bt10 = project10.createBuildType("bt10", "bt 10");
+    bt10.addParameter(new SimpleParameter("a", "%b%"));
+
+    checkAgents(null, myAgent1, myAgent2);
+    checkAgents("compatible:(buildType:(id:" + bt10.getExternalId() + "))");
+
+    {
+      SQueuedBuild queuedBuild = build().in(bt10).addToQueue();
+      checkAgents("compatible:(build:(id:" + queuedBuild.getItemId() + "))");
+      queuedBuild.removeFromQueue(null, null);
+    }
+
+    {
+      SQueuedBuild queuedBuild = build().in(bt10).parameter("b", "value").addToQueue();
+      checkAgents("compatible:(build:(id:" + queuedBuild.getItemId() + "))", myAgent1);
+    }
+  }
+
+  @Test
+  @TestFor(issues = {"TW-49934"})
+  public void testLocatorCompatibleSnapshotDep() throws Exception {
+    ProjectEx project10 = createProject("project10", "project 10");
+    BuildTypeEx bt10 = project10.createBuildType("bt10", "bt 10");
+    BuildTypeEx bt20 = project10.createBuildType("bt20", "bt 20");
+    createDependencyChain(bt20, bt10);
+
+    checkAgents(null, myAgent1, myAgent2);
+    checkAgents("compatible:(buildType:(id:" + bt20.getExternalId() + "))", myAgent1);
+
+    SQueuedBuild queuedBuild = build().in(bt20).addToQueue();
+    checkAgents("compatible:(build:(id:" + queuedBuild.getItemId() + "))", myAgent1); //queued snapshot dependency does not affect the compatibility
+    myServer.flushQueue();
+    final RunningBuildEx build = myFixture.waitForQueuedBuildToStart(queuedBuild.getBuildPromotion().getDependencies().iterator().next().getDependOn());
+    checkAgents("compatible:(build:(id:" + queuedBuild.getItemId() + "))", myAgent1);
+    finishBuild();
+    checkAgents("compatible:(build:(id:" + queuedBuild.getItemId() + "))", myAgent1);
   }
 
 

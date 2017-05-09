@@ -447,10 +447,9 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
         }
         return agentRestrictor instanceof SingleAgentRestrictor;
       }
-      if (!queuedBuild.getCanRunOnAgents().stream().filter(a -> AGENT_COMPARATOR.compare(a, agent) == 0).findAny().isPresent()) {
-        return false;
-      }
+      return queuedBuild.getCanRunOnAgents().stream().filter(a -> AGENT_COMPARATOR.compare(a, agent) == 0).findAny().isPresent();
     }
+
     SBuildType buildType = build.getBuildType();
     if (buildType != null && !getCompatibilityData(agent, buildType, serviceLocator).isCompatible()) {
       return false;  //todo: optimize, as this calculates compatibility second time
