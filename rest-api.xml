@@ -39,9 +39,8 @@
     <include name="*.egg"/>
     <include name="*.jar"/>
     <include name="*.ear"/>
-    <include name="*.war"/>
-    <include name="*.apk"/>
     <include name="*.swc"/>
+    <include name="*.war"/>
     <include name="*.ane"/>
     <include name="*.zip"/>
   </patternset>
@@ -124,13 +123,11 @@
   </path>
   
   <path id="library.teamcity_server_tests.classpath">
-    <fileset dir="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib">
-      <patternset refid="library.patterns"/>
-    </fileset>
     <pathelement location="${path.variable.teamcitydistribution}/devPackage/tests/jmock-1.2.0.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/devPackage/tests/junit-3.8.2.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/devPackage/tests/tests-integration.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/devPackage/tests/tests-support.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/agent-upgrade.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/guava-13.0.1.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/hsqldb.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/jdom.jar"/>
@@ -142,6 +139,7 @@
   <path id="library.teamcity_third-party.classpath">
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/UserAgentUtils.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/annotations.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/commons-codec-1.3.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/commons-codec.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/commons-compress-1.9.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/guava-13.0.1.jar"/>
@@ -175,6 +173,7 @@
     <pathelement location="${javac2.home}/javac2.jar"/>
     <pathelement location="${javac2.home}/jdom.jar"/>
     <pathelement location="${javac2.home}/asm4-all.jar"/>
+    <pathelement location="${javac2.home}/asm-all.jar"/>
     <pathelement location="${javac2.home}/jgoodies-forms.jar"/>
   </path>
   <target name="register.custom.compilers">
