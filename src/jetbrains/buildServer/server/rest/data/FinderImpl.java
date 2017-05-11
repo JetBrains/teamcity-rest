@@ -27,6 +27,7 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.ItemProcessor;
+import jetbrains.buildServer.util.NamedThreadFactory;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -74,7 +75,8 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   @Override
   @NotNull
   public ITEM getItem(@Nullable final String locatorText) {
-    return getItem(locatorText, null);
+    return NamedThreadFactory.executeWithNewThreadNameFuncThrow("Using " + getClass().getSimpleName() + " to get single item for locator \"" + locatorText + "\"",
+                                                         () -> getItem(locatorText, null));
   }
 
   /**
@@ -84,7 +86,8 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   @Override
   @NotNull
   public PagedSearchResult<ITEM> getItems(@Nullable final String locatorText) {
-    return getItemsByLocator(getLocatorOrNull(locatorText), true);
+    return NamedThreadFactory.executeWithNewThreadNameFuncThrow("Using " + getClass().getSimpleName() + " to get items for locator \"" + locatorText + "\"",
+                                                                () -> getItemsByLocator(getLocatorOrNull(locatorText), true));
   }
 
   @NotNull
@@ -267,7 +270,8 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
                                     "\nLocator details: " + locator.getLocatorDescription(locator.helpOptions().getSingleDimensionValueAsStrictBoolean("hidden", false)), e);
     }
     locator.checkLocatorFullyProcessed();
-    return getItems(pagingFilter, unfilteredItems, locator);
+    final FinderDataBinding.ItemHolder<ITEM> finalUnfilteredItems = unfilteredItems;
+    return NamedThreadFactory.executeWithNewThreadNameFuncThrow("Filtering items", () -> getItems(pagingFilter, finalUnfilteredItems, locator));
   }
 
   private static boolean isReportErrorOnNothingFound(final @NotNull Locator locator) {
