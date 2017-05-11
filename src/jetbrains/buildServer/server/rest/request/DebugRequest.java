@@ -35,7 +35,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.controllers.login.RememberMe;
-import jetbrains.buildServer.diagnostic.MemoryUsageMonitor;
+import jetbrains.buildServer.diagnostic.ThreadDumpDataProvider;
 import jetbrains.buildServer.diagnostic.web.ThreadDumpsController;
 import jetbrains.buildServer.responsibility.ResponsibilityManager;
 import jetbrains.buildServer.server.rest.data.*;
@@ -615,7 +615,7 @@ public class DebugRequest {
     DiagnosticUtil.printMemoryUsage(printer);
     result.append("\n");
     DiagnosticUtil.ThreadDumpData data;
-    MemoryUsageMonitor memoryUsageMonitor = myServiceLocator.findSingletonService(MemoryUsageMonitor.class);
+    ThreadDumpDataProvider memoryUsageMonitor = myServiceLocator.findSingletonService(ThreadDumpDataProvider.class);
     if (memoryUsageMonitor != null){
       data = memoryUsageMonitor.getThreadDumpData();
     } else {
