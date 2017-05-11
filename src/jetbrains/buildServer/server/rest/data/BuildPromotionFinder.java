@@ -867,7 +867,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     final String equivalent = locator.getSingleDimensionValue(EQUIVALENT);
     if (equivalent != null) {
       final BuildPromotionEx build = (BuildPromotionEx)getItem(equivalent);
-      final List<BuildPromotionEx> result = build.getStartedEquivalentPromotions();
+      final List<BuildPromotionEx> result = build.getStartedEquivalentPromotions(-1);
       final List<BuildPromotion> convertedResult = new ArrayList<BuildPromotion>(result.size());
       for (BuildPromotionEx item : result) {
         convertedResult.add(item);
