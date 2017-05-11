@@ -3256,6 +3256,7 @@
       </CLASSES>
       <JAVADOC />
       <SOURCES />
+      <jarDirectory url="file://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib" recursive="false" />
     </library>
     <library name="TeamCity Third-Party">
       <CLASSES>

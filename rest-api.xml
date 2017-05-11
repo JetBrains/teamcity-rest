@@ -123,6 +123,9 @@
   </path>
   
   <path id="library.teamcity_server_tests.classpath">
+    <fileset dir="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib">
+      <patternset refid="library.patterns"/>
+    </fileset>
     <pathelement location="${path.variable.teamcitydistribution}/devPackage/tests/jmock-1.2.0.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/devPackage/tests/junit-3.8.2.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/devPackage/tests/tests-integration.jar"/>
