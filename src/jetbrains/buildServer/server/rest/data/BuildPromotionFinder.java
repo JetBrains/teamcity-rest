@@ -576,7 +576,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     if (locator.getUnusedDimensions().contains(EQUIVALENT)) { //performance optimization: do not filter if already processed
       final String equivalent = locator.getSingleDimensionValue(EQUIVALENT);
       if (equivalent != null) {
-        final Set<BuildPromotion> filter = new HashSet<BuildPromotion>(((BuildPromotionEx)getItem(equivalent)).getStartedEquivalentPromotions());
+        final Set<BuildPromotion> filter = new HashSet<BuildPromotion>(((BuildPromotionEx)getItem(equivalent)).getStartedEquivalentPromotions(-1));
         result.add(new FilterConditionChecker<BuildPromotion>() {
           public boolean isIncluded(@NotNull final BuildPromotion item) {
             return filter.contains(item);
@@ -1091,7 +1091,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     final String equivalent = locator.getSingleDimensionValue(EQUIVALENT);
     if (equivalent != null) {
       final BuildPromotionEx build = (BuildPromotionEx)getItem(equivalent);
-      final List<BuildPromotionEx> result = build.getStartedEquivalentPromotions();
+      final List<BuildPromotionEx> result = build.getStartedEquivalentPromotions(-1);
       final Set<BuildPromotion> convertedResult = new TreeSet<BuildPromotion>(BUILD_PROMOTIONS_COMPARATOR);
       for (BuildPromotionEx item : result) {
         convertedResult.add(item);
