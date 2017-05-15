@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data;
 import com.google.common.collect.ComparisonChain;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.AgentRestrictor;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
@@ -237,22 +238,24 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       });
     }
 
-    final String compatible = locator.getSingleDimensionValue(COMPATIBLE); //compatible with at least with one of the buildTypes
-    if (compatible != null) {
-      final CompatibleLocatorParseResult compatibleData = getBuildTypesFromCompatibleDimension(compatible);
-      if (compatibleData.buildTypes != null) {
-        result.add(new FilterConditionChecker<SBuildAgent>() {
-          public boolean isIncluded(@NotNull final SBuildAgent item) {
-            return isCompatibleWithAny(item, compatibleData.buildTypes);
-          }
-        });
-      } else {
-        assert compatibleData.buildPromotions != null;
-        result.add(new FilterConditionChecker<SBuildAgent>() {
-          public boolean isIncluded(@NotNull final SBuildAgent item) {
-            return isCompatibleWithAnyBuild(item, compatibleData.buildPromotions);
-          }
-        });
+    if (locator.isUnused(COMPATIBLE)) {
+      final String compatible = locator.getSingleDimensionValue(COMPATIBLE); //compatible with at least with one of the buildTypes
+      if (compatible != null) {
+        final CompatibleLocatorParseResult compatibleData = getBuildTypesFromCompatibleDimension(compatible);
+        if (compatibleData.buildTypes != null) {
+          result.add(new FilterConditionChecker<SBuildAgent>() {
+            public boolean isIncluded(@NotNull final SBuildAgent item) {
+              return isCompatibleWithAny(item, compatibleData.buildTypes);
+            }
+          });
+        } else {
+          assert compatibleData.buildPromotions != null;
+          result.add(new FilterConditionChecker<SBuildAgent>() {
+            public boolean isIncluded(@NotNull final SBuildAgent item) {
+              return isCompatibleWithAnyBuild(item, compatibleData.buildPromotions);
+            }
+          });
+        }
       }
     }
 
@@ -437,16 +440,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     }
     SQueuedBuild queuedBuild = build.getQueuedBuild(); // doing this after  build.getCanRunOnAgents as this does not take agent as argument
     if (queuedBuild != null) {
-      if (!agent.isEnabled()) {
-        AgentRestrictor agentRestrictor = queuedBuild.getAgentRestrictor();
-        if (agentRestrictor == null) {
-          return false;
-        }
-        if (!agentRestrictor.accept(agent)) {
-          return false;
-        }
-        return agentRestrictor instanceof SingleAgentRestrictor;
-      }
+      if (!isAgentRestrictorAllowed(agent, queuedBuild)) return false;
       return queuedBuild.getCanRunOnAgents().stream().filter(a -> AGENT_COMPARATOR.compare(a, agent) == 0).findAny().isPresent();
     }
 
@@ -455,6 +449,37 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       return false;  //todo: optimize, as this calculates compatibility second time
     }
     return true;
+  }
+
+  private static boolean isAgentRestrictorAllowed(final @NotNull SBuildAgent agent, final @NotNull SQueuedBuild queuedBuild) {
+    AgentRestrictor agentRestrictor = queuedBuild.getAgentRestrictor();
+    if (agentRestrictor == null) {
+      return agent.isEnabled();
+    }
+
+    if (!agentRestrictor.accept(agent)) {
+      return false;
+    }
+
+    return agent.isEnabled() || agentRestrictor instanceof SingleAgentRestrictor;
+  }
+
+  private Iterable<SBuildAgent> calculateCanActuallyRunAgents(@NotNull final List<BuildPromotion> builds, final @NotNull ServiceLocator serviceLocator) {
+    TreeSet<SBuildAgent> result = createContainerSet();
+    for (BuildPromotion build : builds) {
+      SQueuedBuild queuedBuild = build.getQueuedBuild();
+      if (queuedBuild != null) {
+        result.addAll(queuedBuild.getCanRunOnAgents().stream().filter(a -> a.isAuthorized() && a.isRegistered() && isAgentRestrictorAllowed(a, queuedBuild)).collect(Collectors.toList()));
+      } else {
+        SBuildType buildType = build.getBuildType();
+        if (buildType != null) {
+          final List<BuildAgentEx> agents = serviceLocator.getSingletonService(BuildAgentManagerEx.class).getAllAgents();
+          result.addAll(
+            agents.stream().filter(a -> a.isAuthorized() && a.isRegistered() && getCompatibilityData(a, buildType, serviceLocator).isCompatible()).collect(Collectors.toList()));
+        }
+      }
+    }
+    return result;
   }
 
   private boolean canActuallyRun(@NotNull final SBuildAgent agent, @NotNull final BuildPromotion build, @NotNull final CompatibilityResult compatibilityResult) {
@@ -496,6 +521,20 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     final String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
       return getItemHolder(getBuildRelatedAgents(buildDimension));
+    }
+
+    if (TeamCityProperties.getBooleanOrTrue("rest.request.agents.compatibilityPrefilter")) { //added just in case
+      final String compatible = locator.getSingleDimensionValue(COMPATIBLE);
+      if (compatible != null) {
+        final CompatibleLocatorParseResult compatibleData = getBuildTypesFromCompatibleDimension(compatible);
+        if (compatibleData.buildTypes != null) {
+          //not supported yet, but might not contribute to performance much
+          locator.markUnused(COMPATIBLE);
+        } else {
+          assert compatibleData.buildPromotions != null;
+          return getItemHolder(calculateCanActuallyRunAgents(compatibleData.buildPromotions, myServiceLocator));
+        }
+      }
     }
 
     final Boolean authorizedDimension = locator.getSingleDimensionValueAsBoolean(AUTHORIZED);

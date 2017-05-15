@@ -58,7 +58,7 @@ public class AgentFinderTest extends BaseFinderTest<SBuildAgent> {
     myAgent3.setAuthorized(false, null, "test");
 
     myAgent4 = myFixture.createEnabledAgent("agent4", "Ant"); //disconnected, unauthorized
-    myAgent2.setIsAvailable(false);
+    myAgent4.setIsAvailable(false);
     myAgentManager.unregisterAgent(myAgent4.getId());
     myAgent4.setAuthorized(false, null, "test");
   }
@@ -242,6 +242,64 @@ public class AgentFinderTest extends BaseFinderTest<SBuildAgent> {
                 myAgent1, myAgent2, agent15, agent20, agent30, agent40, agent50);
 
     checkAgents("compatible:(buildType:(id:" + bt30.getExternalId() + ")),incompatible:(buildType:(id:" + bt10.getExternalId() + "))", myAgent1);
+  }
+
+  @Test
+  public void testLocatorCompatibleForBuildWithoutPrefilter() throws Exception {
+    setInternalProperty("rest.request.agents.compatibilityPrefilter", "false"); //non-default, pre-2017.1.2 value
+    testLocatorCompatibleForBuild();
+  }
+
+  @Test
+  public void testLocatorCompatibleForBuild() throws Exception {
+    ProjectEx project10 = createProject("project10", "project 10");
+    BuildTypeEx bt10 = project10.createBuildType("bt10", "bt 10");
+    bt10.addRequirement(myFixture.findSingletonService(RequirementFactory.class).createRequirement("a", null, RequirementType.EXISTS));
+    BuildTypeEx bt20 = project10.createBuildType("bt20", "bt 20");
+
+    MockBuildAgent agent10 = myFixture.createEnabledAgent("agent10", "Ant");
+    agent10.addConfigParameter("a", "b");
+    agent10.pushAgentTypeData();
+
+    if (myServer.getLicensingPolicy().getMaxNumberOfAuthorizedAgents() < 4){
+      throw new SkipException("Cannot execute test logic when there is not enough agent licenses (only works in internal dev environment tests)");
+    }
+
+    MockBuildAgent agent20 = myFixture.createEnabledAgent("agent20", "Ant");
+    agent20.addConfigParameter("a", "b");
+    agent20.pushAgentTypeData();
+    final int poolId1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1").getAgentPoolId();
+    myFixture.getAgentPoolManager().moveAgentTypesToPool(poolId1, createSet(agent20.getId()));
+
+    MockBuildAgent agent30 = myFixture.createEnabledAgent("agent30", "Ant");
+    agent30.addConfigParameter("a", "b");
+    agent30.pushAgentTypeData();
+    myFixture.getAgentTypeManager().setRunConfigurationPolicy(agent30.getAgentTypeId(), BuildAgentManager.RunConfigurationPolicy.SELECTED_COMPATIBLE_CONFIGURATIONS);
+    myFixture.getAgentTypeManager().excludeRunConfigurationsFromAllowed(agent30.getAgentTypeId(), new String[]{bt20.getInternalId()});
+
+    MockBuildAgent agent40 = myFixture.createEnabledAgent("agent40", "Ant");
+
+    MockBuildAgent agent50 = myFixture.createEnabledAgent("agent50", "Ant");
+    agent50.addConfigParameter("a", "b");
+    agent50.pushAgentTypeData();
+    agent50.setEnabled(false, null, "");
+
+
+    checkAgents("defaultFilter:false,connected:true,authorized:true,enabled:true", myAgent1, agent10, agent20, agent30, agent40);
+
+    SQueuedBuild build1 = build().in(bt10).addToQueue();
+    checkAgents("compatible:(build:(id:" + build1.getBuildPromotion().getId() + "))", agent10);
+
+    SQueuedBuild build2 = build().in(bt20).addToQueue();
+    checkAgents("compatible:(build:(id:" + build2.getBuildPromotion().getId() + "))", myAgent1, agent10, agent40);
+
+    checkAgents("compatible:(build:(item:(id:" + build2.getBuildPromotion().getId() + "),item:(id:"+ build1.getBuildPromotion().getId() +")))", myAgent1, agent10, agent40);
+
+    SFinishedBuild build3 = build().in(bt10).finish();
+    checkAgents("compatible:(build:(id:" + build3.getBuildPromotion().getId() + "))", agent10, agent50); //agent50 should probably not be here
+
+    SFinishedBuild build4 = build().in(bt20).finish();
+    checkAgents("compatible:(build:(id:" + build4.getBuildPromotion().getId() + "))", myAgent1, agent10, agent40, agent50);  //agent50 should probably not be here
   }
 
   @Test
