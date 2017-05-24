@@ -489,7 +489,7 @@ public class BuildRequest {
   @Consumes({"text/plain"})
   public void pinBuild(@PathParam("buildLocator") String buildLocator, String comment, @Context HttpServletRequest request) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    if (!build.isFinished()) {
+    if (!(build instanceof SFinishedBuild)) {
       throw new BadRequestException("Cannot pin build that is not finished.");
     }
     SFinishedBuild finishedBuild = (SFinishedBuild) build;
@@ -506,7 +506,7 @@ public class BuildRequest {
   @Consumes({"text/plain"})
   public void unpinBuild(@PathParam("buildLocator") String buildLocator, String comment, @Context HttpServletRequest request) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    if (!build.isFinished()) {
+    if (!(build instanceof SFinishedBuild)) {
       throw new BadRequestException("Cannot unpin build that is not finished.");
     }
     SFinishedBuild finishedBuild = (SFinishedBuild) build;

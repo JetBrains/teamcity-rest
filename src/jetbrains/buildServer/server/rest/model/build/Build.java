@@ -381,7 +381,7 @@ public class Build {
 
   @XmlElement(name = "pinInfo")
   public Comment getPinInfo() {
-    if (myBuild == null || !myBuild.isPinned() || !myBuild.isFinished()) {
+    if (myBuild == null || !myBuild.isPinned() || !(myBuild instanceof SFinishedBuild)) {
       return null;
     }
     return ValueWithDefault.decideDefault(myFields.isIncluded("pinInfo", false), new ValueWithDefault.Value<Comment>() {

@@ -202,7 +202,7 @@ public class DataProvider {
   }
 
   public static void deleteBuild(@NotNull final SBuild build, @NotNull final BuildHistory buildHistory) {
-    if (build.isFinished()){
+    if (build instanceof SFinishedBuild){
       buildHistory.removeEntry((SFinishedBuild)build); //todo:  (TeamCity) open API: should also add entry into audit and check permissions (see also deleteBuild callers)
     }else{
       throw new BadRequestException("Deleting not finished builds is not supported. Cancel the build and only then delete it.");
