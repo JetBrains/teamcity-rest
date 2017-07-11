@@ -140,7 +140,7 @@ public class BuildFinderTestBase extends BaseFinderTest<SBuild> {
         return new Loggable() {
           @NotNull
           public String describe(final boolean verbose) {
-            return LogUtil.describeInDetail(source);
+            return LogUtil.appendDescription(LogUtil.describeInDetail(source), "startTime: " + LogUtil.describe(source.getServerStartDate()));
           }
         };
       }
