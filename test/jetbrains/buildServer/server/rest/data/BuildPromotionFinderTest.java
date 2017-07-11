@@ -462,11 +462,51 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("sinceBuild:(id:" + build30.getBuildId() + "),state:any,failedToStart:any", 6, getBuildPromotions(build90, build80, build70, build60, build40));
     checkBuilds("sinceBuild:(id:" + build60.getBuildId() + "),state:any", 4, getBuildPromotions(build90, build80, build70));
 
-    checkBuilds("sinceDate:(" + Util.formatTime(build60.getStartDate()) + "),state:any", 5, getBuildPromotions(build80, build70, build60));
-    checkBuilds("sinceBuild:(id:" + build30.getBuildId() + "),sinceDate:(" + Util.formatTime(build60.getStartDate()) + "),state:any", 5, getBuildPromotions(build80, build70, build60));
+    if (build60.getStartDate().getTime() % 1000 == 0) { //documenting current behavior for the legacy "sinceDate": it is not quite consistent when the time has 0 ms
+      checkBuilds("sinceDate:(" + Util.formatTime(build60.getStartDate()) + "),state:any", 5, getBuildPromotions(build80, build70));
+      checkBuilds("sinceBuild:(id:" + build30.getBuildId() + "),sinceDate:(" + Util.formatTime(build60.getStartDate()) + "),state:any", 5, getBuildPromotions(build80, build70));
+    } else {
+      checkBuilds("sinceDate:(" + Util.formatTime(build60.getStartDate()) + "),state:any", 5, getBuildPromotions(build80, build70, build60));
+      checkBuilds("sinceBuild:(id:" + build30.getBuildId() + "),sinceDate:(" + Util.formatTime(build60.getStartDate()) + "),state:any", 5, getBuildPromotions(build80, build70, build60));
+    }
+
 
     checkExceptionOnBuildsSearch(BadRequestException.class, "sinceBuild:(xxx)");
     checkExceptionOnBuildsSearch(BadRequestException.class, "sinceBuild:(buildType:(" + buildConf1.getId() + "),status:FAILURE)");
+
+    //documenting current behavior: extra ")" does not produce an error
+    checkBuilds("sinceBuild:(id:" + build25DeletedId + "),state:finished,defaultFilter:false", getBuildPromotions(build70, build60, build40, build30));
+    checkBuilds("untilBuild:(id:" + build60.getBuildId() + "),state:finished,defaultFilter:false", getBuildPromotions(build60, build40, build30, build20, build10));
+    checkBuilds("untilBuild:(id:" + build50DeletedId + "),state:any,defaultFilter:false", getBuildPromotions(build40, build30, build20, build10));
+
+    if (build20.getStartDate().getTime() % 1000 == 0) { //documenting current behavior for the legacy "sinceDate": it is not quite consistent when the time has 0 ms
+      checkBuilds("sinceDate:" + Util.formatTime(build20.getStartDate()) + ",state:finished,defaultFilter:false", getBuildPromotions(build70, build60, build40, build30));
+      checkBuilds("sinceDate:" + Util.formatTime(build20.getStartDate()) + "),state:finished,defaultFilter:false", getBuildPromotions(build70, build60, build40, build30));
+    } else {
+      checkBuilds("sinceDate:" + Util.formatTime(build20.getStartDate()) + ",state:finished,defaultFilter:false", getBuildPromotions(build70, build60, build40, build30, build20));
+      checkBuilds("sinceDate:" + Util.formatTime(build20.getStartDate()) + "),state:finished,defaultFilter:false", getBuildPromotions(build70, build60, build40, build30, build20));
+    }
+    checkBuilds("sinceDate:" + Util.formatTime(afterBuild30) + "),state:finished,defaultFilter:false", getBuildPromotions(build70, build60, build40));
+
+    if (build60.getStartDate().getTime() % 1000 == 0) { //documenting current behavior for the legacy "sinceDate": it is not quite consistent when the time has 0 ms
+      checkBuilds("untilDate:" + Util.formatTime(build60.getStartDate()) + "),state:finished,defaultFilter:false", getBuildPromotions(build60, build40, build30, build20, build10));
+    } else {
+      checkBuilds("untilDate:" + Util.formatTime(build60.getStartDate()) + "),state:finished,defaultFilter:false", getBuildPromotions(build40, build30, build20, build10));
+    }
+    checkBuilds("untilDate:" + Util.formatTime(afterBuild30) + "),state:finished,defaultFilter:false", getBuildPromotions(build30, build20, build10));
+
+    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),sinceDate:" + Util.formatTime(build10.getStartDate()) + ",state:finished,defaultFilter:false", getBuildPromotions(build70, build60, build40, build30, build20));
+    checkBuilds("sinceBuild:(id:" + build10.getBuildId() + "),sinceDate:" + Util.formatTime(afterBuild30) + ",state:finished,defaultFilter:false", getBuildPromotions(build70, build60, build40));
+    if (build60.getStartDate().getTime() % 1000 == 0) { //documenting current behavior for the legacy "sinceDate": it is not quite consistent when the time has 0 ms
+    checkBuilds("untilBuild:(id:" + build60.getBuildId() + "),untilDate:" + Util.formatTime(build60.getStartDate()) + ",state:finished,defaultFilter:false", getBuildPromotions(build60, build40, build30, build20, build10));
+    } else {
+      checkBuilds("untilBuild:(id:" + build60.getBuildId() + "),untilDate:" + Util.formatTime(build60.getStartDate()) + ",state:finished,defaultFilter:false", getBuildPromotions(build40, build30, build20, build10));
+    }
+    checkBuilds("untilBuild:(id:" + build60.getBuildId() + "),untilDate:" + Util.formatTime(afterBuild30) + ",state:finished,defaultFilter:false", getBuildPromotions(build30, build20, build10));
+
+    checkBuilds("sinceBuild:(id:" + build20.getBuildId() + "),untilBuild:" + build60.getBuildId()+ ",state:finished,defaultFilter:false", getBuildPromotions(build60, build40, build30));
+    checkBuilds("sinceBuild:(id:" + build20.getBuildId() + "),untilDate:" + Util.formatTime(afterBuild30) + ",state:finished,defaultFilter:false", getBuildPromotions(build30));
+    checkBuilds("sinceDate:(" + Util.formatTime(afterBuild10) + "),untilDate:" + Util.formatTime(afterBuild30) + ",state:finished,defaultFilter:false", getBuildPromotions(build30, build20));
   }
 
   @Test
@@ -1612,7 +1652,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
         return new Loggable() {
           @NotNull
           public String describe(final boolean verbose) {
-            return LogUtil.describeInDetail(source);
+            return LogUtil.appendDescription(LogUtil.describeInDetail(source), "startTime: " + LogUtil.describe(source.getServerStartDate()));
           }
         };
       }
