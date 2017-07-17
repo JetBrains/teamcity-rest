@@ -90,7 +90,8 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "build")
 /*Comments inside propOrder: q = queued, r = running, f = finished*/
 @XmlType(name = "build",
-         propOrder = {"id"/*rf*/, "promotionId"/*q*/, "buildTypeId", "buildTypeInternalId", "number"/*rf*/, "status"/*rf*/, "state", "running"/*r*/, "failedToStart"/*f*/,
+         propOrder = {"id"/*rf*/, "promotionId"/*q*/, "buildTypeId", "buildTypeInternalId", "number"/*rf*/, "status"/*rf*/, "state", "running"/*r*/, "composite"/*qrf*/,
+           "failedToStart"/*f*/,
            "personal", "percentageComplete"/*r*/, "branchName", "defaultBranch", "unspecifiedBranch", "history", "pinned"/*rf*/, "href", "webUrl",
            "statusText"/*rf*/,
            "buildType", "comment", "tags", "pinInfo"/*f*/, "personalBuildUser",
@@ -196,12 +197,22 @@ public class Build {
    */
   @XmlAttribute
   public Boolean isRunning() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("running"), myBuild != null && !myBuild.isFinished());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("running"), () -> myBuild != null && !myBuild.isFinished());
+  }
+
+  /**
+   * Experimental
+   * "composite" build state (since TeamCty 2017.2)
+   * TODO: to review before the release. May be this should turn into a node with more details like completion %
+   */
+  @XmlAttribute
+  public Boolean isComposite() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("composite"), () -> ((BuildPromotionEx)myBuildPromotion).isCompositeBuild());
   }
 
   @XmlAttribute
   public Boolean isFailedToStart() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("failedToStart"), myBuild != null && myBuild.isInternalError());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("failedToStart"), () -> myBuild != null && myBuild.isInternalError());
   }
 
   @XmlAttribute
@@ -637,7 +648,7 @@ public class Build {
   }
 
   /**
-   * Lists last change(s) included into the build so that this can be used in the build start request.
+   * Lists last change(s) included into the build so that this can be used in the build start request. The changes correspond to the revisions used by the build.
    * The set of the changes included can vary in the future TeamCity versions. In TeamCity 8.1 this is the last usual change and also a personal change (for personal build only)
    * @return
    */
