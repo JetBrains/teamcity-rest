@@ -47,6 +47,7 @@ import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.serverSide.impl.SBuildStepDescriptor;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.TestFor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
@@ -749,6 +750,29 @@ public class BuildTest extends BaseFinderTest<SBuild> {
                  new TestArtifactDep(buildType2.getBuildTypeId(), "path3=>x", true, RevisionRules.newBuildIdRule(build2_1.getBuildId(), build2_1.getBuildNumber())),
                  new TestArtifactDep(buildType3.getBuildTypeId(), "path3=>b", false, RevisionRules.newBuildIdRule(build3_1.getBuildId(), build3_1.getBuildNumber())));
   }
+
+  @Test(enabled = false)
+  @TestFor(issues = "TW-48945")
+  public void testBuildTriggeringWithBuildTypeAndCustomDefaultParameter() {
+    BuildTypeImpl buildType1 = registerBuildType("buildType1", "projectName");
+
+    buildType1.addParameter(new SimpleParameter("name", "value"));
+
+    final SUser user = getOrCreateUser("user");
+
+    // end of setup
+
+    final Build build = new Build();
+    final BuildType buildTypeEntity = new BuildType();
+    buildTypeEntity.setId(buildType1.getExternalId());
+    buildTypeEntity.setDescription("some description");
+    build.setBuildType(buildTypeEntity);
+    build.setProperties(new Properties(createMap("name", "value"), null, Fields.ALL, myFixture));
+    SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
+
+    assertEquals("value", result.getBuildPromotion().getParameterValue("name"));
+  }
+
 
   public static <E, A> void assertEquals(@Nullable final List<A> collection, EqualsTest<E, A> equalsTest, final E... items) {
     assertEquals(null, collection, equalsTest, (e) -> BaseFinderTest.getDescription(e), (e) -> BaseFinderTest.getDescription(e), items);
