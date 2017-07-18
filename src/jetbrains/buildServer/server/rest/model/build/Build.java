@@ -919,9 +919,14 @@ public class Build {
         final TimeInterval timeInterval = buildEstimates.getTimeInterval();
         if (timeInterval == null) return null;
 
-        final TimePoint endPoint = timeInterval.getEndPoint();
-        if (endPoint == null) return null;
-        return Util.formatTime(endPoint.getAbsoluteTime());
+        if (TeamCityProperties.getBoolean("rest.beans.build.startEstimate.legacyBehavior")) {
+          //logic before https://youtrack.jetbrains.com/issue/TW-50824 fix as the fix goes to the bugfix update
+          //this property support can be dropped in TeamCity 2017.2
+          final TimePoint endPoint = timeInterval.getEndPoint();
+          if (endPoint == null) return null;
+          return Util.formatTime(endPoint.getAbsoluteTime());
+        }
+        return Util.formatTime(timeInterval.getStartPoint().getAbsoluteTime());
       }
     });
   }

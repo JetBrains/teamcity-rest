@@ -16,14 +16,14 @@
 
 package jetbrains.buildServer.server.rest.model;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 import jetbrains.buildServer.AgentRestrictorType;
 import jetbrains.buildServer.artifacts.ArtifactDependency;
 import jetbrains.buildServer.artifacts.RevisionRule;
 import jetbrains.buildServer.artifacts.RevisionRules;
+import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.parameters.ValueResolver;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.requirements.RequirementType;
@@ -46,7 +46,9 @@ import jetbrains.buildServer.serverSide.impl.AgentRestrictorFactoryImpl;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.serverSide.impl.SBuildStepDescriptor;
+import jetbrains.buildServer.serverSide.impl.timeEstimation.CachingBuildEstimator;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.TestFor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -749,6 +751,28 @@ public class BuildTest extends BaseFinderTest<SBuild> {
                  new TestArtifactDep(buildType2.getBuildTypeId(), "path2_2=>a", false, RevisionRules.newBuildIdRule(build2_1.getBuildId(), build2_1.getBuildNumber())),
                  new TestArtifactDep(buildType2.getBuildTypeId(), "path3=>x", true, RevisionRules.newBuildIdRule(build2_1.getBuildId(), build2_1.getBuildNumber())),
                  new TestArtifactDep(buildType3.getBuildTypeId(), "path3=>b", false, RevisionRules.newBuildIdRule(build3_1.getBuildId(), build3_1.getBuildNumber())));
+  }
+
+  @Test
+  @TestFor(issues = "TW-50824")
+  public void testBuildEstimates() throws Exception {
+    BuildTypeImpl bt1 = registerBuildType("buildType1", "projectName");
+
+    //~setting build estimate to 10 minutes
+    Date tenMinutesAgo = Date.from(Instant.now().minus(10, ChronoUnit.MINUTES));
+    createBuildWithBuildDurationStatistic(bt1, Status.NORMAL, tenMinutesAgo, tenMinutesAgo, myBuildAgent);
+
+    build().in(bt1).addToQueue();
+    build().in(bt1).parameter("a", "prevent merging").addToQueue();
+
+    myFixture.getSingletonService(CachingBuildEstimator.class).invalidate(true);
+
+    TimeInterval timeInterval = myServer.getQueue().getItems().get(1).getBuildEstimates().getTimeInterval();
+    long diff = timeInterval.getStartPoint().getAbsoluteTime().getTime() - Date.from(Instant.now().plus(10, ChronoUnit.MINUTES)).getTime();
+    assertTrue(timeInterval.getStartPoint().getAbsoluteTime().toString() + " -- " + Dates.now().toString() + ", diff: " + diff, diff < 60000);
+
+    Build build1 = new Build(myServer.getQueue().getItems().get(1).getBuildPromotion(), Fields.LONG, getBeanContext(myFixture));
+    assertEquals(Util.formatTime(myServer.getQueue().getItems().get(1).getBuildEstimates().getTimeInterval().getStartPoint().getAbsoluteTime()), build1.getStartEstimate());
   }
 
   @Test(enabled = false)
