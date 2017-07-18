@@ -765,6 +765,10 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     build().in(bt1).addToQueue();
     build().in(bt1).parameter("a", "prevent merging").addToQueue();
 
+    BuildTypeImpl bt2 = registerBuildType("buildType2", "projectName");
+    bt2.addRequirement(myFixture.getSingletonService(RequirementFactory.class).createRequirement("missing", "some", RequirementType.EQUALS));
+    build().in(bt2).addToQueue();
+
     myFixture.getSingletonService(CachingBuildEstimator.class).invalidate(true);
 
     TimeInterval timeInterval = myServer.getQueue().getItems().get(1).getBuildEstimates().getTimeInterval();
@@ -773,6 +777,9 @@ public class BuildTest extends BaseFinderTest<SBuild> {
 
     Build build1 = new Build(myServer.getQueue().getItems().get(1).getBuildPromotion(), Fields.LONG, getBeanContext(myFixture));
     assertEquals(Util.formatTime(myServer.getQueue().getItems().get(1).getBuildEstimates().getTimeInterval().getStartPoint().getAbsoluteTime()), build1.getStartEstimate());
+
+    build1 = new Build(myServer.getQueue().getItems().get(2).getBuildPromotion(), Fields.LONG, getBeanContext(myFixture));
+    assertNull(build1.getStartEstimate());
   }
 
   @Test(enabled = false)

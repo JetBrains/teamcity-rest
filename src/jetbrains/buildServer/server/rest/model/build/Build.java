@@ -926,7 +926,9 @@ public class Build {
           if (endPoint == null) return null;
           return Util.formatTime(endPoint.getAbsoluteTime());
         }
-        return Util.formatTime(timeInterval.getStartPoint().getAbsoluteTime());
+        TimePoint result = timeInterval.getStartPoint();
+        if (result == TimePoint.NEVER) return null;
+        return Util.formatTime(result.getAbsoluteTime());
       }
     });
   }
