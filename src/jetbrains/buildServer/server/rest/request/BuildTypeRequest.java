@@ -35,6 +35,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -251,7 +252,12 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public BuildType serveBuildTypeTemplate(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
-    final BuildTypeTemplate template = buildType.getTemplate();
+    final BuildTypeTemplate template;
+    try {
+      template = buildType.getTemplate();
+    } catch (BuildTypeTemplateNotFoundException e) {
+      throw new AuthorizationFailedException("The template is not accessible. Cross-hierarchy template use?");
+    }
     if (template == null) {
       throw new NotFoundException("No template associated."); //todo: how to report it duly?
     }
@@ -265,7 +271,11 @@ public class BuildTypeRequest {
   public BuildType getTemplateAssociation(@PathParam("btLocator") String buildTypeLocator, String templateLocator, @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
     BuildTypeTemplate template = myBuildTypeFinder.getBuildTemplate(null, templateLocator, true);
-    buildType.attachToTemplate(template);
+    try {
+      buildType.attachToTemplate(template);
+    } catch (CannotAttachToTemplateException e) {
+      throw new BadRequestException(e.getMessage());
+    }
     buildType.persist();
     return new BuildType(new BuildTypeOrTemplate(template),  new Fields(fields), myBeanContext);
   }

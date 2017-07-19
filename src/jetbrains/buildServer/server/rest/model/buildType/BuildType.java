@@ -46,6 +46,7 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -251,10 +252,31 @@ public class BuildType {
     }
     return ValueWithDefault.decideDefault(myFields.isIncluded("template", false), check(new ValueWithDefault.Value<BuildType>() {
       public BuildType get() {
-        final BuildTypeTemplate template = myBuildType.getBuildType().getTemplate();
-        return template == null ? null : new BuildType(new BuildTypeOrTemplate(template), myFields.getNestedField("template"), myBeanContext);
+        try {
+          final BuildTypeTemplate template = myBuildType.getBuildType().getTemplate();
+          return template == null ? null : new BuildType(new BuildTypeOrTemplate(template), myFields.getNestedField("template"), myBeanContext);
+        } catch (RuntimeException e) {
+          LOG.debug("Error retrieving template for build configuration " + LogUtil.describe(myBuildType.getBuildType()) + ": " + e.toString(), e);
+          String templateId = myBuildType.getBuildType().getTemplateId();
+          //still including external id since the user has permission to view settings of the current build configuration
+          String templateExternalId = getTemplateExternalId(myBuildType.getBuildType());
+          return templateId == null || templateExternalId == null ? null : new BuildType(templateExternalId, templateId, myFields.getNestedField("template"), myBeanContext);
+        }
       }
     }));
+  }
+
+  @Nullable
+  private String getTemplateExternalId(@NotNull final SBuildType buildType) {
+    try {
+      return myBeanContext.getSingletonService(SecurityContextEx.class).runAsSystem(() -> {
+        BuildTypeTemplate template = buildType.getTemplate();
+        return template == null ? null : template.getExternalId();
+      });
+    } catch (Throwable e) {
+      LOG.debug("Error retrieving template external id for build configuration " + LogUtil.describe(buildType) + " under System: " + e.toString(), e);
+      return null;
+    }
   }
 
   @XmlElement(name = "vcs-root-entries")

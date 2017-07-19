@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.cleanup.CleanupSettingsSupport;
 import jetbrains.buildServer.serverSide.impl.cleanup.HistoryRetentionPolicy;
 import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
@@ -77,7 +78,12 @@ public class BuildTypeUtil {
     Boolean own = locator == null ? null : locator.getSingleDimensionValueAsBoolean("own");
     Boolean defaultValue = locator == null ? null : locator.getSingleDimensionValueAsBoolean("defaults");
 
-    BuildTypeTemplate template = buildType.get().getTemplate();
+    BuildTypeTemplate template = null;
+    try {
+      template = buildType.get().getTemplate();
+    } catch (BuildTypeTemplateNotFoundException e) {
+      LOG.debug("Error retrieving template for build configuration " + LogUtil.describe(buildType.get()) + ": " + e.toString(), e);
+    }
     if ((own == null || !own) && template != null) {
       properties.putAll(getOptionsAsMap(buildType.get(), template.getOwnOptions()));
     }
