@@ -307,12 +307,53 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     }
   }
 
+  protected static final Comparator<STestRun> TEST_RUN_COMPARATOR = new Comparator<STestRun>() {
+    public int compare(STestRun o1, STestRun o2) {
+      // see also STestRun.NEW_FIRST_NAME_COMPARATOR
+
+      // New failure goes first
+      boolean isNew1 = o1.isNewFailure();
+      boolean isNew2 = o2.isNewFailure();
+      if (isNew1 && !isNew2) { return -1; }
+      if (!isNew1 && isNew2) { return 1; }
+
+      final TestGroupName grp1 = o1.getTest().getName().getGroupName();
+      final TestGroupName grp2 = o2.getTest().getName().getGroupName();
+      final int grpCompare = grp1.compareTo(grp2);
+      if (grpCompare != 0) return grpCompare;
+
+      final String name1 = o1.getTest().getName().getAsString();
+      final String name2 = o2.getTest().getName().getAsString();
+      final int nameCompare = name1.compareTo(name2);
+      if (nameCompare != 0) return nameCompare;
+
+      // Failure goes first
+      boolean isFailed1 = o1.getStatus().isFailed();
+      boolean isFailed2 = o2.getStatus().isFailed();
+      if (isFailed1 && !isFailed2) { return -1; }
+      if (!isFailed1 && isFailed2) { return 1; }
+
+      // that's what STestRun.NEW_FIRST_NAME_COMPARATOR does not compare
+      SBuild build1 = o1.getBuild();
+      SBuild build2 = o2.getBuild();
+
+      int datesComparison = build1.getServerStartDate().compareTo(build2.getServerStartDate());
+      if (datesComparison != 0 ) return datesComparison;
+
+      if (build1.getBuildId() != build2.getBuildId()) {
+        return (int)(build1.getBuildId() - build2.getBuildId());
+      }
+
+      return o1.getOrderId() - o2.getOrderId();
+    }
+  };
+
   @NotNull
   public static Set<STestRun> getCurrentOccurrences(@NotNull final SProject affectedProject, @NotNull final CurrentProblemsManager currentProblemsManager) {
     final CurrentProblems currentProblems = currentProblemsManager.getProblemsForProject(affectedProject);
     final Map<TestName, List<STestRun>> failingTests = currentProblems.getFailingTests();
     final Map<TestName, List<STestRun>> mutedTestFailures = currentProblems.getMutedTestFailures();
-    final TreeSet<STestRun> result = new TreeSet<STestRun>(STestRun.NEW_FIRST_NAME_COMPARATOR);
+    final TreeSet<STestRun> result = new TreeSet<STestRun>(TEST_RUN_COMPARATOR);
     //todo: check whether STestRun is OK to put into the set
     for (List<STestRun> testRuns : failingTests.values()) {
       result.addAll(testRuns);

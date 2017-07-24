@@ -17,13 +17,21 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.google.common.base.Objects;
+import java.util.Date;
 import jetbrains.buildServer.messages.Status;
+import jetbrains.buildServer.responsibility.ResponsibilityEntry;
+import jetbrains.buildServer.responsibility.TestNameResponsibilityFacade;
+import jetbrains.buildServer.responsibility.impl.TestNameResponsibilityEntryImpl;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.STestRun;
+import jetbrains.buildServer.serverSide.TestName2Index;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
+import jetbrains.buildServer.serverSide.impl.ProjectEx;
+import jetbrains.buildServer.tests.TestName;
+import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
@@ -77,6 +85,35 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     check("build:(id:" + build10.getBuildId() + "),test:(name:missingTest)", TEST_MATCHER);
     check("build:(id:" + build10.getBuildId() + "),test:(name:bbb)", TEST_MATCHER, t("bbb", Status.NORMAL, 2));
     check("build:(id:" + build10.getBuildId() + "),test:(currentlyFailing:true)", TEST_MATCHER, t("aaa", Status.FAILURE, 1), t("ccc", Status.FAILURE, 3));
+  }
+
+  @Test
+  public void testSameTestInDifferentBuilds() throws Exception {
+    final BuildTypeImpl buildType1 = registerBuildType("buildConf1", "project1");
+    final BuildTypeImpl buildType2 = registerBuildType("buildConf2", "project2");
+    final SFinishedBuild build10 = build().in(buildType1).withTest("aaa", false).finish();
+    final SFinishedBuild build20 = build().in(buildType2).withTest("aaa", false).finish();
+
+    check("currentlyFailing:true", TEST_MATCHER, t("aaa", Status.FAILURE, 1), t("aaa", Status.FAILURE, 1));
+    STestRun testRun1 = getFinder().getItems("currentlyFailing:true").myEntries.get(0);
+    STestRun testRun2 = getFinder().getItems("currentlyFailing:true").myEntries.get(1);
+    assertEquals(testRun1.getBuildId(), build10.getBuildId());
+    assertEquals(testRun2.getBuildId(), build20.getBuildId());
+
+    check("currentlyFailing:true,currentlyInvestigated:false", TEST_MATCHER, t("aaa", Status.FAILURE, 1), t("aaa", Status.FAILURE, 1));
+
+
+    long nameId = myFixture.getSingletonService(TestName2Index.class).getOrSaveTestNameId("aaa");
+    SUser user = createUser("user");
+    ProjectEx project = myServer.getProjectManager().getRootProject().findProjectByName("project1");
+    TestNameResponsibilityEntryImpl testNameResponsibilityEntry = new TestNameResponsibilityEntryImpl(new TestName("aaa"), nameId, ResponsibilityEntry.State.TAKEN, user, user,
+                                                                                                      new Date(), "Please, fix",
+                                                                                                      project,
+                                                                                                      ResponsibilityEntry.RemoveMethod.MANUALLY);
+
+    myFixture.getSingletonService(TestNameResponsibilityFacade.class).setTestNameResponsibility(new TestName("aaa"), project.getProjectId(), testNameResponsibilityEntry);
+
+    check("currentlyFailing:true,currentlyInvestigated:false", TEST_MATCHER, t("aaa", Status.FAILURE, 1));
   }
 
   @Test
