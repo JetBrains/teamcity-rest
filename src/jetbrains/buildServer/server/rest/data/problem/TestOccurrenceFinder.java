@@ -426,6 +426,18 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       }
     }
 
+    if (locator.isUnused(BUILD_TYPE)) {
+      String buildTypeDimension = locator.getSingleDimensionValue(BUILD_TYPE);
+      if (buildTypeDimension != null) {
+        final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension, false);
+        result.add(new FilterConditionChecker<STestRun>() {
+          public boolean isIncluded(@NotNull final STestRun item) {
+            return item.getBuild().getBuildTypeId().equals(buildType.getInternalId());
+          }
+        });
+      }
+    }
+
     final Boolean currentlyInvestigatedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_INVESTIGATED);
     if (currentlyInvestigatedDimension != null) {
       result.add(new FilterConditionChecker<STestRun>() {

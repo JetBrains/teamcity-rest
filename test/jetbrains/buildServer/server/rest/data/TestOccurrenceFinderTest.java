@@ -95,6 +95,8 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     final SFinishedBuild build20 = build().in(buildType2).withTest("aaa", false).finish();
 
     check("currentlyFailing:true", TEST_MATCHER, t("aaa", Status.FAILURE, 1), t("aaa", Status.FAILURE, 1));
+    check("currentlyFailing:true,buildType:(id:" + buildType1.getExternalId() + ")", TEST_MATCHER, t("aaa", Status.FAILURE, 1));
+
     STestRun testRun1 = getFinder().getItems("currentlyFailing:true").myEntries.get(0);
     STestRun testRun2 = getFinder().getItems("currentlyFailing:true").myEntries.get(1);
     assertEquals(testRun1.getBuildId(), build10.getBuildId());
