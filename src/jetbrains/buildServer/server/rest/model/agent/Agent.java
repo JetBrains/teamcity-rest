@@ -21,6 +21,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.AgentRestrictorType;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.controllers.agent.OSKind;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -65,6 +66,10 @@ public class Agent {
   @XmlElement public AgentEnabledInfo enabledInfo;
   @XmlElement public AgentAuthorizedInfo authorizedInfo;
   @XmlElement public Properties properties;
+  /**
+   * Experimental support only
+   */
+  @XmlElement public Environment environment;
   @XmlElement public AgentPool pool;
   @XmlElement public BuildTypes compatibleBuildTypes;
   @XmlElement public Compatibilities incompatibleBuildTypes;
@@ -141,6 +146,11 @@ public class Agent {
           return new Properties(agent.getAvailableParameters(), null, fields.getNestedField("properties", Fields.NONE, Fields.LONG), beanContext.getServiceLocator());
         }
       });
+
+      environment = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("environment", false, false),
+           () -> new Environment(agent, fields.getNestedField("environment", Fields.NONE, Fields.LONG), beanContext)
+      );
+
       pool = ValueWithDefault.decideDefault(fields.isIncluded("pool", false), new ValueWithDefault.Value<AgentPool>() {
         @Nullable
         public AgentPool get() {
@@ -163,6 +173,27 @@ public class Agent {
           return new Compatibilities(AgentFinder.getIncompatible(agent, null, beanContext.getServiceLocator()), agent, null, fields.getNestedField(INCOMPATIBLE_BUILD_TYPES), beanContext);
         }
       });
+    }
+  }
+
+  static String getAgentOsType(@NotNull final SBuildAgent agent) {
+    OSKind os = OSKind.guessByName(agent.getOperatingSystemName());
+    if (os == null) return null;
+    switch (os) {
+      case WINDOWS:
+        return "Windows";
+      case MAC:
+        return "macOS";
+      case LINUX:
+        return "Linux";
+      case SOLARIS:
+        return "Solaris";
+      case FREEBSD:
+        return "FreeBSD";
+      case OTHERUNIX:
+        return "Unix";
+      default:
+        return null;
     }
   }
 
