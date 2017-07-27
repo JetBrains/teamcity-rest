@@ -208,7 +208,7 @@ public class Build {
    */
   @XmlAttribute
   public Boolean isComposite() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("composite"), () -> ((BuildPromotionEx)myBuildPromotion).isCompositeBuild());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("composite"), () -> myBuildPromotion.isCompositeBuild());
   }
 
   @XmlAttribute
