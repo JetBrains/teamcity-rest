@@ -93,6 +93,7 @@ import org.jetbrains.annotations.Nullable;
          propOrder = {"id"/*rf*/, "promotionId"/*q*/, "buildTypeId", "buildTypeInternalId", "number"/*rf*/, "status"/*rf*/, "state", "running"/*r*/, "composite"/*qrf*/,
            "failedToStart"/*f*/,
            "personal", "percentageComplete"/*r*/, "branchName", "defaultBranch", "unspecifiedBranch", "history", "pinned"/*rf*/, "href", "webUrl",
+           "links",
            "statusText"/*rf*/,
            "buildType", "comment", "tags", "pinInfo"/*f*/, "personalBuildUser",
            "startEstimate"/*q*/, "waitReason"/*q*/,
@@ -306,6 +307,25 @@ public class Build {
   @XmlAttribute
   public String getBuildTypeInternalId() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("buildTypeInternalId", false, false), myBuildPromotion.getBuildTypeId());
+  }
+
+  @XmlElement
+  public Links getLinks() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("links", false, false), new ValueWithDefault.Value<Links>() {
+      @Nullable
+      @Override
+      public Links get() {
+        WebLinks webLinks = myBeanContext.getSingletonService(WebLinks.class);
+        RelativeWebLinks relativeWebLinks = new RelativeWebLinks();
+        Links.LinksBuilder builder = new Links.LinksBuilder();
+        if (myBuild != null) {
+          builder.add(Link.WEB_VIEW_TYPE, webLinks.getViewResultsUrl(myBuild), relativeWebLinks.getViewResultsUrl(myBuild));
+        } else if (myQueuedBuild != null) {
+          builder.add(Link.WEB_VIEW_TYPE, webLinks.getQueuedBuildUrl(myQueuedBuild), relativeWebLinks.getQueuedBuildUrl(myQueuedBuild));
+        }
+        return builder.build(myFields.getNestedField("links"));
+      }
+    });
   }
 
   @XmlElement
