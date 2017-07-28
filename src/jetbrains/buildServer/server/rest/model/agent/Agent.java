@@ -26,14 +26,13 @@ import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.Link;
+import jetbrains.buildServer.server.rest.model.Links;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.AgentRestrictorFactory;
-import jetbrains.buildServer.serverSide.SAgentRestrictor;
-import jetbrains.buildServer.serverSide.SBuildAgent;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
 import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import jetbrains.buildServer.serverSide.auth.Permission;
@@ -63,6 +62,9 @@ public class Agent {
   @XmlAttribute public String ip;
   @XmlAttribute public String protocol;
   @XmlAttribute public String href;
+  @XmlAttribute public String webUrl;
+
+  @XmlElement public Links links;
   @XmlElement public AgentEnabledInfo enabledInfo;
   @XmlElement public AgentAuthorizedInfo authorizedInfo;
   @XmlElement public Properties properties;
@@ -84,6 +86,9 @@ public class Agent {
   public Agent() {
   }
 
+  /**
+   *  Used only for build triggering
+   */
   public Agent(@NotNull final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     pool = ValueWithDefault.decideDefault(fields.isIncluded("pool", true), new ValueWithDefault.Value<AgentPool>() {
       @Nullable
@@ -93,6 +98,9 @@ public class Agent {
     });
   }
 
+  /**
+   *  Used only for build triggering
+   */
   public Agent(@NotNull final SAgentType agentType, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     typeId = ValueWithDefault.decideDefault(fields.isIncluded("typeId", true), agentType.getAgentTypeId());
   }
@@ -110,6 +118,21 @@ public class Agent {
 
     //check permission to match UI
     if (canViewAgentDetails(beanContext)) {
+      WebLinks webLinks = beanContext.getSingletonService(WebLinks.class);
+      webUrl = ValueWithDefault.decideDefault(fields.isIncluded("webUrl", true), () -> webLinks.getAgentUrl(agent, agent.getAgentTypeId()));
+      links = ValueWithDefault.decideDefault(fields.isIncluded("links", false, false), new ValueWithDefault.Value<Links>() {
+        @Nullable
+        @Override
+        public Links get() {
+          Links.LinksBuilder builder = new Links.LinksBuilder();
+          String absoluteUrl = webLinks.getAgentUrl(agent, agent.getAgentTypeId());
+          String relativeUrl = new RelativeWebLinks().getAgentUrl(agent, agent.getAgentTypeId());
+          if (absoluteUrl != null && relativeUrl != null) {
+            builder.add(Link.WEB_VIEW_TYPE, absoluteUrl, relativeUrl);
+          }
+          return builder.build(fields.getNestedField("links"));
+        }
+      });
       uptodate = unknownAgent ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("uptodate", false), !agent.isOutdated() && !agent.isPluginsOutdated());
       ip = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("ip", false), new ValueWithDefault.Value<String>() {
         @Nullable
