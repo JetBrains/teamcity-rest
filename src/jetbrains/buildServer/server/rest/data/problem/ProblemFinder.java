@@ -77,7 +77,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   }
 
   public static String getLocator(final ProblemWrapper problem) {
-    return Locator.createEmptyLocator().setDimension(DIMENSION_ID, String.valueOf(problem.getId())).getStringRepresentation();
+    return getLocator(problem.getId().intValue());
   }
 
   public static String getLocator(final int problemId) {

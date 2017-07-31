@@ -114,22 +114,7 @@ public class ProblemWrapper implements Comparable<ProblemWrapper>{
     if (investigations == null){
       final String rootProjectId = myServiceLocator.getSingletonService(ProjectFinder.class).getRootProject().getProjectId();
       final List<BuildProblemResponsibilityEntry> responsibilities = myServiceLocator.getSingletonService(
-        BuildProblemResponsibilityFacade.class).findBuildProblemResponsibilities(new BuildProblemInfo() {
-        //TeamCity API issue: requires creating some fake object
-        public int getId() {
-          return id;
-        }
-
-        @NotNull
-        public String getProjectId() {
-          return rootProjectId;
-        }
-
-        @Nullable
-        public String getBuildProblemDescription() {
-          return null;
-        }
-      }, rootProjectId);
+        BuildProblemResponsibilityFacade.class).findBuildProblemResponsibilities(getBuildProblemInfo(id, rootProjectId), rootProjectId);
 
       final Set<InvestigationWrapper> investigationsSet = new TreeSet<InvestigationWrapper>();
       for (BuildProblemResponsibilityEntry responsibility : responsibilities) {
@@ -138,6 +123,26 @@ public class ProblemWrapper implements Comparable<ProblemWrapper>{
       investigations = new ArrayList<InvestigationWrapper>(investigationsSet);
     }
     return investigations;
+  }
+
+  @NotNull
+  public static BuildProblemInfo getBuildProblemInfo(final int id, @NotNull final String rootProjectId) {
+    return new BuildProblemInfo() {
+    //TeamCity API issue: requires creating some fake object
+    public int getId() {
+      return id;
+    }
+
+    @NotNull
+    public String getProjectId() {
+      return rootProjectId;
+    }
+
+    @Nullable
+    public String getBuildProblemDescription() {
+      return null;
+    }
+  };
   }
 
   //todo: review all methods below

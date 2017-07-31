@@ -20,7 +20,11 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
@@ -44,6 +48,11 @@ public class Problem {
   @XmlAttribute public String type;
   @XmlAttribute public String identity;
   @XmlAttribute public String href;
+
+  /**
+   * This is used only when posting
+   */
+  @XmlAttribute public String locator;
 
   @XmlElement public Mutes mutes;
   @XmlElement public Investigations investigations;
@@ -78,5 +87,35 @@ public class Problem {
                                       beanContext);
       }
     });
+  }
+
+
+  /**
+   *
+   * @return problem id
+   */
+  @NotNull
+  public long getFromPosted(@NotNull final ServiceLocator serviceLocator) {
+    try {
+      return serviceLocator.getSingletonService(ProblemFinder.class).getItem(getLocatorFromPosted()).getId();
+    } catch (NotFoundException e) {
+      throw new BadRequestException("Invalid 'problem' entity: " + e.getMessage());
+    }
+  }
+
+  @NotNull
+  private String getLocatorFromPosted() {
+    if (locator != null) return locator;
+    if (id != null) return ProblemFinder.getLocator(getInteger(id, "Invalid 'problem' entity: Invalid id "));
+    throw new BadRequestException("Invalid 'problem' entity: either 'id' or 'locator' should be specified");
+  }
+
+  @NotNull
+  private Integer getInteger(@NotNull final String value, @NotNull final String message) {
+    try {
+      return Integer.parseInt(value);
+    } catch (NumberFormatException e) {
+      throw new BadRequestException(message + " '" + value + "': Should be a number (integer)");
+    }
   }
 }

@@ -29,8 +29,8 @@ import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.STest;
@@ -92,12 +92,38 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
   @NotNull
   public static String getLocator(@NotNull final ProblemWrapper problem) {
-    return Locator.createEmptyLocator().setDimension(PROBLEM_DIMENSION, ProblemFinder.getLocator(problem)).getStringRepresentation();
+    return patchLocatorWithProblem(Locator.createEmptyLocator(), problem.getId().intValue()).getStringRepresentation();
+  }
+
+  @NotNull
+  public static String getLocatorForProblem(final int problemId, @NotNull BuildProject project) {
+    return patchLocator(patchLocatorWithProblem(Locator.createEmptyLocator(), problemId), project).getStringRepresentation();
   }
 
   @NotNull
   public static String getLocator(@NotNull final STest test) {
-    return Locator.createEmptyLocator().setDimension(TEST_DIMENSION, TestFinder.getTestLocator(test)).getStringRepresentation();
+    return patchLocatorWithTest(Locator.createEmptyLocator(), test.getTestNameId()).getStringRepresentation();
+  }
+
+  @NotNull
+  public static String getLocatorForTest(final long testNameId, @NotNull BuildProject project) {
+    return patchLocator(patchLocatorWithTest(Locator.createEmptyLocator(), testNameId), project).getStringRepresentation();
+  }
+
+
+  @NotNull
+  private static Locator patchLocatorWithProblem(@NotNull final Locator locator, final int problemId) {
+    return locator.setDimension(PROBLEM_DIMENSION, ProblemFinder.getLocator(problemId));
+  }
+
+  @NotNull
+  private static Locator patchLocatorWithTest(@NotNull final Locator locator, final long testNameId) {
+    return locator.setDimension(TEST_DIMENSION, TestFinder.getTestLocator(testNameId));
+  }
+
+  @NotNull
+  private static Locator patchLocator(@NotNull final Locator locator, @NotNull final BuildProject project) {
+    return locator.setDimension(ASSIGNMENT_PROJECT, ProjectFinder.getLocator(project));
   }
 
   @NotNull
@@ -108,24 +134,19 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
   @NotNull
   public static String getLocator(final InvestigationWrapper investigation) {
-    final Locator result = Locator.createEmptyLocator();
     //.setDimension(TYPE, investigation.getType());
     if (investigation.isBuildType()) {
       //noinspection ConstantConditions
-      result.setDimension(BUILD_TYPE, BuildTypeFinder.getLocator((SBuildType)investigation.getBuildTypeRE().getBuildType())); //todo: TeamCity API issue: cast
+      return getLocator((SBuildType)investigation.getBuildTypeRE().getBuildType()); //TeamCity API issue: cast
     } else if (investigation.isProblem()) {
       //noinspection ConstantConditions
-      result.setDimension(PROBLEM_DIMENSION, ProblemFinder.getLocator(investigation.getProblemRE().getBuildProblemInfo().getId()));
-      result.setDimension(ASSIGNMENT_PROJECT, ProjectFinder.getLocator(investigation.getProblemRE().getProject()));
+      return getLocatorForProblem(investigation.getProblemRE().getBuildProblemInfo().getId(), investigation.getProblemRE().getProject());
     } else if (investigation.isTest()) {
       //noinspection ConstantConditions
-      result.setDimension(TEST_DIMENSION, TestFinder.getTestLocator(investigation.getTestRE().getTestNameId()));
-      result.setDimension(ASSIGNMENT_PROJECT, ProjectFinder.getLocator(investigation.getTestRE().getProject()));
+      return getLocatorForTest(investigation.getTestRE().getTestNameId(), investigation.getTestRE().getProject());
     } else {
-      throw new InvalidStateException("Unknown investigation type");
+      throw new OperationException("Unknown investigation type");
     }
-
-    return result.getStringRepresentation();
   }
 
   @Override

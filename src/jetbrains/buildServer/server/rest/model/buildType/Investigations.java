@@ -19,10 +19,13 @@ package jetbrains.buildServer.server.rest.model.buildType;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -86,5 +89,12 @@ public class Investigations implements DefaultValueAware {
 
   public static boolean isDataNecessary(@NotNull final Fields fields){
     return fields.isIncluded("investigation", false, true) || fields.isIncluded("count", false, true);
+  }
+
+  public List<InvestigationWrapper> getFromPostedAndApply(@NotNull final ServiceLocator serviceLocator) {
+    if (items == null) {
+      throw new BadRequestException("Invalid 'investigations' entity: 'items' should be specified");
+    }
+    return items.stream().flatMap(investigation -> investigation.getFromPostedAndApply(serviceLocator, true).stream()).collect(Collectors.toList());
   }
 }

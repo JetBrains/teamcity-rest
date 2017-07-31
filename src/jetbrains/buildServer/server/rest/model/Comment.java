@@ -66,4 +66,9 @@ public class Comment {
     timestamp = ValueWithDefault.decideDefault(fields.isIncluded("timestamp"), Util.formatTime(timestampP));
     text = ValueWithDefault.decideDefault(fields.isIncluded("text"), StringUtil.isEmpty(commentTextP) ? null : commentTextP);
   }
+
+  @Nullable
+  public String getTextFromPosted() {
+    return text;
+  }
 }

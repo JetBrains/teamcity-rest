@@ -21,6 +21,7 @@ import java.util.Date;
 import java.util.List;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.BuildType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.responsibility.*;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.users.User;
@@ -72,9 +73,9 @@ public class InvestigationWrapper implements ResponsibilityEntry, Comparable<Inv
   public InvestigationWrapper(@NotNull ResponsibilityEntryEx entry) {
     myRE = entry;
     myExId = entry.getProblemId();
-    myBuildTypeRE = null;
-    myTestRE = null;
-    myProblemRE = null;
+    myBuildTypeRE = entry instanceof BuildTypeResponsibilityEntry ? (BuildTypeResponsibilityEntry)entry : null;
+    myTestRE = entry instanceof TestNameResponsibilityEntry ? (TestNameResponsibilityEntry)entry : null;
+    myProblemRE = entry instanceof BuildProblemResponsibilityEntry ? (BuildProblemResponsibilityEntry)entry : null;
   }
 
   public boolean isBuildType() {
@@ -289,5 +290,21 @@ public class InvestigationWrapper implements ResponsibilityEntry, Comparable<Inv
     int result = a.getTestName().getAsString().hashCode();
     result = 31 * result + a.getProject().getProjectId().hashCode();
     return result;
+  }
+
+  public void remove(@NotNull final ServiceLocator serviceLocator) {
+    ResponsibilityFacadeEx responsibilityFacade = serviceLocator.getSingletonService(ResponsibilityFacadeEx.class);
+    if (isBuildType()) {
+      //noinspection ConstantConditions
+      responsibilityFacade.removeBuildTypeResponsibility(getAssignmentBuildType());
+    } else if (isTest()) {
+      //noinspection ConstantConditions
+      responsibilityFacade.removeTestNameResponsibility(getTestRE().getTestName(), getAssignmentProject().getProjectId());
+    } else  if (isProblem()) {
+      //noinspection ConstantConditions
+      responsibilityFacade.removeBuildProblemResponsibility(getProblemRE().getBuildProblemInfo(), getAssignmentProject().getProjectId());
+    } else {
+      throw new OperationException("Cannot remove unknown investigation");
+    }
   }
 }

@@ -22,8 +22,12 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
+import jetbrains.buildServer.server.rest.data.problem.TestFinder;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
@@ -49,6 +53,11 @@ public class Test {
   @XmlAttribute public String id;
   @XmlAttribute public String name;
   @XmlAttribute public String href;
+
+  /**
+   * This is used only when posting
+   */
+  @XmlAttribute public String locator;
 
   @XmlElement public Mutes mutes;
   @XmlElement public Investigations investigations;
@@ -91,5 +100,31 @@ public class Test {
         return new TestOccurrences(null, null, null, null, null, null, null, TestOccurrenceRequest.getHref(test), null, nestedFields, beanContext);
       }
     });
+  }
+
+  @NotNull
+  public STest getFromPosted(@NotNull final ServiceLocator serviceLocator) {
+    try {
+      return serviceLocator.getSingletonService(TestFinder.class).getItem(getLocatorFromPosted());
+    } catch (NotFoundException e) {
+      throw new BadRequestException("Invalid 'test' entity: " + e.getMessage());
+    }
+  }
+
+  @NotNull
+  private String getLocatorFromPosted() {
+    if (locator != null) return locator;
+    if (id != null) return TestFinder.getTestLocator(getLong(id, "Invalid 'test' entity: Invalid id "));
+    if (name != null) return TestFinder.getTestLocator(name);
+    throw new BadRequestException("Invalid 'test' entity: either 'id', 'name' or 'locator' should be specified");
+  }
+
+  @NotNull
+  private Long getLong(@NotNull final String value, @NotNull final String message) {
+    try {
+      return Long.parseLong(value);
+    } catch (NumberFormatException e) {
+      throw new BadRequestException(message + " '" + value + "': Should be a number");
+    }
   }
 }

@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
+import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -27,12 +28,12 @@ import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.Investigation;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.STest;
 import org.jetbrains.annotations.NotNull;
@@ -48,7 +49,7 @@ public class InvestigationRequest {
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private InvestigationFinder myInvestigationFinder;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
-  @Context @NotNull private BeanFactory myBeanFactory;
+  @Context @NotNull private BeanContext myBeanContext;
 
   public static final String API_SUB_URL = Constants.API_URL + "/investigations";
 
@@ -92,7 +93,7 @@ public class InvestigationRequest {
     return new Investigations(result.myEntries,
                               new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
                               new Fields(fields),
-                              new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder)
+                              myBeanContext
     );
   }
 
@@ -100,8 +101,41 @@ public class InvestigationRequest {
   @Path("/{investigationLocator}")
   @Produces({"application/xml", "application/json"})
   public Investigation serveInstance(@PathParam("investigationLocator") String locatorText, @QueryParam("fields") String fields) {
-    return new Investigation(myInvestigationFinder.getItem(locatorText),  new Fields(fields),
-                             new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder));
+    return new Investigation(myInvestigationFinder.getItem(locatorText), new Fields(fields),
+                             myBeanContext);
+  }
+
+  @DELETE
+  @Path("/{investigationLocator}")
+  @Produces({"application/xml", "application/json"})
+  public void deleteInstance(@PathParam("investigationLocator") String locatorText) {
+    InvestigationWrapper item = myInvestigationFinder.getItem(locatorText);
+    item.remove(myServiceLocator);
+  }
+
+  @POST
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public Investigation createInstance(Investigation investigation, @QueryParam("fields") String fields) {
+    InvestigationWrapper investigationWrapper = null;
+    try {
+      investigationWrapper = investigation.getFromPostedAndApply(myServiceLocator, false).get(0);
+    } catch (Investigation.OnlySingleEntitySupportedException e) {
+      throw new BadRequestException(e.getMessage() + ". Use \"" + ".../multiple" + "\" request to post multiple entities");
+    }
+    return new Investigation(investigationWrapper, new Fields(fields), myBeanContext);
+  }
+
+  /**
+   * Experimental use only!
+   */
+  @POST
+  @Path("/multiple")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public Investigations createInstances(Investigations investigations, @QueryParam("fields") String fields) {
+    List<InvestigationWrapper> investigationWrappers = investigations.getFromPostedAndApply(myServiceLocator);
+    return new Investigations(investigationWrappers, null, new Fields(fields), myBeanContext);
   }
 
   /*
@@ -125,4 +159,11 @@ public class InvestigationRequest {
     return Investigation.getFieldValue(investigation, fieldName, myDataProvider);
   }
   */
+
+  public void initForTests(@NotNull final BeanContext beanContext) {
+    myServiceLocator = beanContext.getServiceLocator();
+    myInvestigationFinder = beanContext.getSingletonService(InvestigationFinder.class);
+    myApiUrlBuilder = beanContext.getApiUrlBuilder();
+    myBeanContext = beanContext;
+  }
 }

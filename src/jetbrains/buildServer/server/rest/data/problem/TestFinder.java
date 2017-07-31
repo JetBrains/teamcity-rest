@@ -75,12 +75,19 @@ public class TestFinder extends AbstractFinder<STest> {
     return TestFinder.getTestLocator(sTest);
   }
 
+  @NotNull
   public static String getTestLocator(final @NotNull STest test) {
     return getTestLocator(test.getTestNameId());
   }
 
+  @NotNull
   public static String getTestLocator(final long testNameId) {
     return Locator.createEmptyLocator().setDimension(DIMENSION_ID, String.valueOf(testNameId)).getStringRepresentation();
+  }
+
+  @NotNull
+  public static String getTestLocator(@NotNull final String testName) {
+    return Locator.createEmptyLocator().setDimension(NAME, testName).getStringRepresentation();
   }
 
   @Override
@@ -116,7 +123,11 @@ public class TestFinder extends AbstractFinder<STest> {
       if (testNameId == null) {
         throw new NotFoundException("No test can be found by " + NAME + " '" + nameDimension + "' on the entire server.");
       }
-      return findTest(testNameId);
+      STest test = findTest(testNameId);
+      if (test == null) {
+        throw new NotFoundException("No test can be found by id corresponding to " + NAME + " '" + nameDimension + "' on the entire server.");
+      }
+      return test;
     }
 
     return null;

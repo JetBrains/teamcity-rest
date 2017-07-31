@@ -18,9 +18,12 @@ package jetbrains.buildServer.server.rest.model.problem;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -72,5 +75,13 @@ public class Tests implements DefaultValueAware {
 
   public boolean isDefault() {
     return ValueWithDefault.isAllDefault(items, count);
+  }
+
+  @NotNull
+  public List<STest> getFromPosted(@NotNull final ServiceLocator serviceLocator) {
+    if (items == null){
+      throw new BadRequestException("Invalid 'tests' entity: tests should not be empty");
+    }
+    return items.stream().map(item -> item.getFromPosted(serviceLocator)).collect(Collectors.toList());
   }
 }

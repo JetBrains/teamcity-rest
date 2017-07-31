@@ -18,12 +18,16 @@ package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.BuildProject;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -112,5 +116,28 @@ public class ProblemScope {
       default:
         //unsupported scope
     }
+  }
+
+  @NotNull
+  public SProject getProjectFromPosted(@NotNull final ServiceLocator serviceLocator) {
+    if (project == null) {
+      throw new BadRequestException("Invalid 'scope' entity: 'project' should be specified");
+    }
+    return project.getProjectFromPosted(serviceLocator.getSingletonService(ProjectFinder.class));
+  }
+
+  @NotNull
+  public List<jetbrains.buildServer.BuildType> getBuildTypesFromPosted(@NotNull final ServiceLocator serviceLocator) {
+    if (buildTypes == null) {
+      throw new BadRequestException("Invalid 'scope' entity: 'buildTypes' should be specified");
+    }
+    List<BuildTypeOrTemplate> buildTypeOrTemplates = buildTypes.getFromPosted(serviceLocator.getSingletonService(BuildTypeFinder.class));
+    return buildTypeOrTemplates.stream().map(buildTypeOrTemplate -> {
+      if (buildTypeOrTemplate.isTemplate()) {
+        throw new BadRequestException("Invalid 'scope' entity: 'buildTypes' cannot reference template, problematic id: '" + buildTypeOrTemplate.getId() + "'");
+      }
+      return buildTypeOrTemplate.getBuildType();
+     }
+    ).collect(Collectors.toList());
   }
 }

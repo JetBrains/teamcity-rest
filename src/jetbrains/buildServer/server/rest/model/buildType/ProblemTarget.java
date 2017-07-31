@@ -17,15 +17,18 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.Collections;
+import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.responsibility.BuildProblemResponsibilityEntry;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.problem.Problems;
@@ -98,5 +101,40 @@ public class ProblemTarget {
                             null, fields.getNestedField("problems", Fields.NONE, Fields.LONG), beanContext);
       }
     });
+  }
+
+  public void checkIsValid() {
+    if (tests == null && problems == null && (anyProblem == null || !anyProblem)) {
+      throw new BadRequestException("Invalid 'target' entity: either 'tests' or 'problems' should be specified, or 'anyProblem' should be 'true'");
+    }
+    if (anyProblem != null && anyProblem) {
+      if (tests != null || problems != null) {
+        throw new BadRequestException("Invalid 'target' entity: when 'anyProblem' is 'true', 'tests' and 'problems' should not be specified");
+      }
+      return;
+    }
+    if (tests != null) {
+      if (problems != null) {
+        throw new BadRequestException("Invalid 'target' entity: when 'tests' is specified, 'problems' should not be specified");
+      }
+      return;
+    }
+  }
+
+  @NotNull
+  public List<STest> getTestsFromPosted(@NotNull final ServiceLocator serviceLocator) {
+    if (tests == null) {
+      return Collections.emptyList();
+    }
+    return tests.getFromPosted(serviceLocator);
+  }
+
+  @NotNull
+  public List<Long> getProblemsFromPosted(@NotNull final ServiceLocator serviceLocator) {
+    if (problems == null) {
+      return Collections.emptyList();
+    }
+    List<Long> result = problems.getFromPosted(serviceLocator);
+    return result;
   }
 }

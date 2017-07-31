@@ -21,6 +21,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -63,5 +64,17 @@ public class Resolution {
     } else if (removeMethod.isWhenFixed()) {
       type = ValueWithDefault.decideDefault(fields.isIncluded("type"), WHEN_FIXED);
     }
+  }
+
+  @NotNull
+  public ResponsibilityEntry.RemoveMethod getFromPosted() {
+    if (type == null) {
+      throw new BadRequestException("Invalid 'resolution' entity: 'type' should be specified");
+    }
+    switch (type) {
+      case MANUALLY: return ResponsibilityEntry.RemoveMethod.MANUALLY;
+      case WHEN_FIXED: return ResponsibilityEntry.RemoveMethod.WHEN_FIXED;
+    }
+    throw new BadRequestException("Invalid 'resolution' entity: unknown 'type' value '" + type + "', supported are: " + MANUALLY + ", " + WHEN_FIXED);
   }
 }
