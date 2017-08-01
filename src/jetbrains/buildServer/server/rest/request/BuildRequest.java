@@ -276,6 +276,16 @@ public class BuildRequest {
     return BuildTypeUtil.getParameter(propertyName, build.getParametersProvider(), true, true, myBeanContext.getServiceLocator());
   }
 
+  /**
+   * Experimental only
+   */
+  @GET
+  @Path("/{buildLocator}/resolved/{value}")
+  @Produces({"text/plain"})
+  public String getResolvedParameter(@PathParam("buildLocator") String buildLocator, @PathParam("value") String value) {
+    return getResolvedIfNecessary(myBuildPromotionFinder.getItem(buildLocator), value, true);
+  }
+
   @Path("/{buildLocator}" + ARTIFACTS)
   public FilesSubResource getFilesSubResource(@PathParam("buildLocator") final String buildLocator,
                                               @QueryParam("resolveParameters") final Boolean resolveParameters,
