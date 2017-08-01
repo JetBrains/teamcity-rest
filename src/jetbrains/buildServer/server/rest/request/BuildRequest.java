@@ -33,17 +33,16 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
+import jetbrains.buildServer.agent.ServerProvidedProperties;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
 import jetbrains.buildServer.controllers.HttpDownloadProcessor;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.parameters.ProcessingResult;
+import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.errors.InvalidStateException;
-import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.errors.*;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -313,7 +312,28 @@ public class BuildRequest {
     if (build == null || resolveSupported == null || !resolveSupported || StringUtil.isEmpty(value)) {
       return value == null ? "" : value;
     }
-    myPermissionChecker.checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, buildPromotion);
+    try {
+      //TeamCity API issue: ideally, API can check the permission inside build.getValueResolver() and allow to reference properties which are visible to viewer
+      myPermissionChecker.checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, buildPromotion);
+    } catch (AuthorizationFailedException e) {
+      //handle build number special case since it is visible to project viewer
+      String withResolvedBuildNumber = StringUtil.replace(value, ReferencesResolverUtil.makeReference(ServerProvidedProperties.BUILD_NUMBER_PROP), build.getBuildNumber());
+      if (!withResolvedBuildNumber.equals(value)) {
+        //there was a reference to build number
+        if (!build.getValueResolver().resolve(withResolvedBuildNumber).isModified()) {
+          //no other references
+          return withResolvedBuildNumber;
+        }
+      }
+      ProcessingResult resolveResult = build.getValueResolver().resolve(value);
+      if (!resolveResult.isModified() && resolveResult.isFullyResolved()) {
+        //no references found
+        return value;
+      }
+      //report original error
+      myPermissionChecker.checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, buildPromotion);
+    }
+
     final ProcessingResult resolveResult = build.getValueResolver().resolve(value);
     return resolveResult.getResult();
   }
