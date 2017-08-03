@@ -23,6 +23,7 @@ import java.util.Set;
 import jetbrains.buildServer.controllers.interceptors.auth.impl.BuildAuthorityHolder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
@@ -131,9 +132,13 @@ public class PermissionChecker {
     checkProjectPermission(permission, buildTypeSettings.getProject().getProjectId());
   }
 
-  public void checkPermission(@NotNull final Permission permission, @NotNull final BuildPromotion buildPromotion) throws AuthorizationFailedException{
-    final SBuildType buildType = buildPromotion.getBuildType();
-    checkProjectPermission(permission, buildType == null ? null :  buildType.getProjectId(), null);
+  public void checkPermission(@NotNull final Permission permission, @NotNull final BuildPromotion buildPromotion) throws AuthorizationFailedException {
+    try {
+      final SBuildType buildType = buildPromotion.getBuildType();
+      checkProjectPermission(permission, buildType == null ? null :  buildType.getProjectId(), null);
+    } catch (AccessDeniedException e) {
+      throw new AuthorizationFailedException(e.getMessage());
+    }
   }
 
   public void checkProjectPermission(@NotNull final Permission permission,
