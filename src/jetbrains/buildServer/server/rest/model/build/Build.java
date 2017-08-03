@@ -163,6 +163,11 @@ public class Build {
     myFields = fields;
   }
 
+  public static Build getNoPermissionsBuild(@NotNull final SBuild build, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+    return new Build(build, Fields.NONE, beanContext);
+  }
+
+
   @XmlAttribute
   public Long getId() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("id", true), new ValueWithDefault.Value<Long>() {

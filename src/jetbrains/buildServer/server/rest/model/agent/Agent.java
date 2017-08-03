@@ -23,12 +23,14 @@ import jetbrains.buildServer.AgentRestrictorType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.controllers.agent.OSKind;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Link;
 import jetbrains.buildServer.server.rest.model.Links;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -64,6 +66,7 @@ public class Agent {
   @XmlAttribute public String href;
   @XmlAttribute public String webUrl;
 
+  @XmlElement public Build build;
   @XmlElement public Links links;
   @XmlElement public AgentEnabledInfo enabledInfo;
   @XmlElement public AgentAuthorizedInfo authorizedInfo;
@@ -115,6 +118,17 @@ public class Agent {
     connected = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("connected", false), agent.isRegistered());
     enabled = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("enabled", false), agent.isEnabled());
     authorized = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("authorized", false), agent.isAuthorized());
+
+    build = ValueWithDefault.decideDefault(fields.isIncluded("build", false), () -> {
+      SRunningBuild runningBuild = agent.getRunningBuild();
+      if (runningBuild == null ) return null;
+      try {
+        beanContext.getSingletonService(PermissionChecker.class).checkPermission(Permission.VIEW_PROJECT, runningBuild.getBuildPromotion());
+        return new Build(runningBuild, fields.getNestedField("build"), beanContext);
+      } catch (AuthorizationFailedException e) {
+        return Build.getNoPermissionsBuild(runningBuild, fields.getNestedField("build"), beanContext); //should probably include "empty" build node instead so that it's clear some build is running
+      }
+    });
 
     //check permission to match UI
     if (canViewAgentDetails(beanContext)) {
