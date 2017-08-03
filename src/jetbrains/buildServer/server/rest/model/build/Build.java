@@ -218,34 +218,36 @@ public class Build {
 
   @XmlAttribute
   public String getNumber() {
-    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("number", true), myBuild.getBuildNumber());
+    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("number", true), () -> myBuild.getBuildNumber());
   }
 
   @XmlAttribute
   public String getHref() {
-    String result = null;
-    if (myBuild != null) {
-      result = myBeanContext.getApiUrlBuilder().getHref(myBuild);
-    } else if (myQueuedBuild != null) {
-      result = myBeanContext.getApiUrlBuilder().getHref(myQueuedBuild);
-    }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("href", true), result);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("href", true), () -> {
+      String result = null;
+      if (myBuild != null) {
+        result = myBeanContext.getApiUrlBuilder().getHref(myBuild);
+      } else if (myQueuedBuild != null) {
+        result = myBeanContext.getApiUrlBuilder().getHref(myQueuedBuild);
+      }
+      return result;
+    });
   }
 
   @XmlAttribute
   public String getStatus() {
     //todo: consider getting details from full statistics is that is required for the node as otherwise the text and test counts will be not in sync
-    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("status", true), myBuild.getStatusDescriptor().getStatus().getText());
+    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("status", true), () -> myBuild.getStatusDescriptor().getStatus().getText());
   }
 
   @XmlAttribute
   public Boolean isHistory() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("history"), myBuildPromotion.isOutOfChangesSequence());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("history"), () -> myBuildPromotion.isOutOfChangesSequence());
   }
 
   @XmlAttribute
   public Boolean isPinned() {
-    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("pinned"), myBuild.isPinned());
+    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("pinned"), () -> myBuild.isPinned());
   }
 
   @XmlAttribute
@@ -275,18 +277,19 @@ public class Build {
 
   @XmlAttribute
   public Boolean isPersonal() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("personal"), myBuildPromotion.isPersonal());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("personal"),() -> myBuildPromotion.isPersonal());
   }
 
   @XmlAttribute
   public String getWebUrl() {
-    String result = null;
-    if (myBuild != null) {
-      result = myServiceLocator.getSingletonService(WebLinks.class).getViewResultsUrl(myBuild);
-    } else if (myQueuedBuild != null) {
-      result = myServiceLocator.getSingletonService(WebLinks.class).getQueuedBuildUrl(myQueuedBuild);
-    }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("webUrl", true), result);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("webUrl", true), () -> {
+      String result = null;
+      if (myBuild != null) {
+        result = myServiceLocator.getSingletonService(WebLinks.class).getViewResultsUrl(myBuild);
+      } else if (myQueuedBuild != null) {
+        result = myServiceLocator.getSingletonService(WebLinks.class).getQueuedBuildUrl(myQueuedBuild);
+      }
+      return result;});
   }
 
   @XmlAttribute
@@ -306,7 +309,7 @@ public class Build {
 
   @XmlAttribute
   public String getBuildTypeInternalId() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("buildTypeInternalId", false, false), myBuildPromotion.getBuildTypeId());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("buildTypeInternalId", false, false), () -> myBuildPromotion.getBuildTypeId());
   }
 
   @XmlElement
@@ -383,12 +386,12 @@ public class Build {
 
   @XmlElement
   public String getStartDate() { // consider adding myBuild.getServerStartDate()
-    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("startDate", false), Util.formatTime(myBuild.getStartDate()));
+    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("startDate", false), () -> Util.formatTime(myBuild.getStartDate()));
   }
 
   @XmlElement
   public String getFinishDate() {
-    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("finishDate", false), Util.formatTime(myBuild.getFinishDate()));
+    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("finishDate", false), () -> Util.formatTime(myBuild.getFinishDate()));
   }
 
   @XmlElement(defaultValue = "") //todo: remove comment
@@ -567,18 +570,22 @@ public class Build {
    */
   @XmlAttribute
   public Integer getPercentageComplete() {
-    if (myBuild == null || myBuild.isFinished()) {
-      return null;
-    }
-    SRunningBuild runningBuild = (SRunningBuild)myBuild;
-    return ValueWithDefault.decideDefault(myFields.isIncluded("percentageComplete"), runningBuild.getCompletedPercent());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("percentageComplete"), () -> {
+      if (myBuild == null || myBuild.isFinished()) {
+        return null;
+      }
+      SRunningBuild runningBuild = (SRunningBuild)myBuild;
+      return runningBuild.getCompletedPercent();
+    });
   }
 
   @XmlElement(name = "running-info")
   public RunningBuildInfo getRunningBuildInfo() {
-    SRunningBuild runningBuild = getRunningBuild(myBuildPromotion, myServiceLocator);
-    if (runningBuild == null) return null;
-    return ValueWithDefault.decideDefault(myFields.isIncluded("running-info", false), new RunningBuildInfo(runningBuild, myFields.getNestedField("running-info")));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("running-info", false), () -> {
+      SRunningBuild runningBuild = getRunningBuild(myBuildPromotion, myServiceLocator);
+      if (runningBuild == null) return null;
+      return new RunningBuildInfo(runningBuild, myFields.getNestedField("running-info"));
+    });
   }
 
   @Nullable
@@ -596,10 +603,10 @@ public class Build {
       return null;
     }
     return ValueWithDefault.decideDefault(myFields.isIncluded("snapshot-dependencies", false),
-                                          Builds.createFromBuildPromotions(getBuildPromotions(myBuildPromotion.getDependencies()),
-                                                     null,
-                                                     myFields.getNestedField("snapshot-dependencies", Fields.NONE, Fields.LONG),
-                                                     myBeanContext));
+                                          () -> Builds.createFromBuildPromotions(getBuildPromotions(myBuildPromotion.getDependencies()),
+                                                                                 null,
+                                                                                 myFields.getNestedField("snapshot-dependencies", Fields.NONE, Fields.LONG),
+                                                                                 myBeanContext));
   }
 
   @XmlElement(name = "artifact-dependencies")
@@ -839,9 +846,8 @@ public class Build {
                                                 if (isNew != null && isNew) newProblemsCount++;
                                               }
                                               final Fields problemOccurrencesFields = myFields.getNestedField("problemOccurrences");
-                                              final List<BuildProblem> problems = ValueWithDefault
-                                                .decideDefault(problemOccurrencesFields.isIncluded("problemOccurrence", false), ProblemOccurrenceFinder.getProblemOccurrences(
-                                                  myBuildPromotion));
+                                              final List<BuildProblem> problems = ValueWithDefault.decideDefault(problemOccurrencesFields.isIncluded("problemOccurrence", false),
+                                                                                                                 () -> ProblemOccurrenceFinder.getProblemOccurrences(myBuildPromotion));
                                               return new ProblemOccurrences(problems,
                                                                             problemOccurrences.size(),
                                                                             null,
