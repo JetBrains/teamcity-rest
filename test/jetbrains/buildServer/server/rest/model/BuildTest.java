@@ -797,7 +797,11 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     //noinspection ResultOfMethodCallIgnored
     artifactsDir.mkdirs();
     File dir = new File(artifactsDir, "dir");
+    //noinspection ResultOfMethodCallIgnored
     dir.mkdirs();
+    File file = new File(artifactsDir, "file.txt");
+     //noinspection ResultOfMethodCallIgnored
+     file.createNewFile();
 
     final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
       public String transform(final String path) {
@@ -805,10 +809,14 @@ public class BuildTest extends BaseFinderTest<SBuild> {
       }
     });
 
-    final Build build = new Build(finishedBuild, new Fields("artifacts(href,file(children))"), new BeanContext(new BeanFactory(null), myFixture, apiUrlBuilder));
+    final Build build = new Build(finishedBuild, new Fields("href,artifacts(href,file(children,content))"), new BeanContext(new BeanFactory(null), myFixture, apiUrlBuilder));
 
+    assertEquals("/app/rest/version/builds/id:1", build.getHref());
     assertEquals("/app/rest/version/builds/id:1/artifacts/children/", build.getArtifacts().href);
+    //noinspection ConstantConditions
     assertEquals("/app/rest/version/builds/id:1/artifacts/children/dir", build.getArtifacts().files.get(0).getChildren().href);
+    //noinspection ConstantConditions
+    assertEquals("/app/rest/version/builds/id:1/artifacts/content/file.txt", build.getArtifacts().files.get(1).getContent().href);
   }
 
   @Test(enabled = false)
