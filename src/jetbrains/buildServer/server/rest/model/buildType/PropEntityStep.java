@@ -45,7 +45,7 @@ public class PropEntityStep extends PropEntity implements PropEntityEdit<SBuildR
   public PropEntityStep(@NotNull SBuildRunnerDescriptor descriptor, @NotNull final BuildTypeSettingsEx buildType, @NotNull final Fields fields,
                         @NotNull final BeanContext beanContext) {
     super(descriptor.getId(), descriptor.getName(), descriptor.getType(), buildType.isEnabled(descriptor.getId()),
-          !buildType.getOwnBuildRunners().contains(descriptor), descriptor.getParameters(), fields, beanContext.getServiceLocator());
+          !buildType.getOwnBuildRunners().contains(descriptor), descriptor.getParameters(), fields, beanContext);
     //can optimize by getting getOwnBuildRunners in the caller
   }
 

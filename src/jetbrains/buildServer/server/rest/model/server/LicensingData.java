@@ -82,7 +82,7 @@ public class LicensingData {
 
     licenseKeys = ValueWithDefault.decideDefault(fields.isIncluded("licenseKeys"),
                                                  () -> new LicenseKeyEntities(licenseList.getAllLicenses(), licenseList.getActiveLicenses(), ServerRequest.getLicenseKeysListHref(),
-                                                                              fields.getNestedField("licenseKeys", Fields.SHORT, Fields.LONG)));
+                                                                              fields.getNestedField("licenseKeys", Fields.SHORT, Fields.LONG), beanContext));
 
     final boolean unlimitedBuildTypes = licenseList.isUnlimitedBuildTypes();
     this.unlimitedBuildTypes = ValueWithDefault.decideDefault(fields.isIncluded("unlimitedBuildTypes"), unlimitedBuildTypes);

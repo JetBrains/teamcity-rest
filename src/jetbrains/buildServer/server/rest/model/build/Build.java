@@ -440,7 +440,7 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
         return new Properties(Properties.createEntity(myBuildPromotion.getParameters(), myBuildPromotion.getCustomParameters()), null,
-                              null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myServiceLocator);
+                              null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myBeanContext);
       }
     });
   }
@@ -461,7 +461,7 @@ public class Build {
         } catch (Exception e) {
           return null;
         }
-        return new Properties(myBuild.getParametersProvider().getAll(), null, myFields.getNestedField("resultingProperties", Fields.NONE, Fields.LONG), myServiceLocator);
+        return new Properties(myBuild.getParametersProvider().getAll(), null, myFields.getNestedField("resultingProperties", Fields.NONE, Fields.LONG), myBeanContext);
       }
     });
   }
@@ -502,7 +502,7 @@ public class Build {
           public Properties get() {
             final Fields nestedField = myFields.getNestedField("statistics");
             return new Properties(nestedField.isMoreThenShort() ? getBuildStatisticsValues(myBuild) : null, //for performance reasons
-                                  statisticsHref, nestedField, myServiceLocator);
+                                  statisticsHref, nestedField, myBeanContext);
           }
         });
     }

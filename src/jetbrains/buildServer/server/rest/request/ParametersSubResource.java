@@ -19,13 +19,13 @@ package jetbrains.buildServer.server.rest.request;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import javax.ws.rs.*;
-import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.Parameter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -37,15 +37,15 @@ import org.jetbrains.annotations.Nullable;
 @Api(hidden = true) // To prevent appearing in Swagger#definitions
 public class ParametersSubResource {
 
-  @NotNull protected ServiceLocator myServiceLocator;
+  @NotNull protected final BeanContext myBeanContext;
 
   @NotNull protected final ParametersPersistableEntity myEntityWithParameters;
   @Nullable protected final String myParametersHref;
 
-  public ParametersSubResource(final @NotNull ServiceLocator serviceLocator,
+  public ParametersSubResource(final @NotNull BeanContext beanContext,
                                final @NotNull ParametersPersistableEntity entityWithParameters,
                                final @Nullable String parametersHref) {
-    myServiceLocator = serviceLocator;
+    myBeanContext = beanContext;
     myEntityWithParameters = entityWithParameters;
     myParametersHref = parametersHref;
   }
@@ -53,7 +53,7 @@ public class ParametersSubResource {
   @GET
   @Produces({"application/xml", "application/json"})
   public Properties getParameters(@QueryParam("locator") Locator locator, @QueryParam("fields") String fields) {
-    Properties result = new Properties(myEntityWithParameters, myParametersHref, locator, new Fields(fields), myServiceLocator);
+    Properties result = new Properties(myEntityWithParameters, myParametersHref, locator, new Fields(fields), myBeanContext);
     if (locator != null) locator.checkLocatorFullyProcessed();
     return result;
   }
@@ -64,21 +64,21 @@ public class ParametersSubResource {
   public Property setParameter(Property parameter, @QueryParam("fields") String fields) {
     addParameter(parameter);
     myEntityWithParameters.persist();
-    return Property.createFrom(parameter.name, myEntityWithParameters, new Fields(fields), myServiceLocator);
+    return Property.createFrom(parameter.name, myEntityWithParameters, new Fields(fields), myBeanContext.getServiceLocator());
   }
 
   @NotNull
   private Parameter addParameter(@NotNull final Property parameter) {
-    return parameter.addTo(myEntityWithParameters, myServiceLocator);
+    return parameter.addTo(myEntityWithParameters, myBeanContext.getServiceLocator());
   }
 
   @PUT
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Properties setParameters(Properties properties, @QueryParam("fields") String fields) {
-    properties.setTo(myEntityWithParameters, myServiceLocator);
+    properties.setTo(myEntityWithParameters, myBeanContext.getServiceLocator());
     myEntityWithParameters.persist();
-    return new Properties(myEntityWithParameters, myParametersHref, null, new Fields(fields), myServiceLocator);
+    return new Properties(myEntityWithParameters, myParametersHref, null, new Fields(fields), myBeanContext);
   }
 
   @DELETE
@@ -91,14 +91,14 @@ public class ParametersSubResource {
   @Path("/{name}")
   @Produces({"application/xml", "application/json"})
   public Property getParameter(@PathParam("name") String parameterName, @QueryParam("fields") String fields) {
-    return Property.createFrom(parameterName, myEntityWithParameters, new Fields(fields), myServiceLocator);
+    return Property.createFrom(parameterName, myEntityWithParameters, new Fields(fields), myBeanContext.getServiceLocator());
   }
 
   @GET
   @Path("/{name}/value")
   @Produces("text/plain")
   public String getParameterValueLong(@PathParam("name") String parameterName) {
-    return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, true, false, myServiceLocator);
+    return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, true, false, myBeanContext.getServiceLocator());
   }
 
   @PUT
@@ -106,9 +106,9 @@ public class ParametersSubResource {
   @Consumes("text/plain")
   @Produces("text/plain")
   public String setParameterValueLong(@PathParam("name") String parameterName, String newValue) {
-    BuildTypeUtil.changeParameter(parameterName, newValue, myEntityWithParameters, myServiceLocator);
+    BuildTypeUtil.changeParameter(parameterName, newValue, myEntityWithParameters, myBeanContext.getServiceLocator());
     myEntityWithParameters.persist();
-    return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, false, false, myServiceLocator);
+    return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, false, false, myBeanContext.getServiceLocator());
   }
 
   /**
@@ -119,7 +119,7 @@ public class ParametersSubResource {
   @Produces("text/plain")
   @ApiOperation(hidden = true, value = "Use getParameter instead")
   public String getParameterValue(@PathParam("name") String parameterName) {
-    return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, true, false, myServiceLocator);
+    return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, true, false, myBeanContext.getServiceLocator());
   }
 
   /**
@@ -131,9 +131,9 @@ public class ParametersSubResource {
   @Produces("text/plain")
   @ApiOperation(hidden = true, value = "Use setParameter instead")
   public String setParameterValue(@PathParam("name") String parameterName, String newValue) {
-    BuildTypeUtil.changeParameter(parameterName, newValue, myEntityWithParameters, myServiceLocator);
+    BuildTypeUtil.changeParameter(parameterName, newValue, myEntityWithParameters, myBeanContext.getServiceLocator());
     myEntityWithParameters.persist();
-    return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, false, false, myServiceLocator);
+    return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, false, false, myBeanContext.getServiceLocator());
   }
 
   @PUT
@@ -144,7 +144,7 @@ public class ParametersSubResource {
     parameter.name = parameterName; //overriding name in the entity with the value from URL
     addParameter(parameter);
     myEntityWithParameters.persist();
-    return Property.createFrom(parameter.name, myEntityWithParameters, new Fields(fields), myServiceLocator);
+    return Property.createFrom(parameter.name, myEntityWithParameters, new Fields(fields), myBeanContext.getServiceLocator());
   }
 
   @DELETE

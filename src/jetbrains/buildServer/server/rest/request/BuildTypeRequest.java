@@ -238,13 +238,13 @@ public class BuildTypeRequest {
   @Path("/{btLocator}" + PARAMETERS)
   public TypedParametersSubResource getParametersSubResource(@PathParam("btLocator") String buildTypeLocator){
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    return new TypedParametersSubResource(myServiceLocator, BuildType.createEntity(buildType.get()), getParametersHref(buildType));
+    return new TypedParametersSubResource(myBeanContext, BuildType.createEntity(buildType.get()), getParametersHref(buildType));
   }
 
   @Path("/{btLocator}/settings")
   public ParametersSubResource getSettingsSubResource(@PathParam("btLocator") String buildTypeLocator) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    return new ParametersSubResource(myServiceLocator, new BuildTypeSettingsEntityWithParams(buildType), getHref() + "/settings");
+    return new ParametersSubResource(myBeanContext, new BuildTypeSettingsEntityWithParams(buildType), getHref() + "/settings");
   }
 
   @GET
@@ -456,7 +456,7 @@ public class BuildTypeRequest {
   public Properties getStepParameters(@PathParam("btLocator") String buildTypeLocator,  @PathParam("stepId") String stepId, @QueryParam("fields") String fields) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
     SBuildRunnerDescriptor step = getStep(buildType.get(), stepId);
-    return new Properties(step.getParameters(), null, new Fields(fields), myServiceLocator);
+    return new Properties(step.getParameters(), null, new Fields(fields), myBeanContext);
   }
 
   @PUT
@@ -472,7 +472,7 @@ public class BuildTypeRequest {
 
     buildType.updateBuildRunner(step.getId(), step.getName(), step.getType(), properties.getMap());
     buildType.persist();
-    return new Properties(getStep(buildType, stepId).getParameters(), null, new Fields(fields), myServiceLocator);
+    return new Properties(getStep(buildType, stepId).getParameters(), null, new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -602,7 +602,7 @@ public class BuildTypeRequest {
   public Properties getFeatureParameters(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId, @QueryParam("fields") String fields) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
     SBuildFeatureDescriptor feature = BuildTypeUtil.getBuildTypeFeature(buildType.get(), featureId);
-    return new Properties(feature.getParameters(), null, new Fields(fields), myServiceLocator);
+    return new Properties(feature.getParameters(), null, new Fields(fields), myBeanContext);
   }
 
   @PUT
@@ -618,7 +618,7 @@ public class BuildTypeRequest {
 
     buildType.get().updateBuildFeature(feature.getId(), feature.getType(), properties.getMap());
     buildType.get().persist();
-    return new Properties(BuildTypeUtil.getBuildTypeFeature(buildType.get(), featureId).getParameters(), null, new Fields(fields), myServiceLocator);
+    return new Properties(BuildTypeUtil.getBuildTypeFeature(buildType.get(), featureId).getParameters(), null, new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -990,7 +990,7 @@ public class BuildTypeRequest {
   @Produces({"application/xml", "application/json"})
   public PropEntitiesAgentRequirement getAgentRequirements(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    return new PropEntitiesAgentRequirement(buildType.getSettingsEx(), new Fields(fields), myServiceLocator);
+    return new PropEntitiesAgentRequirement(buildType.getSettingsEx(), new Fields(fields), myBeanContext);
   }
 
   /**
@@ -1006,7 +1006,7 @@ public class BuildTypeRequest {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
     suppliedEntities.setToBuildType(buildType.getSettingsEx(), myServiceLocator);
     buildType.get().persist();
-    return new PropEntitiesAgentRequirement(buildType.getSettingsEx(), new Fields(fields), myServiceLocator);
+    return new PropEntitiesAgentRequirement(buildType.getSettingsEx(), new Fields(fields), myBeanContext);
   }
 
   /**
@@ -1024,7 +1024,7 @@ public class BuildTypeRequest {
 
     final Requirement result = description.addTo(buildType.getSettingsEx(), myServiceLocator);
     buildType.get().persist();
-    return new PropEntityAgentRequirement(result, buildType.getSettingsEx(), new Fields(fields), myServiceLocator);
+    return new PropEntityAgentRequirement(result, buildType.getSettingsEx(), new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -1035,7 +1035,7 @@ public class BuildTypeRequest {
                                                         @QueryParam("fields") String fields) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
     final Requirement requirement = getAgentRequirement(buildType, agentRequirementLocator);
-    return new PropEntityAgentRequirement(requirement, buildType.getSettingsEx(), new Fields(fields), myServiceLocator);
+    return new PropEntityAgentRequirement(requirement, buildType.getSettingsEx(), new Fields(fields), myBeanContext);
   }
 
   @DELETE
@@ -1060,7 +1060,7 @@ public class BuildTypeRequest {
 
     final Requirement requirement = getAgentRequirement(buildType, agentRequirementLocator);
     final Requirement result = description.replaceIn(buildType.getSettingsEx(), requirement, myServiceLocator);
-    return new PropEntityAgentRequirement(result, buildType.getSettingsEx(), new Fields(fields), myServiceLocator);
+    return new PropEntityAgentRequirement(result, buildType.getSettingsEx(), new Fields(fields), myBeanContext);
   }
 
 
@@ -1354,7 +1354,7 @@ public class BuildTypeRequest {
   public NewBuildTypeDescription getExampleNewProjectDescription(@PathParam("btLocator") String buildTypeLocator){
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, false);
     final BuildType buildTypeRef = new BuildType(buildType, Fields.SHORT, myBeanContext);
-    return new NewBuildTypeDescription(buildType.getName(), buildType.getId(), buildTypeRef, true, myServiceLocator);
+    return new NewBuildTypeDescription(buildType.getName(), buildType.getId(), buildTypeRef, true, myBeanContext);
   }
 
   /**

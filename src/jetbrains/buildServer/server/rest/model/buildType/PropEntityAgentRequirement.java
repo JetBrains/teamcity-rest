@@ -27,6 +27,7 @@ import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import jetbrains.buildServer.serverSide.RequirementFactory;
@@ -52,7 +53,7 @@ public class PropEntityAgentRequirement extends PropEntity implements PropEntity
   public PropEntityAgentRequirement(@NotNull final Requirement requirement,
                                     @NotNull final BuildTypeSettingsEx buildType,
                                     @NotNull final Fields fields,
-                                    @NotNull final ServiceLocator serviceLocator) {
+                                    @NotNull final BeanContext beanContext) {
     HashMap<String, String> propertiesMap = new HashMap<String, String>(2);
     propertiesMap.put(NAME_PROPERTY_NAME, requirement.getPropertyName());
     if (requirement.getPropertyValue() != null) {
@@ -62,9 +63,9 @@ public class PropEntityAgentRequirement extends PropEntity implements PropEntity
     if (id == null) {
       //can optimize by getting getOwnRequirements in the caller
       init(requirement.getPropertyName(), null, requirement.getType().getName(), null,
-           !buildType.getOwnRequirements().contains(requirement), propertiesMap, fields, serviceLocator);
+           !buildType.getOwnRequirements().contains(requirement), propertiesMap, fields, beanContext);
     } else {
-      init(id, null, requirement.getType().getName(), buildType.isEnabled(id), !buildType.getOwnRequirements().contains(requirement), propertiesMap, fields, serviceLocator);
+      init(id, null, requirement.getType().getName(), buildType.isEnabled(id), !buildType.getOwnRequirements().contains(requirement), propertiesMap, fields, beanContext);
     }
   }
 
@@ -154,7 +155,7 @@ public class PropEntityAgentRequirement extends PropEntity implements PropEntity
           continue;
         }
       }
-      if (isSimilar(new PropEntityAgentRequirement(item, buildType, Fields.LONG, serviceLocator))) return item;
+      if (isSimilar(new PropEntityAgentRequirement(item, buildType, Fields.LONG, getFakeBeanContext(serviceLocator)))) return item;
     }
     return null;
   }

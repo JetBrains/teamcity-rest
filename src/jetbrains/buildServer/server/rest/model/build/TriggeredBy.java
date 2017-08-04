@@ -97,7 +97,7 @@ public class TriggeredBy {
     });
     properties = ValueWithDefault.decideDefault(fields.isIncluded("properties", includeProp, includeProp), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
-        return new Properties(triggeredBy.getParameters(), null, fields.getNestedField("properties", Fields.NONE, Fields.LONG), beanContext.getServiceLocator());
+        return new Properties(triggeredBy.getParameters(), null, fields.getNestedField("properties", Fields.NONE, Fields.LONG), beanContext);
       }
     });
   }

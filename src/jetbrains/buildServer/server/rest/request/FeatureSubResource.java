@@ -131,7 +131,7 @@ public class FeatureSubResource<M, S> {
 
   @Path("/{featureLocator}" + PROPERTIES)
   public ParametersSubResource getParametersSubResource(@PathParam("featureLocator") String featureLocator, @QueryParam("fields") String fields) {
-    return new ParametersSubResource(myBeanContext.getServiceLocator(), myEntity.getParametersHolder(featureLocator),
+    return new ParametersSubResource(myBeanContext, myEntity.getParametersHolder(featureLocator),
                                      myEntity.getHref() == null ? null : myEntity.getHref() + "/" + featureLocator + "/properties");
   }
 

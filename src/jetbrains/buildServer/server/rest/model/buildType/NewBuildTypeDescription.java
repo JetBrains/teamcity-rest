@@ -23,6 +23,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.CopyOptionsDescription;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
@@ -42,8 +43,8 @@ public class NewBuildTypeDescription extends CopyOptionsDescription{
   }
 
   public NewBuildTypeDescription(final String name, final String id, final BuildType sourceBuildType, final Boolean copyAllAssociatedSettings,
-                                 @NotNull final ServiceLocator serviceLocator) {
-    super(copyAllAssociatedSettings, null, null, null, serviceLocator);
+                                 @NotNull final BeanContext beanContext) {
+    super(copyAllAssociatedSettings, null, null, null, beanContext);
     this.name = name;
     this.id = id;
     this.sourceBuildType = sourceBuildType;

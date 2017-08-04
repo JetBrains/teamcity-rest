@@ -47,7 +47,7 @@ public class PropEntityTrigger extends PropEntity implements PropEntityEdit<Buil
                            @NotNull final BuildTypeSettingsEx buildTypeSettings,
                            @NotNull final Fields fields,
                            @NotNull final BeanContext beanContext) {
-    super(descriptor, !buildTypeSettings.getOwnBuildTriggers().contains(descriptor), buildTypeSettings, fields, beanContext.getServiceLocator());
+    super(descriptor, !buildTypeSettings.getOwnBuildTriggers().contains(descriptor), buildTypeSettings, fields, beanContext);
     //can optimize by getting getOwnBuildTriggers in the caller
   }
 
@@ -66,7 +66,7 @@ public class PropEntityTrigger extends PropEntity implements PropEntityEdit<Buil
 
   @NotNull
   public BuildTriggerDescriptor addToInternal(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
-    BuildTriggerDescriptor result = addToInternalMain(buildType, serviceLocator);
+    BuildTriggerDescriptor result = addToInternalMain(buildType, serviceLocator);   //todo: disabled is done twice, adds within  addToInternalMain unlike artifact dependencies
     if (disabled != null) {
       buildType.setEnabled(result.getId(), !disabled);
     }

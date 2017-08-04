@@ -169,7 +169,7 @@ public class VcsRootRequest {
   public Properties serveRootInstanceProperties(@PathParam("vcsRootLocator") String vcsRootLocator,
                                            @PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
                                            @QueryParam("fields") String fields) {
-    return new Properties(myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator).getProperties(), null, new Fields(fields), myServiceLocator);
+    return new Properties(myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator).getProperties(), null, new Fields(fields), myBeanContext);
   }
 
 
@@ -203,7 +203,7 @@ public class VcsRootRequest {
   @Produces({"application/xml", "application/json"})
   public Properties serveProperties(@PathParam("vcsRootLocator") String vcsRootLocator, @QueryParam("fields") String fields) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
-    return new Properties(vcsRoot.getProperties(), null, new Fields(fields), myServiceLocator);
+    return new Properties(vcsRoot.getProperties(), null, new Fields(fields), myBeanContext);
   }
 
   @PUT
@@ -214,7 +214,7 @@ public class VcsRootRequest {
     final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
     vcsRoot.setProperties(properties.getMap());
     vcsRoot.persist();
-    return new Properties(vcsRoot.getProperties(), null, new Fields(fields), myServiceLocator);
+    return new Properties(vcsRoot.getProperties(), null, new Fields(fields), myBeanContext);
   }
 
   @DELETE

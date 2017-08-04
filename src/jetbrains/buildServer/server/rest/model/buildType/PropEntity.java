@@ -75,8 +75,8 @@ public class PropEntity {
                     @Nullable final Boolean inherited,
                     @NotNull BuildTypeSettings buildType,
                     @NotNull final Fields fields,
-                    @NotNull final ServiceLocator serviceLocator) {
-    init(descriptor.getId(), null, descriptor.getType(), buildType.isEnabled(descriptor.getId()), inherited, descriptor.getParameters(), fields, serviceLocator);
+                    @NotNull final BeanContext beanContext) {
+    init(descriptor.getId(), null, descriptor.getType(), buildType.isEnabled(descriptor.getId()), inherited, descriptor.getParameters(), fields, beanContext);
   }
 
   public PropEntity(@NotNull final String id,
@@ -86,8 +86,8 @@ public class PropEntity {
                     @Nullable final Boolean inherited,
                     @NotNull final Map<String, String> properties,
                     @NotNull final Fields fields,
-                    @NotNull final ServiceLocator serviceLocator) {
-    init(id, name, type, enabled, inherited, properties, fields, serviceLocator);
+                    @NotNull final BeanContext beanContext) {
+    init(id, name, type, enabled, inherited, properties, fields, beanContext);
   }
 
   protected void init(@NotNull final String id,
@@ -97,8 +97,8 @@ public class PropEntity {
                       @Nullable final Boolean inherited,
                       @NotNull final Map<String, String> properties,
                       @NotNull final Fields fields,
-                      @NotNull final ServiceLocator serviceLocator) {
-    init(id, name, type, enabled, inherited, null, properties, null, fields, serviceLocator);
+                      @NotNull final BeanContext beanContext) {
+    init(id, name, type, enabled, inherited, null, properties, null, fields, beanContext);
   }
 
   protected void init(@NotNull final String id,
@@ -110,12 +110,12 @@ public class PropEntity {
                       @NotNull final Map<String, String> properties,
                       @Nullable final String propertiesHref,
                       @NotNull final Fields fields,
-                      @NotNull final ServiceLocator serviceLocator) {
+                      @NotNull final BeanContext beanContext) {
     this.id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), id);
     this.name = ValueWithDefault.decideDefault(fields.isIncluded("name"), name);
     this.type = ValueWithDefault.decideDefault(fields.isIncluded("type"), type);
     this.properties = ValueWithDefault.decideDefault(fields.isIncluded("properties"),
-                                                     new Properties(properties, propertiesHref, fields.getNestedField("properties", Fields.NONE, Fields.LONG), serviceLocator));
+                                                     new Properties(properties, propertiesHref, fields.getNestedField("properties", Fields.NONE, Fields.LONG), beanContext));
     this.disabled = enabled == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("disabled"), !enabled);
     this.inherited = inherited == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("inherited"), inherited);
     this.href = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("href"), href);

@@ -373,7 +373,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}" + PARAMETERS)
   public TypedParametersSubResource getParametersSubResource(@PathParam("projectLocator") String projectLocator){
     SProject project = myProjectFinder.getItem(projectLocator, true);
-    return new TypedParametersSubResource(myServiceLocator, Project.createEntity(project), getParametersHref(project));
+    return new TypedParametersSubResource(myBeanContext, Project.createEntity(project), getParametersHref(project));
   }
 
   @GET
@@ -763,7 +763,7 @@ public class ProjectRequest {
                                      getNullOrCollection(projectIdsMap),
                                      getNullOrCollection(idsMaps.getBuildTypeIdsMap()),
                                      getNullOrCollection(idsMaps.getVcsRootIdsMap()),
-                                     myServiceLocator);
+                                     myBeanContext);
   }
 
 

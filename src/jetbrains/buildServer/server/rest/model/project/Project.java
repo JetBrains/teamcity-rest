@@ -197,7 +197,7 @@ public class Project {
       parameters = ValueWithDefault.decideDefault(fields.isIncluded("parameters", false), new ValueWithDefault.Value<Properties>() {
         public Properties get() {
           return new Properties(createEntity(project), ProjectRequest.getParametersHref(project),
-                                null, fields.getNestedField("parameters", Fields.NONE, Fields.LONG), beanContext.getServiceLocator());
+                                null, fields.getNestedField("parameters", Fields.NONE, Fields.LONG), beanContext);
         }
       });
       vcsRoots = ValueWithDefault.decideDefault(fields.isIncluded("vcsRoots", false), new ValueWithDefault.Value<VcsRoots>() {

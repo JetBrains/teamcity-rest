@@ -51,7 +51,7 @@ public class PropEntityProjectFeature extends PropEntity {
                                   @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     String featureHref = ProjectRequest.getFeatureHref(project, descriptor);
     init(descriptor.getId(), null, descriptor.getType(), null, null, featureHref, descriptor.getParameters(), ProjectFeatureSubResource.getPropertiesHref(featureHref),
-         fields, beanContext.getServiceLocator());
+         fields, beanContext);
   }
 
   /**

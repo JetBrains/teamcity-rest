@@ -104,7 +104,7 @@ public class ServerRequest {
   @Produces({"application/xml", "application/json"})
   public PluginInfos servePlugins(@QueryParam("fields") String fields) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
-    return new PluginInfos(myDataProvider.getPlugins(), new Fields(fields), myServiceLocator);
+    return new PluginInfos(myDataProvider.getPlugins(), new Fields(fields), myBeanContext);
   }
 
   /**
@@ -200,7 +200,7 @@ public class ServerRequest {
   public LicenseKeyEntities getLicenseKeys(@QueryParam("fields") String fields) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     LicenseList licenseList = myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager().getLicenseList();
-    return new LicenseKeyEntities(licenseList.getAllLicenses(), licenseList.getActiveLicenses(), ServerRequest.getLicenseKeysListHref(), new Fields(fields));
+    return new LicenseKeyEntities(licenseList.getAllLicenses(), licenseList.getActiveLicenses(), ServerRequest.getLicenseKeysListHref(), new Fields(fields), myBeanContext);
   }
 
   private static final Pattern DELIMITERS = Pattern.compile("[\\n\\r, ]");
@@ -231,7 +231,7 @@ public class ServerRequest {
         throw new BadRequestException(resultMessage.toString());
       }
     }
-    return new LicenseKeyEntities(licenseKeysManager.addKeys(keysToAdd), null, null, new Fields(fields));
+    return new LicenseKeyEntities(licenseKeysManager.addKeys(keysToAdd), null, null, new Fields(fields), myBeanContext);
   }
 
   @GET

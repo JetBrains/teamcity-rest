@@ -335,7 +335,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     PropEntitiesArtifactDep propEntitiesArtifactDep2 = new PropEntitiesArtifactDep();
     PropEntityArtifactDep propEntityArtifactDep1 = new PropEntityArtifactDep();
     propEntityArtifactDep1.properties =
-      new Properties(createMap("revisionName", "buildId", "revisionValue", "1000", "pathRules", "path3", "cleanDestinationDirectory", "true"), null, Fields.ALL_NESTED, myFixture);
+      new Properties(createMap("revisionName", "buildId", "revisionValue", "1000", "pathRules", "path3", "cleanDestinationDirectory", "true"), null, Fields.ALL_NESTED, getBeanContext(myFixture));
     propEntityArtifactDep1.sourceBuildType = new BuildType();
     propEntityArtifactDep1.sourceBuildType.setId(buildType4.getExternalId());
     propEntityArtifactDep1.type = "artifact_dependency";
@@ -396,7 +396,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
       PropEntitiesStep steps = new PropEntitiesStep();
       PropEntityStep step = new PropEntityStep();
       step.type = "runner2";
-      step.properties = new Properties(createMap("x", "y"), null, Fields.ALL, myFixture);
+      step.properties = new Properties(createMap("x", "y"), null, Fields.ALL, getBeanContext(myFixture));
       steps.propEntities = Arrays.asList(step);
       buildTypeEntity.setSteps(steps);
       build.setBuildType(buildTypeEntity);
@@ -415,7 +415,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
       PropEntitiesStep steps = new PropEntitiesStep();
       PropEntityStep step = new PropEntityStep();
       step.type = "runner2";
-      step.properties = new Properties(createMap("x", "y"), null, Fields.ALL, myFixture);
+      step.properties = new Properties(createMap("x", "y"), null, Fields.ALL, getBeanContext(myFixture));
       steps.propEntities = Arrays.asList(step);
       step.disabled = true;
       buildTypeEntity.setSteps(steps);
@@ -457,7 +457,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
       PropEntitiesFeature features = new PropEntitiesFeature();
       PropEntityFeature feature = new PropEntityFeature();
       feature.type = "feature2";
-      feature.properties = new Properties(createMap("x", "y"), null, Fields.ALL, myFixture);
+      feature.properties = new Properties(createMap("x", "y"), null, Fields.ALL, getBeanContext(myFixture));
       features.propEntities = Arrays.asList(feature);
       buildTypeEntity.setFeatures(features);
       build.setBuildType(buildTypeEntity);
@@ -498,11 +498,11 @@ public class BuildTest extends BaseFinderTest<SBuild> {
       PropEntitiesAgentRequirement agentRequirements = new PropEntitiesAgentRequirement();
       PropEntityAgentRequirement agentRequirement = new PropEntityAgentRequirement();
       agentRequirement.type = RequirementType.EQUALS.getName();
-      agentRequirement.properties = new Properties(createMap("property-name", "propName2", "property-value", "value2"), null, Fields.ALL, myFixture);
+      agentRequirement.properties = new Properties(createMap("property-name", "propName2", "property-value", "value2"), null, Fields.ALL, getBeanContext(myFixture));
       agentRequirements.propEntities = Arrays.asList(agentRequirement);
       buildTypeEntity.setAgentRequirements(agentRequirements);
       build.setBuildType(buildTypeEntity);
-      build.setProperties(new Properties(createMap("disableBuildMerging", "See TW-44714"), null, Fields.ALL, myFixture)); //this line can be removed after TW-44714 fix
+      build.setProperties(new Properties(createMap("disableBuildMerging", "See TW-44714"), null, Fields.ALL, getBeanContext(myFixture))); //this line can be removed after TW-44714 fix
       SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
       List<Requirement> actualAgentRequirements = ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getRequirements();
       assertEquals(1, actualAgentRequirements.size());
@@ -692,7 +692,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     PropEntitiesArtifactDep customDeps = new PropEntitiesArtifactDep();
     PropEntityArtifactDep dep1 = new PropEntityArtifactDep();
     dep1.properties =
-      new Properties(createMap("revisionName", "buildId", "revisionValue", "1000", "pathRules", "path3=>x", "cleanDestinationDirectory", "true"), null, Fields.ALL_NESTED, myFixture);
+      new Properties(createMap("revisionName", "buildId", "revisionValue", "1000", "pathRules", "path3=>x", "cleanDestinationDirectory", "true"), null, Fields.ALL_NESTED, getBeanContext(myFixture));
     dep1.sourceBuildType = new BuildType();
     dep1.sourceBuildType.setId(buildType2.getExternalId());
     dep1.type = "artifact_dependency";
@@ -742,7 +742,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     customDeps = new PropEntitiesArtifactDep();
     dep1 = new PropEntityArtifactDep();
     dep1.properties =
-      new Properties(createMap("revisionName", "buildId", "revisionValue", "1000", "pathRules", "path3=>x", "cleanDestinationDirectory", "true"), null, Fields.ALL_NESTED, myFixture);
+      new Properties(createMap("revisionName", "buildId", "revisionValue", "1000", "pathRules", "path3=>x", "cleanDestinationDirectory", "true"), null, Fields.ALL_NESTED, getBeanContext(myFixture));
     dep1.sourceBuildType = new BuildType();
     dep1.sourceBuildType.setId(buildType2.getExternalId());
     dep1.type = "artifact_dependency";
@@ -835,7 +835,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     buildTypeEntity.setId(buildType1.getExternalId());
     buildTypeEntity.setDescription("some description");
     build.setBuildType(buildTypeEntity);
-    build.setProperties(new Properties(createMap("name", "value"), null, Fields.ALL, myFixture));
+    build.setProperties(new Properties(createMap("name", "value"), null, Fields.ALL, getBeanContext(myFixture)));
     SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
 
     assertEquals("value", result.getBuildPromotion().getParameterValue("name"));

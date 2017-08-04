@@ -18,12 +18,12 @@ package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
 import javax.ws.rs.*;
-import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.ParameterType;
 import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -32,16 +32,16 @@ import org.jetbrains.annotations.NotNull;
  */
 @Api(hidden = true) // To prevent appearing in Swagger#definitions
 public class TypedParametersSubResource extends ParametersSubResource{
-  public TypedParametersSubResource(@NotNull final ServiceLocator serviceLocator,
+  public TypedParametersSubResource(@NotNull final BeanContext beanContext,
                                     @NotNull final ParametersPersistableEntity entityWithParameters, @NotNull final String parametersHref) {
-    super(serviceLocator, entityWithParameters, parametersHref);
+    super(beanContext, entityWithParameters, parametersHref);
   }
 
   @GET
   @Path("/{name}/type")
   @Produces({"application/xml", "application/json"})
   public ParameterType getParameterType(@PathParam("name") String parameterName) {
-    return Property.createFrom(parameterName, myEntityWithParameters, Fields.LONG, myServiceLocator).type;
+    return Property.createFrom(parameterName, myEntityWithParameters, Fields.LONG, myBeanContext.getServiceLocator()).type;
   }
 
   @PUT
@@ -49,16 +49,16 @@ public class TypedParametersSubResource extends ParametersSubResource{
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public ParameterType setParameterType(@PathParam("name") String parameterName, ParameterType parameterType) {
-    BuildTypeUtil.changeParameterType(parameterName, parameterType.rawValue, myEntityWithParameters, myServiceLocator);
+    BuildTypeUtil.changeParameterType(parameterName, parameterType.rawValue, myEntityWithParameters, myBeanContext.getServiceLocator());
     myEntityWithParameters.persist();
-    return Property.createFrom(parameterName, myEntityWithParameters, Fields.LONG, myServiceLocator).type;
+    return Property.createFrom(parameterName, myEntityWithParameters, Fields.LONG, myBeanContext.getServiceLocator()).type;
   }
 
   @GET
   @Path("/{name}/type/rawValue")
   @Produces("text/plain")
   public String getParameterTypeRawValue(@PathParam("name") String parameterName) {
-    final ParameterType type = Property.createFrom(parameterName, myEntityWithParameters, Fields.LONG, myServiceLocator).type;
+    final ParameterType type = Property.createFrom(parameterName, myEntityWithParameters, Fields.LONG, myBeanContext.getServiceLocator()).type;
     return type == null ? null : type.rawValue;
   }
 
@@ -67,9 +67,9 @@ public class TypedParametersSubResource extends ParametersSubResource{
   @Consumes("text/plain")
   @Produces("text/plain")
   public String setParameterTypeRawValue(@PathParam("name") String parameterName, String parameterTypeRawValue) {
-    BuildTypeUtil.changeParameterType(parameterName, parameterTypeRawValue, myEntityWithParameters, myServiceLocator);
+    BuildTypeUtil.changeParameterType(parameterName, parameterTypeRawValue, myEntityWithParameters, myBeanContext.getServiceLocator());
     myEntityWithParameters.persist();
-    final ParameterType type = Property.createFrom(parameterName, myEntityWithParameters, Fields.LONG, myServiceLocator).type;
+    final ParameterType type = Property.createFrom(parameterName, myEntityWithParameters, Fields.LONG, myBeanContext.getServiceLocator()).type;
     return type == null ? null : type.rawValue;
   }
 }

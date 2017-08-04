@@ -343,7 +343,7 @@ public class BuildType {
       .decideIncludeByDefault(myFields.isIncluded("parameters", false), check(new ValueWithDefault.Value<Properties>() {
         public Properties get() {
           return new Properties(createEntity(myBuildType.get()), BuildTypeRequest.getParametersHref(myBuildType), null,
-                                myFields.getNestedField("parameters", Fields.NONE, Fields.LONG), myBeanContext.getServiceLocator());
+                                myFields.getNestedField("parameters", Fields.NONE, Fields.LONG), myBeanContext);
         }
       }));
   }
@@ -409,7 +409,7 @@ public class BuildType {
                  : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("agent-requirements", false), check(new ValueWithDefault.Value<PropEntitiesAgentRequirement>() {
                    public PropEntitiesAgentRequirement get() {
                      return new PropEntitiesAgentRequirement(myBuildType.getSettingsEx(), myFields.getNestedField("agent-requirements", Fields.NONE, Fields.LONG),
-                                                             myBeanContext.getServiceLocator());
+                                                             myBeanContext);
                    }
                  }));
   }
@@ -422,7 +422,7 @@ public class BuildType {
         Locator locator = nestedField.getLocator() == null ? null : new Locator(nestedField.getLocator());
         EntityWithParameters entity = Properties.createEntity(BuildTypeUtil.getSettingsParameters(myBuildType, locator, null, false),
                                                               BuildTypeUtil.getSettingsParameters(myBuildType, null, true, false));
-        Properties result = new Properties(entity, null, locator, nestedField, myBeanContext.getServiceLocator());
+        Properties result = new Properties(entity, null, locator, nestedField, myBeanContext);
         if (locator != null) locator.checkLocatorFullyProcessed();
         return result;
       }

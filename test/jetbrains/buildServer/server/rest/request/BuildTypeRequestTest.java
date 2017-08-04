@@ -1306,20 +1306,20 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     newParametersMap.put("checkoutMode", "ON_SERVER");
     newParametersMap.put("executionTimeoutMin", "17");
     newParametersMap.put("shouldFailBuildIfTestsFailed", "false");
-    settingsSubResource.setParameters(new Properties(newParametersMap, null, new Fields("**"), myFixture), "$long");
+    settingsSubResource.setParameters(new Properties(newParametersMap, null, new Fields("**"), getBeanContext(myFixture)), "$long");
     assertCollectionEquals("", settingsSubResource.getParameters(null, fields), p("artifactRules", "bbbb"), p("buildNumberCounter", "1"),
                            p("checkoutMode", "ON_SERVER"),
                            p("executionTimeoutMin", "17"), p("shouldFailBuildIfTestsFailed", "false"));
 
     newParametersMap.remove("artifactRules");
     newParametersMap.put("buildNumberCounter", "2");
-    settingsSubResource.setParameters(new Properties(newParametersMap, null, new Fields("**"), myFixture), "$long");
+    settingsSubResource.setParameters(new Properties(newParametersMap, null, new Fields("**"), getBeanContext(myFixture)), "$long");
     assertCollectionEquals("", settingsSubResource.getParameters(null, fields), p("buildNumberCounter", "2"),
                            p("checkoutMode", "ON_SERVER"),
                            p("executionTimeoutMin", "17"), p("shouldFailBuildIfTestsFailed", "false"));
 
     newParametersMap.remove("buildNumberCounter");
-    settingsSubResource.setParameters(new Properties(newParametersMap, null, new Fields("**"), myFixture), "$long");
+    settingsSubResource.setParameters(new Properties(newParametersMap, null, new Fields("**"), getBeanContext(myFixture)), "$long");
     assertCollectionEquals("", settingsSubResource.getParameters(null, fields), p("buildNumberCounter", "1"), //is reset to "1"
                            p("checkoutMode", "ON_SERVER"),
                            p("executionTimeoutMin", "17"), p("shouldFailBuildIfTestsFailed", "false"));

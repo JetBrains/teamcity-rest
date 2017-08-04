@@ -24,6 +24,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.LicenseKey;
 import jetbrains.buildServer.serverSide.LicenseKeyData;
@@ -53,7 +54,8 @@ public class LicenseKeyEntities {
   public LicenseKeyEntities() {
   }
 
-  public LicenseKeyEntities(@NotNull final Collection<LicenseKey> licenseKeys, @Nullable final Collection<LicenseKey> activeLicenseKeys, @Nullable final String href, @NotNull final Fields fields) {
+  public LicenseKeyEntities(@NotNull final Collection<LicenseKey> licenseKeys, @Nullable final Collection<LicenseKey> activeLicenseKeys, @Nullable final String href,
+                            @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     this.licenseKeys = ValueWithDefault.decideDefault(fields.isIncluded("licenseKey", false, true), () -> getLicenseKeys(licenseKeys, activeLicenseKeys, fields));
     this.href = ValueWithDefault.decideDefault(fields.isIncluded("href"), href);
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), licenseKeys.size());

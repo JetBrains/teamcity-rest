@@ -77,7 +77,7 @@ public class RootApiRequest {
   @Path("/info")
   @Produces("application/xml")
   public PluginInfo servePluginInfo(@QueryParam("fields") String fields) {
-    return new PluginInfo(myDataProvider.getPluginInfo(), new Fields(fields), myBeanContext.getServiceLocator());
+    return new PluginInfo(myDataProvider.getPluginInfo(), new Fields(fields), myBeanContext);
   }
 
   @GET

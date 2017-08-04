@@ -43,7 +43,7 @@ public class PropEntityFeature extends PropEntity implements PropEntityEdit<SBui
 
   public PropEntityFeature(@NotNull SBuildFeatureDescriptor descriptor, @NotNull final BuildTypeSettingsEx buildType, @NotNull final Fields fields,
                            @NotNull final BeanContext beanContext) {
-    super(descriptor, !buildType.getOwnBuildFeatures().contains(descriptor), buildType, fields, beanContext.getServiceLocator()); //can optimize by getting getOwnBuildFeatures in the caller
+    super(descriptor, !buildType.getOwnBuildFeatures().contains(descriptor), buildType, fields, beanContext); //can optimize by getting getOwnBuildFeatures in the caller
   }
 
   @NotNull

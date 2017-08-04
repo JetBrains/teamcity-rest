@@ -358,7 +358,7 @@ public class DebugRequest {
     for (Map.Entry<Object, Object> entry : entries) {
       result.put(entry.getKey().toString(), entry.getValue().toString());
     }
-    return new Properties(result, null, new Fields(fields), myServiceLocator);
+    return new Properties(result, null, new Fields(fields), myBeanContext);
   }
 
   /**
@@ -369,7 +369,7 @@ public class DebugRequest {
   @Produces({"application/xml", "application/json"})
   public Properties getEnvironmentVariables(@Context HttpServletRequest request, @QueryParam("fields") final String fields) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
-    return new Properties(System.getenv(), null, new Fields(fields), myServiceLocator);
+    return new Properties(System.getenv(), null, new Fields(fields), myBeanContext);
   }
 
   /**
@@ -707,7 +707,7 @@ public class DebugRequest {
   public Properties getCachedBuildsStat(@QueryParam("fields") final String fields) {
     myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     Map<String, String> cacheStat = myServiceLocator.getSingletonService(DBBuildHistory.class).getCacheStat();
-    return new Properties(Properties.createEntity(cacheStat, null), false, null, null, new Fields(fields), myServiceLocator);
+    return new Properties(Properties.createEntity(cacheStat, null), false, null, null, new Fields(fields), myBeanContext);
   }
 
   /**
@@ -722,7 +722,7 @@ public class DebugRequest {
     Map<String, String> props = new LinkedHashMap<>();
     props.put("invocationCount", String.valueOf(NamedThreadUtil.PerfStat.getTotalCount()));
     props.put("time", TimePrinter.createMillisecondsFormatter().formatTime(timeMs));
-    return new Properties(Properties.createEntity(props, null), false, null, null, new Fields(fields), myServiceLocator);
+    return new Properties(Properties.createEntity(props, null), false, null, null, new Fields(fields), myBeanContext);
   }
 
   /**

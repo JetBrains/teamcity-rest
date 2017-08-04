@@ -24,6 +24,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.CopyOptionsDescription;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.identifiers.ProjectIdentifiersManager;
@@ -49,8 +50,8 @@ public class NewProjectDescription extends CopyOptionsDescription{
                                @Nullable final Map<String, String> projectsIdsMap,
                                @Nullable final Map<String, String> buildTypesIdsMap,
                                @Nullable final Map<String, String> vcsRootsIdsMap,
-                               @NotNull final ServiceLocator serviceLocator) {
-    super(copyAllAssociatedSettings, projectsIdsMap, buildTypesIdsMap, vcsRootsIdsMap, serviceLocator);
+                               @NotNull final BeanContext beanContext) {
+    super(copyAllAssociatedSettings, projectsIdsMap, buildTypesIdsMap, vcsRootsIdsMap, beanContext);
     this.name = name;
     this.id = id;
     this.sourceProject = sourceProject;

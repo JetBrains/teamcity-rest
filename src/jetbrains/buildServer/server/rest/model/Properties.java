@@ -32,6 +32,7 @@ import jetbrains.buildServer.server.rest.data.parameters.MapBackedEntityWithPara
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
@@ -65,8 +66,8 @@ public class Properties  implements DefaultValueAware {
   }
 
   //todo: review all null usages for href to include due URL
-  public Properties(@Nullable final Map<String, String> properties, @Nullable String href, @NotNull final Fields fields, @NotNull final ServiceLocator serviceLocator) {
-    this(properties == null ? null : createEntity(properties, null), href, null, fields, serviceLocator);
+  public Properties(@Nullable final Map<String, String> properties, @Nullable String href, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    this(properties == null ? null : createEntity(properties, null), href, null, fields, beanContext);
   }
 
   /**
@@ -76,8 +77,8 @@ public class Properties  implements DefaultValueAware {
                     @Nullable String href,
                     @Nullable Locator externalLocator,
                     @NotNull final Fields fields,
-                    @NotNull final ServiceLocator serviceLocator) {
-    this (parameters, true, href, externalLocator, fields, serviceLocator);
+                    @NotNull final BeanContext beanContext) {
+    this (parameters, true, href, externalLocator, fields, beanContext);
   }
 
   /**
@@ -88,7 +89,7 @@ public class Properties  implements DefaultValueAware {
                     @Nullable String href,
                     @Nullable Locator externalLocator,
                     @NotNull final Fields fields,
-                    @NotNull final ServiceLocator serviceLocator) {
+                    @NotNull final BeanContext beanContext) {
     if (parameters == null) {
       this.count = null;
       this.properties = null;
@@ -104,7 +105,7 @@ public class Properties  implements DefaultValueAware {
         for (Parameter parameter : parametersCollection) {
           Boolean inherited = parameters.isInherited(parameter.getName());
           if (parameterCondition == null || parameterCondition.parameterMatches(parameter, inherited)) {
-            this.properties.add(new Property(parameter, inherited, propertyFields, serviceLocator));
+            this.properties.add(new Property(parameter, inherited, propertyFields, beanContext.getServiceLocator()));
           }
         }
         this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), this.properties.size());  //count of the properties included

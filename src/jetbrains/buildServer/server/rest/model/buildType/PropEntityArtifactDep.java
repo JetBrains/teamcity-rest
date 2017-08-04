@@ -95,10 +95,10 @@ public class PropEntityArtifactDep extends PropEntity implements PropEntityEdit<
     properties.put(NAME_CLEAN_DESTINATION_DIRECTORY, Boolean.toString(dependency.isCleanDestinationFolder()));
 
     if (buildType == null){
-      init(dependency.getId(), null, ARTIFACT_DEPENDENCY_TYPE_NAME, null, null, properties, fields, context.getServiceLocator());
+      init(dependency.getId(), null, ARTIFACT_DEPENDENCY_TYPE_NAME, null, null, properties, fields, context);
     } else{
       init(dependency.getId(), null, ARTIFACT_DEPENDENCY_TYPE_NAME, buildType.isEnabled(dependency.getId()), //can optimize by getting getOwnArtifactDependencies in the caller
-           !buildType.getOwnArtifactDependencies().contains(dependency), properties, fields, context.getServiceLocator());
+           !buildType.getOwnArtifactDependencies().contains(dependency), properties, fields, context);
     }
 
     sourceBuildType = ValueWithDefault.decideDefault(fields.isIncluded(PropEntitySnapshotDep.SOURCE_BUILD_TYPE, false, true), new ValueWithDefault.Value<BuildType>() {
@@ -128,7 +128,7 @@ public class PropEntityArtifactDep extends PropEntity implements PropEntityEdit<
       final List<SArtifactDependency> dependencies = new ArrayList<SArtifactDependency>(buildType.getArtifactDependencies());
       SArtifactDependency result = addToInternal(buildType, serviceLocator);
       dependencies.add(result);
-      buildType.setArtifactDependencies(dependencies);
+      buildType.setArtifactDependencies(dependencies); //todo: use  buildType.addArtifactDependency, see TW-45262
       return result;
     } catch (Exception e) {
       original.apply(buildType);

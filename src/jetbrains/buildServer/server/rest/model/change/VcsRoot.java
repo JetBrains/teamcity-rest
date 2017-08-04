@@ -155,8 +155,7 @@ public class VcsRoot {
 
     if (!shouldRestrictSettingsViewing(root, permissionChecker)) {
       properties = ValueWithDefault.decideDefault(fields.isIncluded("properties", false),
-                                                  new Properties(root.getProperties(), null, fields.getNestedField("properties", Fields.NONE, Fields.LONG),
-                                                                 beanContext.getServiceLocator()));
+                                                  new Properties(root.getProperties(), null, fields.getNestedField("properties", Fields.NONE, Fields.LONG), beanContext));
       modificationCheckInterval = ValueWithDefault.decideDefault(fields.isIncluded("modificationCheckInterval", false),
                                                                  root.isUseDefaultModificationCheckInterval() ? null : root.getModificationCheckInterval());
       vcsRootInstances = ValueWithDefault.decideDefault(fields.isIncluded("vcsRootInstances", false), new ValueWithDefault.Value<VcsRootInstances>() {
@@ -290,7 +289,7 @@ public class VcsRoot {
         return;
       }
       throw new BadRequestException("Setting field 'defaultModificationCheckIntervalInUse' to false is not supported, set modificationCheckInterval instead.");
-    } else if ("projectId".equals(field) || "project".equals(field)) { //project locator is acually supported, "projectId" is preserved for compatibility with previous versions
+    } else if ("projectId".equals(field) || "project".equals(field)) { //project locator is actually supported, "projectId" is preserved for compatibility with previous versions
       SProject targetProject = projectFinder.getItem(newValue);
       vcsRoot.moveToProject(targetProject);
       return;

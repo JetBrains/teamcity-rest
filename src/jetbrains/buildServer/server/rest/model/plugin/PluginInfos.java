@@ -21,9 +21,9 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -49,13 +49,13 @@ public class PluginInfos {
   public PluginInfos() {
   }
 
-  public PluginInfos(final Collection<ServerPluginInfo> pluginInfos, @NotNull final Fields fields, @NotNull final ServiceLocator serviceLocator) {
+  public PluginInfos(final Collection<ServerPluginInfo> pluginInfos, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     plugins = ValueWithDefault.decideDefault(fields.isIncluded("plugin", true), new ValueWithDefault.Value<List<jetbrains.buildServer.server.rest.model.plugin.PluginInfo>>() {
       @Nullable
       public List<jetbrains.buildServer.server.rest.model.plugin.PluginInfo> get() {
         return CollectionsUtil.convertCollection(pluginInfos, new Converter<PluginInfo, ServerPluginInfo>() {
           public PluginInfo createFrom(@NotNull final ServerPluginInfo source) {
-            return new jetbrains.buildServer.server.rest.model.plugin.PluginInfo(source, fields.getNestedField("plugin", Fields.SHORT, Fields.LONG), serviceLocator);
+            return new jetbrains.buildServer.server.rest.model.plugin.PluginInfo(source, fields.getNestedField("plugin", Fields.SHORT, Fields.LONG), beanContext);
           }
         });
       }

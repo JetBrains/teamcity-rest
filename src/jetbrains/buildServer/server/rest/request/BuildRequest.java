@@ -212,7 +212,7 @@ public class BuildRequest {
   public ParametersSubResource getAttributes(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     BuildPromotionEx build = (BuildPromotionEx)myBuildPromotionFinder.getItem(buildLocator);
     myPermissionChecker.checkPermission(Permission.EDIT_PROJECT, build);
-    return new ParametersSubResource(myBeanContext.getServiceLocator(), new ParametersPersistableEntity() {
+    return new ParametersSubResource(myBeanContext, new ParametersPersistableEntity() {
       @Override
       public void addParameter(@NotNull final Parameter param) {
         build.setAttribute(param.getName(), param.getValue());
@@ -262,7 +262,7 @@ public class BuildRequest {
   public Properties serveBuildActualParameters(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     myPermissionChecker.checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getBuildPromotion());
-    return new Properties(build.getParametersProvider().getAll(), null, new Fields(fields), myBeanContext.getServiceLocator());
+    return new Properties(build.getParametersProvider().getAll(), null, new Fields(fields), myBeanContext);
     /* alternative
     try {
       return new Properties(((FinishedBuildEx)build).getBuildFinishParameters());
@@ -397,7 +397,7 @@ public class BuildRequest {
   @Produces({"application/xml", "application/json"})
   public Properties serveBuildStatisticValues(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return new Properties(Build.getBuildStatisticsValues(build), null, new Fields(fields), myBeanContext.getServiceLocator());
+    return new Properties(Build.getBuildStatisticsValues(build), null, new Fields(fields), myBeanContext);
   }
 
   @GET

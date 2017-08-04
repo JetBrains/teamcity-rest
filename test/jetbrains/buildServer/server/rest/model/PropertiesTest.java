@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model;
 
 import java.util.Map;
 import jetbrains.buildServer.log.Loggable;
+import jetbrains.buildServer.server.rest.data.BaseFinderTest;
 import jetbrains.buildServer.serverSide.MockParameter;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -63,7 +64,7 @@ public class PropertiesTest extends BaseServerTestCase {
   private void check(final Map<String, String> input,
                      @NotNull final String fields, @Nullable final Integer outputCount,
                      @Nullable final Map<String, String> output) {
-    Properties result = new Properties(input, null, new Fields(fields), myFixture);
+    Properties result = new Properties(input, null, new Fields(fields), BaseFinderTest.getBeanContext(myFixture));
 
     assertEquals("Count does not match for " + describeProperties(result),outputCount == null ? null : Integer.valueOf(outputCount), result.count);
     if (output != null) {

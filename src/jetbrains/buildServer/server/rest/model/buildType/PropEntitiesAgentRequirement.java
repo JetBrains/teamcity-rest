@@ -27,6 +27,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
@@ -51,14 +52,14 @@ public class PropEntitiesAgentRequirement {
   public PropEntitiesAgentRequirement() {
   }
 
-  public PropEntitiesAgentRequirement(@NotNull final BuildTypeSettingsEx buildType, @NotNull final Fields fields, final ServiceLocator serviceLocator) {
+  public PropEntitiesAgentRequirement(@NotNull final BuildTypeSettingsEx buildType, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     final List<Requirement> requirements = buildType.getRequirements();
     propEntities = ValueWithDefault.decideDefault(fields.isIncluded("agent-requirement"), new ValueWithDefault.Value<List<PropEntityAgentRequirement>>() {
       @Nullable
       public List<PropEntityAgentRequirement> get() {
         return CollectionsUtil.convertCollection(requirements, new Converter<PropEntityAgentRequirement, Requirement>() {
                   public PropEntityAgentRequirement createFrom(@NotNull final Requirement source) {
-                    return new PropEntityAgentRequirement(source, buildType, fields.getNestedField("agent-requirement", Fields.NONE, Fields.LONG), serviceLocator);
+                    return new PropEntityAgentRequirement(source, buildType, fields.getNestedField("agent-requirement", Fields.NONE, Fields.LONG), beanContext);
                   }
                 });
       }

@@ -19,7 +19,7 @@ package jetbrains.buildServer.server.rest.model;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
-import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.CopyOptions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -39,11 +39,11 @@ public class CopyOptionsDescription {
                                 @Nullable final Map<String, String> projectsIdsMap,
                                 @Nullable final Map<String, String> buildTypesIdsMap,
                                 @Nullable final Map<String, String> vcsRootsIdsMap,
-                                @NotNull final ServiceLocator serviceLocator) {
+                                @NotNull final BeanContext beanContext) {
     this.copyAllAssociatedSettings = copyAllAssociatedSettings;
-    if (projectsIdsMap!= null) this.projectsIdsMap = new Properties(projectsIdsMap, null, Fields.LONG, serviceLocator);
-    if (buildTypesIdsMap!= null) this.buildTypesIdsMap = new Properties(buildTypesIdsMap, null, Fields.LONG, serviceLocator);
-    if (vcsRootsIdsMap!= null) this.vcsRootsIdsMap = new Properties(vcsRootsIdsMap, null, Fields.LONG, serviceLocator);
+    if (projectsIdsMap!= null) this.projectsIdsMap = new Properties(projectsIdsMap, null, Fields.LONG, beanContext);
+    if (buildTypesIdsMap!= null) this.buildTypesIdsMap = new Properties(buildTypesIdsMap, null, Fields.LONG, beanContext);
+    if (vcsRootsIdsMap!= null) this.vcsRootsIdsMap = new Properties(vcsRootsIdsMap, null, Fields.LONG, beanContext);
   }
 
   public CopyOptions getCopyOptions() {
