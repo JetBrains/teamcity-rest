@@ -86,7 +86,13 @@ public class RequestPathTransformInfo implements PathTransformator {
       @NotNull
       public String getTransformedPath(@NotNull final String path) {
         if (!path.startsWith(prefixWithNewPart)){
-          return path;
+          return path; //some wrong path
+        }
+        if (path.startsWith(prefix + matching)){
+          return path; //path already in due form. Should generally not happen, however
+        }
+        if (path.startsWith(matching)){
+          return prefix + path; //path already partly in due form. Should generally not happen, however
         }
         return prefix + matching + path.substring(prefixWithNewPart.length());
       }
