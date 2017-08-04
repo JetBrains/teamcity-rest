@@ -521,7 +521,7 @@ public class DebugRequest {
     StringBuffer log = new StringBuffer();
     log.append("Optimization log for ").append(LogUtil.describe(build)).append('\n');
 
-    GraphOptimizer optimizer = new GraphOptimizer((BuildPromotionEx)build, myServiceLocator.getSingletonService(BuildPromotionReplacementLog.class));
+    GraphOptimizer optimizer = new GraphOptimizer((BuildPromotionEx)build, myServiceLocator.getSingletonService(BuildPromotionReplacementLog.class), null);
     optimizer.dryRunOptimization(new GraphOptimizer.OptimizationListener() {
       @Override
       public void equivalentBuildPromotionIgnored(@NotNull final BuildPromotionEx promotion, @NotNull final String reason) {
