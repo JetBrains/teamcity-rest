@@ -313,7 +313,7 @@ public class BuildRequest {
 
   @NotNull
   public static String getArtifactsUrlPrefix(final @NotNull BuildPromotion build, final @NotNull BeanContext beanContext) {
-    return Util.concatenatePath(beanContext.getApiUrlBuilder().getHref(build), ARTIFACTS);
+    return Util.concatenatePath(BuildRequest.getBuildHref(build), ARTIFACTS);
   }
 
   @NotNull

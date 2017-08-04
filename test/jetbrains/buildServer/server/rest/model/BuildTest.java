@@ -16,6 +16,9 @@
 
 package jetbrains.buildServer.server.rest.model;
 
+import com.intellij.openapi.util.text.StringUtil;
+import java.io.File;
+import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -27,6 +30,8 @@ import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.parameters.ValueResolver;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.requirements.RequirementType;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.PathTransformer;
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -35,6 +40,8 @@ import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.*;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolCannotBeRenamedException;
 import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
@@ -780,6 +787,28 @@ public class BuildTest extends BaseFinderTest<SBuild> {
 
     build1 = new Build(myServer.getQueue().getItems().get(2).getBuildPromotion(), Fields.LONG, getBeanContext(myFixture));
     assertNull(build1.getStartEstimate());
+  }
+
+  @Test
+  @TestFor(issues = "TW-51092")
+  public void testBuildArtifactsHrefForVersionedUrls() throws IOException {
+    SFinishedBuild finishedBuild = build().in(myBuildType).finish();
+    final File artifactsDir = finishedBuild.getArtifactsDirectory();
+    //noinspection ResultOfMethodCallIgnored
+    artifactsDir.mkdirs();
+    File dir = new File(artifactsDir, "dir");
+    dir.mkdirs();
+
+    final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
+      public String transform(final String path) {
+        return StringUtil.replace(path, "/app/rest/", "/app/rest/version/");
+      }
+    });
+
+    final Build build = new Build(finishedBuild, new Fields("artifacts(href,file(children))"), new BeanContext(new BeanFactory(null), myFixture, apiUrlBuilder));
+
+    assertEquals("/app/rest/version/builds/id:1/artifacts/children/", build.getArtifacts().href);
+    assertEquals("/app/rest/version/builds/id:1/artifacts/children/dir", build.getArtifacts().files.get(0).getChildren().href);
   }
 
   @Test(enabled = false)
