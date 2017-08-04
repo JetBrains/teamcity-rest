@@ -42,6 +42,7 @@ import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -633,6 +634,47 @@ public class DebugRequest {
     }
 
     return result.toString();
+  }
+
+  /**
+   * Experimental use only!
+   */
+  @GET
+  @Path("/threads/{threadLocator}/interrupted")
+  @Produces({"text/plain"})
+  public String getThreadInterrupted(@PathParam("threadLocator") String threadLocator) {
+    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    return String.valueOf(getThread(threadLocator).isInterrupted());
+  }
+
+  /**
+   * Experimental use only!
+   */
+  @PUT
+  @Path("/threads/{threadLocator}/interrupted")
+  @Produces({"text/plain"})
+  public String interruptThread(@PathParam("threadLocator") String threadLocator, String interrupted) {
+    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    if (!Boolean.valueOf(interrupted)) {
+      throw new BadRequestException("Only \"true\" is supported as the posted value");
+    }
+    Thread thread = getThread(threadLocator);
+    thread.interrupt();
+    return String.valueOf(thread.isInterrupted());
+  }
+
+  @NotNull
+  private static Thread getThread(@Nullable String threadLocator){
+    if (StringUtil.isEmpty(threadLocator)) {
+      throw new BadRequestException("Invalid thread id: should not be empty");
+    }
+    Set<Thread> threads = Thread.getAllStackTraces().keySet();
+    for (Thread thread : threads) {
+      if (String.valueOf(thread.getId()).equals(threadLocator)) {
+        return thread;
+      }
+    }
+    throw new NotFoundException("Thread with id '" + threadLocator + "' is not found");
   }
 
   /**
