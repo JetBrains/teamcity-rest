@@ -57,7 +57,7 @@ public class LicenseKeyEntities {
   public LicenseKeyEntities(@NotNull final Collection<LicenseKey> licenseKeys, @Nullable final Collection<LicenseKey> activeLicenseKeys, @Nullable final String href,
                             @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     this.licenseKeys = ValueWithDefault.decideDefault(fields.isIncluded("licenseKey", false, true), () -> getLicenseKeys(licenseKeys, activeLicenseKeys, fields));
-    this.href = ValueWithDefault.decideDefault(fields.isIncluded("href"), href);
+    this.href = href == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(href));
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), licenseKeys.size());
   }
 

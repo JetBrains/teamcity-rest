@@ -54,6 +54,6 @@ public class Branches {
                                                 () -> branchesP.stream().map(b -> new Branch(b, fields.getNestedField("branch"), beanContext)).collect(Collectors.toList()));
       count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), branchesP.size());
     }
-    href = pagerData == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("href"), pagerData.getHref());
+    href = pagerData == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getHref()));
   }
 }

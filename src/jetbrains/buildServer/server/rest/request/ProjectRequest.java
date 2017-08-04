@@ -462,7 +462,7 @@ public class ProjectRequest {
 
         @Override
         public String getHref() {
-          return getFeaturesHref(project);
+          return myBeanContext.getApiUrlBuilder().transformRelativePath(getFeaturesHref(project));
         }
 
         @Override

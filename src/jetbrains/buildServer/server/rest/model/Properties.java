@@ -113,7 +113,7 @@ public class Properties  implements DefaultValueAware {
         this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), parameters.getParametersCollection(null).size()); //actual count when no properties are included
       }
     }
-    this.href = ValueWithDefault.decideDefault(fields.isIncluded("href"), href);
+    this.href = href == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(href));
   }
 
 

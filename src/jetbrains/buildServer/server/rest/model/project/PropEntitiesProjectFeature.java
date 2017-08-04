@@ -66,7 +66,7 @@ public class PropEntitiesProjectFeature {
       }
     });
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), features.size());
-    href = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("href"), ProjectRequest.getFeaturesHref(project));
+    href = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(ProjectRequest.getFeaturesHref(project)));
   }
 
   public boolean setTo(@NotNull final SProject project, @NotNull final ServiceLocator serviceLocator) {

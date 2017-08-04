@@ -88,7 +88,7 @@ public class Investigation {
 
     id = ValueWithDefault.decideDefault(fields.isIncluded("id"), investigation.getId());
     try {
-      href = ValueWithDefault.decideDefault(fields.isIncluded("href"), InvestigationRequest.getHref(investigation));
+      href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(InvestigationRequest.getHref(investigation)));
     } catch (Exception e) {
       //ignore: InvestigationFinder.getLocator can throw exception
     }

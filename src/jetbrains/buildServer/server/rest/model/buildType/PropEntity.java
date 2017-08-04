@@ -118,7 +118,7 @@ public class PropEntity {
                                                      new Properties(properties, propertiesHref, fields.getNestedField("properties", Fields.NONE, Fields.LONG), beanContext));
     this.disabled = enabled == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("disabled"), !enabled);
     this.inherited = inherited == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("inherited"), inherited);
-    this.href = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("href"), href);
+    this.href = href == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(href));
   }
 
   public static String getSetting(@NotNull final BuildTypeSettings buildType, @NotNull final String id, final String name) {

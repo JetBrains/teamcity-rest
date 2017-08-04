@@ -41,6 +41,7 @@ public class SimplePathTransformer implements PathTransformer {
   }
 
   public String transform(final String path) {
+    if (path == null) return null;
     if (!TeamCityProperties.getBoolean("rest.beans.href.useFullURLs") || myRequest == null) {
       return getRequestTranslator().getTransformedPath(path);
     }
