@@ -779,7 +779,7 @@ public class Build {
       @Nullable
       public Files get() {
         final Fields nestedFields = myFields.getNestedField("artifacts");
-        final FileApiUrlBuilder builder = FilesSubResource.fileApiUrlBuilder(nestedFields.getLocator(), BuildRequest.getArtifactsUrlPrefix(myBuildPromotion, myBeanContext));
+        final FileApiUrlBuilder builder = FilesSubResource.fileApiUrlBuilder(nestedFields.getLocator(), BuildRequest.getBuildArtifactsHref(myBuildPromotion));
         return new Files(builder.getChildrenHref(null), new ValueWithDefault.Value<List<? extends Element>>() {
           @Nullable
           public List<? extends Element> get() {

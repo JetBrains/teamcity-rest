@@ -33,10 +33,6 @@ public class Href {
   public Href() {
   }
 
-  public Href(@NotNull final String longHref) {
-    href = longHref;
-  }
-
   public Href(@NotNull final String shortHref, @NotNull final ApiUrlBuilder apiUrlBuilder) {
     href = apiUrlBuilder.transformRelativePath(shortHref);
   }

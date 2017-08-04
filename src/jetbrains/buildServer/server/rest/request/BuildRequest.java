@@ -141,6 +141,11 @@ public class BuildRequest {
     return getBuildHref(build) + RELATED_ISSUES;
   }
 
+  @NotNull
+  public static String getBuildArtifactsHref(final @NotNull BuildPromotion build) {
+    return Util.concatenatePath(BuildRequest.getBuildHref(build), ARTIFACTS);
+  }
+
   /**
    * Serves builds matching supplied condition.
    *
@@ -292,7 +297,7 @@ public class BuildRequest {
                                               @QueryParam("logBuildUsage") final Boolean logBuildUsage) {
     final BuildPromotion buildPromotion = myBuildFinder.getBuildPromotion(null, buildLocator);
 
-    final String urlPrefix = getArtifactsUrlPrefix(buildPromotion, myBeanContext);
+    final String urlPrefix = getBuildArtifactsHref(buildPromotion);
     //convert anonymous to inner here, implement DownloadProcessor
     return new FilesSubResource(new BuildArtifactsProvider(buildPromotion, resolveParameters, logBuildUsage, urlPrefix), urlPrefix, myBeanContext, true);
   }
@@ -309,11 +314,6 @@ public class BuildRequest {
 
   private String replaceNonAlphaNum(final String s) {
     return NON_ALPHA_NUM_PATTERN.matcher(s).replaceAll("_");
-  }
-
-  @NotNull
-  public static String getArtifactsUrlPrefix(final @NotNull BuildPromotion build, final @NotNull BeanContext beanContext) {
-    return Util.concatenatePath(BuildRequest.getBuildHref(build), ARTIFACTS);
   }
 
   @NotNull
