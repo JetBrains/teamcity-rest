@@ -53,6 +53,7 @@
   <bean id="restAgentPoolsFinder" class="jetbrains.buildServer.server.rest.data.AgentPoolFinder"/>
   <bean id="restAgentFinder" class="jetbrains.buildServer.server.rest.data.AgentFinder"/>
   <bean id="restInvestigationFinder" class="jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder"/>
+  <bean id="restMuteFinder" class="jetbrains.buildServer.server.rest.data.mutes.MuteFinder"/>
   <bean id="restProblemFinder" class="jetbrains.buildServer.server.rest.data.problem.ProblemFinder"/>
   <bean id="restProblemOccurrenceFinder" class="jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder"/>
   <bean id="restTestFinder" class="jetbrains.buildServer.server.rest.data.problem.TestFinder"/>
@@ -83,6 +84,7 @@
   <bean id="restAgentPoolsFinderProvider" class="jetbrains.buildServer.server.rest.jersey.AgentPoolsFinderProvider"/>
   <bean id="restAgentFinderProvider" class="jetbrains.buildServer.server.rest.jersey.AgentFinderProvider"/>
   <bean id="restInvestigationFinderProvider" class="jetbrains.buildServer.server.rest.jersey.InvestigationFinderProvider"/>
+  <bean id="restMuteFinderProvider" class="jetbrains.buildServer.server.rest.jersey.MuteFinderProvider"/>
   <bean id="restProblemFinderProvider" class="jetbrains.buildServer.server.rest.jersey.ProblemFinderProvider"/>
   <bean id="restProblemOccurrenceFinderProvider" class="jetbrains.buildServer.server.rest.jersey.ProblemOccurrenceFinderProvider"/>
   <bean id="restTestFinderProvider" class="jetbrains.buildServer.server.rest.jersey.TestFinderProvider"/>

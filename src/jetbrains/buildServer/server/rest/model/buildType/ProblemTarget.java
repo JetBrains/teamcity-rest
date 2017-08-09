@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -136,5 +137,33 @@ public class ProblemTarget {
     }
     List<Long> result = problems.getFromPosted(serviceLocator);
     return result;
+  }
+
+  public static final String TEST_TYPE = "test";
+  public static final String PROBLEM_TYPE = "problem";
+  public static final String ANY_PROBLEM_TYPE = "anyProblem";
+  public static final String UNKNOWN_TYPE = "unknown";
+
+  public static List<String> getKnownTypesForInvestigation() {
+    return Arrays.asList(ANY_PROBLEM_TYPE, TEST_TYPE, PROBLEM_TYPE, UNKNOWN_TYPE);
+  }
+
+  @NotNull
+  public static String getType(@NotNull final InvestigationWrapper investigationWrapper) {
+    if (investigationWrapper.isBuildType()) return ANY_PROBLEM_TYPE;
+    if (investigationWrapper.isTest()) return TEST_TYPE;
+    if (investigationWrapper.isProblem()) return PROBLEM_TYPE;
+    return UNKNOWN_TYPE;
+  }
+
+  public static List<String> getKnownTypesForMute() {
+    return Arrays.asList(TEST_TYPE, PROBLEM_TYPE, UNKNOWN_TYPE);
+  }
+
+  @NotNull
+  public static String getType(@NotNull final MuteInfo item) {
+    if (!item.getTestNameIds().isEmpty()) return TEST_TYPE;
+    if (item.getBuildProblemIds().isEmpty()) return PROBLEM_TYPE;
+    return UNKNOWN_TYPE;
   }
 }

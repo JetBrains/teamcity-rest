@@ -27,6 +27,7 @@ import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.buildType.Investigation;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
+import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.TestName2IndexImpl;
@@ -85,7 +86,7 @@ public class InvestigationFinderTest extends BaseFinderTest<InvestigationWrapper
     assertEquals(true, investigation1.isBuildType());
     assertEquals(false, investigation1.isProblem());
     assertEquals(false, investigation1.isTest());
-    assertEquals("anyProblem", investigation1.getType());
+    assertEquals("anyProblem", ProblemTarget.getType(investigation1));
 
     final BuildTypeResponsibilityEntry buildTypeRE = investigation1.getBuildTypeRE();
     assertEquals(true, buildTypeRE != null);

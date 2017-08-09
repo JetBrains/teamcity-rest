@@ -17,6 +17,9 @@
 package jetbrains.buildServer.server.rest.model.problem;
 
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
@@ -27,6 +30,7 @@ import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.mute.UnmuteOptions;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -45,17 +49,26 @@ public class Resolution {
   }
 
   public Resolution(@NotNull final UnmuteOptions unmuteOptions, @NotNull final Fields fields) {
+    type = ValueWithDefault.decideDefault(fields.isIncluded("type"), getType(unmuteOptions));
+
+    Date unmuteByTime = unmuteOptions.getUnmuteByTime();
+    if (unmuteByTime != null) {
+      time = ValueWithDefault.decideDefault(fields.isIncluded("time"), Util.formatTime(unmuteByTime));
+    }
+  }
+
+  @Nullable
+  public static String getType(final @NotNull UnmuteOptions unmuteOptions) {
     if (unmuteOptions.isUnmuteManually()) {
-      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), MANUALLY);
+      return MANUALLY;
     } else if (unmuteOptions.isUnmuteWhenFixed()) {
-      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), WHEN_FIXED);
+      return WHEN_FIXED;
     } else {
-      final Date unmuteByTime = unmuteOptions.getUnmuteByTime();
-      if (unmuteByTime != null) {
-        type = TIME;
-        time = ValueWithDefault.decideDefault(fields.isIncluded("time"), Util.formatTime(unmuteByTime));
+      if (unmuteOptions.getUnmuteByTime() != null) {
+        return TIME;
       }
     }
+    return null;
   }
 
   public Resolution(@NotNull final ResponsibilityEntry.RemoveMethod removeMethod, @NotNull final Fields fields) {
@@ -77,4 +90,10 @@ public class Resolution {
     }
     throw new BadRequestException("Invalid 'resolution' entity: unknown 'type' value '" + type + "', supported are: " + MANUALLY + ", " + WHEN_FIXED);
   }
+
+  @NotNull
+  public static List<String> getKnownTypesForMute() {
+    return Stream.of(MANUALLY, WHEN_FIXED, TIME).collect(Collectors.toList());
+  }
+
 }

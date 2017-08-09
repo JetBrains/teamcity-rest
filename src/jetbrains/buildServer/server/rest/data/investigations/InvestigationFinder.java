@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.STest;
@@ -55,6 +56,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   private static final String TYPE = "type";
   private static final String REPORTER = "reporter";
   private static final String BUILD_TYPE = "buildType";
+  //todo: add removeMethod
 
   private final ProjectFinder myProjectFinder;
   private final BuildTypeFinder myBuildTypeFinder;
@@ -112,7 +114,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
 
   @NotNull
-  private static Locator patchLocatorWithProblem(@NotNull final Locator locator, final int problemId) {
+  public static Locator patchLocatorWithProblem(@NotNull final Locator locator, final int problemId) {
     return locator.setDimension(PROBLEM_DIMENSION, ProblemFinder.getLocator(problemId));
   }
 
@@ -181,13 +183,13 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
     final String typeDimension = locator.getSingleDimensionValue(TYPE);
     if (typeDimension != null) {
-      if (!InvestigationWrapper.getKnownTypes().contains(typeDimension.toLowerCase())) {
+      if (!ProblemTarget.getKnownTypesForInvestigation().contains(typeDimension.toLowerCase())) {
         throw new BadRequestException("Error in dimension '" + TYPE + "': unknown value '" + typeDimension + "'. Known values: " +
-                                      StringUtil.join(InvestigationWrapper.getKnownTypes(), ", "));
+                                      StringUtil.join(ProblemTarget.getKnownTypesForInvestigation(), ", "));
       }
       result.add(new FilterConditionChecker<InvestigationWrapper>() {
         public boolean isIncluded(@NotNull final InvestigationWrapper item) {
-          return typeDimension.equalsIgnoreCase(item.getType());
+          return typeDimension.equalsIgnoreCase(ProblemTarget.getType(item));
         }
       });
     }
