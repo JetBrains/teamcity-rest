@@ -113,6 +113,16 @@ public class InvestigationRequest {
     item.remove(myServiceLocator);
   }
 
+  @PUT
+  @Path("/{investigationLocator}")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public Investigation replaceInstance(@PathParam("investigationLocator") String locatorText, Investigation investigation, @QueryParam("fields") String fields) {
+    InvestigationWrapper item = myInvestigationFinder.getItem(locatorText);
+    item.remove(myServiceLocator);
+    return createInstance(investigation, fields);
+  }
+
   @POST
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
