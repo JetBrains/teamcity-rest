@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.APIController;
@@ -424,10 +425,20 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   }
 
   public static boolean isSameOrParent(@NotNull final BuildProject parent, @NotNull final BuildProject project) {
-    if (parent.getProjectId().equals(project.getProjectId())) return true;
-    BuildProject parentProject = project.getParentProject();
-    if (parentProject == null) return false;
-    return isSameOrParent(parent, parentProject);
+    return isSameOrParent(Collections.singleton(parent), project);
+  }
+
+  /**
+   * Calculates if the project is one of or an (indirect) child of the parent candidates passed
+   */
+  public static boolean isSameOrParent(@NotNull final Collection<? extends BuildProject> parents, @NotNull final BuildProject project) {
+    Set<String> projectIds = parents.stream().map(p -> p.getProjectId()).collect(Collectors.toSet());
+    BuildProject currentProject = project;
+    while(currentProject != null) {
+      if (projectIds.contains(currentProject.getProjectId())) return true;
+      currentProject = currentProject.getParentProject();
+    }
+    return false;
   }
 
   @NotNull

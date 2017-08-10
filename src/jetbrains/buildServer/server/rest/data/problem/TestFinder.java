@@ -254,9 +254,7 @@ public class TestFinder extends AbstractFinder<STest> {
             for (SBuildType buildType : buildTypes) {
               if (buildType == null) continue;
               if (mutedInBuildTypes.contains(buildType)) return true;
-              for (SProject mutedInProject : mutedInProjects) {
-                if (ProjectFinder.isSameOrParent(mutedInProject, buildType.getProject())) return true;
-              }
+              if (ProjectFinder.isSameOrParent(mutedInProjects, buildType.getProject())) return true;
             }
             return false;
           }
@@ -270,12 +268,7 @@ public class TestFinder extends AbstractFinder<STest> {
             CurrentMuteInfo muteInfo = item.getCurrentMuteInfo();
             if (muteInfo == null) return false;
             Set<SProject> mutedInProjects = muteInfo.getProjectsMuteInfo().keySet();
-            for (SProject project : projects) {
-              for (SProject mutedInProject : mutedInProjects) {
-                if (ProjectFinder.isSameOrParent(mutedInProject, project)) return true;
-              }
-            }
-            return false;
+            return projects.stream().anyMatch(project -> ProjectFinder.isSameOrParent(mutedInProjects, project));
           }
         });
       }

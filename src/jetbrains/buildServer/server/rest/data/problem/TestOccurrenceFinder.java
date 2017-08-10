@@ -520,10 +520,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     if (currentMuteInfo.getBuildTypeMuteInfo().keySet().contains(buildType)) return true;
 
     final Set<SProject> projects = currentMuteInfo.getProjectsMuteInfo().keySet();
-    for (SProject project : projects) {
-      if (ProjectFinder.isSameOrParent(project, buildType.getProject())) return true;
-    }
-    return false;
+    return ProjectFinder.isSameOrParent(projects, buildType.getProject());
   }
 
   public boolean isCurrentlyInvestigated(@NotNull final STestRun item) {  //todo: TeamCity API (MP): is there an API way to figure out there is an investigation for a STestRun ?
