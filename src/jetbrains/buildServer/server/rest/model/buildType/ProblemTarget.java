@@ -156,8 +156,8 @@ public class ProblemTarget {
     return UNKNOWN_TYPE;
   }
 
-  public static List<String> getKnownTypesForMute() {
-    return Arrays.asList(TEST_TYPE, PROBLEM_TYPE, UNKNOWN_TYPE);
+  public static String[] getKnownTypesForMute() {
+    return new String[]{TEST_TYPE, PROBLEM_TYPE};
   }
 
   @NotNull

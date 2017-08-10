@@ -25,14 +25,11 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.mutes.MuteFinder;
-import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.problem.Mute;
 import jetbrains.buildServer.server.rest.model.problem.Mutes;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
 import org.jetbrains.annotations.NotNull;
 
@@ -59,6 +56,7 @@ public class MuteRequest {
     return API_SUB_URL + "/" + MuteFinder.getLocator(mute);
   }
 
+  /*
   public static String getHref(@NotNull final ProblemWrapper problem) {
     return getHref(MuteFinder.getLocator(problem));
   }
@@ -70,6 +68,7 @@ public class MuteRequest {
   public static String getHref(@NotNull final SBuildType buildType) {
     return getHref(MuteFinder.getLocator(buildType));
   }
+  */
 
   @NotNull
   public static String getHref(@NotNull final String locator) {

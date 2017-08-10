@@ -16,71 +16,132 @@
 
 package jetbrains.buildServer.server.rest.data.mutes;
 
-import com.intellij.openapi.util.text.StringUtil;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import jetbrains.buildServer.BuildProject;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
-import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
-import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
-import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
-import jetbrains.buildServer.server.rest.data.problem.TestFinder;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
 import jetbrains.buildServer.server.rest.model.problem.Resolution;
-import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
+import jetbrains.buildServer.serverSide.mute.LowLevelProblemMutingServiceImpl;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
 import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
-import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimension;
 
 /**
  * @author Yegor.Yarko
  *         Date: 09.08.17
  */
-public class MuteFinder extends AbstractFinder<MuteInfo> {
-  private static final String TYPE = "type"; // target
-  private static final String PROBLEM_DIMENSION = "problem";
-  private static final String TEST_DIMENSION = "test";
+public class MuteFinder extends DelegatingFinder<MuteInfo> {
+  private static final Dimension<Long> ID = new Dimension<>("id");
+  private static final Dimension<List<SProject>> AFFECTED_PROJECT = new Dimension<>("affectedProject");
+  private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project"); //differs from investigation: assignmentProject
+  private static final Dimension<TimeCondition.ParsedTimeCondition> CREATION_DATE = new Dimension<>("creationDate");  //differs from investigation: sinceDate
+  private static final Dimension<TimeCondition.ParsedTimeCondition> UNMUTE_DATE = new Dimension<>("unmuteDate");  //differs from investigation: sinceDate
+  private static final Dimension<List<SUser>> REPORTER = new Dimension<>("reporter"); //todo: review naming?
+  private static final Dimension<String> TYPE = new Dimension<>("type"); // target
+  private static final Dimension<String> RESOLUTION = new Dimension<>("resolution");
 
-  private static final String ASSIGNMENT_PROJECT = "assignmentProject";  //todo: review naming?
-  private static final String BUILD_TYPE = "buildType";
-  private static final String AFFECTED_PROJECT = "affectedProject";
+  //private static final String PROBLEM_DIMENSION = "problem";
+  //private static final String TEST_DIMENSION = "test";
 
-  private static final String SINCE_DATE = "sinceDate";
-  private static final String REPORTER = "reporter";  //todo: review naming?
-  private static final String RESOLUTION = "resolution";
+  //private static final String BUILD_TYPE = "buildType"; //todo: add assignmentBuildType
 
   private final ProjectFinder myProjectFinder;
-  private final BuildTypeFinder myBuildTypeFinder;
-  private final ProblemFinder myProblemFinder;
-  private final TestFinder myTestFinder;
-  private final UserFinder myUserFinder;
 
+  @NotNull private final TimeCondition myTimeCondition;
   private final ProblemMutingService myProblemMutingService;
+  private final LowLevelProblemMutingServiceImpl myLowLevelMutingService;
+  private final ServiceLocator myServiceLocator;
 
 
-  public MuteFinder(final ProjectFinder projectFinder,
-                    final BuildTypeFinder buildTypeFinder,
-                    final ProblemFinder problemFinder,
-                    final TestFinder testFinder,
-                    final UserFinder userFinder,
-                    final ProblemMutingService problemMutingService) {
-    super(DIMENSION_ID, REPORTER, TYPE, RESOLUTION, SINCE_DATE, ASSIGNMENT_PROJECT, AFFECTED_PROJECT, BUILD_TYPE, TEST_DIMENSION, PROBLEM_DIMENSION);
+  public MuteFinder(@NotNull final ProjectFinder projectFinder,
+                    @NotNull final TimeCondition timeCondition,
+                    @NotNull final ProblemMutingService problemMutingService,
+                    @NotNull final LowLevelProblemMutingServiceImpl levelMutingService,
+                    @NotNull final ServiceLocator serviceLocator) {
     myProjectFinder = projectFinder;
-    myBuildTypeFinder = buildTypeFinder;
-    myProblemFinder = problemFinder;
-    myTestFinder = testFinder;
-    myUserFinder = userFinder;
+    myTimeCondition = timeCondition;
     myProblemMutingService = problemMutingService;
+    myLowLevelMutingService = levelMutingService;
+    myServiceLocator = serviceLocator;
+    setDelegate(new MuteFinderBuilder().build());
   }
 
+  private class MuteFinderBuilder extends TypedFinderBuilder<MuteInfo> {
+
+    MuteFinderBuilder() {
+      singleDimension(dimension -> {
+        // no dimensions found, assume it's id
+        return Collections.singletonList(findMuteById(getLong(dimension).intValue()));
+      });
+
+      dimensionLong(ID).description("internal mute id")
+                       .filter((value, item) -> value.equals(item.getId().longValue()))
+                       .toItems(dimension -> Collections.singletonList(findMuteById(dimension.intValue())));
+      dimensionProjects(AFFECTED_PROJECT, myServiceLocator).description("project affected by the mutes")
+                                                           .filter((projects, item) -> {
+                                                             final SProject assignmentProject = item.getProject();
+                                                             return (assignmentProject != null && ProjectFinder.isSameOrParent(projects, assignmentProject));
+                                                           }).toItems(dimension -> dimension.stream().flatMap(p -> getMuteInfosForProject(p)).collect(Collectors.toList()));
+
+      dimensionProjects(PROJECT, myServiceLocator).description("project in which mute is assigned").valueForDefaultFilter(muteInfo -> Collections.singleton(muteInfo.getProject())); //todo: add toItems?
+
+      dimensionTimeCondition(CREATION_DATE, myTimeCondition).description("mute creation time")
+                                                   .filter((timeCondition, item) -> timeCondition.matches(item.getMutingTime()));
+      dimensionTimeCondition(UNMUTE_DATE, myTimeCondition).description("automatic unmute time")
+                                                   .filter((timeCondition, item) -> {
+                                                     Date unmuteTime = item.getAutoUnmuteOptions().getUnmuteByTime();
+                                                     return unmuteTime != null && timeCondition.matches(unmuteTime);
+                                                   });
+      dimensionUsers(REPORTER, myServiceLocator).description("muting user")
+                                                .filter((users, item) -> users.stream().map(u -> u.getId()).collect(Collectors.toSet()).contains(item.getMutingUserId()));
+      dimensionFixedText(TYPE, ProblemTarget.getKnownTypesForMute()).description("what is muted").valueForDefaultFilter(muteInfo -> ProblemTarget.getType(muteInfo))
+                                                                    .toItems(dimension -> {
+                                                                      switch (dimension) {
+                                                                        case ProblemTarget.TEST_TYPE:
+                                                                          return getTestsMutes(myProjectFinder.getRootProject()).collect(Collectors.toList()); //todo: add project
+                                                                        case ProblemTarget.PROBLEM_TYPE:
+                                                                          return getProblemsMutes(myProjectFinder.getRootProject()).collect(Collectors.toList());
+                                                                      }
+                                                                      throw new OperationException("Unexpected mute type '" + dimension + "'");
+                                                                    });
+      dimensionFixedText(RESOLUTION, Resolution.getKnownTypesForMute()).description("unmute condition").
+        valueForDefaultFilter(muteInfo -> Resolution.getType(muteInfo.getAutoUnmuteOptions()));
+
+      multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> FinderDataBinding.getItemHolder(getMuteInfosForProject(myProjectFinder.getRootProject())));
+
+      locatorProvider(muteInfo -> getLocator(muteInfo));
+//      containerSetProvider(() -> new HashSet<SUser>()); //todo: sorting here!
+    }
+  }
+
+  @NotNull
+  private MuteInfo findMuteById(@NotNull final Integer id) {
+    String projectId = myProjectFinder.getRootProject().getProjectId();
+
+    Collection<Long> mutedTestNameIds = myLowLevelMutingService.retrieveMuteTests(id);
+    Optional<MuteInfo> result = mutedTestNameIds.stream().flatMap(testNameId -> getMutes(myProblemMutingService.getTestCurrentMuteInfo(projectId, testNameId)))
+                                             .filter(muteInfo -> id.equals(muteInfo.getId())).findAny();
+    if (result.isPresent()) return result.get();
+
+    Collection<Integer> mutedProblemIds = myLowLevelMutingService.retrieveMuteProblems(id);
+    result = mutedProblemIds.stream().flatMap(problemId -> getMutes(myProblemMutingService.getBuildProblemCurrentMuteInfo(projectId, problemId)))
+                                            .filter(muteInfo -> id.equals(muteInfo.getId())).findAny();
+    if (result.isPresent()) return result.get();
+
+    throw new NotFoundException("No mute with id '" + id + "' found");
+  }
+
+  /*
   @NotNull
   public static String getLocator(@NotNull final SBuildType buildType) {
     return Locator.createEmptyLocator().setDimension(BUILD_TYPE, BuildTypeFinder.getLocator(buildType)).getStringRepresentation();
@@ -105,202 +166,34 @@ public class MuteFinder extends AbstractFinder<MuteInfo> {
   public static String getLocatorForTest(final long testNameId, @NotNull BuildProject project) {
     return InvestigationFinder.getLocatorForTest(testNameId, project);
   }
+  */
 
-
-  @NotNull
-  @Override
-  public String getItemLocator(@NotNull final MuteInfo investigationWrapper) {
-    return MuteFinder.getLocator(investigationWrapper);
-  }
 
   @NotNull
   public static String getLocator(final MuteInfo item) {
-    return Locator.getStringLocator(DIMENSION_ID, String.valueOf(item.getId()));
+    return Locator.getStringLocator(ID.name, String.valueOf(item.getId()));
   }
 
-  @Override
-  public MuteInfo findSingleItem(@NotNull final Locator locator) {
-    return null;
+
+  @NotNull
+  private Stream<MuteInfo> getMuteInfosForProject(@NotNull final SProject project) {
+    return Stream.concat(getProblemsMutes(project), getTestsMutes(project));
   }
 
   @NotNull
-  @Override
-  public ItemFilter<MuteInfo> getFilter(@NotNull final Locator locator) {
-    final MultiCheckerFilter<MuteInfo> result = new MultiCheckerFilter<MuteInfo>();
-
-    final Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);  //todo: ineffective!!!  implement findSingleItem instead
-    if (id != null) {
-      Integer intId = id.intValue();
-      result.add(new FilterConditionChecker<MuteInfo>() {
-        public boolean isIncluded(@NotNull final MuteInfo item) {
-          return intId.equals(item.getId());
-        }
-      });
-    }
-
-    final String reporterDimension = locator.getSingleDimensionValue(REPORTER);
-    if (reporterDimension != null) {
-      @NotNull final User user = myUserFinder.getItem(reporterDimension);
-      result.add(new FilterConditionChecker<MuteInfo>() {
-        public boolean isIncluded(@NotNull final MuteInfo item) {
-          return user.equals(item.getMutingUser());
-        }
-      });
-    }
-
-    final String typeDimension = locator.getSingleDimensionValue(TYPE);
-    if (typeDimension != null) {
-      if (!ProblemTarget.getKnownTypesForMute().contains(typeDimension.toLowerCase())) {
-        throw new BadRequestException("Error in dimension '" + TYPE + "': unknown value '" + typeDimension + "'. Known values: " +
-                                      StringUtil.join(ProblemTarget.getKnownTypesForMute(), ", "));
-      }
-      result.add(new FilterConditionChecker<MuteInfo>() {
-        public boolean isIncluded(@NotNull final MuteInfo item) {
-          return typeDimension.equalsIgnoreCase(ProblemTarget.getType(item));
-        }
-      });
-    }
-
-    final String stateDimension = locator.getSingleDimensionValue(RESOLUTION);
-    if (stateDimension != null) {
-      if (!Resolution.getKnownTypesForMute().contains(stateDimension)) {
-        throw new BadRequestException("Error in dimension '" + RESOLUTION + "': unknown value '" + stateDimension + "'. Known values: " +
-                                      StringUtil.join(Resolution.getKnownTypesForMute(), ", "));
-      }
-      result.add(new FilterConditionChecker<MuteInfo>() {
-        public boolean isIncluded(@NotNull final MuteInfo item) {
-          return stateDimension.equalsIgnoreCase(Resolution.getType(item.getAutoUnmuteOptions()));
-        }
-      });
-    }
-
-    final String assignmentProjectDimension = locator.getSingleDimensionValue(ASSIGNMENT_PROJECT);
-    if (assignmentProjectDimension != null){
-      @NotNull final SProject project = myProjectFinder.getItem(assignmentProjectDimension);
-      result.add(new FilterConditionChecker<MuteInfo>() {
-        public boolean isIncluded(@NotNull final MuteInfo item) {
-          return project.getProjectId().equals(item.getProjectId());
-        }
-      });
-    }
-
-    final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
-    if (affectedProjectDimension != null){
-      @NotNull final SProject project = myProjectFinder.getItem(affectedProjectDimension);
-      result.add(new FilterConditionChecker<MuteInfo>() {
-        public boolean isIncluded(@NotNull final MuteInfo item) {
-          final BuildProject assignmentProject = item.getProject();
-          return (assignmentProject != null && ProjectFinder.isSameOrParent(project, assignmentProject));
-        }
-      });
-    }
-
-    final String sinceDateDimension = locator.getSingleDimensionValue(SINCE_DATE);
-    if (sinceDateDimension != null) {
-      final Date date = DataProvider.getDate(sinceDateDimension);
-      result.add(new FilterConditionChecker<MuteInfo>() {
-        public boolean isIncluded(@NotNull final MuteInfo item) {
-          return date.before(item.getMutingTime());
-        }
-      });
-    }
-//todo: add filtering by unmuteTime
-
-//todo: add assignmentBuildType
-    return result;
+  private Stream<MuteInfo> getTestsMutes(final @NotNull SProject project) {
+    return myProblemMutingService.getTestsCurrentMuteInfo(project).values().stream().flatMap(currentMute -> getMutes(currentMute));
   }
 
   @NotNull
-  @Override
-  public ItemHolder<MuteInfo> getPrefilteredItems(@NotNull final Locator locator) {
-    /*
-    final String problemDimension = locator.getSingleDimensionValue(PROBLEM_DIMENSION);
-    if (problemDimension != null){
-      final ProblemWrapper problem = myProblemFinder.getItem(problemDimension);
-      return getItemHolder(problem.getMutes());
-    }
-
-    final String testDimension = locator.getSingleDimensionValue(TEST_DIMENSION);
-    if (testDimension != null){
-      final STest test = myTestFinder.getItem(testDimension);
-      return getItemHolder(getMuteInfos(test));
-    }
-
-    final String buildTypeDimension = locator.getSingleDimensionValue(BUILD_TYPE);
-    if (buildTypeDimension != null){
-      final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension, false);
-      return getItemHolder(getMuteInfosForBuildType(buildType));
-    }
-
-    @Nullable User user = null;
-    final String investigatorDimension = locator.getSingleDimensionValue(ASSIGNEE);
-    if (investigatorDimension != null) {
-      user = myUserFinder.getItem(investigatorDimension);
-    }
-
-    final String assignmentProjectDimension = locator.getSingleDimensionValue(ASSIGNMENT_PROJECT);
-    if (assignmentProjectDimension != null){
-      @NotNull final SProject project = myProjectFinder.getItem(assignmentProjectDimension);
-      return getItemHolder(getMuteInfosForProject(project, user));  //todo: filter by this specific project
-    }
-
-    */
-
-    SProject affectedProject;
-    final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
-    if (affectedProjectDimension != null){
-      affectedProject = myProjectFinder.getItem(affectedProjectDimension);
-    } else {
-      affectedProject = myProjectFinder.getRootProject();
-    }
-
-    return getItemHolder(getMuteInfosForProject(affectedProject));
+  private Stream<MuteInfo> getProblemsMutes(final @NotNull SProject project) {
+    return myProblemMutingService.getBuildProblemsCurrentMuteInfo(project).values().stream().flatMap(currentMute -> getMutes(currentMute));
   }
 
-  private List<MuteInfo> getMuteInfosForProject(@NotNull final SProject project) {
-    Stream<MuteInfo> result = Stream.empty();
-
-    Map<Integer, CurrentMuteInfo> currentProblemMuteInfo = myProblemMutingService.getBuildProblemsCurrentMuteInfo(project);//todo: review scope, see javadoc
-    result = Stream.concat(result, currentProblemMuteInfo.values().stream().flatMap(currentMute -> currentMute.getProjectsMuteInfo().values().stream()));
-    result = Stream.concat(result, currentProblemMuteInfo.values().stream().flatMap(currentMute -> currentMute.getMuteInfoGroups().keySet().stream()));
-
-    Map<Long, CurrentMuteInfo> currentTestMuteInfo = myProblemMutingService.getTestsCurrentMuteInfo(project);//todo: review scope, see javadoc
-    result = Stream.concat(result, currentTestMuteInfo.values().stream().flatMap(currentMute -> currentMute.getProjectsMuteInfo().values().stream()));
-    result = Stream.concat(result, currentTestMuteInfo.values().stream().flatMap(currentMute -> currentMute.getMuteInfoGroups().keySet().stream()));
-
-    //todo: sort?
-    return result.collect(Collectors.toList());
-  }
-
-  /*
   @NotNull
-  public List<MuteInfo> getMuteInfos(@NotNull final STest item) {
-    final CurrentMuteInfo responsibilities = item.getCurrentMuteInfo();
-    final ArrayList<MuteInfo> result = new ArrayList<MuteInfo>(responsibilities.size());
-    for (TestNameResponsibilityEntry responsibility : responsibilities) {
-      result.add(new MuteInfo(responsibility));
-    }
-    return result;
+  private Stream<MuteInfo> getMutes(@Nullable final CurrentMuteInfo currentMuteInfo) {
+    if (currentMuteInfo == null) return Stream.empty();
+    return Stream.concat(currentMuteInfo.getProjectsMuteInfo().values().stream(),
+                         currentMuteInfo.getMuteInfoGroups().keySet().stream());
   }
-
-
-  private boolean isMuteRelatedToProblem(@NotNull final MuteInfo item, @NotNull final ProblemWrapper problem) {
-    if (!item.isProblem()){
-      return false;
-    }
-    @SuppressWarnings("ConstantConditions") @NotNull final BuildProblemResponsibilityEntry problemRE = item.getProblemRE();
-    return problemRE.getBuildProblemInfo().getId() == problem.getId();
-  }
-
-  public BuildTypeResponsibilityEntry getBuildTypeRE(@NotNull final SBuildType buildType) {
-    //todo: TeamCity API (MP): would be good to use buildType.getResponsibilityInfo() here
-    final List<BuildTypeResponsibilityEntry> userBuildTypeResponsibilities = myBuildTypeResponsibilityFacade.getUserBuildTypeResponsibilities(null, null);
-    for (BuildTypeResponsibilityEntry responsibility : userBuildTypeResponsibilities) {
-      if (responsibility.getBuildType().equals(buildType)){
-        return responsibility;
-      }
-    }
-    throw new NotFoundException("Build type with id '" + buildType.getExternalId() + "' does not have associated mute.");
-  }
-  */
 }

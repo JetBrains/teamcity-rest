@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.util.ItemProcessor;
 import org.jetbrains.annotations.NotNull;
@@ -82,6 +83,11 @@ public interface FinderDataBinding<ITEM> {
 
   interface ItemHolder<P> {
     void process(@NotNull final ItemProcessor<P> processor);
+  }
+
+  @NotNull
+  static <P> ItemHolder<P> getItemHolder(@NotNull Stream<? extends P> items) {
+    return processor -> items.forEach(item -> processor.processItem(item));
   }
 
   @NotNull

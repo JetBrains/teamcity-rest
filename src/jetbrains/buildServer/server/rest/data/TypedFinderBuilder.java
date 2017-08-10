@@ -17,6 +17,8 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -286,13 +288,16 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, Long, Long> dimensionLong(@NotNull final Dimension<Long> dimension) {
-    return dimension(dimension, type(dimensionValue -> {
-      try {
-        return Long.parseLong(dimensionValue);
-      } catch (NumberFormatException e) {
-        throw new LocatorProcessException("Invalid value '" + dimensionValue + "'. Should be a number.");
-      }
-    }).description("number")).defaultFilter((aLong, item) -> aLong.equals(item));
+    return dimension(dimension, type(dimensionValue -> getLong(dimensionValue)).description("number")).defaultFilter((aLong, item) -> aLong.equals(item));
+  }
+
+  @NotNull
+  public static Long getLong(@NotNull final String dimensionValue) {
+    try {
+      return Long.parseLong(dimensionValue);
+    } catch (NumberFormatException e) {
+      throw new LocatorProcessException("Invalid value '" + dimensionValue + "'. Should be a number.");
+    }
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, String, String> dimensionString(@NotNull final Dimension<String> dimension) {
@@ -383,6 +388,21 @@ public class TypedFinderBuilder<ITEM> {
   public<T extends Enum> TypedFinderDimensionWithDefaultChecker<ITEM, T, T> dimensionEnum(@NotNull final Dimension<T> dimension, @NotNull final Class<T> enumClass) {
     return dimension(dimension, type(dimensionValue -> getEnumValue(dimensionValue, enumClass)).description("one of " + getValues(enumClass)))
     .defaultFilter((t, item) -> t.equals(item));
+  }
+
+  public <T extends Enum> TypedFinderDimensionWithDefaultChecker<ITEM, String, String> dimensionFixedText(@NotNull final Dimension<String> dimension,
+                                                                                                          @NotNull final String... values) {
+    Set<String> lowerCaseValues = Stream.of(values).map(s -> s.toLowerCase()).collect(Collectors.toSet());
+    String supportedValuesText = StringUtil.join(values, ", ");
+
+    return dimension(dimension, type(dimensionValue -> {
+      if (lowerCaseValues.contains(dimensionValue.toLowerCase())) {
+        return dimensionValue;
+      }
+      throw new BadRequestException("Unsupported value '" + dimensionValue + "'. Supported values are: " + supportedValuesText);
+
+    }).description("one of " + supportedValuesText))
+      .defaultFilter((t, item) -> t.equalsIgnoreCase(item));
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, TimeCondition.ParsedTimeCondition, Date> dimensionTimeCondition(@NotNull final Dimension<TimeCondition.ParsedTimeCondition> dimension,

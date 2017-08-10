@@ -17,9 +17,6 @@
 package jetbrains.buildServer.server.rest.model.problem;
 
 import java.util.Date;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
@@ -92,8 +89,8 @@ public class Resolution {
   }
 
   @NotNull
-  public static List<String> getKnownTypesForMute() {
-    return Stream.of(MANUALLY, WHEN_FIXED, TIME).collect(Collectors.toList());
+  public static String[] getKnownTypesForMute() {
+    return new String[]{MANUALLY, WHEN_FIXED, TIME};
   }
 
 }
