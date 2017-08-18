@@ -467,6 +467,11 @@ public class TypedFinderBuilder<ITEM> {
     return this;
   }
 
+  public TypedFinderBuilder<ITEM> defaults(@NotNull final DimensionCondition conditions, @NotNull final NameValuePairs defaults) {
+    myDefaultDimensionsConditions.put(conditions, defaults);
+    return this;
+  }
+
   @NotNull
   public Finder<ITEM> build() {
 //    if (myLocatorProvider == null) throw new OperationException("Should set locator provider via a call to locatorProvider()");
@@ -474,11 +479,6 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   //============================= helper methods =============================
-
-  private TypedFinderBuilder<ITEM> defaults(@NotNull final DimensionCondition conditions, @NotNull final NameValuePairs defaults) {
-    myDefaultDimensionsConditions.put(conditions, defaults);
-    return this;
-  }
 
   private <TYPE> TypedFinderBuilder<ITEM> filter(@NotNull final Dimension<TYPE> dimension, @NotNull final Filter<TYPE, ITEM> filteringMapper) {
     DimensionCondition condition;
@@ -783,10 +783,10 @@ public class TypedFinderBuilder<ITEM> {
   }
 
 
-  private static class NameValuePairs {
+  public static class NameValuePairs {
     private final TreeMap<String, String> myPairs = new TreeMap<>();
 
-    NameValuePairs add(@NotNull String name, @NotNull String value) {
+    public NameValuePairs add(@NotNull String name, @NotNull String value) {
       myPairs.put(name, value);
       return this;
     }

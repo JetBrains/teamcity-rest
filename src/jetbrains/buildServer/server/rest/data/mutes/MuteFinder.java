@@ -23,8 +23,10 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
 import jetbrains.buildServer.server.rest.model.problem.Resolution;
+import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import jetbrains.buildServer.serverSide.mute.LowLevelProblemMutingServiceImpl;
@@ -58,6 +60,7 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
   private final ProjectFinder myProjectFinder;
 
   @NotNull private final TimeCondition myTimeCondition;
+  @NotNull private final PermissionChecker myPermissionChecker;
   private final ProblemMutingService myProblemMutingService;
   private final LowLevelProblemMutingServiceImpl myLowLevelMutingService;
   private final ServiceLocator myServiceLocator;
@@ -65,11 +68,13 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
 
   public MuteFinder(@NotNull final ProjectFinder projectFinder,
                     @NotNull final TimeCondition timeCondition,
+                    @NotNull final PermissionChecker permissionChecker,
                     @NotNull final ProblemMutingService problemMutingService,
                     @NotNull final LowLevelProblemMutingServiceImpl levelMutingService,
                     @NotNull final ServiceLocator serviceLocator) {
     myProjectFinder = projectFinder;
     myTimeCondition = timeCondition;
+    myPermissionChecker = permissionChecker;
     myProblemMutingService = problemMutingService;
     myLowLevelMutingService = levelMutingService;
     myServiceLocator = serviceLocator;
@@ -118,6 +123,8 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
         valueForDefaultFilter(muteInfo -> Resolution.getType(muteInfo.getAutoUnmuteOptions()));
 
       multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> FinderDataBinding.getItemHolder(getMuteInfosForProject(myProjectFinder.getRootProject())));
+
+      defaults(DimensionCondition.ALWAYS, new NameValuePairs().add(PagerData.COUNT, String.valueOf(Constants.getDefaultPageItemsCount())));
 
       locatorProvider(muteInfo -> getLocator(muteInfo));
 //      containerSetProvider(() -> new HashSet<SUser>()); //todo: sorting here!
