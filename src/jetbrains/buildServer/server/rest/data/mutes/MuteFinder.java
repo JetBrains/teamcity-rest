@@ -21,17 +21,18 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
 import jetbrains.buildServer.server.rest.model.problem.Resolution;
 import jetbrains.buildServer.server.rest.request.Constants;
+import jetbrains.buildServer.serverSide.BuildsManager;
+import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
-import jetbrains.buildServer.serverSide.mute.LowLevelProblemMutingServiceImpl;
-import jetbrains.buildServer.serverSide.mute.MuteInfo;
-import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.mute.*;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -124,11 +125,55 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
 
       multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> FinderDataBinding.getItemHolder(getMuteInfosForProject(myProjectFinder.getRootProject())));
 
+      filter(DimensionCondition.ALWAYS, dimensions -> new ItemFilter<MuteInfo>() {
+        @Override
+        public boolean shouldStop(@NotNull final MuteInfo item) {
+          return false;
+        }
+
+        @Override
+        public boolean isIncluded(@NotNull final MuteInfo item) {
+          return canView(item);
+        }
+      });
+
       defaults(DimensionCondition.ALWAYS, new NameValuePairs().add(PagerData.COUNT, String.valueOf(Constants.getDefaultPageItemsCount())));
 
       locatorProvider(muteInfo -> getLocator(muteInfo));
 //      containerSetProvider(() -> new HashSet<SUser>()); //todo: sorting here!
     }
+  }
+
+  private boolean canView(@NotNull final MuteInfo item) {
+    try {
+      MuteScope scope = item.getScope();
+      String projectId = scope.getProjectId();
+      if (projectId != null) {
+        myPermissionChecker.checkProjectPermission(Permission.VIEW_PROJECT, scope.getProjectId());
+      }
+
+      Collection<String> buildTypeIds = scope.getBuildTypeIds();
+      if (buildTypeIds != null) {
+        buildTypeIds.forEach(buildTypeId -> myPermissionChecker.checkProjectPermission(Permission.VIEW_PROJECT, buildTypeId)); //todo: should actually filter out data on MuteInfo
+      }
+      Long buildId = scope.getBuildId();
+      if (buildId != null) {
+        //actually, this should never happen todo: check this
+        String projectIdBbyBuildId = getProjectIdByBuildId(buildId);
+        if (projectIdBbyBuildId != null) {
+          myPermissionChecker.checkProjectPermission(Permission.VIEW_PROJECT, projectIdBbyBuildId);
+        }
+      }
+    } catch (AuthorizationFailedException e) {
+      return false;
+    }
+    return true;
+  }
+
+  @Nullable
+  private String getProjectIdByBuildId(@NotNull final Long buildId) {
+    SBuild buildInstanceById = myServiceLocator.getSingletonService(BuildsManager.class).findBuildInstanceById(buildId);
+    return buildInstanceById  == null ? null : buildInstanceById.getProjectId();
   }
 
   @NotNull
