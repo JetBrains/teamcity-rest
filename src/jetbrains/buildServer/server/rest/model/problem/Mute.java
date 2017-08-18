@@ -18,11 +18,13 @@ package jetbrains.buildServer.server.rest.model.problem;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.buildType.ProblemScope;
 import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
+import jetbrains.buildServer.server.rest.request.MuteRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
@@ -34,8 +36,10 @@ import org.jetbrains.annotations.NotNull;
  */
 @SuppressWarnings("PublicField")
 @XmlType(name = "mute")
+@XmlRootElement(name = "mute")
 public class Mute {
   @XmlAttribute public Integer id;
+  @XmlAttribute public String href;
 
   @XmlElement public Comment assignment;
   @XmlElement public ProblemScope scope;
@@ -47,9 +51,11 @@ public class Mute {
 
   public Mute(final @NotNull MuteInfo item, @NotNull final Fields fields, final @NotNull BeanContext beanContext) {
     id = ValueWithDefault.decideDefault(fields.isIncluded("id"), item.getId());
+    href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(MuteRequest.getHref(item)));
 
     assignment = ValueWithDefault.decideDefault(fields.isIncluded("assignment", false), new ValueWithDefault.Value<Comment>() {
       public Comment get() {
+        //todo: can support userId here without user
         return new Comment(item.getMutingUser(), item.getMutingTime(), item.getMutingComment(), fields.getNestedField("assignment", Fields.NONE, Fields.LONG), beanContext);
       }
     });
