@@ -28,9 +28,7 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
 import jetbrains.buildServer.server.rest.model.problem.Resolution;
 import jetbrains.buildServer.server.rest.request.Constants;
-import jetbrains.buildServer.serverSide.BuildsManager;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.mute.*;
 import jetbrains.buildServer.users.SUser;
@@ -154,14 +152,15 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
 
       Collection<String> buildTypeIds = scope.getBuildTypeIds();
       if (buildTypeIds != null) {
-        buildTypeIds.forEach(buildTypeId -> myPermissionChecker.checkProjectPermission(Permission.VIEW_PROJECT, buildTypeId)); //todo: should actually filter out data on MuteInfo
+        ProjectManager projectManager = myServiceLocator.getSingletonService(ProjectManager.class);
+        buildTypeIds.stream().map(id -> projectManager.findBuildTypeById(id)).filter(Objects::nonNull).map(buildType -> buildType.getProjectId()).collect(Collectors.toSet()).forEach(pId -> myPermissionChecker.checkProjectPermission(Permission.VIEW_PROJECT, pId)); //todo: should actually filter out data on MuteInfo
       }
       Long buildId = scope.getBuildId();
       if (buildId != null) {
         //actually, this should never happen todo: check this
-        String projectIdBbyBuildId = getProjectIdByBuildId(buildId);
-        if (projectIdBbyBuildId != null) {
-          myPermissionChecker.checkProjectPermission(Permission.VIEW_PROJECT, projectIdBbyBuildId);
+        BuildPromotion buildPromotion = findPromotionByBuildId(buildId);
+        if (buildPromotion != null) {
+          myPermissionChecker.checkPermission(Permission.VIEW_PROJECT, buildPromotion);
         }
       }
     } catch (AuthorizationFailedException e) {
@@ -171,9 +170,9 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
   }
 
   @Nullable
-  private String getProjectIdByBuildId(@NotNull final Long buildId) {
+  private BuildPromotion findPromotionByBuildId(@NotNull final Long buildId) {
     SBuild buildInstanceById = myServiceLocator.getSingletonService(BuildsManager.class).findBuildInstanceById(buildId);
-    return buildInstanceById  == null ? null : buildInstanceById.getProjectId();
+    return buildInstanceById  == null ? null : buildInstanceById.getBuildPromotion();
   }
 
   @NotNull
