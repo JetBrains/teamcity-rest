@@ -32,6 +32,7 @@ import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
+import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -815,7 +816,10 @@ public class Build {
                                               final List<STestRun> tests = ValueWithDefault.decideDefault(
                                                 testDetailsIncluded, new ValueWithDefault.Value<List<STestRun>>() {
                                                   public List<STestRun> get() {
-                                                    return (fullStatistics != null ? fullStatistics : myBuild.getFullStatistics()).getAllTests();
+                                                    String testOccurrencesLocator = testOccurrencesFields.getLocator();
+                                                    if (testOccurrencesLocator == null) return (fullStatistics != null ? fullStatistics : myBuild.getFullStatistics()).getAllTests();
+                                                    String  actualLocatorText = Locator.merge(TestOccurrenceFinder.getTestRunLocator(myBuild), testOccurrencesLocator);
+                                                    return myServiceLocator.getSingletonService(TestOccurrenceFinder.class).getItems(actualLocatorText).myEntries;
                                                   }
                                                 }
                                               );
