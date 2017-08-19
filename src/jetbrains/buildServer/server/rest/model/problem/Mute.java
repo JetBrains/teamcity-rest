@@ -20,6 +20,9 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.problem.MuteData;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.buildType.ProblemScope;
@@ -76,4 +79,29 @@ public class Mute {
       }
     });
   }
+
+  @NotNull
+  public MuteInfo getFromPostedAndApply(@NotNull final ServiceLocator serviceLocator) {
+    if (scope == null) {
+      throw new BadRequestException("Bad 'mute' entity: missing 'scope'");
+    }
+    if (target == null) {
+      throw new BadRequestException("Bad 'mute' entity: missing 'target'");
+    }
+
+    ProblemTarget.ProblemTargetData targetData;
+    try {
+      targetData = target.getFromPosted(serviceLocator);
+    } catch (BadRequestException e) {
+      throw new BadRequestException("Invalid 'mute' entity: " + e.getMessage());
+    }
+
+    MuteData muteData = new MuteData(scope.getFromPosted(serviceLocator),
+                                     assignment == null ? null : assignment.getTextFromPosted(),
+                                     targetData.getTests(),
+                                     targetData.getProblemIds(), serviceLocator);
+
+    return muteData.mute(resolution.getFromPostedForMute(serviceLocator));
+  }
+
 }

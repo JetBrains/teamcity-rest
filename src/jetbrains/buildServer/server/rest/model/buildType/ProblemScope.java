@@ -39,6 +39,7 @@ import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.mute.MuteScope;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -116,6 +117,42 @@ public class ProblemScope {
       default:
         //unsupported scope
     }
+  }
+
+  @NotNull
+  public MuteScope getFromPosted(@NotNull final ServiceLocator serviceLocator) {
+    if (project != null && buildTypes != null) {
+      throw new BadRequestException("Unsupported scope: both 'project' and 'buildTypes' are found while only one should be present.");
+    }
+    if (project == null && buildTypes == null) {
+      throw new BadRequestException("Unsupported scope: either 'project' or 'buildTypes' should be present.");
+    }
+    return new MuteScope() {
+      @NotNull
+      @Override
+      public ScopeType getScopeType() {
+        if (project != null) return ScopeType.IN_PROJECT;
+        return ScopeType.IN_CONFIGURATION;
+      }
+
+      @Nullable
+      @Override
+      public String getProjectId() {
+        return project == null ? null : getProjectFromPosted(serviceLocator).getProjectId();
+      }
+
+      @Nullable
+      @Override
+      public Collection<String> getBuildTypeIds() {
+        return buildTypes == null ? null : getBuildTypesFromPosted(serviceLocator).stream().map(bt -> bt.getBuildTypeId()).collect(Collectors.toList());
+      }
+
+      @Nullable
+      @Override
+      public Long getBuildId() {
+        return null;
+      }
+    };
   }
 
   @NotNull

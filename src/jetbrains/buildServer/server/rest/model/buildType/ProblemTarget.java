@@ -93,50 +93,53 @@ public class ProblemTarget {
     anyProblem = ValueWithDefault.decideDefault(fields.isIncluded("anyProblem"), false);
     tests = ValueWithDefault.decideDefault(fields.isIncluded("tests", false), new ValueWithDefault.Value<Tests>() {
       public Tests get() {
-        return new Tests(item.getTests(), null, beanContext, fields.getNestedField("tests", Fields.NONE, Fields.LONG));
+        return new Tests(item.getTests(), null, beanContext, fields.getNestedField("tests", Fields.NONE, Fields.LONG)); //todo: use TestFinder (ensure sorting) and support $locator
       }
     });
     problems = ValueWithDefault.decideDefault(fields.isIncluded("problems", false), new ValueWithDefault.Value<Problems>() {
       public Problems get() {
-        return new Problems(ProblemFinder.getProblemWrappers(item.getBuildProblemIds(), beanContext.getServiceLocator()),
+        return new Problems(ProblemFinder.getProblemWrappers(item.getBuildProblemIds(), beanContext.getServiceLocator()),  //todo: use ProblemFinder (ensure sorting) and support $locator
                             null, fields.getNestedField("problems", Fields.NONE, Fields.LONG), beanContext);
       }
     });
   }
 
-  public void checkIsValid() {
-    if (tests == null && problems == null && (anyProblem == null || !anyProblem)) {
-      throw new BadRequestException("Invalid 'target' entity: either 'tests' or 'problems' should be specified, or 'anyProblem' should be 'true'");
+  @NotNull
+  public ProblemTargetData getFromPosted(@NotNull final ServiceLocator serviceLocator) {
+    ProblemTargetData result = new ProblemTargetData(serviceLocator);
+    if (tests == null && problems == null && !result.isAnyProblem()) {
+      throw new BadRequestException("Invalid 'target' entity: either 'tests' or 'problems' sub-entities should be specified, or 'anyProblem' attribute should be 'true'");
     }
-    if (anyProblem != null && anyProblem) {
+    if (result.isAnyProblem()) {
       if (tests != null || problems != null) {
         throw new BadRequestException("Invalid 'target' entity: when 'anyProblem' is 'true', 'tests' and 'problems' should not be specified");
       }
-      return;
+    } else if (tests != null && problems != null) {
+      throw new BadRequestException("Invalid 'target' entity: when 'tests' is specified, 'problems' should not be specified");
     }
-    if (tests != null) {
-      if (problems != null) {
-        throw new BadRequestException("Invalid 'target' entity: when 'tests' is specified, 'problems' should not be specified");
-      }
-      return;
-    }
-  }
-
-  @NotNull
-  public List<STest> getTestsFromPosted(@NotNull final ServiceLocator serviceLocator) {
-    if (tests == null) {
-      return Collections.emptyList();
-    }
-    return tests.getFromPosted(serviceLocator);
-  }
-
-  @NotNull
-  public List<Long> getProblemsFromPosted(@NotNull final ServiceLocator serviceLocator) {
-    if (problems == null) {
-      return Collections.emptyList();
-    }
-    List<Long> result = problems.getFromPosted(serviceLocator);
     return result;
+  }
+
+  public class ProblemTargetData {
+    @NotNull private final ServiceLocator myServiceLocator;
+
+    ProblemTargetData(@NotNull final ServiceLocator serviceLocator) {
+      myServiceLocator = serviceLocator;
+    }
+
+    public boolean isAnyProblem() {
+      return anyProblem != null && anyProblem;
+    }
+
+    @NotNull
+    public List<STest> getTests() {
+      return tests == null ? Collections.emptyList() : tests.getFromPosted(myServiceLocator);
+    }
+
+    @NotNull
+    public List<Long> getProblemIds() {
+      return problems == null ? Collections.emptyList() : problems.getFromPosted(myServiceLocator);
+    }
   }
 
   public static final String TEST_TYPE = "test";

@@ -29,6 +29,7 @@ import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
 import jetbrains.buildServer.server.rest.model.problem.Resolution;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.mute.*;
 import jetbrains.buildServer.users.SUser;
@@ -163,7 +164,7 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
           myPermissionChecker.checkPermission(Permission.VIEW_PROJECT, buildPromotion);
         }
       }
-    } catch (AuthorizationFailedException e) {
+    } catch (AuthorizationFailedException | AccessDeniedException e) {
       return false;
     }
     return true;

@@ -128,12 +128,22 @@ public class Investigation {
   public List<InvestigationWrapper> getFromPostedAndApply(@NotNull final ServiceLocator serviceLocator, final boolean allowMultipleResult) {
     checkIsValid();
 
+    if (target == null) {
+      throw new BadRequestException("Invalid 'investigation' entity: 'target' should be specified");
+    }
+    ProblemTarget.ProblemTargetData targetData;
+    try {
+      targetData = target.getFromPosted(serviceLocator);
+    } catch (BadRequestException e) {
+      throw new BadRequestException("Invalid 'investigation' entity: " + e.getMessage());
+    }
+
     ResponsibilityEntry entry = new ResponsibilityEntryEx(TypedFinderBuilder.getEnumValue(state, ResponsibilityEntry.State.class),
                                                             assignee.getFromPosted(serviceLocator.getSingletonService(UserFinder.class)),
                                                             serviceLocator.getSingletonService(UserFinder.class).getCurrentUser(),
                                                             new Date(),
                                                             assignment == null || assignment.getTextFromPosted() == null ? "" : assignment.getTextFromPosted(),
-                                                            resolution.getFromPosted());
+                                                            resolution.getFromPostedForInvestigation());
 
     ResponsibilityFacadeEx responsibilityFacade = serviceLocator.getSingletonService(ResponsibilityFacadeEx.class);
 
@@ -141,7 +151,7 @@ public class Investigation {
     assert investigationFinder != null;
     List<InvestigationWrapper> resultEntries = new ArrayList<>(1);
 
-    if (target.anyProblem != null && target.anyProblem) {
+    if (targetData.isAnyProblem()) {
       List<BuildType> buildTypesFromPosted = scope.getBuildTypesFromPosted(serviceLocator);
       if (!allowMultipleResult && buildTypesFromPosted.size() > 1) {
         throw new OnlySingleEntitySupportedException("Invalid 'scope' entity: for this request only single buildType is supported within 'buildTypes' entity");
@@ -157,7 +167,7 @@ public class Investigation {
 
       SProject project = scope.getProjectFromPosted(serviceLocator);
 
-      List<STest> tests = target.getTestsFromPosted(serviceLocator);
+      List<STest> tests = targetData.getTests();
       if (!tests.isEmpty()) {
         if (!allowMultipleResult && tests.size() > 1) {
           throw new OnlySingleEntitySupportedException("Invalid 'target' entity: for this request only single test is supported within 'tests' entity");
@@ -170,7 +180,7 @@ public class Investigation {
           .getItem(InvestigationFinder.getLocatorForTest(test.getTestNameId(), project))).distinct().forEachOrdered(resultEntries::add);
       }
 
-      List<Long> problems = target.getProblemsFromPosted(serviceLocator);
+      List<Long> problems = targetData.getProblemIds();
       if (!problems.isEmpty()) {
         if (!allowMultipleResult && problems.size() > 1) {
           throw new OnlySingleEntitySupportedException("Invalid 'target' entity: for this request only single problem is supported within 'problems' entity");
@@ -198,19 +208,11 @@ public class Investigation {
     if (scope == null) {
       throw new BadRequestException("Invalid 'investigation' entity: 'scope' should be specified");
     }
-    if (target == null) {
-      throw new BadRequestException("Invalid 'investigation' entity: 'target' should be specified");
-    }
     if (assignee == null) {
       throw new BadRequestException("Invalid 'investigation' entity: 'assignee' should be specified");
     }
     if (state == null) {
       throw new BadRequestException("Invalid 'investigation' entity: 'state' should be specified");
-    }
-    try {
-      target.checkIsValid();
-    } catch (BadRequestException e) {
-      throw new BadRequestException("Invalid 'investigation' entity: " + e.getMessage());
     }
   }
 

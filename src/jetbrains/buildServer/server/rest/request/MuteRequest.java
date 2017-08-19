@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
+import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -25,6 +26,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.mutes.MuteFinder;
+import jetbrains.buildServer.server.rest.data.problem.MuteData;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.problem.Mute;
@@ -98,43 +100,39 @@ public class MuteRequest {
   @Path("/{muteLocator}")
   @Produces({"application/xml", "application/json"})
   public Mute serveInstance(@PathParam("muteLocator") String locatorText, @QueryParam("fields") String fields) {
-    return new Mute(myMuteFinder.getItem(locatorText), new Fields(fields),
-                             myBeanContext);
+    return new Mute(myMuteFinder.getItem(locatorText), new Fields(fields), myBeanContext);
   }
 
- /*
   @DELETE
   @Path("/{muteLocator}")
   @Produces({"application/xml", "application/json"})
   public void deleteInstance(@PathParam("muteLocator") String locatorText) {
     MuteInfo item = myMuteFinder.getItem(locatorText);
-    item.remove(myServiceLocator);
+    //todo: ability to customize comment
+
+    MuteData muteData = new MuteData(item.getScope(), null, item.getTests(), item.getBuildProblemIds().stream().map(i -> i.longValue()).collect(Collectors.toList()), myServiceLocator);
+    muteData.unmute();
   }
 
+/* this is not exactly PUT as it creates a new instance (with new id), so it is better not to have PUT at all
   @PUT
   @Path("/{muteLocator}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Mute replaceInstance(@PathParam("muteLocator") String locatorText, Mute mute, @QueryParam("fields") String fields) {
-    MuteInfo item = myMuteFinder.getItem(locatorText);
-    item.remove(myServiceLocator);
+    deleteInstance(locatorText);
     return createInstance(mute, fields);
   }
+  */
 
   @POST
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Mute createInstance(Mute mute, @QueryParam("fields") String fields) {
-    MuteInfo muteInfo = null;
-    try {
-      muteInfo = mute.getFromPostedAndApply(myServiceLocator, false).get(0);
-    } catch (Mute.OnlySingleEntitySupportedException e) {
-      throw new BadRequestException(e.getMessage() + ". Use \"" + ".../multiple" + "\" request to post multiple entities");
-    }
-    return new Mute(muteInfo, new Fields(fields), myBeanContext);
+    return new Mute(mute.getFromPostedAndApply(myServiceLocator), new Fields(fields), myBeanContext);
   }
 
-  *//**
+  /**
    * Experimental use only!
    *//*
   @POST
