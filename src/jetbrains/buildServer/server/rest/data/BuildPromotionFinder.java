@@ -22,9 +22,12 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
+import jetbrains.buildServer.server.rest.data.problem.TestFinder;
+import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -89,6 +92,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected static final String TAG = "tag";
   protected static final String COMPATIBLE_AGENT = "compatibleAgent";
   protected static final String HISTORY = "history";
+  protected static final String TEST_OCCURRENCE = "testOccurrence";
+  protected static final String TEST = "test";
   protected static final String SINCE_BUILD = "sinceBuild"; //use startDate:(build:(<locator>),condition:after) instead
   protected static final String SINCE_DATE = "sinceDate"; //use startDate:(date:<date>,condition:after) instead
   protected static final String UNTIL_BUILD = "untilBuild"; //use startDate:(build:(<locator>),condition:before) instead
@@ -125,6 +130,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private final MetadataStorageEx myMetadataStorage;
   private final TimeCondition myTimeCondition;
   private final PermissionChecker myPermissionChecker;
+  @NotNull private final ServiceLocator myServiceLocator;
 
   @NotNull
   public static String getLocator(@NotNull final BuildPromotion buildPromotion) {
@@ -148,21 +154,23 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                               final BranchFinder branchFinder,
                               final TimeCondition timeCondition,
                               final PermissionChecker permissionChecker,
-                              final MetadataStorageEx metadataStorage) {
+                              final MetadataStorageEx metadataStorage,
+                              @NotNull final ServiceLocator serviceLocator) {
     super(DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, USER, PERSONAL, STATE, TAG, PROPERTY, COMPATIBLE_AGENT, NUMBER, STATUS, CANCELED,
           PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, ARTIFACT_DEP, HANGING, HISTORY,
           DEFAULT_FILTERING, SINCE_BUILD_ID_LOOK_AHEAD_COUNT,
           Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-    myPermissionChecker = permissionChecker;
     setHiddenDimensions(AGENT_NAME, TAGS, RUNNING,  //compatibility
                         BY_PROMOTION,  //switch for legacy behavior
                         COMPATIBLE_AGENTS_COUNT,  //experimental for queued builds only
                         EQUIVALENT, REVISION, PROMOTION_ID_ALIAS, BUILD_ID, METADATA,
-                        STATISTIC_VALUE,  //experimental
+                        STATISTIC_VALUE, TEST_OCCURRENCE, TEST,  //experimental
                         SINCE_BUILD_ID_LOOK_AHEAD_COUNT,  //experimental
                         ORDERED,  //experimental
                         STROB  //experimental
     );
+
+    myPermissionChecker = permissionChecker;
     myBuildPromotionManager = buildPromotionManager;
     myBuildQueue = buildQueue;
     myBuildsManager = buildsManager;
@@ -174,6 +182,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     myBranchFinder = branchFinder;
     myMetadataStorage = metadataStorage;
     myTimeCondition = timeCondition;
+    myServiceLocator = serviceLocator;
   }
 
   @NotNull
@@ -954,6 +963,31 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
+    if (locator.isUnused(TEST_OCCURRENCE)) {
+      final String testOccurrence = locator.getSingleDimensionValue(TEST_OCCURRENCE);
+      if (testOccurrence != null) {
+        TestOccurrenceFinder testOccurrenceFinder = myServiceLocator.getSingletonService(TestOccurrenceFinder.class);
+        Set<Long> buildPromotionIds =
+          testOccurrenceFinder.getItems(testOccurrence).myEntries.stream().map(sTestRun -> sTestRun.getBuild().getBuildPromotion().getId()).collect(Collectors.toSet());
+        result.add(new FilterConditionChecker<SBuild>() {
+          public boolean isIncluded(@NotNull final SBuild item) {
+            return buildPromotionIds.contains(item.getBuildPromotion().getId());
+          }
+        });
+      }
+    }
+
+    final String test = locator.getSingleDimensionValue(TEST);
+    if (test != null) {
+      TestFinder testFinder = myServiceLocator.getSingletonService(TestFinder.class);
+      result.add(new FilterConditionChecker<SBuild>() {
+        public boolean isIncluded(@NotNull final SBuild item) {
+          String locator = new Locator(test).setDimension(TestFinder.BUILD, getLocator(item.getBuildPromotion())).setDimension(PagerData.COUNT, "1").getStringRepresentation();
+          return !testFinder.getItems(locator).myEntries.isEmpty();
+        }
+      });
+    }
+
     return result;
   }
 
@@ -1147,6 +1181,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         // if build type is not specified, search by scanning (performance impact)
         locator.markUnused(NUMBER);
       }
+    }
+
+    final String testOccurrence = locator.getSingleDimensionValue(TEST_OCCURRENCE);
+    if (testOccurrence != null) {
+      TestOccurrenceFinder testOccurrenceFinder = myServiceLocator.getSingletonService(TestOccurrenceFinder.class);
+      return FinderDataBinding.getItemHolder(testOccurrenceFinder.getItems(testOccurrence).myEntries.stream().map(sTestRun -> sTestRun.getBuild().getBuildPromotion()));
     }
 
     final ArrayList<BuildPromotion> result = new ArrayList<BuildPromotion>();
