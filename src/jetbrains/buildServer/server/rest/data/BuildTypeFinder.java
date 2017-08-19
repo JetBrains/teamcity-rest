@@ -216,15 +216,6 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       throw new NotFoundException("No " + getName(template) + " is found by id '" + id + "'.");
     }
 
-    String buildLocator = locator.getSingleDimensionValue(BUILD);
-    if (!StringUtil.isEmpty(buildLocator)) {
-      BuildPromotion build = myServiceLocator.getSingletonService(BuildPromotionFinder.class).getItem(buildLocator);
-      SBuildType buildType = build.getBuildType();
-      if (buildType != null) {
-        return new BuildTypeOrTemplate(buildType);
-      }
-    }
-
     return null;
   }
 
@@ -280,6 +271,15 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
           return FilterUtil.isIncludedByBooleanFilter(paused, pausedState != null && pausedState);
         }
       });
+    }
+
+    if (locator.isUnused(BUILD)) {
+      String buildLocator = locator.getSingleDimensionValue(BUILD);
+      if (buildLocator != null) {
+        List<BuildPromotion> builds = myServiceLocator.getSingletonService(BuildPromotionFinder.class).getItems(buildLocator).myEntries;
+        Set<String> buldTypeIds = builds.stream().map(build -> build.getBuildType()).filter(Objects::nonNull).map(buildType -> buildType.getInternalId()).collect(Collectors.toSet());
+        result.add(item -> buldTypeIds.contains(item.getInternalId()));
+      }
     }
 
     final String compatibleAagentLocator = locator.getSingleDimensionValue(COMPATIBLE_AGENT); //experimental
@@ -462,6 +462,17 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       }
       return getItemHolder(getBuildTypesSelectedForUser(user, ProjectFinder.getSelectedByUserMode(modeLocator, ProjectFinder.SelectedByUserMode.SELECTED_AND_UNKNOWN), projects));
     }
+
+    /*
+    this uses weird order of the results which is probably not what is needed
+    String buildLocator = locator.getSingleDimensionValue(BUILD);
+    if (buildLocator != null) {
+      List<BuildPromotion> builds = myServiceLocator.getSingletonService(BuildPromotionFinder.class).getItems(buildLocator).myEntries;
+     Set<BuildTypeOrTemplate> buildTypes = builds.stream().map(build -> build.getBuildType()).filter(Objects::nonNull).map(buildType -> new BuildTypeOrTemplate(buildType))
+                                                   .collect(Collectors.toCollection(() -> new LinkedHashSet<>()));
+      return FinderDataBinding.getItemHolder(buildTypes);
+    }
+    */
 
     final String snapshotDependencies = locator.getSingleDimensionValue(SNAPSHOT_DEPENDENCY);
     if (snapshotDependencies != null) {
