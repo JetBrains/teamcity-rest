@@ -270,6 +270,8 @@ public class Project {
       return project.getDescription();
     } else if ("name".equals(field)) {
       return project.getName();
+    } else if ("fullName".equals(field)) {
+      return project.getFullName();
     } else if ("archived".equals(field)) {
       return String.valueOf(project.isArchived());
     } else if ("readOnlyUI".equals(field)) {
