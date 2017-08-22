@@ -160,17 +160,10 @@ public class Project {
 
     links = getLinks(project, fields, beanContext);
 
-    final SProject actualParentProject = project.getParentProject();
     final String descriptionText = project.getDescription();
     description = ValueWithDefault.decideDefault(fields.isIncluded("description"), StringUtil.isEmpty(descriptionText) ? null : descriptionText);
     archived = ValueWithDefault.decideDefault(fields.isIncluded("archived"), project.isArchived());
     readOnlyUI = StateField.create(project.isReadOnly(), ((ProjectEx)project).isCustomSettingsFormatUsed() ? false : null, fields.getNestedField("readOnlyUI"));
-
-    parentProject = actualParentProject == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("parentProject", false), new ValueWithDefault.Value<Project>() {
-      public Project get() {
-        return new Project(actualParentProject, fields.getNestedField("parentProject"), beanContext);
-      }
-    });
 
     final BuildTypeFinder buildTypeFinder = beanContext.getSingletonService(BuildTypeFinder.class);
     buildTypes = ValueWithDefault.decideDefault(fields.isIncluded("buildTypes", false), new ValueWithDefault.Value<BuildTypes>() {
@@ -228,16 +221,21 @@ public class Project {
       }
     });
 
-    parentProjectId = ValueWithDefault.decideDefault(fields.isIncluded("parentProjectId"), actualParentProject == null ? null : actualParentProject.getExternalId());
+    final SProject actualParentProject = project.getParentProject();
+    if (actualParentProject != null) {
+      parentProject = ValueWithDefault.decideDefault(fields.isIncluded("parentProject", false), new ValueWithDefault.Value<Project>() {
+        public Project get() {
+          return new Project(actualParentProject, fields.getNestedField("parentProject"), beanContext);
+        }
+      });
 
-    final boolean forceParentAttributes = TeamCityProperties.getBoolean("rest.beans.project.addParentProjectAttributes");
-    parentProjectName = actualParentProject == null
-                        ? null
-                        : ValueWithDefault.decideDefault(fields.isIncluded("parentProjectName", false, false) || forceParentAttributes, actualParentProject.getFullName());
-    parentProjectInternalId = actualParentProject == null
-                              ? null
-                              : ValueWithDefault.decideDefault(forceParentAttributes || fields.isIncluded("parentProjectInternalId", includeInternal, includeInternal),
+      parentProjectId = ValueWithDefault.decideDefault(fields.isIncluded("parentProjectId"), actualParentProject.getExternalId());
+
+      final boolean forceParentAttributes = TeamCityProperties.getBoolean("rest.beans.project.addParentProjectAttributes");
+      parentProjectName = ValueWithDefault.decideDefault(forceParentAttributes || fields.isIncluded("parentProjectName", false, false), actualParentProject.getFullName());
+      parentProjectInternalId = ValueWithDefault.decideDefault(forceParentAttributes || fields.isIncluded("parentProjectInternalId", includeInternal, includeInternal),
                                                                actualParentProject.getProjectId());
+    }
   }
 
   @Nullable
