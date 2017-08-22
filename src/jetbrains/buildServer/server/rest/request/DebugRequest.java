@@ -20,6 +20,8 @@ import io.swagger.annotations.Api;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.*;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -741,6 +743,18 @@ public class DebugRequest {
     List<InvestigationWrapper> investigations =
       myServiceLocator.getSingletonService(ResponsibilityManager.class).getAllEntries(null).stream().map(r -> new InvestigationWrapper(r)).collect(Collectors.toList());
     return new Investigations(investigations, null, new Fields(fields), myBeanContext);
+  }
+
+  @GET
+  @Path("/dns/lookup/{host}")
+  @Produces({"text/plain"})
+  public String getIpAddress(@PathParam("host") String host) {
+    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    try {
+      return InetAddress.getByName(host).getHostAddress();
+    } catch (UnknownHostException e) {
+      throw new BadRequestException("Unknown host: " + e.getMessage());
+    }
   }
 
   @GET
