@@ -185,6 +185,10 @@ public class BuildTypeOrTemplate implements Loggable {
       return getDescription();
     } else if ("name".equals(field)) {
       return getName();
+    } else if ("fullName".equals(field)) {
+      return myBuildTypeIdentity.getFullName();
+    } else if ("projectName".equals(field)) {
+      return get().getProject().getFullName();
     }
     if (myBuildType!=null){
       if ("paused".equals(field)){
