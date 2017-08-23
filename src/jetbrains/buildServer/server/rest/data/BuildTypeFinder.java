@@ -234,22 +234,24 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       });
     }
 
-    final String projectLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
-    if (projectLocator != null) {
-      final List<SProject> projects = myProjectFinder.getItems(projectLocator).myEntries;
-      if (projects.size() == 1) {
-        final SProject internalProject = projects.iterator().next();
-        result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-          public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
-            return internalProject.getProjectId().equals(item.getProject().getProjectId());
-          }
-        });
-      } else {
-        result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-          public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
-            return projects.contains(item.getProject());
-          }
-        });
+    if (locator.isUnused(DIMENSION_PROJECT)) {
+      final String projectLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
+      if (projectLocator != null) {
+        final List<SProject> projects = myProjectFinder.getItems(projectLocator).myEntries;
+        if (projects.size() == 1) {
+          final SProject internalProject = projects.iterator().next();
+          result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
+            public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+              return internalProject.getProjectId().equals(item.getProject().getProjectId());
+            }
+          });
+        } else {
+          result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
+            public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+              return projects.contains(item.getProject());
+            }
+          });
+        }
       }
     }
 
@@ -513,18 +515,6 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       return getItemHolder(BuildTypes.fromBuildTypes(result));
     }
 
-    List<SProject> projects = null;
-    final String projectLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
-    if (projectLocator != null) {
-      projects = myProjectFinder.getItems(projectLocator).myEntries;
-    }
-
-    SProject affectedProject = null;
-    final String affectedProjectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT);
-    if (affectedProjectLocator != null) {
-      affectedProject = myProjectFinder.getItem(affectedProjectLocator);
-    }
-
     final String templateLocator = locator.getSingleDimensionValue(TEMPLATE_DIMENSION_NAME);
     if (templateLocator != null) {
       final BuildTypeTemplate buildTemplate;
@@ -537,6 +527,17 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
           "Error while searching for templates by locator '" + templateLocator + "' specified in '" + TEMPLATE_DIMENSION_NAME + "' dimension : " + e.getMessage(), e);
       }
       return getItemHolder(BuildTypes.fromBuildTypes(buildTemplate.getUsages()));
+    }
+
+    List<SProject> projects = null;
+    final String projectLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
+    if (projectLocator != null) {
+      projects = myProjectFinder.getItems(projectLocator).myEntries;
+    }
+    SProject affectedProject = null;
+    final String affectedProjectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT);
+    if (affectedProjectLocator != null) {
+      affectedProject = myProjectFinder.getItem(affectedProjectLocator);
     }
 
     List<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
