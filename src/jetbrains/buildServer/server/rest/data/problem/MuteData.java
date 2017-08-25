@@ -45,6 +45,7 @@ public class MuteData {
   @Nullable private final String myComment;
   @NotNull private final Collection<STest> myTests;
   @NotNull private final Collection<Long> myProblemIds;
+  @Nullable private UnmuteOptions myUnmuteData;
 
   @NotNull private final SUser myCurrentUser;
   @NotNull private final ProblemMutingService myProblemMutingService;
@@ -54,11 +55,25 @@ public class MuteData {
                   @Nullable final String comment,
                   @NotNull final Collection<STest> tests,
                   @NotNull final Collection<Long> problemIds,
+                  @NotNull final UnmuteOptions unmuteData,
+                  @NotNull final ServiceLocator serviceLocator) {
+    this (scope, comment, tests, problemIds, serviceLocator);
+    myUnmuteData = unmuteData;
+  }
+
+  /**
+   * Can be used only for following unmute
+   */
+  public MuteData(@NotNull final MuteScope scope,
+                  @Nullable final String comment,
+                  @NotNull final Collection<STest> tests,
+                  @NotNull final Collection<Long> problemIds,
                   @NotNull final ServiceLocator serviceLocator) {
     myScope = scope;
     myComment = comment;
     myTests = tests;
     myProblemIds = problemIds;
+    myUnmuteData = null;
 
     SUser currentUser = serviceLocator.getSingletonService(UserFinder.class).getCurrentUser();
     if (currentUser == null) {
@@ -71,15 +86,18 @@ public class MuteData {
   }
 
   @NotNull
-  public MuteInfo mute(@NotNull final UnmuteOptions unmuteData) {
+  public MuteInfo mute() {
+    if (myUnmuteData == null) {
+        throw new BadRequestException("Bad 'mute' entity: missing 'resolution'");
+    }
     switch (myScope.getScopeType()) {
       case IN_PROJECT: {
         if (!myTests.isEmpty()) {
-          return myProblemMutingService.muteTestsInProject(myCurrentUser, myComment, unmuteData.isUnmuteWhenFixed(), unmuteData.getUnmuteByTime(), getProject(), myTests);
+          return myProblemMutingService.muteTestsInProject(myCurrentUser, myComment, myUnmuteData.isUnmuteWhenFixed(), myUnmuteData.getUnmuteByTime(), getProject(), myTests);
         }
         if (!myProblemIds.isEmpty()) {
           return myProblemMutingService
-            .muteProblemsInProject(myCurrentUser, myComment, unmuteData.isUnmuteWhenFixed(), unmuteData.getUnmuteByTime(), getProject(), getProblemInfos());
+            .muteProblemsInProject(myCurrentUser, myComment, myUnmuteData.isUnmuteWhenFixed(), myUnmuteData.getUnmuteByTime(), getProject(), getProblemInfos());
           //assuming only id is used from problemInfo, this is actually TeamCity API issue as the API gets ids but accepts objects
           //todo: all BuildProblemInfo fields are used in BuildProblemAuditId.fromBuildProblem - check here and below!
         }
@@ -88,12 +106,12 @@ public class MuteData {
 
       case IN_CONFIGURATION: {
         if (!myTests.isEmpty()) {
-          return myProblemMutingService.muteTestsInBuildTypes(myCurrentUser, myComment, unmuteData.isUnmuteWhenFixed(), unmuteData.getUnmuteByTime(), getBuildTypes(), myTests, true);
+          return myProblemMutingService.muteTestsInBuildTypes(myCurrentUser, myComment, myUnmuteData.isUnmuteWhenFixed(), myUnmuteData.getUnmuteByTime(), getBuildTypes(), myTests, true);
           //a question: may be withReducingScope should not be true here and below?
         }
         if (!myProblemIds.isEmpty()){
           return myProblemMutingService
-            .muteProblemsInBuildTypes(myCurrentUser, myComment, unmuteData.isUnmuteWhenFixed(), unmuteData.getUnmuteByTime(), getBuildTypes(), getProblemInfos(), true);
+            .muteProblemsInBuildTypes(myCurrentUser, myComment, myUnmuteData.isUnmuteWhenFixed(), myUnmuteData.getUnmuteByTime(), getBuildTypes(), getProblemInfos(), true);
         }
         break;
       }

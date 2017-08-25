@@ -81,12 +81,16 @@ public class Mute {
   }
 
   @NotNull
-  public MuteInfo getFromPostedAndApply(@NotNull final ServiceLocator serviceLocator) {
+  public MuteData getFromPosted(final @NotNull ServiceLocator serviceLocator) {
     if (scope == null) {
       throw new BadRequestException("Bad 'mute' entity: missing 'scope'");
     }
     if (target == null) {
       throw new BadRequestException("Bad 'mute' entity: missing 'target'");
+    }
+
+    if (resolution == null) {
+        throw new BadRequestException("Bad 'mute' entity: missing 'resolution'");
     }
 
     ProblemTarget.ProblemTargetData targetData;
@@ -96,12 +100,12 @@ public class Mute {
       throw new BadRequestException("Invalid 'mute' entity: " + e.getMessage());
     }
 
-    MuteData muteData = new MuteData(scope.getFromPosted(serviceLocator),
-                                     assignment == null ? null : assignment.getTextFromPosted(),
-                                     targetData.getTests(),
-                                     targetData.getProblemIds(), serviceLocator);
-
-    return muteData.mute(resolution.getFromPostedForMute(serviceLocator));
+    return new MuteData(scope.getFromPosted(serviceLocator),
+                        assignment == null ? null : assignment.getTextFromPosted(),
+                        targetData.getTests(),
+                        targetData.getProblemIds(),
+                        resolution.getFromPostedForMute(serviceLocator),
+                        serviceLocator);
   }
 
 }

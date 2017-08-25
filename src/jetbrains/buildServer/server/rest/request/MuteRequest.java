@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
+import java.util.List;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
@@ -33,6 +34,7 @@ import jetbrains.buildServer.server.rest.model.problem.Mute;
 import jetbrains.buildServer.server.rest.model.problem.Mutes;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
+import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -103,18 +105,20 @@ public class MuteRequest {
     return new Mute(myMuteFinder.getItem(locatorText), new Fields(fields), myBeanContext);
   }
 
+  /**
+   * Comment is read from the body as an experimental approach
+   */
   @DELETE
   @Path("/{muteLocator}")
   @Produces({"application/xml", "application/json"})
-  public void deleteInstance(@PathParam("muteLocator") String locatorText) {
+  public void deleteInstance(@PathParam("muteLocator") String locatorText, String comment) {
     MuteInfo item = myMuteFinder.getItem(locatorText);
-    //todo: ability to customize comment
-
-    MuteData muteData = new MuteData(item.getScope(), null, item.getTests(), item.getBuildProblemIds().stream().map(i -> i.longValue()).collect(Collectors.toList()), myServiceLocator);
+    MuteData muteData = new MuteData(item.getScope(), StringUtil.isEmpty(comment) ? null : comment, item.getTests(),
+                                     item.getBuildProblemIds().stream().map(i -> i.longValue()).collect(Collectors.toList()), myServiceLocator);
     muteData.unmute();
   }
 
-/* this is not exactly PUT as it creates a new instance (with new id), so it is better not to have PUT at all
+  /* this is not exactly PUT as it creates a new instance (with new id), so it is better not to have PUT at all
   @PUT
   @Path("/{muteLocator}")
   @Consumes({"application/xml", "application/json"})
@@ -129,21 +133,22 @@ public class MuteRequest {
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Mute createInstance(Mute mute, @QueryParam("fields") String fields) {
-    return new Mute(mute.getFromPostedAndApply(myServiceLocator), new Fields(fields), myBeanContext);
+    return new Mute(mute.getFromPosted(myServiceLocator).mute(), new Fields(fields), myBeanContext);
   }
 
   /**
    * Experimental use only!
-   *//*
+   */
   @POST
   @Path("/multiple")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Mutes createInstances(Mutes mutes, @QueryParam("fields") String fields) {
-    List<MuteInfo> muteInfos = mutes.getFromPostedAndApply(myServiceLocator);
-    return new Mutes(muteInfos, null, new Fields(fields), myBeanContext);
+    List<MuteData> postedEntities = mutes.getFromPosted(myServiceLocator);
+    List<MuteInfo> results = postedEntities.stream().map(muteData -> muteData.mute()).collect(Collectors.toList()); //muting after getting objects to report any deserialize errors before
+    return new Mutes(results, null, new Fields(fields), myBeanContext);
   }
-*/
+
   public void initForTests(@NotNull final BeanContext beanContext) {
     myServiceLocator = beanContext.getServiceLocator();
     myMuteFinder = beanContext.getSingletonService(MuteFinder.class);
