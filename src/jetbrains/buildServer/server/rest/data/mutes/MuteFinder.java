@@ -139,7 +139,7 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
       defaults(DimensionCondition.ALWAYS, new NameValuePairs().add(PagerData.COUNT, String.valueOf(Constants.getDefaultPageItemsCount())));
 
       locatorProvider(muteInfo -> getLocator(muteInfo));
-//      containerSetProvider(() -> new HashSet<SUser>()); //todo: sorting here!
+//      containerSetProvider(() -> new TreeSet<MuteInfo>(Comparator.comparing(muteInfo -> muteInfo.getId()))); //todo: implement sorting here
     }
   }
 
@@ -234,12 +234,12 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
 
   @NotNull
   private Stream<MuteInfo> getTestsMutes(final @NotNull SProject project) {
-    return myProblemMutingService.getTestsCurrentMuteInfo(project).values().stream().flatMap(currentMute -> getMutes(currentMute));
+    return myProblemMutingService.getTestsCurrentMuteInfo(project).values().stream().flatMap(currentMute -> getMutes(currentMute)).distinct(); //todo: check is distinct can be reimplemented to be more effective here
   }
 
   @NotNull
   private Stream<MuteInfo> getProblemsMutes(final @NotNull SProject project) {
-    return myProblemMutingService.getBuildProblemsCurrentMuteInfo(project).values().stream().flatMap(currentMute -> getMutes(currentMute));
+    return myProblemMutingService.getBuildProblemsCurrentMuteInfo(project).values().stream().flatMap(currentMute -> getMutes(currentMute)).distinct();  //todo: check is distinct can be reimplemented to be more effective here
   }
 
   @NotNull
