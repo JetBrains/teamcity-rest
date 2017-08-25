@@ -45,7 +45,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "server")
 @XmlType(name = "server", propOrder = {"version", "versionMajor", "versionMinor", "startTime", "currentTime", "buildNumber", "buildDate", "internalId", "role", "webUrl",
-  "projects", "vcsRoots", "builds", "users", "userGroups", "agents", "buildQueue", "agentPools"})
+  "projects", "vcsRoots", "builds", "users", "userGroups", "agents", "buildQueue", "agentPools", "investigations", "mutes"})
 public class Server {
   private SBuildServer myServer;
   private ServerSettings myServerSettings;
@@ -164,6 +164,16 @@ public class Server {
   @XmlElement
   public Href getAgentPools() {
     return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("agentPools"), new Href(AgentPoolRequest.getHref(), myApiUrlBuilder));
+  }
+
+  @XmlElement
+  public Href getInvestigations() {
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("investigations"), new Href(InvestigationRequest.getHref(), myApiUrlBuilder));
+  }
+
+  @XmlElement
+  public Href getMutes() {
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("mutes"), new Href(MuteRequest.getHref(), myApiUrlBuilder));
   }
 
   @Nullable
