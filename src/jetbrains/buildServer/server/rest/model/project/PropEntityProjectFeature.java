@@ -93,9 +93,9 @@ public class PropEntityProjectFeature extends PropEntity {
 
     SProjectFeatureDescriptor newFeature;
     if (forcedId != null) {
-      newFeature = factory.createProjectFeature(forcedId, type, properties != null ? properties.getMap() : new HashMap<String, String>(), project);
+      newFeature = factory.createProjectFeature(forcedId, type, properties != null ? properties.getMap() : new HashMap<String, String>(), project.getProjectId());
     } else {
-      newFeature = factory.createNewProjectFeature(type, properties != null ? properties.getMap() : new HashMap<String, String>(), project);
+      newFeature = factory.createNewProjectFeature(type, properties != null ? properties.getMap() : new HashMap<String, String>(), project.getProjectId());
     }
 
     try {

@@ -62,7 +62,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
   void testProjectFeaturesParameters() {
     ProjectEx project10 = createProject("project10", "project10");
     SProjectFeatureDescriptor feature10 =
-      myFixture.getSingletonService(ProjectFeatureDescriptorFactory.class).createNewProjectFeature("feature_type", CollectionsUtil.asMap("a", "b"), project10);
+      myFixture.getSingletonService(ProjectFeatureDescriptorFactory.class).createNewProjectFeature("feature_type", CollectionsUtil.asMap("a", "b"), project10.getProjectId());
     project10.addFeature(feature10);
     {
       String newValue = myRequest.getFeatures("id:" + project10.getExternalId()).getParametersSubResource(feature10.getId(), "$long").setParameterValue("a", "B");

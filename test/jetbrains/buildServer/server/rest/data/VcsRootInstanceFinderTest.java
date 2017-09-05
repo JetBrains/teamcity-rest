@@ -288,17 +288,17 @@ public class VcsRootInstanceFinderTest extends BaseFinderTest<VcsRootInstance> {
     Map<String, String> params = CollectionsUtil.asMap("buildSettings", "ALWAYS_USE_CURRENT",
                                                        "rootId", vcsRoot20.getExternalId(),
                                                        "showChanges", "false");
-    SProjectFeatureDescriptor featureDescriptor30 = projectFeatureFactory.createNewProjectFeature("versionedSettings", params, project30);
+    SProjectFeatureDescriptor featureDescriptor30 = projectFeatureFactory.createNewProjectFeature("versionedSettings", params, project30.getProjectId());
     project30.addFeature(featureDescriptor30);
 
     Map<String, String> params2 = CollectionsUtil.asMap("buildSettings", "ALWAYS_USE_CURRENT",
                                                         "rootId", vcsRoot20.getExternalId(),
                                                         "showChanges", "true");
-    SProjectFeatureDescriptor featureDescriptor40 = projectFeatureFactory.createNewProjectFeature("versionedSettings", params2, project40);
+    SProjectFeatureDescriptor featureDescriptor40 = projectFeatureFactory.createNewProjectFeature("versionedSettings", params2, project40.getProjectId());
     project30.addFeature(featureDescriptor40);
 
     Map<String, String> params3 = CollectionsUtil.asMap("enabled", "false");
-    SProjectFeatureDescriptor featureDescriptor60 = projectFeatureFactory.createNewProjectFeature("versionedSettings", params3, project60);
+    SProjectFeatureDescriptor featureDescriptor60 = projectFeatureFactory.createNewProjectFeature("versionedSettings", params3, project60.getProjectId());
     project60.addFeature(featureDescriptor60);
 
     VersionedSettingsManager versionedSettingsManager = myFixture.getSingletonService(VersionedSettingsManager.class);

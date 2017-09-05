@@ -348,8 +348,8 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
 
     ProjectFeatureDescriptorFactory featureDescriptorFactory = myFixture.findSingletonService(ProjectFeatureDescriptorFactory.class);
     assert featureDescriptorFactory != null;
-    project10.addFeature(featureDescriptorFactory.createProjectFeature("uniqueId10", "type10", asMap("a", "b", "c", "d"), project10));
-    project10_10.addFeature(featureDescriptorFactory.createProjectFeature("uniqueId20", "type20", asMap("a", "b", "c", "d"), project10_10));
+    project10.addFeature(featureDescriptorFactory.createProjectFeature("uniqueId10", "type10", asMap("a", "b", "c", "d"), project10.getProjectId()));
+    project10_10.addFeature(featureDescriptorFactory.createProjectFeature("uniqueId20", "type20", asMap("a", "b", "c", "d"), project10_10.getProjectId()));
 
     project = new Project(project10_10, new Fields("$long"), getBeanContext(myServer));
     assertEquals(project.id, project10_10.getExternalId());
