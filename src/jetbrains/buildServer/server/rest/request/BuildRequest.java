@@ -448,9 +448,10 @@ public class BuildRequest {
     final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
 
     tagsManager.removeTagDatas(build, tagFinder.getItems(tagLocator, TagFinder.getDefaultLocator()).myEntries);
-    tagsManager.addTagDatas(build, tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class)));
+    List<TagData> postedTagDatas = tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class));
+    tagsManager.addTagDatas(build, postedTagDatas);
 
-    return new Tags(tagFinder.getItems(null, TagFinder.getDefaultLocator()).myEntries, new Fields(fields), myBeanContext);
+    return new Tags(postedTagDatas, new Fields(fields), myBeanContext); // returning the tags posted as the default locator might not match the tags just created
   }
 
   /**
