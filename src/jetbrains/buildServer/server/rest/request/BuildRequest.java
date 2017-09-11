@@ -550,7 +550,7 @@ public class BuildRequest {
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
     final SUser user = SessionUser.getUser(request);
     if (user == null){ //TeamCity API issue: SBuild and BuildPromotion has different behavior here
-      throw new BadRequestException("Cannot add coment when there is no current user");
+      throw new BadRequestException("Cannot add comment when there is no current user");
     }
     build.setBuildComment(user, text);
   }
@@ -561,7 +561,7 @@ public class BuildRequest {
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
     final SUser user = SessionUser.getUser(request);
     if (user == null){
-      throw new BadRequestException("Cannot add coment when there is no current user");
+      throw new BadRequestException("Cannot add comment when there is no current user");
     }
     build.setBuildComment(user, null);
   }
