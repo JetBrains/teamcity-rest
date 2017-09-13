@@ -381,9 +381,9 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     });
 
 
-    securityContext.runAs(user2, () -> checkExceptionOnItemsSearch(AccessDeniedException.class, "selectedByUser:(username:user1)"));
-    securityContext.runAs(user2, () -> checkExceptionOnItemsSearch(AccessDeniedException.class, "selectedByUser:(user:(username:user1),mode:selected_and_unknown)"));
-    securityContext.runAs(user2, () -> checkExceptionOnItemsSearch(AccessDeniedException.class, "selectedByUser:(user:(username:user1),mode:all_with_order)"));
+    securityContext.runAs(user2, () -> {checkExceptionOnItemsSearch(AccessDeniedException.class, "selectedByUser:(username:user1)");});
+    securityContext.runAs(user2, () -> {checkExceptionOnItemsSearch(AccessDeniedException.class, "selectedByUser:(user:(username:user1),mode:selected_and_unknown)");});
+    securityContext.runAs(user2, () -> {checkExceptionOnItemsSearch(AccessDeniedException.class, "selectedByUser:(user:(username:user1),mode:all_with_order)");});
 
     RoleImpl role_viewUsers = new RoleImpl("role_viewUsers", "custom role", new Permissions(Permission.VIEW_USER_PROFILE), null);
     myFixture.getRolesManager().addRole(role_viewUsers);
