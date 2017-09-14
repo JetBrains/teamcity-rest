@@ -56,8 +56,8 @@
     <include name="**/?*.tld"/>
     <include name="**/?*.ftl"/>
   </patternset>
-
-
+  
+  
   <!-- Project Libraries -->
   
   <path id="library.jackson.classpath">
@@ -123,9 +123,6 @@
   </path>
   
   <path id="library.teamcity_server_tests.classpath">
-    <fileset dir="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib">
-      <patternset refid="library.patterns"/>
-    </fileset>
     <pathelement location="${path.variable.teamcitydistribution}/devPackage/tests/jmock-1.2.0.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/devPackage/tests/junit-3.8.2.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/devPackage/tests/tests-integration.jar"/>
@@ -167,15 +164,14 @@
   <path id="library.tomcat.classpath">
     <pathelement location="${path.variable.teamcitydistribution}/lib/servlet-api.jar"/>
   </path>
-
-
+  
+  
   <!-- Application Server Libraries -->
   <!-- Register Custom Compiler Taskdefs -->
   <property name="javac2.home" value="${idea.home}/lib"/>
   <path id="javac2.classpath">
     <pathelement location="${javac2.home}/javac2.jar"/>
     <pathelement location="${javac2.home}/jdom.jar"/>
-    <pathelement location="${javac2.home}/asm4-all.jar"/>
     <pathelement location="${javac2.home}/asm-all.jar"/>
     <pathelement location="${javac2.home}/jgoodies-forms.jar"/>
   </path>
@@ -190,10 +186,11 @@
   <!-- Module rest-api -->
   
   <dirname property="module.rest-api.basedir" file="${ant.file}"/>
-
-
-  <property name="compiler.args.rest-api" value="-encoding UTF-8 -source 8 -target 1.8 ${compiler.args}"/>
-
+  
+  
+  
+  <property name="compiler.args.rest-api" value="-encoding UTF-8 -source 1.8 -target 1.8 ${compiler.args}"/>
+  
   <property name="rest-api.output.dir" value="${module.rest-api.basedir}/out/production/rest-api"/>
   <property name="rest-api.testoutput.dir" value="${module.rest-api.basedir}/out/test/rest-api"/>
   
@@ -326,10 +323,11 @@
   <!-- Module contrib -->
   
   <dirname property="module.contrib.basedir" file="${ant.file}"/>
-
-
-  <property name="compiler.args.contrib" value="-encoding UTF-8 -source 8 -target 1.8 ${compiler.args}"/>
-
+  
+  
+  
+  <property name="compiler.args.contrib" value="-encoding UTF-8 -source 1.8 -target 1.8 ${compiler.args}"/>
+  
   <property name="contrib.output.dir" value="${module.contrib.basedir}/out/production/contrib"/>
   <property name="contrib.testoutput.dir" value="${module.contrib.basedir}/out/test/contrib"/>
   
