@@ -24,10 +24,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import jetbrains.buildServer.ArtifactsConstants;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.errors.*;
 import jetbrains.buildServer.server.rest.model.files.FileApiUrlBuilder;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.BuildPromotionEx;
@@ -132,6 +129,20 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
       locator.setDimensionIfNotPresent(DIMENSION_RECURSIVE, "false");
       locator.setDimensionIfNotPresent(HIDDEN_DIMENSION_NAME, "false");
       locator.setDimensionIfNotPresent(ARCHIVES_DIMENSION_NAME, "false");
+    }
+  }
+
+  public static boolean isDefaultLocator(@Nullable final String locatorText) {
+    if (locatorText == null) return true;
+    try {
+      Locator locator = new Locator(locatorText);
+      if (locator.isSingleValue()) return false;
+      if (!FilterUtil.isIncludedByBooleanFilter(false, locator.getSingleDimensionValueAsBoolean(DIMENSION_RECURSIVE))) return false;
+      if (!FilterUtil.isIncludedByBooleanFilter(false, locator.getSingleDimensionValueAsBoolean(HIDDEN_DIMENSION_NAME))) return false;
+      if (!FilterUtil.isIncludedByBooleanFilter(false, locator.getSingleDimensionValueAsBoolean(ARCHIVES_DIMENSION_NAME))) return false;
+      return locator.getUnusedDimensions().isEmpty();
+    } catch (LocatorProcessException e) {
+      return false;
     }
   }
 

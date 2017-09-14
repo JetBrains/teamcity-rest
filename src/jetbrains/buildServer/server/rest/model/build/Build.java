@@ -787,6 +787,19 @@ public class Build {
           protected List<? extends Element> getItems() {
             return BuildArtifactsFinder.getItems(BuildArtifactsFinder.getArtifactElement(myBuildPromotion, "", myServiceLocator), childrenLocator, builder, myServiceLocator);
           }
+
+          @Override
+          public int getCount() {
+            if (myItems != null) return myItems.size();
+
+            // optimize response by using cached artifacts presence
+            BuildPromotionEx.ArtifactsState state = ((BuildPromotionEx)myBuildPromotion).getArtifactStateInfo().getState();
+            if (state == BuildPromotionEx.ArtifactsState.NO_ARTIFACTS) return 0;
+            if (state == BuildPromotionEx.ArtifactsState.HIDDEN_ONLY && BuildArtifactsFinder.isDefaultLocator(childrenLocator))  return 0;
+
+            myItems = getItems();
+            return myItems.size();
+          }
         }, nestedFields, myBeanContext);
       }
     });
