@@ -3253,6 +3253,7 @@
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/guava-13.0.1.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/tomcat-jdbc-7.0.23.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/agent-upgrade.jar!/" />
+        <root url="file://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib" />
       </CLASSES>
       <JAVADOC />
       <SOURCES />
