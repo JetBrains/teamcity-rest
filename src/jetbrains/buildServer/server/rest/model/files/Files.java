@@ -40,6 +40,10 @@ import org.jetbrains.annotations.Nullable;
 public class Files {
 
   @XmlAttribute public Integer count;
+  /**
+   * Experimental, true if count is more then 0. Is supposed to be a cheap operation
+   */
+  @XmlAttribute public Boolean empty;
   @XmlAttribute(name = "href") public String href;
 
   public static final String FILE = "file";
@@ -52,27 +56,45 @@ public class Files {
 
   public Files(@Nullable final String shortHref, @Nullable final FilesProvider filesP, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     href = shortHref == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href", true), beanContext.getApiUrlBuilder().transformRelativePath(shortHref));
-    files = filesP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded(FILE, false, true), new ValueWithDefault.Value<List<File>>() {
-      @Nullable
-      public List<File> get() {
-        return filesP.getFiles(fields.getNestedField(FILE, Fields.SHORT, Fields.LONG));
-      }
-    });
+    if (filesP != null) {
+      files = ValueWithDefault.decideDefault(fields.isIncluded(FILE, false, true), new ValueWithDefault.Value<List<File>>() {
+        public List<File> get() {
+          return filesP.getFiles(fields.getNestedField(FILE, Fields.SHORT, Fields.LONG));
+        }
+      });
 
-    final boolean countIsCheap = files != null;
-    count = filesP == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", countIsCheap, countIsCheap), new ValueWithDefault.Value<Integer>() {
-      public Integer get() {
-        return filesP.getCount();
-      }
-    });
+      final boolean countIsCheap = files != null;
+      count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", countIsCheap, countIsCheap), new ValueWithDefault.Value<Integer>() {
+        public Integer get() {
+          return filesP.getCount();
+        }
+      });
+
+      empty = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("empty", false, false), new ValueWithDefault.Value<Boolean>() {
+        @Nullable
+        @Override
+        public Boolean get() {
+          return filesP.isCountZero();
+        }
+      });
+    }
   }
 
   public interface FilesProvider {
+    @NotNull
     List<File> getFiles(@NotNull final Fields fields);
+
     int getCount();
+
+    /**
+     * should be a cheap operation
+     * @return null if unknown / not cheap
+     */
+    @Nullable
+    Boolean isCountZero();
   }
 
-  public static abstract class DefaultFilesProvider implements FilesProvider{
+  public static abstract class DefaultFilesProvider implements FilesProvider {
     @NotNull private final FileApiUrlBuilder myBuilder;
     @NotNull private final BeanContext myBeanContext;
 
@@ -87,6 +109,7 @@ public class Files {
     abstract protected List<? extends Element> getItems();
 
     @Override
+    @NotNull
     public List<File> getFiles(@NotNull final Fields fields) {
       if (myItems == null) {
         myItems = getItems();
@@ -96,9 +119,17 @@ public class Files {
 
     @Override
     public int getCount() {
-      if (myItems != null) return myItems.size();
+      Boolean countZero = isCountZero();
+      if (countZero != null && countZero) return 0;
       myItems = getItems();
       return myItems.size();
+    }
+
+    @Nullable
+    @Override
+    public Boolean isCountZero() {
+      if (myItems != null) return myItems.isEmpty();
+      return null;
     }
   }
 

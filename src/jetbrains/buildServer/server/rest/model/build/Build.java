@@ -788,17 +788,20 @@ public class Build {
             return BuildArtifactsFinder.getItems(BuildArtifactsFinder.getArtifactElement(myBuildPromotion, "", myServiceLocator), childrenLocator, builder, myServiceLocator);
           }
 
+          @Nullable
           @Override
-          public int getCount() {
-            if (myItems != null) return myItems.size();
+          public Boolean isCountZero() {
+            Boolean countZero = super.isCountZero();
+            if (countZero != null) return countZero;
 
             // optimize response by using cached artifacts presence
             BuildPromotionEx.ArtifactsState state = ((BuildPromotionEx)myBuildPromotion).getArtifactStateInfo().getState();
-            if (state == BuildPromotionEx.ArtifactsState.NO_ARTIFACTS) return 0;
-            if (state == BuildPromotionEx.ArtifactsState.HIDDEN_ONLY && BuildArtifactsFinder.isDefaultLocator(childrenLocator))  return 0;
-
-            myItems = getItems();
-            return myItems.size();
+            if (state == BuildPromotionEx.ArtifactsState.NO_ARTIFACTS) return true;
+            if (BuildArtifactsFinder.isDefaultLocator(childrenLocator)) {
+              if (state == BuildPromotionEx.ArtifactsState.HIDDEN_ONLY)  return true;
+              if (state == BuildPromotionEx.ArtifactsState.HAS_ARTIFACTS)  return false;
+            }
+            return null;
           }
         }, nestedFields, myBeanContext);
       }
