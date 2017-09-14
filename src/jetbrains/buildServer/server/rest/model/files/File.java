@@ -134,12 +134,13 @@ public class File {
       public Files get() {
         final Fields nestedFields = myFields.getNestedField("children");
         final FileApiUrlBuilder builder = FilesSubResource.fileApiUrlBuilder(nestedFields.getLocator(), fileApiUrlBuilder.getUrlPathPrefix());
-        return new Files(builder.getChildrenHref(element), new ValueWithDefault.Value<List<? extends Element>>() {
-          @Nullable
-          public List<? extends Element> get() {
+        return new Files(builder.getChildrenHref(element), new Files.DefaultFilesProvider(builder, myBeanContext) {
+          @NotNull
+          @Override
+          protected List<? extends Element> getItems() {
             return BuildArtifactsFinder.getItems(element, nestedFields.getLocator(), builder, myBeanContext.getServiceLocator());
           }
-        }, builder, nestedFields, myBeanContext);
+        }, nestedFields, myBeanContext);
       }
     });
   }

@@ -44,7 +44,6 @@ import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.files.FileApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.files.Files;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
 import jetbrains.buildServer.util.ArchiveUtil;
@@ -123,12 +122,12 @@ public class FilesSubResource {
     }
     final FileApiUrlBuilder builder = fileApiUrlBuilder(locator, myUrlPrefix);
     final Element rootElement = myProvider.getElement(myProvider.preprocess(StringUtil.removeLeadingSlash(path)));
-    return new Files(null, new ValueWithDefault.Value<List<? extends Element>>() {
-      @Nullable
-      public List<? extends Element> get() {
+    return new Files(null, new Files.DefaultFilesProvider(builder, myBeanContext) {
+      @NotNull
+      public List<? extends Element> getItems() {
         return BuildArtifactsFinder.getItems(rootElement, myProvider.preprocess(basePath), locator, builder, myBeanContext.getServiceLocator());
       }
-    }, builder, new Fields(fields), myBeanContext);
+    }, new Fields(fields), myBeanContext);
   }
 
   @Nullable

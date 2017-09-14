@@ -50,31 +50,63 @@ public class Files {
   public Files() {
   }
 
-  public Files(@Nullable final String shortHref, @Nullable final ValueWithDefault.Value<List<? extends Element>> children, @NotNull final FileApiUrlBuilder builder,
-               @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+  public Files(@Nullable final String shortHref, @Nullable final FilesProvider filesP, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     href = shortHref == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href", true), beanContext.getApiUrlBuilder().transformRelativePath(shortHref));
-    files = children == null ? null : ValueWithDefault.decideDefault(fields.isIncluded(FILE, false, true), new ValueWithDefault.Value<List<File>>() {
+    files = filesP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded(FILE, false, true), new ValueWithDefault.Value<List<File>>() {
       @Nullable
       public List<File> get() {
-        return CollectionsUtil.convertCollection(children.get(), new Converter<File, Element>() {
-          public File createFrom(@NotNull final Element source) {
-            return new File(source, null, builder, fields.getNestedField(FILE, Fields.SHORT, Fields.LONG), beanContext);
-          }
-        });
+        return filesP.getFiles(fields.getNestedField(FILE, Fields.SHORT, Fields.LONG));
       }
     });
 
     final boolean countIsCheap = files != null;
-    count = children == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", countIsCheap, countIsCheap), new ValueWithDefault.Value<Integer>() {
-      @Nullable
+    count = filesP == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", countIsCheap, countIsCheap), new ValueWithDefault.Value<Integer>() {
       public Integer get() {
-        if (files != null) {
-          return ((Integer)files.size());
-        } else {
-          // files are not included, but count is requested
-          final List<? extends Element> elements = children.get();
-          return elements == null ? null : elements.size();
-        }
+        return filesP.getCount();
+      }
+    });
+  }
+
+  public interface FilesProvider {
+    List<File> getFiles(@NotNull final Fields fields);
+    int getCount();
+  }
+
+  public static abstract class DefaultFilesProvider implements FilesProvider{
+    @NotNull private final FileApiUrlBuilder myBuilder;
+    @NotNull private final BeanContext myBeanContext;
+
+    @Nullable protected List<? extends Element> myItems;
+
+    public DefaultFilesProvider(@NotNull final FileApiUrlBuilder builder, @NotNull final BeanContext beanContext) {
+      myBuilder = builder;
+      myBeanContext = beanContext;
+    }
+
+    @NotNull
+    abstract protected List<? extends Element> getItems();
+
+    @Override
+    public List<File> getFiles(@NotNull final Fields fields) {
+      if (myItems == null) {
+        myItems = getItems();
+      }
+      return Files.toFiles(myItems, myBuilder, fields, myBeanContext);
+    }
+
+    @Override
+    public int getCount() {
+      if (myItems != null) return myItems.size();
+      myItems = getItems();
+      return myItems.size();
+    }
+  }
+
+  @NotNull
+  static List<File> toFiles(final List<? extends Element> source, final @NotNull FileApiUrlBuilder builder, final @NotNull Fields fields, final @NotNull BeanContext beanContext) {
+    return CollectionsUtil.convertCollection(source, new Converter<File, Element>() {
+      public File createFrom(@NotNull final Element source) {
+        return new File(source, null, builder, fields, beanContext);
       }
     });
   }

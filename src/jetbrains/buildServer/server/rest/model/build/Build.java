@@ -777,16 +777,17 @@ public class Build {
   @XmlElement(name = "artifacts")
   public Files getArtifacts() {
     return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("artifacts", false), new ValueWithDefault.Value<Files>() {
-      @Nullable
       public Files get() {
         final Fields nestedFields = myFields.getNestedField("artifacts");
-        final FileApiUrlBuilder builder = FilesSubResource.fileApiUrlBuilder(nestedFields.getLocator(), BuildRequest.getBuildArtifactsHref(myBuildPromotion));
-        return new Files(builder.getChildrenHref(null), new ValueWithDefault.Value<List<? extends Element>>() {
-          @Nullable
-          public List<? extends Element> get() {
-            return BuildArtifactsFinder.getItems(BuildArtifactsFinder.getArtifactElement(myBuildPromotion, "", myServiceLocator), nestedFields.getLocator(), builder, myServiceLocator);
+        final String childrenLocator = nestedFields.getLocator();
+        final FileApiUrlBuilder builder = FilesSubResource.fileApiUrlBuilder(childrenLocator, BuildRequest.getBuildArtifactsHref(myBuildPromotion));
+        return new Files(builder.getChildrenHref(null), new Files.DefaultFilesProvider(builder, myBeanContext) {
+          @NotNull
+          @Override
+          protected List<? extends Element> getItems() {
+            return BuildArtifactsFinder.getItems(BuildArtifactsFinder.getArtifactElement(myBuildPromotion, "", myServiceLocator), childrenLocator, builder, myServiceLocator);
           }
-        }, builder, nestedFields, myBeanContext);
+        }, nestedFields, myBeanContext);
       }
     });
   }
