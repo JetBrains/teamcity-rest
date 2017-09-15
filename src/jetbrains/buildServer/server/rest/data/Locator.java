@@ -66,7 +66,7 @@ public class Locator {
   private final LinkedHashMap<String, List<String>> myDimensions;
   private final String mySingleValue;
 
-  @NotNull private final Set<String> myUsedDimensions = new HashSet<String>();
+  @NotNull private final Set<String> myUsedDimensions;
   @Nullable private String[] mySupportedDimensions;
   @NotNull private final Collection<String> myIgnoreUnusedDimensions = new HashSet<String>();
   @NotNull private final Collection<String> myHiddenSupportedDimensions = new HashSet<String>();
@@ -90,7 +90,7 @@ public class Locator {
     }
 
     mySingleValue = locator.mySingleValue;
-    myUsedDimensions.addAll(locator.myUsedDimensions);
+    myUsedDimensions = new HashSet<String>(locator.myUsedDimensions);
     mySupportedDimensions = locator.mySupportedDimensions != null ? locator.mySupportedDimensions.clone() : null;
     myIgnoreUnusedDimensions.addAll(locator.myIgnoreUnusedDimensions);
     myHiddenSupportedDimensions.addAll(locator.myHiddenSupportedDimensions);
@@ -122,6 +122,7 @@ public class Locator {
       throw new LocatorProcessException("Invalid locator. Cannot be empty.");
     }
     mySupportedDimensions = supportedDimensions;
+    myUsedDimensions = new HashSet<String>(mySupportedDimensions == null ? 10 : Math.max(mySupportedDimensions.length, 10));
     String escapedValue = getUnescapedSingleValue(locator);
     if (escapedValue != null) {
       mySingleValue = escapedValue;
@@ -135,6 +136,24 @@ public class Locator {
       myIgnoreUnusedDimensions.add(HELP_DIMENSION);
       myDimensions = parse(locator, mySupportedDimensions, myHiddenSupportedDimensions, myExtendedMode);
     }
+  }
+
+  /**
+   * Creates an empty locator with dimensions.
+   */
+  private Locator(@Nullable final String... supportedDimensions) {
+    myRawValue = "";
+    mySingleValue = null;
+    myDimensions = new LinkedHashMap<String, List<String>>();
+    mySupportedDimensions = supportedDimensions;
+    if (mySupportedDimensions == null) {
+      myUsedDimensions = new HashSet<String>();
+    } else {
+      myUsedDimensions = new HashSet<String>(mySupportedDimensions.length);
+    }
+    myHiddenSupportedDimensions.add(HELP_DIMENSION);
+    myIgnoreUnusedDimensions.add(HELP_DIMENSION);
+    myExtendedMode = false;
   }
 
   @Nullable
@@ -201,19 +220,6 @@ public class Locator {
   }
 
   /**
-   * Creates an empty locator with dimensions.
-   */
-  private Locator() {
-    myRawValue = "";
-    mySingleValue = null;
-    myDimensions = new LinkedHashMap<String, List<String>>();
-    mySupportedDimensions = null;
-    myHiddenSupportedDimensions.add(HELP_DIMENSION);
-    myIgnoreUnusedDimensions.add(HELP_DIMENSION);
-    myExtendedMode = false;
-  }
-
-  /**
    * The resultant locator will have all the dimensions from "defaults" locator set unless already defined.
    * If "locator" text is empty, "defaults" locator will be used
    *
@@ -273,9 +279,7 @@ public class Locator {
 
   @NotNull
   public static Locator createEmptyLocator(@Nullable final String... supportedDimensions) {
-    final Locator result = new Locator();
-    result.mySupportedDimensions = supportedDimensions;
-    return result;
+    return new Locator(supportedDimensions);
   }
 
   public boolean isEmpty() {
