@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import com.google.common.base.Stopwatch;
 import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import java.io.IOException;
@@ -46,10 +47,7 @@ import jetbrains.buildServer.server.rest.model.files.Files;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
-import jetbrains.buildServer.util.ArchiveUtil;
-import jetbrains.buildServer.util.FileUtil;
-import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.util.TCStreamUtil;
+import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactElement;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
@@ -457,6 +455,7 @@ public class FilesSubResource {
     return new StreamingOutput() {
       public void write(final OutputStream output) throws WebApplicationException {
         InputStream inputStream = null;
+        Stopwatch action = new Stopwatch().start();
         try {
           inputStream = element.getInputStream();
           if (startOffset != null || length != null) {
@@ -470,6 +469,10 @@ public class FilesSubResource {
           throw new OperationException("Error while processing file '" + element.getFullName() + "': " + e.toString(), e);
         } finally {
           FileUtil.close(inputStream);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Finished processing download of file \"" + element.getFullName() + "\" (" + StringUtil.formatFileSize(element.getSize()) + ")" +
+                      " in " + TimePrinter.createMillisecondsFormatter().formatTime(action.elapsedMillis()) + " for a REST request");
+          }
         }
       }
     };
