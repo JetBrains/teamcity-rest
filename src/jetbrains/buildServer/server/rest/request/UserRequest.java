@@ -32,15 +32,13 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.group.Group;
 import jetbrains.buildServer.server.rest.model.group.Groups;
-import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
-import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
-import jetbrains.buildServer.server.rest.model.user.User;
-import jetbrains.buildServer.server.rest.model.user.Users;
+import jetbrains.buildServer.server.rest.model.user.*;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
+import jetbrains.buildServer.serverSide.impl.auth.ServerAuthUtil;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.SimplePropertyKey;
 import jetbrains.buildServer.users.UserModel;
@@ -302,6 +300,23 @@ public class UserRequest {
     }
     SUser user = myUserFinder.getItem(userLocator, true);
     return DebugRequest.getRolesStringPresentation(user, myBeanContext.getSingletonService(ProjectManager.class));
+  }
+
+  /**
+   * Experimental use only
+   * Can be used to check whether the user has the permission(s) specified by "permissionLocator"
+   *
+   * If project is specified, the permission is granted for this specific project, nothing can be derived about the subprojects
+   * If the project is not specified, for project-level permission it means the permission is granted for all the projects on the server
+   */
+  @GET
+  @Path("/{userLocator}/permissions")
+  @Produces({"application/xml", "application/json"})
+  public PermissionAssignments getPermissions(@PathParam("userLocator") String userLocator, @QueryParam("locator") String permissionLocator, @QueryParam("fields") String fields) {
+    SUser user = myUserFinder.getItem(userLocator, true);
+    PermissionChecker permissionChecker = myBeanContext.getSingletonService(PermissionChecker.class);
+    ServerAuthUtil.checkCanViewUserProfile(permissionChecker.getCurrent(), user);
+    return new PermissionAssignments(user, permissionLocator, new Fields(fields), myBeanContext);
   }
 
   /**

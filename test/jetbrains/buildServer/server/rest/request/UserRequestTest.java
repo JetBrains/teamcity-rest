@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import jetbrains.buildServer.groups.SUserGroup;
@@ -29,10 +30,13 @@ import jetbrains.buildServer.server.rest.data.BaseFinderTest;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.build.Build;
+import jetbrains.buildServer.server.rest.model.user.PermissionAssignments;
 import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SecurityContextEx;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
+import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.auth.SecurityContextImpl;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.TestFor;
@@ -61,7 +65,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     final SUser user1 = createUser("user1");
     final SUser user2 = createUser("user2");
 
-    SecurityContextImpl securityContext = new SecurityContextImpl();
+    SecurityContextImpl securityContext = myFixture.getSecurityContext();
 
     user2.addRole(RoleScope.globalScope(), getProjectAdminRole());
 
@@ -140,7 +144,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     final SUser user1 = createUser("user1");
     final SUser user2 = createUser("user2");
 
-    SecurityContextImpl securityContext = new SecurityContextImpl();
+    SecurityContextImpl securityContext = myFixture.getSecurityContext();
 
     user2.addRole(RoleScope.globalScope(), getProjectAdminRole());
 
@@ -201,7 +205,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     user2.setPassword("secret");
 
 
-    SecurityContextImpl securityContext = new SecurityContextImpl();
+    SecurityContextImpl securityContext = myFixture.getSecurityContext();
 
     user2.addRole(RoleScope.globalScope(), getProjectAdminRole());
 
@@ -312,6 +316,62 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
       }
     });
   }
+
+  @Test
+  public void testPermissionsSecurity() throws Throwable {
+    ProjectEx project1 = createProject("project1", "project1");
+    ProjectEx project2 = createProject("project2", "project2");
+
+    SUser user1 = createUser("user1");
+
+    SUser user2 = createUser("user2");
+    user2.addRole(RoleScope.globalScope(), getTestRoles().createRole(Permission.RUN_BUILD, Permission.AUTHORIZE_AGENT));
+    user2.addRole(RoleScope.projectScope(project2.getProjectId()), getTestRoles().createRole(Permission.VIEW_PROJECT));
+    user2.addRole(RoleScope.projectScope(project1.getProjectId()), getTestRoles().createRole(Permission.VIEW_PROJECT, Permission.REORDER_BUILD_QUEUE));
+
+    myFixture.getSecurityContext().runAs(user1, () -> {
+      checkException(AuthorizationFailedException.class, () -> myRequest.getPermissions("id:" + user2.getId(), null, null), "getting permissions of another user");
+    });
+
+    SUser user3 = createUser("user3");
+    user3.addRole(RoleScope.globalScope(), getTestRoles().createRole(Permission.VIEW_USER_PROFILE));
+    user3.addRole(RoleScope.projectScope(project2.getProjectId()), getTestRoles().createRole(Permission.VIEW_PROJECT));
+
+    myFixture.getSecurityContext().runAs(user3, () -> {
+      PermissionAssignments permissions = myRequest.getPermissions("id:" + user2.getId(), null, null);
+
+      String message = describe(permissions);
+      assertTrue(message, permissions.myPermissionAssignments.stream().anyMatch(pa -> Permission.AUTHORIZE_AGENT.name().toLowerCase().toLowerCase().equals(pa.permission.id) && pa.project == null));
+      assertTrue(message, permissions.myPermissionAssignments.stream().anyMatch(pa -> Permission.REORDER_BUILD_QUEUE.name().toLowerCase().equals(pa.permission.id) && pa.project == null));
+      assertTrue(message, permissions.myPermissionAssignments.stream().anyMatch(pa -> Permission.RUN_BUILD.name().toLowerCase().equals(pa.permission.id) && pa.project == null));
+      assertTrue(message, permissions.myPermissionAssignments.stream().anyMatch(pa -> Permission.VIEW_PROJECT.name().toLowerCase().equals(pa.permission.id) && project2.getExternalId().equals(pa.project.id)));
+      assertTrue(message, permissions.myPermissionAssignments.stream().noneMatch(pa -> Permission.VIEW_PROJECT.name().toLowerCase().equals(pa.permission.id) && project1.getExternalId().equals(pa.project.id)));
+    });
+
+    getUserModelEx().getGuestUser().addRole(RoleScope.projectScope(project2.getProjectId()), getTestRoles().createRole(Permission.RUN_BUILD));
+
+    myFixture.getSecurityContext().runAs(getUserModelEx().getGuestUser(), () -> {
+      PermissionAssignments permissions = myRequest.getPermissions("current", null, null);
+      assertTrue(describe(permissions), permissions.myPermissionAssignments.stream().anyMatch(pa -> Permission.RUN_BUILD.name().toLowerCase().equals(pa.permission.id) && project2.getExternalId().equals(pa.project.id)));
+
+      checkException(AuthorizationFailedException.class, () -> myRequest.getPermissions("id:" + user2.getId(), null, null), "getting permissions of another user");
+    });
+    
+    myFixture.getSecurityContext().runAs(getUserModelEx().getSuperUser(), () -> {
+      PermissionAssignments permissions = myRequest.getPermissions("current", null, null);
+      assertTrue(describe(permissions), permissions.myPermissionAssignments.stream().anyMatch(pa -> Permission.EDIT_PROJECT.name().toLowerCase().equals(pa.permission.id) && pa.project == null));
+
+      permissions = myRequest.getPermissions("id:" + user2.getId(), null, null);
+      assertTrue(describe(permissions), permissions.myPermissionAssignments.stream().anyMatch(pa -> Permission.VIEW_PROJECT.name().toLowerCase().equals(pa.permission.id) && project1.getExternalId().equals(pa.project.id)));
+      assertTrue(describe(permissions), permissions.myPermissionAssignments.stream().anyMatch(pa -> Permission.AUTHORIZE_AGENT.name().toLowerCase().equals(pa.permission.id) && pa.project == null));
+    });
+  }
+
+  private String describe(final PermissionAssignments permissionAssignments) {
+    return permissionAssignments.myPermissionAssignments.stream().map(pa -> pa.permission.id + " - " + (pa.project == null ? "global" : pa.project.id)).collect(
+      Collectors.joining(", "));
+  }
+
 
   private List<String> getSubEntitiesNames(@NotNull final Class aClass) {
     ArrayList<String> result = new ArrayList<>();

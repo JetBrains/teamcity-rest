@@ -21,6 +21,7 @@
       <class name="jetbrains.buildServer.server.rest.data.BuildCompatibleAgentsTest"/>
       <class name="jetbrains.buildServer.server.rest.data.ChangeFinderTest"/>
       <class name="jetbrains.buildServer.server.rest.data.UserFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.PermissionAssignmentFinderTest"/>
       <class name="jetbrains.buildServer.server.rest.data.FinderImplTest"/>
 
       <class name="jetbrains.buildServer.server.rest.model.BuildTest"/>
