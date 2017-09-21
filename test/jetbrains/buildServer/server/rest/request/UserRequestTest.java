@@ -319,6 +319,8 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
 
   @Test
   public void testPermissionsSecurity() throws Throwable {
+    myFixture.getServerSettings().setPerProjectPermissionsEnabled(true);
+
     ProjectEx project1 = createProject("project1", "project1");
     ProjectEx project2 = createProject("project2", "project2");
 
