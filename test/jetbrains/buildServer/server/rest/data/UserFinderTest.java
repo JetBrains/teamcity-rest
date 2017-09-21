@@ -152,7 +152,7 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
       }
     }, "getting current user");
 
-    SecurityContextImpl securityContext = new SecurityContextImpl();
+    SecurityContextImpl securityContext = myFixture.getSecurityContext();
     securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
@@ -189,7 +189,7 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
       assertEquals(user1.getId(), result.getId());
     }
 
-    SecurityContextImpl securityContext = new SecurityContextImpl();
+    SecurityContextImpl securityContext = myFixture.getSecurityContext();
     securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
@@ -251,7 +251,7 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
     final SUser user1 = createUser("user1");
     final SUser user2 = createUser("user2");
 
-    final SecurityContextImpl securityContext = new SecurityContextImpl();
+    final SecurityContextImpl securityContext = myFixture.getSecurityContext();
 
     securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
       @Override

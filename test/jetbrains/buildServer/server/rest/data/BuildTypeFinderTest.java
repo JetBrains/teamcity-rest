@@ -360,7 +360,7 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     checkBuildTypes("selectedByUser:(user:(username:user1),mode:all_with_order),project:(id:"+ project10.getExternalId() + ")", p10_bt30, p10_bt10, p10_bt20);
     checkBuildTypes("selectedByUser:(user:(username:user1),mode:all_with_order),project:(id:"+ project30.getExternalId() + ")", p30_bt10, p30_bt30, p30_bt20);
 
-    SecurityContextImpl securityContext = new SecurityContextImpl();
+    SecurityContextImpl securityContext = myFixture.getSecurityContext();
 
     securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
       @Override
