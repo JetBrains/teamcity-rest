@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.Arrays;
 import java.util.List;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.Role;
@@ -84,8 +85,7 @@ public class PermissionAssignmentFinderTest extends BaseFinderTest<PermissionAss
     check("item:(permission:CHANGE_OWN_PROFILE),item:(permission:run_build,project:(id:" + myProject1.getExternalId() + "))",
           pa(Permission.CHANGE_OWN_PROFILE), pa(Permission.RUN_BUILD, projectId));
 
-//    checkExceptionOnItemsSearch(BadRequestException.class, "permission:XXX");
-    checkExceptionOnItemsSearch(LocatorProcessException.class, "permission:XXX");
+    checkExceptionOnItemsSearch(BadRequestException.class, "permission:XXX");
     checkExceptionOnItemsSearch(LocatorProcessException.class, "project:(id:XXX)");
   }
 
