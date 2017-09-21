@@ -334,7 +334,7 @@ public class TypedFinderBuilder<ITEM> {
   public <FINDER_TYPE> TypedFinderDimensionWithDefaultChecker<ITEM, List<FINDER_TYPE>, Set<FINDER_TYPE>> dimensionWithFinder(@NotNull final Dimension<List<FINDER_TYPE>> dimension,
                                                                                                                              @NotNull final Value<Finder<FINDER_TYPE>> finderValue,
                                                                                                                              @NotNull String typeDescription) {
-    return dimension(dimension, type(dimensionValue -> finderValue.get().getItems(dimensionValue).myEntries).description(typeDescription))
+    return dimension(dimension, type(dimensionValue -> getNotEmptyItems(finderValue.get(), dimensionValue)).description(typeDescription))
       .defaultFilter(new Filter<List<FINDER_TYPE>, Set<FINDER_TYPE>>() {
         @Override
         public boolean isIncluded(@NotNull final List<FINDER_TYPE> fromFilter, @NotNull final Set<FINDER_TYPE> fromItem) {
@@ -346,6 +346,13 @@ public class TypedFinderBuilder<ITEM> {
       });
   }
 
+  @NotNull
+  private <FINDER_TYPE> List<FINDER_TYPE> getNotEmptyItems(final @NotNull Finder<FINDER_TYPE> finder, final @NotNull String dimensionValue) {
+    List<FINDER_TYPE> result = finder.getItems(dimensionValue).myEntries;
+    if (result.isEmpty()) throw new LocatorProcessException("Nothing found by locator '" + dimensionValue + "'");
+    return result;
+  }
+
   /**
    * @param <MIDDLE> - type which can be used in Set
    * @return
@@ -353,7 +360,7 @@ public class TypedFinderBuilder<ITEM> {
   public <FINDER_TYPE, MIDDLE> TypedFinderDimensionWithDefaultChecker<ITEM, List<FINDER_TYPE>, Set<FINDER_TYPE>>
   dimensionWithFinder(@NotNull final Dimension<List<FINDER_TYPE>> dimension, @NotNull final Value<Finder<FINDER_TYPE>> finderValue,
                       @NotNull final Converter<MIDDLE, FINDER_TYPE> converter, @NotNull String typeDescription) {
-    return dimension(dimension, type(dimensionValue -> finderValue.get().getItems(dimensionValue).myEntries).description(typeDescription))
+    return dimension(dimension, type(dimensionValue -> getNotEmptyItems(finderValue.get(), dimensionValue)).description(typeDescription))
       .defaultFilter(new Filter<List<FINDER_TYPE>, Set<FINDER_TYPE>>() {
         @Override
         public boolean isIncluded(@NotNull final List<FINDER_TYPE> fromFilter, @NotNull final Set<FINDER_TYPE> fromItem) {

@@ -312,7 +312,7 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
     checkExceptionOnItemsSearch(LocatorProcessException.class, "permission:(permission:run_build,permission:label_build,project:(id:" + prj1_1.getExternalId() + "))");
     checkExceptionOnItemsSearch(LocatorProcessException.class, "permission:(permission:run_build,project:(id:a),project:(id:b))");
 
-    assertContains(checkException(LocatorProcessException.class, () -> getFinder().getItems("permission:(project:(id:a))"), null).getMessage(), "unsupported locator");
+    assertContains(checkException(LocatorProcessException.class, () -> getFinder().getItems("permission:(project:(id:a))"), null).getMessage(), "Nothing found");
 
     check("permission:(permission:run_build)", user10); //global permission check
 

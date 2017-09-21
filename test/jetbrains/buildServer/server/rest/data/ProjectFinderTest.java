@@ -22,6 +22,7 @@ import jetbrains.buildServer.BuildAgent;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.PropEntityProjectFeature;
@@ -150,6 +151,13 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
     check("project:(id:" + project10.getExternalId() + "),archived:false", project10_10);
     check("project:(id:" + project20.getExternalId() + "),archived:false", project20_10);
     check("project:(id:" + project40.getExternalId() + "),archived:false");
+
+    check("item:(id:" + project40.getExternalId() + ")", project40);
+    check("item:(id:" + project40.getExternalId() + "),item:(id:"+ project20.getExternalId() + ")", project40, project20);
+
+    check("id:XXX"); //nothing found: no error
+    checkExceptionOnItemSearch(NotFoundException.class, "id:XXX");
+    checkExceptionOnItemsSearch(NotFoundException.class, "project:(id:XXX)");
   }
 
   @Test
