@@ -505,7 +505,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
       @Override
       public boolean isIncluded(@NotNull final SProject item) {
-        return PermissionChecker.usersHavePermissions(myUsers, myPermission, Collections.singletonList(item));
+        return PermissionChecker.anyOfUsersHavePermissionForAnyOfProjects(myUsers, myPermission, Collections.singletonList(item));
       }
     }
   }

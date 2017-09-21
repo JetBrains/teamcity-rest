@@ -179,7 +179,7 @@ public class PermissionChecker {
     return authorityHolder.isPermissionGrantedForAnyProject(permission);
   }
 
-  public static boolean usersHavePermissions(@NotNull final List<SUser> users, @NotNull final Permission permission, @Nullable final List<SProject> projects) {
+  public static boolean anyOfUsersHavePermissionForAnyOfProjects(@NotNull final List<SUser> users, @NotNull final Permission permission, @Nullable final List<SProject> projects) {
     if (users.isEmpty()) return false;
     for (SUser user : users) {
       if (projects == null || !permission.isProjectAssociationSupported()) {

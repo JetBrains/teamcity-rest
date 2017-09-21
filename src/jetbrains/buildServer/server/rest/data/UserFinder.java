@@ -555,7 +555,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
 
       @Override
       public boolean isIncluded(@NotNull final SUser item) {
-        return PermissionChecker.usersHavePermissions(Collections.singletonList(item), myPermission, myProjects);
+        return PermissionChecker.anyOfUsersHavePermissionForAnyOfProjects(Collections.singletonList(item), myPermission, myProjects);
       }
     }
   }
