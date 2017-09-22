@@ -890,6 +890,8 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("defaultFilter:false", getBuildPromotions(build14queued, build13running, build11inBranch, build9failedToStart, build8canceledFailed, build7canceled, build5personal, build2failed, build1));
     checkBuilds("defaultFilter:true", getBuildPromotions(build2failed, build1));
     checkBuilds("canceled:true", getBuildPromotions(build8canceledFailed, build7canceled));
+    checkBuilds("canceled:true,state:(queued:true)");
+    checkBuilds("failedToStart:true,state:(queued:true)");
     checkBuilds("canceled:false", getBuildPromotions(build2failed, build1));
     checkBuilds("canceled:false,defaultFilter:false", getBuildPromotions(build14queued, build13running, build11inBranch, build9failedToStart, build5personal, build2failed, build1));
     checkBuilds("canceled:any", getBuildPromotions(build8canceledFailed, build7canceled, build2failed, build1));
