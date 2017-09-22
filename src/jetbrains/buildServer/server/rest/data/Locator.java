@@ -944,6 +944,7 @@ public class Locator {
    * @return
    */
   @Nullable
+  @Contract("_, _, !null -> !null; !null, _, _ -> !null")
   public static String setDimensionIfNotPresent(@Nullable final String locator, @NotNull final String dimensionName, @Nullable final String value) {
     if (value == null){
       return locator;

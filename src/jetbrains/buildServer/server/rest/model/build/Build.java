@@ -724,17 +724,19 @@ public class Build {
     }
     return ValueWithDefault.decide(myFields.isIncluded("changes", false), new ValueWithDefault.Value<Changes>() {
       public Changes get() {
-        final String href = ChangeRequest.getChangesHref(myBuildPromotion);
         final Fields changesFields = myFields.getNestedField("changes");
+        String locator = Locator.merge(changesFields.getLocator(), ChangeFinder.getLocator(myBuildPromotion));
+        final String href = ChangeRequest.getChangesHref(locator);
         return new Changes(new PagerData(href), changesFields, myBeanContext, new CachingValue<List<SVcsModification>>() {
           @NotNull
           @Override
           protected List<SVcsModification> doGet() {
-            return ChangeFinder.getBuildChanges(myBuildPromotion);
+            return myBeanContext.getSingletonService(ChangeFinder.class).getItems(locator).myEntries;
           }
         });
       }
     }, null, true);
+    //see jetbrains.buildServer.controllers.changes.ChangesBean.getLimitedChanges for further optimization
   }
 
   @XmlElement(name = "triggered")

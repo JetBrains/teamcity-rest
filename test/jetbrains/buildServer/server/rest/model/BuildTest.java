@@ -33,6 +33,7 @@ import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.PathTransformer;
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
+import jetbrains.buildServer.server.rest.data.BuildFinderTestBase;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
@@ -40,6 +41,7 @@ import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.*;
+import jetbrains.buildServer.server.rest.model.change.Changes;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
@@ -49,18 +51,21 @@ import jetbrains.buildServer.serverSide.agentPools.PoolQuotaExceededException;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeKey;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
-import jetbrains.buildServer.serverSide.impl.AgentRestrictorFactoryImpl;
-import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
-import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
-import jetbrains.buildServer.serverSide.impl.SBuildStepDescriptor;
+import jetbrains.buildServer.serverSide.impl.*;
 import jetbrains.buildServer.serverSide.impl.timeEstimation.CachingBuildEstimator;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.TestFor;
+import jetbrains.buildServer.vcs.RepositoryStateData;
+import jetbrains.buildServer.vcs.SVcsModification;
+import jetbrains.buildServer.vcs.SVcsRootEx;
+import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import static jetbrains.buildServer.buildTriggers.vcs.ModificationDataBuilder.modification;
 
 /**
  * @author Yegor.Yarko
@@ -817,6 +822,85 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     assertEquals("/app/rest/version/builds/id:1/artifacts/children/dir", build.getArtifacts().files.get(0).getChildren().href);
     //noinspection ConstantConditions
     assertEquals("/app/rest/version/builds/id:1/artifacts/content/file.txt", build.getArtifacts().files.get(1).getContent().href);
+  }
+
+  @Test
+  public void testChanges() throws IOException {
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+//    vcs.setDAGBased(true); //see jetbrains.buildServer.server.rest.data.ChangeFinderTest.testBranches1() for branches setup  example
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", myBuildType);
+    VcsRootInstance root1 = myBuildType.getVcsRootInstanceForParent(parentRoot1);
+    assert root1 != null;
+
+    final BuildFinderTestBase.MockCollectRepositoryChangesPolicy changesPolicy = new BuildFinderTestBase.MockCollectRepositoryChangesPolicy();
+    vcs.setCollectChangesPolicy(changesPolicy);
+
+    addChange(root1, 10, changesPolicy);
+    addChange(root1, 20, changesPolicy);
+    ensureChangesDetected();
+
+    SFinishedBuild build1 = build().in(myBuildType).finish();
+
+    addChange(root1, 30, changesPolicy);
+    addChange(root1, 40, changesPolicy);
+    ensureChangesDetected();
+
+    SFinishedBuild build2 = build().in(myBuildType).finish();
+
+    addChange(root1, 50, changesPolicy);
+    addChange(root1, 60, changesPolicy);
+    ensureChangesDetected();
+
+    {
+      Build build = new Build(build2, Fields.SHORT, getBeanContext(myFixture));
+      assertNull(build.getChanges());
+    }
+    {
+      Build build = new Build(build2, Fields.LONG, getBeanContext(myFixture));
+      Changes changes = build.getChanges();
+      assertEquals("/app/rest/changes?locator=build:(id:" + build2.getBuildId() + ")", changes.getHref());
+      assertEquals(null, changes.getCount());
+      assertEquals(null, changes.getChanges());
+      assertNull(changes.getNextHref());
+    }
+    {
+      Build build = new Build(build2, new Fields("changes($long)"), getBeanContext(myFixture));
+      Changes changes = build.getChanges();
+      assertEquals(Integer.valueOf(2), changes.getCount());
+      assertEquals(2, changes.getChanges().size());
+      assertNull(changes.getNextHref());
+    }
+    {
+      Build build = new Build(build2, new Fields("changes($long,$locator(count(1)))"), getBeanContext(myFixture));
+      Changes changes = build.getChanges();
+      assertEquals("/app/rest/changes?locator=count:1,build:(id:" + build2.getBuildId() + ")", changes.getHref());
+      assertEquals(Integer.valueOf(1), changes.getCount());
+      assertEquals(1, changes.getChanges().size());
+//      assertNotNull(changes.getNextHref());
+    }
+    {
+      setInternalProperty("rest.defaultPageSize", "1");
+      Build build = new Build(build2, new Fields("changes($long)"), getBeanContext(myFixture));
+      Changes changes = build.getChanges();
+      assertEquals("/app/rest/changes?locator=build:(id:" + build2.getBuildId() + ")", changes.getHref());
+      assertEquals(Integer.valueOf(1), changes.getCount());
+      assertEquals(1, changes.getChanges().size());
+//      assertNotNull(changes.getNextHref());
+      removeInternalProperty("rest.defaultPageSize");
+    }
+  }
+
+  private void ensureChangesDetected() {
+    myBuildType.forceCheckingForChanges();
+    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+  }
+
+  @NotNull
+  private SVcsModification addChange(@NotNull final VcsRootInstance root1, final int version, @NotNull final BuildFinderTestBase.MockCollectRepositoryChangesPolicy changesPolicy) {
+    SVcsModification result = myFixture.addModification(modification().in(root1).version(String.valueOf(version)));
+    changesPolicy.setCurrentState(root1, RepositoryStateData.createSingleVersionState(String.valueOf(version)));
+    return result;
   }
 
   @Test(enabled = false)

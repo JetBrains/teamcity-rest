@@ -43,7 +43,6 @@ import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
 import jetbrains.buildServer.server.rest.model.issue.Issues;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
-import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.vcs.SVcsModification;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -62,8 +61,8 @@ public class ChangeRequest {
     return API_CHANGES_URL + "/" + ChangeFinder.getLocator(modification);
   }
 
-  public static String getChangesHref(@NotNull final BuildPromotion item) {
-    return API_CHANGES_URL + "?locator=" + ChangeFinder.getLocator(item);
+  public static String getChangesHref(@NotNull final String locatorText) {
+    return API_CHANGES_URL + "?locator=" + locatorText;
   }
 
   //todo: use locator here, like for builds with limitLookup, changes from dependencies flag, etc.

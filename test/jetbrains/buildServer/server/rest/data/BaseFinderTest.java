@@ -173,6 +173,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
 
     myChangeFinder = new ChangeFinder(myProjectFinder, myBuildFinder, myBuildPromotionFinder, myBuildTypeFinder, myVcsRootFinder, myVcsRootInstanceFinder, myUserFinder,
                                       myVcsManager, myFixture.getVcsHistory(), myBranchFinder, myFixture, myPermissionChecker);
+    myFixture.addService(myChangeFinder);
   }
 
   public void setFinder(@NotNull Finder<T> finder){
