@@ -780,7 +780,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
           final SBuild build = item.getAssociatedBuild();
-          return build == null || FilterUtil.isIncludedByBooleanFilter(canceled, build.getCanceledInfo() != null);
+          return FilterUtil.isIncludedByBooleanFilter(canceled, build != null && build.getCanceledInfo() != null);
         }
       });
     }
@@ -790,7 +790,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
           final SBuild build = item.getAssociatedBuild();
-          return build == null || FilterUtil.isIncludedByBooleanFilter(failedToStart, build.isInternalError());
+          return FilterUtil.isIncludedByBooleanFilter(failedToStart, build != null && build.isInternalError());
         }
       });
     }
