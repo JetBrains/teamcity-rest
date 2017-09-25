@@ -727,11 +727,16 @@ public class Build {
         final Fields changesFields = myFields.getNestedField("changes");
         String locator = Locator.merge(changesFields.getLocator(), ChangeFinder.getLocator(myBuildPromotion));
         final String href = ChangeRequest.getChangesHref(locator);
+        if (TeamCityProperties.getBoolean("rest.beans.build.unlimitedChanges")) {
+          //pre-2017.2 behavior: all changes were included
+          locator = Locator.merge(locator, Locator.getStringLocator(PagerData.COUNT, String.valueOf(FinderImpl.NO_COUNT)));
+        }
+        final String finalLocator = locator;
         return new Changes(new PagerData(href), changesFields, myBeanContext, new CachingValue<List<SVcsModification>>() {
           @NotNull
           @Override
           protected List<SVcsModification> doGet() {
-            return myBeanContext.getSingletonService(ChangeFinder.class).getItems(locator).myEntries;
+            return myBeanContext.getSingletonService(ChangeFinder.class).getItems(finalLocator).myEntries;
           }
         });
       }

@@ -549,7 +549,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       dimensions.remove(DIMENSION_LOOKUP_LIMIT);
       if (dimensions.isEmpty()) {
         //no filtering dimensions other than "build"
-        count = getCount(locator);
+        count = getCountNotMarkingAsUsed(locator);
       }
     }
 

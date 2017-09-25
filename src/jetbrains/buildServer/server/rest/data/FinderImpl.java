@@ -50,6 +50,8 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   public static final String DIMENSION_UNIQUE = "unique";
   protected static final String OPTIONS_REPORT_ERROR_ON_NOTHING_FOUND = "$reportErrorOnNothingFound";
 
+  public static final Long NO_COUNT = -1L;
+
   //todo: add set-filtering (filter by collection of items in prefiltering and in filter), e.g. see handling of ProjectFinder.DIMENSION_PROJECT
   private FinderDataBinding<ITEM> myDataBinding;
 
@@ -251,7 +253,8 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
       }
 
       final Long start = locator.getSingleDimensionValueAsLong(PagerData.START);
-      final Long count = locator.getSingleDimensionValueAsLong(PagerData.COUNT, myDataBinding.getDefaultPageItemsCount());
+      final Long count = getCountNotMarkingAsUsed(locator);
+      locator.markUsed(Collections.singleton(PagerData.COUNT));
       final Long lookupLimit = getLookupLimit(locator);
 
       pagingFilter = new PagingItemFilter<ITEM>(locatorDataBinding.getFilter(), start, count == null ? null : count.intValue(), lookupLimit);
@@ -273,7 +276,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
 
     if (lookupLimit != null && locator.lookupSingleDimensionValue(DIMENSION_LOOKUP_LIMIT) == null) {
       //default was used, make sure it is not less than "count"
-      final Long count = getCount(locator);
+      final Long count = getCountNotMarkingAsUsed(locator);
       if (count != null && lookupLimit < count) {
         // if count of items is set, but lookupLimit is not, process at least as many items as count
         lookupLimit = count;
@@ -283,8 +286,10 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   }
 
   @Nullable
-  Long getCount(final @NotNull Locator locator) {
-    return locator.lookupSingleDimensionValueAsLong(PagerData.COUNT, myDataBinding.getDefaultPageItemsCount());
+  Long getCountNotMarkingAsUsed(final @NotNull Locator locator) {
+    Long result = locator.lookupSingleDimensionValueAsLong(PagerData.COUNT, myDataBinding.getDefaultPageItemsCount());
+    if (NO_COUNT.equals(result)) return null;
+    return result;
   }
 
   private static boolean isReportErrorOnNothingFound(final @NotNull Locator locator) {
