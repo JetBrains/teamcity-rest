@@ -627,7 +627,14 @@ public class Locator {
   @Nullable
   @Contract("_, !null -> !null")
   public Long getSingleDimensionValueAsLong(@NotNull final String dimensionName, @Nullable Long defaultValue) {
-    final String value = getSingleDimensionValue(dimensionName);
+    myUsedDimensions.add(dimensionName);
+    return lookupSingleDimensionValueAsLong(dimensionName, defaultValue);
+  }
+
+  @Nullable
+  @Contract("_, !null -> !null")
+  public Long lookupSingleDimensionValueAsLong(@NotNull final String dimensionName, @Nullable Long defaultValue) {
+    final String value = lookupSingleDimensionValue(dimensionName);
     if (value == null) {
       return defaultValue;
     }

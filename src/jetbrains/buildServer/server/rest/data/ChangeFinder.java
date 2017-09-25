@@ -16,14 +16,14 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.RemoteBuildType;
@@ -43,7 +43,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 12.05.13
  */
 public class ChangeFinder extends AbstractFinder<SVcsModification> {
-  public static final String IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION = "rest.ignoreChangesFromDependenciesOption";
+  public static final String IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION = "rest.ignoreChangesFromDependenciesOption";  //todo: allow specify in locator
 
   public static final String PERSONAL = "personal";
   public static final String PROJECT = "project";
@@ -253,10 +253,10 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     if (locator.getUnusedDimensions().contains(BUILD)) {
       final String buildLocator = locator.getSingleDimensionValue(BUILD);
       if (buildLocator != null) {
-        final List<SVcsModification> buildChanges = getBuildChanges(myBuildFinder.getBuildPromotion(null, buildLocator));
+        final Set<Long> buildChanges = getBuildChanges(myBuildFinder.getBuildPromotion(null, buildLocator), getLookupLimit(locator)).map(change -> change.getId()).collect(Collectors.toSet());
         result.add(new FilterConditionChecker<SVcsModification>() {
           public boolean isIncluded(@NotNull final SVcsModification item) {
-            return buildChanges.contains(item);
+            return buildChanges.contains(item.getId());
           }
         });
       }
@@ -266,11 +266,12 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     if (locator.getUnusedDimensions().contains(PROMOTION)) {
       final Long promotionLocator = locator.getSingleDimensionValueAsLong(PROMOTION);
       if (promotionLocator != null) {
-        @SuppressWarnings("ConstantConditions") final List<SVcsModification> buildChanges =
-          getBuildChanges(BuildFinder.getBuildPromotion(promotionLocator, myServiceLocator.findSingletonService(BuildPromotionManager.class)));
+        @SuppressWarnings("ConstantConditions") final Set<Long> buildChanges =
+          getBuildChanges(BuildFinder.getBuildPromotion(promotionLocator, myServiceLocator.findSingletonService(BuildPromotionManager.class)), null)
+            .map(change -> change.getId()).collect(Collectors.toSet());
         result.add(new FilterConditionChecker<SVcsModification>() {
           public boolean isIncluded(@NotNull final SVcsModification item) {
-            return buildChanges.contains(item);
+            return buildChanges.contains(item.getId());
           }
         });
       }
@@ -447,16 +448,17 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       } catch (Exception e) {
         //support for finished builds
         //todo: use buildPromotionFinder here (ensure it also supports finished builds)
-        buildFromBuildFinder = myBuildFinder.getBuildPromotion(null, buildLocator);
+        buildFromBuildFinder = myBuildFinder.getBuildPromotion(null, buildLocator);   //THIS SHOULD NEVER HAPPEN
       }
-      return getItemHolder(getBuildChanges(buildFromBuildFinder));
+      return FinderDataBinding.getItemHolder(getBuildChanges(buildFromBuildFinder, getBuildChangesLimit(locator)));
     }
 
     //pre-9.0 compatibility
     final Long promotionLocator = locator.getSingleDimensionValueAsLong(PROMOTION);
     if (promotionLocator != null) {
       //noinspection ConstantConditions
-      return getItemHolder(getBuildChanges(BuildFinder.getBuildPromotion(promotionLocator, myServiceLocator.findSingletonService(BuildPromotionManager.class))));
+      return FinderDataBinding.getItemHolder(getBuildChanges(BuildFinder.getBuildPromotion(promotionLocator, myServiceLocator.findSingletonService(BuildPromotionManager.class)),
+                                                             getBuildChangesLimit(locator)));
     }
 
     if (buildType != null) {
@@ -535,6 +537,28 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
     //todo: highly inefficient!
     return getItemHolder(myVcsModificationHistory.getAllModifications());
+  }
+
+  @Nullable
+  private Long getBuildChangesLimit(final @NotNull Locator locator) {
+    Long count = null;
+    if (locator.getDefinedDimensions().size() <=3) {
+      Set dimensions = new HashSet<String>(locator.getDefinedDimensions());
+      dimensions.remove(BUILD);
+      dimensions.remove(PagerData.COUNT);
+      dimensions.remove(DIMENSION_LOOKUP_LIMIT);
+      if (dimensions.isEmpty()) {
+        //no filtering dimensions other than "build"
+        count = getCount(locator);
+      }
+    }
+
+    Long lookupLimit = getLookupLimit(locator);
+    if (count == null) {
+      return lookupLimit;
+    } else {
+      return lookupLimit == null ? count : Math.min(lookupLimit, count);
+    }
   }
 
   @Nullable
@@ -625,20 +649,16 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     return convertChanges(changes);
   }
 
-  public static List<SVcsModification> getBuildChanges(final BuildPromotion buildPromotion) {
+  private static Stream<SVcsModification> getBuildChanges(@NotNull final BuildPromotion buildPromotion, @Nullable final Long limit) {
+    Boolean includeDependencyChanges = null;
     if (TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION)) {
-      return buildPromotion.getContainingChanges();
+      includeDependencyChanges = true;
     }
 
-    List<SVcsModification> res = new ArrayList<SVcsModification>();
-    for (ChangeDescriptor ch : ((BuildPromotionEx)buildPromotion).getDetectedChanges(SelectPrevBuildPolicy.SINCE_LAST_BUILD)) {
-      final SVcsModification mod = ch.getRelatedVcsChange();
-      if (mod != null) {
-        res.add(mod);
-      }
-    }
+    VcsModificationProcessor processor = limit == null ? VcsModificationProcessor.ACCEPT_ALL : new LimitingVcsModificationProcessor(limit.intValue());
 
-    return res;
+    return ((BuildPromotionEx)buildPromotion).getDetectedChanges(SelectPrevBuildPolicy.SINCE_LAST_BUILD, includeDependencyChanges, processor)
+                                             .stream().map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull);
   }
 
   static private List<SVcsModification> getProjectChanges(@NotNull final VcsModificationHistory vcsHistory,
