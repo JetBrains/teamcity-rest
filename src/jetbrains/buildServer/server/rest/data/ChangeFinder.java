@@ -210,14 +210,16 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       });
     }
 
-    final String userLocator = locator.getSingleDimensionValue(USER);
-    if (userLocator != null) {
-      final SUser user = myUserFinder.getItem(userLocator);
-      result.add(new FilterConditionChecker<SVcsModification>() {
-        public boolean isIncluded(@NotNull final SVcsModification item) {
-          return item.getCommitters().contains(user);
-        }
-      });
+    if (locator.getUnusedDimensions().contains(USER)) {
+      final String userLocator = locator.getSingleDimensionValue(USER);
+      if (userLocator != null) {
+        final SUser user = myUserFinder.getItem(userLocator);
+        result.add(new FilterConditionChecker<SVcsModification>() {
+          public boolean isIncluded(@NotNull final SVcsModification item) {
+            return item.getCommitters().contains(user);
+          }
+        });
+      }
     }
 
     //TeamCity API: exclude "fake" personal changes created by TeamCity for personal builds without personal changes
@@ -318,16 +320,18 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       }
     }
 
-    final Boolean pending = locator.getSingleDimensionValueAsBoolean(PENDING);
-    if (pending != null) {
-      final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE); //todo: support multiple buildTypes here
-      final SBuildType buildType = buildTypeLocator == null ? null : myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
-      final List<SVcsModification> pendingChanges = getPendingChanges(buildType, getFilterBranches(locator, buildType));
-      result.add(new FilterConditionChecker<SVcsModification>() {
-        public boolean isIncluded(@NotNull final SVcsModification item) {
-          return FilterUtil.isIncludedByBooleanFilter(pending, pendingChanges.contains(item));
-        }
-      });
+    if (locator.getUnusedDimensions().contains(PENDING)) {
+      final Boolean pending = locator.getSingleDimensionValueAsBoolean(PENDING);
+      if (pending != null) {
+        final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE); //todo: support multiple buildTypes here
+        final SBuildType buildType = buildTypeLocator == null ? null : myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
+        final List<SVcsModification> pendingChanges = getPendingChanges(buildType, getFilterBranches(locator, buildType));
+        result.add(new FilterConditionChecker<SVcsModification>() {
+          public boolean isIncluded(@NotNull final SVcsModification item) {
+            return FilterUtil.isIncludedByBooleanFilter(pending, pendingChanges.contains(item));
+          }
+        });
+      }
     }
 
     final String fileLocator = locator.getSingleDimensionValue(FILE);
@@ -426,19 +430,8 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       return getItemHolder(getBranchChanges(buildType, filterBranches, SelectPrevBuildPolicy.SINCE_FIRST_BUILD));
     }
 
+    locator.markUnused(BUILD_TYPE); //not used this time
 
-    final String userLocator = locator.getSingleDimensionValue(USER);
-    if (userLocator != null) {
-      final SUser user = myUserFinder.getItem(userLocator);
-      return getItemHolder(myServiceLocator.getSingletonService(UserChangesFacade.class).getAllVcsModifications(user));
-    }
-
-    final Boolean personal = locator.getSingleDimensionValueAsBoolean(PERSONAL);
-
-    //todo: remove this?
-    if (personal != null && personal) {
-      throw new BadRequestException("Serving personal changes is only supported when user is specified.");
-    }
 
     final String buildLocator = locator.getSingleDimensionValue(BUILD);
     if (buildLocator != null) {
@@ -461,8 +454,10 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
                                                              getBuildChangesLimit(locator)));
     }
 
-    if (buildType != null) {
-      return getItemHolder(getBuildTypeChanges(buildType));
+    final String userLocator = locator.getSingleDimensionValue(USER);
+    if (userLocator != null) {
+      final SUser user = myUserFinder.getItem(userLocator);
+      return getItemHolder(myServiceLocator.getSingletonService(UserChangesFacade.class).getAllVcsModifications(user));
     }
 
     Long sinceChangeId = null;
@@ -475,11 +470,16 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     if (vcsRootInstanceLocator != null) {
       final VcsRootInstance vcsRootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
       if (sinceChangeId != null) {
-        return getItemHolder(myVcsModificationHistory.getModificationsInRange(vcsRootInstance, sinceChangeId, null)); //todo: use lookupLimit here or othervise limit processing
+        return getItemHolder(myVcsModificationHistory.getModificationsInRange(vcsRootInstance, sinceChangeId, null)); //todo: use lookupLimit here or otherwise limit processing
       } else {
         //todo: highly inefficient!
         return getItemHolder(myVcsModificationHistory.getAllModifications(vcsRootInstance));
       }
+    }
+
+    if (buildType != null) {
+      locator.getSingleDimensionValue(BUILD_TYPE); //marking as used
+      return getItemHolder(getBuildTypeChanges(buildType));
     }
 
     final String projectLocator = locator.getSingleDimensionValue(PROJECT);
@@ -488,7 +488,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     }
 
     if (sinceChangeId != null) {
-      return getItemHolder(myVcsModificationHistory.getModificationsInRange(null, sinceChangeId, null));  //todo: use lookupLimit here or othervise limit processing
+      return getItemHolder(myVcsModificationHistory.getModificationsInRange(null, sinceChangeId, null));  //todo: use lookupLimit here or otherwise limit processing
     }
 
     final String parentChangeLocator = locator.getSingleDimensionValue(CHILD_CHANGE);
@@ -638,13 +638,14 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
 
   @NotNull
-  private List<SVcsModification> getBranchChanges(@NotNull final SBuildType buildType, @NotNull final List<BranchData> filterBranches, @NotNull final SelectPrevBuildPolicy policy) {
+  private List<SVcsModification> getBranchChanges(@Nullable final SBuildType buildType, @NotNull final List<BranchData> filterBranches, @NotNull final SelectPrevBuildPolicy policy) {
     //todo: buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES) == false => do not include???
     //todo: 2 - allow to set the option in request
-    final boolean includeDependencyChanges = TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) || !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES);
+    final boolean includeDependencyChanges = TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) ||
+                                             (buildType != null && !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES));
     final List<ChangeDescriptor> changes = new ArrayList<>();
     for (BranchData branch : filterBranches) {
-      changes.addAll(branch.getChanges(policy, includeDependencyChanges)); //TeamCity API issue: cast
+      changes.addAll(branch.getChanges(policy, includeDependencyChanges));
     }
     return convertChanges(changes);
   }
