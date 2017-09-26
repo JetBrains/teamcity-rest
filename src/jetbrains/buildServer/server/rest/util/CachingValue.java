@@ -32,6 +32,10 @@ public abstract class CachingValue<S> {
     return myValue;
   }
 
+  public boolean isCached() {
+    return myValue != null;
+  }
+
   /**
    * Should not return null
    * @return
@@ -41,11 +45,27 @@ public abstract class CachingValue<S> {
 
   @NotNull
   public static <S>CachingValue<S> simple(@NotNull final S value) {
-    return new CachingValue<S>() {
+    return new CachingValue<S>(){
       @NotNull
       @Override
       protected S doGet() {
         return value;
+      }
+
+      @Override
+      public boolean isCached() {
+        return true;
+      }
+    };
+  }
+
+  @NotNull
+  public static <S>CachingValue<S> simple(@NotNull final ValueWithDefault.Value<S> value) {
+    return new CachingValue<S>() {
+      @NotNull
+      @Override
+      protected S doGet() {
+        return value.get();
       }
     };
   }

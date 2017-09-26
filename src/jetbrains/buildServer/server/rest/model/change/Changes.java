@@ -47,6 +47,9 @@ public class Changes implements DefaultValueAware {
   public static final String CHANGE = "change";
   public static final String COUNT = "count";
 
+  private List<Change> myChanges;
+  private Integer myCount;
+
   public Changes() {
   }
 
@@ -54,15 +57,7 @@ public class Changes implements DefaultValueAware {
                  @Nullable final PagerData pagerData,
                  @NotNull Fields fields,
                  @NotNull final BeanContext beanContext) {
-    myModifications = modifications == null ? null : new CachingValue<List<SVcsModification>>() {
-      @Override
-      protected List<SVcsModification> doGet() {
-        return modifications;
-      }
-    };
-    myPagerData = pagerData;
-    myFields = fields;
-    myBeanContext = beanContext;
+    this(pagerData, fields, beanContext, modifications == null ? null : CachingValue.simple(modifications));
   }
 
   public Changes(@Nullable final PagerData pagerData,
@@ -73,34 +68,26 @@ public class Changes implements DefaultValueAware {
     myPagerData = pagerData;
     myFields = fields;
     myBeanContext = beanContext;
+
+    if (myModifications != null) {
+      myChanges = ValueWithDefault.decideDefault(myFields.isIncluded(CHANGE, myModifications.isCached(), false, null),
+                                                 () -> myModifications.get().stream().map(root -> new Change(root, myFields.getNestedField(CHANGE), myBeanContext))
+                                                                 .collect(Collectors.toList()));
+
+      //for performance reasons: include count only when changes are to be calculated
+      myCount = ValueWithDefault.decideIncludeByDefault(myFields.isIncluded(COUNT, myModifications.isCached(), false, myChanges != null),
+                                                     () -> myModifications.get().size());
+    }
   }
 
   @XmlElement(name = CHANGE)
   public List<Change> getChanges() {
-    return myModifications == null ? null
-           : ValueWithDefault.decideDefault(myFields.isIncluded(CHANGE, false),
-                                            () -> myModifications.get().stream().map(root -> new Change(root, myFields.getNestedField(CHANGE), myBeanContext)).collect(Collectors.toList()));
+    return myChanges;
   }
 
   @XmlAttribute
   public Integer getCount() {
-    if (myModifications == null) return null;
-
-    final Boolean countRequested = myFields.isIncluded(COUNT);
-    if (countRequested != null) {
-      if (countRequested) {
-        return myModifications.get().size();
-      } else {
-        return null;
-      }
-    }
-
-    //for performance reasons: include count only when changes are to be calculated
-    final Boolean changesAreCalculated = myFields.isIncluded(CHANGE, false);
-    if (changesAreCalculated == null || changesAreCalculated) {
-      return myModifications.get().size();
-    }
-    return null;
+    return myCount;
   }
 
   @XmlAttribute(required = false)

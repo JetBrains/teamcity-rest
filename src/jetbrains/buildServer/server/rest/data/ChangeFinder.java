@@ -540,29 +540,6 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   }
 
   @Nullable
-  private Long getBuildChangesLimit(final @Nullable Locator locator) {
-    if (locator == null) return null;
-    Long count = null;
-    if (locator.getDefinedDimensions().size() <=3) {
-      Set dimensions = new HashSet<String>(locator.getDefinedDimensions());
-      dimensions.remove(BUILD);
-      dimensions.remove(PagerData.COUNT);
-      dimensions.remove(DIMENSION_LOOKUP_LIMIT);
-      if (dimensions.isEmpty()) {
-        //no filtering dimensions other than "build"
-        count = getCountNotMarkingAsUsed(locator);
-      }
-    }
-
-    Long lookupLimit = getLookupLimit(locator);
-    if (count == null) {
-      return lookupLimit;
-    } else {
-      return lookupLimit == null ? count : Math.min(lookupLimit, count);
-    }
-  }
-
-  @Nullable
   private List<BranchData> getFilterBranches(@NotNull final Locator locator, @Nullable final SBuildType buildType) {
     String branchDimension = locator.getSingleDimensionValue(BRANCH);
     if (branchDimension != null) {
@@ -656,6 +633,16 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
                                              .stream().map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull);
   }
 
+  public boolean isCheap(@NotNull final BuildPromotion buildPromotion, @Nullable final String locatorText) {
+    Locator locator;
+    try {
+      locator = new Locator(locatorText);
+    } catch (LocatorProcessException e) {
+      return false;
+    }
+    return ((BuildPromotionEx)buildPromotion).hasComputedChanges(getBuildChangesPolicy(), getBuildChangesProcessor(getBuildChangesLimit(locator)));
+  }
+
   private static VcsModificationProcessor getBuildChangesProcessor(final @Nullable Long limit) {
     return limit == null ? VcsModificationProcessor.ACCEPT_ALL : new LimitingVcsModificationProcessor(limit.intValue());
   }
@@ -672,6 +659,29 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   @NotNull
   private static SelectPrevBuildPolicy getBuildChangesPolicy() {
     return SelectPrevBuildPolicy.SINCE_LAST_BUILD;
+  }
+
+  @Nullable
+  private Long getBuildChangesLimit(final @Nullable Locator locator) {
+    if (locator == null) return null;
+    Long count = null;
+    if (locator.getDefinedDimensions().size() <=3) {
+      Set dimensions = new HashSet<String>(locator.getDefinedDimensions());
+      dimensions.remove(BUILD);
+      dimensions.remove(PagerData.COUNT);
+      dimensions.remove(DIMENSION_LOOKUP_LIMIT);
+      if (dimensions.isEmpty()) {
+        //no filtering dimensions other than "build"
+        count = getCountNotMarkingAsUsed(locator);
+      }
+    }
+
+    Long lookupLimit = getLookupLimit(locator);
+    if (count == null) {
+      return lookupLimit;
+    } else {
+      return lookupLimit == null ? count : Math.min(lookupLimit, count);
+    }
   }
 
   static private List<SVcsModification> getProjectChanges(@NotNull final VcsModificationHistory vcsHistory,

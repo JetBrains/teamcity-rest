@@ -728,13 +728,14 @@ public class Build {
         String locator = Locator.merge(changesFields.getLocator(), ChangeFinder.getLocator(myBuildPromotion));
         final String href = ChangeRequest.getChangesHref(locator); //using locator without count in href
         final String finalLocator = Locator.merge(locator, Locator.getStringLocator(PagerData.COUNT, String.valueOf(FinderImpl.NO_COUNT)));
-        return new Changes(new PagerData(href), changesFields, myBeanContext, new CachingValue<List<SVcsModification>>() {
-          @NotNull
-          @Override
-          protected List<SVcsModification> doGet() {
-            return myBeanContext.getSingletonService(ChangeFinder.class).getItems(finalLocator).myEntries;
-          }
-        });
+        CachingValue<List<SVcsModification>> data;
+        ChangeFinder changeFinder = myBeanContext.getSingletonService(ChangeFinder.class);
+        if (changeFinder.isCheap(myBuildPromotion, finalLocator)) {
+          data = CachingValue.simple(changeFinder.getItems(finalLocator).myEntries);
+        } else {
+          data = CachingValue.simple(() -> changeFinder.getItems(finalLocator).myEntries);
+        }
+        return new Changes(new PagerData(href), changesFields, myBeanContext, data);
       }
     }, null, true);
     //see jetbrains.buildServer.controllers.changes.ChangesBean.getLimitedChanges for further optimization

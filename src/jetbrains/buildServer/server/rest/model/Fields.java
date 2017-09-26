@@ -38,6 +38,7 @@ public class Fields {
   private static final String DEFAULT_FIELDS_LONG_PATTERN = "$long";
   private static final String ALL_FIELDS_PATTERN = "*";
   private static final String ALL_NESTED_FIELDS_PATTERN = "**";
+  private static final String OPTIONAL_FIELDS_PATTERN = "$optional";
 
   private static final String LOCATOR_CUSTOM_NAME = "$locator";
 
@@ -132,9 +133,23 @@ public class Fields {
   @Nullable
   @Contract("_, !null, !null -> !null")
   public Boolean isIncluded(@NotNull final String fieldName, @Nullable final Boolean defaultForShort, @Nullable final Boolean defaultForLong) {
+    return isIncluded(fieldName, null, defaultForShort, defaultForLong);
+  }
+
+  @Nullable
+  @Contract("_, _, !null, !null -> !null")
+  public Boolean isIncluded(@NotNull final String fieldName,  @Nullable final Boolean isCashed, @Nullable final Boolean defaultForShort, @Nullable final Boolean defaultForLong) {
     final String fieldSpec = getCustomDimension(fieldName);
-    if(fieldSpec != null){
-      return !NONE_FIELDS_PATTERN.equals(fieldSpec);
+    if (fieldSpec != null) {
+      if (NONE_FIELDS_PATTERN.equals(fieldSpec)) {
+        return false;
+      }
+      if (isCashed != null) {
+        if (OPTIONAL_FIELDS_PATTERN.equals(fieldSpec) || new Fields(fieldSpec).getCustomDimension(OPTIONAL_FIELDS_PATTERN) != null) {
+          return isCashed;
+        }
+      }
+      return true;
     }
 
     if (isNone()){
@@ -277,7 +292,8 @@ public class Fields {
       try {
         myFieldsSpecLocator = new Locator(myFieldsSpec, true,
                                           NONE_FIELDS_PATTERN, DEFAULT_FIELDS_SHORT_PATTERN_ALTERNATIVE, DEFAULT_FIELDS_LONG_PATTERN, ALL_FIELDS_PATTERN, ALL_NESTED_FIELDS_PATTERN,
-                                          LOCATOR_CUSTOM_NAME);
+                                          LOCATOR_CUSTOM_NAME, OPTIONAL_FIELDS_PATTERN);
+        myFieldsSpecLocator.addHiddenDimensions(OPTIONAL_FIELDS_PATTERN);
       } catch (LocatorProcessException e) {
         throw new LocatorProcessException("Error parsing fields specification: " + e.getMessage(), e);
       }
@@ -288,5 +304,10 @@ public class Fields {
   @NotNull
   public String getFieldsSpec() {
     return myFieldsSpec;
+  }
+
+  @Override
+  public String toString() {
+    return getFieldsSpec();
   }
 }
