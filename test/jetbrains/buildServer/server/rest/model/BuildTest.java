@@ -877,16 +877,14 @@ public class BuildTest extends BaseFinderTest<SBuild> {
       assertEquals("/app/rest/changes?locator=count:1,build:(id:" + build2.getBuildId() + ")", changes.getHref());
       assertEquals(Integer.valueOf(1), changes.getCount());
       assertEquals(1, changes.getChanges().size());
-//      assertNotNull(changes.getNextHref());
     }
     {
       setInternalProperty("rest.defaultPageSize", "1");
       Build build = new Build(build2, new Fields("changes($long)"), getBeanContext(myFixture));
       Changes changes = build.getChanges();
       assertEquals("/app/rest/changes?locator=build:(id:" + build2.getBuildId() + ")", changes.getHref());
-      assertEquals(Integer.valueOf(1), changes.getCount());
-      assertEquals(1, changes.getChanges().size());
-//      assertNotNull(changes.getNextHref());
+      assertEquals(Integer.valueOf(2), changes.getCount()); //all the changes are present in the node
+      assertEquals(2, changes.getChanges().size());
       removeInternalProperty("rest.defaultPageSize");
     }
   }
