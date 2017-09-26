@@ -255,7 +255,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     if (locator.getUnusedDimensions().contains(BUILD)) {
       final String buildLocator = locator.getSingleDimensionValue(BUILD);
       if (buildLocator != null) {
-        final Set<Long> buildChanges = getBuildChanges(myBuildFinder.getBuildPromotion(null, buildLocator), getLookupLimit(locator)).map(change -> change.getId()).collect(Collectors.toSet());
+        final Set<Long> buildChanges = getBuildChanges(myBuildFinder.getBuildPromotion(null, buildLocator), locator).map(change -> change.getId()).collect(Collectors.toSet());
         result.add(new FilterConditionChecker<SVcsModification>() {
           public boolean isIncluded(@NotNull final SVcsModification item) {
             return buildChanges.contains(item.getId());
@@ -443,7 +443,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
         //todo: use buildPromotionFinder here (ensure it also supports finished builds)
         buildFromBuildFinder = myBuildFinder.getBuildPromotion(null, buildLocator);   //THIS SHOULD NEVER HAPPEN
       }
-      return FinderDataBinding.getItemHolder(getBuildChanges(buildFromBuildFinder, getBuildChangesLimit(locator)));
+      return FinderDataBinding.getItemHolder(getBuildChanges(buildFromBuildFinder, locator));
     }
 
     //pre-9.0 compatibility
@@ -451,7 +451,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     if (promotionLocator != null) {
       //noinspection ConstantConditions
       return FinderDataBinding.getItemHolder(getBuildChanges(BuildFinder.getBuildPromotion(promotionLocator, myServiceLocator.findSingletonService(BuildPromotionManager.class)),
-                                                             getBuildChangesLimit(locator)));
+                                                             locator));
     }
 
     final String userLocator = locator.getSingleDimensionValue(USER);
@@ -540,7 +540,8 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   }
 
   @Nullable
-  private Long getBuildChangesLimit(final @NotNull Locator locator) {
+  private Long getBuildChangesLimit(final @Nullable Locator locator) {
+    if (locator == null) return null;
     Long count = null;
     if (locator.getDefinedDimensions().size() <=3) {
       Set dimensions = new HashSet<String>(locator.getDefinedDimensions());
@@ -650,16 +651,27 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     return convertChanges(changes);
   }
 
-  private static Stream<SVcsModification> getBuildChanges(@NotNull final BuildPromotion buildPromotion, @Nullable final Long limit) {
+  private Stream<SVcsModification> getBuildChanges(@NotNull final BuildPromotion buildPromotion, @Nullable final Locator locator) {
+    return ((BuildPromotionEx)buildPromotion).getDetectedChanges(getBuildChangesPolicy(), getBuildChangesIncludeDependencies(), getBuildChangesProcessor(getBuildChangesLimit(locator)))
+                                             .stream().map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull);
+  }
+
+  private static VcsModificationProcessor getBuildChangesProcessor(final @Nullable Long limit) {
+    return limit == null ? VcsModificationProcessor.ACCEPT_ALL : new LimitingVcsModificationProcessor(limit.intValue());
+  }
+
+  @Nullable
+  private static Boolean getBuildChangesIncludeDependencies() {
     Boolean includeDependencyChanges = null;
     if (TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION)) {
       includeDependencyChanges = true;
     }
+    return includeDependencyChanges;
+  }
 
-    VcsModificationProcessor processor = limit == null ? VcsModificationProcessor.ACCEPT_ALL : new LimitingVcsModificationProcessor(limit.intValue());
-
-    return ((BuildPromotionEx)buildPromotion).getDetectedChanges(SelectPrevBuildPolicy.SINCE_LAST_BUILD, includeDependencyChanges, processor)
-                                             .stream().map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull);
+  @NotNull
+  private static SelectPrevBuildPolicy getBuildChangesPolicy() {
+    return SelectPrevBuildPolicy.SINCE_LAST_BUILD;
   }
 
   static private List<SVcsModification> getProjectChanges(@NotNull final VcsModificationHistory vcsHistory,
