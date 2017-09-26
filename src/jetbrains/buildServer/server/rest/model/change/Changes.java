@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model.change;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -76,18 +77,9 @@ public class Changes implements DefaultValueAware {
 
   @XmlElement(name = CHANGE)
   public List<Change> getChanges() {
-    return myModifications == null
-           ? null
-           : ValueWithDefault.decideDefault(myFields.isIncluded(CHANGE, false), new ValueWithDefault.Value<List<Change>>() {
-             @Nullable
-             public List<Change> get() {
-               List<Change> changes = new ArrayList<Change>(myModifications.get().size());
-               for (SVcsModification root : myModifications.get()) {
-                 changes.add(new Change(root, myFields.getNestedField(CHANGE), myBeanContext));
-               }
-               return changes;
-             }
-           });
+    return myModifications == null ? null
+           : ValueWithDefault.decideDefault(myFields.isIncluded(CHANGE, false),
+                                            () -> myModifications.get().stream().map(root -> new Change(root, myFields.getNestedField(CHANGE), myBeanContext)).collect(Collectors.toList()));
   }
 
   @XmlAttribute
