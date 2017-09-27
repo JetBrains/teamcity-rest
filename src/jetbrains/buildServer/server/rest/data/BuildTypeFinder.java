@@ -884,12 +884,10 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
   @NotNull
   private List<BuildTypeOrTemplate> getDependingOn(@NotNull final SBuildType buildType, @NotNull final PermissionChecker permissionChecker) {
-    final Set<String> internalIds = ((BuildTypeEx)buildType).getDependedOnMe().keySet(); //TeamCity open API issue
     final ArrayList<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
-    for (String internalId : internalIds) {
-      final SBuildType buildTypeById = myProjectManager.findBuildTypeById(internalId);
-      if (buildTypeById != null && !BuildType.shouldRestrictSettingsViewing(buildTypeById, permissionChecker)){ //conceal dependencies
-        result.add(new BuildTypeOrTemplate(buildTypeById));
+    for (SBuildType ref: buildType.getDependencyReferences()) {
+      if (!BuildType.shouldRestrictSettingsViewing(ref, permissionChecker)){ //conceal dependencies
+        result.add(new BuildTypeOrTemplate(ref));
       }
     }
     return result;
