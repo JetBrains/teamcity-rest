@@ -31,6 +31,7 @@ import jetbrains.buildServer.serverSide.userChanges.UserChangesFacade;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.graph.BFSVisitorAdapter;
 import jetbrains.buildServer.util.graph.DAG;
 import jetbrains.buildServer.util.graph.DAGIterator;
@@ -634,11 +635,13 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   }
 
   public boolean isCheap(@NotNull final BuildPromotion buildPromotion, @Nullable final String locatorText) {
-    Locator locator;
-    try {
-      locator = new Locator(locatorText);
-    } catch (LocatorProcessException e) {
-      return false;
+    Locator locator = null;
+    if (!StringUtil.isEmpty(locatorText)) {
+      try {
+        locator = new Locator(locatorText);
+      } catch (LocatorProcessException e) {
+        return false;
+      }
     }
     return ((BuildPromotionEx)buildPromotion).hasComputedChanges(getBuildChangesPolicy(), getBuildChangesProcessor(getBuildChangesLimit(locator)));
   }

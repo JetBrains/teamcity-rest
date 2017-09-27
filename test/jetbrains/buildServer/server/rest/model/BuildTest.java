@@ -889,6 +889,95 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     }
   }
 
+  @Test
+  public void testChangesOptional() throws IOException {
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", myBuildType);
+    VcsRootInstance root1 = myBuildType.getVcsRootInstanceForParent(parentRoot1);
+    assert root1 != null;
+
+    final BuildFinderTestBase.MockCollectRepositoryChangesPolicy changesPolicy = new BuildFinderTestBase.MockCollectRepositoryChangesPolicy();
+    vcs.setCollectChangesPolicy(changesPolicy);
+    for (int i = 0; i < 10; i++) {
+      addChange(root1, i, changesPolicy);
+    }
+    ensureChangesDetected();
+
+    SFinishedBuild build1 = build().in(myBuildType).finish();
+
+    ((BuildPromotionEx)build1.getBuildPromotion()).resetChangesCache();
+
+    assertFalse(myChangeFinder.isCheap(build1.getBuildPromotion(), null));
+    {
+      Build build = new Build(build1, new Fields("changes"), getBeanContext(myFixture));
+      Changes changes = build.getChanges();
+      assertEquals("/app/rest/changes?locator=build:(id:" + build1.getBuildId() + ")", changes.getHref());
+      assertEquals(null, changes.getCount());
+      assertEquals(null, changes.getChanges());
+    }
+    {
+      Build build = new Build(build1, new Fields("changes(change($optional))"), getBeanContext(myFixture));
+      Changes changes = build.getChanges();
+      assertEquals(null, changes.getCount());
+      assertEquals(null, changes.getChanges());
+    }
+    {
+      Build build = new Build(build1, new Fields("changes(change($optional),count($optional))"), getBeanContext(myFixture));
+      Changes changes = build.getChanges();
+      assertEquals(null, changes.getCount());
+      assertEquals(null, changes.getChanges());
+    }
+    {
+      Build build = new Build(build1, new Fields("changes(count($optional))"), getBeanContext(myFixture));
+      Changes changes = build.getChanges();
+      assertEquals(null, changes.getCount());
+      assertEquals(null, changes.getChanges());
+    }
+    {
+      Build build = new Build(build1, new Fields("changes($locator(count:2),count($optional))"), getBeanContext(myFixture));
+      Changes changes = build.getChanges();
+      assertEquals(null, changes.getCount());
+      assertEquals(null, changes.getChanges());
+    }
+    {
+      Build build = new Build(build1, new Fields("changes($locator(count:2))"), getBeanContext(myFixture)); //no fields requested
+      Changes changes = build.getChanges();
+      assertEquals(null, changes.getChanges());
+      assertEquals(null, changes.getCount());
+    }
+    assertFalse(myChangeFinder.isCheap(build1.getBuildPromotion(), null)); //still not calculated
+    {
+      Build build = new Build(build1, new Fields("changes($locator(count:2),count)"), getBeanContext(myFixture));
+      Changes changes = build.getChanges();
+      assertEquals(null, changes.getChanges());
+      assertEquals(Integer.valueOf(2), changes.getCount());
+    }
+    assertFalse(myChangeFinder.isCheap(build1.getBuildPromotion(), null));
+    assertTrue(myChangeFinder.isCheap(build1.getBuildPromotion(), "count:2"));
+    {
+      Build build = new Build(build1, new Fields("changes($locator(count:2),count($optional))"), getBeanContext(myFixture));
+      Changes changes = build.getChanges();
+      assertEquals(Integer.valueOf(2), changes.getCount());
+    }
+    {
+      Build build = new Build(build1, new Fields("changes($locator(count:1),count($optional))"), getBeanContext(myFixture)); //less than cached
+      Changes changes = build.getChanges();
+      assertEquals(Integer.valueOf(1), changes.getCount());
+    }
+    {
+      Build build = new Build(build1, new Fields("changes($locator(count:3),count($optional))"), getBeanContext(myFixture));  //morethan cached
+      Changes changes = build.getChanges();
+      assertEquals(null, changes.getCount());
+    }
+    assertFalse(myChangeFinder.isCheap(build1.getBuildPromotion(), "count:3")); //still not calculated
+
+    {
+      Build build = new Build(build1, new Fields("changes($optional)"), getBeanContext(myFixture));  //$optional should not be included when not supported
+      assertNull(build.getChanges());
+    }
+  }
+
   private void ensureChangesDetected() {
     myBuildType.forceCheckingForChanges();
     myFixture.getVcsModificationChecker().ensureModificationChecksComplete();

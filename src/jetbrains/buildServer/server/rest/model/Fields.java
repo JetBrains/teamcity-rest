@@ -144,10 +144,8 @@ public class Fields {
       if (NONE_FIELDS_PATTERN.equals(fieldSpec)) {
         return false;
       }
-      if (isCashed != null) {
-        if (OPTIONAL_FIELDS_PATTERN.equals(fieldSpec) || new Fields(fieldSpec).getCustomDimension(OPTIONAL_FIELDS_PATTERN) != null) {
-          return isCashed;
-        }
+      if (OPTIONAL_FIELDS_PATTERN.equals(fieldSpec) || new Fields(fieldSpec).getCustomDimension(OPTIONAL_FIELDS_PATTERN) != null) {
+        return isCashed != null && isCashed;
       }
       return true;
     }
