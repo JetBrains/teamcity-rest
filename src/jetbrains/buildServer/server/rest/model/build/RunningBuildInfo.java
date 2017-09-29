@@ -23,12 +23,13 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SRunningBuild;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
  *         Date: 13.09.2010
  */
-@XmlType(propOrder = { "progress", "elapsedTime", "estimatedDuration", "leftTime", "currentStageText", "outdated", "probablyHanging"})
+@XmlType(propOrder = {"percentageComplete", "elapsedSeconds", "estimatedTotalSeconds", "leftSeconds", "currentStageText", "outdated", "probablyHanging"})
 @XmlRootElement(name = "progress-info")
 public class RunningBuildInfo {
   @NotNull
@@ -44,29 +45,31 @@ public class RunningBuildInfo {
   }
 
   @XmlAttribute(name = "percentageComplete")
-  public Integer getProgress() {
-    if (myBuild.getDurationEstimate() == -1){
-      return null;
-    }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("percentageComplete", true), myBuild.getCompletedPercent());
-  }
-
-  @XmlAttribute(name = "elapsedSeconds")
-  public Long getElapsedTime() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("elapsedSeconds", true), myBuild.getElapsedTime());
-  }
-
-  @XmlAttribute(name = "estimatedTotalSeconds")
-  public Long getEstimatedDuration() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("estimatedTotalSeconds", true), () -> {
-      final long durationEstimate = myBuild.getDurationEstimate();
-      return durationEstimate == -1 ? null : durationEstimate;
+  public Integer getPercentageComplete() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("percentageComplete", true), () -> {
+      if (myBuild.getDurationEstimate() == -1) {
+        return null;
+      }
+      return myBuild.getCompletedPercent();
     });
   }
 
+  @XmlAttribute(name = "elapsedSeconds")
+  public Long getElapsedSeconds() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("elapsedSeconds", true), () -> myBuild.getElapsedTime());
+  }
+
   @XmlAttribute(name = "leftSeconds")
-  public Long getLeftTime() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("leftSeconds", true), myBuild.getEstimationForTimeLeft());
+  public Long getLeftSeconds() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("leftSeconds", false, false), () -> getIfAvailable(myBuild.getEstimationForTimeLeft()));
+  }
+
+  /**
+   * @return Seconds estimated for the total build duration based on the build history
+   */
+  @XmlAttribute(name = "estimatedTotalSeconds")
+  public Long getEstimatedTotalSeconds() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("estimatedTotalSeconds", true), () -> getIfAvailable(myBuild.getDurationEstimate()));
   }
 
   @XmlAttribute
@@ -82,5 +85,10 @@ public class RunningBuildInfo {
   @XmlAttribute
   public String getCurrentStageText() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("currentStageText", true), myBuild.getCurrentPath());
+  }
+
+  @Nullable
+  private Long getIfAvailable(final long value) {
+    return value == -1 ? null : value;
   }
 }
