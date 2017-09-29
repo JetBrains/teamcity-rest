@@ -28,7 +28,7 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 13.09.2010
  */
-@XmlType(propOrder = { "progress", "elapsedTime", "estimatedDuration", "currentStageText", "outdated", "probablyHanging"})
+@XmlType(propOrder = { "progress", "elapsedTime", "estimatedDuration", "leftTime", "currentStageText", "outdated", "probablyHanging"})
 @XmlRootElement(name = "progress-info")
 public class RunningBuildInfo {
   @NotNull
@@ -58,12 +58,15 @@ public class RunningBuildInfo {
 
   @XmlAttribute(name = "estimatedTotalSeconds")
   public Long getEstimatedDuration() {
-    final long durationEstimate = myBuild.getDurationEstimate();
-    if (durationEstimate == -1) {
-      return null;
-    } else {
-      return ValueWithDefault.decideDefault(myFields.isIncluded("estimatedTotalSeconds", true), durationEstimate);
-    }
+    return ValueWithDefault.decideDefault(myFields.isIncluded("estimatedTotalSeconds", true), () -> {
+      final long durationEstimate = myBuild.getDurationEstimate();
+      return durationEstimate == -1 ? null : durationEstimate;
+    });
+  }
+
+  @XmlAttribute(name = "leftSeconds")
+  public Long getLeftTime() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("leftSeconds", true), myBuild.getEstimationForTimeLeft());
   }
 
   @XmlAttribute
