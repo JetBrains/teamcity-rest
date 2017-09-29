@@ -59,13 +59,16 @@ public class RunningBuildInfo {
     return ValueWithDefault.decideDefault(myFields.isIncluded("elapsedSeconds", true), () -> myBuild.getElapsedTime());
   }
 
+  /**
+   * @return estimate for the remaining time of the build, considering the current build stage and progress
+   */
   @XmlAttribute(name = "leftSeconds")
   public Long getLeftSeconds() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("leftSeconds", false, false), () -> getIfAvailable(myBuild.getEstimationForTimeLeft()));
   }
 
   /**
-   * @return Seconds estimated for the total build duration based on the build history
+   * @return Estimate for the total build duration based on the build history, not considering the current build stage and progress
    */
   @XmlAttribute(name = "estimatedTotalSeconds")
   public Long getEstimatedTotalSeconds() {
