@@ -26,10 +26,7 @@ import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.Link;
-import jetbrains.buildServer.server.rest.model.Links;
-import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -63,6 +60,8 @@ public class Agent {
   @XmlAttribute public Boolean uptodate;
   @XmlAttribute public String ip;
   @XmlAttribute public String protocol;
+  @XmlAttribute public String lastActivityTime; //experimental
+  @XmlAttribute public String unregisteringReason;  //experimental
   @XmlAttribute public String href;
   @XmlAttribute public String webUrl;
 
@@ -161,6 +160,12 @@ public class Agent {
           return getAgentProtocol(agent);
         }
       });
+
+      lastActivityTime = ValueWithDefault.decideDefault(fields.isIncluded("lastActivityTime", false, false),
+                                                        () -> Util.formatTime(agent.getLastCommunicationTimestamp()));
+
+      unregisteringReason = ValueWithDefault.decideDefault(fields.isIncluded("unregisteringReason", false, false),
+                                                           () -> agent.getUnregistrationComment());
 
       enabledInfo = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("enabledInfo", false), new ValueWithDefault.Value<AgentEnabledInfo>() {
         @Nullable
