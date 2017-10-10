@@ -61,7 +61,7 @@ public class Agent {
   @XmlAttribute public String ip;
   @XmlAttribute public String protocol;
   @XmlAttribute public String lastActivityTime; //experimental
-  @XmlAttribute public String unregisteringReason;  //experimental
+  @XmlAttribute public String disconnectionComment;  //experimental
   @XmlAttribute public String href;
   @XmlAttribute public String webUrl;
 
@@ -164,8 +164,8 @@ public class Agent {
       lastActivityTime = ValueWithDefault.decideDefault(fields.isIncluded("lastActivityTime", false, false),
                                                         () -> Util.formatTime(agent.getLastCommunicationTimestamp()));
 
-      unregisteringReason = ValueWithDefault.decideDefault(fields.isIncluded("unregisteringReason", false, false),
-                                                           () -> agent.getUnregistrationComment());
+      disconnectionComment = ValueWithDefault.decideDefault(fields.isIncluded("disconnectionComment", false, false),
+                                                            () -> agent.getUnregistrationComment());
 
       enabledInfo = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("enabledInfo", false), new ValueWithDefault.Value<AgentEnabledInfo>() {
         @Nullable
