@@ -60,6 +60,7 @@ public class Agent {
   @XmlAttribute public Boolean uptodate;
   @XmlAttribute public String ip;
   @XmlAttribute public String protocol;
+  @XmlAttribute public String version; //experimental
   @XmlAttribute public String lastActivityTime; //experimental
   @XmlAttribute public String disconnectionComment;  //experimental
   @XmlAttribute public String href;
@@ -160,6 +161,8 @@ public class Agent {
           return getAgentProtocol(agent);
         }
       });
+
+      version = ValueWithDefault.decideDefault(fields.isIncluded("version", false, false), () -> agent.getVersion());
 
       lastActivityTime = ValueWithDefault.decideDefault(fields.isIncluded("lastActivityTime", false, false),
                                                         () -> Util.formatTime(agent.getLastCommunicationTimestamp()));
