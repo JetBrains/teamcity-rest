@@ -99,6 +99,19 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     return Locator.getStringLocator(POOL, AgentPoolFinder.getLocator(pool), DEFAULT_FILTERING, "false");
   }
 
+  @Nullable
+  public SAgentType getAgentTypeIfOnlyDimension(@Nullable String locatorText) {
+    if (locatorText == null) return null;
+    Locator locator = new Locator(locatorText);
+    final String agentTypeLocator = locator.getSingleDimensionValue(AGENT_TYPE_ID);
+    if (agentTypeLocator == null || !locator.getUnusedDimensions().isEmpty()) {
+      return null;
+    }
+    return getAgentType(agentTypeLocator, myServiceLocator.getSingletonService(AgentTypeFinder.class));
+  }
+
+
+
   //todo: check view agent details permission before returning unauthorized agents, here and in prefiltering
   @Override
   @Nullable

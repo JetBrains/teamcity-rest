@@ -22,6 +22,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
@@ -35,6 +36,7 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
@@ -415,38 +417,40 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     }
 
-    final String agentLocator = locator.getSingleDimensionValue(AGENT);
-    if (agentLocator != null) {
-      final List<SBuildAgent> agents = myAgentFinder.getItems(agentLocator).myEntries;
-      if (agents.isEmpty()){
-        throw new NotFoundException("No agents are found by locator '" + agentLocator +"'");
-      }
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        //todo: consider improving performance, see jetbrains/buildServer/server/rest/data/build/GenericBuildsFilter.java:120
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
-          final SBuild build = item.getAssociatedBuild();
-          if (build != null) {
-            final SBuildAgent buildAgent = build.getAgent();
-            final int buildAgentId = buildAgent.getId();
-            final String buildAgentName = buildAgent.getName();
-            return CollectionsUtil.contains(agents, new Filter<SBuildAgent>() {
-              public boolean accept(@NotNull final SBuildAgent agent) {
-                if (agent.getId() > 0){
-                  return buildAgentId == agent.getId();
-                } else {
-                  return buildAgentName.equals(agent.getName());
-                }
-              }
-            });
-          }
-
-          final SQueuedBuild queuedBuild = item.getQueuedBuild(); //for queued build using compatible agents
-          if (queuedBuild != null) {
-            return !CollectionsUtil.intersect(queuedBuild.getCanRunOnAgents(), agents).isEmpty();
-          }
-          return false;
+    if (locator.isUnused(AGENT)) {
+      final String agentLocator = locator.getSingleDimensionValue(AGENT);
+      if (agentLocator != null) {
+        final List<SBuildAgent> agents = myAgentFinder.getItems(agentLocator).myEntries;
+        if (agents.isEmpty()) {
+          throw new NotFoundException("No agents are found by locator '" + agentLocator + "'");
         }
-      });
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          //todo: consider improving performance, see jetbrains/buildServer/server/rest/data/build/GenericBuildsFilter.java:120
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            final SBuild build = item.getAssociatedBuild();
+            if (build != null) {
+              final SBuildAgent buildAgent = build.getAgent();
+              final int buildAgentId = buildAgent.getId();
+              final String buildAgentName = buildAgent.getName();
+              return CollectionsUtil.contains(agents, new Filter<SBuildAgent>() {
+                public boolean accept(@NotNull final SBuildAgent agent) {
+                  if (agent.getId() > 0) {
+                    return buildAgentId == agent.getId();
+                  } else {
+                    return buildAgentName.equals(agent.getName());
+                  }
+                }
+              });
+            }
+
+            final SQueuedBuild queuedBuild = item.getQueuedBuild(); //for queued build using compatible agents
+            if (queuedBuild != null) {
+              return !CollectionsUtil.intersect(queuedBuild.getCanRunOnAgents(), agents).isEmpty();
+            }
+            return false;
+          }
+        });
+      }
     }
 
     //compatibility support
@@ -1121,6 +1125,63 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     }
 
     setLocatorDefaults(locator);
+
+    if (locator.getSingleDimensionValueAsBoolean("internal_newAgentFiltering", false)) {
+    final String agentLocator = locator.getSingleDimensionValue(AGENT);
+    if (agentLocator != null) {
+      Stream<BuildPromotion> result = Stream.empty();
+      //see below for alike code for generic filter
+      Locator stateLocator = getStateLocator(locator);
+
+      SAgentType agentType = myAgentFinder.getAgentTypeIfOnlyDimension(agentLocator); //todo: support several?
+      if (agentType != null) {
+        int agentTypeId = agentType.getAgentTypeId();
+        if (isStateIncluded(stateLocator, STATE_QUEUED)) {
+          //todo: should sort backwards as currently the order does not seem right...
+          result = Stream.concat(result, myBuildQueue.getItems().stream().filter(build -> build.getCanRunOnAgents().stream()
+                                                                                               .anyMatch(agent -> agent.getAgentTypeId() ==  agentTypeId))
+                                                     .map(build -> build.getBuildPromotion()));
+        }
+
+        if (isStateIncluded(stateLocator, STATE_RUNNING)) {  //todo: address an issue when a build can appear twice in the output
+          result = Stream.concat(result, myBuildsManager.getRunningBuilds().stream().filter(build -> build.getAgent().getAgentTypeId() == agentTypeId)
+                                                        .map(build -> build.getBuildPromotion()));
+        }
+
+        if (isStateIncluded(stateLocator, STATE_FINISHED)) {
+          //todo: optimize for user and canceled
+          //todo: SORT by builds, not agents!
+          Stream<BuildPromotion> finishedBuilds = agentType.getBuildHistory(null, true).stream().map(b -> b.getBuildPromotion());
+          result = Stream.concat(result, finishedBuilds);
+        }
+      } else {
+        final List<SBuildAgent> agents = myAgentFinder.getItems(agentLocator).myEntries;
+        //todo: consider improving performance, see jetbrains/buildServer/server/rest/data/build/GenericBuildsFilter.java:120
+        if (agents.isEmpty()) {
+          throw new NotFoundException("No agents are found by locator '" + agentLocator + "'");
+        }
+
+        if (isStateIncluded(stateLocator, STATE_QUEUED)) {
+          //todo: should sort backwards as currently the order does not seem right...
+          result = Stream.concat(result, myBuildQueue.getItems().stream().filter(build -> !CollectionsUtil.intersect(build.getCanRunOnAgents(), agents).isEmpty())
+                                                     .map(build -> build.getBuildPromotion()));
+        }
+
+        if (isStateIncluded(stateLocator, STATE_RUNNING)) {  //todo: address an issue when a build can appear twice in the output
+          result = Stream.concat(result, myBuildsManager.getRunningBuilds().stream().filter(build -> agents.contains(build.getAgent()))
+                                                        .map(build -> build.getBuildPromotion()));
+        }
+
+        if (isStateIncluded(stateLocator, STATE_FINISHED)) {
+          //todo: optimize for user and canceled
+          //todo: SORT by builds, not agents!
+          Stream<BuildPromotion> finishedBuilds = agents.stream().flatMap(agent -> agent.getBuildHistory(null, true).stream()).map(b -> b.getBuildPromotion());
+          result = Stream.concat(result, finishedBuilds);
+        }
+      }
+      return FinderDataBinding.getItemHolder(result);
+    }
+    }
 
     final String equivalent = locator.getSingleDimensionValue(EQUIVALENT);
     if (equivalent != null) {
