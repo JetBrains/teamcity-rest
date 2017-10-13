@@ -102,7 +102,8 @@
 
   <target name="test" depends="compile.module.rest-api.tests" description="Run tests">
     <taskdef name="testng" classpathref="rest-api.runtime.module.classpath" classname="org.testng.TestNGAntTask"/>
-    <testng haltonfailure="true">
+    <property name="fail.on.testng.failure" value="true"/> <!-- allow to override the behavior from outside-->
+    <testng haltonfailure="${fail.on.testng.failure}">
       <classpath refid="rest-api.runtime.module.classpath"/>
       <xmlfileset file="testng.xml"/>
     </testng>
