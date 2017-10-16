@@ -158,7 +158,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
           if ((long)item.getTestRunId() == idDimension) {
             return processInvocationExpansion(item, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
           }
-          if (!(item instanceof CompositeTestRun)) return null;
+          if (!(item instanceof MultiTestRun)) return null;
           for (STestRun testRun : getInvocations(item)) {
             if ((long)testRun.getTestRunId() == idDimension) {
               return processInvocationExpansion(testRun, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
@@ -266,8 +266,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   @NotNull
   private Collection<STestRun> getInvocations(@NotNull final STestRun item) {
-    if (!(item instanceof CompositeTestRun)) return Collections.singletonList(item);
-    CompositeTestRun compositeRun = (CompositeTestRun)item;
+    if (!(item instanceof MultiTestRun)) return Collections.singletonList(item);
+    MultiTestRun compositeRun = (MultiTestRun)item;
     return compositeRun.getTestRuns();
   }
 
@@ -280,7 +280,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       @Override
       public void process(@NotNull final ItemProcessor<STestRun> processor) {
         for (STestRun entry : tests) {
-          if (!(entry instanceof CompositeTestRun)) {
+          if (!(entry instanceof MultiTestRun)) {
             processor.processItem(entry);
           } else {
             for (STestRun nestedTestRun : getInvocations(entry)) {

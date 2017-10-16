@@ -27,7 +27,7 @@ import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.CompositeTestRun;
+import jetbrains.buildServer.serverSide.MultiTestRun;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.STestRun;
@@ -157,7 +157,7 @@ public class TestOccurrence {
 
     invocations = ValueWithDefault.decideDefault(fields.isIncluded("invocations", false, false), new ValueWithDefault.Value<TestOccurrences>() {
       public TestOccurrences get() {
-        if (!(testRun instanceof CompositeTestRun)) return null;
+        if (!(testRun instanceof MultiTestRun)) return null;
         Fields nestedField = fields.getNestedField("invocations");
         String invocationsLocator = Locator.merge(TestOccurrenceFinder.getTestInvocationsLocator(testRun), nestedField.getLocator());
         return new TestOccurrences(testOccurrenceFinder.getItems(invocationsLocator).myEntries, testRun.getInvocationCount(), null, testRun.getFailedInvocationCount(),
