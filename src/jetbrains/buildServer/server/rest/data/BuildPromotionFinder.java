@@ -1126,7 +1126,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     setLocatorDefaults(locator);
 
-    if (locator.getSingleDimensionValueAsBoolean("internal_newAgentFiltering", false)) {
+    if (locator.getSingleDimensionValueAsBoolean("internalNewAgentFiltering", false)) {
     final String agentLocator = locator.getSingleDimensionValue(AGENT);
     if (agentLocator != null) {
       Stream<BuildPromotion> result = Stream.empty();
