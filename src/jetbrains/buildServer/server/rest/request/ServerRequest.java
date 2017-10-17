@@ -267,7 +267,7 @@ public class ServerRequest {
 
   @Path("/files/{areaId}")
   public FilesSubResource getFilesSubResource(@PathParam("areaId") final String areaId) {
-    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myPermissionChecker.checkGlobalPermission(getAreaPermission(areaId));
     final String urlPrefix = getUrlPrefix(areaId);
 
     return new FilesSubResource(new FilesSubResource.Provider() {
@@ -315,5 +315,10 @@ public class ServerRequest {
       throw new BadRequestException("Unknown area id '" + areaId + "'. Known are: " + "logs, backups, dataDirectory");
     }
     return rootPath;
+  }
+
+  @NotNull
+  private Permission getAreaPermission(final @PathParam("areaId") String areaId) {
+    return "logs".equals(areaId) ? Permission.MANAGE_SERVER_INSTALLATION : Permission.CHANGE_SERVER_SETTINGS;
   }
 }
