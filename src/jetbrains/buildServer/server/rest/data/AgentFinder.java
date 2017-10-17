@@ -217,7 +217,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
         int agentTypeId = getAgentType(agentTypeLocator, myServiceLocator.getSingletonService(AgentTypeFinder.class)).getAgentTypeId();
         result.add(new FilterConditionChecker<SBuildAgent>() {
           public boolean isIncluded(@NotNull final SBuildAgent item) {
-            return agentTypeId == item.getId();
+            return agentTypeId == item.getAgentTypeId();
           }
         });
       }
