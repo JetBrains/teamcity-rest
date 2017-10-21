@@ -435,6 +435,7 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     checkBuilds("agent:(defaultFilter:false)", build9, build8, build7, build6, build5, build4, build3, build2, build1);
 
     unregisterAgent(agent2.getId());
+    agent2.setAuthorized(false, null, "");
 
     final MockBuildAgent agent3 = myFixture.createEnabledAgent("smth3");
     registerAndEnableAgent(agent3);
