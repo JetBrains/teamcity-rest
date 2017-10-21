@@ -406,6 +406,44 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     checkBuilds("agent:(connected:true)", build3, build2);
   }
 
+  @Test
+  public void testAgentDimension2() throws Exception {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build1 = build().in(buildConf).finish();
+
+    final MockBuildAgent agent = myFixture.createEnabledAgent("smth");
+    registerAndEnableAgent(agent);
+    final SFinishedBuild build2 = build().in(buildConf).on(agent).failed().finish();
+
+    final MockBuildAgent agent2 = myFixture.createEnabledAgent("smth2");
+    registerAndEnableAgent(agent2);
+    final SFinishedBuild build3 = build().in(buildConf).on(agent2).failed().finish();
+
+    final SFinishedBuild build4 = build().in(buildConf).on(agent2).failed().finish();
+    final SFinishedBuild build5 = build().in(buildConf).on(agent).failed().finish();
+    final SFinishedBuild build6 = build().in(buildConf).on(myBuildAgent).finish();
+    final SFinishedBuild build7 = build().in(buildConf).on(agent).failed().finish();
+    final SFinishedBuild build8 = build().in(buildConf).on(myBuildAgent).finish();
+    final SFinishedBuild build9 = build().in(buildConf).on(agent2).failed().finish();
+
+    unregisterAgent(build1.getAgent().getId());
+
+    checkBuilds("agent:(name:" + myBuildAgent.getName() + ")", build8, build6, build1);
+    checkBuilds("agent:(id:" + agent.getId() + ")", build7, build5, build2);
+    checkBuilds("agent:(typeId:" + agent2.getAgentTypeId() + ")", build9, build4, build3);
+
+    checkBuilds("agent:(defaultFilter:false)", build9, build8, build7, build6, build5, build4, build3, build2, build1);
+
+    unregisterAgent(agent2.getId());
+
+    final MockBuildAgent agent3 = myFixture.createEnabledAgent("smth3");
+    registerAndEnableAgent(agent3);
+
+    final SFinishedBuild build10 = build().in(buildConf).on(agent).failed().finish();
+
+    checkBuilds("agent:(defaultFilter:false)", build10, build9, build8, build7, build6, build5, build4, build3, build2, build1);
+  }
+
 
   @Test
   public void testNumberDimension() throws Exception {

@@ -35,6 +35,7 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.Constants;
+import jetbrains.buildServer.server.rest.util.StreamUtil;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
@@ -1183,8 +1184,9 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
           if (isStateIncluded(stateLocator, STATE_FINISHED)) {
             //todo: optimize for user and canceled
-            //todo: SORT by builds, not agents!
-            Stream<BuildPromotion> finishedBuilds = agents.stream().flatMap(agent -> agent.getBuildHistory(null, true).stream()).map(b -> b.getBuildPromotion());
+            Stream<BuildPromotion> finishedBuilds = StreamUtil.merge(
+              agents.stream().map(agent -> agent.getBuildHistory(null, true).stream().map(b -> b.getBuildPromotion())),
+              BUILD_PROMOTIONS_COMPARATOR);
             result = Stream.concat(result, finishedBuilds);
           }
         }
