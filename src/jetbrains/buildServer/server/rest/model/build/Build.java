@@ -107,7 +107,9 @@ import org.jetbrains.annotations.Nullable;
            "properties", "resultingProperties", "attributes", "statistics", "metadata"/*rf*/,
            "buildDependencies", "buildArtifactDependencies", "customBuildArtifactDependencies"/*q*/,
            "settingsHash", "currentSettingsHash", "modificationId", "chainModificationId", "replacementIds",
-           "triggeringOptions"/*only when triggering*/})
+           "triggeringOptions"/*only when triggering*/,
+           "usedByOtherBuilds"
+})
 public class Build {
   private static final Logger LOG = Logger.getInstance(Build.class.getName());
 
@@ -283,7 +285,12 @@ public class Build {
 
   @XmlAttribute
   public Boolean isPersonal() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("personal"),() -> myBuildPromotion.isPersonal());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("personal"), myBuildPromotion::isPersonal);
+  }
+
+  @XmlAttribute
+  public Boolean isUsedByOtherBuilds() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("usedByOtherBuilds"),() -> myBuild != null && myBuild.isUsedByOtherBuilds());
   }
 
   @XmlAttribute
@@ -333,6 +340,7 @@ public class Build {
           builder.add(Link.WEB_VIEW_TYPE, webLinks.getQueuedBuildUrl(myQueuedBuild), relativeWebLinks.getQueuedBuildUrl(myQueuedBuild));
         }
         return builder.build(myFields.getNestedField("links"));
+
       }
     });
   }
@@ -391,6 +399,7 @@ public class Build {
   }
 
   @XmlElement
+
   public String getStartDate() { // consider adding myBuild.getServerStartDate()
     return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("startDate", false), () -> Util.formatTime(myBuild.getStartDate()));
   }
@@ -1557,6 +1566,8 @@ public class Build {
       return String.valueOf(build.getPercentageComplete());
     } else if ("personal".equals(field)) {
       return String.valueOf(build.isPersonal());
+    } else if ("usedByOtherBuilds".equals(field)) {
+      return String.valueOf(build.isUsedByOtherBuilds());
     } else if ("queuedDate".equals(field)) {
       return build.getQueuedDate();
     } else if ("startDate".equals(field)) {
