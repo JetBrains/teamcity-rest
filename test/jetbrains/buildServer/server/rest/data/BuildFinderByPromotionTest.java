@@ -275,11 +275,12 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
 
     final SFinishedBuild build1 = build().in(buildConf1).finish();
     final SFinishedBuild build2 = build().in(buildConf2).finish();
+    final SFinishedBuild build3 = build().in(buildConf1).finish();
 
-    checkBuilds("pinned:any", build2, build1);
+    checkBuilds("pinned:any", build3, build2, build1);
 
-    checkBuilds("project:(id:" + parent.getExternalId() + ")", build1);
-    checkBuilds("affectedProject:(id:" + parent.getExternalId() + ")", build2, build1);
+    checkBuilds("project:(id:" + parent.getExternalId() + ")", build3, build1);
+    checkBuilds("affectedProject:(id:" + parent.getExternalId() + ")", build3, build2, build1);
     checkBuilds("project:(id:" + nested.getExternalId() + ")", build2);
   }
 

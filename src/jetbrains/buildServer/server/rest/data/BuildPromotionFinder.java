@@ -1284,25 +1284,22 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     ItemHolder<BuildPromotion> finishedBuilds = null;
     if (isStateIncluded(stateLocator, STATE_FINISHED)) {
-      @Nullable SBuildType buildType = null;
+      @Nullable List<SBuildType> buildTypes = null;
       final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
+      final String affectedProjectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT);
+      SProject affectedProject = null;
+      if (affectedProjectLocator != null) {
+        affectedProject = myProjectFinder.getItem(affectedProjectLocator); //todo: support multiple
+      }
       if (buildTypeLocator != null) {
-        final String affectedProjectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT);
-        SProject affectedProject = null;
-        if (affectedProjectLocator != null) {
-          affectedProject = myProjectFinder.getItem(affectedProjectLocator);
-        }
-        List<SBuildType> buildTypes = myBuildTypeFinder.getBuildTypes(affectedProject, buildTypeLocator);
-        if (buildTypes.size() == 1) {
-          buildType = buildTypes.get(0);
-        } else {
-          locator.markUnused(BUILD_TYPE, AFFECTED_PROJECT);
-        }
+        buildTypes = myBuildTypeFinder.getBuildTypes(affectedProject, buildTypeLocator);   //todo: seems like project, not affectedProject is used in the method
+      } else if (affectedProject != null) {
+        buildTypes = affectedProject.getBuildTypes();
       }
 
       final BuildQueryOptions options = new BuildQueryOptions();
-      if (buildType != null) {
-        options.setBuildTypeId(buildType.getBuildTypeId());
+      if (buildTypes != null) {
+        options.setBuildTypeIds(buildTypes.stream().map(bt -> bt.getBuildTypeId()).collect(Collectors.toList()));
       }
 
       final Boolean personal = locator.lookupSingleDimensionValueAsBoolean(PERSONAL);
