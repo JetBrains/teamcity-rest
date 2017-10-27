@@ -350,48 +350,44 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
-    final String projectLocator = locator.getSingleDimensionValue(PROJECT);
-    SProject project = null;
-    if (projectLocator != null) {
-      project = myProjectFinder.getItem(projectLocator); //todo: support multiple projects here
-      final SProject internalProject = project;
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
+    if (locator.isUnused(PROJECT)) {
+      SProject project = getProjectFromDimension(locator, PROJECT);
+      if (project != null) {
+        result.add(item -> {
           final SBuildType buildType = item.getBuildType();
-          return buildType != null && internalProject.equals(buildType.getProject());
-        }
-      });
-    }
-
-    final String affectedProjectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT);
-    SProject affectedProject = null;
-    if (affectedProjectLocator != null) {
-      affectedProject = myProjectFinder.getItem(affectedProjectLocator);
-      final SProject internalProject = affectedProject;
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
-          final SBuildType buildType = item.getBuildType();
-          return buildType != null && ProjectFinder.isSameOrParent(internalProject, buildType.getProject());
-        }
-      });
-    }
-
-    final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
-    if (buildTypeLocator != null) {
-      final Set<SBuildType> buildTypes = new HashSet<>(myBuildTypeFinder.getBuildTypes(affectedProject, buildTypeLocator));
-      if (buildTypes.isEmpty()){
-        throw new NotFoundException("No build types found for locator '" + buildTypeLocator + "'");
+          return buildType != null && project.equals(buildType.getProject());
+        });
       }
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
-          return buildTypes.contains(item.getParentBuildType());
+    }
+
+    if (locator.isUnused(AFFECTED_PROJECT)) {
+      SProject affectedProject = getProjectFromDimension(locator, AFFECTED_PROJECT);
+      if (affectedProject != null) {
+        result.add(item -> {
+          final SBuildType buildType = item.getBuildType();
+          return buildType != null && ProjectFinder.isSameOrParent(affectedProject, buildType.getProject());
+        });
+      }
+    }
+
+    if (locator.isUnused(BUILD_TYPE)) {
+      final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
+      if (buildTypeLocator != null) {
+        final Set<SBuildType> buildTypes = new HashSet<>(myBuildTypeFinder.getBuildTypes(getProjectFromDimension(locator, PROJECT), buildTypeLocator));
+        if (buildTypes.isEmpty()) {
+          throw new NotFoundException("No build types found for locator '" + buildTypeLocator + "'");
         }
-      });
+        result.add(new FilterConditionChecker<BuildPromotion>() {
+          public boolean isIncluded(@NotNull final BuildPromotion item) {
+            return buildTypes.contains(item.getParentBuildType());
+          }
+        });
+      }
     }
 
     final String branchLocatorValue = locator.getSingleDimensionValue(BRANCH);
     if (branchLocatorValue != null) {
-      final PagedSearchResult<? extends Branch> branches = myBranchFinder.getItemsIfValidBranchListLocator(buildTypeLocator, branchLocatorValue);
+      final PagedSearchResult<? extends Branch> branches = myBranchFinder.getItemsIfValidBranchListLocator(locator.getSingleDimensionValue(BUILD_TYPE), branchLocatorValue);
       if (branches != null) {
         //branches found - use them
         Set<String> branchNames = getBranchNamesSet(branches.myEntries);
@@ -803,6 +799,15 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     }
 
     return getFilterWithProcessingCutOff(result, locator.getSingleDimensionValueAsLong(SINCE_BUILD_ID_LOOK_AHEAD_COUNT), sinceBuildPromotion, sinceBuildId, sinceStartDate);
+  }
+
+  @Nullable
+  private SProject getProjectFromDimension(final @NotNull Locator locator, @NotNull final String dimension) {
+    final String projectLocator = locator.getSingleDimensionValue(dimension);
+    if (projectLocator == null) {
+      return null;
+    }
+    return myProjectFinder.getItem(projectLocator); //todo: support multiple
   }
 
   private Set<String> getBranchNamesSet(final List<? extends Branch> branches) {
@@ -1251,7 +1256,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         return getItemHolder(builds);
       } else{
         // if build type is not specified, search by scanning (performance impact)
-        locator.markUnused(NUMBER);
+        locator.markUnused(NUMBER, BUILD_TYPE);
       }
     }
 
@@ -1261,42 +1266,32 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       return FinderDataBinding.getItemHolder(testOccurrenceFinder.getItems(testOccurrence).myEntries.stream().map(sTestRun -> sTestRun.getBuild().getBuildPromotion()));
     }
 
+    // process by build states
+
     final ArrayList<BuildPromotion> result = new ArrayList<BuildPromotion>();
+    @Nullable Set<SBuildType> buildTypes = getBuildTypes(locator);
 
     Locator stateLocator = getStateLocator(locator);
 
     if (isStateIncluded(stateLocator, STATE_QUEUED)) {
       //todo: should sort backwards as currently the order does not seem right...
-      result.addAll(CollectionsUtil.convertCollection(myBuildQueue.getItems(), new Converter<BuildPromotion, SQueuedBuild>() {
-        public BuildPromotion createFrom(@NotNull final SQueuedBuild source) {
-          return source.getBuildPromotion();
-        }
-      }));
+      Stream<BuildPromotion> builds = myBuildQueue.getItems().stream().map(qb -> qb.getBuildPromotion());
+      if (buildTypes != null) { //make sure buildTypes retrieved from the locator are used
+        builds = builds.filter(qb -> buildTypes.contains(qb.getParentBuildType()));
+      }
+      result.addAll(builds.collect(Collectors.toList()));
     }
 
     if (isStateIncluded(stateLocator, STATE_RUNNING)) {  //todo: address an issue when a build can appear twice in the output
-      result.addAll(CollectionsUtil.convertCollection(myBuildsManager.getRunningBuilds(), new Converter<BuildPromotion, SRunningBuild>() {
-        public BuildPromotion createFrom(@NotNull final SRunningBuild source) {
-          return source.getBuildPromotion();
-        }
-      }));
+      Stream<BuildPromotion> builds = myBuildsManager.getRunningBuilds().stream().map(qb -> qb.getBuildPromotion());
+      if (buildTypes != null) { //make sure buildTypes retrieved from the locator are used
+        builds = builds.filter(qb -> buildTypes.contains(qb.getParentBuildType()));
+      }
+      result.addAll(builds.collect(Collectors.toList()));
     }
 
     ItemHolder<BuildPromotion> finishedBuilds = null;
     if (isStateIncluded(stateLocator, STATE_FINISHED)) {
-      @Nullable List<SBuildType> buildTypes = null;
-      final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
-      final String affectedProjectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT);
-      SProject affectedProject = null;
-      if (affectedProjectLocator != null) {
-        affectedProject = myProjectFinder.getItem(affectedProjectLocator); //todo: support multiple
-      }
-      if (buildTypeLocator != null) {
-        buildTypes = myBuildTypeFinder.getBuildTypes(affectedProject, buildTypeLocator);   //todo: seems like project, not affectedProject is used in the method
-      } else if (affectedProject != null) {
-        buildTypes = affectedProject.getBuildTypes();
-      }
-
       final BuildQueryOptions options = new BuildQueryOptions();
       if (buildTypes != null) {
         options.setBuildTypeIds(buildTypes.stream().map(bt -> bt.getBuildTypeId()).collect(Collectors.toList()));
@@ -1369,6 +1364,39 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         }
         }
     };
+  }
+
+  private HashSet<SBuildType> getBuildTypes(final @NotNull Locator locator) {
+    SProject project = getProjectFromDimension(locator, PROJECT);
+
+    final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
+    if (buildTypeLocator != null) {
+      List<SBuildType> result = myBuildTypeFinder.getBuildTypes(project, buildTypeLocator);
+      if (result.isEmpty()) {
+        throw new NotFoundException("No build types found by locator '" + buildTypeLocator + "'" +
+                                    (project != null ? " in the project " + project.describe(false) : ""));
+      }
+      return new HashSet<>(result);
+    }
+
+    if (project != null) {
+      List<SBuildType> result = project.getOwnBuildTypes();
+      if (result.isEmpty()) {
+        throw new NotFoundException("No build types found in the project " + project.describe(false));
+      }
+      return new HashSet<>(result);
+    }
+
+    SProject affectedProject = getProjectFromDimension(locator, AFFECTED_PROJECT);
+    if (affectedProject != null) {
+      List<SBuildType> result = affectedProject.getBuildTypes();
+      if (result.isEmpty()) {
+        throw new NotFoundException("No build types found under the affected project " + affectedProject.describe(false));
+      }
+      return new HashSet<>(result);
+    }
+
+    return null;
   }
 
   @NotNull

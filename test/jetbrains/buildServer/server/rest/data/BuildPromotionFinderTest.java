@@ -270,6 +270,8 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 
   @Test
   public void testMultipleBuildTypes() throws Exception {
+    myFixture.createEnabledAgent("Ant");// adding one more agent to allow parallel builds
+
     final BuildTypeImpl buildConf0 = registerBuildType("buildConf0", "project");
     final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
     final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project1");
@@ -280,11 +282,71 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     final BuildPromotion build30 = build().in(buildConf0).number("10").finish().getBuildPromotion();
     final BuildPromotion build40 = build().in(buildConf2).finish().getBuildPromotion();
 
+    final BuildPromotion build50 = build().in(buildConf0).number("10").run().getBuildPromotion();
+    final BuildPromotion build60 = build().in(buildConf2).run().getBuildPromotion();
+    final BuildPromotion build70 = build().in(buildConf0).addToQueue().getBuildPromotion();
+    final BuildPromotion build80 = build().in(buildConf1).addToQueue().getBuildPromotion();
+
     check(null, build40, build30, build20, build10, build05);
     check("buildType:(id:" + buildConf0.getExternalId() + ")", build30, build20, build05);
     check("buildType:(project:(name:" + "project" + "))", build30, build20, build10, build05);
     check("buildType:(project:(name:" + "project" + ")),number:10", build30, build10, build05);
     check("buildType:(item:(id:" + buildConf1.getExternalId() + "),item:(id:(" + buildConf0.getExternalId() + ")))", build30, build20, build10, build05);
+
+    check("defaultFilter:false", build70, build80, build60, build50, build40, build30, build20, build10, build05);
+    check("buildType:(id:" + buildConf0.getExternalId() + "),defaultFilter:false", build70, build50, build30, build20, build05);
+    check("buildType:(id:" + buildConf1.getExternalId() + "),defaultFilter:false", build80, build10);
+    check("buildType:(id:" + buildConf2.getExternalId() + "),defaultFilter:false", build60, build40);
+    check("buildType:(project:(name:" + "project" + ")),defaultFilter:false", build70, build80, build50, build30, build20, build10, build05);
+    check("buildType:(project:(name:" + "project" + ")),number:10,defaultFilter:false", build50, build30, build10, build05);
+    check("buildType:(item:(id:" + buildConf1.getExternalId() + "),item:(id:(" + buildConf0.getExternalId() + "))),defaultFilter:false",
+          build70, build80, build50, build30, build20, build10, build05);
+    check("buildType:(item:(id:" + buildConf0.getExternalId() + "),item:(id:(" + buildConf1.getExternalId() + "))),defaultFilter:false",
+          build70, build80, build50, build30, build20, build10, build05);
+  }
+
+  @Test
+  public void testMultipleBuildTypesInProjects() throws Exception {
+    myFixture.createEnabledAgent("Ant");// adding one more agent to allow parallel builds
+
+    ProjectEx project1 = getRootProject().createProject("project1", "project1");
+    ProjectEx project11 = project1.createProject("project1_1", "project1_1");
+    ProjectEx project2 = getRootProject().createProject("project2", "project2");
+
+    final BuildTypeEx buildConf0 = project1.createBuildType("buildConf");
+    final BuildTypeEx buildConf1 = project11.createBuildType("buildConf");
+    final BuildTypeEx buildConf2 = project2.createBuildType("buildConf2");
+
+    final BuildPromotion build05 = build().in(buildConf0).number("10").finish().getBuildPromotion();
+    final BuildPromotion build10 = build().in(buildConf1).number("10").finish().getBuildPromotion();
+    final BuildPromotion build20 = build().in(buildConf0).finish().getBuildPromotion();
+    final BuildPromotion build30 = build().in(buildConf0).number("10").finish().getBuildPromotion();
+    final BuildPromotion build40 = build().in(buildConf2).finish().getBuildPromotion();
+
+    final BuildPromotion build50 = build().in(buildConf0).number("10").run().getBuildPromotion();
+    final BuildPromotion build60 = build().in(buildConf2).run().getBuildPromotion();
+    final BuildPromotion build70 = build().in(buildConf0).addToQueue().getBuildPromotion();
+    final BuildPromotion build80 = build().in(buildConf1).addToQueue().getBuildPromotion();
+
+    check("defaultFilter:false", build70, build80, build60, build50, build40, build30, build20, build10, build05);
+    String df = ",defaultFilter:false";
+    check("buildType:(id:" + buildConf0.getExternalId() + ")" + df, build70, build50, build30, build20, build05);
+    check("buildType:(id:" + buildConf0.getExternalId() + "),affectedProject:(id:" + project1.getExternalId() + ")" + df, build70, build50, build30, build20, build05);
+    check("buildType:(id:" + buildConf0.getExternalId() + "),project:(id:" + project1.getExternalId() + ")" + df, build70, build50, build30, build20, build05);
+
+    check("buildType:(affectedProject:(id:" + project1.getExternalId() + "))" + df, build70, build80, build50, build30, build20, build10, build05);
+    check("buildType:(project:(id:" + project1.getExternalId() + "))" + df, build70, build50, build30, build20, build05);
+
+    check("buildType:(id:" + buildConf1.getExternalId() + "),affectedProject:(id:" + project1.getExternalId() + ")" + df, build80, build10);
+    checkExceptionOnBuildsSearch(NotFoundException.class, "buildType:(id:" + buildConf1.getExternalId() + "),project:(id:" + project1.getExternalId() + ")");
+
+    check("buildType:(name:" + "buildConf" + "),project:(id:" + project1.getExternalId() + ")" + df, build70, build50, build30, build20, build05);
+    check("buildType:(name:" + "buildConf" + "),project:(id:" + project11.getExternalId() + ")" + df, build80, build10);
+    check("buildType:(name:" + "buildConf" + "),affectedProject:(id:" + project1.getExternalId() + ")" + df, build70, build80, build50, build30, build20, build10, build05);
+
+    check("buildType:(affectedProject:(id:" + project1.getExternalId() + ")),number:10" + df, build50, build30, build10, build05);
+    check("buildType:(item:(id:" + buildConf1.getExternalId() + "),item:(id:(" + buildConf0.getExternalId() + ")))" + df,
+          build70, build80, build50, build30, build20, build10, build05);
   }
 
   @Test
