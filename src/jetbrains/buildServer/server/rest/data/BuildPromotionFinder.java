@@ -362,7 +362,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     if (locator.isUnused(AFFECTED_PROJECT)) {
       SProject affectedProject = getProjectFromDimension(locator, AFFECTED_PROJECT);
-      if (affectedProject != null) {
+      if (affectedProject != null && !affectedProject.isRootProject()) {
         result.add(item -> {
           final SBuildType buildType = item.getBuildType();
           return buildType != null && ProjectFinder.isSameOrParent(affectedProject, buildType.getProject());
@@ -1388,7 +1388,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     }
 
     SProject affectedProject = getProjectFromDimension(locator, AFFECTED_PROJECT);
-    if (affectedProject != null) {
+    if (affectedProject != null && !affectedProject.isRootProject()) {
       List<SBuildType> result = affectedProject.getBuildTypes();
       if (result.isEmpty()) {
         throw new NotFoundException("No build types found under the affected project " + affectedProject.describe(false));
