@@ -29,7 +29,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 13.09.2010
  */
-@XmlType(propOrder = {"percentageComplete", "elapsedSeconds", "estimatedTotalSeconds", "leftSeconds", "currentStageText", "outdated", "probablyHanging"})
+@XmlType(propOrder = {"percentageComplete", "elapsedSeconds", "estimatedTotalSeconds", "leftSeconds", "overtimeSeconds", "currentStageText", "outdated", "probablyHanging"})
 @XmlRootElement(name = "progress-info")
 public class RunningBuildInfo {
   @NotNull
@@ -73,6 +73,11 @@ public class RunningBuildInfo {
   @XmlAttribute(name = "estimatedTotalSeconds")
   public Long getEstimatedTotalSeconds() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("estimatedTotalSeconds", true), () -> getIfAvailable(myBuild.getDurationEstimate()));
+  }
+
+  @XmlAttribute(name = "overtimeSeconds")
+  public Long getOvertimeSeconds() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("overtimeSeconds", false), () -> getIfAvailable(myBuild.getDurationOvertime()));
   }
 
   @XmlAttribute
