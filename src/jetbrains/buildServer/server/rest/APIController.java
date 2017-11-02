@@ -443,7 +443,7 @@ public class APIController extends BaseController implements ServletContextAware
           return null;
         }
         //TeamCity API issue: SecurityContext.getAuthorityHolder is "SYSTEM" if request is not authorized
-        final boolean notAuthorizedRequest = ((SecurityContextEx)mySecurityContext).isSystemAccess();
+        final boolean notAuthorizedRequest = mySecurityContext.isSystemAccess();
         if (notAuthorizedRequest) {
           response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
           response.getWriter().write("TeamCity core was unable to handle authentication (no current user).");
