@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -122,10 +123,7 @@ public class DataUpdater {
     if (groupDescription == null) {
       throw new BadRequestException("Empty payload received while group details are expected.");
     }
-    if (groupDescription.childGroups != null || groupDescription.users != null || groupDescription.roleAssignments != null) {
-      //href is also ignored but not reported...
-      throw new BadRequestException("Only 'key', 'name' and 'description' attributes are supported when creating user groups.");
-    }
+
     if (StringUtil.isEmpty(groupDescription.key)) {
       throw new BadRequestException("Attribute 'key' must not be empty when creating group.");
     }
@@ -149,7 +147,44 @@ public class DataUpdater {
         Group.setGroupParents(resultingGroup, new LinkedHashSet<>(groupDescription.parentGroups.getFromPosted(serviceLocator)), false, serviceLocator);
       } catch (Exception e) {
         myGroupManager.deleteUserGroup(resultingGroup);
-        throw new BadRequestException("Cannot create group with specified parents", e);
+        throw new BadRequestException("Cannot create group with specified parent groups", e);
+      }
+    }
+
+    if (groupDescription.childGroups != null) {
+      try {
+        groupDescription.childGroups.getFromPosted(serviceLocator).forEach(group -> resultingGroup.addSubgroup(group));
+      } catch (Exception e) {
+        myGroupManager.deleteUserGroup(resultingGroup);
+        throw new BadRequestException("Cannot create group with specified children groups", e);
+      }
+    }
+
+    if (groupDescription.roleAssignments != null) {
+      try {
+        Group.setRoles(resultingGroup, groupDescription.roleAssignments, serviceLocator);
+      } catch (Exception e) {
+        myGroupManager.deleteUserGroup(resultingGroup);
+        throw new BadRequestException("Cannot create group with specified roles", e);
+      }
+    }
+
+    if (groupDescription.properties != null) {
+      try {
+        resultingGroup
+          .setGroupProperties(groupDescription.properties.getMap().entrySet().stream().collect(Collectors.toMap(e -> new SimplePropertyKey(e.getKey()), e -> e.getValue())));
+      } catch (Exception e) {
+        myGroupManager.deleteUserGroup(resultingGroup);
+        throw new BadRequestException("Cannot create group with specified properties", e);
+      }
+    }
+
+    if (groupDescription.users != null) {
+      try {
+        groupDescription.users.getFromPosted(serviceLocator.getSingletonService(UserFinder.class)).forEach(user -> resultingGroup.addUser(user));
+      } catch (Exception e) {
+        myGroupManager.deleteUserGroup(resultingGroup);
+        throw new BadRequestException("Cannot create group with specified users", e);
       }
     }
 

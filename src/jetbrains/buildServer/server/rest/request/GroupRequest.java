@@ -123,12 +123,7 @@ public class GroupRequest {
   @Produces({"application/xml", "application/json"})
   public RoleAssignments setRoles(@PathParam("groupLocator") String groupLocator, RoleAssignments roleAssignments) {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
-    for (RoleEntry roleEntry : group.getRoles()) {
-      group.removeRole(roleEntry.getScope(), roleEntry.getRole());
-    }
-    for (RoleAssignment roleAssignment : roleAssignments.roleAssignments) {
-      group.addRole(RoleAssignment.getScope(roleAssignment.scope, myBeanContext.getServiceLocator()), RoleAssignment.getRoleById(roleAssignment.roleId, myBeanContext.getServiceLocator()));
-    }
+    Group.setRoles(group, roleAssignments, myBeanContext.getServiceLocator());
     return new RoleAssignments(group.getRoles(), group, myBeanContext);
   }
 
@@ -204,6 +199,18 @@ public class GroupRequest {
     return BuildTypeUtil.getParameter(name, User.getProperties(group), false, true, myBeanContext.getServiceLocator());
   }
 
+  @DELETE
+  @Path("/{groupLocator}/properties/{name}")
+  public void removeUserProperty(@PathParam("groupLocator") String groupLocator,
+                                 @PathParam("name") String name) {
+    SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
+    if (StringUtil.isEmpty(name)) {
+      throw new BadRequestException("Property name cannot be empty.");
+    }
+
+    group.deleteGroupProperty(new SimplePropertyKey(name));
+  }
+
   @GET
   @Path("/{groupLocator}/parent-groups")
   @Produces({"application/xml", "application/json"})
@@ -225,17 +232,6 @@ public class GroupRequest {
     return new Groups(group.getParentGroups(), new Fields(fields), myBeanContext);
   }
 
-  @DELETE
-  @Path("/{groupLocator}/properties/{name}")
-  public void removeUserProperty(@PathParam("groupLocator") String groupLocator,
-                                 @PathParam("name") String name) {
-    SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
-    if (StringUtil.isEmpty(name)) {
-      throw new BadRequestException("Property name cannot be empty.");
-    }
-
-    group.deleteGroupProperty(new SimplePropertyKey(name));
-  }
   /**
    * Experimental use only
    */

@@ -39,12 +39,14 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.server.rest.model.user.Users;
 import jetbrains.buildServer.server.rest.request.GroupRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
+import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.serverSide.impl.auth.ServerAuthUtil;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
@@ -115,7 +117,7 @@ public class Group {
     });
     properties = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
-        return new Properties(getProperties(userGroup), GroupRequest.getPropertiesHref(userGroup), fields.getNestedField("properties"), context);
+        return new Properties(getProperties(userGroup), GroupRequest.getPropertiesHref(userGroup), fields.getNestedField("properties", Fields.NONE, Fields.LONG), context);
       }
     });
   }
@@ -140,6 +142,15 @@ public class Group {
     } catch (Exception e) {
       if (revertOnError) setGroupParents(group, currentParents, false, serviceLocator);
       throw new OperationException("Error encountered while trying to set new parent groups", e);
+    }
+  }
+
+  public static void setRoles(@NotNull final SUserGroup group, @NotNull final RoleAssignments roleAssignments, @NotNull final ServiceLocator serviceLocator) {
+    for (RoleEntry roleEntry : group.getRoles()) {
+      group.removeRole(roleEntry.getScope(), roleEntry.getRole());
+    }
+    for (RoleAssignment roleAssignment : roleAssignments.roleAssignments) {
+      group.addRole(RoleAssignment.getScope(roleAssignment.scope, serviceLocator), RoleAssignment.getRoleById(roleAssignment.roleId, serviceLocator));
     }
   }
 

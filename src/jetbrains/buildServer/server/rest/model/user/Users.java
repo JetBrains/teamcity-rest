@@ -18,12 +18,15 @@ package jetbrains.buildServer.server.rest.model.user;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -56,5 +59,13 @@ public class Users {
       }
     }
     count = userObjects == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), userObjects.size());
+  }
+
+  @NotNull
+  public Collection<SUser> getFromPosted(@NotNull final UserFinder userFinder) {
+    if (users == null){
+      return Collections.emptyList();
+    }
+    return users.stream().map(user -> user.getFromPosted(userFinder)).collect(Collectors.toList());
   }
 }
