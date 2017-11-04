@@ -86,7 +86,7 @@ public class GroupRequest {
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Group addGroup(Group description, @QueryParam("fields") String fields) {
-    SUserGroup group = myDataUpdater.createUserGroup(description);
+    SUserGroup group = myDataUpdater.createUserGroup(description, myBeanContext.getServiceLocator());
     return new Group(group,  new Fields(fields), myBeanContext);
   }
 

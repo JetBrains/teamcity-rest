@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.*;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.PartialUpdateError;
@@ -117,13 +118,12 @@ public class DataUpdater {
     }
   }
 
-  public SUserGroup createUserGroup(final Group groupDescription) {
+  public SUserGroup createUserGroup(@Nullable final Group groupDescription, @NotNull final ServiceLocator serviceLocator) {
     myDataProvider.checkGlobalPermission(jetbrains.buildServer.serverSide.auth.Permission.CREATE_USERGROUP);
     if (groupDescription == null) {
       throw new BadRequestException("Empty payload received while group details are expected.");
     }
-    if (groupDescription.childGroups != null || groupDescription.parentGroups != null || groupDescription.users != null ||
-        groupDescription.roleAssignments != null) {
+    if (groupDescription.childGroups != null || groupDescription.users != null || groupDescription.roleAssignments != null) {
       //href is also ignored but not reported...
       throw new BadRequestException("Only 'key', 'name' and 'description' attributes are supported when creating user groups.");
     }
@@ -144,6 +144,16 @@ public class DataUpdater {
       throw new BadRequestException(
         "Cannot create group as group with name '" + groupDescription.name + "': group with the same name already exists");
     }
+
+    if (groupDescription.parentGroups != null) {
+      try {
+        Group.setGroupParents(resultingGroup, new LinkedHashSet<>(groupDescription.parentGroups.getFromPosted(serviceLocator)), false, serviceLocator);
+      } catch (Exception e) {
+        myGroupManager.deleteUserGroup(resultingGroup);
+        throw new BadRequestException("Cannot create group with specified parents", e);
+      }
+    }
+
     return resultingGroup;
   }
 
