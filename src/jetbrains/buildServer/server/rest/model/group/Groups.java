@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model.group;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -26,7 +27,6 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -64,7 +64,8 @@ public class Groups {
   @NotNull
   public List<SUserGroup> getFromPosted(final ServiceLocator serviceLocator) {
     if (groups == null) {
-      throw new BadRequestException("No groups elements is supplied for the groups list.");
+      //no nested group element - empty collection
+      return Collections.emptyList();
     }
     return CollectionsUtil.convertCollection(groups, new Converter<SUserGroup, Group>() {
       public SUserGroup createFrom(@NotNull final Group source) {
