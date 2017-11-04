@@ -19,19 +19,24 @@ package jetbrains.buildServer.server.rest.model.group;
 import com.intellij.openapi.util.text.StringUtil;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.groups.CycleDetectedException;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroupManager;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
@@ -39,6 +44,8 @@ import jetbrains.buildServer.server.rest.model.user.Users;
 import jetbrains.buildServer.server.rest.request.GroupRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
+import jetbrains.buildServer.serverSide.impl.auth.ServerAuthUtil;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
@@ -111,6 +118,29 @@ public class Group {
         return new Properties(getProperties(userGroup), GroupRequest.getPropertiesHref(userGroup), fields.getNestedField("properties"), context);
       }
     });
+  }
+
+  public static void setGroupParents(@NotNull final SUserGroup group,
+                                     @NotNull final Set<SUserGroup> newParents,
+                                     final boolean revertOnError,
+                                     @NotNull final ServiceLocator serviceLocator) {
+    //workaround for TW-52253
+    ServerAuthUtil.checkCanEditUserGroup(serviceLocator.getSingletonService(PermissionChecker.class).getCurrent(), group);
+
+    Set<SUserGroup> currentParents = group.getParentGroups().stream().map(userGroup -> (SUserGroup)userGroup).collect(Collectors.toSet());
+    currentParents.stream().filter(userGroup -> !newParents.contains(userGroup)).forEach(userGroup -> userGroup.removeSubgroup(group));
+    try {
+      newParents.stream().filter(userGroup -> !currentParents.contains(userGroup)).forEach(userGroup -> userGroup.addSubgroup(group));
+    } catch (CycleDetectedException e) {
+      if (revertOnError) setGroupParents(group, currentParents, false, serviceLocator);
+      throw new BadRequestException("Error encountered while trying to set new parent groups", e);
+    } catch (AccessDeniedException e) {
+      if (revertOnError) setGroupParents(group, currentParents, false, serviceLocator);
+      throw e;
+    } catch (Exception e) {
+      if (revertOnError) setGroupParents(group, currentParents, false, serviceLocator);
+      throw new OperationException("Error encountered while trying to set new parent groups", e);
+    }
   }
 
   @NotNull

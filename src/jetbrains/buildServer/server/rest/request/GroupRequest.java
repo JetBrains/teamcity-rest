@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.util.text.StringUtil;
 import io.swagger.annotations.Api;
+import java.util.LinkedHashSet;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.groups.SUserGroup;
@@ -205,6 +206,27 @@ public class GroupRequest {
 
     group.setGroupProperty(new SimplePropertyKey(name), newValue);
     return BuildTypeUtil.getParameter(name, User.getProperties(group), false, true, myBeanContext.getServiceLocator());
+  }
+
+  @GET
+  @Path("/{groupLocator}/parent-groups")
+  @Produces({"application/xml", "application/json"})
+  public Groups getParentGroups(@PathParam("groupLocator") String groupLocator, @QueryParam("fields") String fields) {
+    SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
+    return new Groups(group.getParentGroups(), new Fields(fields), myBeanContext);
+  }
+
+  @PUT
+  @Path("/{groupLocator}/parent-groups")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public Groups setParentGroups(@PathParam("groupLocator") String groupLocator, Groups parents, @QueryParam("fields") String fields) {
+    SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
+    if (parents == null ) {
+      throw new BadRequestException("No payload received while list of groups expected");
+    }
+    Group.setGroupParents(group, new LinkedHashSet<>(parents.getFromPosted(myBeanContext.getServiceLocator())), true, myBeanContext.getServiceLocator());
+    return new Groups(group.getParentGroups(), new Fields(fields), myBeanContext);
   }
 
   @DELETE
