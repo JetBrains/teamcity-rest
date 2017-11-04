@@ -119,6 +119,9 @@ public class DataUpdater {
 
   public SUserGroup createUserGroup(final Group groupDescription) {
     myDataProvider.checkGlobalPermission(jetbrains.buildServer.serverSide.auth.Permission.CREATE_USERGROUP);
+    if (groupDescription == null) {
+      throw new BadRequestException("Empty payload received while group details are expected.");
+    }
     if (groupDescription.childGroups != null || groupDescription.parentGroups != null || groupDescription.users != null ||
         groupDescription.roleAssignments != null) {
       //href is also ignored but not reported...
