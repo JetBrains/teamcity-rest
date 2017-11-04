@@ -1516,6 +1516,63 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
+  public void testAgentFilteringAfterNameChange() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+    final BuildPromotion build1 = build().in(buildConf).finish().getBuildPromotion();
+
+    final MockBuildAgent agent = myFixture.createEnabledAgent("originalName", "smth");
+    registerAndEnableAgent(agent);
+
+    final BuildPromotion build2 = build().in(buildConf).on(agent).failed().finish().getBuildPromotion();
+
+    final MockBuildAgent agent2 = myFixture.createEnabledAgent("smth2");
+    registerAndEnableAgent(agent2);
+    final BuildPromotion build3 = build().in(buildConf).on(agent2).failed().finish().getBuildPromotion();
+
+    final BuildPromotion build4 = build().in(buildConf).on(agent2).failed().finish().getBuildPromotion();
+    final BuildPromotion build5 = build().in(buildConf).on(agent).failed().finish().getBuildPromotion();
+    final BuildPromotion build6 = build().in(buildConf).on(myBuildAgent).finish().getBuildPromotion();
+    final BuildPromotion build7 = build().in(buildConf).on(agent).failed().finish().getBuildPromotion();
+    final BuildPromotion build8 = build().in(buildConf).on(myBuildAgent).finish().getBuildPromotion();
+    final BuildPromotion build9 = build().in(buildConf).on(agent2).failed().finish().getBuildPromotion();
+
+    final BuildPromotion build25 = build().in(buildConf).on(agent2).run().getBuildPromotion();
+
+    final BuildPromotion build30 = build().in(buildConf).on(agent).addToQueue().getBuildPromotion();
+    final BuildPromotion build35 = build().in(buildConf).on(agent2).addToQueue().getBuildPromotion();
+    final BuildPromotion build40 = build().in(buildConf).on(agent).parameter("a", "prevent reuse 40").addToQueue().getBuildPromotion();
+
+    unregisterAgent(agent.getId());
+
+    MockBuildAgent agentReplacement = myFixture.createMockBuildAgent("smth");
+    agentReplacement.setName("newName");
+    agentReplacement.setPort(9081);
+    agentReplacement.setId(agent.getId());
+    agentReplacement.setAuthorizationToken(agent.getAuthorizationToken());
+    myFixture.getBuildAgentManager().registerAgent(agentReplacement, -1);
+
+
+    assertEquals(agent.getId(), agentReplacement.getId());
+    assertEquals(agent.getAgentTypeId(), agentReplacement.getAgentTypeId());
+    assertTrue(agentReplacement.isAuthorized());
+
+    check("agent:(id:" + agentReplacement.getId() + "),defaultFilter:false", build30, build40, build7, build5, build2);
+    check("agent:(typeId:" + agentReplacement.getAgentTypeId() + "),defaultFilter:false", build30, build40, build7, build5, build2);
+
+    check("agent:(name:" + agentReplacement.getName() + "),defaultFilter:false", build30, build40, build7, build5, build2);
+
+
+    unregisterAgent(agentReplacement.getId());
+    agentReplacement.setAuthorized(false, null, "");
+    myAgentManager.removeAgent(agentReplacement, null);
+
+    checkExceptionOnBuildsSearch(NotFoundException.class, "agent:(id:" + agent.getId() + "),defaultFilter:false"); //No agents are found by locator 'id:2'
+    checkExceptionOnBuildsSearch(NotFoundException.class, "agent:(typeId:" + agent.getAgentTypeId() + "),defaultFilter:false"); //No agent type is found by id '2'
+
+    checkExceptionOnBuildsSearch(NotFoundException.class, "agent:(name:" + agentReplacement.getName() + "),defaultFilter:false");
+  }
+
+  @Test
   public void testDefaults() {
     final SProject project = createProject("prj", "project");
     final BuildTypeEx buildConf1 = (BuildTypeEx)project.createBuildType("buildConf1", "buildConf1");
