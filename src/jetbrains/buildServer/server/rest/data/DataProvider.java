@@ -147,18 +147,6 @@ public class DataProvider {
     return project;
   }
 
-  @NotNull
-  public Role getRoleById(String roleId) {
-    if (StringUtil.isEmpty(roleId)) {
-      throw new BadRequestException("Cannot file role by empty id.");
-    }
-    Role role = myRolesManager.findRoleById(roleId);
-    if (role == null) {
-      throw new NotFoundException("Cannot find role by id '" + roleId + "'.");
-    }
-    return role;
-  }
-
   public static BuildTriggerDescriptor getTrigger(final BuildTypeSettings buildType, final String triggerLocator) {
     if (StringUtil.isEmpty(triggerLocator)) {
       throw new BadRequestException("Empty trigger locator is not supported.");

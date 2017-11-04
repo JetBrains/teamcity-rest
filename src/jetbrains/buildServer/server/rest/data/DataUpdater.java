@@ -203,7 +203,7 @@ public class DataUpdater {
     final ArrayList<Throwable> errors = new ArrayList<Throwable>();
     for (RoleAssignment roleAssignment : roles.roleAssignments) {
       try {
-        user.addRole(RoleAssignment.getScope(roleAssignment.scope, serviceLocator), myDataProvider.getRoleById(roleAssignment.roleId));
+        user.addRole(RoleAssignment.getScope(roleAssignment.scope, serviceLocator), RoleAssignment.getRoleById(roleAssignment.roleId, serviceLocator));
       } catch (Exception e) {
         errors.add(e);
       }

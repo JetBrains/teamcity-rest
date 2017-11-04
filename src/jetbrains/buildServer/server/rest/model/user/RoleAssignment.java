@@ -22,15 +22,19 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.auth.Role;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
+import jetbrains.buildServer.serverSide.auth.RolesManager;
 import jetbrains.buildServer.serverSide.identifiers.EntityId;
 import jetbrains.buildServer.serverSide.identifiers.ProjectIdentifiersManager;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -91,6 +95,18 @@ public class RoleAssignment {
       return RoleScope.projectScope(project.getProjectId());
     }
     return RoleScope.projectScope(internalId.getInternalId());
+  }
+
+  @NotNull
+  public static Role getRoleById(@Nullable String roleId, @NotNull final ServiceLocator serviceLocator) {
+    if (StringUtil.isEmpty(roleId)) {
+      throw new BadRequestException("Cannot file role by empty id.");
+    }
+    Role role = serviceLocator.getSingletonService(RolesManager.class).findRoleById(roleId);
+    if (role == null) {
+      throw new NotFoundException("Cannot find role by id '" + roleId + "'.");
+    }
+    return role;
   }
 
   @Nullable

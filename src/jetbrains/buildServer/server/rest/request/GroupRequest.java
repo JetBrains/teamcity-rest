@@ -127,7 +127,7 @@ public class GroupRequest {
       group.removeRole(roleEntry.getScope(), roleEntry.getRole());
     }
     for (RoleAssignment roleAssignment : roleAssignments.roleAssignments) {
-      group.addRole(RoleAssignment.getScope(roleAssignment.scope, myBeanContext.getServiceLocator()), myDataProvider.getRoleById(roleAssignment.roleId));
+      group.addRole(RoleAssignment.getScope(roleAssignment.scope, myBeanContext.getServiceLocator()), RoleAssignment.getRoleById(roleAssignment.roleId, myBeanContext.getServiceLocator()));
     }
     return new RoleAssignments(group.getRoles(), group, myBeanContext);
   }
@@ -138,7 +138,7 @@ public class GroupRequest {
   @Produces({"application/xml", "application/json"})
   public RoleAssignment addRole(@PathParam("groupLocator") String groupLocator, RoleAssignment roleAssignment) {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
-    group.addRole(RoleAssignment.getScope(roleAssignment.scope, myBeanContext.getServiceLocator()), myDataProvider.getRoleById(roleAssignment.roleId));
+    group.addRole(RoleAssignment.getScope(roleAssignment.scope, myBeanContext.getServiceLocator()), RoleAssignment.getRoleById(roleAssignment.roleId, myBeanContext.getServiceLocator()));
     return new RoleAssignment(DataProvider.getGroupRoleEntry(group, roleAssignment.roleId, roleAssignment.scope, myBeanContext), group, myBeanContext);
   }
 
@@ -159,7 +159,7 @@ public class GroupRequest {
   public void deleteRole(@PathParam("groupLocator") String groupLocator, @PathParam("roleId") String roleId,
                          @PathParam("scope") String scopeValue) {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
-    group.removeRole(RoleAssignment.getScope(scopeValue, myBeanContext.getServiceLocator()), myDataProvider.getRoleById(roleId));
+    group.removeRole(RoleAssignment.getScope(scopeValue, myBeanContext.getServiceLocator()), RoleAssignment.getRoleById(roleId, myBeanContext.getServiceLocator()));
   }
 
   @POST
@@ -169,7 +169,7 @@ public class GroupRequest {
                             @PathParam("roleId") String roleId,
                             @PathParam("scope") String scopeValue) {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
-    group.addRole(RoleAssignment.getScope(scopeValue, myBeanContext.getServiceLocator()), myDataProvider.getRoleById(roleId));
+    group.addRole(RoleAssignment.getScope(scopeValue, myBeanContext.getServiceLocator()), RoleAssignment.getRoleById(roleId, myBeanContext.getServiceLocator()));
     return new RoleAssignment(DataProvider.getGroupRoleEntry(group, roleId, scopeValue, myBeanContext), group, myBeanContext);
   }
   
