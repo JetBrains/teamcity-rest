@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model.user;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
@@ -73,7 +74,7 @@ public class RoleAssignment {
 
   // See also jetbrains.buildServer.server.rest.data.UserFinder.RoleEntryDatas.getScope()
   @NotNull
-  public static RoleScope getScope(@NotNull String scopeData, @NotNull final BeanContext context) {
+  public static RoleScope getScope(@NotNull String scopeData, @NotNull final ServiceLocator serviceLocator) {
     if ("g".equalsIgnoreCase(scopeData)) {
       return RoleScope.globalScope();
     }
@@ -82,11 +83,11 @@ public class RoleAssignment {
       throw new NotFoundException("Cannot find scope by '" + scopeData + "' Valid formats are: 'g' or 'p:<projectId>'.");
     }
     final String projectString = scopeData.substring(2);
-    final EntityId<String> internalId = context.getSingletonService(ProjectIdentifiersManager.class).findEntityIdByExternalId(projectString);
+    final EntityId<String> internalId = serviceLocator.getSingletonService(ProjectIdentifiersManager.class).findEntityIdByExternalId(projectString);
     if (internalId == null){
       //throw new InvalidStateException("Could not find project internal id by external id '" + projectString + "'.");
       //support locator here just in case
-      final SProject project = context.getSingletonService(ProjectFinder.class).getItem(projectString);
+      final SProject project = serviceLocator.getSingletonService(ProjectFinder.class).getItem(projectString);
       return RoleScope.projectScope(project.getProjectId());
     }
     return RoleScope.projectScope(internalId.getInternalId());

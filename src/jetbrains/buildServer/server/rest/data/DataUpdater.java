@@ -26,7 +26,6 @@ import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.group.Group;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
-import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.users.*;
 import jetbrains.buildServer.util.StringUtil;
@@ -63,7 +62,7 @@ public class DataUpdater {
       throw new BadRequestException("Cannot create user with empty username", e);
     }
   }
-  public void modify(SUser user, jetbrains.buildServer.server.rest.model.user.User userData, @NotNull BeanContext context) {
+  public void modify(SUser user, jetbrains.buildServer.server.rest.model.user.User userData, @NotNull final ServiceLocator serviceLocator) {
     updateUserCoreFields(user, userData.getSubmittedUsername(), userData.getSubmittedName(), userData.getSubmittedEmail(),
                          userData.getSubmittedPassword());
 
@@ -71,7 +70,7 @@ public class DataUpdater {
     try {
       if (userData.getSubmittedRoles() != null) {
         removeAllRoles(user);
-        addRoles(user, userData.getSubmittedRoles(), context);
+        addRoles(user, userData.getSubmittedRoles(), serviceLocator);
       }
     } catch (PartialUpdateError partialUpdateError) {
       errors.add(partialUpdateError);
@@ -200,11 +199,11 @@ public class DataUpdater {
     }
   }
 
-  private void addRoles(final SUser user, final RoleAssignments roles, @NotNull BeanContext context) throws PartialUpdateError {
+  private void addRoles(final SUser user, final RoleAssignments roles, @NotNull final ServiceLocator serviceLocator) throws PartialUpdateError {
     final ArrayList<Throwable> errors = new ArrayList<Throwable>();
     for (RoleAssignment roleAssignment : roles.roleAssignments) {
       try {
-        user.addRole(RoleAssignment.getScope(roleAssignment.scope, context), myDataProvider.getRoleById(roleAssignment.roleId));
+        user.addRole(RoleAssignment.getScope(roleAssignment.scope, serviceLocator), myDataProvider.getRoleById(roleAssignment.roleId));
       } catch (Exception e) {
         errors.add(e);
       }

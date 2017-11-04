@@ -223,7 +223,7 @@ public class DataProvider {
     if (roleId == null) {
       throw new BadRequestException("Expected roleId is not specified");
     }
-    final RoleScope roleScope = RoleAssignment.getScope(scopeValue, context);
+    final RoleScope roleScope = RoleAssignment.getScope(scopeValue, context.getServiceLocator());
     final Collection<RoleEntry> roles = group.getRoles();
     for (RoleEntry roleEntry : roles) {
       if (roleScope.equals(roleEntry.getScope()) && roleId.equals(roleEntry.getRole().getId())) {
@@ -237,7 +237,7 @@ public class DataProvider {
     if (roleId == null) {
       throw new BadRequestException("Expected roleId is not specified");
     }
-    final RoleScope roleScope = RoleAssignment.getScope(scopeValue, context);
+    final RoleScope roleScope = RoleAssignment.getScope(scopeValue, context.getServiceLocator());
     final Collection<RoleEntry> roles = user.getRoles();
     for (RoleEntry roleEntry : roles) {
       if (roleScope.equals(roleEntry.getScope()) && roleId.equals(roleEntry.getRole().getId())) {

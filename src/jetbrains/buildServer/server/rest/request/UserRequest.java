@@ -81,7 +81,7 @@ public class UserRequest {
   @Consumes({"application/xml", "application/json"})
   public User createUser(User userData, @QueryParam("fields") String fields) {
     final SUser user = myDataUpdater.createUser(userData.getSubmittedUsername());
-    myDataUpdater.modify(user, userData, myBeanContext);
+    myDataUpdater.modify(user, userData, myBeanContext.getServiceLocator());
     return new User(user,  new Fields(fields), myBeanContext);
   }
 
@@ -105,7 +105,7 @@ public class UserRequest {
   @Produces({"application/xml", "application/json"})
   public User updateUser(@PathParam("userLocator") String userLocator, User userData, @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getItem(userLocator, true);
-    myDataUpdater.modify(user, userData, myBeanContext);
+    myDataUpdater.modify(user, userData, myBeanContext.getServiceLocator());
     return new User(user,  new Fields(fields), myBeanContext);
   }
 
@@ -200,7 +200,7 @@ public class UserRequest {
       user.removeRole(roleEntry.getScope(), roleEntry.getRole());
     }
     for (RoleAssignment roleAssignment : roleAssignments.roleAssignments) {
-      user.addRole(RoleAssignment.getScope(roleAssignment.scope, myBeanContext), myDataProvider.getRoleById(roleAssignment.roleId));
+      user.addRole(RoleAssignment.getScope(roleAssignment.scope, myBeanContext.getServiceLocator()), myDataProvider.getRoleById(roleAssignment.roleId));
     }
     return new RoleAssignments(user.getRoles(), user, myBeanContext);
   }
@@ -211,7 +211,7 @@ public class UserRequest {
   @Produces({"application/xml", "application/json"})
   public RoleAssignment addRole(@PathParam("userLocator") String userLocator, RoleAssignment roleAssignment) {
     SUser user = myUserFinder.getItem(userLocator, true);
-    user.addRole(RoleAssignment.getScope(roleAssignment.scope, myBeanContext), myDataProvider.getRoleById(roleAssignment.roleId));
+    user.addRole(RoleAssignment.getScope(roleAssignment.scope, myBeanContext.getServiceLocator()), myDataProvider.getRoleById(roleAssignment.roleId));
     return new RoleAssignment(DataProvider.getUserRoleEntry(user, roleAssignment.roleId, roleAssignment.scope, myBeanContext), user, myBeanContext);
   }
 
@@ -229,7 +229,7 @@ public class UserRequest {
   public void deleteRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
                          @PathParam("scope") String scopeValue) {
     SUser user = myUserFinder.getItem(userLocator, true);
-    user.removeRole(RoleAssignment.getScope(scopeValue, myBeanContext), myDataProvider.getRoleById(roleId));
+    user.removeRole(RoleAssignment.getScope(scopeValue, myBeanContext.getServiceLocator()), myDataProvider.getRoleById(roleId));
   }
 
 
@@ -252,7 +252,7 @@ public class UserRequest {
                             @PathParam("roleId") String roleId,
                             @PathParam("scope") String scopeValue) {
     SUser user = myUserFinder.getItem(userLocator, true);
-    user.addRole(RoleAssignment.getScope(scopeValue, myBeanContext), myDataProvider.getRoleById(roleId));
+    user.addRole(RoleAssignment.getScope(scopeValue, myBeanContext.getServiceLocator()), myDataProvider.getRoleById(roleId));
     return new RoleAssignment(DataProvider.getUserRoleEntry(user, roleId, scopeValue, myBeanContext), user, myBeanContext);
   }
 
