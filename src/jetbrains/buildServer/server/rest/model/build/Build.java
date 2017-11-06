@@ -811,13 +811,53 @@ public class Build {
             Boolean countZero = super.isCountZero();
             if (countZero != null) return countZero;
 
+            Integer cheapCount = getCheapCount();
+            return cheapCount != null && cheapCount == 0;
+          }
+
+          @Override
+          public int getCount() {
+            if (myItems != null) {
+              return myItems.size();
+            }
+            Integer cheapCount = getCheapCount();
+            if (cheapCount != null) {
+              return cheapCount;
+            }
+            return super.getCount();
+          }
+
+          @Override
+          public boolean isCountCheap() {
+            if (super.isCountCheap()) return true;
+            return getCheapCount() != null;
+          }
+
+          private Integer myCachedCheapCount = null;
+          private boolean myCheapCountIsCalculated = false;
+
+          @Nullable
+          private Integer getCheapCount() {
+            if (!myCheapCountIsCalculated) {
+              myCachedCheapCount = getCheapCountInternal();
+              myCheapCountIsCalculated = true;
+            }
+            return myCachedCheapCount;
+          }
+
+          @Nullable
+          private Integer getCheapCountInternal() {
+            if (!((BuildPromotionEx)myBuildPromotion).hasComputedArtifactsState()) return null;
+
             // optimize response by using cached artifacts presence
             BuildPromotionEx.ArtifactsState state = ((BuildPromotionEx)myBuildPromotion).getArtifactStateInfo().getState();
-            if (state == BuildPromotionEx.ArtifactsState.NO_ARTIFACTS) return true;
-            if (BuildArtifactsFinder.isDefaultLocator(childrenLocator)) {
-              if (state == BuildPromotionEx.ArtifactsState.HIDDEN_ONLY)  return true;
-              if (state == BuildPromotionEx.ArtifactsState.HAS_ARTIFACTS)  return false;
-            }
+            if (state == BuildPromotionEx.ArtifactsState.NO_ARTIFACTS) return 0;
+
+            Integer requestedCount = BuildArtifactsFinder.getCountIfDefaultLocator(childrenLocator);
+            if (requestedCount == null) return null; //not default locator
+            if (state == BuildPromotionEx.ArtifactsState.HIDDEN_ONLY) return 0;
+            if (requestedCount == 1 && state == BuildPromotionEx.ArtifactsState.HAS_ARTIFACTS) return 1;
+
             return null;
           }
         }, nestedFields, myBeanContext);

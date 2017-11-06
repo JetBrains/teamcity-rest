@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 import jetbrains.buildServer.ArtifactsConstants;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.*;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.files.FileApiUrlBuilder;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.BuildPromotionEx;
@@ -132,17 +133,24 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
     }
   }
 
-  public static boolean isDefaultLocator(@Nullable final String locatorText) {
-    if (locatorText == null) return true;
+  /**
+   * @return 'null' if the locator is not default, value of dimension "count" otherwise (-1 no "count" dimension is present)
+   */
+  @Nullable
+  public static Integer getCountIfDefaultLocator(@Nullable final String locatorText) {
+    if (locatorText == null) return -1;
     try {
       Locator locator = new Locator(locatorText);
-      if (locator.isSingleValue()) return false;
-      if (!FilterUtil.isIncludedByBooleanFilter(false, locator.getSingleDimensionValueAsBoolean(DIMENSION_RECURSIVE))) return false;
-      if (!FilterUtil.isIncludedByBooleanFilter(false, locator.getSingleDimensionValueAsBoolean(HIDDEN_DIMENSION_NAME))) return false;
-      if (!FilterUtil.isIncludedByBooleanFilter(false, locator.getSingleDimensionValueAsBoolean(ARCHIVES_DIMENSION_NAME))) return false;
-      return locator.getUnusedDimensions().isEmpty();
+      if (locator.isSingleValue()) return null;
+      if (!FilterUtil.isIncludedByBooleanFilter(false, locator.getSingleDimensionValueAsBoolean(DIMENSION_RECURSIVE))) return null;
+      if (!FilterUtil.isIncludedByBooleanFilter(false, locator.getSingleDimensionValueAsBoolean(HIDDEN_DIMENSION_NAME))) return null;
+      if (!FilterUtil.isIncludedByBooleanFilter(false, locator.getSingleDimensionValueAsBoolean(ARCHIVES_DIMENSION_NAME))) return null;
+      Long count = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
+      if (!locator.getUnusedDimensions().isEmpty()) return null;
+      if (count == null) return -1;
+      return count.intValue();
     } catch (LocatorProcessException e) {
-      return false;
+      return null;
     }
   }
 

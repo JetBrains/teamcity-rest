@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import jetbrains.buildServer.AgentRestrictorType;
+import jetbrains.buildServer.ArtifactsConstants;
 import jetbrains.buildServer.artifacts.ArtifactDependency;
 import jetbrains.buildServer.artifacts.RevisionRule;
 import jetbrains.buildServer.artifacts.RevisionRules;
@@ -822,6 +823,323 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     assertEquals("/app/rest/version/builds/id:1/artifacts/children/dir", build.getArtifacts().files.get(0).getChildren().href);
     //noinspection ConstantConditions
     assertEquals("/app/rest/version/builds/id:1/artifacts/content/file.txt", build.getArtifacts().files.get(1).getContent().href);
+  }
+
+  @Test
+  public void testBuildArtifactsCheapOperation() throws IOException {
+    SFinishedBuild finishedBuild10 = build().in(myBuildType).finish();
+    {
+      final File artifactsDir = finishedBuild10.getArtifactsDirectory();
+      //noinspection ResultOfMethodCallIgnored
+      artifactsDir.mkdirs();
+      File dir = new File(artifactsDir, "dir");
+      //noinspection ResultOfMethodCallIgnored
+      dir.mkdirs();
+      File file = new File(artifactsDir, "file.txt");
+      //noinspection ResultOfMethodCallIgnored
+      file.createNewFile();
+    }
+
+    {
+      final Build build = new Build(finishedBuild10, new Fields("$long"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNotNull(build.getArtifacts().href);
+      assertNull(build.getArtifacts().count); //not calculated until requested
+      assertNull(build.getArtifacts().files);
+    }
+    {
+      final Build build = new Build(finishedBuild10, new Fields("artifacts"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNotNull(build.getArtifacts().href);
+      assertNull(build.getArtifacts().count); //not calculated until requested
+      assertNull(build.getArtifacts().files);
+    }
+    assertFalse(((BuildPromotionEx)finishedBuild10.getBuildPromotion()).hasComputedArtifactsState()); //for the test to check what it needs to, this should not be yet calculated
+    {
+      final Build build = new Build(finishedBuild10, new Fields("artifacts(count($optional))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNull(build.getArtifacts().count); //still not yet calculated
+      assertNull(build.getArtifacts().files);
+    }
+    assertFalse(((BuildPromotionEx)finishedBuild10.getBuildPromotion()).hasComputedArtifactsState()); //check that the request did not trigger this to be calculated
+    {
+      final Build build = new Build(finishedBuild10, new Fields("artifacts(count($optional),$locator(count:1))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNull(build.getArtifacts().count); //still not yet calculated
+      assertNull(build.getArtifacts().files);
+    }
+    {
+      final Build build = new Build(finishedBuild10, new Fields("artifacts($short)"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNull(build.getArtifacts().count);
+      assertNull(build.getArtifacts().files);
+    }
+    assertFalse(((BuildPromotionEx)finishedBuild10.getBuildPromotion()).hasComputedArtifactsState()); //check that the request did not trigger this to be calculated
+
+    ((BuildPromotionEx)finishedBuild10.getBuildPromotion()).getArtifactStateInfo(); //ensure this is calculated
+    assertTrue(((BuildPromotionEx)finishedBuild10.getBuildPromotion()).hasComputedArtifactsState());
+    {
+      final Build build = new Build(finishedBuild10, new Fields("artifacts(count($optional),$locator(count:1))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertEquals(Integer.valueOf(1), build.getArtifacts().count);
+      assertNull(build.getArtifacts().files);
+    }
+
+    {
+      final Build build = new Build(finishedBuild10, new Fields("artifacts(count($optional),$locator(count:2))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNull(build.getArtifacts().count); //still not yet calculated
+      assertNull(build.getArtifacts().files);
+    }
+    {
+      final Build build = new Build(finishedBuild10, new Fields("artifacts(count($optional))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNull(build.getArtifacts().count); //still not yet calculated
+      assertNull(build.getArtifacts().files);
+    }
+    assertTrue(((BuildPromotionEx)finishedBuild10.getBuildPromotion()).hasComputedArtifactsState());
+
+    {
+      final Build build = new Build(finishedBuild10, new Fields("artifacts(count)"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertEquals(Integer.valueOf(2), build.getArtifacts().count);
+      assertNull(build.getArtifacts().files);
+    }
+
+    {
+      final Build build = new Build(finishedBuild10, new Fields("artifacts($short)"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNull(build.getArtifacts().count);
+      assertNull(build.getArtifacts().files);
+    }
+
+    {
+      final Build build = new Build(finishedBuild10, new Fields("artifacts($short,$locator(count:1))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertEquals(Integer.valueOf(1), build.getArtifacts().count);
+      assertNull(build.getArtifacts().files);
+    }
+
+    {
+      final Build build = new Build(finishedBuild10, new Fields("artifacts($long)"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertEquals(Integer.valueOf(2), build.getArtifacts().count);
+      assertNotNull(build.getArtifacts().files);
+      assertEquals(2, build.getArtifacts().files.size());
+    }
+    {
+      final Build build = new Build(finishedBuild10, new Fields("artifacts(count($optional),$locator(hidden:any))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNull(build.getArtifacts().count);
+    }
+    {
+      final Build build = new Build(finishedBuild10, new Fields("artifacts(count($optional),$locator(hidden:true))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNull(build.getArtifacts().count);
+    }
+    {
+      final Build build = new Build(finishedBuild10, new Fields("artifacts(count($optional),$locator(modified:-1d))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNull(build.getArtifacts().count);
+    }
+    {
+      final Build build = new Build(finishedBuild10, new Fields("artifacts(count($optional),$locator(aaa))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNull(build.getArtifacts().count);
+    }
+
+
+    SFinishedBuild finishedBuild20 = build().in(myBuildType).finish(); //build without artifacts
+
+    {
+      final Build build = new Build(finishedBuild20, new Fields("$long"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNotNull(build.getArtifacts().href);
+      assertNull(build.getArtifacts().count); //not calculated until requested
+      assertNull(build.getArtifacts().files);
+    }
+    {
+      final Build build = new Build(finishedBuild20, new Fields("artifacts"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNotNull(build.getArtifacts().href);
+      assertNull(build.getArtifacts().count); //not calculated until requested
+      assertNull(build.getArtifacts().files);
+    }
+    assertFalse(((BuildPromotionEx)finishedBuild20.getBuildPromotion()).hasComputedArtifactsState()); //for the test to check what it needs to, this should not be yet calculated
+    {
+      final Build build = new Build(finishedBuild20, new Fields("artifacts(count($optional))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNull(build.getArtifacts().count); //still not yet calculated
+      assertNull(build.getArtifacts().files);
+    }
+    assertFalse(((BuildPromotionEx)finishedBuild20.getBuildPromotion()).hasComputedArtifactsState()); //check that the request did not trigger this to be calculated
+    {
+      final Build build = new Build(finishedBuild20, new Fields("artifacts(count($optional),$locator(count:1))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNull(build.getArtifacts().count); //still not yet calculated
+      assertNull(build.getArtifacts().files);
+    }
+    {
+      final Build build = new Build(finishedBuild20, new Fields("artifacts($short)"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNull(build.getArtifacts().count);
+      assertNull(build.getArtifacts().files);
+    }
+    assertFalse(((BuildPromotionEx)finishedBuild20.getBuildPromotion()).hasComputedArtifactsState()); //check that the request did not trigger this to be calculated
+
+    ((BuildPromotionEx)finishedBuild20.getBuildPromotion()).getArtifactStateInfo(); //ensure this is calculated
+    assertTrue(((BuildPromotionEx)finishedBuild20.getBuildPromotion()).hasComputedArtifactsState());
+    {
+      final Build build = new Build(finishedBuild20, new Fields("artifacts(count($optional),$locator(count:1))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertEquals(Integer.valueOf(0), build.getArtifacts().count);
+      assertNull(build.getArtifacts().files);
+    }
+
+    {
+      final Build build = new Build(finishedBuild20, new Fields("artifacts(count($optional),$locator(count:2))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertEquals(Integer.valueOf(0), build.getArtifacts().count);
+      assertNull(build.getArtifacts().files);
+    }
+    {
+      final Build build = new Build(finishedBuild20, new Fields("artifacts(count($optional))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertEquals(Integer.valueOf(0), build.getArtifacts().count);
+      assertNull(build.getArtifacts().files);
+    }
+    assertTrue(((BuildPromotionEx)finishedBuild20.getBuildPromotion()).hasComputedArtifactsState());
+
+    {
+      final Build build = new Build(finishedBuild20, new Fields("artifacts(count)"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertEquals(Integer.valueOf(0), build.getArtifacts().count);
+      assertNull(build.getArtifacts().files);
+    }
+
+    {
+      final Build build = new Build(finishedBuild20, new Fields("artifacts($short)"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertEquals(Integer.valueOf(0), build.getArtifacts().count);
+      assertNull(build.getArtifacts().files);
+    }
+
+    {
+      final Build build = new Build(finishedBuild20, new Fields("artifacts($short,$locator(count:1))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertEquals(Integer.valueOf(0), build.getArtifacts().count);
+      assertNull(build.getArtifacts().files);
+    }
+
+    {
+      final Build build = new Build(finishedBuild20, new Fields("artifacts($long)"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertEquals(Integer.valueOf(0), build.getArtifacts().count);
+      assertNotNull(build.getArtifacts().files);
+      assertEquals(0, build.getArtifacts().files.size());
+    }
+
+    SFinishedBuild finishedBuild30 = build().in(myBuildType).finish();
+    //build with hidden artifacts only
+    {
+      final File artifactsDir = finishedBuild30.getArtifactsDirectory();
+      //noinspection ResultOfMethodCallIgnored
+      artifactsDir.mkdirs();
+      File dir = new File(artifactsDir, ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR);
+      //noinspection ResultOfMethodCallIgnored
+      dir.mkdirs();
+      File file = new File(dir, "file.txt");
+      //noinspection ResultOfMethodCallIgnored
+      file.createNewFile();
+    }
+
+    {
+      final Build build = new Build(finishedBuild30, new Fields("$long"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNotNull(build.getArtifacts().href);
+      assertNull(build.getArtifacts().count); //not calculated until requested
+      assertNull(build.getArtifacts().files);
+    }
+    {
+      final Build build = new Build(finishedBuild30, new Fields("artifacts"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNotNull(build.getArtifacts().href);
+      assertNull(build.getArtifacts().count); //not calculated until requested
+      assertNull(build.getArtifacts().files);
+    }
+    assertFalse(((BuildPromotionEx)finishedBuild30.getBuildPromotion()).hasComputedArtifactsState()); //for the test to check what it needs to, this should not be yet calculated
+    {
+      final Build build = new Build(finishedBuild30, new Fields("artifacts(count($optional))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNull(build.getArtifacts().count); //still not yet calculated
+      assertNull(build.getArtifacts().files);
+    }
+    assertFalse(((BuildPromotionEx)finishedBuild30.getBuildPromotion()).hasComputedArtifactsState()); //check that the request did not trigger this to be calculated
+    {
+      final Build build = new Build(finishedBuild30, new Fields("artifacts(count($optional),$locator(count:1))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNull(build.getArtifacts().count); //still not yet calculated
+      assertNull(build.getArtifacts().files);
+    }
+    {
+      final Build build = new Build(finishedBuild30, new Fields("artifacts($short)"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertNull(build.getArtifacts().count);
+      assertNull(build.getArtifacts().files);
+    }
+    assertFalse(((BuildPromotionEx)finishedBuild30.getBuildPromotion()).hasComputedArtifactsState()); //check that the request did not trigger this to be calculated
+
+    ((BuildPromotionEx)finishedBuild30.getBuildPromotion()).getArtifactStateInfo(); //ensure this is calculated
+    assertTrue(((BuildPromotionEx)finishedBuild30.getBuildPromotion()).hasComputedArtifactsState());
+    {
+      final Build build = new Build(finishedBuild30, new Fields("artifacts(count($optional),$locator(count:1))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertEquals(Integer.valueOf(0), build.getArtifacts().count);
+      assertNull(build.getArtifacts().files);
+    }
+
+    {
+      final Build build = new Build(finishedBuild30, new Fields("artifacts(count($optional),$locator(count:2))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertEquals(Integer.valueOf(0), build.getArtifacts().count);
+      assertNull(build.getArtifacts().files);
+    }
+    {
+      final Build build = new Build(finishedBuild30, new Fields("artifacts(count($optional))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertEquals(Integer.valueOf(0), build.getArtifacts().count);
+      assertNull(build.getArtifacts().files);
+    }
+    assertTrue(((BuildPromotionEx)finishedBuild30.getBuildPromotion()).hasComputedArtifactsState());
+
+    {
+      final Build build = new Build(finishedBuild30, new Fields("artifacts(count)"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertEquals(Integer.valueOf(0), build.getArtifacts().count);
+      assertNull(build.getArtifacts().files);
+    }
+
+    {
+      final Build build = new Build(finishedBuild30, new Fields("artifacts($short)"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertEquals(Integer.valueOf(0), build.getArtifacts().count);
+      assertNull(build.getArtifacts().files);
+    }
+
+    {
+      final Build build = new Build(finishedBuild30, new Fields("artifacts($short,$locator(count:1))"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertEquals(Integer.valueOf(0), build.getArtifacts().count);
+      assertNull(build.getArtifacts().files);
+    }
+
+    {
+      final Build build = new Build(finishedBuild30, new Fields("artifacts($long)"), getBeanContext(myFixture));
+      assertNotNull(build.getArtifacts());
+      assertEquals(Integer.valueOf(0), build.getArtifacts().count);
+      assertNotNull(build.getArtifacts().files);
+      assertEquals(0, build.getArtifacts().files.size());
+    }
   }
 
   @Test

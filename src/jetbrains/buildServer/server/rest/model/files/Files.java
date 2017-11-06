@@ -43,7 +43,7 @@ public class Files {
   /**
    * Experimental, true if count is more then 0. Is supposed to be a cheap operation
    */
-  @XmlAttribute public Boolean empty;
+  @XmlAttribute public Boolean empty; //todo:TeamCityRelease: drop, use count:$optional,locator:(count:1)
   @XmlAttribute(name = "href") public String href;
 
   public static final String FILE = "file";
@@ -63,12 +63,8 @@ public class Files {
         }
       });
 
-      final boolean countIsCheap = files != null;
-      count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", countIsCheap, countIsCheap), new ValueWithDefault.Value<Integer>() {
-        public Integer get() {
-          return filesP.getCount();
-        }
-      });
+      boolean countIsCheap = filesP.isCountCheap();
+      count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", countIsCheap, countIsCheap, true), () -> filesP.getCount());
 
       empty = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("empty", false, false), new ValueWithDefault.Value<Boolean>() {
         @Nullable
@@ -92,6 +88,11 @@ public class Files {
      */
     @Nullable
     Boolean isCountZero();
+
+    /**
+     * @return true if getCount() method is cheap in terms of performance
+     */
+    boolean isCountCheap();
   }
 
   public static abstract class DefaultFilesProvider implements FilesProvider {
@@ -121,7 +122,9 @@ public class Files {
     public int getCount() {
       Boolean countZero = isCountZero();
       if (countZero != null && countZero) return 0;
-      myItems = getItems();
+      if (myItems == null) {
+        myItems = getItems();
+      }
       return myItems.size();
     }
 
@@ -130,6 +133,11 @@ public class Files {
     public Boolean isCountZero() {
       if (myItems != null) return myItems.isEmpty();
       return null;
+    }
+
+    @Override
+    public boolean isCountCheap() {
+      return myItems != null;
     }
   }
 
