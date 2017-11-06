@@ -346,7 +346,6 @@ public class Build {
           builder.add(Link.WEB_VIEW_TYPE, webLinks.getQueuedBuildUrl(myQueuedBuild), relativeWebLinks.getQueuedBuildUrl(myQueuedBuild));
         }
         return builder.build(myFields.getNestedField("links"));
-
       }
     });
   }
@@ -405,7 +404,6 @@ public class Build {
   }
 
   @XmlElement
-
   public String getStartDate() { // consider adding myBuild.getServerStartDate()
     return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("startDate", false), () -> Util.formatTime(myBuild.getStartDate()));
   }
