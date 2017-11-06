@@ -158,6 +158,8 @@ public class Build {
         LOG.info("Promotion with id " + currentId + " was removed during request processing");
       } else if (replacement.getId() != currentId) {
         LOG.info("Promotion with id " + currentId + " was replaced by promotion with id " + replacement.getId() + " during request processing");
+        //while we can return new build here, this does not seem a good idea as this way a collection of builds can contain builds from before and after replacement making it inconsistent
+        //reporting an error is probably also not a good thing to do as this can prevent from getting any information via the request
       }
     }
 
@@ -193,9 +195,13 @@ public class Build {
       return null;
     }
     if (myQueuedBuild != null) return "queued";
-    if (myBuild != null && !myBuild.isFinished()) return "running";
-    //noinspection ConstantConditions
-    if (myBuild != null && myBuild.isFinished()) return "finished";
+    if (myBuild != null) {
+      if (myBuild.isFinished()) {
+        return "finished";
+      } else {
+        return "running";
+      }
+    }
     if (((BuildPromotionEx)myBuildPromotion).isDeleted()) return "deleted";
     return "unknown";
   }
@@ -618,7 +624,7 @@ public class Build {
       return null;
     }
     return ValueWithDefault.decideDefault(myFields.isIncluded("snapshot-dependencies", false),
-                                          () -> Builds.createFromBuildPromotions(getBuildPromotions(myBuildPromotion.getDependencies()),
+                                          () -> Builds.createFromBuildPromotions(getBuildPromotions(myBuildPromotion.getDependencies()), //todo: use locator here
                                                                                  null,
                                                                                  myFields.getNestedField("snapshot-dependencies", Fields.NONE, Fields.LONG),
                                                                                  myBeanContext));
