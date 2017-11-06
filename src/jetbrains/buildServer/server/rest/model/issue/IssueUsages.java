@@ -52,7 +52,7 @@ public class IssueUsages{
 
   @XmlAttribute
   public String getHref() {
-    return myBeanContext.getApiUrlBuilder().getBuildIssuesHref(myBuild);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("href", true), () -> myBeanContext.getApiUrlBuilder().getBuildIssuesHref(myBuild));
   }
 
   @XmlAttribute
