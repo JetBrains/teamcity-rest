@@ -962,7 +962,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("state:any", getBuildPromotions(build14queued, build13running, build2failed, build1));
   }
 
-  @Test
+  @Test //(invocationCount = 2000)
   public void testBuildNumber() {
     final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
     final SUser user = createUser("uuser");
@@ -977,7 +977,10 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     SBuild build80 = build().in(buildConf).number("100").run();
 
     final String buildTypeDimension = ",buildType:(id:" + buildConf.getExternalId() + ")";
-
+    String buildNumber = build80.getBuildNumber();
+    if (!"100".equals(buildNumber)) {
+      fail("Concurrency detected on setting and then getting running build number!  Got: " + buildNumber);
+    }
     checkBuilds("number:100" + buildTypeDimension, getBuildPromotions(build30, build20));
     checkBuilds("number:100", getBuildPromotions(build30, build20));
 //getBuildPromotions(build80, build60, build50, build40, build30, build20, build10)
@@ -1560,16 +1563,18 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     check("agent:(typeId:" + agentReplacement.getAgentTypeId() + "),defaultFilter:false", build30, build40, build7, build5, build2);
 
     check("agent:(name:" + agentReplacement.getName() + "),defaultFilter:false", build30, build40, build7, build5, build2);
+    check("agent:(name:" + agent.getName() + "),defaultFilter:false", build7, build5, build2); //can still find finished builds by the name of the agent they were run on if the agent is not found
 
 
     unregisterAgent(agentReplacement.getId());
     agentReplacement.setAuthorized(false, null, "");
     myAgentManager.removeAgent(agentReplacement, null);
 
-    checkExceptionOnBuildsSearch(NotFoundException.class, "agent:(id:" + agent.getId() + "),defaultFilter:false"); //No agents are found by locator 'id:2'
-    checkExceptionOnBuildsSearch(NotFoundException.class, "agent:(typeId:" + agent.getAgentTypeId() + "),defaultFilter:false"); //No agent type is found by id '2'
+    checkExceptionOnBuildsSearch(NotFoundException.class, "agent:(id:" + agentReplacement.getId() + "),defaultFilter:false"); //No agents are found by locator 'id:2'
+    check("agent:(typeId:" + agentReplacement.getAgentTypeId() + "),defaultFilter:false", build7, build5, build2);
 
-    checkExceptionOnBuildsSearch(NotFoundException.class, "agent:(name:" + agentReplacement.getName() + "),defaultFilter:false");
+    check("agent:(name:" + agentReplacement.getName() + "),defaultFilter:false");
+    check("agent:(name:" + agent.getName() + "),defaultFilter:false", build7, build5, build2);
   }
 
   @Test
