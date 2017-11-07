@@ -145,6 +145,9 @@ public class Fields {
         return false;
       }
       if (OPTIONAL_FIELDS_PATTERN.equals(fieldSpec) || new Fields(fieldSpec).getCustomDimension(OPTIONAL_FIELDS_PATTERN) != null) {
+        if (isCashed == null && TeamCityProperties.getBoolean("rest.beans.fields.optional.errorIfUsedForNotSupportedField")) {
+          throw new  BadRequestException("Special fields pattern \"" + OPTIONAL_FIELDS_PATTERN + "\" is not supported for field \"" + fieldName + "\"");
+        }
         return isCashed != null && isCashed;
       }
       return true;
