@@ -108,7 +108,7 @@ import org.jetbrains.annotations.Nullable;
            "buildDependencies", "buildArtifactDependencies", "customBuildArtifactDependencies"/*q*/,
            "settingsHash", "currentSettingsHash", "modificationId", "chainModificationId", "replacementIds",
            "triggeringOptions"/*only when triggering*/,
-           "usedByOtherBuilds"
+           "usedByOtherBuilds" /*experimental*/
 })
 public class Build {
   private static final Logger LOG = Logger.getInstance(Build.class.getName());
@@ -294,9 +294,12 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded("personal"), myBuildPromotion::isPersonal);
   }
 
+  /**
+   * Experimental, will be dropped in the future
+   */
   @XmlAttribute
   public Boolean isUsedByOtherBuilds() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("usedByOtherBuilds"),() -> myBuild != null && myBuild.isUsedByOtherBuilds());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("usedByOtherBuilds", false, false),() -> myBuild != null && myBuild.isUsedByOtherBuilds());
   }
 
   @XmlAttribute
