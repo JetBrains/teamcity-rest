@@ -1,8 +1,8 @@
 <project name="rest-api-custom-build" default="dist" basedir=".">
 
   <property file="build.properties"/>
-  <property name="plugin.name" value="rest-api"/>
-  <property name="plugin.contrib.name" value="rest-api-contrib"/>
+  <property name="plugin.name" value="rest-api-2017.1"/>
+  <property name="plugin.contrib.name" value="rest-api-2017.1-contrib"/>
   <property name="javac2.home" value="${basedir}/lib-compile"/>
 
   <property name="generated.out" value="temp/generated"/>
