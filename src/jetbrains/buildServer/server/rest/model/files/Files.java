@@ -40,10 +40,6 @@ import org.jetbrains.annotations.Nullable;
 public class Files {
 
   @XmlAttribute public Integer count;
-  /**
-   * Experimental, true if count is more then 0. Is supposed to be a cheap operation
-   */
-  @XmlAttribute public Boolean empty; //todo:TeamCityRelease: drop, use count:$optional,locator:(count:1)
   @XmlAttribute(name = "href") public String href;
 
   public static final String FILE = "file";
@@ -65,14 +61,6 @@ public class Files {
 
       boolean countIsCheap = filesP.isCountCheap();
       count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", countIsCheap, countIsCheap, true), () -> filesP.getCount());
-
-      empty = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("empty", false, false), new ValueWithDefault.Value<Boolean>() {
-        @Nullable
-        @Override
-        public Boolean get() {
-          return filesP.isCountZero();
-        }
-      });
     }
   }
 
@@ -81,13 +69,6 @@ public class Files {
     List<File> getFiles(@NotNull final Fields fields);
 
     int getCount();
-
-    /**
-     * should be a cheap operation
-     * @return null if unknown / not cheap
-     */
-    @Nullable
-    Boolean isCountZero();
 
     /**
      * @return true if getCount() method is cheap in terms of performance
@@ -120,19 +101,10 @@ public class Files {
 
     @Override
     public int getCount() {
-      Boolean countZero = isCountZero();
-      if (countZero != null && countZero) return 0;
       if (myItems == null) {
         myItems = getItems();
       }
       return myItems.size();
-    }
-
-    @Nullable
-    @Override
-    public Boolean isCountZero() {
-      if (myItems != null) return myItems.isEmpty();
-      return null;
     }
 
     @Override

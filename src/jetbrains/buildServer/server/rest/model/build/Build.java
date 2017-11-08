@@ -808,16 +808,6 @@ public class Build {
             return BuildArtifactsFinder.getItems(BuildArtifactsFinder.getArtifactElement(myBuildPromotion, "", myServiceLocator), childrenLocator, builder, myServiceLocator);
           }
 
-          @Nullable
-          @Override
-          public Boolean isCountZero() {
-            Boolean countZero = super.isCountZero();
-            if (countZero != null) return countZero;
-
-            Integer cheapCount = getCheapCount();
-            return cheapCount != null && cheapCount == 0;
-          }
-
           @Override
           public int getCount() {
             if (myItems != null) {
