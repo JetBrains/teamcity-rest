@@ -58,13 +58,10 @@
   <target name="generate.javadoc">
     <delete dir="${generated.out}/javadoc_generated.xml" quiet="true"/>
     <mkdir dir="${generated.out}"/>
-    <javadoc access="public">
+    <javadoc access="public" sourcepath="src">
       <classpath>
         <path refid="rest-api.module.production.classpath"/>
       </classpath>
-      <fileset dir="src" defaultexcludes="yes">
-        <include name="**/**.java"/>
-      </fileset>
       <doclet name="com.sun.jersey.wadl.resourcedoc.ResourceDoclet">
         <path>
           <path refid="rest-api.module.production.classpath"/>
