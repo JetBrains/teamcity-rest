@@ -189,7 +189,7 @@ public class Project {
       });
 
       defaultTemplate = ValueWithDefault.decideDefault(fields.isIncluded("defaultTemplate", false), () -> {
-        final Fields templateFields = fields.getNestedField("defaultTemplate", Fields.NONE, Fields.LONG);
+        final Fields templateFields = fields.getNestedField("defaultTemplate", Fields.NONE, Fields.SHORT);
         BuildTypeTemplate defaultTemplate = project.getDefaultTemplate();
         if (defaultTemplate == null) return null;
         return new BuildType(new BuildTypeOrTemplate(defaultTemplate), templateFields, beanContext);
