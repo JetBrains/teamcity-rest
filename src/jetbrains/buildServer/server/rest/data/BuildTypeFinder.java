@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -27,6 +28,7 @@ import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
+import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
@@ -61,10 +63,12 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   public static final String DIMENSION_NAME = "name";
   public static final String TEMPLATE_DIMENSION_NAME = "template";
   public static final String TEMPLATE_FLAG_DIMENSION_NAME = "templateFlag";
+  public static final String TYPE = "type";
   public static final String PAUSED = "paused";
   protected static final String COMPATIBLE_AGENT = "compatibleAgent";
   protected static final String COMPATIBLE_AGENTS_COUNT = "compatibleAgentsCount";
   protected static final String PARAMETER = "parameter";
+  protected static final String SETTING = "setting"; //experimental. Quite ineffective
   protected static final String FILTER_BUILDS = "filterByBuilds";
   protected static final String SNAPSHOT_DEPENDENCY = "snapshotDependency";
   protected static final String ARTIFACT_DEPENDENCY = "artifactDependency";
@@ -87,7 +91,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     super(DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, AFFECTED_PROJECT, DIMENSION_NAME, TEMPLATE_FLAG_DIMENSION_NAME,
       TEMPLATE_DIMENSION_NAME, PAUSED, VCS_ROOT_DIMENSION, VCS_ROOT_INSTANCE_DIMENSION, BUILD,
       Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-    setHiddenDimensions(COMPATIBLE_AGENT, COMPATIBLE_AGENTS_COUNT, PARAMETER, FILTER_BUILDS, SNAPSHOT_DEPENDENCY, ARTIFACT_DEPENDENCY, DIMENSION_SELECTED, DIMENSION_LOOKUP_LIMIT);
+    setHiddenDimensions(TYPE, COMPATIBLE_AGENT, COMPATIBLE_AGENTS_COUNT, PARAMETER, SETTING, FILTER_BUILDS, SNAPSHOT_DEPENDENCY, ARTIFACT_DEPENDENCY, DIMENSION_SELECTED, DIMENSION_LOOKUP_LIMIT);
     myProjectManager = projectManager;
     myProjectFinder = projectFinder;
     myAgentFinder = agentFinder;
@@ -328,6 +332,20 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       });
     }
 
+    final String settingDimension = locator.getSingleDimensionValue(SETTING);
+    if (settingDimension != null) {
+      final ParameterCondition condition = ParameterCondition.create(settingDimension);
+      result.add(item -> {
+        final boolean canView = !BuildType.shouldRestrictSettingsViewing(item.get(), myPermissionChecker);
+        if (!canView) {
+          LOG.debug("While filtering build types by " + SETTING + " user does not have enough permissions to see settings. Excluding build type: " + item.describe(false));
+          return false;
+        }
+        return condition.matches(new MapParametersProviderImpl(BuildTypeUtil.getSettingsParameters(item, null, true, false)),
+                                 new MapParametersProviderImpl(BuildTypeUtil.getSettingsParameters(item, null, true, false)));
+      });
+    }
+
     final Boolean template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_FLAG_DIMENSION_NAME);
     if (template != null) {
       result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
@@ -335,6 +353,12 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
           return FilterUtil.isIncludedByBooleanFilter(template, item.isTemplate());
         }
       });
+    }
+
+    final String type = locator.getSingleDimensionValue(TYPE);
+    if (type != null) {
+      String typeOptionValue = TypedFinderBuilder.getEnumValue(type, BuildTypeOptions.BuildConfigurationType.class).name();
+      result.add(item -> typeOptionValue.equals(item.get().getOption(BuildTypeOptions.BT_BUILD_CONFIGURATION_TYPE)));
     }
 
     final String filterBuilds = locator.getSingleDimensionValue(FILTER_BUILDS); //experimental
