@@ -58,6 +58,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   protected static final String DIMENSION_SELECTED = "selectedByUser";
   public static final String BUILD = "build";
   public static final String BUILD_TYPE = "buildType";
+  public static final String DEFAULT_TEMPLATE = "defaultTemplate";
   public static final String VCS_ROOT = "vcsRoot";
   public static final String AGENT_POOL = "pool";
   public static final String FEATURE = "projectFeature";
@@ -69,7 +70,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
   public ProjectFinder(@NotNull final ProjectManager projectManager, final PermissionChecker permissionChecker, @NotNull final ServiceLocator serviceLocator){
     super(DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, DIMENSION_AFFECTED_PROJECT, DIMENSION_NAME, DIMENSION_ARCHIVED,
-          BUILD, BUILD_TYPE, VCS_ROOT, FEATURE, AGENT_POOL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+          BUILD, BUILD_TYPE, DEFAULT_TEMPLATE, VCS_ROOT, FEATURE, AGENT_POOL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     setHiddenDimensions(DIMENSION_PARAMETER, DIMENSION_SELECTED, DIMENSION_READ_ONLY_UI, USER_PERMISSION,
                         DIMENSION_LOOKUP_LIMIT,
                         DIMENSION_PARENT_PROJECT //compatibility mode for versions <9.1
@@ -265,6 +266,21 @@ public class ProjectFinder extends AbstractFinder<SProject> {
           }
           return new PropEntityProjectFeature.ProjectFeatureFinder(item).getItems(featureDimension).myEntries.size() > 0;
         }
+      });
+    }
+
+    final String defaultTemplateDimension = locator.getSingleDimensionValue(DEFAULT_TEMPLATE);
+    if (defaultTemplateDimension != null) {
+      Set<String> defaultTemplateIds = myServiceLocator.getSingletonService(BuildTypeFinder.class).
+        getItems(defaultTemplateDimension).myEntries.stream().map(bt -> bt.getInternalId()).collect(Collectors.toSet());
+      result.add(item -> {
+        final boolean canView = !Project.shouldRestrictSettingsViewing(item, myPermissionChecker);
+        if (!canView) {
+          LOG.debug("While filtering projects by " + DIMENSION_PARAMETER + " user does not have enough permissions to see settings. Excluding project: " + item.describe(false));
+          return false;
+        }
+        String defaultTemplateId = item.getDefaultTemplateId();
+        return defaultTemplateId != null && defaultTemplateIds.contains(defaultTemplateId);
       });
     }
 
