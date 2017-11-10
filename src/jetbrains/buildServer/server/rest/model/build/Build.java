@@ -218,7 +218,6 @@ public class Build {
   /**
    * Experimental
    * "composite" build state (since TeamCty 2017.2)
-   * TODO: to review before the release. May be this should turn into a node with more details like completion %
    */
   @XmlAttribute
   public Boolean isComposite() {
@@ -296,6 +295,7 @@ public class Build {
 
   /**
    * Experimental, will be dropped in the future
+   * True if there are other builds which either snapshot-depend on this one, or downloaded artifacts from this one
    */
   @XmlAttribute
   public Boolean isUsedByOtherBuilds() {
@@ -367,6 +367,7 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded("agent", false), new ValueWithDefault.Value<Agent>() {
       public Agent get() {
         if (myBuild != null) {
+          if (myBuild.isAgentLessBuild()) return null;
           SBuildAgent agent = myBuild.getAgent();
           return new Agent(agent, myBeanContext.getSingletonService(AgentPoolFinder.class), myFields.getNestedField("agent"), myBeanContext);
         }

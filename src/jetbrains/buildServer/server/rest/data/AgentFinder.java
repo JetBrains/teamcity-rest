@@ -352,11 +352,11 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     TreeSet<SBuildAgent> result = createContainerSet();
     for (BuildPromotion build : builds) {
       SQueuedBuild queuedBuild = build.getQueuedBuild();
-      if (queuedBuild != null) {
+      if (queuedBuild != null && !build.isCompositeBuild()) { //isAgentLessBuild should be used here, but queued build does not have that so far
         result.addAll(queuedBuild.getCanRunOnAgents());
       } else {
         SBuild associatedBuild = build.getAssociatedBuild();
-        if (associatedBuild != null) {
+        if (associatedBuild != null && !associatedBuild.isAgentLessBuild()) {
           result.add(associatedBuild.getAgent());
         }
       }
