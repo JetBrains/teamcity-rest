@@ -90,6 +90,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected static final String PINNED = "pinned";
   protected static final String RUNNING = "running";
   protected static final String HANGING = "hanging";
+  protected static final String COMPOSITE = "composite";
   protected static final String SNAPSHOT_DEP = "snapshotDependency";
   protected static final String ARTIFACT_DEP = "artifactDependency";
   protected static final String COMPATIBLE_AGENTS_COUNT = "compatibleAgentsCount";
@@ -162,7 +163,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                               final MetadataStorageEx metadataStorage,
                               @NotNull final ServiceLocator serviceLocator) {
     super(DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, USER, PERSONAL, STATE, TAG, PROPERTY, COMPATIBLE_AGENT, NUMBER, STATUS, CANCELED,
-          PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, ARTIFACT_DEP, HANGING, HISTORY,
+          PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, ARTIFACT_DEP, HANGING, COMPOSITE, HISTORY,
           DEFAULT_FILTERING, SINCE_BUILD_ID_LOOK_AHEAD_COUNT,
           Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     setHiddenDimensions(AGENT_NAME, TAGS, RUNNING,  //compatibility
@@ -349,6 +350,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
           return associatedBuild == null || !associatedBuild.isFinished();
         }
       });
+    }
+
+    final Boolean composite = locator.getSingleDimensionValueAsBoolean(COMPOSITE);
+    if (composite != null) {
+      result.add(item -> FilterUtil.isIncludedByBooleanFilter(composite, item.isCompositeBuild()));
     }
 
     if (locator.isUnused(PROJECT)) {
