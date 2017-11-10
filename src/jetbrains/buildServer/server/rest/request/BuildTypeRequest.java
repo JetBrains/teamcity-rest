@@ -18,10 +18,7 @@ package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
@@ -29,6 +26,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
+import jetbrains.buildServer.log.LogUtil;
 import jetbrains.buildServer.parameters.ProcessingResult;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -40,6 +38,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.*;
+import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.build.Branches;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
@@ -54,6 +53,7 @@ import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
+import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.VcsLabelingBuildFeature;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -248,6 +248,87 @@ public class BuildTypeRequest {
   }
 
   @GET
+  @Path("/{btLocator}/templates")
+  @Produces({"application/xml", "application/json"})
+  public BuildTypes getTemplates(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
+    SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
+    return BuildType.getTemplates(buildType, new Fields(fields), myBeanContext);
+  }
+
+  @PUT
+  @Path("/{btLocator}/templates")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public BuildTypes setTemplates(@PathParam("btLocator") String buildTypeLocator, BuildTypes templates, @QueryParam("fields") String fields) {
+    SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
+    if (templates == null) {
+      throw new BadRequestException("Nothing is posted as payload while list of templates is expected");
+    }
+    BuildTypeOrTemplate.setTemplates(buildType, templates.getFromPosted(myBuildTypeFinder));
+    return BuildType.getTemplates(buildType, new Fields(fields), myBeanContext);
+  }
+
+  @POST
+  @Path("/{btLocator}/templates")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public BuildType addTemplate(@PathParam("btLocator") String buildTypeLocator, BuildType template, @QueryParam("fields") String fields) {
+    SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
+    if (template == null) {
+      throw new BadRequestException("Nothing is posted as payload while a template is expected");
+    }
+    BuildTypeOrTemplate posted = template.getBuildTypeFromPosted(myBuildTypeFinder);
+    BuildTypeTemplate result = posted.getTemplate();
+    if (result == null) {
+      throw new BadRequestException("Found build type when template is expected: " + LogUtil.describe(posted.getBuildType()));
+    }
+    try {
+      buildType.attachToTemplate(result);
+    } catch (CannotAttachToTemplateException e) {
+      throw new BadRequestException(e.getMessage());
+    }
+    buildType.persist();
+    return new BuildType(new BuildTypeOrTemplate(result),  new Fields(fields), myBeanContext);
+  }
+
+  @DELETE
+  @Path("/{btLocator}/templates")
+  public void removeAllTemplates(@PathParam("btLocator") String buildTypeLocator) {
+    SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
+    ((BuildTypeImpl)buildType).detachFromAllTemplates();
+    buildType.persist();
+  }
+
+  @GET
+  @Path("/{btLocator}/templates/{templateLocator}")
+  @Produces({"application/xml", "application/json"})
+  public BuildType getTemplate(@PathParam("btLocator") String buildTypeLocator, @PathParam("templateLocator") String templateLocator, @QueryParam("fields") String fields) {
+    SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
+    BuildTypeTemplate template = myBuildTypeFinder.getBuildTemplate(null, templateLocator, true);
+
+    if (buildType.getOwnTemplates().stream().noneMatch(t -> t.getId().equals(template.getId()))) {
+      throw new NotFoundException("Build type " + LogUtil.describe(buildType) + " does not have template with id \"" + template.getExternalId() + "\"");
+    }
+    return new BuildType(new BuildTypeOrTemplate(template),  new Fields(fields), myBeanContext);
+  }
+
+  @DELETE
+  @Path("/{btLocator}/templates/{templateLocator}")
+  public void removeTemplate(@PathParam("btLocator") String buildTypeLocator, @PathParam("templateLocator") String templateLocator) {
+    SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
+    BuildTypeTemplate template = myBuildTypeFinder.getBuildTemplate(null, templateLocator, true);
+
+    if (buildType.getOwnTemplates().stream().noneMatch(t -> t.getId().equals(template.getId()))) {
+      throw new NotFoundException("Build type " + LogUtil.describe(buildType) + " does not have template with id \"" + template.getExternalId() + "\"");
+    }
+    ((BuildTypeImpl)buildType).detachFromTemplates(Collections.singleton(template));
+    buildType.persist();
+  }
+
+  /**
+   * @Deprecated Use .../templates instead
+   */
+  @GET
   @Path("/{btLocator}/template")
   @Produces({"application/xml", "application/json"})
   public BuildType serveBuildTypeTemplate(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
@@ -264,6 +345,9 @@ public class BuildTypeRequest {
     return new BuildType(new BuildTypeOrTemplate(template),  new Fields(fields), myBeanContext);
   }
 
+  /**
+   * @Deprecated Use .../templates instead
+   */
   @PUT
   @Path("/{btLocator}/template")
   @Consumes("text/plain")
@@ -272,6 +356,7 @@ public class BuildTypeRequest {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
     BuildTypeTemplate template = myBuildTypeFinder.getBuildTemplate(null, templateLocator, true);
     try {
+      buildType.detachFromTemplate();
       buildType.attachToTemplate(template);
     } catch (CannotAttachToTemplateException e) {
       throw new BadRequestException(e.getMessage());
@@ -281,6 +366,9 @@ public class BuildTypeRequest {
   }
 //todo: allow also to post back the XML from GET request (http://devnet.jetbrains.net/message/5466528#5466528)
 
+  /**
+   * @Deprecated Use .../templates instead
+   */
   @DELETE
   @Path("/{btLocator}/template")
   public void deleteTemplateAssociation(@PathParam("btLocator") String buildTypeLocator) {

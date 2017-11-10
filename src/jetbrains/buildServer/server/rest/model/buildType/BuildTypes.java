@@ -111,4 +111,10 @@ public class BuildTypes {
       }
     });
   }
+
+  public BuildTypes initializeSubmittedFromUsual() {
+    //fields are used, so nothing should be done with them
+    if (buildTypes != null) buildTypes.forEach(bt -> bt.initializeSubmittedFromUsual());
+    return this;
+  }
 }

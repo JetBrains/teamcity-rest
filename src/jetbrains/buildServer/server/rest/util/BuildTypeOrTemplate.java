@@ -17,13 +17,18 @@
 package jetbrains.buildServer.server.rest.util;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.log.Loggable;
 import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.vcs.VcsRootInstanceEntry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -140,6 +145,39 @@ public class BuildTypeOrTemplate implements Loggable {
     myBuildTypeIdentity.remove();
   }
 
+  public static void setTemplates(@NotNull final SBuildType buildType, @NotNull final List<BuildTypeOrTemplate> buildTypeOrTemplates) {
+    List<BuildTypeTemplate> newTemplates = buildTypeOrTemplates.stream().map(bt -> {
+      BuildTypeTemplate result = bt.getTemplate();
+      if (result == null) {
+        throw new BadRequestException("Found build type when only templates are expected: " + jetbrains.buildServer.log.LogUtil.describe(bt.getBuildType()));
+      }
+      return result;
+    }).collect(Collectors.toList());
+    if (haveSameElements(buildType.getOwnTemplates(), newTemplates)) {
+      //only order changes: reorder
+      buildType.setTemplatesOrder(newTemplates.stream().map(t -> t.getId()).collect(Collectors.toList()));
+      return;
+    }
+    ((BuildTypeImpl)buildType).detachFromAllTemplates(); //this "bakes in" the settings from the templates to the build configuration
+    try {
+      newTemplates.forEach(t -> buildType.attachToTemplate(t));
+    } catch (CannotAttachToTemplateException e) {
+      //cannot revert as detachFromAllTemplates inlines settings into the build configuration
+      throw new BadRequestException("Error attaching to templates, settings might be in partly modified state: " + e.getMessage());
+    } catch (Exception e) {
+      throw new OperationException("Error attaching to templates, settings might be in partly modified state: " + e.toString());
+    }
+    buildType.persist();
+  }
+
+  private static boolean haveSameElements(final List<? extends BuildTypeTemplate> t1, final List<BuildTypeTemplate> t2) {
+    if (t1.size() != t2.size()) return false;
+    Set<String> t1Ids = t1.stream().map(BuildTypeTemplate::getId).collect(Collectors.toSet());
+    Set<String> t2Ids = t2.stream().map(BuildTypeTemplate::getId).collect(Collectors.toSet());
+    Set<String> common = CollectionsUtil.intersect(t1Ids, t2Ids);
+    return common.size() == t1.size();
+  }
+
   public void setFieldValueAndPersist(@NotNull final String field, @Nullable final String value, @NotNull final ServiceLocator serviceLocator) {
     if ("id".equals(field)) {
       if (value != null){
@@ -235,6 +273,35 @@ public class BuildTypeOrTemplate implements Loggable {
     result = 31 * result + (myTemplate != null ? myTemplate.hashCode() : 0);
     result = 31 * result + myBuildTypeIdentity.hashCode();
     return result;
+  }
+
+  private BuildTypeOrTemplate() {
+    myBuildType = null;
+    myTemplate = null;
+    myBuildTypeIdentity = null;
+  }
+
+  public static class IdsOnly extends BuildTypeOrTemplate {
+    @NotNull private final String myId;
+    @NotNull private final String myInternalId;
+
+    public IdsOnly(@NotNull final String id, @NotNull final String internalId) {
+      myId = id;
+      myInternalId = internalId;
+
+    }
+
+    @NotNull
+    @Override
+    public String getId() {
+      return myId;
+    }
+
+    @NotNull
+    @Override
+    public String getInternalId() {
+      return myInternalId;
+    }
   }
 }
 

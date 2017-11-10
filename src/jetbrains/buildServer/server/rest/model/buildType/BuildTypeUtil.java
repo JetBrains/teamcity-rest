@@ -78,14 +78,17 @@ public class BuildTypeUtil {
     Boolean own = locator == null ? null : locator.getSingleDimensionValueAsBoolean("own");
     Boolean defaultValue = locator == null ? null : locator.getSingleDimensionValueAsBoolean("defaults");
 
-    BuildTypeTemplate template = null;
+    List<? extends BuildTypeTemplate> templates = null;
     try {
-      template = buildType.get().getTemplate();
+      //todo: rework this to use only options methods of buildType and not traversing templates
+      templates = buildType.get().getTemplates();
     } catch (BuildTypeTemplateNotFoundException e) {
       LOG.debug("Error retrieving template for build configuration " + LogUtil.describe(buildType.get()) + ": " + e.toString(), e);
+      templates = Collections.emptyList();
     }
-    if ((own == null || !own) && template != null) {
-      properties.putAll(getOptionsAsMap(buildType.get(), template.getOwnOptions()));
+    if ((own == null || !own) && !templates.isEmpty()) {
+      HashSet<Option> optionsFromTemplates = templates.stream().flatMap(t -> t.getOwnOptions().stream()).collect(HashSet::new, Collection::add, (t1, t2) -> t1.addAll(t2));
+      properties.putAll(getOptionsAsMap(buildType.get(), optionsFromTemplates));
     }
     if (defaultValue == null) {
       properties.putAll(getOptionsAsMap(buildType.get(), null));
@@ -128,10 +131,10 @@ public class BuildTypeUtil {
     }
   }
 
-  private static Map<String, String> getOptionsAsMap(@NotNull final OptionSupport buildType, @Nullable final Collection<Option> ownOptions) {
+  private static Map<String, String> getOptionsAsMap(@NotNull final OptionSupport buildType, @Nullable final Collection<Option> limitToOptions) {
     final Map<String, String> result = new HashMap<>();
     for (Option option : getAllSupportedOptions(buildType)) {
-      if (ownOptions == null || ownOptions.contains(option)) {
+      if (limitToOptions == null || limitToOptions.contains(option)) {
         result.put(option.getKey(), buildType.getOption(option).toString());
       }
     }

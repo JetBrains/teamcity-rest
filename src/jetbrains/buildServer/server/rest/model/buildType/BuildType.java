@@ -17,8 +17,10 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import com.intellij.openapi.diagnostic.Logger;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -58,7 +60,7 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "buildType")
 @XmlType(name = "buildType", propOrder = {"id", "internalId", "name", "templateFlag", "paused", "uuid", "description", "projectName", "projectId", "projectInternalId",
   "href", "webUrl",
-  "links", "project", "template", "vcsRootEntries", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
+  "links", "project", "templates", "template" /*deprecated*/, "vcsRootEntries", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
   "artifactDependencies", "agentRequirements",
   "branches", "builds", "investigations", "compatibleAgents"})
 public class BuildType {
@@ -79,6 +81,11 @@ public class BuildType {
   }
 
   public BuildType(@NotNull final BuildTypeOrTemplate buildType, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    if ((buildType instanceof BuildTypeOrTemplate.IdsOnly)) {
+      canViewSettings = initForIds(buildType.getId(), buildType.getInternalId(), fields, beanContext);
+      return;
+    }
+
     myBuildType = buildType;
     myExternalId = buildType.getId();
     myInternalId = buildType.getInternalId();
@@ -90,6 +97,11 @@ public class BuildType {
   }
 
   public BuildType(@NotNull final String externalId, @Nullable final String internalId, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    canViewSettings = initForIds(externalId, internalId, fields, beanContext);
+  }
+
+  private boolean initForIds(final @NotNull String externalId, final @Nullable String internalId, final @NotNull Fields fields, final @NotNull BeanContext beanContext) {
+    final boolean canViewSettings;
     myBuildType = null;
     myExternalId = externalId;
     myInternalId = internalId;
@@ -101,6 +113,7 @@ public class BuildType {
     } else {
       canViewSettings = true;
     }
+    return canViewSettings;
   }
 
   /**
@@ -245,12 +258,65 @@ public class BuildType {
     });
   }
 
+  @XmlElement(name = "templates")
+  public BuildTypes getTemplates() {
+    if (myBuildType == null || myBuildType.getBuildType() == null){
+      return null;
+    }
+    return ValueWithDefault.decideDefault(myFields.isIncluded("templates", false), check(() -> {
+      Fields nestedFields = myFields.getNestedField("templates", Fields.NONE, Fields.LONG);
+      return getTemplates(myBuildType.getBuildType(), nestedFields, myBeanContext);
+    }));
+  }
+
+  @Nullable
+  public static BuildTypes getTemplates(@NotNull final SBuildType buildType, @NotNull final Fields fields, final BeanContext beanContext) {
+    try {
+      PermissionChecker permissionChecker = beanContext.getSingletonService(PermissionChecker.class);
+      List<? extends BuildTypeTemplate> templates = buildType.getOwnTemplates();
+      return new BuildTypes(templates.stream().map(
+        t -> shouldRestrictSettingsViewing(t, permissionChecker) ? new BuildTypeOrTemplate.IdsOnly(t.getExternalId(), t.getInternalId()) : new BuildTypeOrTemplate(t))
+                                     .collect(Collectors.toList()), null, fields, beanContext);
+    } catch (RuntimeException e) {
+      LOG.debug("Error retrieving templates for build configuration " + LogUtil.describe(buildType) + ": " + e.toString(), e);
+      List<String> templateIds = buildType.getTemplateIds();
+      if (templateIds.isEmpty()) return null;
+      List<BuildTypeOrTemplate> result = getBuildTypeOrTemplates(templateIds, fields.getNestedField("template"), beanContext);
+      return result.isEmpty() ? null : new BuildTypes(result, null, fields, beanContext);
+    }
+  }
+
+  @NotNull
+  private static List<BuildTypeOrTemplate> getBuildTypeOrTemplates(@NotNull final List<String> templateInternalIds,
+                                                                   @NotNull final Fields fields,
+                                                                   @NotNull final BeanContext beanContext) {
+    //still including external id since the user has permission to view settings of the current build configuration
+    ProjectManager projectManager = beanContext.getSingletonService(ProjectManager.class);
+    try {
+      return beanContext.getSingletonService(SecurityContextEx.class).runAsSystem(() ->
+        templateInternalIds.stream().map(id -> {
+          BuildTypeTemplate template = projectManager.findBuildTypeTemplateById(id);
+          if (template == null) return null;
+          return new BuildTypeOrTemplate.IdsOnly(template.getExternalId(), id);
+        }).collect(Collectors.toList()));
+    } catch (Throwable e) {
+      LOG.debug("Error retrieving templates external ids for internal ids: " + templateInternalIds.stream().collect(Collectors.joining(", ")) + " under System: " + e.toString(), e);
+      return Collections.emptyList();
+    }
+  }
+
+
+  /**
+   * This is preserved for compatibility reasons with TeamCity before 2017.2 where only one template can be used in a build configuration
+   * @return the first template used in the build configuration
+   * @Deprecated use getTemplates
+   */
   @XmlElement(name = "template")
   public BuildType getTemplate() {
     if (myBuildType == null || myBuildType.getBuildType() == null){
       return null;
     }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("template", false), check(new ValueWithDefault.Value<BuildType>() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("template", false, false), check(new ValueWithDefault.Value<BuildType>() {
       public BuildType get() {
         try {
           final BuildTypeTemplate template = myBuildType.getBuildType().getTemplate();
@@ -623,6 +689,7 @@ public class BuildType {
   @Nullable private  Boolean submittedTemplateFlag;
   @Nullable private  Boolean submittedPaused;
   @Nullable private  BuildType submittedTemplate;
+  @Nullable private  BuildTypes submittedTemplates;
   @Nullable private  VcsRootEntries submittedVcsRootEntries;
   @Nullable private  Properties submittedParameters;
   @Nullable private  PropEntitiesStep submittedSteps;
@@ -659,6 +726,10 @@ public class BuildType {
 
   public void setTemplate(@Nullable final BuildType submittedTemplate) {
     this.submittedTemplate = submittedTemplate;
+  }
+
+  public void setTemplates(@Nullable final BuildTypes submittedTemplates) {
+    this.submittedTemplates = submittedTemplates;
   }
 
   public void setVcsRootEntries(@Nullable final VcsRootEntries submittedVcsRootEntries) {
@@ -709,9 +780,9 @@ public class BuildType {
     setDescription(getDescription());
     setTemplateFlag(getTemplateFlag());
     setPaused(isPaused());
-    BuildType template = getTemplate();
-    if (template != null) {
-      setTemplate(template.initializeSubmittedFromUsual());
+    BuildTypes templates = getTemplates();
+    if (templates != null) {
+      setTemplates(templates.initializeSubmittedFromUsual());
     }
     setVcsRootEntries(getVcsRootEntries());
     setParameters(getParameters());
@@ -823,7 +894,20 @@ public class BuildType {
                                                                                    serviceLocator.getSingletonService(UserFinder.class).getCurrentUser(),
                                                                                    TeamCityProperties.getProperty("rest.defaultActionComment"));
     }
-    if (submittedTemplate != null) {
+
+    if (submittedTemplates != null) {
+      if (buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType() == null) {
+        throw new BadRequestException("Cannot set templates for a template");
+      }
+      try {
+        //noinspection ConstantConditions
+        List<BuildTypeOrTemplate> templates = submittedTemplates.getFromPosted(serviceLocator.findSingletonService(BuildTypeFinder.class));
+        BuildTypeOrTemplate.setTemplates(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType(), templates);
+      } catch (BadRequestException e) {
+        throw new BadRequestException("Error retrieving submitted templates: " + e.getMessage(), e);
+      }
+      result = true;
+    } else if (submittedTemplate != null) {
       if (buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType() == null) {
         throw new BadRequestException("Cannot set template for a template");
       }
@@ -840,6 +924,7 @@ public class BuildType {
       result = true;
       buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType().attachToTemplate(templateFromPosted.getTemplate());
     }
+
     BuildTypeSettingsEx buildTypeSettings = buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getSettingsEx();
     if (submittedVcsRootEntries != null) {
       boolean updated = submittedVcsRootEntries.setToBuildType(buildTypeSettings, serviceLocator);
