@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import java.util.*;
 import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletRequest;
@@ -314,14 +315,14 @@ public class BuildTypeRequest {
 
   @DELETE
   @Path("/{btLocator}/templates/{templateLocator}")
-  public void removeTemplate(@PathParam("btLocator") String buildTypeLocator, @PathParam("templateLocator") String templateLocator) {
+  public void removeTemplate(@PathParam("btLocator") String buildTypeLocator, @PathParam("templateLocator") String templateLocator, @QueryParam("inlineSettings") Boolean inlineSettings) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
     BuildTypeTemplate template = myBuildTypeFinder.getBuildTemplate(null, templateLocator, true);
 
     if (buildType.getOwnTemplates().stream().noneMatch(t -> t.getId().equals(template.getId()))) {
       throw new NotFoundException("Build type " + LogUtil.describe(buildType) + " does not have template with id \"" + template.getExternalId() + "\"");
     }
-    ((BuildTypeImpl)buildType).detachFromTemplates(Collections.singleton(template));
+    ((BuildTypeImpl)buildType).detachFromTemplates(Collections.singleton(template), inlineSettings != null ? inlineSettings : false);
     buildType.persist();
   }
 
@@ -331,6 +332,7 @@ public class BuildTypeRequest {
   @GET
   @Path("/{btLocator}/template")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(hidden = true, value = "Use .../templates instead")
   public BuildType serveBuildTypeTemplate(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
     final BuildTypeTemplate template;
@@ -352,11 +354,12 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/template")
   @Consumes("text/plain")
   @Produces({"application/xml", "application/json"})
-  public BuildType getTemplateAssociation(@PathParam("btLocator") String buildTypeLocator, String templateLocator, @QueryParam("fields") String fields) {
+  @ApiOperation(hidden = true, value = "Use .../templates instead")
+  public BuildType getTemplateAssociation(@PathParam("btLocator") String buildTypeLocator, String templateLocator, @QueryParam("fields") String fields, @QueryParam("inlineSettings") Boolean inlineSettings) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
     BuildTypeTemplate template = myBuildTypeFinder.getBuildTemplate(null, templateLocator, true);
     try {
-      buildType.detachFromTemplate();
+      ((BuildTypeImpl)buildType).detachFromTemplates(buildType.getTemplates(), inlineSettings != null ? inlineSettings : false);
       buildType.attachToTemplate(template);
     } catch (CannotAttachToTemplateException e) {
       throw new BadRequestException(e.getMessage());
@@ -371,9 +374,10 @@ public class BuildTypeRequest {
    */
   @DELETE
   @Path("/{btLocator}/template")
-  public void deleteTemplateAssociation(@PathParam("btLocator") String buildTypeLocator) {
+  @ApiOperation(hidden = true, value = "Use .../templates instead")
+  public void deleteTemplateAssociation(@PathParam("btLocator") String buildTypeLocator, @QueryParam("inlineSettings") Boolean inlineSettings) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
-    buildType.detachFromTemplate();
+    ((BuildTypeImpl)buildType).detachFromTemplates(buildType.getTemplates(), inlineSettings != null ? inlineSettings : true); //using "true" as default here to replicate pre-2017.2 behavior
     buildType.persist();
   }
 
