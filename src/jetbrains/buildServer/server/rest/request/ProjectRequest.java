@@ -26,12 +26,14 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.log.LogUtil;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.parameters.MapBackedEntityWithModifiableParameters;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.agent.AgentPool;
@@ -49,8 +51,10 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.dependency.CyclicDependencyFoundException;
 import jetbrains.buildServer.serverSide.identifiers.DuplicateExternalIdException;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
+import jetbrains.buildServer.serverSide.impl.projects.ProjectImpl;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectsLoader;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -368,6 +372,51 @@ public class ProjectRequest {
   public BuildType serveBuildTypeTemplates(@PathParam("projectLocator") String projectLocator, @PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
     BuildTypeTemplate buildType = myBuildTypeFinder.getBuildTemplate(myProjectFinder.getItem(projectLocator, true), buildTypeLocator, true);
     return new BuildType(new BuildTypeOrTemplate(buildType),  new Fields(fields), myBeanContext);
+  }
+
+  @GET
+  @Path("/{projectLocator}/defaultTemplate")
+  @Produces({"application/xml", "application/json"})
+  public BuildType getDefaultTemplate(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
+    SProject project = myProjectFinder.getItem(projectLocator, true);
+    BuildTypeTemplate defaultTemplate = project.getDefaultTemplate();
+    if (defaultTemplate == null) throw new NotFoundException("No default template present");
+    return new BuildType(new BuildTypeOrTemplate(defaultTemplate), new Fields(fields), myBeanContext);
+  }
+
+  @PUT
+  @Path("/{projectLocator}/defaultTemplate")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public BuildType setDefaultTemplate(@PathParam("projectLocator") String projectLocator, BuildType defaultTemplate, @QueryParam("fields") String fields) {
+    SProject project = myProjectFinder.getItem(projectLocator, true);
+    if (defaultTemplate == null) throw new BadRequestException("No payload found while template is expected");
+    BuildTypeOrTemplate newDefaultTemplate = defaultTemplate.getBuildTypeFromPosted(myBuildTypeFinder);
+
+    BuildTypeTemplate result = newDefaultTemplate.getTemplate();
+    if (result == null) {
+      throw new BadRequestException("Found build type when template is expected: " + LogUtil.describe(newDefaultTemplate.getBuildType()));
+    }
+    try {
+      ((ProjectImpl)project).setDefaultTemplate(result);
+    } catch (CyclicDependencyFoundException e) {
+      throw new BadRequestException(e.getMessage());
+    }
+
+    project.persist();
+
+    BuildTypeTemplate currentTemplate = project.getDefaultTemplate();
+    if (currentTemplate == null) throw new NotFoundException("No default template present");
+    return new BuildType(new BuildTypeOrTemplate(currentTemplate), new Fields(fields), myBeanContext);
+  }
+
+  @DELETE
+  @Path("/{projectLocator}/defaultTemplate")
+  public void removeDefaultTemplate(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
+    SProject project = myProjectFinder.getItem(projectLocator, true);
+    if (project.getDefaultTemplate() == null) throw new NotFoundException("No default template present");
+    ((ProjectImpl)project).setDefaultTemplate(null);
+    project.persist();
   }
 
   @Path("/{projectLocator}" + PARAMETERS)

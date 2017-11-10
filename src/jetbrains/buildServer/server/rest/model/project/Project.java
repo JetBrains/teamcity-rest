@@ -33,6 +33,7 @@ import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEn
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.*;
+import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRoots;
 import jetbrains.buildServer.server.rest.request.ProjectRequest;
@@ -40,10 +41,7 @@ import jetbrains.buildServer.server.rest.request.VcsRootRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.RelativeWebLinks;
-import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
-import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.util.StringUtil;
@@ -56,7 +54,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "project")
 @XmlType(name = "project", propOrder = {"id", "internalId", "uuid", "name", "parentProjectId", "parentProjectInternalId", "parentProjectName", "archived", "description", "href", "webUrl",
-  "links", "parentProject", "readOnlyUI", "buildTypes", "templates", "parameters", "vcsRoots", "projectFeatures", "projects"})
+  "links", "parentProject", "readOnlyUI", "defaultTemplate", "buildTypes", "templates", "parameters", "vcsRoots", "projectFeatures", "projects"})
 @SuppressWarnings("PublicField")
 public class Project {
   @XmlAttribute
@@ -119,6 +117,9 @@ public class Project {
 
   @XmlElement
   public BuildTypes templates;
+
+  @XmlElement
+  public BuildType defaultTemplate;
 
   @XmlElement
   public Properties parameters;
@@ -187,6 +188,13 @@ public class Project {
         }
       });
 
+      defaultTemplate = ValueWithDefault.decideDefault(fields.isIncluded("defaultTemplate", false), () -> {
+        final Fields templateFields = fields.getNestedField("defaultTemplate", Fields.NONE, Fields.LONG);
+        BuildTypeTemplate defaultTemplate = project.getDefaultTemplate();
+        if (defaultTemplate == null) return null;
+        return new BuildType(new BuildTypeOrTemplate(defaultTemplate), templateFields, beanContext);
+      });
+
       parameters = ValueWithDefault.decideDefault(fields.isIncluded("parameters", false), new ValueWithDefault.Value<Properties>() {
         public Properties get() {
           return new Properties(createEntity(project), ProjectRequest.getParametersHref(project),
@@ -206,6 +214,7 @@ public class Project {
                                                 });
     } else {
       templates = null;
+      defaultTemplate = null;
       parameters = null;
       vcsRoots = null;
       projectFeatures = null;
