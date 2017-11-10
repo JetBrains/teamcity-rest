@@ -288,6 +288,15 @@ public class UserRequest {
     return new Group(userGroup,  new Fields(fields), myBeanContext);
   }
 
+  @DELETE
+  @Path("/{userLocator}/groups")
+  @Consumes({"application/xml", "application/json"})
+  public void removeGroup(@PathParam("userLocator") String userLocator, Group group, @QueryParam("fields") String fields) {
+    SUser user = myUserFinder.getItem(userLocator, true);
+    SUserGroup userGroup = group.getFromPosted(myBeanContext.getServiceLocator());
+    userGroup.removeUser(user);
+  }
+
   /**
    * Experimental use only
    */
