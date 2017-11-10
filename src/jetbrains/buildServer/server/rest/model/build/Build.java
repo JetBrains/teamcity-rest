@@ -212,7 +212,7 @@ public class Build {
    */
   @XmlAttribute
   public Boolean isRunning() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("running"), () -> myBuild != null && !myBuild.isFinished());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("running", false, false), () -> myBuild != null && !myBuild.isFinished());
   }
 
   /**
