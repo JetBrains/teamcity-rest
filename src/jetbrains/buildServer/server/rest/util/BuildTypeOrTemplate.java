@@ -158,7 +158,7 @@ public class BuildTypeOrTemplate implements Loggable {
       buildType.setTemplatesOrder(newTemplates.stream().map(t -> t.getId()).collect(Collectors.toList()));
       return;
     }
-    ((BuildTypeImpl)buildType).detachFromAllTemplates(); //this "bakes in" the settings from the templates to the build configuration
+    ((BuildTypeImpl)buildType).detachFromTemplates(buildType.getTemplates(), false);
     try {
       newTemplates.forEach(t -> buildType.attachToTemplate(t));
     } catch (CannotAttachToTemplateException e) {
