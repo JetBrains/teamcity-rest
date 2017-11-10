@@ -22,11 +22,9 @@ import javax.ws.rs.core.Context;
 import jetbrains.buildServer.controllers.login.RememberMe;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.data.DataUpdater;
-import jetbrains.buildServer.server.rest.data.PermissionChecker;
-import jetbrains.buildServer.server.rest.data.UserFinder;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
@@ -288,13 +286,33 @@ public class UserRequest {
     return new Group(userGroup,  new Fields(fields), myBeanContext);
   }
 
-  @DELETE
-  @Path("/{userLocator}/groups")
-  @Consumes({"application/xml", "application/json"})
-  public void removeGroup(@PathParam("userLocator") String userLocator, Group group, @QueryParam("fields") String fields) {
+  @GET
+  @Path("/{userLocator}/groups/{groupLocator}")
+  @Produces({"application/xml", "application/json"})
+  public Group getGroup(@PathParam("userLocator") String userLocator, @PathParam("groupLocator") String groupLocator, @QueryParam("fields") String fields) {
+    if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
+      myUserFinder.checkViewAllUsersPermission();
+    }
     SUser user = myUserFinder.getItem(userLocator, true);
-    SUserGroup userGroup = group.getFromPosted(myBeanContext.getServiceLocator());
-    userGroup.removeUser(user);
+    SUserGroup group = myBeanContext.getSingletonService(UserGroupFinder.class).getGroup(groupLocator);
+    if (!user.getUserGroups().contains(group)) {
+      throw new NotFoundException("User does not belong to the group");
+    }
+    return new Group(group, new Fields(fields), myBeanContext);
+  }
+
+  @DELETE
+  @Path("/{userLocator}/groups/{groupLocator}")
+  public void removeGroup(@PathParam("userLocator") String userLocator, @PathParam("groupLocator") String groupLocator, @QueryParam("fields") String fields) {
+    if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
+      myUserFinder.checkViewAllUsersPermission();
+    }
+    SUser user = myUserFinder.getItem(userLocator, true);
+    SUserGroup group = myBeanContext.getSingletonService(UserGroupFinder.class).getGroup(groupLocator);
+    if (!user.getUserGroups().contains(group)) {
+      throw new NotFoundException("User does not belong to the group");
+    }
+    group.removeUser(user);
   }
 
   /**
