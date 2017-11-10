@@ -167,7 +167,6 @@ public class BuildTypeOrTemplate implements Loggable {
     } catch (Exception e) {
       throw new OperationException("Error attaching to templates, settings might be in partly modified state: " + e.toString());
     }
-    buildType.persist();
   }
 
   private static boolean haveSameElements(final List<? extends BuildTypeTemplate> t1, final List<BuildTypeTemplate> t2) {

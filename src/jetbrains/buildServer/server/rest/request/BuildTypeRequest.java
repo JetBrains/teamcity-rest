@@ -266,6 +266,7 @@ public class BuildTypeRequest {
       throw new BadRequestException("Nothing is posted as payload while list of templates is expected");
     }
     BuildTypeOrTemplate.setTemplates(buildType, templates.getFromPosted(myBuildTypeFinder));
+    buildType.persist();
     return BuildType.getTemplates(buildType, new Fields(fields), myBeanContext);
   }
 
