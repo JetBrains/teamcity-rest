@@ -239,6 +239,6 @@ public class ChangeRequest {
   @Produces({"application/xml", "application/json"})
   public Builds getChangeFirstBuilds(@PathParam("changeLocator") String changeLocator, @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
-    return Builds.createFromBuilds(BuildFinder.toBuildPromotions(change.getFirstBuilds().values()), null,  new Fields(fields), myBeanContext);
+    return Builds.createFromBuildPromotions(BuildFinder.toBuildPromotions(change.getFirstBuilds().values()), null,  new Fields(fields), myBeanContext);
   }
 }

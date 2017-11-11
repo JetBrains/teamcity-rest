@@ -16,10 +16,10 @@
 
 package jetbrains.buildServer.server.rest.model.build;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -27,12 +27,13 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.BuildPromotionFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.ItemsProviders;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
@@ -66,43 +67,15 @@ public class Builds implements DefaultValueAware {
   public Builds() {
   }
 
-  public Builds(@Nullable final List<BuildPromotion> buildObjects,
-                @Nullable final PagerData pagerData,
-                @NotNull final Fields fields,
-                @NotNull final BeanContext beanContext) {
-    if (buildObjects != null && (fields.isIncluded("build", false, true) || fields.isIncluded("count", false, true))) {
-      final ArrayList<Build> buildsList = new ArrayList<Build>(buildObjects.size());
-      for (BuildPromotion build : buildObjects) {
-        buildsList.add(new Build(build, fields.getNestedField("build"), beanContext));
-      }
-      init(buildsList, pagerData, fields, beanContext);
-    } else {
-      init(null, pagerData, fields, beanContext);
-    }
-  }
+  public Builds(final @NotNull ItemsProviders.LocatorAware<ItemsProviders.ItemsRetriever<BuildPromotion>> buildsData,
+                @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    ItemsProviders.ItemsRetriever<BuildPromotion> data = buildsData.get(fields.getLocator());
 
-  private Builds(@Nullable final PagerData pagerData,
-                @NotNull final Fields fields,
-                @NotNull final BeanContext beanContext,
-                @Nullable final List<SBuild> buildObjects                ) {
-    if (buildObjects != null && fields.isIncluded("build", false, true)) {
-      final List<Build> buildsList = new ArrayList<Build>(buildObjects.size());
-      for (SBuild build : buildObjects) {
-        buildsList.add(new Build(build, fields.getNestedField("build"), beanContext));
-      }
+    builds = ValueWithDefault.decideDefault(fields.isIncluded("build", false, true),
+                                            () -> Util.resolveNull(data.getItems(), (items) -> items.stream().map(
+                                              b -> new Build(b, fields.getNestedField("build"), beanContext)).collect(Collectors.toList())));
 
-      init(buildsList, pagerData, fields, beanContext);
-    } else {
-      init(null, pagerData, fields, beanContext);
-    }
-  }
-
-  private void init(@Nullable final List<Build> buildObjects, @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
-    if (buildObjects != null && fields.isIncluded("build", false, true)) {
-      builds = ValueWithDefault.decideDefault(fields.isIncluded("build"), buildObjects);
-    } else {
-      builds = null;
-    }
+    PagerData pagerData = data.getPagerData();
     if (pagerData != null) {
       href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getHref()));
       nextHref = ValueWithDefault
@@ -110,7 +83,7 @@ public class Builds implements DefaultValueAware {
       prevHref = ValueWithDefault
         .decideDefault(fields.isIncluded("prevHref"), pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null);
     }
-    count = buildObjects == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), buildObjects.size());
+    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", data.isCountCheap(), data.isCountCheap(), true), () -> data.getCount());
   }
 
   @Override
@@ -133,12 +106,10 @@ public class Builds implements DefaultValueAware {
   }
 
   @NotNull
-  public static Builds createFromBuildPromotions(@Nullable final List<BuildPromotion> buildObjects, @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
-    return new Builds(buildObjects, pagerData, fields, beanContext);
-  }
-
-  @NotNull
-  public static Builds createFromBuilds(@Nullable final List<BuildPromotion> buildObjects, @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
-    return new Builds(buildObjects, pagerData, fields, beanContext);
+  public static Builds createFromBuildPromotions(@Nullable final List<BuildPromotion> buildObjects,
+                                                 @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    return new Builds(
+      new ItemsProviders.LocatorAwareItemsRetriever<BuildPromotion>(Util.resolveNull(buildObjects, b -> ItemsProviders.ItemsProvider.items((locator) -> b)), () -> pagerData),
+      fields, beanContext);
   }
 }
