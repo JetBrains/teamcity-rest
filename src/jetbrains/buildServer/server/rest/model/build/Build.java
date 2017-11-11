@@ -107,6 +107,7 @@ import org.jetbrains.annotations.Nullable;
            "properties", "resultingProperties", "attributes", "statistics", "metadata"/*rf*/,
            "buildDependencies", "buildArtifactDependencies", "customBuildArtifactDependencies"/*q*/,
            "settingsHash", "currentSettingsHash", "modificationId", "chainModificationId", "replacementIds",
+           "related", /*experimental*/
            "triggeringOptions"/*only when triggering*/,
            "usedByOtherBuilds" /*experimental*/
 })
@@ -1127,6 +1128,20 @@ public class Build {
       }
     });
   }
+
+  /**
+   * Experimental
+   */
+  @XmlElement
+  public Related getRelated() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("related", false, false),
+                                          () -> {
+                                            Fields nestedField = myFields.getNestedField("related", Fields.LONG, Fields.LONG);
+                                            nestedField.setContext(myBuildPromotion);
+                                            return new Related(nestedField, myBeanContext);
+                                          });
+  }
+
 
   public static Comment getCanceledComment(@NotNull final SBuild build, @NotNull final Fields fields, @NotNull final BeanContext context) {
     final CanceledInfo canceledInfo = build.getCanceledInfo();

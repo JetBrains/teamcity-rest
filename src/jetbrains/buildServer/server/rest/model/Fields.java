@@ -22,6 +22,7 @@ import java.util.Map;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
+import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -42,20 +43,24 @@ public class Fields {
 
   private static final String LOCATOR_CUSTOM_NAME = "$locator";
 
-  public static final Fields NONE = new Fields(NONE_FIELDS_PATTERN, null, true); // no fields at all
-  public static final Fields SHORT = new Fields(DEFAULT_FIELDS_SHORT_PATTERN, null, true); // short (reference) form. Uses short or none form for the fields.
-  public static final Fields ALL = new Fields(ALL_FIELDS_PATTERN, null, true); // all fields are present and are in the short form
-  public static final Fields LONG = new Fields(DEFAULT_FIELDS_LONG_PATTERN, null, true);
+  public static final Fields NONE = new Fields(NONE_FIELDS_PATTERN, null, null, true); // no fields at all
+  public static final Fields SHORT = new Fields(DEFAULT_FIELDS_SHORT_PATTERN, null, null, true); // short (reference) form. Uses short or none form for the fields.
+  public static final Fields ALL = new Fields(ALL_FIELDS_PATTERN, null, null, true); // all fields are present and are in the short form
+  public static final Fields LONG = new Fields(DEFAULT_FIELDS_LONG_PATTERN, null, null, true);
     // long form. Uses long, short or none form for the fields. Generally fields with default values are not included.
-  public static final Fields ALL_NESTED = new Fields(ALL_NESTED_FIELDS_PATTERN, null, true); // maximum, all fields are included in the same maximum form
+  public static final Fields ALL_NESTED = new Fields(ALL_NESTED_FIELDS_PATTERN, null, null, true); // maximum, all fields are included in the same maximum form
 
   @NotNull private final String myFieldsSpec;
   private Locator myFieldsSpecLocator;
   @NotNull private final Map<String, Fields> myRestrictedFields;
 
-  private Fields(@NotNull String actualFieldsSpec, @Nullable Map<String, Fields> restrictedFields, boolean isInternal) {
+  @Nullable
+  private Context myContext = null;
+
+  private Fields(@NotNull String actualFieldsSpec, @Nullable Map<String, Fields> restrictedFields, @Nullable Context context, boolean isInternal) {
     myFieldsSpec = actualFieldsSpec;
     myRestrictedFields = restrictedFields != null ? new HashMap<String, Fields>(restrictedFields) : new HashMap<String, Fields>();
+    myContext = context;
   }
 
   public Fields (@Nullable String fieldsSpec){
@@ -63,7 +68,7 @@ public class Fields {
   }
 
   public Fields(@Nullable String fieldsSpec, @NotNull Fields defaultFields) {
-    this(fieldsSpec != null ? fieldsSpec : defaultFields.myFieldsSpec, null, true);
+    this(fieldsSpec != null ? fieldsSpec : defaultFields.myFieldsSpec, null, null, true);
   }
 
   private static Fields getDefaultFields() {
@@ -71,7 +76,7 @@ public class Fields {
     if (defaultFieldsProperty == null){
       return LONG;
     }else{
-      return new Fields(defaultFieldsProperty, null, true);
+      return new Fields(defaultFieldsProperty, null, null, true);
     }
   }
 
@@ -206,27 +211,27 @@ public class Fields {
 
     final String fieldSpec = getCustomDimension(nestedFieldName);
     if(fieldSpec != null){
-      return new Fields(fieldSpec, newRestrictedFields, true);
+      return new Fields(fieldSpec, newRestrictedFields, myContext, true);
     }
 
     if (isAllNested()) {
-      return new Fields(minPattern(restrictedField.myFieldsSpec, ALL_NESTED_FIELDS_PATTERN), newRestrictedFields, true);
+      return new Fields(minPattern(restrictedField.myFieldsSpec, ALL_NESTED_FIELDS_PATTERN), newRestrictedFields, myContext, true);
     }
 
     if (isLong()) {
-      return new Fields(minPattern(restrictedField.myFieldsSpec, defaultForLong.myFieldsSpec), newRestrictedFields, true);
+      return new Fields(minPattern(restrictedField.myFieldsSpec, defaultForLong.myFieldsSpec), newRestrictedFields, myContext, true);
     }
 
     if (isAll()) {
-      return new Fields(minPattern(restrictedField.myFieldsSpec, DEFAULT_FIELDS_SHORT_PATTERN), newRestrictedFields, true);
+      return new Fields(minPattern(restrictedField.myFieldsSpec, DEFAULT_FIELDS_SHORT_PATTERN), newRestrictedFields, myContext, true);
     }
 
     if (isShort()) {
       newRestrictedFields.put(nestedFieldName, NONE);
-      return new Fields(minPattern(restrictedField.myFieldsSpec, defaultForShort.myFieldsSpec), newRestrictedFields, true);
+      return new Fields(minPattern(restrictedField.myFieldsSpec, defaultForShort.myFieldsSpec), newRestrictedFields, myContext, true);
     }
 
-    return new Fields(NONE_FIELDS_PATTERN, newRestrictedFields, true);
+    return new Fields(NONE_FIELDS_PATTERN, newRestrictedFields, myContext, true);
   }
 
   @Nullable
@@ -237,7 +242,14 @@ public class Fields {
 
   @Nullable
   public String getLocator() {
-    return  getCustomDimension(LOCATOR_CUSTOM_NAME);
+    return  doContextResolve(getCustomDimension(LOCATOR_CUSTOM_NAME));
+  }
+
+  @Nullable
+  private String doContextResolve(@Nullable final String locator) {
+    if (locator == null) return null;
+    if (myContext == null) return locator;
+    return myContext.process(locator);
   }
 
   private static String minPattern(final String a, final String b) {
@@ -277,14 +289,14 @@ public class Fields {
   public Fields resetRestrictedField(@NotNull final String fieldName, @NotNull Fields newRestriction) {
     final Map<String, Fields> newRestrictedFields = new HashMap<String, Fields>(myRestrictedFields);
     newRestrictedFields.put(fieldName, newRestriction);
-    return new Fields(myFieldsSpec, newRestrictedFields, true);
+    return new Fields(myFieldsSpec, newRestrictedFields, myContext, true);
   }
 
   @NotNull
   public Fields removeRestrictedField(@NotNull final String fieldName) {
     final Map<String, Fields> newRestrictedFields = new HashMap<String, Fields>(myRestrictedFields);
     newRestrictedFields.remove(fieldName);
-    return new Fields(myFieldsSpec, newRestrictedFields, true);
+    return new Fields(myFieldsSpec, newRestrictedFields, myContext, true);
   }
 
   @Nullable
@@ -310,5 +322,20 @@ public class Fields {
   @Override
   public String toString() {
     return getFieldsSpec();
+  }
+
+  public void setContext(@NotNull final BuildPromotion buildPromotion) {
+    if (myContext == null) myContext = new Context();
+    myContext.buildPromotion = buildPromotion;
+  }
+
+  private static class Context {
+    @Nullable BuildPromotion buildPromotion;
+
+    @NotNull
+    public String process(@NotNull final String locator) {
+      if (buildPromotion == null) return locator;
+      return StringUtil.replace(locator, "$buildId", String.valueOf(buildPromotion.getId()));
+    }
   }
 }

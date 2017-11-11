@@ -32,6 +32,7 @@ import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.ItemsProviders;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.Constants;
@@ -1824,5 +1825,22 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         }
       };
     }
+  }
+
+  @NotNull
+  public ItemsProviders.ItemsProvider<BuildPromotion> getLazyResult() {
+    return new ItemsProviders.ItemsProvider<BuildPromotion>() {
+      @NotNull
+      @Override
+      public List<BuildPromotion> getItems(@Nullable final String locatorText) {
+        return BuildPromotionFinder.this.getItems(locatorText).myEntries;
+      }
+
+      @Nullable
+      @Override
+      public Integer getCheapCount(@Nullable final String locatorText) {
+        return null;
+      }
+    };
   }
 }
