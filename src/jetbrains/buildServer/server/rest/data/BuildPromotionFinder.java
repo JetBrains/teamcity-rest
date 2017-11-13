@@ -293,6 +293,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         result.add(item -> false);
       }
     }
+
+    final Boolean defaultFiltering = locator.getSingleDimensionValueAsBoolean(DEFAULT_FILTERING);
+    if (defaultFiltering != null && defaultFiltering) {
+      locator.markUnused(DEFAULT_FILTERING); //basically, mark as used if it is not yet processed, but is unset or is set to false
+    }
+
     final Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (id != null) {
       try {
@@ -388,7 +394,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         result.add(new FilterConditionChecker<BuildPromotion>() {
           public boolean isIncluded(@NotNull final BuildPromotion item) {
             return buildTypes.contains(item.getParentBuildType());
-          }
+          }  //todo: use build types Filter instead
         });
       }
     }
