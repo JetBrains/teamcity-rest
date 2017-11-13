@@ -294,9 +294,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     }
 
-    final Boolean defaultFiltering = locator.getSingleDimensionValueAsBoolean(DEFAULT_FILTERING);
-    if (defaultFiltering != null && defaultFiltering) {
-      locator.markUnused(DEFAULT_FILTERING); //basically, mark as used if it is not yet processed, but is unset or is set to false
+    if (locator.isUnused(DEFAULT_FILTERING)) {
+      //basically, mark as used if it is not yet processed, but is unset or is set to false
+      final Boolean defaultFiltering = locator.getSingleDimensionValueAsBoolean(DEFAULT_FILTERING);
+      if (defaultFiltering != null && defaultFiltering) {
+        locator.markUnused(DEFAULT_FILTERING);
+      }
     }
 
     final Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
