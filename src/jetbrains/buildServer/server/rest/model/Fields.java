@@ -335,7 +335,7 @@ public class Fields {
     @NotNull
     public String process(@NotNull final String locator) {
       if (buildPromotion == null) return locator;
-      return StringUtil.replace(locator, "$buildId", String.valueOf(buildPromotion.getId()));
+      return StringUtil.replace(locator, "$context.build.id", String.valueOf(buildPromotion.getId()));
     }
   }
 }
