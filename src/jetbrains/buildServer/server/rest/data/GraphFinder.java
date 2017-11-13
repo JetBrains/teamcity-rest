@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.util.CollectionsUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -161,5 +162,50 @@ public class GraphFinder<T> extends AbstractFinder<T> {
   public interface LinkRetriever<S> {
     @NotNull
     List<S> getLinked(@NotNull S item);
+  }
+
+  @NotNull
+  public ParsedLocator<T> getParsedLocator(@NotNull String locatorText) {
+    Locator locator = createLocator(locatorText, null);
+
+    return new ParsedLocator<T>() {
+      @Nullable
+      @Override
+      public Integer getCount() {
+        Long result = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
+        return result == null ? null : result.intValue();
+      }
+
+      @NotNull
+      @Override
+      public List<T> getFromItems() {
+        return getItemsFromDimension(locator, DIMENSION_FROM); //should be lazy as it might be never needed based on certain count values
+      }
+
+      @Override
+      public boolean isRecursive() {
+        return locator.getSingleDimensionValueAsStrictBoolean(DIMENSION_RECURSIVE, true);
+      }
+
+      @Override
+      public boolean isIncludeInitial() {
+        return locator.getSingleDimensionValueAsStrictBoolean(DIMENSION_INCLUDE_INITIAL, false);
+      }
+
+      @Override
+      public boolean isAllDimensionsUsed() {
+        return locator.getUnusedDimensions().isEmpty();
+      }
+    };
+  }
+
+  public interface ParsedLocator<S> {
+    @Nullable
+    Integer getCount();
+    @NotNull
+    List<S> getFromItems();
+    boolean isRecursive();
+    boolean isIncludeInitial();
+    boolean isAllDimensionsUsed();
   }
 }

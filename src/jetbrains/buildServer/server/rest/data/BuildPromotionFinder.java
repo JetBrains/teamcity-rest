@@ -1845,8 +1845,125 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       @Nullable
       @Override
       public Integer getCheapCount(@Nullable final String locatorText) {
-        return null;
+        /*
+        This emulates build's isUsedByOtherBuilds() via a request like:
+            .../app/rest/builds?fields=build(id,related(builds(count,$locator(count:1,defaultFilter:false,item:(count:1,defaultFilter:false,snapshotDependency:(from:(id:$context.build.id),recursive:false)),item:(count:1,defaultFilter:false,artifactDependency:(from:(id:$context.build.id),recursive:false))))))
+         */
+        Locator locator;
+        try {
+          locator = createLocator(locatorText, null);
+        } catch (Exception e) {
+          return null;
+        }
+        setLocatorDefaults(locator);
+        Long count = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
+
+        Integer result = null;
+
+        final List<String> itemDimension = locator.getDimensionValue(DIMENSION_ITEM);
+        if (!itemDimension.isEmpty()) {
+          if (count != null) {
+            int[] max = new int[1];
+            max[0] = -1;
+            boolean exceedsCount = itemDimension.stream().map(l -> getCheapCount(l)).anyMatch(cheapCount -> {
+              if (cheapCount == null) {
+                max[0] = -2; //there is not cheap count
+                return false;
+              }
+              if (max[0] != -2) {
+                max[0] = Math.max(max[0], cheapCount);
+              }
+              return cheapCount >= count;
+            });
+            if (exceedsCount) {
+              result = count.intValue();
+            } else if (max[0] == 0) { //all counts were cheap and all were 0
+              result = 0;
+            }
+          }
+        } else {
+          //optimization method counts all builds and these can be set by defaultFilter
+          if (locator.getSingleDimensionValueAsBoolean(PERSONAL) != null) return null;
+          if (locator.getSingleDimensionValueAsBoolean(CANCELED) != null) return null;
+          if (locator.getSingleDimensionValueAsBoolean(FAILED_TO_START) != null) return null;
+          if (locator.getSingleDimensionValueAsBoolean(BRANCH) != null) return null;
+
+          final String snapshotDepDimension = locator.getSingleDimensionValue(SNAPSHOT_DEP);
+          if (snapshotDepDimension != null) {
+            result = getSnapshotRelatedBuildsCheapCount(snapshotDepDimension, count == null ? null : count.intValue());
+          }
+          if (result == null) {
+            if (count == null) {
+              return null;
+            }
+            final String artifactDepDimension = locator.getSingleDimensionValue(ARTIFACT_DEP);
+            if (artifactDepDimension != null) {
+              result = getArtifactRelatedBuildsCheapCount(artifactDepDimension, count.intValue());
+            }
+          }
+        }
+
+        if (!locator.getUnusedDimensions().isEmpty()) return null;
+
+        if (result == null) return null;
+        return count != null ? Math.min(count.intValue(), result) : result;
       }
     };
+  }
+
+  @Nullable
+  private Integer getSnapshotRelatedBuildsCheapCount(@NotNull final String snapshotDepDimension, @Nullable final Integer limitingCount) {
+    final GraphFinder<BuildPromotion> graphFinder = new GraphFinder<BuildPromotion>(this, SNAPSHOT_DEPENDENCIES_TRAVERSER);
+    GraphFinder.ParsedLocator<BuildPromotion> parsedLocator = graphFinder.getParsedLocator(snapshotDepDimension);
+
+    Integer count = parsedLocator.getCount();
+    if (count == null && limitingCount != null) {
+      count = limitingCount;
+    } else if (count != null && limitingCount != null) {
+      count = Math.min(count, limitingCount);
+    }
+
+    List<BuildPromotion> fromItems = parsedLocator.getFromItems();
+    Optional<Integer> maxOptional = fromItems.stream().map(b -> b.getNumberOfDependedOnMe()).max(Integer::compare);  //cannot sum as they can intersect, so using max
+    //can optimize by finding first greater then "count" if set
+    int result = 0;
+    if (maxOptional.isPresent()) {
+      result = maxOptional.get();
+    }
+    boolean recursive = parsedLocator.isRecursive();
+    if (parsedLocator.isIncludeInitial()) result++;
+    if (!parsedLocator.isAllDimensionsUsed()) return null;
+    if (count != null && count <= result) return count;
+    if (!recursive) {
+      return count != null ? Math.min(count, result) : result;
+    }
+    return null;
+  }
+
+  @Nullable
+  private Integer getArtifactRelatedBuildsCheapCount(@NotNull final String artifactDepDimension, @Nullable final Integer limitingCount) {
+    final GraphFinder<BuildPromotion> graphFinder = new GraphFinder<BuildPromotion>(this, ARTIFACT_DEPENDENCIES_TRAVERSER);
+    GraphFinder.ParsedLocator<BuildPromotion> parsedLocator = graphFinder.getParsedLocator(artifactDepDimension);
+
+    Integer count = parsedLocator.getCount();
+    if (count == null && limitingCount != null) {
+      count = limitingCount;
+    } else if (count != null && limitingCount != null) {
+      count = Math.min(count, limitingCount);
+    }
+
+    if (count == null || count > 2) return null;
+
+    List<BuildPromotion> fromItems = parsedLocator.getFromItems();
+    DownloadedArtifactsLogger artifactsLogger = myServiceLocator.getSingletonService(DownloadedArtifactsLogger.class);
+    if (fromItems.stream().map(b -> b.getAssociatedBuildId()).filter(Objects::nonNull).noneMatch(id -> artifactsLogger.buildArtifactsWereDownloaded(id))) {
+      return 0;
+    }
+    int result = 1;
+    parsedLocator.isRecursive(); //just all and mark as used - can only increase the number
+    if (parsedLocator.isIncludeInitial()) result++;
+    if (!parsedLocator.isAllDimensionsUsed()) return null;
+    if (count <= result) return count;
+    return null;
   }
 }
