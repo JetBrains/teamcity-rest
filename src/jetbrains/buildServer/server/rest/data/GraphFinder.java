@@ -70,11 +70,9 @@ public class GraphFinder<T> extends AbstractFinder<T> {
   @NotNull
   @Override
   public ItemHolder<T> getPrefilteredItems(@NotNull final Locator locator) {
-    Boolean recursive = locator.getSingleDimensionValueAsBoolean(DIMENSION_RECURSIVE, true);
-    if (recursive == null) recursive = true;
+    boolean recursive = locator.getSingleDimensionValueAsStrictBoolean(DIMENSION_RECURSIVE, true);
 
-    Boolean includeOriginal = locator.getSingleDimensionValueAsBoolean(DIMENSION_INCLUDE_INITIAL, false);
-    if (includeOriginal == null) includeOriginal = false;
+    boolean includeOriginal = locator.getSingleDimensionValueAsStrictBoolean(DIMENSION_INCLUDE_INITIAL, false);
 
     final List<T> toItems = getItemsFromDimension(locator, DIMENSION_TO);
     final List<T> fromItems = getItemsFromDimension(locator, DIMENSION_FROM);
