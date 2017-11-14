@@ -434,32 +434,17 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     if (locator.isUnused(AGENT)) {
       final String agentLocator = locator.getSingleDimensionValue(AGENT);
       if (agentLocator != null) {
-        final List<SBuildAgent> agents = myAgentFinder.getItems(agentLocator).myEntries;
-        if (agents.isEmpty()) {
-          throw new NotFoundException("No agents are found by locator '" + agentLocator + "'");
-        }
+        ItemFilter<SBuildAgent> agentsFilter = myAgentFinder.getFilter(agentLocator);
         result.add(new FilterConditionChecker<BuildPromotion>() {
-          //todo: consider improving performance, see jetbrains/buildServer/server/rest/data/build/GenericBuildsFilter.java:120
           public boolean isIncluded(@NotNull final BuildPromotion item) {
-            final SBuild build = item.getAssociatedBuild();
-            if (build != null) {
-              final SBuildAgent buildAgent = build.getAgent();
-              final int buildAgentId = buildAgent.getId();
-              final String buildAgentName = buildAgent.getName();
-              return CollectionsUtil.contains(agents, new Filter<SBuildAgent>() {
-                public boolean accept(@NotNull final SBuildAgent agent) {
-                  if (agent.getId() > 0) {
-                    return buildAgentId == agent.getId();
-                  } else {
-                    return buildAgentName.equals(agent.getName());
-                  }
-                }
-              });
-            }
-
             final SQueuedBuild queuedBuild = item.getQueuedBuild(); //for queued build using compatible agents
             if (queuedBuild != null) {
-              return !CollectionsUtil.intersect(queuedBuild.getCanRunOnAgents(), agents).isEmpty();
+              return queuedBuild.getCanRunOnAgents().stream().anyMatch(agent -> agentsFilter.isIncluded(agent));
+            }
+
+            final SBuild build = item.getAssociatedBuild();
+            if (build != null) {
+              return agentsFilter.isIncluded(build.getAgent());
             }
             return false;
           }

@@ -211,6 +211,16 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       });
     }
 
+    Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
+    if (id != null) {
+      result.add(item -> id == item.getId());
+    }
+
+    String name = locator.getSingleDimensionValue(NAME);
+    if (name != null) {
+      result.add(item -> name.equals(item.getName()));
+    }
+
     final Boolean authorizedDimension = locator.getSingleDimensionValueAsBoolean(AUTHORIZED);
     if (authorizedDimension != null) {
       result.add(new FilterConditionChecker<SBuildAgent>() {
