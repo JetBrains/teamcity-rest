@@ -111,27 +111,29 @@ public class Agent {
   public Agent(@NotNull final SBuildAgent agent, @NotNull final AgentPoolFinder agentPoolFinder, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     final int agentId = agent.getId();
     final boolean unknownAgent = agentId == UNKNOWN_AGENT_ID;
-    id = unknownAgent ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), agentId);
     name = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), agent.getName());
     typeId = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("typeId"), agent.getAgentTypeId());
-    href = unknownAgent ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(agent));
-    connected = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("connected", false), agent.isRegistered());
-    enabled = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("enabled", false), agent.isEnabled());
-    authorized = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("authorized", false), agent.isAuthorized());
+    if (!unknownAgent) {
+      id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), agentId);
+      href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(agent));
+      connected = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("connected", false), agent.isRegistered());
+      enabled = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("enabled", false), agent.isEnabled());
+      authorized = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("authorized", false), agent.isAuthorized());
 
-    build = ValueWithDefault.decideDefault(fields.isIncluded("build", false), () -> {
-      SRunningBuild runningBuild = agent.getRunningBuild();
-      if (runningBuild == null ) return null;
-      try {
-        beanContext.getSingletonService(PermissionChecker.class).checkPermission(Permission.VIEW_PROJECT, runningBuild.getBuildPromotion());
-        return new Build(runningBuild, fields.getNestedField("build"), beanContext);
-      } catch (AuthorizationFailedException e) {
-        return Build.getNoPermissionsBuild(runningBuild, fields.getNestedField("build"), beanContext); //should probably include "empty" build node instead so that it's clear some build is running
-      }
-    });
+      build = ValueWithDefault.decideDefault(fields.isIncluded("build", false), () -> {
+        SRunningBuild runningBuild = agent.getRunningBuild();
+        if (runningBuild == null ) return null;
+        try {
+          beanContext.getSingletonService(PermissionChecker.class).checkPermission(Permission.VIEW_PROJECT, runningBuild.getBuildPromotion());
+          return new Build(runningBuild, fields.getNestedField("build"), beanContext);
+        } catch (AuthorizationFailedException e) {
+          return Build.getNoPermissionsBuild(runningBuild, fields.getNestedField("build"), beanContext); //should probably include "empty" build node instead so that it's clear some build is running
+        }
+      });
+    }
 
     //check permission to match UI
-    if (canViewAgentDetails(beanContext)) {
+    if (!unknownAgent && canViewAgentDetails(beanContext)) {
       WebLinks webLinks = beanContext.getSingletonService(WebLinks.class);
       webUrl = ValueWithDefault.decideDefault(fields.isIncluded("webUrl", true), () -> webLinks.getAgentUrl(agent, agent.getAgentTypeId()));
       links = ValueWithDefault.decideDefault(fields.isIncluded("links", false, false), new ValueWithDefault.Value<Links>() {
