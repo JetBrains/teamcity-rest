@@ -1248,6 +1248,9 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
             result = Stream.concat(result, finishedBuilds);
           }
         } else {
+          if (agentSearchResult.agents == null) {
+            agentSearchResult.agents = Collections.singletonList(agentSearchResult.agent);
+          }
           if (isStateIncluded(stateLocator, STATE_QUEUED)) {
             //todo: should sort backwards as currently the order does not seem right...
             result =
