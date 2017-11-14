@@ -1202,7 +1202,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     }
 
     AgentFinder.AgentSearchResult agentSearchResult;
-    final String agentLocator = locator.getSingleDimensionValue(AGENT);
+    final String agentLocator;
+    if (!locator.getSingleDimensionValueAsStrictBoolean("tmpUseAgentFilter", false)) {  //todo:TeamCityRelease: drop this
+      agentLocator = locator.getSingleDimensionValue(AGENT);
+    } else {
+      agentLocator = null;
+    }
     if (agentLocator != null) {
       agentSearchResult = myAgentFinder.getAgentTypeIfOnlyDimension(agentLocator);  //todo: support several?
       //todo:TeamCityRelease: drop "tmpUseAgentHistory"
