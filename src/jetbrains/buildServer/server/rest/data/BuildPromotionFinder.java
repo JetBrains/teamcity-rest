@@ -70,7 +70,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   public static final String PROJECT = "project"; // BuildFinder (used prior to 9.0) treats "project" as "affectedProject" and thus this behavior is different from BuildFinder
   private static final String AFFECTED_PROJECT = "affectedProject";
   public static final String AGENT = "agent";
-  private static final String AGENT_FILTER_ONLY = "agentFilterOnly";
   public static final String AGENT_NAME = "agentName";
   public static final String PERSONAL = "personal";
   public static final String USER = "user";
@@ -174,8 +173,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                         STATISTIC_VALUE, TEST_OCCURRENCE, TEST,  //experimental
                         SINCE_BUILD_ID_LOOK_AHEAD_COUNT,  //experimental
                         ORDERED,  //experimental
-                        STROB,  //experimental
-                        AGENT_FILTER_ONLY //debug
+                        STROB  //experimental
     );
 
     myPermissionChecker = permissionChecker;
@@ -1219,68 +1217,63 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     }
 
     AgentFinder.AgentSearchResult agentSearchResult;
-    boolean agentFilterOnly = locator.getSingleDimensionValueAsStrictBoolean(AGENT_FILTER_ONLY, false); //todo:TeamCityRelease: drop this support
-    if (!agentFilterOnly) {
-      final String agentLocator = locator.getSingleDimensionValue(AGENT);
-      if (agentLocator != null) {
-        agentSearchResult = myAgentFinder.getAgentTypeIfOnlyDimension(agentLocator);  //todo: support several?
-        //todo:TeamCityRelease: drop "tmpUseAgentHistory"
-        if (agentSearchResult.agents != null || locator.getSingleDimensionValueAsStrictBoolean("tmpUseAgentHistory", false)) {  //only if builds processor cannot handle this
+    final String agentLocator = locator.getSingleDimensionValue(AGENT);
+    if (agentLocator != null) {
+      agentSearchResult = myAgentFinder.getAgentTypeIfOnlyDimension(agentLocator);  //todo: support several?
+      //todo:TeamCityRelease: drop "tmpUseAgentHistory"
+      if (agentSearchResult.agents != null || locator.getSingleDimensionValueAsStrictBoolean("tmpUseAgentHistory", false)) {  //only if builds processor cannot handle this
 
-          Stream<BuildPromotion> result = Stream.empty();
-          //see below for alike code for generic filter
-          Locator stateLocator = getStateLocator(locator);
+        Stream<BuildPromotion> result = Stream.empty();
+        //see below for alike code for generic filter
+        Locator stateLocator = getStateLocator(locator);
 
-          if (agentSearchResult.agentTypeId != null) {
-            if (isStateIncluded(stateLocator, STATE_QUEUED)) {
-              //todo: should sort backwards as currently the order does not seem right...
-              result = Stream.concat(result, myBuildQueue.getItems().stream().filter(build -> build.getCanRunOnAgents().stream()
-                                                                                                   .anyMatch(a -> a.getAgentTypeId() == agentSearchResult.agentTypeId))
-                                                         .map(build -> build.getBuildPromotion()));
-            }
-
-            if (isStateIncluded(stateLocator, STATE_RUNNING)) {  //todo: address an issue when a build can appear twice in the output
-              result = Stream.concat(result, myBuildsManager.getRunningBuilds().stream().filter(build -> build.getAgent().getAgentTypeId() == agentSearchResult.agentTypeId)
-                                                            .map(build -> build.getBuildPromotion()));
-            }
-
-            if (isStateIncluded(stateLocator, STATE_FINISHED)) {
-              //todo: optimize for user and canceled
-              //todo: SORT by builds, not agents!
-              SAgentType agentType = AgentFinder.getAgentType(String.valueOf(agentSearchResult.agentTypeId), myServiceLocator.getSingletonService(AgentTypeFinder.class));
-              Stream<BuildPromotion> finishedBuilds = agentType.getBuildHistory(null, true).stream().map(b -> b.getBuildPromotion());
-              result = Stream.concat(result, finishedBuilds);
-            }
-          } else {
-            if (isStateIncluded(stateLocator, STATE_QUEUED)) {
-              //todo: should sort backwards as currently the order does not seem right...
-              result =
-                Stream.concat(result, myBuildQueue.getItems().stream().filter(build -> !CollectionsUtil.intersect(build.getCanRunOnAgents(), agentSearchResult.agents).isEmpty())
-                                                  .map(build -> build.getBuildPromotion()));
-            }
-
-            if (isStateIncluded(stateLocator, STATE_RUNNING)) {  //todo: address an issue when a build can appear twice in the output
-              // agent instance can be different when disconnecting, so need to check id
-              Set<Integer> agentIds = agentSearchResult.agents.stream().map(a -> a.getId()).collect(Collectors.toSet());
-              Set<String> agentNames = agentSearchResult.agents.stream().map(a -> a.getName()).collect(Collectors.toSet());
-              result = Stream.concat(result, myBuildsManager.getRunningBuilds().stream().filter(build -> {
-                SBuildAgent buildAgent = build.getAgent();
-                int agentId = buildAgent.getId();
-                return agentId > 0 ? agentIds.contains(agentId) : agentNames.contains(buildAgent.getName());
-              }).map(build -> build.getBuildPromotion()));
-            }
-
-            if (isStateIncluded(stateLocator, STATE_FINISHED)) {
-              //todo: optimize for user and canceled
-              Stream<BuildPromotion> finishedBuilds = StreamUtil.merge(
-                agentSearchResult.agents.stream().map(a -> a.getBuildHistory(null, true).stream().map(b -> b.getBuildPromotion())), BUILD_PROMOTIONS_COMPARATOR);
-              result = Stream.concat(result, finishedBuilds);
-            }
+        if (agentSearchResult.agentTypeId != null) {
+          if (isStateIncluded(stateLocator, STATE_QUEUED)) {
+            //todo: should sort backwards as currently the order does not seem right...
+            result = Stream.concat(result, myBuildQueue.getItems().stream().filter(build -> build.getCanRunOnAgents().stream()
+                                                                                                 .anyMatch(a -> a.getAgentTypeId() == agentSearchResult.agentTypeId))
+                                                       .map(build -> build.getBuildPromotion()));
           }
-          return FinderDataBinding.getItemHolder(result);
+
+          if (isStateIncluded(stateLocator, STATE_RUNNING)) {  //todo: address an issue when a build can appear twice in the output
+            result = Stream.concat(result, myBuildsManager.getRunningBuilds().stream().filter(build -> build.getAgent().getAgentTypeId() == agentSearchResult.agentTypeId)
+                                                          .map(build -> build.getBuildPromotion()));
+          }
+
+          if (isStateIncluded(stateLocator, STATE_FINISHED)) {
+            //todo: optimize for user and canceled
+            //todo: SORT by builds, not agents!
+            SAgentType agentType = AgentFinder.getAgentType(String.valueOf(agentSearchResult.agentTypeId), myServiceLocator.getSingletonService(AgentTypeFinder.class));
+            Stream<BuildPromotion> finishedBuilds = agentType.getBuildHistory(null, true).stream().map(b -> b.getBuildPromotion());
+            result = Stream.concat(result, finishedBuilds);
+          }
+        } else {
+          if (isStateIncluded(stateLocator, STATE_QUEUED)) {
+            //todo: should sort backwards as currently the order does not seem right...
+            result =
+              Stream.concat(result, myBuildQueue.getItems().stream().filter(build -> !CollectionsUtil.intersect(build.getCanRunOnAgents(), agentSearchResult.agents).isEmpty())
+                                                .map(build -> build.getBuildPromotion()));
+          }
+
+          if (isStateIncluded(stateLocator, STATE_RUNNING)) {  //todo: address an issue when a build can appear twice in the output
+            // agent instance can be different when disconnecting, so need to check id
+            Set<Integer> agentIds = agentSearchResult.agents.stream().map(a -> a.getId()).collect(Collectors.toSet());
+            Set<String> agentNames = agentSearchResult.agents.stream().map(a -> a.getName()).collect(Collectors.toSet());
+            result = Stream.concat(result, myBuildsManager.getRunningBuilds().stream().filter(build -> {
+              SBuildAgent buildAgent = build.getAgent();
+              int agentId = buildAgent.getId();
+              return agentId > 0 ? agentIds.contains(agentId) : agentNames.contains(buildAgent.getName());
+            }).map(build -> build.getBuildPromotion()));
+          }
+
+          if (isStateIncluded(stateLocator, STATE_FINISHED)) {
+            //todo: optimize for user and canceled
+            Stream<BuildPromotion> finishedBuilds = StreamUtil.merge(
+              agentSearchResult.agents.stream().map(a -> a.getBuildHistory(null, true).stream().map(b -> b.getBuildPromotion())), BUILD_PROMOTIONS_COMPARATOR);
+            result = Stream.concat(result, finishedBuilds);
+          }
         }
-      } else {
-        agentSearchResult = null;
+        return FinderDataBinding.getItemHolder(result);
       }
     } else {
       agentSearchResult = null;
