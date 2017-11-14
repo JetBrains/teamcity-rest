@@ -319,6 +319,6 @@ public class ServerRequest {
 
   @NotNull
   private Permission getAreaPermission(final @PathParam("areaId") String areaId) {
-    return "logs".equals(areaId) ? Permission.MANAGE_SERVER_INSTALLATION : Permission.CHANGE_SERVER_SETTINGS;
+    return Permission.CHANGE_SERVER_SETTINGS;
   }
 }
