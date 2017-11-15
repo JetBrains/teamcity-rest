@@ -539,7 +539,18 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   @NotNull
   public static BuildStatistics getBuildStatistics(@NotNull final SBuild build) {
-    return build.getFullStatistics();
+    //  This is different from build.getFullStatistics() in the following ways:
+    //  - stacktrace are not pre-loaded (loads all them into memory), but will be retrieved in a lazy fashion
+    //  - compilation errors are not loaded (not necessary)
+
+    //ideally, need to check what will be used in the response and request only those details
+    BuildStatisticsOptions options = new BuildStatisticsOptions(
+      BuildStatisticsOptions.PASSED_TESTS
+      | BuildStatisticsOptions.IGNORED_TESTS
+      | BuildStatisticsOptions.FIRST_FAILED_IN_BUILD
+      | BuildStatisticsOptions.FIXED_IN_BUILD
+      , 0);
+    return build.getBuildStatistics(options);
   }
 
   @Nullable
