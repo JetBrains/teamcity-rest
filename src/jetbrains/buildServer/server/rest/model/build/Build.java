@@ -870,7 +870,7 @@ public class Build {
                                               final Fields testOccurrencesFields = myFields.getNestedField("testOccurrences");
                                               final Boolean testDetailsIncluded = TestOccurrences.isTestOccurrenceIncluded(testOccurrencesFields);
                                               final BuildStatistics fullStatistics = (testDetailsIncluded == null || testDetailsIncluded) ?
-                                                                                     myBuild.getFullStatistics() : null;
+                                                                                     TestOccurrenceFinder.getBuildStatistics(myBuild) : null;
                                               final ShortStatistics statistics = fullStatistics != null ? fullStatistics : myBuild.getShortStatistics();
                                               if (statistics.getAllTestCount() == 0) {
                                                 return null;
@@ -886,7 +886,9 @@ public class Build {
                                                 testDetailsIncluded, new ValueWithDefault.Value<List<STestRun>>() {
                                                   public List<STestRun> get() {
                                                     String testOccurrencesLocator = testOccurrencesFields.getLocator();
-                                                    if (testOccurrencesLocator == null) return (fullStatistics != null ? fullStatistics : myBuild.getFullStatistics()).getAllTests();
+                                                    if (testOccurrencesLocator == null) {
+                                                      return fullStatistics != null ? fullStatistics.getAllTests() : TestOccurrenceFinder.getBuildStatistics(myBuild).getAllTests();
+                                                    }
                                                     String  actualLocatorText = Locator.merge(TestOccurrenceFinder.getTestRunLocator(myBuild), testOccurrencesLocator);
                                                     return myServiceLocator.getSingletonService(TestOccurrenceFinder.class).getItems(actualLocatorText).myEntries;
                                                   }

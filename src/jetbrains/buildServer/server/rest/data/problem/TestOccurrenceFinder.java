@@ -186,7 +186,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         for (BuildPromotion build : builds) {
           SBuild associatedBuild = build.getAssociatedBuild();
           if (associatedBuild != null) {
-            result.add(getPossibleExpandedTestsHolder(associatedBuild.getFullStatistics().getAllTests(), locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS)));
+            result.add(getPossibleExpandedTestsHolder(getBuildStatistics(associatedBuild).getAllTests(), locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS)));
           }
         }
         return result;
@@ -537,6 +537,10 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     return false;
   }
 
+  @NotNull
+  public static BuildStatistics getBuildStatistics(@NotNull final SBuild build) {
+    return build.getFullStatistics();
+  }
 
   @Nullable
   private STestRun findTest(final @NotNull Long testNameId, final @NotNull SBuild build) {

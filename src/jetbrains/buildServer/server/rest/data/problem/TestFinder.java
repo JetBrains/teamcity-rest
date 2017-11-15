@@ -25,7 +25,6 @@ import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
 import jetbrains.buildServer.tests.TestName;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -176,12 +175,7 @@ public class TestFinder extends AbstractFinder<STest> {
     for (BuildPromotion build : builds) {
       SBuild associatedBuild = build.getAssociatedBuild();
       if (associatedBuild != null){
-        result.addAll(CollectionsUtil.convertCollection(associatedBuild.getFullStatistics().getAllTests(), new Converter<STest, STestRun>() {
-          @Override
-          public STest createFrom(@NotNull final STestRun source) {
-            return source.getTest();
-          }
-        }));
+        result.addAll(CollectionsUtil.convertCollection(associatedBuild.getBuildStatistics(BuildStatisticsOptions.ALL_TESTS_NO_DETAILS).getAllTests(), source -> source.getTest()));
       }
     }
     return result;
