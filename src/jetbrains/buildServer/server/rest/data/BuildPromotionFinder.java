@@ -34,12 +34,11 @@ import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.ItemsProviders;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.server.rest.util.StreamUtil;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
-import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
@@ -71,6 +70,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private static final String AFFECTED_PROJECT = "affectedProject";
   public static final String AGENT = "agent";
   public static final String AGENT_NAME = "agentName";
+  public static final String AGENT_TYPE_ID = "agentTypeId";
   public static final String PERSONAL = "personal";
   public static final String USER = "user";
   protected static final String BRANCH = "branch";
@@ -162,11 +162,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                               final PermissionChecker permissionChecker,
                               final MetadataStorageEx metadataStorage,
                               @NotNull final ServiceLocator serviceLocator) {
-    super(DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, USER, PERSONAL, STATE, TAG, PROPERTY, COMPATIBLE_AGENT, NUMBER, STATUS, CANCELED,
+    super(DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, AGENT_NAME, AGENT_TYPE_ID, USER, PERSONAL, STATE, TAG, PROPERTY, COMPATIBLE_AGENT, NUMBER, STATUS, CANCELED,
           PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, ARTIFACT_DEP, HANGING, COMPOSITE, HISTORY,
           DEFAULT_FILTERING, SINCE_BUILD_ID_LOOK_AHEAD_COUNT,
           Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-    setHiddenDimensions(AGENT_NAME, TAGS, RUNNING,  //compatibility
+    setHiddenDimensions(TAGS, RUNNING,  //compatibility
                         BY_PROMOTION,  //switch for legacy behavior
                         COMPATIBLE_AGENTS_COUNT,  //experimental for queued builds only
                         EQUIVALENT, REVISION, PROMOTION_ID_ALIAS, BUILD_ID, METADATA,
@@ -434,20 +434,18 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     if (locator.isUnused(AGENT)) {
       final String agentLocator = locator.getSingleDimensionValue(AGENT);
       if (agentLocator != null) {
-        ItemFilter<SBuildAgent> agentsFilter = myAgentFinder.getFilter(agentLocator);
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
-            final SQueuedBuild queuedBuild = item.getQueuedBuild(); //for queued build using compatible agents
-            if (queuedBuild != null) {
-              return queuedBuild.getCanRunOnAgents().stream().anyMatch(agent -> agentsFilter.isIncluded(agent));
-            }
-
-            final SBuild build = item.getAssociatedBuild();
-            if (build != null) {
-              return agentsFilter.isIncluded(build.getAgent());
-            }
-            return false;
+        Set<Integer> agentIds = myAgentFinder.getItemsNotEmpty(agentLocator).myEntries.stream().map(agent -> agent.getId()).filter(i -> i != Agent.UNKNOWN_AGENT_ID).collect(Collectors.toSet());
+        result.add(item -> {
+          final SQueuedBuild queuedBuild = item.getQueuedBuild(); //for queued build using compatible agents
+          if (queuedBuild != null) {
+            return queuedBuild.getCanRunOnAgents().stream().anyMatch(agent -> agentIds.contains(agent.getId()));
           }
+
+          final SBuild build = item.getAssociatedBuild();
+          if (build != null) {
+            return agentIds.contains(build.getAgent().getId());
+          }
+          return false;
         });
       }
     }
@@ -937,14 +935,18 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
-    //compatibility, use "agent" locator instead
-    final String agentName = locator.getSingleDimensionValue(AGENT_NAME);
-    if (agentName != null) {
-      result.add(new FilterConditionChecker<SBuild>() {
-        public boolean isIncluded(@NotNull final SBuild item) {
-          return agentName.equals(item.getAgent().getName());
-        }
-      });
+    if (locator.isUnused(AGENT_NAME)) {
+      final String agentName = locator.getSingleDimensionValue(AGENT_NAME);
+      if (agentName != null) {
+        result.add(item -> agentName.equals(item.getAgentName()));
+      }
+    }
+
+    if (locator.isUnused(AGENT_TYPE_ID)) {
+      final Long agentTypeId = locator.getSingleDimensionValueAsLong(AGENT_TYPE_ID);
+      if (agentTypeId != null) {
+        result.add(item -> agentTypeId.intValue() == item.getAgent().getAgentTypeId());
+      }
     }
 
     final Date sinceDate = DataProvider.parseDate(locator.getSingleDimensionValue(SINCE_DATE)); //see also settings cut off date in main filter
@@ -1201,75 +1203,44 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       return FinderDataBinding.getItemHolder(testOccurrenceFinder.getItems(testOccurrence).myEntries.stream().map(sTestRun -> sTestRun.getBuild().getBuildPromotion()));
     }
 
-    AgentFinder.AgentSearchResult agentSearchResult;
-    final String agentLocator;
-    if (!locator.getSingleDimensionValueAsStrictBoolean("tmpUseAgentFilter", false)) {  //todo:TeamCityRelease: drop this
-      agentLocator = locator.getSingleDimensionValue(AGENT);
-    } else {
-      agentLocator = null;
-    }
+    SBuildAgent agent;
+    final String agentLocator = locator.getSingleDimensionValue(AGENT);
     if (agentLocator != null) {
-      agentSearchResult = myAgentFinder.getAgentTypeIfOnlyDimension(agentLocator);  //todo: support several?
-      //todo:TeamCityRelease: drop "tmpUseAgentHistory"
-      if (agentSearchResult.agents != null || locator.getSingleDimensionValueAsStrictBoolean("tmpUseAgentHistory", false)) {  //only if builds processor cannot handle this
-
+      List<SBuildAgent> agents = myAgentFinder.getItemsNotEmpty(agentLocator).myEntries;
+      if (agents.size() == 1) {
+        agent = agents.get(0);
+      } else {  //only if builds processor cannot handle this
         Stream<BuildPromotion> result = Stream.empty();
-        //see below for alike code for generic filter
+
         Locator stateLocator = getStateLocator(locator);
+        if (isStateIncluded(stateLocator, STATE_QUEUED)) {
+          //todo: should sort backwards as currently the order does not seem right...
+          result =
+            Stream.concat(result, myBuildQueue.getItems().stream().filter(build -> !CollectionsUtil.intersect(build.getCanRunOnAgents(), agents).isEmpty())
+                                              .map(build -> build.getBuildPromotion()));
+        }
 
-        if (agentSearchResult.agentTypeId != null) {
-          if (isStateIncluded(stateLocator, STATE_QUEUED)) {
-            //todo: should sort backwards as currently the order does not seem right...
-            result = Stream.concat(result, myBuildQueue.getItems().stream().filter(build -> build.getCanRunOnAgents().stream()
-                                                                                                 .anyMatch(a -> a.getAgentTypeId() == agentSearchResult.agentTypeId))
-                                                       .map(build -> build.getBuildPromotion()));
-          }
+        if (isStateIncluded(stateLocator, STATE_RUNNING)) {  //todo: address an issue when a build can appear twice in the output
+          // agent instance can be different when disconnecting, so need to check id
+          Set<Integer> agentIds = agents.stream().map(a -> a.getId()).collect(Collectors.toSet());
+          Set<String> agentNames = agents.stream().map(a -> a.getName()).collect(Collectors.toSet());
+          result = Stream.concat(result, myBuildsManager.getRunningBuilds().stream().filter(build -> {
+            SBuildAgent buildAgent = build.getAgent();
+            int agentId = buildAgent.getId();
+            return agentId > 0 ? agentIds.contains(agentId) : agentNames.contains(buildAgent.getName());
+          }).map(build -> build.getBuildPromotion()));
+        }
 
-          if (isStateIncluded(stateLocator, STATE_RUNNING)) {  //todo: address an issue when a build can appear twice in the output
-            result = Stream.concat(result, myBuildsManager.getRunningBuilds().stream().filter(build -> build.getAgent().getAgentTypeId() == agentSearchResult.agentTypeId)
-                                                          .map(build -> build.getBuildPromotion()));
-          }
-
-          if (isStateIncluded(stateLocator, STATE_FINISHED)) {
-            //todo: optimize for user and canceled
-            //todo: SORT by builds, not agents!
-            SAgentType agentType = AgentFinder.getAgentType(String.valueOf(agentSearchResult.agentTypeId), myServiceLocator.getSingletonService(AgentTypeFinder.class));
-            Stream<BuildPromotion> finishedBuilds = agentType.getBuildHistory(null, true).stream().map(b -> b.getBuildPromotion());
-            result = Stream.concat(result, finishedBuilds);
-          }
-        } else {
-          if (agentSearchResult.agents == null) {
-            agentSearchResult.agents = Collections.singletonList(agentSearchResult.agent);
-          }
-          if (isStateIncluded(stateLocator, STATE_QUEUED)) {
-            //todo: should sort backwards as currently the order does not seem right...
-            result =
-              Stream.concat(result, myBuildQueue.getItems().stream().filter(build -> !CollectionsUtil.intersect(build.getCanRunOnAgents(), agentSearchResult.agents).isEmpty())
-                                                .map(build -> build.getBuildPromotion()));
-          }
-
-          if (isStateIncluded(stateLocator, STATE_RUNNING)) {  //todo: address an issue when a build can appear twice in the output
-            // agent instance can be different when disconnecting, so need to check id
-            Set<Integer> agentIds = agentSearchResult.agents.stream().map(a -> a.getId()).collect(Collectors.toSet());
-            Set<String> agentNames = agentSearchResult.agents.stream().map(a -> a.getName()).collect(Collectors.toSet());
-            result = Stream.concat(result, myBuildsManager.getRunningBuilds().stream().filter(build -> {
-              SBuildAgent buildAgent = build.getAgent();
-              int agentId = buildAgent.getId();
-              return agentId > 0 ? agentIds.contains(agentId) : agentNames.contains(buildAgent.getName());
-            }).map(build -> build.getBuildPromotion()));
-          }
-
-          if (isStateIncluded(stateLocator, STATE_FINISHED)) {
-            //todo: optimize for user and canceled
-            Stream<BuildPromotion> finishedBuilds = StreamUtil.merge(
-              agentSearchResult.agents.stream().map(a -> a.getBuildHistory(null, true).stream().map(b -> b.getBuildPromotion())), BUILD_PROMOTIONS_COMPARATOR);
-            result = Stream.concat(result, finishedBuilds);
-          }
+        if (isStateIncluded(stateLocator, STATE_FINISHED)) {
+          //todo: optimize for user and canceled
+          Stream<BuildPromotion> finishedBuilds = StreamUtil.merge(
+            agents.stream().map(a -> a.getBuildHistory(null, true).stream().map(b -> b.getBuildPromotion())), BUILD_PROMOTIONS_COMPARATOR);
+          result = Stream.concat(result, finishedBuilds);
         }
         return FinderDataBinding.getItemHolder(result);
       }
     } else {
-      agentSearchResult = null;
+      agent = null;
     }
 
     // process by build states
@@ -1277,6 +1248,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     final ArrayList<BuildPromotion> result = new ArrayList<BuildPromotion>();
     @Nullable Set<SBuildType> buildTypes = getBuildTypes(locator);
 
+    String agentName = locator.getSingleDimensionValue(AGENT_NAME);
+    Long agentTypeId = locator.getSingleDimensionValueAsLong(AGENT_TYPE_ID);
     Locator stateLocator = getStateLocator(locator);
 
     if (isStateIncluded(stateLocator, STATE_QUEUED)) {
@@ -1285,14 +1258,14 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       if (buildTypes != null) { //make sure buildTypes retrieved from the locator are used
         builds = builds.filter(qb -> buildTypes.contains(qb.getBuildPromotion().getParentBuildType()));
       }
-      if (agentSearchResult != null) {
-        if (agentSearchResult.agentTypeId != null) {
-          builds = builds.filter(build -> build.getCanRunOnAgents().stream().anyMatch(a -> a.getAgentTypeId() == agentSearchResult.agentTypeId));
-        } else if (agentSearchResult.agent != null) {
-          builds = builds.filter(build -> build.getCanRunOnAgents().stream().anyMatch(a -> a.equals(agentSearchResult.agent))); //todo: check
-        } else if (agentSearchResult.agentName != null) {
-          builds = builds.filter(build -> build.getCanRunOnAgents().stream().anyMatch(a -> a.getName().equals(agentSearchResult.agentName)));
-        }
+      if (agentTypeId != null) {
+        builds = builds.filter(build -> build.getCanRunOnAgents().stream().anyMatch(a -> a.getAgentTypeId() == agentTypeId.intValue()));
+      }
+      if (agent != null) {
+        builds = builds.filter(build -> build.getCanRunOnAgents().stream().anyMatch(a -> a.equals(agent))); //todo: check
+      }
+      if (agentName != null) {
+        builds = builds.filter(build -> build.getCanRunOnAgents().stream().anyMatch(a -> a.getName().equals(agentName)));
       }
       result.addAll(builds.map(b -> b.getBuildPromotion()).collect(Collectors.toList()));
     }
@@ -1302,19 +1275,21 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       if (buildTypes != null) { //make sure buildTypes retrieved from the locator are used
         builds = builds.filter(b -> buildTypes.contains(b.getBuildPromotion().getParentBuildType()));
       }
-      if (agentSearchResult != null) {
-        if (agentSearchResult.agentTypeId != null) {
-          builds = builds.filter(build -> build.getAgent().getAgentTypeId() == agentSearchResult.agentTypeId);
-        } else if (agentSearchResult.agent != null) {
-          builds = builds.filter(build -> {
-            SBuildAgent buildAgent = build.getAgent();
-            int agentId = buildAgent.getId();
-            return agentId > 0 ? agentSearchResult.agent.getId() == agentId : agentSearchResult.agent.getName().equals(buildAgent.getName());
-          });
-        } else if (agentSearchResult.agentName != null) {
-          builds = builds.filter(build -> build.getAgentName().equals(agentSearchResult.agentName));
-        }
+
+      if (agentTypeId != null) {
+        builds = builds.filter(build -> build.getAgent().getAgentTypeId() == agentTypeId.intValue());
       }
+      if (agent != null) {
+        builds = builds.filter(build -> {
+          SBuildAgent buildAgent = build.getAgent();
+          int agentId = buildAgent.getId();
+          return agentId > 0 ? agent.getId() == agentId : agent.getName().equals(buildAgent.getName());
+        });
+      }
+      if (agentName != null) {
+        builds = builds.filter(build -> build.getAgentName().equals(agentName));
+      }
+
       result.addAll(builds.map(qb -> qb.getBuildPromotion()).collect(Collectors.toList()));
     }
 
@@ -1325,14 +1300,14 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         options.setBuildTypeIds(buildTypes.stream().map(bt -> bt.getBuildTypeId()).collect(Collectors.toList()));
       }
 
-      if (agentSearchResult != null) {
-        if (agentSearchResult.agentTypeId != null) {
-          options.setAgentTypeId(agentSearchResult.agentTypeId);
-        } else if (agentSearchResult.agent != null) {
-          options.setAgent(agentSearchResult.agent);
-        } else if (agentSearchResult.agentName != null) {
-          options.setAgentName(agentSearchResult.agentName);
-        }
+      if (agentTypeId != null) {
+        options.setAgentTypeId(agentTypeId.intValue());
+      }
+      if (agent != null) {
+        options.setAgent(agent);
+      }
+      if (agentName != null) {
+        options.setAgentName(agentName);
       }
 
       final Boolean personal = locator.lookupSingleDimensionValueAsBoolean(PERSONAL);

@@ -99,68 +99,6 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     return Locator.getStringLocator(POOL, AgentPoolFinder.getLocator(pool), DEFAULT_FILTERING, "false");
   }
 
-  static class AgentSearchResult {
-    @Nullable
-    Integer agentTypeId;
-    @Nullable
-    SBuildAgent agent;
-    @Nullable
-    List<SBuildAgent> agents;
-    @Nullable
-    String agentName;
-  }
-
-  /**
-   * @return result of the agent search by locator, or locator details. In the result, following fields are filled only if previous are null
-   */
-  @NotNull
-  public AgentSearchResult getAgentTypeIfOnlyDimension(@Nullable String locatorText) {
-    AgentSearchResult result = new AgentSearchResult();
-    if (locatorText != null) {
-      try {
-        Locator locator = new Locator(locatorText);
-        Long tmpLong = locator.getSingleDimensionValueAsLong(AGENT_TYPE_ID);
-        if (tmpLong != null && locator.getUnusedDimensions().isEmpty()) {
-          result.agentTypeId = tmpLong.intValue();
-          return result;
-        }
-        result.agentName = locator.getSingleDimensionValue(NAME);
-        if (!locator.getUnusedDimensions().isEmpty()) {
-          result.agentName = null; //canot use that
-        }
-      } catch (LocatorProcessException e) {
-        //ignore
-      }
-    }
-
-    try {
-      result.agents = getItems(locatorText).myEntries;
-    } catch (Exception e) {
-      if (result.agentName != null) {
-        return result;
-      }
-      throw e;
-    }
-
-
-    if (result.agents.size() == 1) {
-      result.agent = result.agents.get(0);
-      result.agents = null;
-      result.agentName = null;
-      return result;
-    }
-
-    if (result.agents.isEmpty()) {
-      if (result.agentName != null) {
-        result.agents = null;
-        return result;
-      }
-      throw new NotFoundException("No agents are found by locator '" + locatorText + "'");
-    }
-    return result;
-  }
-
-
 
   //todo: check view agent details permission before returning unauthorized agents, here and in prefiltering
   @Override

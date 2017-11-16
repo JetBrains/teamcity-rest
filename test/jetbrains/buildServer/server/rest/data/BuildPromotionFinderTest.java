@@ -1533,7 +1533,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     final BuildPromotion build3 = build().in(buildConf).on(agent2).failed().finish().getBuildPromotion();
 
     final BuildPromotion build4 = build().in(buildConf).on(agent2).failed().finish().getBuildPromotion();
-    final BuildPromotion build5 = build().in(buildConf).on(agent).failed().finish().getBuildPromotion();
+    final BuildPromotion build5 = build().in(buildConf).number("10").on(agent).failed().finish().getBuildPromotion();
     final BuildPromotion build6 = build().in(buildConf).on(myBuildAgent).finish().getBuildPromotion();
     final BuildPromotion build7 = build().in(buildConf).on(agent).failed().finish().getBuildPromotion();
     final BuildPromotion build8 = build().in(buildConf).on(myBuildAgent).finish().getBuildPromotion();
@@ -1544,6 +1544,14 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     final BuildPromotion build30 = build().in(buildConf).on(agent).addToQueue().getBuildPromotion();
     final BuildPromotion build35 = build().in(buildConf).on(agent2).addToQueue().getBuildPromotion();
     final BuildPromotion build40 = build().in(buildConf).on(agent).parameter("a", "prevent reuse 40").addToQueue().getBuildPromotion();
+
+    check("agent:(name:" + agent.getName() + "),defaultFilter:false", build30, build40, build7, build5, build2);
+    check("agentName:" + agent.getName() + ",defaultFilter:false", build30, build40, build7, build5, build2);
+
+    check("number:10,buildType:(id:" + buildConf.getExternalId()+ "),agent:(id:"+ agent.getId() + ")", build5);
+    check("number:10,buildType:(id:" + buildConf.getExternalId()+ "),agentName:"+ agent.getName(), build5);
+    check("number:10,buildType:(id:" + buildConf.getExternalId()+ "),agentTypeId:"+ agent.getAgentTypeId(), build5);
+
 
     unregisterAgent(agent.getId());
 
@@ -1561,9 +1569,13 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 
     check("agent:(id:" + agentReplacement.getId() + "),defaultFilter:false", build30, build40, build7, build5, build2);
     check("agent:(typeId:" + agentReplacement.getAgentTypeId() + "),defaultFilter:false", build30, build40, build7, build5, build2);
+    check("agentTypeId:" + agentReplacement.getAgentTypeId() + ",defaultFilter:false", build30, build40, build7, build5, build2);
 
     check("agent:(name:" + agentReplacement.getName() + "),defaultFilter:false", build30, build40, build7, build5, build2);
-    check("agent:(name:" + agent.getName() + "),defaultFilter:false", build7, build5, build2); //can still find finished builds by the name of the agent they were run on if the agent is not found
+    check("agentName:" + agentReplacement.getName() + ",defaultFilter:false", build30, build40); //only queued, finished use another agent name
+    check("agent:(name:" + agentReplacement.getName() + ",authorized:true),defaultFilter:false", build30, build40, build7, build5, build2); //not only name is specified: search by actual agent
+    checkExceptionOnBuildsSearch(NotFoundException.class, "agent:(name:" + agent.getName() + "),defaultFilter:false"); //agnet is not existent anymore
+    check("agentName:" + agent.getName() + ",defaultFilter:false", build7, build5, build2); //can still find finished builds by the name of the agent they were run on
 
 
     unregisterAgent(agentReplacement.getId());
@@ -1571,10 +1583,19 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     myAgentManager.removeAgent(agentReplacement, null);
 
     checkExceptionOnBuildsSearch(NotFoundException.class, "agent:(id:" + agentReplacement.getId() + "),defaultFilter:false"); //No agents are found by locator 'id:2'
-    check("agent:(typeId:" + agentReplacement.getAgentTypeId() + "),defaultFilter:false", build7, build5, build2);
+    checkExceptionOnBuildsSearch(NotFoundException.class, "agent:(typeId:" + agentReplacement.getAgentTypeId() + "),defaultFilter:false");
+    check("agentTypeId:" + agentReplacement.getAgentTypeId() + ",defaultFilter:false", build7, build5, build2);
 
-    check("agent:(name:" + agentReplacement.getName() + "),defaultFilter:false");
-    check("agent:(name:" + agent.getName() + "),defaultFilter:false", build7, build5, build2);
+    checkExceptionOnBuildsSearch(NotFoundException.class,"agent:(name:" + agentReplacement.getName() + "),defaultFilter:false");
+    checkExceptionOnBuildsSearch(NotFoundException.class,"agent:(name:" + agent.getName() + "),defaultFilter:false");
+    check("agentName:" + agentReplacement.getName() + ",defaultFilter:false");
+    check("agentName:" + agent.getName() + ",defaultFilter:false", build7, build5, build2);
+
+    check("agentTypeId:" + agentReplacement.getAgentTypeId() + ",agentName:" + agentReplacement.getName() + ",defaultFilter:false");
+    check("agentTypeId:" + agentReplacement.getAgentTypeId() + ",agentName:" + agent.getName() + ",defaultFilter:false", build7, build5, build2);
+
+    check("agentTypeId:" + 1000);
+    check("agentName:" + "abra");
   }
 
   @Test
