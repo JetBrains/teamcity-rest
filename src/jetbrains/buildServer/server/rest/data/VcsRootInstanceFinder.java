@@ -147,6 +147,16 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
     return root;
   }
 
+  private void setLocatorDefaults(@NotNull final Locator locator) {
+    if (locator.isSingleValue()) {
+      return;
+    }
+
+    if (locator.isAnyPresent(BUILD_TYPE)) {
+      locator.setDimensionIfNotPresent(HAS_VERSIONED_SETTINGS_ONLY, "false");
+    }
+  }
+
   @NotNull
   @Override
   public ItemFilter<VcsRootInstance> getFilter(@NotNull final Locator locator) {
@@ -330,6 +340,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   @NotNull
   @Override
   public ItemHolder<VcsRootInstance> getPrefilteredItems(@NotNull Locator locator) {
+    setLocatorDefaults(locator);
     Boolean versionedSettingsUsagesOnly = locator.getSingleDimensionValueAsBoolean(HAS_VERSIONED_SETTINGS_ONLY);  // should check it not in Filter as it considers current scope
 
     final String build = locator.getSingleDimensionValue(BUILD);
@@ -349,7 +360,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
     final String buildTypesLocator = locator.getSingleDimensionValue(BUILD_TYPE);
     if (buildTypesLocator != null) {
-      return getItemHolder(getInstances(buildTypesLocator, locator.lookupSingleDimensionValueAsBoolean(HAS_VERSIONED_SETTINGS_ONLY)));
+      return getItemHolder(getInstances(buildTypesLocator, versionedSettingsUsagesOnly));
     }
 
     final String projectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT); //todo: support multiple here for "from all not archived projects" case
@@ -405,15 +416,14 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   @NotNull
   private Set<VcsRootInstance> getInstances(final @NotNull String buildTypesLocator, @Nullable final Boolean versionedSettingsUsagesOnly) {
     List<BuildTypeOrTemplate> buildTypes = getBuildTypeOrTemplates(buildTypesLocator);
-    Set<VcsRootInstance> resultingFilter;
-    if (versionedSettingsUsagesOnly != null && versionedSettingsUsagesOnly) {
-      //special case to include versioned settings root if directly requested
-      resultingFilter = getSettingsRootInstances(buildTypes.stream().map(bt -> bt.getProject()).collect(Collectors.toSet()));
-    } else {
-      resultingFilter = buildTypes.stream().flatMap(bt -> bt.getVcsRootInstanceEntries().stream()).map(vcsRE -> vcsRE.getVcsRoot())
-                                  .collect(Collectors.toCollection(() -> new TreeSet<>(VCS_ROOT_INSTANCE_COMPARATOR)));
+    TreeSet<VcsRootInstance> result = new TreeSet<>(VCS_ROOT_INSTANCE_COMPARATOR);
+    if (versionedSettingsUsagesOnly == null || !versionedSettingsUsagesOnly) {
+      buildTypes.stream().flatMap(bt -> bt.getVcsRootInstanceEntries().stream()).map(vcsRE -> vcsRE.getVcsRoot()).forEach(result::add);
     }
-    return resultingFilter;
+    if (versionedSettingsUsagesOnly == null || versionedSettingsUsagesOnly) {
+      result.addAll(getSettingsRootInstances(buildTypes.stream().map(bt -> bt.getProject()).collect(Collectors.toSet())));
+    }
+    return result;
   }
 
   //todo: use getAllProjectUsages here?

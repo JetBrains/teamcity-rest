@@ -337,7 +337,7 @@ public class VcsRootInstanceFinderTest extends BaseFinderTest<VcsRootInstance> {
       check("buildType:(id:" + p40_bt20.getExternalId() + ")", versionedSettingsVcsRoot_p40, btInstance30);
       check("buildType:(id:" + p40_bt30.getExternalId() + ")");
 
-      check("buildType:(id:" + p40_bt10.getExternalId() + "),versionedSettings:any", btInstance10); //documenting current behavior, seems like incorrect
+      check("buildType:(id:" + p40_bt10.getExternalId() + "),versionedSettings:any", versionedSettingsVcsRoot_p40, btInstance10);
       check("buildType:(id:" + p40_bt10.getExternalId() + "),versionedSettings:false", btInstance10);
       check("buildType:(id:" + p40_bt10.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p40);
 
@@ -345,12 +345,12 @@ public class VcsRootInstanceFinderTest extends BaseFinderTest<VcsRootInstance> {
       check("buildType:(id:" + p40_bt20.getExternalId() + "),versionedSettings:false", versionedSettingsVcsRoot_p40, btInstance30);
       check("buildType:(id:" + p40_bt20.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p40);
 
-      check("buildType:(id:" + p40_bt30.getExternalId() + "),versionedSettings:any");  //documenting current behavior, seems like incorrect
+      check("buildType:(id:" + p40_bt30.getExternalId() + "),versionedSettings:any", versionedSettingsVcsRoot_p40);
       check("buildType:(id:" + p40_bt30.getExternalId() + "),versionedSettings:false");
       check("buildType:(id:" + p40_bt30.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p40);
 
       check("buildType:(id:" + p40_bt10.getExternalId() + "),vcsRoot:(id:" + vcsRoot20.getExternalId() + "),versionedSettings:false", btInstance10);
-      check("buildType:(id:" + p40_bt10.getExternalId() + "),vcsRoot:(id:" + vcsRoot20.getExternalId() + "),versionedSettings:any", btInstance10);
+      check("buildType:(id:" + p40_bt10.getExternalId() + "),vcsRoot:(id:" + vcsRoot20.getExternalId() + "),versionedSettings:any", versionedSettingsVcsRoot_p40, btInstance10);
       check("buildType:(id:" + p40_bt10.getExternalId() + "),vcsRoot:(id:" + vcsRoot20.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p40);
 
       check("buildType:(id:" + p40_bt20.getExternalId() + "),vcsRoot:(id:" + vcsRoot20.getExternalId() + "),versionedSettings:false", versionedSettingsVcsRoot_p40);
