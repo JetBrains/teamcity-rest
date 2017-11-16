@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.HashSet;
 import java.util.Set;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -112,5 +113,14 @@ public abstract class AbstractFinder<ITEM> extends FinderImpl<ITEM> implements F
   @Override
   public Set<ITEM> createContainerSet() {
     return new HashSet<>();
+  }
+
+  @NotNull
+  public PagedSearchResult<ITEM> getItemsNotEmpty(@Nullable final String locatorText) {
+    PagedSearchResult<ITEM> result = super.getItems(locatorText);
+    if (result.myEntries.isEmpty()) {
+      throw new NotFoundException("Nothing is found by locator '" + locatorText + "'.");
+    }
+    return result;
   }
 }

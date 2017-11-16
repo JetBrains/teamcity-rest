@@ -199,7 +199,7 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
     if (locator.isUnused(PROJECT)) {
       final String projectLocator = locator.getSingleDimensionValue(PROJECT);
       if (projectLocator != null) {
-        Set<SProject> projects = new HashSet<>(myProjectFinder.getItems(projectLocator).myEntries);
+        Set<SProject> projects = new HashSet<>(myProjectFinder.getItemsNotEmpty(projectLocator).myEntries);
         result.add(item -> projects.contains(VcsRoot.getProjectByRoot(item)));
       }
     }
@@ -238,7 +238,7 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
 
     final String projectLocator = locator.getSingleDimensionValue(PROJECT);
     if (projectLocator != null) {
-      List<SProject> projects = myProjectFinder.getItems(projectLocator).myEntries;
+      List<SProject> projects = myProjectFinder.getItemsNotEmpty(projectLocator).myEntries;
       projects.forEach(project -> myPermissionChecker.checkProjectPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, project.getProjectId()));
       return FinderDataBinding.getItemHolder(projects.stream().flatMap(p -> p.getOwnVcsRoots().stream())); //consistent with Project.java:183
     }
