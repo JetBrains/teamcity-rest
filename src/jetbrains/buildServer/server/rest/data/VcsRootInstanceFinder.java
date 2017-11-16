@@ -34,9 +34,6 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.versionedSettings.VersionedSettingsManager;
-import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
-import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.vcs.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -281,29 +278,11 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
     }
 
-    final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
-    if (buildTypeLocator != null) {
-      BuildTypeOrTemplate buildType = getBuildTypeOrTemplate(buildTypeLocator);
-      Boolean versionedSettingsUsagesOnly = locator.lookupSingleDimensionValueAsBoolean(HAS_VERSIONED_SETTINGS_ONLY);
-      if (versionedSettingsUsagesOnly != null && versionedSettingsUsagesOnly) {
-        //special case to include versioned settings root if directly requested
-        Set<VcsRootInstance> settingsRootInstances = getSettingsRootInstances(Collections.singleton(buildType.getProject()));
-        result.add(new FilterConditionChecker<VcsRootInstance>() {
-          public boolean isIncluded(@NotNull final VcsRootInstance item) {
-            return settingsRootInstances.contains(item);
-          }
-        });
-      } else {
-        List<VcsRootInstanceEntry> vcsRootInstanceEntries = buildType.getVcsRootInstanceEntries();
-        result.add(new FilterConditionChecker<VcsRootInstance>() {
-          public boolean isIncluded(@NotNull final VcsRootInstance item) {
-            return CollectionsUtil.contains(vcsRootInstanceEntries, new Filter<VcsRootInstanceEntry>() {
-              public boolean accept(@NotNull final VcsRootInstanceEntry data) {
-                return item.equals(data.getVcsRoot());
-              }
-            });
-          }
-        });
+    if (locator.isUnused(BUILD_TYPE)) {
+      final String buildTypesLocator = locator.getSingleDimensionValue(BUILD_TYPE);
+      if (buildTypesLocator != null) {
+        Set<VcsRootInstance> vcsRootInstances = getInstances(buildTypesLocator, locator.lookupSingleDimensionValueAsBoolean(HAS_VERSIONED_SETTINGS_ONLY));
+        result.add(item -> vcsRootInstances.contains(item));
       }
     }
 
@@ -377,19 +356,9 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       return getItemHolder(result);
     }
 
-    final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
-    if (buildTypeLocator != null) {
-      final BuildTypeOrTemplate buildType = getBuildTypeOrTemplate(buildTypeLocator);
-      if (versionedSettingsUsagesOnly != null && versionedSettingsUsagesOnly){
-        //special case to include versioned settings root if directly requested
-        return getItemHolder(getSettingsRootInstances(Collections.singleton(buildType.getProject())));
-      }
-      final List<VcsRootInstanceEntry> vcsRootInstanceEntries = buildType.getVcsRootInstanceEntries();
-      return getItemHolder(CollectionsUtil.convertCollection(vcsRootInstanceEntries, new Converter<VcsRootInstance, VcsRootInstanceEntry>() {
-        public VcsRootInstance createFrom(@NotNull final VcsRootInstanceEntry source) {
-          return source.getVcsRoot();
-        }
-      }));
+    final String buildTypesLocator = locator.getSingleDimensionValue(BUILD_TYPE);
+    if (buildTypesLocator != null) {
+      return getItemHolder(getInstances(buildTypesLocator, locator.lookupSingleDimensionValueAsBoolean(HAS_VERSIONED_SETTINGS_ONLY)));
     }
 
     final String projectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT); //todo: support multiple here for "from all not archived projects" case
@@ -448,6 +417,20 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       result.addAll(getSettingsRootInstances(myVersionedSettingsManager.getProjectsBySettingsRoot(vcsRoot)));
     }
     return result;
+  }
+
+  @NotNull
+  private Set<VcsRootInstance> getInstances(final @NotNull String buildTypesLocator, @Nullable final Boolean versionedSettingsUsagesOnly) {
+    BuildTypeOrTemplate buildType = getBuildTypeOrTemplate(buildTypesLocator);
+    Set<VcsRootInstance> resultingFilter;
+    if (versionedSettingsUsagesOnly != null && versionedSettingsUsagesOnly) {
+      //special case to include versioned settings root if directly requested
+      resultingFilter = getSettingsRootInstances(Collections.singleton(buildType.getProject()));
+    } else {
+      resultingFilter = buildType.getVcsRootInstanceEntries().stream().map(vcsRE -> vcsRE.getVcsRoot())
+                                  .collect(Collectors.toCollection(() -> new TreeSet<>(VCS_ROOT_INSTANCE_COMPARATOR)));
+    }
+    return resultingFilter;
   }
 
   //todo: use getAllProjectUsages here?
