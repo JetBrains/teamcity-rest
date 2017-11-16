@@ -229,6 +229,25 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   public ItemFilter<BuildTypeOrTemplate> getFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<BuildTypeOrTemplate> result = new MultiCheckerFilter<BuildTypeOrTemplate>();
 
+    if (locator.isUnused(DIMENSION_ID)) {
+      final String id = locator.getSingleDimensionValue(DIMENSION_ID);
+      if (id != null) {
+        result.add(item -> id.equals(item.getId()));
+      }
+    }
+    if (locator.isUnused(DIMENSION_INTERNAL_ID)) {
+      final String internalId = locator.getSingleDimensionValue(DIMENSION_INTERNAL_ID);
+      if (internalId != null) {
+        result.add(item -> internalId.equals(item.getInternalId()));
+      }
+    }
+    if (locator.isUnused(DIMENSION_UUID)) {
+      final String uuid = locator.getSingleDimensionValue(DIMENSION_UUID);
+      if (uuid != null) {
+        result.add(item -> uuid.equals(((BuildTypeIdentityEx)item).getEntityId().getConfigId()));
+      }
+    }
+
     final String name = locator.getSingleDimensionValue(DIMENSION_NAME);
     if (name != null) {
       result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
@@ -315,6 +334,14 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
           return count == compatibleAgentsCount;
         }
       });
+    }
+
+    if (locator.isUnused(DIMENSION_SELECTED)) {
+      final String selectedByUser = locator.getSingleDimensionValue(DIMENSION_SELECTED);
+      if (selectedByUser != null) {
+        List<BuildTypeOrTemplate> filterSet = getSelectedByUser(locator, selectedByUser);
+        result.add(item -> filterSet.contains(item));
+      }
     }
 
     final String parameterDimension = locator.getSingleDimensionValue(PARAMETER);
@@ -471,22 +498,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     //this should be the first one as the order returned here is important!
     final String selectedForUser = locator.getSingleDimensionValue(DIMENSION_SELECTED);
     if (selectedForUser != null) {
-      Locator selectedByUserLocator = new Locator(selectedForUser, "user", "mode");
-      String userLocator = selectedByUserLocator.getSingleDimensionValue("user");
-      String modeLocator = selectedByUserLocator.getSingleDimensionValue("mode");
-      if (userLocator == null && modeLocator == null) {
-        //assume it's user locator - the only supported way before 2017.1
-        userLocator = selectedForUser;
-      } else {
-        selectedByUserLocator.checkLocatorFullyProcessed();
-      }
-      final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getItem(userLocator);
-      List<SProject> projects = null;
-      final String projectLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
-      if (projectLocator != null) {
-        projects = myProjectFinder.getItems(projectLocator).myEntries;
-      }
-      return getItemHolder(getBuildTypesSelectedForUser(user, ProjectFinder.getSelectedByUserMode(modeLocator, ProjectFinder.SelectedByUserMode.SELECTED_AND_UNKNOWN), projects));
+      return getItemHolder(getSelectedByUser(locator, selectedForUser));
     }
 
     /*
@@ -586,6 +598,26 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     }
 
     return getItemHolder(result);
+  }
+
+  @NotNull
+  private List<BuildTypeOrTemplate> getSelectedByUser(final @NotNull Locator locator, @NotNull final String selectedForUserLocator) {
+    Locator selectedByUserLocator = new Locator(selectedForUserLocator, "user", "mode");
+    String userLocator = selectedByUserLocator.getSingleDimensionValue("user");
+    String modeLocator = selectedByUserLocator.getSingleDimensionValue("mode");
+    if (userLocator == null && modeLocator == null) {
+      //assume it's user locator - the only supported way before 2017.1
+      userLocator = selectedForUserLocator;
+    } else {
+      selectedByUserLocator.checkLocatorFullyProcessed();
+    }
+    final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getItem(userLocator);
+    List<SProject> projects = null;
+    final String projectLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
+    if (projectLocator != null) {
+      projects = myProjectFinder.getItems(projectLocator).myEntries;
+    }
+    return getBuildTypesSelectedForUser(user, ProjectFinder.getSelectedByUserMode(modeLocator, ProjectFinder.SelectedByUserMode.SELECTED_AND_UNKNOWN), projects);
   }
 
   private Collection<BuildTypeOrTemplate> getBuildTypes(final List<SProject> projects) {

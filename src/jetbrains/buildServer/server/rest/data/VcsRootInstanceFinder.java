@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
@@ -34,6 +35,7 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.versionedSettings.VersionedSettingsManager;
+import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.vcs.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -55,7 +57,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   protected static final String STATUS = "status";
   protected static final String FINISH_VCS_CHECKING_FOR_CHANGES = "checkingForChangesFinishDate";  // experimental
   protected static final String REPOSITORY_STATE = "repositoryState";  // experimental
-  protected static final String HAS_VERSIONED_SETTINGS_ONLY = "versionedSettings"; //actually means "withoutBuildTypeUsagesWithinScope"
+  protected static final String HAS_VERSIONED_SETTINGS_ONLY = "versionedSettings"; //whether to include usages in project's versioned settings or not. By default "false" if "buildType" dimension is present and "any" otherwise
   protected static final String COMMIT_HOOK_MODE = "commitHookMode"; // experimental
   protected static final Comparator<VcsRootInstance> VCS_ROOT_INSTANCE_COMPARATOR = new Comparator<VcsRootInstance>() {
     public int compare(final VcsRootInstance o1, final VcsRootInstance o2) {
@@ -352,8 +354,39 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
     if (vcsRootLocator != null) {
       final List<SVcsRoot> vcsRoots = myVcsRootFinder.getItemsNotEmpty(vcsRootLocator).myEntries;
       final Set<VcsRootInstance> result = new TreeSet<>(VCS_ROOT_INSTANCE_COMPARATOR);
+
+      final String buildTypesLocator = locator.getSingleDimensionValue(BUILD_TYPE);
+      Predicate<SBuildType> filter;
+      Set<SProject> projects;
+      if (buildTypesLocator != null) {
+        if (versionedSettingsUsagesOnly == null || !versionedSettingsUsagesOnly) {  //is used below in the same condition
+          ItemFilter<BuildTypeOrTemplate> buildTypeFilter = myBuildTypeFinder.getFilter(buildTypesLocator);
+          filter = sBuildType -> buildTypeFilter.isIncluded(new BuildTypeOrTemplate(sBuildType));
+        } else {
+          filter = (a) -> true;
+        }
+
+        if (versionedSettingsUsagesOnly == null || versionedSettingsUsagesOnly) { //is used below in the same condition
+          projects = myBuildTypeFinder.getItemsNotEmpty(buildTypesLocator).myEntries.stream().map(BuildTypeOrTemplate::getProject).collect(Collectors.toSet());
+        } else {
+          projects = null;
+        }
+      } else {
+        filter = (a) -> true;
+        projects = null;
+      }
+
       for (SVcsRoot vcsRoot : vcsRoots) {
-        result.addAll(getInstances(vcsRoot, versionedSettingsUsagesOnly, vcsRoot.getUsagesInConfigurations()));
+        if (versionedSettingsUsagesOnly == null || !versionedSettingsUsagesOnly) {
+          vcsRoot.getUsagesInConfigurations().stream().filter(filter).collect(Collectors.toList()).stream().map(buildType -> buildType.getVcsRootInstanceForParent(vcsRoot)).filter(Objects::nonNull)
+                 .filter(rootInstance -> hasPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance)) //minor performance optimization not to return roots which will be filtered in the filter
+                 .forEach(result::add);
+        }
+
+        if (versionedSettingsUsagesOnly == null || versionedSettingsUsagesOnly) {
+          Set<SProject> projectsBySettingsRoot = myVersionedSettingsManager.getProjectsBySettingsRoot(vcsRoot);
+          result.addAll(getSettingsRootInstances(projects == null ? projectsBySettingsRoot : CollectionsUtil.intersect(projectsBySettingsRoot, projects)));
+        }
       }
       return getItemHolder(result);
     }
@@ -395,20 +428,6 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
     if (versionedSettingsUsagesOnly == null || versionedSettingsUsagesOnly){
       result.addAll(getSettingsRootInstances(Collections.singleton(project)));
       result.addAll(getSettingsRootInstances(project.getProjects()));
-    }
-    return result;
-  }
-
-  @NotNull
-  private Set<VcsRootInstance> getInstances(@NotNull final SVcsRoot vcsRoot, @Nullable final Boolean versionedSettingsUsagesOnly, @NotNull final List<SBuildType> buildTypes) {
-    TreeSet<VcsRootInstance> result = new TreeSet<>(VCS_ROOT_INSTANCE_COMPARATOR);
-    if (versionedSettingsUsagesOnly == null || !versionedSettingsUsagesOnly) {
-      buildTypes.stream().map(buildType -> buildType.getVcsRootInstanceForParent(vcsRoot)).filter(Objects::nonNull)
-                .filter(rootInstance -> hasPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance)) //minor performance optimization not to return roots which will be filtered in the filter
-                .forEach(result::add);
-    }
-    if (versionedSettingsUsagesOnly == null || versionedSettingsUsagesOnly) {
-      result.addAll(getSettingsRootInstances(myVersionedSettingsManager.getProjectsBySettingsRoot(vcsRoot)));
     }
     return result;
   }

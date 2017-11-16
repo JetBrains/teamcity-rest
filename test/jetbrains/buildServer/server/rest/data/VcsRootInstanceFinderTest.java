@@ -358,9 +358,35 @@ public class VcsRootInstanceFinderTest extends BaseFinderTest<VcsRootInstance> {
       check("buildType:(id:" + p40_bt20.getExternalId() + "),vcsRoot:(id:" + vcsRoot20.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p40);
       check("buildType:(id:" + p40_bt20.getExternalId() + "),vcsRoot:(id:" + vcsRoot30.getExternalId() + "),versionedSettings:false", btInstance30);
       check("buildType:(id:" + p40_bt20.getExternalId() + "),vcsRoot:(id:" + vcsRoot30.getExternalId() + "),versionedSettings:any", btInstance30);
-      check("buildType:(id:" + p40_bt20.getExternalId() + "),vcsRoot:(id:" + vcsRoot30.getExternalId() + "),versionedSettings:true"); 
+      check("buildType:(id:" + p40_bt20.getExternalId() + "),vcsRoot:(id:" + vcsRoot30.getExternalId() + "),versionedSettings:true");
+
+      check("vcsRoot:(id:" + vcsRoot20.getExternalId() + ")", versionedSettingsVcsRoot_p30, versionedSettingsVcsRoot_p40, btInstance10);
+      check("vcsRoot:(id:" + vcsRoot20.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p30, versionedSettingsVcsRoot_p40);
+      check("vcsRoot:(id:" + vcsRoot20.getExternalId() + "),versionedSettings:false", versionedSettingsVcsRoot_p40, btInstance10);
+      check("vcsRoot:(id:" + vcsRoot20.getExternalId() + "),versionedSettings:any", versionedSettingsVcsRoot_p30, versionedSettingsVcsRoot_p40, btInstance10);
+
+      check("buildType:(count:1000)", versionedSettingsVcsRoot_p40, btInstance10, btInstance30);
+
+      project50.addParameter(new SimpleParameter("param", "p50"));
+      VcsRootInstance versionedSettingsVcsRoot_p50 = versionedSettingsManager.getVersionedSettingsVcsRootInstance(project50);
+
+      check(null, versionedSettingsVcsRoot_p30, versionedSettingsVcsRoot_p40, btInstance10, btInstance30, versionedSettingsVcsRoot_p50);
+
+      check("vcsRoot:(id:" + vcsRoot20.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p30, versionedSettingsVcsRoot_p40, versionedSettingsVcsRoot_p50);
+      check("versionedSettings:true", versionedSettingsVcsRoot_p30, versionedSettingsVcsRoot_p40, versionedSettingsVcsRoot_p50);
+
+      check("buildType:(count:1000)", versionedSettingsVcsRoot_p40, btInstance10, btInstance30);
+      check("buildType:(count:1000),versionedSettings:any", versionedSettingsVcsRoot_p40, btInstance10, btInstance30); //versionedSettingsVcsRoot_p50 not included as no configs in the project
+      check("item:(buildType:(count:1000),versionedSettings:false),item:(versionedSettings:true)", versionedSettingsVcsRoot_p40, btInstance10, btInstance30,
+            versionedSettingsVcsRoot_p30, //so far sorting does not work for "or"
+            versionedSettingsVcsRoot_p50);
+
+      BuildTypeEx p30_bt10 = project30.createBuildType("p30_bt10"); //has showChanges=false in versioned settings
+      check("buildType:(id:" + p30_bt10.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p30);
+
 
       p40_bt20.removeVcsRoot(vcsRoot30);
+      project50.removeParameter("param");
 
 
 //      check("project:(id:" + project20.getExternalId() + ")");
