@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
@@ -195,14 +196,12 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
       });
     }
 
-    final String projectLocator = locator.getSingleDimensionValue(PROJECT);
-    if (projectLocator != null) {
-      final SProject project = myProjectFinder.getItem(projectLocator);
-      result.add(new FilterConditionChecker<SVcsRoot>() {
-        public boolean isIncluded(@NotNull final SVcsRoot item) {
-          return project.equals(VcsRoot.getProjectByRoot(item));
-        }
-      });
+    if (locator.isUnused(PROJECT)) {
+      final String projectLocator = locator.getSingleDimensionValue(PROJECT);
+      if (projectLocator != null) {
+        Set<SProject> projects = new HashSet<>(myProjectFinder.getItems(projectLocator).myEntries);
+        result.add(item -> projects.contains(VcsRoot.getProjectByRoot(item)));
+      }
     }
 
     final String repositoryIdString = locator.getSingleDimensionValue(REPOSITORY_ID_STRING);
@@ -232,16 +231,16 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
   public ItemHolder<SVcsRoot> getPrefilteredItems(@NotNull Locator locator) {
     final String affectedProjectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectLocator != null) {
-      final SProject affectedProject = myProjectFinder.getItem(affectedProjectLocator);
-      myPermissionChecker.checkProjectPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, affectedProject.getProjectId());
-      return getItemHolder(affectedProject.getVcsRoots());
+      List<SProject> projects = myProjectFinder.getItems(affectedProjectLocator).myEntries;
+      projects.forEach(project -> myPermissionChecker.checkProjectPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, project.getProjectId()));
+      return FinderDataBinding.getItemHolder(projects.stream().flatMap(p -> p.getVcsRoots().stream()).collect(Collectors.toSet()));
     }
 
     final String projectLocator = locator.getSingleDimensionValue(PROJECT);
     if (projectLocator != null) {
-      final SProject project = myProjectFinder.getItem(projectLocator);
-      myPermissionChecker.checkProjectPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, project.getProjectId());
-      return getItemHolder(project.getOwnVcsRoots()); //consistent with Project.java:183
+      List<SProject> projects = myProjectFinder.getItems(projectLocator).myEntries;
+      projects.forEach(project -> myPermissionChecker.checkProjectPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, project.getProjectId()));
+      return FinderDataBinding.getItemHolder(projects.stream().flatMap(p -> p.getOwnVcsRoots().stream())); //consistent with Project.java:183
     }
 
     final List<SVcsRoot> allRegisteredVcsRoots = myVcsManager.getAllRegisteredVcsRoots();
