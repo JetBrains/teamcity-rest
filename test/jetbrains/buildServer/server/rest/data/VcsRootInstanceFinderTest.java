@@ -334,6 +334,18 @@ public class VcsRootInstanceFinderTest extends BaseFinderTest<VcsRootInstance> {
       check("buildType:(id:" + p40_bt20.getExternalId() + ")", versionedSettingsVcsRoot_p40);
       check("buildType:(id:" + p40_bt30.getExternalId() + ")");
 
+      check("buildType:(id:" + p40_bt10.getExternalId() + "),versionedSettings:any", btInstance10); //documenting current behavior, seems like incorrect
+      check("buildType:(id:" + p40_bt10.getExternalId() + "),versionedSettings:false", btInstance10);
+      check("buildType:(id:" + p40_bt10.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p40);
+
+      check("buildType:(id:" + p40_bt20.getExternalId() + "),versionedSettings:any", versionedSettingsVcsRoot_p40);
+      check("buildType:(id:" + p40_bt20.getExternalId() + "),versionedSettings:false", versionedSettingsVcsRoot_p40);
+      check("buildType:(id:" + p40_bt20.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p40);
+
+      check("buildType:(id:" + p40_bt30.getExternalId() + "),versionedSettings:any");  //documenting current behavior, seems like incorrect
+      check("buildType:(id:" + p40_bt30.getExternalId() + "),versionedSettings:false");
+      check("buildType:(id:" + p40_bt30.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p40);
+
 //      check("project:(id:" + project20.getExternalId() + ")");
       check("project:(id:" + project30.getExternalId() + ")", versionedSettingsVcsRoot_p30);
       check("project:(id:" + project40.getExternalId() + ")", versionedSettingsVcsRoot_p40);
