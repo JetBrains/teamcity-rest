@@ -182,6 +182,14 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       }
     }
 
+    if (locator.isUnused(VCS_ROOT_DIMENSION)) {
+      final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
+      if (vcsRootLocator != null) {
+        final List<SVcsRoot> vcsRoots = myVcsRootFinder.getItems(vcsRootLocator).myEntries;
+        result.add(item -> vcsRoots.contains(item.getParent()));
+      }
+    }
+
     //todo: rework to be "there are usages directly in the project", also add to getPrefilteredItems
     //todo: support usage as versioned settings root
     final String projectLocator = locator.getSingleDimensionValue(PROJECT); //todo: support multiple here for "from all not archived projects" case
@@ -284,14 +292,6 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       if (buildTypesLocator != null) {
         Set<VcsRootInstance> vcsRootInstances = getInstances(buildTypesLocator, locator.lookupSingleDimensionValueAsBoolean(HAS_VERSIONED_SETTINGS_ONLY));
         result.add(item -> vcsRootInstances.contains(item));
-      }
-    }
-
-    if (locator.isUnused(VCS_ROOT_DIMENSION)) {
-      final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
-      if (vcsRootLocator != null) {
-        final List<SVcsRoot> vcsRoots = myVcsRootFinder.getItems(vcsRootLocator).myEntries;
-        result.add(item -> vcsRoots.contains(item.getParent()));
       }
     }
 
