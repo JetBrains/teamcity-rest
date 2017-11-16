@@ -18,6 +18,9 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
@@ -51,6 +54,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   protected static final String AFFECTED_PROJECT = "affectedProject";
   protected static final String PROPERTY = "property";
   protected static final String BUILD_TYPE = "buildType";
+  protected static final String BUILD = "build";
   protected static final String STATUS = "status";
   protected static final String FINISH_VCS_CHECKING_FOR_CHANGES = "checkingForChangesFinishDate";  // experimental
   protected static final String REPOSITORY_STATE = "repositoryState";  // experimental
@@ -70,6 +74,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   @NotNull private final PermissionChecker myPermissionChecker;
   @NotNull private final VersionedSettingsManager myVersionedSettingsManager;
   @NotNull private final TimeCondition myTimeCondition;
+  @NotNull private final ServiceLocator myServiceLocator;
 
   public VcsRootInstanceFinder(@NotNull VcsRootFinder vcsRootFinder,
                                @NotNull VcsManager vcsManager,
@@ -78,10 +83,12 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
                                @NotNull ProjectManager projectManager,
                                @NotNull VersionedSettingsManager versionedSettingsManager,
                                @NotNull TimeCondition timeCondition,
-                               final @NotNull PermissionChecker permissionChecker) {
+                               final @NotNull PermissionChecker permissionChecker,
+                               @NotNull final ServiceLocator serviceLocator) {
     super(DIMENSION_ID, TYPE, PROJECT, AFFECTED_PROJECT, PROPERTY, REPOSITORY_ID_STRING,
-      BUILD_TYPE, VCS_ROOT_DIMENSION, HAS_VERSIONED_SETTINGS_ONLY,
-      Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+          BUILD_TYPE, BUILD, VCS_ROOT_DIMENSION, HAS_VERSIONED_SETTINGS_ONLY,
+          Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    myServiceLocator = serviceLocator;
     myVersionedSettingsManager = versionedSettingsManager;
     myTimeCondition = timeCondition;
     setHiddenDimensions(STATUS, FINISH_VCS_CHECKING_FOR_CHANGES, REPOSITORY_STATE, COMMIT_HOOK_MODE);
@@ -167,6 +174,14 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
           return type.equals(item.getVcsName());
         }
       });
+    }
+
+    if (locator.isUnused(BUILD)) {
+      final String build = locator.getSingleDimensionValue(BUILD);
+      if (build != null) {
+        Set<Long> vcsRootInstanceIds = getVcsRootInstancesByBuilds(build).map(vcsRE -> vcsRE.getId()).collect(Collectors.toSet());
+        result.add(item -> vcsRootInstanceIds.contains(item.getId()));
+      }
     }
 
     //todo: rework to be "there are usages directly in the project", also add to getPrefilteredItems
@@ -318,6 +333,12 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
     return result;
   }
 
+  @NotNull
+  private Stream<VcsRootInstance> getVcsRootInstancesByBuilds(@NotNull final String buildsLocator) {
+    return myServiceLocator.getSingletonService(BuildPromotionFinder.class).getItemsNotEmpty(buildsLocator).myEntries.stream().
+      flatMap(buildPromotion -> buildPromotion.getVcsRootEntries().stream().map(vcsE -> vcsE.getVcsRoot())).distinct();
+  }
+
   private static class VcsRootCheckStatus {
     @NotNull final VcsRootStatus myStatus;
     @Nullable final OperationRequestor myRequestor;
@@ -340,6 +361,11 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   @Override
   public ItemHolder<VcsRootInstance> getPrefilteredItems(@NotNull Locator locator) {
     Boolean versionedSettingsUsagesOnly = locator.getSingleDimensionValueAsBoolean(HAS_VERSIONED_SETTINGS_ONLY);  // should check it not in Filter as it considers current scope
+
+    final String build = locator.getSingleDimensionValue(BUILD);
+    if (build != null) {
+      return FinderDataBinding.getItemHolder(getVcsRootInstancesByBuilds(build));
+    }
 
     final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
     if (vcsRootLocator != null) {

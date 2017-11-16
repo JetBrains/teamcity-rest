@@ -128,7 +128,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
 
     myVcsRootInstanceFinder = new VcsRootInstanceFinder(myVcsRootFinder, myVcsManager, myProjectFinder, myBuildTypeFinder, myProjectManager,
                                                         myFixture.getSingletonService(VersionedSettingsManager.class),
-                                                        myTimeCondition, myPermissionChecker);
+                                                        myTimeCondition, myPermissionChecker, myServer);
     myFixture.addService(myVcsRootInstanceFinder);
 
     myGroupFinder = new UserGroupFinder(getUserGroupManager());
