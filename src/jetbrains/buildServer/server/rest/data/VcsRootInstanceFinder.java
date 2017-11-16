@@ -332,8 +332,10 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   }
 
   @NotNull
-  private BuildTypeOrTemplate getBuildTypeOrTemplate(final String buildTypeLocator) {
-    return myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
+  private List<BuildTypeOrTemplate> getBuildTypeOrTemplates(@NotNull final String buildTypeLocator) {
+    List<BuildTypeOrTemplate> buildTypes = myBuildTypeFinder.getItemsNotEmpty(buildTypeLocator).myEntries;
+    buildTypes.forEach(bt -> BuildTypeFinder.check(bt.get(), myPermissionChecker));
+    return buildTypes;
   }
 
   @NotNull
@@ -421,13 +423,13 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
   @NotNull
   private Set<VcsRootInstance> getInstances(final @NotNull String buildTypesLocator, @Nullable final Boolean versionedSettingsUsagesOnly) {
-    BuildTypeOrTemplate buildType = getBuildTypeOrTemplate(buildTypesLocator);
+    List<BuildTypeOrTemplate> buildTypes = getBuildTypeOrTemplates(buildTypesLocator);
     Set<VcsRootInstance> resultingFilter;
     if (versionedSettingsUsagesOnly != null && versionedSettingsUsagesOnly) {
       //special case to include versioned settings root if directly requested
-      resultingFilter = getSettingsRootInstances(Collections.singleton(buildType.getProject()));
+      resultingFilter = getSettingsRootInstances(buildTypes.stream().map(bt -> bt.getProject()).collect(Collectors.toSet()));
     } else {
-      resultingFilter = buildType.getVcsRootInstanceEntries().stream().map(vcsRE -> vcsRE.getVcsRoot())
+      resultingFilter = buildTypes.stream().flatMap(bt -> bt.getVcsRootInstanceEntries().stream()).map(vcsRE -> vcsRE.getVcsRoot())
                                   .collect(Collectors.toCollection(() -> new TreeSet<>(VCS_ROOT_INSTANCE_COMPARATOR)));
     }
     return resultingFilter;
