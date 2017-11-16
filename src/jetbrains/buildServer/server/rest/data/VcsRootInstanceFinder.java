@@ -153,16 +153,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
     final MultiCheckerFilter<VcsRootInstance> result = new MultiCheckerFilter<VcsRootInstance>();
 
-    result.add(new FilterConditionChecker<VcsRootInstance>() {
-      public boolean isIncluded(@NotNull final VcsRootInstance item) {
-        try {
-          checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, item);
-          return true;
-        } catch (AuthorizationFailedException e) {
-          return false;
-        }
-      }
-    });
+    result.add(item -> hasPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, item));
 
     final String type = locator.getSingleDimensionValue(TYPE);
     if (type != null) {
@@ -351,7 +342,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       final List<SVcsRoot> vcsRoots = myVcsRootFinder.getItemsNotEmpty(vcsRootLocator).myEntries;
       final Set<VcsRootInstance> result = new TreeSet<>(VCS_ROOT_INSTANCE_COMPARATOR);
       for (SVcsRoot vcsRoot : vcsRoots) {
-        result.addAll(getInstances(vcsRoot, versionedSettingsUsagesOnly));
+        result.addAll(getInstances(vcsRoot, versionedSettingsUsagesOnly, vcsRoot.getUsagesInConfigurations()));
       }
       return getItemHolder(result);
     }
@@ -398,20 +389,12 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   }
 
   @NotNull
-  private Set<VcsRootInstance> getInstances(@NotNull final SVcsRoot vcsRoot, @Nullable final Boolean versionedSettingsUsagesOnly) {
+  private Set<VcsRootInstance> getInstances(@NotNull final SVcsRoot vcsRoot, @Nullable final Boolean versionedSettingsUsagesOnly, @NotNull final List<SBuildType> buildTypes) {
     TreeSet<VcsRootInstance> result = new TreeSet<>(VCS_ROOT_INSTANCE_COMPARATOR);
     if (versionedSettingsUsagesOnly == null || !versionedSettingsUsagesOnly) {
-      for (SBuildType buildType : vcsRoot.getUsagesInConfigurations()) {
-        final VcsRootInstance rootInstance = buildType.getVcsRootInstanceForParent(vcsRoot);
-        if (rootInstance != null) {
-          try {
-            checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance); //minor performance optimization not to return roots which will be filtered in the filter
-            result.add(rootInstance);
-          } catch (Exception e) {
-            //ignore
-          }
-        }
-      }
+      buildTypes.stream().map(buildType -> buildType.getVcsRootInstanceForParent(vcsRoot)).filter(Objects::nonNull)
+                .filter(rootInstance -> hasPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance)) //minor performance optimization not to return roots which will be filtered in the filter
+                .forEach(result::add);
     }
     if (versionedSettingsUsagesOnly == null || versionedSettingsUsagesOnly) {
       result.addAll(getSettingsRootInstances(myVersionedSettingsManager.getProjectsBySettingsRoot(vcsRoot)));
@@ -439,15 +422,21 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
     for (SProject project : projectsInRoot) {
       VcsRootInstance instance = myVersionedSettingsManager.getVersionedSettingsVcsRootInstance(project);
       if (instance != null) {
-        try {
-          checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, instance); //minor performance optimization not to return roots which will be filtered in the filter
+        if (hasPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, instance)) { //minor performance optimization not to return roots which will be filtered in the filter
           result.add(instance);
-        } catch (Exception e) {
-          //ignore
         }
       }
     }
     return result;
+  }
+
+  private boolean hasPermission(@NotNull final Permission permission, @NotNull final VcsRootInstance rootInstance) {
+    try {
+      myVcsRootFinder.checkPermission(permission, rootInstance.getParent());
+      return true;
+    } catch (AuthorizationFailedException e) {
+      return false;
+    }
   }
 
   public void checkPermission(@NotNull final Permission permission, @NotNull final VcsRootInstance rootInstance) {
