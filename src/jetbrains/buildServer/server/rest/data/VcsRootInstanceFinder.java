@@ -286,14 +286,12 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       }
     }
 
-    final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
-    if (vcsRootLocator != null) {
-      final List<SVcsRoot> vcsRoots = myVcsRootFinder.getItems(vcsRootLocator).myEntries;
-      result.add(new FilterConditionChecker<VcsRootInstance>() {
-        public boolean isIncluded(@NotNull final VcsRootInstance item) {
-          return vcsRoots.contains(item.getParent());
-        }
-      });
+    if (locator.isUnused(VCS_ROOT_DIMENSION)) {
+      final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
+      if (vcsRootLocator != null) {
+        final List<SVcsRoot> vcsRoots = myVcsRootFinder.getItems(vcsRootLocator).myEntries;
+        result.add(item -> vcsRoots.contains(item.getParent()));
+      }
     }
 
     final String affectedProjectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT); //todo: support multiple here
@@ -350,8 +348,8 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
     final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
     if (vcsRootLocator != null) {
-      final List<SVcsRoot> vcsRoots = myVcsRootFinder.getItems(vcsRootLocator).myEntries;
-      final Set<VcsRootInstance> result = new LinkedHashSet<VcsRootInstance>();
+      final List<SVcsRoot> vcsRoots = myVcsRootFinder.getItemsNotEmpty(vcsRootLocator).myEntries;
+      final Set<VcsRootInstance> result = new TreeSet<>(VCS_ROOT_INSTANCE_COMPARATOR);
       for (SVcsRoot vcsRoot : vcsRoots) {
         result.addAll(getInstances(vcsRoot, versionedSettingsUsagesOnly));
       }
@@ -437,7 +435,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
   //todo: use getAllProjectUsages here?
   private Set<VcsRootInstance> getSettingsRootInstances(@NotNull final Collection<SProject> projectsInRoot) {
-    HashSet<VcsRootInstance> result = new HashSet<>();
+    Set<VcsRootInstance> result = new TreeSet<>(VCS_ROOT_INSTANCE_COMPARATOR);
     for (SProject project : projectsInRoot) {
       VcsRootInstance instance = myVersionedSettingsManager.getVersionedSettingsVcsRootInstance(project);
       if (instance != null) {
