@@ -284,6 +284,8 @@ public class VcsRootInstanceFinderTest extends BaseFinderTest<VcsRootInstance> {
     final SVcsRoot vcsRoot20 = project20.createVcsRoot("svn", "id10", "VCS root 10 name");
     vcsRoot20.setProperties(CollectionsUtil.asMap("aaa", "%param%"));
 
+    final SVcsRoot vcsRoot30 = project20.createVcsRoot("svn", "id30", "id30");
+
     ProjectFeatureDescriptorFactory projectFeatureFactory = myFixture.getSingletonService(ProjectFeatureDescriptorFactory.class);
     Map<String, String> params = CollectionsUtil.asMap("buildSettings", "ALWAYS_USE_CURRENT",
                                                        "rootId", vcsRoot20.getExternalId(),
@@ -326,25 +328,40 @@ public class VcsRootInstanceFinderTest extends BaseFinderTest<VcsRootInstance> {
       VcsRootInstance versionedSettingsVcsRoot_p40 = versionedSettingsManager.getVersionedSettingsVcsRootInstance(project40);
       VcsRootInstance btInstance10 = attachVcsRoot(p40_bt10, vcsRoot20);
       VcsRootInstance btInstance20 = attachVcsRoot(p40_bt20, vcsRoot20);
+      VcsRootInstance btInstance30 = attachVcsRoot(p40_bt20, vcsRoot30);
       assert btInstance20.equals(versionedSettingsVcsRoot_p40);
 
-      check(null, versionedSettingsVcsRoot_p30, versionedSettingsVcsRoot_p40, btInstance10);
+      check(null, versionedSettingsVcsRoot_p30, versionedSettingsVcsRoot_p40, btInstance10, btInstance30);
       check("property:(name:aaa,value:p30)", versionedSettingsVcsRoot_p30);
       check("buildType:(id:" + p40_bt10.getExternalId() + ")", btInstance10);
-      check("buildType:(id:" + p40_bt20.getExternalId() + ")", versionedSettingsVcsRoot_p40);
+      check("buildType:(id:" + p40_bt20.getExternalId() + ")", versionedSettingsVcsRoot_p40, btInstance30);
       check("buildType:(id:" + p40_bt30.getExternalId() + ")");
 
       check("buildType:(id:" + p40_bt10.getExternalId() + "),versionedSettings:any", btInstance10); //documenting current behavior, seems like incorrect
       check("buildType:(id:" + p40_bt10.getExternalId() + "),versionedSettings:false", btInstance10);
       check("buildType:(id:" + p40_bt10.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p40);
 
-      check("buildType:(id:" + p40_bt20.getExternalId() + "),versionedSettings:any", versionedSettingsVcsRoot_p40);
-      check("buildType:(id:" + p40_bt20.getExternalId() + "),versionedSettings:false", versionedSettingsVcsRoot_p40);
+      check("buildType:(id:" + p40_bt20.getExternalId() + "),versionedSettings:any", versionedSettingsVcsRoot_p40, btInstance30);
+      check("buildType:(id:" + p40_bt20.getExternalId() + "),versionedSettings:false", versionedSettingsVcsRoot_p40, btInstance30);
       check("buildType:(id:" + p40_bt20.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p40);
 
       check("buildType:(id:" + p40_bt30.getExternalId() + "),versionedSettings:any");  //documenting current behavior, seems like incorrect
       check("buildType:(id:" + p40_bt30.getExternalId() + "),versionedSettings:false");
       check("buildType:(id:" + p40_bt30.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p40);
+
+      check("buildType:(id:" + p40_bt10.getExternalId() + "),vcsRoot:(id:" + vcsRoot20.getExternalId() + "),versionedSettings:false", btInstance10);
+      check("buildType:(id:" + p40_bt10.getExternalId() + "),vcsRoot:(id:" + vcsRoot20.getExternalId() + "),versionedSettings:any", btInstance10);
+      check("buildType:(id:" + p40_bt10.getExternalId() + "),vcsRoot:(id:" + vcsRoot20.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p40);
+
+      check("buildType:(id:" + p40_bt20.getExternalId() + "),vcsRoot:(id:" + vcsRoot20.getExternalId() + "),versionedSettings:false", versionedSettingsVcsRoot_p40);
+      check("buildType:(id:" + p40_bt20.getExternalId() + "),vcsRoot:(id:" + vcsRoot20.getExternalId() + "),versionedSettings:any", versionedSettingsVcsRoot_p40);
+      check("buildType:(id:" + p40_bt20.getExternalId() + "),vcsRoot:(id:" + vcsRoot20.getExternalId() + "),versionedSettings:true", versionedSettingsVcsRoot_p40);
+      check("buildType:(id:" + p40_bt20.getExternalId() + "),vcsRoot:(id:" + vcsRoot30.getExternalId() + "),versionedSettings:false", btInstance30);
+      check("buildType:(id:" + p40_bt20.getExternalId() + "),vcsRoot:(id:" + vcsRoot30.getExternalId() + "),versionedSettings:any", btInstance30);
+      check("buildType:(id:" + p40_bt20.getExternalId() + "),vcsRoot:(id:" + vcsRoot30.getExternalId() + "),versionedSettings:true"); 
+
+      p40_bt20.removeVcsRoot(vcsRoot30);
+
 
 //      check("project:(id:" + project20.getExternalId() + ")");
       check("project:(id:" + project30.getExternalId() + ")", versionedSettingsVcsRoot_p30);
