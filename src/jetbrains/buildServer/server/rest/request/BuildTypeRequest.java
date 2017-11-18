@@ -285,7 +285,7 @@ public class BuildTypeRequest {
       throw new BadRequestException("Found build type when template is expected: " + LogUtil.describe(posted.getBuildType()));
     }
     try {
-      buildType.attachToTemplate(result);
+      buildType.addTemplate(result, true);
     } catch (CannotAttachToTemplateException e) {
       throw new BadRequestException(e.getMessage());
     }
@@ -323,7 +323,7 @@ public class BuildTypeRequest {
     if (buildType.getOwnTemplates().stream().noneMatch(t -> t.getId().equals(template.getId()))) {
       throw new NotFoundException("Build type " + LogUtil.describe(buildType) + " does not have template with id \"" + template.getExternalId() + "\"");
     }
-    ((BuildTypeImpl)buildType).detachFromTemplates(Collections.singleton(template), inlineSettings != null ? inlineSettings : false);
+    buildType.removeTemplates(Collections.singleton(template), inlineSettings != null ? inlineSettings : false);
     buildType.persist();
   }
 
@@ -360,8 +360,7 @@ public class BuildTypeRequest {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
     BuildTypeTemplate template = myBuildTypeFinder.getBuildTemplate(null, templateLocator, true);
     try {
-      ((BuildTypeImpl)buildType).detachFromTemplates(buildType.getTemplates(), inlineSettings != null ? inlineSettings : false);
-      buildType.attachToTemplate(template);
+      buildType.setTemplates(Collections.singletonList(template), true);
     } catch (CannotAttachToTemplateException e) {
       throw new BadRequestException(e.getMessage());
     }
@@ -378,7 +377,7 @@ public class BuildTypeRequest {
   @ApiOperation(hidden = true, value = "Use .../templates instead")
   public void deleteTemplateAssociation(@PathParam("btLocator") String buildTypeLocator, @QueryParam("inlineSettings") Boolean inlineSettings) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
-    ((BuildTypeImpl)buildType).detachFromTemplates(buildType.getTemplates(), inlineSettings != null ? inlineSettings : true); //using "true" as default here to replicate pre-2017.2 behavior
+    buildType.removeTemplates(buildType.getTemplates(), inlineSettings != null ? inlineSettings : true); //using "true" as default here to replicate pre-2017.2 behavior
     buildType.persist();
   }
 
