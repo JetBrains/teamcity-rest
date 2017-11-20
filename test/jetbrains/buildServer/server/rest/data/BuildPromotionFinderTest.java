@@ -270,8 +270,6 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 
   @Test
   public void testMultipleBuildTypes() throws Exception {
-    myFixture.createEnabledAgent("Ant");// adding one more agent to allow parallel builds
-
     final BuildTypeImpl buildConf0 = registerBuildType("buildConf0", "project");
     final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
     final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project1");
@@ -282,71 +280,11 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     final BuildPromotion build30 = build().in(buildConf0).number("10").finish().getBuildPromotion();
     final BuildPromotion build40 = build().in(buildConf2).finish().getBuildPromotion();
 
-    final BuildPromotion build50 = build().in(buildConf0).number("10").run().getBuildPromotion();
-    final BuildPromotion build60 = build().in(buildConf2).run().getBuildPromotion();
-    final BuildPromotion build70 = build().in(buildConf0).addToQueue().getBuildPromotion();
-    final BuildPromotion build80 = build().in(buildConf1).addToQueue().getBuildPromotion();
-
     check(null, build40, build30, build20, build10, build05);
     check("buildType:(id:" + buildConf0.getExternalId() + ")", build30, build20, build05);
     check("buildType:(project:(name:" + "project" + "))", build30, build20, build10, build05);
     check("buildType:(project:(name:" + "project" + ")),number:10", build30, build10, build05);
     check("buildType:(item:(id:" + buildConf1.getExternalId() + "),item:(id:(" + buildConf0.getExternalId() + ")))", build30, build20, build10, build05);
-
-    check("defaultFilter:false", build70, build80, build60, build50, build40, build30, build20, build10, build05);
-    check("buildType:(id:" + buildConf0.getExternalId() + "),defaultFilter:false", build70, build50, build30, build20, build05);
-    check("buildType:(id:" + buildConf1.getExternalId() + "),defaultFilter:false", build80, build10);
-    check("buildType:(id:" + buildConf2.getExternalId() + "),defaultFilter:false", build60, build40);
-    check("buildType:(project:(name:" + "project" + ")),defaultFilter:false", build70, build80, build50, build30, build20, build10, build05);
-    check("buildType:(project:(name:" + "project" + ")),number:10,defaultFilter:false", build50, build30, build10, build05);
-    check("buildType:(item:(id:" + buildConf1.getExternalId() + "),item:(id:(" + buildConf0.getExternalId() + "))),defaultFilter:false",
-          build70, build80, build50, build30, build20, build10, build05);
-    check("buildType:(item:(id:" + buildConf0.getExternalId() + "),item:(id:(" + buildConf1.getExternalId() + "))),defaultFilter:false",
-          build70, build80, build50, build30, build20, build10, build05);
-  }
-
-  @Test
-  public void testMultipleBuildTypesInProjects() throws Exception {
-    myFixture.createEnabledAgent("Ant");// adding one more agent to allow parallel builds
-
-    ProjectEx project1 = getRootProject().createProject("project1", "project1");
-    ProjectEx project11 = project1.createProject("project1_1", "project1_1");
-    ProjectEx project2 = getRootProject().createProject("project2", "project2");
-
-    final BuildTypeEx buildConf0 = project1.createBuildType("buildConf");
-    final BuildTypeEx buildConf1 = project11.createBuildType("buildConf");
-    final BuildTypeEx buildConf2 = project2.createBuildType("buildConf2");
-
-    final BuildPromotion build05 = build().in(buildConf0).number("10").finish().getBuildPromotion();
-    final BuildPromotion build10 = build().in(buildConf1).number("10").finish().getBuildPromotion();
-    final BuildPromotion build20 = build().in(buildConf0).finish().getBuildPromotion();
-    final BuildPromotion build30 = build().in(buildConf0).number("10").finish().getBuildPromotion();
-    final BuildPromotion build40 = build().in(buildConf2).finish().getBuildPromotion();
-
-    final BuildPromotion build50 = build().in(buildConf0).number("10").run().getBuildPromotion();
-    final BuildPromotion build60 = build().in(buildConf2).run().getBuildPromotion();
-    final BuildPromotion build70 = build().in(buildConf0).addToQueue().getBuildPromotion();
-    final BuildPromotion build80 = build().in(buildConf1).addToQueue().getBuildPromotion();
-
-    check("defaultFilter:false", build70, build80, build60, build50, build40, build30, build20, build10, build05);
-    String df = ",defaultFilter:false";
-    check("buildType:(id:" + buildConf0.getExternalId() + ")" + df, build70, build50, build30, build20, build05);
-    check("buildType:(id:" + buildConf0.getExternalId() + "),affectedProject:(id:" + project1.getExternalId() + ")" + df, build70, build50, build30, build20, build05);
-    check("buildType:(id:" + buildConf0.getExternalId() + "),project:(id:" + project1.getExternalId() + ")" + df, build70, build50, build30, build20, build05);
-
-    check("buildType:(affectedProject:(id:" + project1.getExternalId() + "))" + df, build70, build80, build50, build30, build20, build10, build05);
-    check("buildType:(project:(id:" + project1.getExternalId() + "))" + df, build70, build50, build30, build20, build05);
-
-    check("buildType:(id:" + buildConf1.getExternalId() + "),affectedProject:(id:" + project1.getExternalId() + ")" + df, build80, build10);
-    checkExceptionOnBuildsSearch(NotFoundException.class, "buildType:(id:" + buildConf1.getExternalId() + "),project:(id:" + project1.getExternalId() + ")");
-
-    check("buildType:(name:" + "buildConf" + "),project:(id:" + project1.getExternalId() + ")" + df, build70, build50, build30, build20, build05);
-    check("buildType:(name:" + "buildConf" + "),project:(id:" + project11.getExternalId() + ")" + df, build80, build10);
-    check("buildType:(name:" + "buildConf" + "),affectedProject:(id:" + project1.getExternalId() + ")" + df, build70, build80, build50, build30, build20, build10, build05);
-
-    check("buildType:(affectedProject:(id:" + project1.getExternalId() + ")),number:10" + df, build50, build30, build10, build05);
-    check("buildType:(item:(id:" + buildConf1.getExternalId() + "),item:(id:(" + buildConf0.getExternalId() + ")))" + df,
-          build70, build80, build50, build30, build20, build10, build05);
   }
 
   @Test
@@ -952,8 +890,6 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("defaultFilter:false", getBuildPromotions(build14queued, build13running, build11inBranch, build9failedToStart, build8canceledFailed, build7canceled, build5personal, build2failed, build1));
     checkBuilds("defaultFilter:true", getBuildPromotions(build2failed, build1));
     checkBuilds("canceled:true", getBuildPromotions(build8canceledFailed, build7canceled));
-    checkBuilds("canceled:true,state:(queued:true)");
-    checkBuilds("failedToStart:true,state:(queued:true)");
     checkBuilds("canceled:false", getBuildPromotions(build2failed, build1));
     checkBuilds("canceled:false,defaultFilter:false", getBuildPromotions(build14queued, build13running, build11inBranch, build9failedToStart, build5personal, build2failed, build1));
     checkBuilds("canceled:any", getBuildPromotions(build8canceledFailed, build7canceled, build2failed, build1));
@@ -962,7 +898,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("state:any", getBuildPromotions(build14queued, build13running, build2failed, build1));
   }
 
-  @Test //(invocationCount = 2000)
+  @Test
   public void testBuildNumber() {
     final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
     final SUser user = createUser("uuser");
@@ -977,10 +913,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     SBuild build80 = build().in(buildConf).number("100").run();
 
     final String buildTypeDimension = ",buildType:(id:" + buildConf.getExternalId() + ")";
-    String buildNumber = build80.getBuildNumber();
-    if (!"100".equals(buildNumber)) {
-      fail("Concurrency detected on setting and then getting running build number!  Got: " + buildNumber);
-    }
+
     checkBuilds("number:100" + buildTypeDimension, getBuildPromotions(build30, build20));
     checkBuilds("number:100", getBuildPromotions(build30, build20));
 //getBuildPromotions(build80, build60, build50, build40, build30, build20, build10)
@@ -1519,65 +1452,6 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
-  public void testAgentFilteringAfterNameChange() {
-    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
-    final BuildPromotion build1 = build().in(buildConf).finish().getBuildPromotion();
-
-    final MockBuildAgent agent = myFixture.createEnabledAgent("originalName", "smth");
-    registerAndEnableAgent(agent);
-
-    final BuildPromotion build2 = build().in(buildConf).on(agent).failed().finish().getBuildPromotion();
-
-    final MockBuildAgent agent2 = myFixture.createEnabledAgent("smth2");
-    registerAndEnableAgent(agent2);
-    final BuildPromotion build3 = build().in(buildConf).on(agent2).failed().finish().getBuildPromotion();
-
-    final BuildPromotion build4 = build().in(buildConf).on(agent2).failed().finish().getBuildPromotion();
-    final BuildPromotion build5 = build().in(buildConf).on(agent).failed().finish().getBuildPromotion();
-    final BuildPromotion build6 = build().in(buildConf).on(myBuildAgent).finish().getBuildPromotion();
-    final BuildPromotion build7 = build().in(buildConf).on(agent).failed().finish().getBuildPromotion();
-    final BuildPromotion build8 = build().in(buildConf).on(myBuildAgent).finish().getBuildPromotion();
-    final BuildPromotion build9 = build().in(buildConf).on(agent2).failed().finish().getBuildPromotion();
-
-    final BuildPromotion build25 = build().in(buildConf).on(agent2).run().getBuildPromotion();
-
-    final BuildPromotion build30 = build().in(buildConf).on(agent).addToQueue().getBuildPromotion();
-    final BuildPromotion build35 = build().in(buildConf).on(agent2).addToQueue().getBuildPromotion();
-    final BuildPromotion build40 = build().in(buildConf).on(agent).parameter("a", "prevent reuse 40").addToQueue().getBuildPromotion();
-
-    unregisterAgent(agent.getId());
-
-    MockBuildAgent agentReplacement = myFixture.createMockBuildAgent("smth");
-    agentReplacement.setName("newName");
-    agentReplacement.setPort(9081);
-    agentReplacement.setId(agent.getId());
-    agentReplacement.setAuthorizationToken(agent.getAuthorizationToken());
-    myFixture.getBuildAgentManager().registerAgent(agentReplacement, -1);
-
-
-    assertEquals(agent.getId(), agentReplacement.getId());
-    assertEquals(agent.getAgentTypeId(), agentReplacement.getAgentTypeId());
-    assertTrue(agentReplacement.isAuthorized());
-
-    check("agent:(id:" + agentReplacement.getId() + "),defaultFilter:false", build30, build40, build7, build5, build2);
-    check("agent:(typeId:" + agentReplacement.getAgentTypeId() + "),defaultFilter:false", build30, build40, build7, build5, build2);
-
-    check("agent:(name:" + agentReplacement.getName() + "),defaultFilter:false", build30, build40, build7, build5, build2);
-    check("agent:(name:" + agent.getName() + "),defaultFilter:false", build7, build5, build2); //can still find finished builds by the name of the agent they were run on if the agent is not found
-
-
-    unregisterAgent(agentReplacement.getId());
-    agentReplacement.setAuthorized(false, null, "");
-    myAgentManager.removeAgent(agentReplacement, null);
-
-    checkExceptionOnBuildsSearch(NotFoundException.class, "agent:(id:" + agentReplacement.getId() + "),defaultFilter:false"); //No agents are found by locator 'id:2'
-    check("agent:(typeId:" + agentReplacement.getAgentTypeId() + "),defaultFilter:false", build7, build5, build2);
-
-    check("agent:(name:" + agentReplacement.getName() + "),defaultFilter:false");
-    check("agent:(name:" + agent.getName() + "),defaultFilter:false", build7, build5, build2);
-  }
-
-  @Test
   public void testDefaults() {
     final SProject project = createProject("prj", "project");
     final BuildTypeEx buildConf1 = (BuildTypeEx)project.createBuildType("buildConf1", "buildConf1");
@@ -1778,7 +1652,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
         return new Loggable() {
           @NotNull
           public String describe(final boolean verbose) {
-            return LogUtil.appendDescription(LogUtil.describeInDetail(source), "startTime: " + LogUtil.describe(source.getServerStartDate()));
+            return LogUtil.describeInDetail(source) + ", startTime: " + LogUtil.describe(source.getServerStartDate());
           }
         };
       }
