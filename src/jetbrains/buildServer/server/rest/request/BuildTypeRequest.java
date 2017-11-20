@@ -54,7 +54,6 @@ import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
-import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.VcsLabelingBuildFeature;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -260,12 +259,12 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/templates")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public BuildTypes setTemplates(@PathParam("btLocator") String buildTypeLocator, BuildTypes templates, @QueryParam("fields") String fields) {
+  public BuildTypes setTemplates(@PathParam("btLocator") String buildTypeLocator, BuildTypes templates, @QueryParam("optimizeSettings") Boolean optimizeSettings, @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
     if (templates == null) {
       throw new BadRequestException("Nothing is posted as payload while list of templates is expected");
     }
-    BuildTypeOrTemplate.setTemplates(buildType, templates.getFromPosted(myBuildTypeFinder));
+    BuildTypeOrTemplate.setTemplates(buildType, templates.getFromPosted(myBuildTypeFinder), optimizeSettings != null ? optimizeSettings : false);
     buildType.persist();
     return BuildType.getTemplates(buildType, new Fields(fields), myBeanContext);
   }
@@ -274,7 +273,7 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/templates")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public BuildType addTemplate(@PathParam("btLocator") String buildTypeLocator, BuildType template, @QueryParam("fields") String fields) {
+  public BuildType addTemplate(@PathParam("btLocator") String buildTypeLocator, BuildType template, @QueryParam("optimizeSettings") Boolean optimizeSettings, @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
     if (template == null) {
       throw new BadRequestException("Nothing is posted as payload while a template is expected");
@@ -285,19 +284,19 @@ public class BuildTypeRequest {
       throw new BadRequestException("Found build type when template is expected: " + LogUtil.describe(posted.getBuildType()));
     }
     try {
-      buildType.addTemplate(result, true);
+      buildType.addTemplate(result, optimizeSettings != null ? optimizeSettings : false);
     } catch (CannotAttachToTemplateException e) {
       throw new BadRequestException(e.getMessage());
     }
     buildType.persist();
-    return new BuildType(new BuildTypeOrTemplate(result),  new Fields(fields), myBeanContext);
+    return new BuildType(new BuildTypeOrTemplate(getTemplateById(buildType, result.getExternalId())),  new Fields(fields), myBeanContext);
   }
 
   @DELETE
   @Path("/{btLocator}/templates")
-  public void removeAllTemplates(@PathParam("btLocator") String buildTypeLocator) {
+  public void removeAllTemplates(@PathParam("btLocator") String buildTypeLocator, @QueryParam("inlineSettings") Boolean inlineSettings) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
-    ((BuildTypeImpl)buildType).detachFromAllTemplates();
+    buildType.removeTemplates(buildType.getOwnTemplates(), inlineSettings != null ? inlineSettings : false);
     buildType.persist();
   }
 
@@ -307,11 +306,7 @@ public class BuildTypeRequest {
   public BuildType getTemplate(@PathParam("btLocator") String buildTypeLocator, @PathParam("templateLocator") String templateLocator, @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
     BuildTypeTemplate template = myBuildTypeFinder.getBuildTemplate(null, templateLocator, true);
-
-    if (buildType.getOwnTemplates().stream().noneMatch(t -> t.getId().equals(template.getId()))) {
-      throw new NotFoundException("Build type " + LogUtil.describe(buildType) + " does not have template with id \"" + template.getExternalId() + "\"");
-    }
-    return new BuildType(new BuildTypeOrTemplate(template),  new Fields(fields), myBeanContext);
+    return new BuildType(new BuildTypeOrTemplate(getTemplateById(buildType, template.getExternalId())),  new Fields(fields), myBeanContext);
   }
 
   @DELETE
@@ -319,12 +314,15 @@ public class BuildTypeRequest {
   public void removeTemplate(@PathParam("btLocator") String buildTypeLocator, @PathParam("templateLocator") String templateLocator, @QueryParam("inlineSettings") Boolean inlineSettings) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
     BuildTypeTemplate template = myBuildTypeFinder.getBuildTemplate(null, templateLocator, true);
-
-    if (buildType.getOwnTemplates().stream().noneMatch(t -> t.getId().equals(template.getId()))) {
-      throw new NotFoundException("Build type " + LogUtil.describe(buildType) + " does not have template with id \"" + template.getExternalId() + "\"");
-    }
-    buildType.removeTemplates(Collections.singleton(template), inlineSettings != null ? inlineSettings : false);
+    BuildTypeTemplate foundTemplate = getTemplateById(buildType, template.getExternalId());
+    buildType.removeTemplates(Collections.singleton(foundTemplate), inlineSettings != null ? inlineSettings : false);
     buildType.persist();
+  }
+
+  @NotNull
+  private BuildTypeTemplate getTemplateById(@NotNull final SBuildType buildType, @NotNull final String templateExternalId) {
+    return buildType.getOwnTemplates().stream().filter(t -> t.getExternalId().equals(templateExternalId)).findFirst()
+                    .orElseThrow(() -> new NotFoundException("Build type " + LogUtil.describe(buildType) + " does not have template with id \"" + templateExternalId + "\""));
   }
 
   /**
@@ -356,11 +354,14 @@ public class BuildTypeRequest {
   @Consumes("text/plain")
   @Produces({"application/xml", "application/json"})
   @ApiOperation(hidden = true, value = "Use .../templates instead")
-  public BuildType getTemplateAssociation(@PathParam("btLocator") String buildTypeLocator, String templateLocator, @QueryParam("fields") String fields, @QueryParam("inlineSettings") Boolean inlineSettings) {
+  public BuildType getTemplateAssociation(@PathParam("btLocator") String buildTypeLocator, String templateLocator, @QueryParam("fields") String fields, @QueryParam("inlineSettings") Boolean inlineSettings, @QueryParam("optimizeSettings") Boolean optimizeSettings) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
     BuildTypeTemplate template = myBuildTypeFinder.getBuildTemplate(null, templateLocator, true);
     try {
-      buildType.setTemplates(Collections.singletonList(template), true);
+      if (inlineSettings != null && inlineSettings) {
+        buildType.removeTemplates(buildType.getOwnTemplates(), true);
+      }
+      buildType.setTemplates(Collections.singletonList(template), optimizeSettings != null ? optimizeSettings : true);   //using "true" as default here to replicate pre-2017.2 behavior
     } catch (CannotAttachToTemplateException e) {
       throw new BadRequestException(e.getMessage());
     }
@@ -377,7 +378,7 @@ public class BuildTypeRequest {
   @ApiOperation(hidden = true, value = "Use .../templates instead")
   public void deleteTemplateAssociation(@PathParam("btLocator") String buildTypeLocator, @QueryParam("inlineSettings") Boolean inlineSettings) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
-    buildType.removeTemplates(buildType.getTemplates(), inlineSettings != null ? inlineSettings : true); //using "true" as default here to replicate pre-2017.2 behavior
+    buildType.removeTemplates(buildType.getOwnTemplates(), inlineSettings != null ? inlineSettings : true); //using "true" as default here to replicate pre-2017.2 behavior
     buildType.persist();
   }
 

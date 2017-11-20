@@ -26,7 +26,6 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.vcs.VcsRootInstanceEntry;
@@ -145,7 +144,7 @@ public class BuildTypeOrTemplate implements Loggable {
     myBuildTypeIdentity.remove();
   }
 
-  public static void setTemplates(@NotNull final SBuildType buildType, @NotNull final List<BuildTypeOrTemplate> buildTypeOrTemplates) {
+  public static void setTemplates(@NotNull final SBuildType buildType, @NotNull final List<BuildTypeOrTemplate> buildTypeOrTemplates, final boolean optimizeSetting) {
     List<BuildTypeTemplate> newTemplates = buildTypeOrTemplates.stream().map(bt -> {
       BuildTypeTemplate result = bt.getTemplate();
       if (result == null) {
@@ -159,7 +158,7 @@ public class BuildTypeOrTemplate implements Loggable {
       return;
     }
     try {
-      buildType.setTemplates(newTemplates, true);
+      buildType.setTemplates(newTemplates, optimizeSetting);
     } catch (CannotAttachToTemplateException e) {
       //cannot revert as detachFromAllTemplates inlines settings into the build configuration
       throw new BadRequestException("Error attaching to templates, settings might be in partly modified state: " + e.getMessage());

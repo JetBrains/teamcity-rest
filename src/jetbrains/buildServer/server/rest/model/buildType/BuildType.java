@@ -48,6 +48,7 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
+import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -271,6 +272,7 @@ public class BuildType {
 
   @Nullable
   public static BuildTypes getTemplates(@NotNull final SBuildType buildType, @NotNull final Fields fields, final BeanContext beanContext) {
+    //todo: mark default template as "inherited"
     try {
       PermissionChecker permissionChecker = beanContext.getSingletonService(PermissionChecker.class);
       List<? extends BuildTypeTemplate> templates = buildType.getOwnTemplates();
@@ -279,7 +281,7 @@ public class BuildType {
                                      .collect(Collectors.toList()), null, fields, beanContext);
     } catch (RuntimeException e) {
       LOG.debug("Error retrieving templates for build configuration " + LogUtil.describe(buildType) + ": " + e.toString(), e);
-      List<String> templateIds = buildType.getTemplateIds();
+      List<String> templateIds = ((BuildTypeImpl)buildType).getOwnTemplateIds();
       if (templateIds.isEmpty()) return null;
       List<BuildTypeOrTemplate> result = getBuildTypeOrTemplates(templateIds, fields.getNestedField("template"), beanContext);
       return result.isEmpty() ? null : new BuildTypes(result, null, fields, beanContext);
@@ -902,7 +904,7 @@ public class BuildType {
       try {
         //noinspection ConstantConditions
         List<BuildTypeOrTemplate> templates = submittedTemplates.getFromPosted(serviceLocator.findSingletonService(BuildTypeFinder.class));
-        BuildTypeOrTemplate.setTemplates(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType(), templates);
+        BuildTypeOrTemplate.setTemplates(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType(), templates, false);
       } catch (BadRequestException e) {
         throw new BadRequestException("Error retrieving submitted templates: " + e.getMessage(), e);
       }
