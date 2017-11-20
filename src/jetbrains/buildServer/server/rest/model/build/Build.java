@@ -94,7 +94,6 @@ import org.jetbrains.annotations.Nullable;
          propOrder = {"id"/*rf*/, "promotionId"/*q*/, "buildTypeId", "buildTypeInternalId", "number"/*rf*/, "status"/*rf*/, "state", "running"/*r*/, "composite"/*qrf*/,
            "failedToStart"/*f*/,
            "personal", "percentageComplete"/*r*/, "branchName", "defaultBranch", "unspecifiedBranch", "history", "pinned"/*rf*/, "href", "webUrl",
-           "links",
            "statusText"/*rf*/,
            "buildType", "comment", "tags", "pinInfo"/*f*/, "personalBuildUser",
            "startEstimate"/*q*/, "waitReason"/*q*/,
@@ -107,8 +106,7 @@ import org.jetbrains.annotations.Nullable;
            "properties", "resultingProperties", "attributes", "statistics", "metadata"/*rf*/,
            "buildDependencies", "buildArtifactDependencies", "customBuildArtifactDependencies"/*q*/,
            "settingsHash", "currentSettingsHash", "modificationId", "chainModificationId", "replacementIds",
-           "triggeringOptions"/*only when triggering*/,
-           "usedByOtherBuilds" /*experimental*/
+           "triggeringOptions"/*only when triggering*/
 })
 public class Build {
   private static final Logger LOG = Logger.getInstance(Build.class.getName());
@@ -218,7 +216,6 @@ public class Build {
   /**
    * Experimental
    * "composite" build state (since TeamCty 2017.2)
-   * TODO: to review before the release. May be this should turn into a node with more details like completion %
    */
   @XmlAttribute
   public Boolean isComposite() {
@@ -294,13 +291,6 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded("personal"), myBuildPromotion::isPersonal);
   }
 
-  /**
-   * Experimental, will be dropped in the future
-   */
-  @XmlAttribute
-  public Boolean isUsedByOtherBuilds() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("usedByOtherBuilds", false, false),() -> myBuild != null && myBuild.isUsedByOtherBuilds());
-  }
 
   @XmlAttribute
   public String getWebUrl() {
@@ -334,24 +324,6 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded("buildTypeInternalId", false, false), () -> myBuildPromotion.getBuildTypeId());
   }
 
-  @XmlElement
-  public Links getLinks() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("links", false, false), new ValueWithDefault.Value<Links>() {
-      @Nullable
-      @Override
-      public Links get() {
-        WebLinks webLinks = myBeanContext.getSingletonService(WebLinks.class);
-        RelativeWebLinks relativeWebLinks = new RelativeWebLinks();
-        Links.LinksBuilder builder = new Links.LinksBuilder();
-        if (myBuild != null) {
-          builder.add(Link.WEB_VIEW_TYPE, webLinks.getViewResultsUrl(myBuild), relativeWebLinks.getViewResultsUrl(myBuild));
-        } else if (myQueuedBuild != null) {
-          builder.add(Link.WEB_VIEW_TYPE, webLinks.getQueuedBuildUrl(myQueuedBuild), relativeWebLinks.getQueuedBuildUrl(myQueuedBuild));
-        }
-        return builder.build(myFields.getNestedField("links"));
-      }
-    });
-  }
 
   @XmlElement
   public String getStatusText() {
@@ -1603,8 +1575,6 @@ public class Build {
       return String.valueOf(build.getPercentageComplete());
     } else if ("personal".equals(field)) {
       return String.valueOf(build.isPersonal());
-    } else if ("usedByOtherBuilds".equals(field)) {
-      return String.valueOf(build.isUsedByOtherBuilds());
     } else if ("queuedDate".equals(field)) {
       return build.getQueuedDate();
     } else if ("startDate".equals(field)) {
