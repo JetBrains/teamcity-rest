@@ -141,7 +141,11 @@ public class BuildTypeOrTemplate implements Loggable {
   }
 
   public void remove() {
-    myBuildTypeIdentity.remove();
+    try {
+      myBuildTypeIdentity.remove();
+    } catch (TemplateCannotBeRemovedException e) {
+      throw new BadRequestException("Cannot remove template with id '" + getId() + "': " + e.getMessage(), e);
+    }
   }
 
   public static void setTemplates(@NotNull final SBuildType buildType, @NotNull final List<BuildTypeOrTemplate> buildTypeOrTemplates, final boolean optimizeSetting) {
