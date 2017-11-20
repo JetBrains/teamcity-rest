@@ -42,6 +42,7 @@ import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
+import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.*;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -596,9 +597,8 @@ public class BuildRequest {
   @Produces({"application/xml", "application/json"})
   public TestOccurrences getTests(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    final List<STestRun> allTests = build.getFullStatistics().getAllTests();
-//todo: investigate test repeat counts support
-    return new TestOccurrences(allTests, TestOccurrenceRequest.getHref(build), null,  new Fields(fields), myBeanContext);
+    //todo: investigate test repeat counts support
+    return new TestOccurrences(TestOccurrenceFinder.getBuildStatistics(build).getAllTests(), TestOccurrenceRequest.getHref(build), null, new Fields(fields), myBeanContext);
   }
 
   /**
