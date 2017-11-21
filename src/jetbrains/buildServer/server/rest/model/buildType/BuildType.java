@@ -59,7 +59,7 @@ import org.jetbrains.annotations.Nullable;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "buildType")
-@XmlType(name = "buildType", propOrder = {"id", "internalId", "name", "templateFlag", "paused", "uuid", "description", "projectName", "projectId", "projectInternalId",
+@XmlType(name = "buildType", propOrder = {"id", "internalId", "name", "templateFlag", "type", "paused", "uuid", "description", "projectName", "projectId", "projectInternalId",
   "href", "webUrl",
   "links", "project", "templates", "template" /*deprecated*/, "vcsRootEntries", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
   "artifactDependencies", "agentRequirements",
@@ -177,6 +177,16 @@ public class BuildType {
   @XmlAttribute (name = "templateFlag")
   public Boolean getTemplateFlag() {
     return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("templateFlag"), () -> !myBuildType.isBuildType());
+  }
+
+  /**
+   * Experimental use only.
+   * The original value is stored in the "settings" in a property named "buildConfigurationType". This one is provided only for convenience.
+   * Unlike "settings", this one does not identify if the value is coming from a template.
+   */
+  @XmlAttribute (name = "type")
+  public String getType() {
+    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("type",false, false), () -> Util.resolveNull(myBuildType.getSettingsEx(), (e) -> e.getOption(BuildTypeOptions.BT_BUILD_CONFIGURATION_TYPE).toLowerCase()), s -> BuildTypeOptions.BuildConfigurationType.REGULAR.name().equalsIgnoreCase(s));
   }
 
   @XmlAttribute
@@ -689,6 +699,7 @@ public class BuildType {
   @Nullable private  String submittedName;
   @Nullable private  String submittedDescription;
   @Nullable private  Boolean submittedTemplateFlag;
+  @Nullable private  String submittedType;
   @Nullable private  Boolean submittedPaused;
   @Nullable private  BuildType submittedTemplate;
   @Nullable private  BuildTypes submittedTemplates;
@@ -720,6 +731,10 @@ public class BuildType {
 
   public void setTemplateFlag(@Nullable final Boolean submittedTemplateFlag) {
     this.submittedTemplateFlag = submittedTemplateFlag;
+  }
+
+  public void setType(@Nullable final String submittedType) {
+    this.submittedType = submittedType;
   }
 
   public void setPaused(@Nullable final Boolean submittedPaused) {
@@ -970,6 +985,22 @@ public class BuildType {
           LOG.debug("Error setting property '" + property.name + "' to value '" + property.value + "': " + e.getMessage());
         }
       }
+    }
+    if (submittedType != null) {
+      //this overrides setting submitted via "settings"
+      String previousValue = buildTypeSettings.getOption(BuildTypeOptions.BT_BUILD_CONFIGURATION_TYPE);
+
+      boolean modified;
+      try {
+        String newValue = TypedFinderBuilder.getEnumValue(submittedType, BuildTypeOptions.BuildConfigurationType.class).name();
+        modified = !previousValue.equalsIgnoreCase(newValue);
+        if (modified) {
+          buildTypeSettings.setOption(BuildTypeOptions.BT_BUILD_CONFIGURATION_TYPE, newValue);
+        }
+      } catch (IllegalArgumentException e) {
+        throw new BadRequestException("Could not set type to value '" + submittedType + "'. Error: " + e.getMessage());
+      }
+      result = result || modified;
     }
     return result;
   }

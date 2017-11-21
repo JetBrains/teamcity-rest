@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.util;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.Collection;
+import java.util.function.Predicate;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import org.jetbrains.annotations.NotNull;
@@ -78,12 +79,18 @@ public class ValueWithDefault {
 
   @Nullable
   public static <T> T decideDefault(@Nullable Boolean include, @Nullable Value<T> value) {
-    if (value == null)
+    return decideDefault(include, value, ValueWithDefault::isDefault);
+  }
+
+  @Nullable
+  public static <T> T decideDefault(@Nullable Boolean include, @Nullable Value<T> value, @NotNull Predicate<T> isDefault) {
+    if (value == null) {
       return null;
+    }
 
     if (include == null) {
       final T resultValue = value.get();
-      return ValueWithDefault.isDefault(resultValue) ? null : resultValue;
+      return isDefault.test(resultValue) ? null : resultValue;
     } else {
       return include ? value.get() : null;
     }
