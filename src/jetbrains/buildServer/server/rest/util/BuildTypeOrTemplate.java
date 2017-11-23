@@ -40,6 +40,7 @@ public class BuildTypeOrTemplate implements Loggable {
   @Nullable final private SBuildType myBuildType;
   @Nullable final private BuildTypeTemplate myTemplate;
   @NotNull final private BuildTypeIdentity myBuildTypeIdentity;
+  @Nullable private Boolean myInherited = null; //used in template lists only
 
   public BuildTypeOrTemplate(@SuppressWarnings("NullableProblems") @NotNull SBuildType buildType) {
     myBuildType = buildType;
@@ -57,6 +58,15 @@ public class BuildTypeOrTemplate implements Loggable {
   public BuildTypeSettings get(){
     //noinspection ConstantConditions
     return isBuildType() ? myBuildType : myTemplate;
+  }
+
+  public BuildTypeOrTemplate markInherited(final boolean inherited) {
+    myInherited = inherited;
+    return this;
+  }
+
+  public Boolean isInherited() {
+    return myInherited;
   }
 
   @NotNull
@@ -149,7 +159,7 @@ public class BuildTypeOrTemplate implements Loggable {
   }
 
   public static void setTemplates(@NotNull final SBuildType buildType, @NotNull final List<BuildTypeOrTemplate> buildTypeOrTemplates, final boolean optimizeSetting) {
-    List<BuildTypeTemplate> newTemplates = buildTypeOrTemplates.stream().map(bt -> {
+    List<BuildTypeTemplate> newTemplates = buildTypeOrTemplates.stream().filter(t -> t.isInherited() == null || !t.isInherited()).map(bt -> {
       BuildTypeTemplate result = bt.getTemplate();
       if (result == null) {
         throw new BadRequestException("Found build type when only templates are expected: " + jetbrains.buildServer.log.LogUtil.describe(bt.getBuildType()));

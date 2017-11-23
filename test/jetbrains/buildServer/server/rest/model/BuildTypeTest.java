@@ -17,7 +17,9 @@
 package jetbrains.buildServer.server.rest.model;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.RootUrlHolder;
 import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
@@ -552,6 +554,54 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
       assertEquals(new Integer(1), buildType.getParameters().count);
       assertNull(buildType.getParameters().properties);
     }
+  }
+
+  @Test
+  public void testTemplates() {
+    ProjectEx project10 = getRootProject().createProject("project10", "project10");
+    ProjectEx project10_10 = project10.createProject("project10_10", "project10_10");
+    project10_10.addParameter(new SimpleParameter("f", "1"));
+
+    BuildTypeTemplate t10 = project10.createBuildTypeTemplate("t10", "t10");
+    t10.addParameter(new SimpleParameter("e", "1"));
+    t10.addParameter(new SimpleParameter("d", "2"));
+
+    BuildTypeTemplate t20 = project10.createBuildTypeTemplate("t20", "t20");
+    BuildTypeTemplate t30 = project10_10.createBuildTypeTemplate("t30", "t30");
+    t30.addParameter(new SimpleParameter("b", "1"));
+    t30.addParameter(new SimpleParameter("c", "1"));
+
+    BuildTypeTemplate t40 = project10_10.createBuildTypeTemplate("t40", "t40");
+    t40.addParameter(new SimpleParameter("b", "2"));
+    t40.addParameter(new SimpleParameter("d", "1"));
+
+    BuildTypeEx bt10 = project10_10.createBuildType("bt10", "bt10");
+    bt10.addParameter(new SimpleParameter("a", "1"));
+
+    project10.setDefaultTemplate(t10);
+    project10_10.setDefaultTemplate(t20);
+    bt10.setTemplates(Arrays.asList(t30, t40), false);
+
+    BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), Fields.LONG, myBeanContext);
+    assertEquals(Integer.valueOf(3), buildType.getTemplates().count);
+    assertEquals("t30", buildType.getTemplates().buildTypes.get(0).getId());
+    assertNull(buildType.getTemplates().buildTypes.get(0).isInherited());
+    assertEquals("t40", buildType.getTemplates().buildTypes.get(1).getId());
+    assertNull(buildType.getTemplates().buildTypes.get(1).isInherited());
+    assertEquals("t20", buildType.getTemplates().buildTypes.get(2).getId());
+    assertTrue(buildType.getTemplates().buildTypes.get(2).isInherited());
+
+    assertContains(buildType.getParameters().properties.stream().collect(Collectors.toMap(p -> p.name, p -> p.value)),
+                   CollectionsUtil.asMap("a", "1",
+                                         "b", "1",
+                                         "c", "1",
+                                         "d", "1",
+                                         "f", "1"));
+    assertContains(buildType.getParameters().properties.stream().filter(p -> p.inherited != null).collect(Collectors.toMap(p -> p.name, p -> p.inherited)),
+                   CollectionsUtil.asMap("b", true,
+                                         "c", true,
+                                         "d", true,
+                                         "f", true));
   }
 
 

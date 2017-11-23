@@ -21,6 +21,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -289,7 +290,7 @@ public class BuildTypeRequest {
       throw new BadRequestException(e.getMessage());
     }
     buildType.persist();
-    return new BuildType(new BuildTypeOrTemplate(getTemplateById(buildType, result.getExternalId())),  new Fields(fields), myBeanContext);
+    return new BuildType(getTemplateById(buildType, result.getExternalId(), true), new Fields(fields), myBeanContext);
   }
 
   @DELETE
@@ -306,7 +307,7 @@ public class BuildTypeRequest {
   public BuildType getTemplate(@PathParam("btLocator") String buildTypeLocator, @PathParam("templateLocator") String templateLocator, @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
     BuildTypeTemplate template = myBuildTypeFinder.getBuildTemplate(null, templateLocator, true);
-    return new BuildType(new BuildTypeOrTemplate(getTemplateById(buildType, template.getExternalId())),  new Fields(fields), myBeanContext);
+    return new BuildType(getTemplateById(buildType, template.getExternalId(), false), new Fields(fields), myBeanContext);
   }
 
   @DELETE
@@ -314,15 +315,25 @@ public class BuildTypeRequest {
   public void removeTemplate(@PathParam("btLocator") String buildTypeLocator, @PathParam("templateLocator") String templateLocator, @QueryParam("inlineSettings") Boolean inlineSettings) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
     BuildTypeTemplate template = myBuildTypeFinder.getBuildTemplate(null, templateLocator, true);
-    BuildTypeTemplate foundTemplate = getTemplateById(buildType, template.getExternalId());
+    BuildTypeTemplate foundTemplate = getTemplateById(buildType, template.getExternalId(), true).getTemplate();
     buildType.removeTemplates(Collections.singleton(foundTemplate), inlineSettings != null ? inlineSettings : false);
     buildType.persist();
   }
 
   @NotNull
-  private BuildTypeTemplate getTemplateById(@NotNull final SBuildType buildType, @NotNull final String templateExternalId) {
-    return buildType.getOwnTemplates().stream().filter(t -> t.getExternalId().equals(templateExternalId)).findFirst()
-                    .orElseThrow(() -> new NotFoundException("Build type " + LogUtil.describe(buildType) + " does not have template with id \"" + templateExternalId + "\""));
+  private BuildTypeOrTemplate getTemplateById(@NotNull final SBuildType buildType, @NotNull final String templateExternalId, final boolean onlyOwn) {
+    if (onlyOwn) {
+      return new BuildTypeOrTemplate(buildType.getOwnTemplates().stream().filter(t -> t.getExternalId().equals(templateExternalId)).findFirst()
+                                              .orElseThrow(() -> new NotFoundException(
+                                                "Build type " + LogUtil.describe(buildType) + " does not have own template with id \"" + templateExternalId + "\"")));
+    }
+    Set<String> ownTemplatesIds = buildType.getOwnTemplates().stream().map(t -> t.getInternalId()).collect(Collectors.toSet());
+    BuildTypeOrTemplate result = new BuildTypeOrTemplate(buildType.getTemplates().stream().filter(t -> t.getExternalId().equals(templateExternalId)).findFirst()
+                                                                  .orElseThrow(() -> new NotFoundException(
+                                                                    "Build type " + LogUtil.describe(buildType) + " does not have template with id \"" + templateExternalId +
+                                                                    "\"")));
+    result.markInherited(!ownTemplatesIds.contains(result.getInternalId()));
+    return result;
   }
 
   /**

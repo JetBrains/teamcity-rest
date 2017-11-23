@@ -1182,6 +1182,56 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
   }
 
   @Test
+  public void testCreatingWithDefaultTemplate() {
+    ProjectEx project10 = getRootProject().createProject("project10", "project10");
+    project10.addParameter(new SimpleParameter("e", "1"));
+
+    BuildTypeTemplate t10 = project10.createBuildTypeTemplate("t10", "t10");
+    t10.addParameter(new SimpleParameter("d", "1"));
+    t10.addParameter(new SimpleParameter("a", "1"));
+
+    BuildTypeTemplate t20 = project10.createBuildTypeTemplate("t20", "t20");
+    t20.addParameter(new SimpleParameter("a", "2"));
+    t20.addParameter(new SimpleParameter("b", "1"));
+
+    BuildTypeEx bt10 = project10.createBuildType("bt10", "bt10");
+    bt10.addParameter(new SimpleParameter("a", "3"));
+    bt10.addParameter(new SimpleParameter("c", "1"));
+
+    project10.setDefaultTemplate(t10);
+    bt10.setTemplates(Arrays.asList(t20), false);
+
+
+    {
+      BuildType buildType = myBuildTypeRequest.serveBuildTypeXML("id:" + bt10.getExternalId(), "$long");
+      buildType.initializeSubmittedFromUsual();
+      buildType.setId("bt20");
+      buildType.setName("bt20");
+      myBuildTypeRequest.addBuildType(buildType, "$long");
+    }
+
+    BuildTypeImpl bt20 = myFixture.getProjectManager().findBuildTypeByExternalId("bt20");
+
+    assertEquals(bt10.getTemplates(), bt20.getTemplates());
+    assertEquals(bt10.getOwnTemplates(), bt20.getOwnTemplates());
+    assertEquals(bt10.getOwnParameters(), bt20.getOwnParameters());
+
+
+    bt10.setTemplates(Arrays.asList(t10, t20), false);
+    {
+      BuildType buildType = myBuildTypeRequest.serveBuildTypeXML("id:" + bt10.getExternalId(), "$long");
+      buildType.initializeSubmittedFromUsual();
+      buildType.setId("bt30");
+      buildType.setName("bt30");
+      myBuildTypeRequest.addBuildType(buildType, "$long");
+    }
+    BuildTypeImpl bt30 = myFixture.getProjectManager().findBuildTypeByExternalId("bt30");
+    assertEquals(bt10.getTemplates(), bt30.getTemplates());
+    assertEquals(bt10.getOwnTemplates(), bt30.getOwnTemplates());
+    assertEquals(bt10.getOwnParameters(), bt30.getOwnParameters());
+  }
+
+  @Test
   public void testPasswordParams() {
 
     //see also alike setup in BuildTypeTest.testInheritance()

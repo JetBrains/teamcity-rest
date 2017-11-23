@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -60,7 +61,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "buildType")
 @XmlType(name = "buildType", propOrder = {"id", "internalId", "name", "templateFlag", "type", "paused", "uuid", "description", "projectName", "projectId", "projectInternalId",
-  "href", "webUrl",
+  "href", "webUrl", "inherited" /*used only for list of build configuration templates*/,
   "links", "project", "templates", "template" /*deprecated*/, "vcsRootEntries", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
   "artifactDependencies", "agentRequirements",
   "branches", "builds", "investigations", "compatibleAgents"})
@@ -71,6 +72,7 @@ public class BuildType {
   protected BuildTypeOrTemplate myBuildType;
   @NotNull private String myExternalId;
   @Nullable private String myInternalId;
+  @Nullable private final Boolean myInherited;
 
   private final boolean canViewSettings;
 
@@ -79,9 +81,11 @@ public class BuildType {
 
   public BuildType() {
     canViewSettings = true;
+    myInherited = null;
   }
 
   public BuildType(@NotNull final BuildTypeOrTemplate buildType, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    myInherited =  buildType.isInherited();
     if ((buildType instanceof BuildTypeOrTemplate.IdsOnly)) {
       canViewSettings = initForIds(buildType.getId(), buildType.getInternalId(), fields, beanContext);
       return;
@@ -99,6 +103,7 @@ public class BuildType {
 
   public BuildType(@NotNull final String externalId, @Nullable final String internalId, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     canViewSettings = initForIds(externalId, internalId, fields, beanContext);
+    myInherited =  null;
   }
 
   private boolean initForIds(final @NotNull String externalId, final @Nullable String internalId, final @NotNull Fields fields, final @NotNull BeanContext beanContext) {
@@ -195,6 +200,11 @@ public class BuildType {
   }
 
   @XmlAttribute
+  public Boolean isInherited() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("inherited"), myInherited);
+  }
+
+  @XmlAttribute
   public String getUuid() {
     if (myBuildType != null && myFields.isIncluded("uuid", false, false)) {
       //do not expose uuid to usual users as uuid can be considered secure information, e.g. see https://youtrack.jetbrains.com/issue/TW-38605
@@ -282,13 +292,13 @@ public class BuildType {
 
   @Nullable
   public static BuildTypes getTemplates(@NotNull final SBuildType buildType, @NotNull final Fields fields, final BeanContext beanContext) {
-    //todo: mark default template as "inherited"
     try {
       PermissionChecker permissionChecker = beanContext.getSingletonService(PermissionChecker.class);
-      List<? extends BuildTypeTemplate> templates = buildType.getOwnTemplates();
+      List<? extends BuildTypeTemplate> templates = buildType.getTemplates();
+      Set<String> ownTemplatesIds = buildType.getOwnTemplates().stream().map(t -> t.getInternalId()).collect(Collectors.toSet());
       return new BuildTypes(templates.stream().map(
         t -> shouldRestrictSettingsViewing(t, permissionChecker) ? new BuildTypeOrTemplate.IdsOnly(t.getExternalId(), t.getInternalId()) : new BuildTypeOrTemplate(t))
-                                     .collect(Collectors.toList()), null, fields, beanContext);
+                                     .map(t -> t.markInherited(!ownTemplatesIds.contains(t.getInternalId()))).collect(Collectors.toList()), null, fields, beanContext);
     } catch (RuntimeException e) {
       LOG.debug("Error retrieving templates for build configuration " + LogUtil.describe(buildType) + ": " + e.toString(), e);
       List<String> templateIds = ((BuildTypeImpl)buildType).getOwnTemplateIds();
@@ -550,6 +560,7 @@ public class BuildType {
   private String submittedId;
   private String submittedInternalId;
   private String submittedLocator;
+  private Boolean submittedInherited;
 
   public void setId(String id) {
     submittedId = id;
@@ -566,6 +577,10 @@ public class BuildType {
 
   public void setLocator(final String locator) {
     submittedLocator = locator;
+  }
+
+  public void setInherited(final Boolean inherited) {
+    submittedInherited = inherited;
   }
 
   @Nullable
@@ -691,7 +706,11 @@ public class BuildType {
     if (StringUtil.isEmpty(locatorText)) {
       throw new BadRequestException("No build type specified. Either 'id', 'internalId' or 'locator' attribute should be present.");
     }
-    return buildTypeFinder.getBuildTypeOrTemplate(null, locatorText, false);
+    BuildTypeOrTemplate result = buildTypeFinder.getBuildTypeOrTemplate(null, locatorText, false);
+    if (submittedInherited != null) {
+      result.markInherited(submittedInherited);
+    }
+    return result;
   }
 
   @Nullable private  String submittedProjectId;
@@ -790,6 +809,7 @@ public class BuildType {
     setId(getId());
     setInternalId(getInternalId());
     setLocator(getLocator());
+    setInherited(isInherited());
 
     setProjectId(getProjectId());
     setProject(getProject());
