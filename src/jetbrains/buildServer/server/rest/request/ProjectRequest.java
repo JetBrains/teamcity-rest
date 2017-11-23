@@ -379,9 +379,9 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   public BuildType getDefaultTemplate(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator, true);
-    BuildTypeTemplate defaultTemplate = project.getDefaultTemplate();
-    if (defaultTemplate == null) throw new NotFoundException("No default template present");
-    return new BuildType(new BuildTypeOrTemplate(defaultTemplate), new Fields(fields), myBeanContext);
+    BuildType result = Project.getDefaultTemplate(project, new Fields(fields), myBeanContext);
+    if (result == null) throw new NotFoundException("No default template present");
+    return result;
   }
 
   @PUT
@@ -397,24 +397,26 @@ public class ProjectRequest {
     if (result == null) {
       throw new BadRequestException("Found build type when template is expected: " + LogUtil.describe(newDefaultTemplate.getBuildType()));
     }
-    try {
-      ((ProjectImpl)project).setDefaultTemplate(result);
-    } catch (CyclicDependencyFoundException e) {
-      throw new BadRequestException(e.getMessage());
+    Boolean inherited = newDefaultTemplate.isInherited();
+    BuildTypeTemplate currentDefaultTemplate = project.getDefaultTemplate();
+    if (inherited == null || !inherited || (currentDefaultTemplate != null && !currentDefaultTemplate.getInternalId().equals(newDefaultTemplate.getInternalId()))) {
+      try {
+        ((ProjectImpl)project).setDefaultTemplate(result);
+      } catch (CyclicDependencyFoundException e) {
+        throw new BadRequestException(e.getMessage());
+      }
+      project.persist();
     }
-
-    project.persist();
-
-    BuildTypeTemplate currentTemplate = project.getDefaultTemplate();
-    if (currentTemplate == null) throw new NotFoundException("No default template present");
-    return new BuildType(new BuildTypeOrTemplate(currentTemplate), new Fields(fields), myBeanContext);
+    BuildType template = Project.getDefaultTemplate(project, new Fields(fields), myBeanContext);
+    if (template == null) throw new NotFoundException("No default template present");
+    return template;
   }
 
   @DELETE
   @Path("/{projectLocator}/defaultTemplate")
   public void removeDefaultTemplate(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator, true);
-    if (project.getDefaultTemplate() == null) throw new NotFoundException("No default template present");
+    if (project.getOwnDefaultTemplate() == null) throw new NotFoundException("No own default template present");
     ((ProjectImpl)project).setDefaultTemplate(null);
     project.persist();
   }

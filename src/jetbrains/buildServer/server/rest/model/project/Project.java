@@ -188,12 +188,8 @@ public class Project {
         }
       });
 
-      defaultTemplate = ValueWithDefault.decideDefault(fields.isIncluded("defaultTemplate", false), () -> {
-        final Fields templateFields = fields.getNestedField("defaultTemplate", Fields.NONE, Fields.SHORT);
-        BuildTypeTemplate defaultTemplate = project.getDefaultTemplate();
-        if (defaultTemplate == null) return null;
-        return new BuildType(new BuildTypeOrTemplate(defaultTemplate), templateFields, beanContext);
-      });
+      defaultTemplate = ValueWithDefault.decideDefault(fields.isIncluded("defaultTemplate", false),
+                                                       () -> getDefaultTemplate(project, fields.getNestedField("defaultTemplate", Fields.NONE, Fields.SHORT), beanContext));
 
       parameters = ValueWithDefault.decideDefault(fields.isIncluded("parameters", false), new ValueWithDefault.Value<Properties>() {
         public Properties get() {
@@ -245,6 +241,13 @@ public class Project {
       parentProjectInternalId = ValueWithDefault.decideDefault(forceParentAttributes || fields.isIncluded("parentProjectInternalId", includeInternal, includeInternal),
                                                                actualParentProject.getProjectId());
     }
+  }
+
+  @Nullable
+  public static BuildType getDefaultTemplate(final @NotNull SProject project, final @NotNull Fields fields, final @NotNull BeanContext beanContext) {
+    BuildTypeTemplate defaultTemplate = project.getDefaultTemplate();
+    if (defaultTemplate == null) return null;
+    return new BuildType(new BuildTypeOrTemplate(defaultTemplate).markInherited(project.getOwnDefaultTemplate() == null), fields, beanContext);
   }
 
   @Nullable
