@@ -493,7 +493,7 @@ public class APIController extends BaseController implements ServletContextAware
   private static boolean processRequestAuthentication(@NotNull final HttpServletRequest request,
                                                    @NotNull final HttpServletResponse response,
                                                    @NotNull final HttpAuthenticationManager authManager) throws IOException {
-      boolean canRedirect = UserAgentUtil.isBrowser(request);
+      boolean canRedirect = UserAgentUtil.isBrowser(request) && !WebUtil.isAjaxRequest(request) && !WebUtil.isWebSocketUpgradeRequest(request); //see jetbrains.buildServer.controllers.interceptors.AuthorizationInterceptorImpl.preHandle()
       final HttpAuthenticationResult authResult = authManager.processAuthenticationRequest(request, response, canRedirect);
       if (canRedirect) {
         final String redirectUrl = authResult.getRedirectUrl();
