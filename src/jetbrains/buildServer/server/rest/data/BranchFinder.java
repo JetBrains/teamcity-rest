@@ -302,8 +302,15 @@ public class BranchFinder extends AbstractFinder<BranchData> {
   @NotNull
   public PagedSearchResult<BranchData> getItems(@NotNull SBuildType buildType, @Nullable final String locatorText) {
     String baseLocator = locatorText;
-    if (locatorText != null && new Locator(locatorText).isSingleValue()) {
-      baseLocator = Locator.getStringLocator(NAME, locatorText);
+    if (locatorText != null) {
+      Locator locator = new Locator(locatorText);
+      if (locator.isSingleValue()) {
+        if (!locator.isHelpRequested()) {
+          baseLocator = Locator.getStringLocator(NAME, locatorText);
+        } else {
+          baseLocator = Locator.getStringLocator(Locator.HELP_DIMENSION, "");
+        }
+      }
     }
     return getItems(Locator.setDimensionIfNotPresent(baseLocator, BUILD_TYPE, myBuildTypeFinder.getCanonicalLocator(new BuildTypeOrTemplate(buildType))));
   }
