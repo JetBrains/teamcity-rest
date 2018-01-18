@@ -90,7 +90,10 @@ public class ExceptionMapperUtil {
     //provide user-friendly message on missing or wrong Content-Type header
     if (statusCode == 415) { //Response.Status.UNSUPPORTED_MEDIA_TYPE.getStatusCode()
       //todo: response with supported content-types instead
-      responseText.append("\nMake sure you have supplied correct Content-Type header.");
+      responseText.append("\nMake sure you have supplied correct 'Content-Type' header.");
+    } else if (statusCode == 406) { //Response.Status.NOT_ACCEPTABLE.getStatusCode()
+      //todo: response with supported "accept" header values instead
+      responseText.append("\nMake sure you have supplied correct 'Accept' header.");
     } else {
       responseText.append("\nDetails: ");
       responseText.append(getMessageWithCauses(e));
