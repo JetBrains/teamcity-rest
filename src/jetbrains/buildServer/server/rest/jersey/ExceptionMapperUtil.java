@@ -41,6 +41,7 @@ public class ExceptionMapperUtil {
   protected static final Logger LOG = Logger.getInstance(ExceptionMapperUtil.class.getName());
   public static final String REST_INCLUDE_EXCEPTION_STACKTRACE_PROPERTY = "rest.response.debug.includeExceptionStacktrace";
   public static final String REST_INCLUDE_REQUEST_DETAILS_INTO_ERRORS = "rest.log.includeRequestDetails";
+  protected static final String INCLUDE_STACKTRACE_REQUST_PARAMETER = "includeStacktrace";
 
   @Context private UriInfo myUriInfo;
   @Context private HttpServletRequest myRequest;
@@ -115,15 +116,18 @@ public class ExceptionMapperUtil {
       LOG.debug(logMessage, e);
     }
 
-    final String includeStacktrace = TeamCityProperties.getProperty(REST_INCLUDE_EXCEPTION_STACKTRACE_PROPERTY);
-    if (e != null &&
-        !jetbrains.buildServer.util.StringUtil.isEmpty(includeStacktrace) &&
-        ("true".equals(includeStacktrace) || "any".equals(includeStacktrace) || String.valueOf(statusCode).startsWith(includeStacktrace))){
-      StringWriter sw = new StringWriter();
-      sw.write("\n\n");
-      e.printStackTrace(new PrintWriter(sw));
-      sw.write("\nThe stacktrace is included as '" + REST_INCLUDE_EXCEPTION_STACKTRACE_PROPERTY + "' internal property is set.");
-      result += sw.toString();
+    final String includeStacktrace = TeamCityProperties.getProperty(REST_INCLUDE_EXCEPTION_STACKTRACE_PROPERTY, "false");
+    if (e != null && !"false".equals(includeStacktrace)) {
+      if ( "true".equals(request.getParameter(INCLUDE_STACKTRACE_REQUST_PARAMETER)) ||
+          (!StringUtil.isEmpty(includeStacktrace) &&
+           ("true".equals(includeStacktrace) || "any".equals(includeStacktrace) || String.valueOf(statusCode).startsWith(includeStacktrace)))) {
+        StringWriter sw = new StringWriter();
+        sw.write("\n\n");
+        e.printStackTrace(new PrintWriter(sw));
+        sw.write("\nThe stacktrace is included as '" + REST_INCLUDE_EXCEPTION_STACKTRACE_PROPERTY + "' internal property or " +
+                 "'" + INCLUDE_STACKTRACE_REQUST_PARAMETER + "' request parameter is set.");
+        result += sw.toString();
+      }
     }
     return result;
   }
