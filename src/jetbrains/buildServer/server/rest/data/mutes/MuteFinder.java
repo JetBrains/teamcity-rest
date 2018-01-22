@@ -236,7 +236,7 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
 
   @NotNull
   private Stream<MuteInfo> getMuteInfosForProject(@NotNull final SProject project) {
-    return Stream.concat(getProblemsMutes(project), getTestsMutes(project));
+    return Stream.concat(getProblemsMutes(project), getTestsMutes(project)).sorted(Comparator.comparing(muteInfo -> muteInfo.getId()));
   }
 
   @NotNull
