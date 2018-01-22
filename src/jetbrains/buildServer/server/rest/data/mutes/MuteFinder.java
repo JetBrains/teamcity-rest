@@ -33,6 +33,7 @@ import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.mute.*;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -178,6 +179,11 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
 
   @NotNull
   private MuteInfo findMuteById(@NotNull final Integer id) {
+    Optional<MuteInfo> result = getMuteInfosForProject(myProjectFinder.getRootProject()).filter(muteInfo -> id.equals(muteInfo.getId())).findAny(); //todo: not optimal at all
+    if (result.isPresent()) return result.get();
+    throw new NotFoundException("No mute with id '" + id + "' found");
+
+    /* this returns the original mutes state, so does not work (TW-53393)
     String projectId = myProjectFinder.getRootProject().getProjectId();
 
     Collection<Long> mutedTestNameIds = myLowLevelMutingService.retrieveMuteTests(id);
@@ -191,6 +197,7 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
     if (result.isPresent()) return result.get();
 
     throw new NotFoundException("No mute with id '" + id + "' found");
+    */
   }
 
   /*
@@ -234,18 +241,198 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
 
   @NotNull
   private Stream<MuteInfo> getTestsMutes(final @NotNull SProject project) {
-    return myProblemMutingService.getTestsCurrentMuteInfo(project).values().stream().flatMap(currentMute -> getMutes(currentMute)).distinct(); //todo: check is distinct can be reimplemented to be more effective here
+    /* this returns the original mutes state, so does not work (TW-53393)
+    return myProblemMutingService.getTestsCurrentMuteInfo(project).values().stream().flatMap(currentMute -> getMutes(currentMute)).distinct(); //check is distinct can be reimplemented to be more effective here
+    */
+    Map<Integer, MuteInfoWrapper> result = new TreeMap<>();
+    Map<Long, CurrentMuteInfo> testsCurrentMuteInfo = myProblemMutingService.getTestsCurrentMuteInfo(project);
+    for (Map.Entry<Long, CurrentMuteInfo> currentMuteEntry : testsCurrentMuteInfo.entrySet()) {
+      getActualCurrentMuteTests(currentMuteEntry.getKey(), currentMuteEntry.getValue(), result);
+    }
+    return result.values().stream().map(muteInfo -> muteInfo);
   }
 
   @NotNull
   private Stream<MuteInfo> getProblemsMutes(final @NotNull SProject project) {
-    return myProblemMutingService.getBuildProblemsCurrentMuteInfo(project).values().stream().flatMap(currentMute -> getMutes(currentMute)).distinct();  //todo: check is distinct can be reimplemented to be more effective here
+    /* this returns the original mutes state, so does not work (TW-53393)
+    return myProblemMutingService.getBuildProblemsCurrentMuteInfo(project).values().stream().flatMap(currentMute -> getMutes(currentMute)).distinct();  //check is distinct can be reimplemented to be more effective here
+    */
+    Map<Integer, MuteInfoWrapper> result = new TreeMap<>();
+    Map<Integer, CurrentMuteInfo> testsCurrentMuteInfo = myProblemMutingService.getBuildProblemsCurrentMuteInfo(project);
+    for (Map.Entry<Integer, CurrentMuteInfo> currentMuteEntry : testsCurrentMuteInfo.entrySet()) {
+      getActualCurrentMuteProblems(currentMuteEntry.getKey(), currentMuteEntry.getValue(), result);
+    }
+    return result.values().stream().map(muteInfo -> muteInfo);
   }
 
+  /*
   @NotNull
   private Stream<MuteInfo> getMutes(@Nullable final CurrentMuteInfo currentMuteInfo) {
     if (currentMuteInfo == null) return Stream.empty();
     return Stream.concat(currentMuteInfo.getProjectsMuteInfo().values().stream(),
                          currentMuteInfo.getMuteInfoGroups().keySet().stream());
+  }
+  */
+
+  private void getActualCurrentMuteTests(@NotNull final Long testNameId, @NotNull final CurrentMuteInfo currentMute, @NotNull final Map<Integer, MuteInfoWrapper> cache) {
+    for (Map.Entry<SProject, MuteInfo> muteInfoEntry : currentMute.getProjectsMuteInfo().entrySet()) {
+      //ignoring project - should be the same as in MuteInfo
+      getWrapped(cache, muteInfoEntry.getValue()).addTest(testNameId);
+    }
+    for (Map.Entry<SBuildType, MuteInfo> muteInfoEntry : currentMute.getBuildTypeMuteInfo().entrySet()) {
+      getWrapped(cache, muteInfoEntry.getValue()).addBuildType(muteInfoEntry.getKey().getInternalId()).addTest(testNameId);
+    }
+  }
+
+  private void getActualCurrentMuteProblems(@NotNull final Integer problemId, @NotNull final CurrentMuteInfo currentMute, @NotNull final Map<Integer, MuteInfoWrapper> cache) {
+    for (Map.Entry<SProject, MuteInfo> muteInfoEntry : currentMute.getProjectsMuteInfo().entrySet()) {
+      //ignoring project - should be the same as in MuteInfo
+      getWrapped(cache, muteInfoEntry.getValue()).addProblem(problemId);
+    }
+    for (Map.Entry<SBuildType, MuteInfo> muteInfoEntry : currentMute.getBuildTypeMuteInfo().entrySet()) {
+      getWrapped(cache, muteInfoEntry.getValue()).addBuildType(muteInfoEntry.getKey().getInternalId()).addProblem(problemId);
+    }
+  }
+
+  private MuteInfoWrapper getWrapped(@NotNull final Map<Integer, MuteInfoWrapper> cache, @NotNull final MuteInfo mute) {
+    MuteInfoWrapper cached = cache.get(mute.getId());
+    if (cached == null) {
+      cached = new MuteInfoWrapper(mute);
+      cache.put(mute.getId(), cached);
+    }
+    return cached;
+  }
+
+  /**
+   * Overrides tests, problems and build types to represent the actual current data, not the data at the moment of the mute creation
+   */
+  class MuteInfoWrapper implements MuteInfo {
+    @NotNull private final MuteInfo myMuteInfo;
+    @NotNull private final Collection<Long> myTestNameIds = new TreeSet<>();
+    @NotNull private final Collection<Integer> myBuildProblemIds = new TreeSet<>();
+    @NotNull private final Collection<String> myBuildTypeIds = new TreeSet<>();
+
+    public MuteInfoWrapper(@NotNull final MuteInfo muteInfo) {
+      myMuteInfo = muteInfo;
+    }
+
+    public MuteInfoWrapper addTest(@NotNull Long testNameId) {
+      myTestNameIds.add(testNameId);
+      return this;
+    }
+
+    public MuteInfoWrapper addProblem(@NotNull Integer problemId) {
+      myBuildProblemIds.add(problemId);
+      return this;
+    }
+
+    public MuteInfoWrapper addBuildType(@NotNull String buidlTypeInternalId) {
+      myBuildTypeIds.add(buidlTypeInternalId);
+      return this;
+    }
+
+    @Override
+    @NotNull
+    public Integer getId() {
+      return myMuteInfo.getId();
+    }
+
+    @Override
+    @NotNull
+    public String getProjectId() {
+      return myMuteInfo.getProjectId();
+    }
+
+    @Override
+    @Nullable
+    public SProject getProject() {
+      return myMuteInfo.getProject();
+    }
+
+    @Override
+    public long getMutingUserId() {
+      return myMuteInfo.getMutingUserId();
+    }
+
+    @Override
+    @Nullable
+    public User getMutingUser() {
+      return myMuteInfo.getMutingUser();
+    }
+
+    @Override
+    @NotNull
+    public Date getMutingTime() {
+      return myMuteInfo.getMutingTime();
+    }
+
+    @Override
+    @Nullable
+    public String getMutingComment() {
+      return myMuteInfo.getMutingComment();
+    }
+
+    @Override
+    @NotNull
+    public MuteScope getScope() {
+      MuteScope scope = myMuteInfo.getScope();
+      return new MuteScope() {
+        @Override
+        @NotNull
+        public ScopeType getScopeType() {
+          return scope.getScopeType();
+        }
+
+        @Override
+        @Nullable
+        public String getProjectId() {
+          return scope.getProjectId();
+        }
+
+        @Override
+        @Nullable
+        public Collection<String> getBuildTypeIds() {
+          return myBuildTypeIds;
+        }
+
+        @Override
+        @Nullable
+        public Long getBuildId() {
+          return scope.getBuildId();
+        }
+      };
+    }
+
+    @Override
+    @NotNull
+    public Collection<Long> getTestNameIds() {
+      return myTestNameIds;
+    }
+
+    @Override
+    @NotNull
+    public Collection<STest> getTests() {
+      // see MuteInfoRecord.getTests()
+      Collection<Long> ids = getTestNameIds();
+      List<STest> tests = new ArrayList<STest>(ids.size());
+      for (Long id: ids) {
+        final STest test = myLowLevelMutingService.getTestManager().findTest(id, getProjectId());
+        if (test != null)
+          tests.add(test);
+      }
+      return tests;
+    }
+
+    @Override
+    @NotNull
+    public Collection<Integer> getBuildProblemIds() {
+      return myBuildProblemIds;
+    }
+
+    @Override
+    @NotNull
+    public UnmuteOptions getAutoUnmuteOptions() {
+      return myMuteInfo.getAutoUnmuteOptions();
+    }
   }
 }

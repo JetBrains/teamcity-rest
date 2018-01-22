@@ -92,9 +92,9 @@ public class MuteRequest {
     final PagedSearchResult<MuteInfo> result = myMuteFinder.getItems(locatorText);
 
     return new Mutes(result.myEntries,
-                              new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
-                              new Fields(fields),
-                              myBeanContext
+                     uriInfo == null ? null : new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
+                     new Fields(fields),
+                     myBeanContext
     );
   }
 
