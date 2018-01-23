@@ -16,11 +16,14 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
+import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.mutes.MuteFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -33,6 +36,7 @@ import jetbrains.buildServer.server.rest.request.ProblemOccurrenceRequest;
 import jetbrains.buildServer.server.rest.request.ProblemRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.mute.MuteInfo;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -72,7 +76,10 @@ public class Problem {
 
     mutes = ValueWithDefault.decideDefault(fields.isIncluded("mutes", false), new ValueWithDefault.Value<Mutes>() {
       public Mutes get() {
-        return new Mutes(problem.getMutes(), null, fields.getNestedField("mutes"), beanContext);
+        Fields nestedFields = fields.getNestedField("mutes", Fields.NONE, Fields.LONG);
+        final String actualLocatorText = Locator.merge(nestedFields.getLocator(), MuteFinder.getLocator(problem));
+        List<MuteInfo> entries = beanContext.getSingletonService(MuteFinder.class).getItems(actualLocatorText).myEntries;
+        return new Mutes(entries, null, nestedFields, beanContext);
       }
     });
     investigations = ValueWithDefault.decideDefault(fields.isIncluded("investigations", false), new ValueWithDefault.Value<Investigations>() {

@@ -20,13 +20,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.ParametersProvider;
+import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
+import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
+import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
-import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.InheritableUserParametersHolder;
-import jetbrains.buildServer.serverSide.SBuildAgent;
-import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
@@ -326,6 +326,16 @@ public class TypedFinderBuilder<ITEM> {
   public TypedFinderDimensionWithDefaultChecker<ITEM, List<SUser>, Set<SUser>> dimensionUsers(@NotNull final Dimension<List<SUser>> dimension,
                                                                                               @NotNull final ServiceLocator serviceLocator) {
     return dimensionWithFinder(dimension, () -> serviceLocator.getSingletonService(UserFinder.class), "user locator");
+  }
+
+  public TypedFinderDimensionWithDefaultChecker<ITEM, List<STest>, Set<STest>> dimensionTests(@NotNull final Dimension<List<STest>> dimension,
+                                                                                              @NotNull final ServiceLocator serviceLocator) {
+    return dimensionWithFinder(dimension, () -> serviceLocator.getSingletonService(TestFinder.class), "test locator");
+  }
+
+  public TypedFinderDimensionWithDefaultChecker<ITEM, List<ProblemWrapper>, Set<ProblemWrapper>> dimensionProblems(@NotNull final Dimension<List<ProblemWrapper>> dimension,
+                                                                                              @NotNull final ServiceLocator serviceLocator) {
+    return dimensionWithFinder(dimension, () -> serviceLocator.getSingletonService(ProblemFinder.class), "problem locator");
   }
 
   /**

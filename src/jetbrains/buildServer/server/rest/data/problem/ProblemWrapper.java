@@ -95,7 +95,7 @@ public class ProblemWrapper implements Comparable<ProblemWrapper>{
   }
 
   @NotNull
-  public List<MuteInfo> getMutes() {
+  public List<MuteInfo> getMutes() { //this returns not full mute data, but only confined to the problem (MuteInfo.getBuildProblemIds() will not return all the problems affected by the mute)
     if (mutes == null) {
       Set<MuteInfo> mutesSet = new TreeSet<MuteInfo>();
       final SProject rootProject = myServiceLocator.getSingletonService(ProjectManager.class).getRootProject();

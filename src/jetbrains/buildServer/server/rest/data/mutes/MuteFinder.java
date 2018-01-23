@@ -21,6 +21,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
+import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
+import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
@@ -52,9 +55,9 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
   private static final Dimension<List<SUser>> REPORTER = new Dimension<>("reporter"); //todo: review naming?
   private static final Dimension<String> TYPE = new Dimension<>("type"); // target
   private static final Dimension<String> RESOLUTION = new Dimension<>("resolution");
+  private static final Dimension<List<STest>> TEST = new Dimension<>("test");
+  private static final Dimension<List<ProblemWrapper>> PROBLEM = new Dimension<>("problem");
 
-  //private static final String PROBLEM_DIMENSION = "problem";
-  //private static final String TEST_DIMENSION = "test";
 
   //private static final String BUILD_TYPE = "buildType"; //todo: add assignmentBuildType
 
@@ -93,6 +96,31 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
       dimensionLong(ID).description("internal mute id")
                        .filter((value, item) -> value.equals(item.getId().longValue()))
                        .toItems(dimension -> Collections.singletonList(findMuteById(dimension.intValue())));
+
+      dimensionTests(TEST, myServiceLocator).description("test for which mute is assigned").valueForDefaultFilter(muteInfo -> new HashSet<>(muteInfo.getTests()));
+                                            //.toItems(dimension -> dimension.stream().
+                                            //  flatMap(sTest -> {
+                                            //    HashMap<Integer, MuteInfoWrapper> result = new HashMap<>();
+                                            //    String rootProjectId = myProjectFinder.getRootProject().getProjectId();
+                                            //    CurrentMuteInfo currentMuteInfo = myProblemMutingService.getTestCurrentMuteInfo(rootProjectId, sTest.getTestNameId()); //this does not return all the muting data, only for the tests passed
+                                            //    if (currentMuteInfo == null) return Stream.empty();
+                                            //    getActualCurrentMuteTests(sTest.getTestNameId(), currentMuteInfo, result);
+                                            //    return result.values().stream();
+                                            //  }).collect(Collectors.toList()));
+
+      dimensionProblems(PROBLEM, myServiceLocator).description("problem for which mute is assigned").
+        filter((problemWrappers, item) -> problemWrappers.stream().anyMatch(problemWrapper -> item.getBuildProblemIds().contains(problemWrapper.getId().intValue())));
+                                                    //.toItems(dimension -> dimension.stream().
+                                                    //  flatMap(problem -> {
+                                                    //    HashMap<Integer, MuteInfoWrapper> result = new HashMap<>();
+                                                    //    String rootProjectId = myProjectFinder.getRootProject().getProjectId();
+                                                    //    CurrentMuteInfo currentMuteInfo =
+                                                    //      myProblemMutingService.getBuildProblemCurrentMuteInfo(rootProjectId, problem.getId().intValue());  //this does not return all the muting data, only for the problem passed
+                                                    //    if (currentMuteInfo == null) return Stream.empty();
+                                                    //    getActualCurrentMuteProblems(problem.getId().intValue(), currentMuteInfo, result);
+                                                    //    return result.values().stream();
+                                                    //  }).collect(Collectors.toList()));
+
       dimensionProjects(AFFECTED_PROJECT, myServiceLocator).description("project affected by the mutes")
                                                            .filter((projects, item) -> {
                                                              final SProject assignmentProject = item.getProject();
@@ -207,18 +235,8 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
   }
 
   @NotNull
-  public static String getLocator(@NotNull final ProblemWrapper problem) {
-    return InvestigationFinder.getLocator(problem);
-  }
-
-  @NotNull
   public static String getLocatorForProblem(final int problemId, @NotNull BuildProject project) {
     return InvestigationFinder.getLocatorForProblem(problemId, project);
-  }
-
-  @NotNull
-  public static String getLocator(@NotNull final STest test) {
-    return InvestigationFinder.getLocator(test);
   }
 
   @NotNull
@@ -227,6 +245,15 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
   }
   */
 
+  @NotNull
+  public static String getLocator(@NotNull final STest test) {
+    return Locator.getStringLocator(TEST.name, TestFinder.getTestLocator(test));
+  }
+
+  @NotNull
+  public static String getLocator(@NotNull final ProblemWrapper problem) {
+    return Locator.getStringLocator(PROBLEM.name, ProblemFinder.getLocator(problem));
+  }
 
   @NotNull
   public static String getLocator(final MuteInfo item) {
@@ -274,23 +301,23 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
   }
   */
 
-  private void getActualCurrentMuteTests(@NotNull final Long testNameId, @NotNull final CurrentMuteInfo currentMute, @NotNull final Map<Integer, MuteInfoWrapper> cache) {
+  private void getActualCurrentMuteTests(@NotNull final Long testNameId, @NotNull final CurrentMuteInfo currentMute, @NotNull final Map<Integer, MuteInfoWrapper> result) {
     for (Map.Entry<SProject, MuteInfo> muteInfoEntry : currentMute.getProjectsMuteInfo().entrySet()) {
       //ignoring project - should be the same as in MuteInfo
-      getWrapped(cache, muteInfoEntry.getValue()).addTest(testNameId);
+      getWrapped(result, muteInfoEntry.getValue()).addTest(testNameId);
     }
     for (Map.Entry<SBuildType, MuteInfo> muteInfoEntry : currentMute.getBuildTypeMuteInfo().entrySet()) {
-      getWrapped(cache, muteInfoEntry.getValue()).addBuildType(muteInfoEntry.getKey().getInternalId()).addTest(testNameId);
+      getWrapped(result, muteInfoEntry.getValue()).addBuildType(muteInfoEntry.getKey().getInternalId()).addTest(testNameId);
     }
   }
 
-  private void getActualCurrentMuteProblems(@NotNull final Integer problemId, @NotNull final CurrentMuteInfo currentMute, @NotNull final Map<Integer, MuteInfoWrapper> cache) {
+  private void getActualCurrentMuteProblems(@NotNull final Integer problemId, @NotNull final CurrentMuteInfo currentMute, @NotNull final Map<Integer, MuteInfoWrapper> result) {
     for (Map.Entry<SProject, MuteInfo> muteInfoEntry : currentMute.getProjectsMuteInfo().entrySet()) {
       //ignoring project - should be the same as in MuteInfo
-      getWrapped(cache, muteInfoEntry.getValue()).addProblem(problemId);
+      getWrapped(result, muteInfoEntry.getValue()).addProblem(problemId);
     }
     for (Map.Entry<SBuildType, MuteInfo> muteInfoEntry : currentMute.getBuildTypeMuteInfo().entrySet()) {
-      getWrapped(cache, muteInfoEntry.getValue()).addBuildType(muteInfoEntry.getKey().getInternalId()).addProblem(problemId);
+      getWrapped(result, muteInfoEntry.getValue()).addBuildType(muteInfoEntry.getKey().getInternalId()).addProblem(problemId);
     }
   }
 

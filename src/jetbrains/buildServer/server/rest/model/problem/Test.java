@@ -16,15 +16,16 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
+import jetbrains.buildServer.server.rest.data.mutes.MuteFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -37,7 +38,6 @@ import jetbrains.buildServer.server.rest.request.TestRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.STest;
-import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
 import org.jetbrains.annotations.NotNull;
 
@@ -75,13 +75,10 @@ public class Test {
 
     mutes = ValueWithDefault.decideDefault(fields.isIncluded("mutes", false), new ValueWithDefault.Value<Mutes>() {
       public Mutes get() {
-        final ArrayList<MuteInfo> muteInfos = new ArrayList<MuteInfo>();
-        final CurrentMuteInfo currentMuteInfo = test.getCurrentMuteInfo(); //todo: TeamCity API: how to get unique mutes?
-        if (currentMuteInfo != null) {
-          muteInfos.addAll(new LinkedHashSet<MuteInfo>(currentMuteInfo.getProjectsMuteInfo().values())); //add with deduplication
-          muteInfos.addAll(new LinkedHashSet<MuteInfo>(currentMuteInfo.getBuildTypeMuteInfo().values())); //add with deduplication
-        }
-        return new Mutes(muteInfos, null, fields.getNestedField("mutes", Fields.NONE, Fields.LONG), beanContext);
+        Fields nestedFields = fields.getNestedField("mutes", Fields.NONE, Fields.LONG);
+        final String actualLocatorText = Locator.merge(nestedFields.getLocator(),MuteFinder.getLocator(test));
+        List<MuteInfo> entries = beanContext.getSingletonService(MuteFinder.class).getItems(actualLocatorText).myEntries;
+        return new Mutes(entries, null, nestedFields, beanContext);
       }
     });
 
