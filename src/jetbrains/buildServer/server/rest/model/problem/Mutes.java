@@ -75,7 +75,7 @@ public class Mutes implements DefaultValueAware{
       prevHref = pagerData.getPrevHref() == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("prevHref"),
                                                                                          beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()));
     }
-    count = itemsP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("count", true), itemsP.size());
+    count = itemsP == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", true), itemsP.size());
 
     if (itemsP != null && itemsP.isEmpty()) {
       isDefault = true;
