@@ -166,7 +166,7 @@ public class ProblemTarget {
   @NotNull
   public static String getType(@NotNull final MuteInfo item) {
     if (!item.getTestNameIds().isEmpty()) return TEST_TYPE;
-    if (item.getBuildProblemIds().isEmpty()) return PROBLEM_TYPE;
+    if (!item.getBuildProblemIds().isEmpty()) return PROBLEM_TYPE;
     return UNKNOWN_TYPE;
   }
 }
