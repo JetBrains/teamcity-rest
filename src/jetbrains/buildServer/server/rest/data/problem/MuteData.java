@@ -127,7 +127,7 @@ public class MuteData {
     switch (myScope.getScopeType()) {
       case IN_PROJECT: {
         if (!myTests.isEmpty()) {
-          myProblemMutingService.unmuteTests(myCurrentUser, null, getProject(), myTests);
+          myProblemMutingService.unmuteTests(myCurrentUser, null, getProject(), true, myTests);
         }
         if (!myProblemIds.isEmpty()) {
           myProblemMutingService.unmuteProblems(myCurrentUser, null, getProject(), getProblemInfos());
