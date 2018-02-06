@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
+import jetbrains.buildServer.controllers.fakes.FakeHttpServletRequest;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
@@ -219,7 +220,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
 
     final String fields = "triggered(user($long,hasPassword))";
     {
-      Build build = buildRequest.serveBuild("id:" + build10.getBuildId(), fields);
+      Build build = buildRequest.serveBuild("id:" + build10.getBuildId(), fields, new FakeHttpServletRequest());
       // check that all is present
       User user = build.getTriggered().user;
       assertNotNull(user.getUsername());
@@ -238,7 +239,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     }
 
     {
-      Build build = buildRequest.serveBuild("id:" + build20.getBuildId(), fields);
+      Build build = buildRequest.serveBuild("id:" + build20.getBuildId(), fields, new FakeHttpServletRequest());
       // check that all is present
       User user = build.getTriggered().user;
       assertNotNull(user.getUsername());
@@ -259,7 +260,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
-        Build build = buildRequest.serveBuild("id:" + build10.getBuildId(), fields);
+        Build build = buildRequest.serveBuild("id:" + build10.getBuildId(), fields, new FakeHttpServletRequest());
         // check that all is present
         User user = build.getTriggered().user;
         assertNotNull(user.getUsername());
@@ -279,7 +280,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     securityContext.runAs(user2, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
-        Build build = buildRequest.serveBuild("id:" + build10.getBuildId(), fields);
+        Build build = buildRequest.serveBuild("id:" + build10.getBuildId(), fields, new FakeHttpServletRequest());
         // check that all is present
         User user = build.getTriggered().user;
         assertNotNull(user.getUsername());
@@ -299,7 +300,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
-        Build build = buildRequest.serveBuild("id:" + build20.getBuildId(), fields);
+        Build build = buildRequest.serveBuild("id:" + build20.getBuildId(), fields, new FakeHttpServletRequest());
         // check that all is present
         User user = build.getTriggered().user;
         assertNotNull(user.getUsername());
