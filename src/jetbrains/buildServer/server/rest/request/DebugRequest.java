@@ -48,10 +48,10 @@ import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
-import jetbrains.buildServer.server.rest.model.*;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.Items;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
-import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.model.debug.Session;
@@ -67,10 +67,10 @@ import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
 import jetbrains.buildServer.serverSide.db.*;
 import jetbrains.buildServer.serverSide.db.queries.GenericQuery;
 import jetbrains.buildServer.serverSide.db.queries.QueryOptions;
-import jetbrains.buildServer.serverSide.impl.*;
+import jetbrains.buildServer.serverSide.impl.BuildPromotionReplacementLog;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.dependency.GraphOptimizer;
 import jetbrains.buildServer.serverSide.impl.history.DBBuildHistory;
-import jetbrains.buildServer.serverSide.mute.ProblemMutingServiceImpl;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.filters.Filter;
@@ -215,7 +215,7 @@ public class DebugRequest {
     result.append("Method: ").append(request.getMethod()).append("\n");
     result.append("Scheme: ").append(request.getScheme()).append("\n");
     result.append("Path and query: ").append(WebUtil.getRequestUrl(request)).append("\n");
-    if (extra != null) result.append("Extra path").append(extra).append("\n");
+    if (!StringUtil.isEmpty(extra)) result.append("Extra path: ").append(extra).append("\n");
     result.append("Session id: ").append(request.getSession().getId()).append("\n");
     result.append("Current TeamCity user: ").append(myServiceLocator.getSingletonService(PermissionChecker.class).getCurrentUserDescription()).append("\n");
     result.append("\n");
@@ -596,8 +596,7 @@ public class DebugRequest {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     final Date startTime = Dates.now();
     ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-//todo: investigate move to DiagnosticUtil.threadDumpToString(myDataProvider.getServer().getSingletonService(MemoryUsageMonitor.class).getThreadDumpData().withSummary("<date>\nFull thread dump ... \n"));
-    ThreadInfo[] infos = threadMXBean.dumpAllThreads(Boolean.getBoolean(lockedMonitors), Boolean.getBoolean(lockedSynchronizers)); //this is used by IDEA as well
+    ThreadInfo[] infos = threadMXBean.dumpAllThreads(Boolean.getBoolean(lockedMonitors), Boolean.getBoolean(lockedSynchronizers));
     final StringBuilder result = new StringBuilder();
     result.append(ThreadDumpsController.makeServerInfoSummary(myDataProvider.getServer()));
     result.append("\n");
@@ -757,8 +756,8 @@ public class DebugRequest {
   }
 
   @GET
-  @Path("/dns/lookup/{host:(/.*)?}")
-  @Produces({"text/plain"})
+  @Path("/dns/lookup/{host}")
+  @Produces({"application/xml", "application/json"})
   public Items getIpAddress(@PathParam("host") String host) {
     myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     try {
@@ -775,59 +774,6 @@ public class DebugRequest {
     myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     Map<String, String> cacheStat = myServiceLocator.getSingletonService(DBBuildHistory.class).getCacheStat();
     return new Properties(Properties.createEntity(cacheStat, null), false, null, null, new Fields(fields), myBeanContext);
-  }
-
-  @GET
-  @Path("/caches/buildPromotions/stats")
-  @Produces({"application/xml", "application/json"})
-  public Properties getCachedBuildPromotionsStats(@QueryParam("fields") final String fields) {
-    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
-    int size = myServiceLocator.getSingletonService(BuildPromotionManagerImpl.class).getSize();
-    return new Properties(Properties.createEntity(CollectionsUtil.asMap("estimatedIdsSize", String.valueOf(size)), null), false, null, null, new Fields(fields), myBeanContext);
-  }
-
-  @GET
-  @Path("/caches/buildPromotions/content")
-  @Produces({"application/xml", "application/json"})
-  public Builds getCachedBuildPromotions(@QueryParam("buildTypeLocator") final String buildTypeLocator, @QueryParam("fields") final String fields) {
-    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
-    ItemsProviders.LocatorAwareItemsRetriever<BuildPromotion> itemsRetriever = new ItemsProviders.LocatorAwareItemsRetriever<>(new ItemsProviders.ItemsProvider<BuildPromotion>() {
-      @NotNull
-      @Override
-      public List<BuildPromotion> getItems(@Nullable final String locator) {
-        if (locator != null) throw new BadRequestException("Builds locator is not supported here");
-        BuildTypeFinder buildTypeFinder = myServiceLocator.getSingletonService(BuildTypeFinder.class);
-        Set<String> buildTypeIds = buildTypeFinder.getBuildTypesPaged(null, buildTypeLocator, true).myEntries.stream().map(bt -> bt.getInternalId()).collect(Collectors.toSet());
-        List<BuildPromotion> buildPromotions = new ArrayList<>(1000);
-        myServiceLocator.getSingletonService(BuildPromotionManagerImpl.class).traverseCachedBuildTypePromotions(buildTypeIds, item -> buildPromotions.add(item));
-        return buildPromotions;
-      }
-    }, null);
-    return new Builds(itemsRetriever, new Fields(fields), myBeanContext);
-  }
-
-  @GET
-  @Path("/caches/buildChanges/{buildLocator}")
-  @Produces({"text/plain"})
-  public String getCachedBuildsStat(@PathParam("buildLocator") final String buildLocator, @QueryParam("fields") final String fields) {
-    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
-    PagedSearchResult<BuildPromotion> builds = myServiceLocator.getSingletonService(BuildPromotionFinder.class).getItems(buildLocator);
-    StringBuilder result = new StringBuilder();
-    for (BuildPromotion build : builds.myEntries) {
-      result.append("build: ").append(build.getId()).append("\n");
-      VcsChangesCache vcsChangesCache = ((BuildPromotionImpl)build).myVcsChangesCache;
-      vcsChangesCache.processCached((key, changes) -> result.append("  ").append(key.toString()).append(changes.stream().map(change -> String.valueOf(change.getId())).collect(Collectors.joining("\n    "))));
-    }
-    return result.toString();
-  }
-
-  @DELETE
-  @Path("/caches/projectMutes")
-  @Produces({"application/xml", "application/json"})
-  public void resetCacheProjectMutes(@QueryParam("project") final String projectLocator) {
-    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
-    ProblemMutingServiceImpl problemMutingService = myServiceLocator.getSingletonService(ProblemMutingServiceImpl.class);
-    problemMutingService.invalidateProjectMutesCache(myServiceLocator.getSingletonService(ProjectFinder.class).getItem(projectLocator));
   }
 
   /**
