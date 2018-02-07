@@ -48,10 +48,10 @@ import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
-import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.Items;
+import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.model.debug.Session;
@@ -67,6 +67,7 @@ import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
 import jetbrains.buildServer.serverSide.db.*;
 import jetbrains.buildServer.serverSide.db.queries.GenericQuery;
 import jetbrains.buildServer.serverSide.db.queries.QueryOptions;
+import jetbrains.buildServer.serverSide.impl.BuildPromotionManagerImpl;
 import jetbrains.buildServer.serverSide.impl.BuildPromotionReplacementLog;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.dependency.GraphOptimizer;
@@ -774,6 +775,35 @@ public class DebugRequest {
     myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     Map<String, String> cacheStat = myServiceLocator.getSingletonService(DBBuildHistory.class).getCacheStat();
     return new Properties(Properties.createEntity(cacheStat, null), false, null, null, new Fields(fields), myBeanContext);
+  }
+
+  @GET
+  @Path("/caches/buildPromotions/stats")
+  @Produces({"application/xml", "application/json"})
+  public Properties getCachedBuildPromotionsStats(@QueryParam("fields") final String fields) {
+    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    int size = myServiceLocator.getSingletonService(BuildPromotionManagerImpl.class).getSize();
+    return new Properties(Properties.createEntity(CollectionsUtil.asMap("idsSize", String.valueOf(size)), null), false, null, null, new Fields(fields), myBeanContext);
+  }
+
+  @GET
+  @Path("/caches/buildPromotions/content")
+  @Produces({"application/xml", "application/json"})
+  public Builds getCachedBuildPromotions(@QueryParam("buildTypeLocator") final String buildTypeLocator, @QueryParam("fields") final String fields) {
+    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    ItemsProviders.LocatorAwareItemsRetriever<BuildPromotion> itemsRetriever = new ItemsProviders.LocatorAwareItemsRetriever<>(new ItemsProviders.ItemsProvider<BuildPromotion>() {
+      @NotNull
+      @Override
+      public List<BuildPromotion> getItems(@Nullable final String locator) {
+        if (locator != null) throw new BadRequestException("Builds locator is not supported here");
+        BuildTypeFinder buildTypeFinder = myServiceLocator.getSingletonService(BuildTypeFinder.class);
+        Set<String> buildTypeIds = buildTypeFinder.getBuildTypesPaged(null, buildTypeLocator, true).myEntries.stream().map(bt -> bt.getInternalId()).collect(Collectors.toSet());
+        List<BuildPromotion> buildPromotions = new ArrayList<>(1000);
+        myServiceLocator.getSingletonService(BuildPromotionManagerImpl.class).traverseCachedBuildTypePromotions(buildTypeIds, item -> buildPromotions.add(item));
+        return buildPromotions;
+      }
+    }, null);
+    return new Builds(itemsRetriever, new Fields(fields), myBeanContext);
   }
 
   /**
