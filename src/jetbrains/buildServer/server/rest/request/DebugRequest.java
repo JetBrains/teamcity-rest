@@ -27,8 +27,10 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.servlet.http.HttpServletRequest;
@@ -47,6 +49,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.Items;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
@@ -200,8 +203,11 @@ public class DebugRequest {
     }
 
     StringBuilder result = new StringBuilder();
-    result.append("Remote address: " ).append(WebUtil.hostAndPort(request.getRemoteAddr(), request.getRemotePort())).append("\n");
-    result.append("Refined remote address: ").append(WebUtil.hostAndPort(WebUtil.getRemoteAddress(request), request.getRemotePort())).append("\n");
+    String remoteAddress = WebUtil.hostAndPort(request.getRemoteAddr(), request.getRemotePort());
+    result.append("Client address: " ).append(remoteAddress);
+    String refinedRemoteAddress = WebUtil.hostAndPort(WebUtil.getRemoteAddress(request), request.getRemotePort());
+    if (!refinedRemoteAddress.equals(remoteAddress)) result.append(" (").append(refinedRemoteAddress).append(")");
+    result.append("\n");
     result.append("Local address: ").append(WebUtil.hostAndPort(request.getLocalAddr(), request.getLocalPort())).append("\n");
     if (request.getLocalPort() != request.getServerPort()) {
       result.append("Server port: ").append(request.getServerPort()).append("\n");
@@ -209,6 +215,7 @@ public class DebugRequest {
     result.append("Method: ").append(request.getMethod()).append("\n");
     result.append("Scheme: ").append(request.getScheme()).append("\n");
     result.append("Path and query: ").append(WebUtil.getRequestUrl(request)).append("\n");
+    if (!StringUtil.isEmpty(extra)) result.append("Extra path: ").append(extra).append("\n");
     result.append("Session id: ").append(request.getSession().getId()).append("\n");
     result.append("Current TeamCity user: ").append(myServiceLocator.getSingletonService(PermissionChecker.class).getCurrentUserDescription()).append("\n");
     result.append("\n");
@@ -715,6 +722,9 @@ public class DebugRequest {
     if ("md5".equalsIgnoreCase(method)){
       return EncryptUtil.md5(value);
     }
+    if ("hash".equalsIgnoreCase(method)){
+      return String.valueOf(Hash.calc(value));
+    }
     if ("base64".equalsIgnoreCase(method) || "encodeBase64".equalsIgnoreCase(method)){
       return new String(Base64.getEncoder().encode(value.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
     }
@@ -728,7 +738,7 @@ public class DebugRequest {
     if ("base64url".equalsIgnoreCase(method) || "encodeBase64Url".equalsIgnoreCase(method)){
       return new String(Base64.getUrlEncoder().encode(value.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
     }
-    throw new BadRequestException("Unknown method '" + method + "'. Supported are: " + "md5"+ ", " + "encodeBase64Url" + ", " + "decodeBase64" + ".");
+    throw new BadRequestException("Unknown method '" + method + "'. Supported are: " + "md5"+ ", " + "encodeBase64Url" + ", " + "decodeBase64" + ", " + "hash" + ".");
   }
 
   /**
@@ -747,11 +757,11 @@ public class DebugRequest {
 
   @GET
   @Path("/dns/lookup/{host}")
-  @Produces({"text/plain"})
-  public String getIpAddress(@PathParam("host") String host) {
+  @Produces({"application/xml", "application/json"})
+  public Items getIpAddress(@PathParam("host") String host) {
     myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     try {
-      return InetAddress.getByName(host).getHostAddress();
+      return new Items(Stream.of(InetAddress.getAllByName(host)).filter(Objects::nonNull).map(inetAddress -> inetAddress.getHostAddress()).collect(Collectors.toList()));
     } catch (UnknownHostException e) {
       throw new BadRequestException("Unknown host: " + e.getMessage());
     }
@@ -865,7 +875,7 @@ public class DebugRequest {
     }
   }
 
-  private class DumpResultSetProcessor implements GenericQuery.ResultSetProcessor<List<String>> {
+  private static class DumpResultSetProcessor implements GenericQuery.ResultSetProcessor<List<String>> {
     private final String myFieldDelimiter;
 
     public DumpResultSetProcessor(final String fieldDelimiter) {
