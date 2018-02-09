@@ -41,6 +41,7 @@ import jetbrains.buildServer.controllers.interceptors.auth.HttpAuthenticationRes
 import jetbrains.buildServer.plugins.PluginManager;
 import jetbrains.buildServer.plugins.bean.PluginInfo;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
+import jetbrains.buildServer.server.rest.data.RestContext;
 import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
 import jetbrains.buildServer.server.rest.jersey.ExtensionsAwareResourceConfig;
 import jetbrains.buildServer.server.rest.jersey.JerseyWebComponent;
@@ -456,21 +457,24 @@ public class APIController extends BaseController implements ServletContextAware
         // workaround for http://jetbrains.net/tracker/issue2/TW-7656
         doUnderContextClassLoader(getClass().getClassLoader(), new FuncThrow<Void, Throwable>() {
           public Void apply() throws Throwable {
-            // patching request
-            final HttpServletRequest actualRequest =
-              new RequestWrapper(patchRequest(request, "Accept", "overrideAccept"), myRequestPathTransformInfo);
+            return new RestContext(name -> request.getAttribute(name)) //todo: use prefixed attributes to minimize clashes and allow listing
+              .run(() -> {
+              // patching request
+              final HttpServletRequest actualRequest =
+                new RequestWrapper(patchRequest(request, "Accept", "overrideAccept"), myRequestPathTransformInfo);
 
-            if (runAsSystemActual) {
-              LOG.debug("Executing request with system security level");
-              mySecurityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
-                public void run() throws Throwable {
-                  myWebComponent.doFilter(actualRequest, response, null);
-                }
-              });
-            } else {
-              myWebComponent.doFilter(actualRequest, response, null);
-            }
-            return null;
+              if (runAsSystemActual) {
+                LOG.debug("Executing request with system security level");
+                mySecurityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
+                  public void run() throws Throwable {
+                    myWebComponent.doFilter(actualRequest, response, null);
+                  }
+                });
+              } else {
+                myWebComponent.doFilter(actualRequest, response, null);
+              }
+              return null;
+            });
           }
         });
         return null;

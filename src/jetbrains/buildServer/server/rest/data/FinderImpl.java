@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -49,6 +50,8 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   public static final String DIMENSION_ITEM = "item";
   public static final String DIMENSION_UNIQUE = "unique";
   protected static final String OPTIONS_REPORT_ERROR_ON_NOTHING_FOUND = "$reportErrorOnNothingFound";
+
+  protected static final String CONTEXT_ITEM_DIMENSION_NAME = "$contextItem";
 
   public static final Long NO_COUNT = -1L;
 
@@ -123,17 +126,13 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
 
   @NotNull
   protected Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
-    LinkedHashSet<String> knownDimensions = new LinkedHashSet<>(Arrays.asList(myDataBinding.getKnownDimensions()));
-    knownDimensions.add(PagerData.START);
-    knownDimensions.add(PagerData.COUNT);
-    knownDimensions.add(DIMENSION_LOOKUP_LIMIT);
-    knownDimensions.add(OPTIONS_REPORT_ERROR_ON_NOTHING_FOUND);
-    final Locator result = Locator.createLocator(locatorText, locatorDefaults, knownDimensions.toArray(new String[knownDimensions.size()]));
+    final Locator result = Locator.createLocator(locatorText, locatorDefaults, getSupportedDimensions());
     result.addIgnoreUnusedDimensions(PagerData.COUNT);
     result.addIgnoreUnusedDimensions(OPTIONS_REPORT_ERROR_ON_NOTHING_FOUND);
     result.addHiddenDimensions(LOGIC_OP_OR, LOGIC_OP_AND, LOGIC_OP_NOT, AbstractFinder.DIMENSION_ITEM);  //experimental
     result.addHiddenDimensions(AbstractFinder.DIMENSION_UNIQUE);  //experimental, should actually depend on FinderDataBinding.getContainerSet returning not null
     result.addHiddenDimensions(OPTIONS_REPORT_ERROR_ON_NOTHING_FOUND); //experimental
+    result.addHiddenDimensions(CONTEXT_ITEM_DIMENSION_NAME); //experimental, internal
     for (String hiddenDimension : myDataBinding.getHiddenDimensions()) {
       result.addHiddenDimensions(hiddenDimension);
     }
@@ -142,6 +141,17 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
       result.setDescriptionProvider(descriptionProvider);
     }
     return result;
+  }
+
+  @NotNull
+  private String[] getSupportedDimensions() {
+    LinkedHashSet<String> knownDimensions = new LinkedHashSet<>(Arrays.asList(myDataBinding.getKnownDimensions()));
+    knownDimensions.add(PagerData.START);
+    knownDimensions.add(PagerData.COUNT);
+    knownDimensions.add(DIMENSION_LOOKUP_LIMIT);
+    knownDimensions.add(OPTIONS_REPORT_ERROR_ON_NOTHING_FOUND);
+    knownDimensions.add(CONTEXT_ITEM_DIMENSION_NAME); //experimental, internal
+    return knownDimensions.toArray(new String[knownDimensions.size()]);
   }
 
   @Nullable
@@ -171,14 +181,14 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     final int entriesSize = items.myEntries.size();
     if (entriesSize == 0) {
       if (!items.myLookupLimitReached) {
-        throw new NotFoundException("Nothing is found by locator '" + locator.getStringRepresentation() + "'.");
+        throw new NotFoundException("Nothing is found by " + getLocatorDetailsForMessage(locator) + ".");
       }
       LOG.debug("Returning \"Not Found\" response because of reaching lookupLimit. Last processed item: " + LogUtil.describe(items.getLastProcessedItem()));
-      throw new NotFoundException("Nothing is found by locator '" + locator.getStringRepresentation() + "' while processing first " +
+      throw new NotFoundException("Nothing is found by " + getLocatorDetailsForMessage(locator) + " while processing first " +
                                   items.myLookupLimit + " items. Set " + DIMENSION_LOOKUP_LIMIT + " dimension to larger value to process more items.");
     }
     if (entriesSize != 1) {
-      throw new OperationException("Found + " + entriesSize + " items for locator '" + locator.getStringRepresentation() + "' while a single item is expected.");
+      throw new OperationException("Found " + entriesSize + " items for " + getLocatorDetailsForMessage(locator) + " while a single item is expected.");
     }
     return items.myEntries.get(0);
   }
@@ -193,6 +203,20 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
       locator = originalLocator;
 
       locator.processHelpRequest();
+    }
+
+    String contextItemText = locator.getSingleDimensionValue(CONTEXT_ITEM_DIMENSION_NAME);
+    if (contextItemText != null) {
+      List<ITEM> contextObjects = getContextItems(contextItemText);
+      if (contextObjects == null) throw new BadRequestException("Context variable '" + contextItemText + "' is used in locator, but is not present in the context");
+      if (contextObjects.isEmpty()) throw new BadRequestException("Context variable '" + contextItemText + "' is used in locator, but the list does not contain any elements");
+
+      //so far do not support additional filtering or other dimensions if context item is used
+      locator.checkLocatorFullyProcessed();
+      return new PagedSearchResult<ITEM>(contextObjects, null, null);
+    }
+
+    if (!locator.isEmpty()) {
       ITEM singleItem = null;
       try {
         singleItem = myDataBinding.findSingleItem(locator);
@@ -271,6 +295,16 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   }
 
   @Nullable
+  private List<ITEM> getContextItems(@NotNull final String contextItemText) {
+    Object o = RestContext.getThreadLocal().getVar(contextItemText);
+    if (o == null) return null;
+    if (o instanceof List) {
+      return (List)o;  //this never produces ClassCastException as generics are lost on run-time
+    }
+    return Arrays.asList((ITEM)o);  //this never produces ClassCastException as generics are lost on run-time
+  }
+
+  @Nullable
   Long getLookupLimit(@NotNull final Locator locator) {
     Long lookupLimit = locator.getSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT, myDataBinding.getDefaultLookupLimit());
 
@@ -319,7 +353,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
                totalItemsProcessed + " items were processed and " + result.size() + " items were returned, took " + processingTimeMs + " ms");
     }
     if (result.isEmpty() && isReportErrorOnNothingFound(locator)){
-      throw new NotFoundException("Nothing is found by locator '" + locator.getStringRepresentation() + "'.");
+      throw new NotFoundException("Nothing is found by " + getLocatorDetailsForMessage(locator) + ".");
     }
     return new PagedSearchResult<ITEM>(result, filter.getStart(), filter.getCount(), totalItemsProcessed,
                                        filter.getLookupLimit(), filter.isLookupLimitReached(), filter.getLastProcessedItem());
@@ -393,6 +427,45 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
         return getFilterWithLogicOpsSupport(locator, myLocatorDataBinding);
       }
     };
+  }
+
+  @NotNull
+  private String getLocatorDetailsForMessage(@NotNull Locator locator) {
+    StringBuilder result = new StringBuilder();
+    result.append("locator '").append(locator.getStringRepresentation()).append("'");
+    List<String> contextVars = getContextVars(locator);
+    if (!contextVars.isEmpty()) {
+      result.append(", context: ");
+      result.append(contextVars.stream().map(s -> s + "=" + Optional.ofNullable(getContextItems(s)).map(v -> v.stream().map(vElem -> (vElem == null ? "<null>" : "'" + vElem.toString() + "'")).collect(Collectors.joining(", ","{", "}"))).orElse("<null>")).collect(Collectors.joining(", ","{", "}")));
+      //vElem.toString() might produce not due presentation
+      result.append('}');
+    }
+    return result.toString();
+  }
+
+  @NotNull
+  private List<String> getContextVars(@NotNull final Locator locator) {
+    if (locator.isSingleValue()) return Collections.emptyList();
+
+    ArrayList<String> result = new ArrayList<>();
+    try {
+      for (String name : locator.getDefinedDimensions()) {
+        if(BuildPromotionFinder.CONTEXT_ITEM_DIMENSION_NAME.equals(name)) {
+          result.addAll(locator.getDimensionValue(name));
+        } else {
+          for (String value : locator.getDimensionValue(name)) {
+            try {
+              result.addAll(getContextVars(new Locator(value, getSupportedDimensions())));
+            } catch (Exception e) {
+              //ignore
+            }
+          }
+        }
+      }
+    } catch (Exception e) {
+      //ignore
+    }
+    return result;
   }
 
   @NotNull

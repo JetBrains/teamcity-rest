@@ -113,10 +113,14 @@ public class BuildFinder {
 
     if (locatorText != null || !legacyFieldsPresent) {
       resultingLocatorText = locatorText;
-      // legacy: override start and count only if set in URL query parameters and not set in locator
-      if (resultingLocatorText != null && !(new Locator(resultingLocatorText)).isSingleValue()) {
-        if (start != null) resultingLocatorText = Locator.setDimensionIfNotPresent(resultingLocatorText, PagerData.START, String.valueOf(start));
-        if (count != null) resultingLocatorText = Locator.setDimensionIfNotPresent(resultingLocatorText, PagerData.COUNT, String.valueOf(count));
+      try {
+        // legacy: override start and count only if set in URL query parameters and not set in locator
+        if (resultingLocatorText != null && !(new Locator(resultingLocatorText)).isSingleValue()) {
+          if (start != null) resultingLocatorText = Locator.setDimensionIfNotPresent(resultingLocatorText, PagerData.START, String.valueOf(start));
+          if (count != null) resultingLocatorText = Locator.setDimensionIfNotPresent(resultingLocatorText, PagerData.COUNT, String.valueOf(count));
+        }
+      } catch (LocatorProcessException e) {
+        //unparsable locator - proceed to report a due error later with all the supported locators
       }
     } else {
       locator = Locator.createEmptyLocator();
@@ -234,8 +238,13 @@ public class BuildFinder {
       throw new BadRequestException("Empty single build locator is not supported.");
     }
 
-    final Locator locator = new Locator(buildLocator);
-    if (useByPromotionFiltering(locator)) {
+    Locator locator = null;
+    try {
+      locator = new Locator(buildLocator);
+    } catch (LocatorProcessException e) {
+      //unparsable locator - proceed to report a due error later with all the supported locators
+    }
+    if (locator == null  || useByPromotionFiltering(locator)) {
       final BuildPromotion promotion = myBuildPromotionFinder.getBuildPromotion(buildType, buildLocator);
       if (!TeamCityProperties.getBoolean(REST_RETURN_ONLY_STARTED_BUILDS)) {
         return promotion;
