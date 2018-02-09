@@ -225,7 +225,7 @@ public class APIController extends BaseController implements ServletContextAware
 
             myWebComponentInitialized.set(true);
           } catch (Throwable e) {
-            LOG.error("Error initializing REST API: " + e.toString(), e);
+            LOG.error("Error initializing REST API: " + e.toString() + ExceptionMapperUtil.addKnownExceptionsData(e, ""), e);
             ExceptionUtil.rethrowAsRuntimeException(e);
           }
         }
