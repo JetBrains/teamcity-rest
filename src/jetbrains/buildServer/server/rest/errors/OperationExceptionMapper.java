@@ -31,6 +31,6 @@ public class OperationExceptionMapper extends ExceptionMapperUtil implements Exc
   protected static final Logger LOG = Logger.getInstance(OperationExceptionMapper.class.getName());
 
   public Response toResponse(OperationException exception) {
-    return reportError(Response.Status.INTERNAL_SERVER_ERROR, exception, "This is probably TeamCity bug. Please report to JetBrains with server debug logs.");
+    return reportError(Response.Status.INTERNAL_SERVER_ERROR, exception, "This is probably a TeamCity bug. Please report it to TeamCity support with the server debug logs.");
   }
 }
