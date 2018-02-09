@@ -183,7 +183,7 @@ public class ExceptionMapperUtil {
     return result;
   }
 
-  private static String addKnownExceptionsData(final Throwable e, String result) {
+  public static String addKnownExceptionsData(final Throwable e, String result) {
     if (e instanceof Errors.ErrorMessagesException) { //error message does not contain details
       final List<Errors.ErrorMessage> messages = ((Errors.ErrorMessagesException)e).messages;
       if (messages != null) {
