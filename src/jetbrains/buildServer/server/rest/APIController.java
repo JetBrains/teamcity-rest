@@ -56,6 +56,7 @@ import jetbrains.buildServer.serverSide.SecurityContextEx;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.web.CorsOrigins;
+import jetbrains.buildServer.web.jsp.RestApiInternalRequestTag;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
 import jetbrains.buildServer.web.util.SessionUser;
@@ -83,6 +84,8 @@ public class APIController extends BaseController implements ServletContextAware
   private Logger LOG = Logger.getInstance(APIController.class.getName());
   public static final String REST_RESPONSE_PRETTYFORMAT = "rest.response.prettyformat";
   public static final String REST_PREFER_OWN_BIND_PATHS = "rest.allow.bind.paths.override.for.plugins";
+
+  private static final String CONTEXT_REQUEST_ARGUMENTS_PREFIX = RestApiInternalRequestTag.REQUEST_ARGUMENTS_PREFIX;
 
   private final boolean myInternalAuthProcessing = TeamCityProperties.getBoolean("rest.cors.optionsRequest.allowUnauthorized");
   private final String[] myPathsWithoutAuth = new String[]{
@@ -457,7 +460,7 @@ public class APIController extends BaseController implements ServletContextAware
         // workaround for http://jetbrains.net/tracker/issue2/TW-7656
         doUnderContextClassLoader(getClass().getClassLoader(), new FuncThrow<Void, Throwable>() {
           public Void apply() throws Throwable {
-            return new RestContext(name -> request.getAttribute(name)) //todo: use prefixed attributes to minimize clashes and allow listing
+            return new RestContext(name -> request.getAttribute(CONTEXT_REQUEST_ARGUMENTS_PREFIX + name))
               .run(() -> {
               // patching request
               final HttpServletRequest actualRequest =
