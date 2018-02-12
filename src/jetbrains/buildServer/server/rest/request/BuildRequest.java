@@ -254,13 +254,7 @@ public class BuildRequest {
   @Path("/{buildLocator}")
   @Produces({"application/xml", "application/json"})
   public Build serveBuild(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields, @Context HttpServletRequest request) {
-    BuildPromotion build;
-    if (buildLocator.startsWith("requestAttribute:")) {
-      build = ((SBuild)request.getAttribute(buildLocator.substring("requestAttribute:".length()))).getBuildPromotion();
-    } else {
-      build = myBuildFinder.getBuildPromotion(null, buildLocator);
-    }
-
+    BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
     return new Build(build,  new Fields(fields), myBeanContext);
   }
 
