@@ -45,6 +45,7 @@ import jetbrains.buildServer.server.rest.request.BuildTypeRequest;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
@@ -64,7 +65,7 @@ import org.jetbrains.annotations.Nullable;
   "href", "webUrl", "inherited" /*used only for list of build configuration templates*/,
   "links", "project", "templates", "template" /*deprecated*/, "vcsRootEntries", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
   "artifactDependencies", "agentRequirements",
-  "branches", "builds", "investigations", "compatibleAgents"})
+  "branches", "builds", "investigations", "compatibleAgents", "vcsRootInstances" /*experimental*/})
 public class BuildType {
   private static final Logger LOG = Logger.getInstance(BuildType.class.getName());
 
@@ -374,6 +375,16 @@ public class BuildType {
         return myBuildType == null ? null : new VcsRootEntries(myBuildType, myFields.getNestedField("vcs-root-entries"), myBeanContext);
       }
     }));
+  }
+
+  /**
+   * Experimental use only.
+   */
+  @XmlElement(name = "vcsRootInstances")
+  public VcsRootInstances getVcsRootInstances() {
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("vcsRootInstances", false, false)
+      , check(() -> myBuildType == null || myBuildType.getBuildType() == null ? null :
+                    new VcsRootInstances(CachingValue.simple(myBuildType.getBuildType().getVcsRootInstances()), null, myFields.getNestedField("vcsRootInstances"), myBeanContext)));
   }
 
   @XmlElement(name = "branches")

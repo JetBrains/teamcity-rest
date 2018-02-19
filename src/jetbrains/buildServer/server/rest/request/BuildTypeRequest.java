@@ -1249,8 +1249,19 @@ public class BuildTypeRequest {
   /**
    * Experimental support only!
    */
+  @Deprecated
   @GET
   @Path("/{btLocator}/vcs-root-instances")
+  @Produces({"application/xml", "application/json"})
+  public VcsRootInstances getCurrentVcsInstancesObsolete(@PathParam("btLocator") final String buildTypeLocator, @QueryParam("fields") final String fields) {
+    return getCurrentVcsInstances(buildTypeLocator, fields);
+  }
+
+  /**
+   * Experimental support only!
+   */
+  @GET
+  @Path("/{btLocator}/vcsRootInstances")
   @Produces({"application/xml", "application/json"})
   public VcsRootInstances getCurrentVcsInstances(@PathParam("btLocator") final String buildTypeLocator, @QueryParam("fields") final String fields) {
     return new VcsRootInstances(new CachingValue<Collection<VcsRootInstance>>() {
