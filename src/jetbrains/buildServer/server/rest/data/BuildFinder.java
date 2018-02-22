@@ -239,6 +239,10 @@ public class BuildFinder {
    */
   @NotNull
   public BuildPromotion getBuildPromotion(@Nullable SBuildType buildType, @Nullable final String buildLocator) {
+    if (!TeamCityProperties.getBoolean(LEGACY_BUILDS_FILTERING_FORCED)) {
+      return getBuildPromotionInternal(buildType, buildLocator);
+    }
+
     if (StringUtil.isEmpty(buildLocator)) {
       throw new BadRequestException("Empty single build locator is not supported.");
     }
@@ -250,17 +254,7 @@ public class BuildFinder {
       //unparsable locator - proceed to report a due error later with all the supported locators
     }
     if (locator == null  || useByPromotionFiltering(locator)) {
-      final BuildPromotion promotion = myBuildPromotionFinder.getBuildPromotion(buildType, buildLocator);
-      if (!TeamCityProperties.getBoolean(REST_RETURN_ONLY_STARTED_BUILDS)) {
-        return promotion;
-      }
-      final SBuild associatedBuild = promotion.getAssociatedBuild();
-      if (associatedBuild != null){
-        return promotion;
-      } else{
-        throw new NotFoundException("No associated build for found build promotion with id " + promotion.getId() + "(a queued build?)." +
-                                    " Check performed as '" + REST_RETURN_ONLY_STARTED_BUILDS + "' internal property is set");
-      }
+      return getBuildPromotionInternal(buildType, buildLocator);
     }
 
     if (locator.isSingleValue()) {
@@ -344,6 +338,21 @@ public class BuildFinder {
     //todo: check for unknown dimension names in all the returns
 
     throw new BadRequestException("Build locator '" + buildLocator + "' is not supported (" + filteredBuilds.size() + " builds found)");
+  }
+
+  @NotNull
+  private BuildPromotion getBuildPromotionInternal(final @Nullable SBuildType buildType, @Nullable final String buildLocator) {
+    final BuildPromotion promotion = myBuildPromotionFinder.getBuildPromotion(buildType, buildLocator);
+    if (!TeamCityProperties.getBoolean(REST_RETURN_ONLY_STARTED_BUILDS)) {
+      return promotion;
+    }
+    final SBuild associatedBuild = promotion.getAssociatedBuild();
+    if (associatedBuild != null){
+      return promotion;
+    } else{
+      throw new NotFoundException("No associated build for found build promotion with id " + promotion.getId() + "(a queued build?)." +
+                                  " Check performed as '" + REST_RETURN_ONLY_STARTED_BUILDS + "' internal property is set");
+    }
   }
 
 
