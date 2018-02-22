@@ -56,6 +56,7 @@ public class BuildFinder {
   @NotNull private final AgentFinder myAgentFinder;
 
   protected static final String LEGACY_BUILDS_FILTERING = "rest.request.builds.useLegacyBuildsFiltering";
+  protected static final String LEGACY_BUILDS_FILTERING_FORCED = "rest.request.builds.useLegacyBuildsFiltering.forced"; //Since 2018.1
   protected static final String SUPPORT_NON_LOCATOR_FILTERS = "rest.request.builds.supportNonLocatorFilters";
   protected static final String REST_RETURN_ONLY_STARTED_BUILDS = "rest.request.builds.returnOnlyStartedBuilds";
 
@@ -159,6 +160,10 @@ public class BuildFinder {
 
   @NotNull
   public PagedSearchResult<BuildPromotion> getBuilds(@Nullable final SBuildType buildType, @Nullable final String locatorText) {
+    if (!TeamCityProperties.getBoolean(LEGACY_BUILDS_FILTERING_FORCED)) {
+      return myBuildPromotionFinder.getBuildPromotions(buildType, locatorText);
+    }
+
     Locator locator = null;
     try {
       locator = locatorText != null ? new Locator(locatorText) : Locator.createEmptyLocator();
