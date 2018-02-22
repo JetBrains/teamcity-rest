@@ -50,6 +50,7 @@ public class BuildFinderTest extends BuildFinderTestBase {
   public void setUp() throws Exception {
     super.setUp();
     setInternalProperty(BuildFinder.LEGACY_BUILDS_FILTERING, "true"); //testing BuildFinder
+    setInternalProperty(BuildFinder.LEGACY_BUILDS_FILTERING_FORCED, "true"); //testing BuildFinder
   }
 
   @Test

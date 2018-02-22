@@ -64,6 +64,7 @@ public class BuildFinderFixedBuildSequenceTest extends BuildFinderTestBase {
   public void setUp() throws Exception {
     super.setUp();
     setInternalProperty(BuildFinder.LEGACY_BUILDS_FILTERING, "true");  //testing BuildFinder
+    setInternalProperty(BuildFinder.LEGACY_BUILDS_FILTERING_FORCED, "true"); //testing BuildFinder
     myTimeService = new MockTimeService(Dates.now().getTime());
     myServer.setTimeService(myTimeService);
 //  do not need this in finally, do we?     myServer.setTimeService(SystemTimeService.getInstance());
