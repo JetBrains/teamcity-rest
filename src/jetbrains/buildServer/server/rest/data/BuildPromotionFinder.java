@@ -94,7 +94,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected static final String SNAPSHOT_DEP = "snapshotDependency";
   protected static final String ARTIFACT_DEP = "artifactDependency";
   protected static final String COMPATIBLE_AGENTS_COUNT = "compatibleAgentsCount";
-  protected static final String TAGS = "tags";
+  protected static final String TAGS = "tags"; //legacy support only
   protected static final String TAG = "tag";
   protected static final String COMPATIBLE_AGENT = "compatibleAgent";
   protected static final String HISTORY = "history";
@@ -216,6 +216,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   }
 
   @NotNull
+  @Override
   public TreeSet<BuildPromotion> createContainerSet() {
     return new TreeSet<>(new Comparator<BuildPromotion>() {
       @Override
@@ -463,7 +464,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     }
 
-    final List<String> tag = locator.getDimensionValue(TAG); //support multiple dimensions here, https://youtrack.jetbrains.com/issue/TW-44203
+    final List<String> tag = locator.getDimensionValue(TAG); //need to pass through the filter even though some builds might have been pre-filtered - exact filter still needs to be applied
     if (!tag.isEmpty()) {
       if (tag.size() == 1 && tag.get(0).startsWith("format:extended")) { //pre-9.1 compatibility
         //todo: log this?
@@ -480,7 +481,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         for (String singleTag : tag) {
           result.add(new FilterConditionChecker<BuildPromotion>() {
             public boolean isIncluded(@NotNull final BuildPromotion item) {
-              return new TagFinder(myUserFinder, item).getItems(singleTag, TagFinder.getDefaultLocator()).myEntries.size() > 0;
+              return TagFinder.isIncluded(item, singleTag, myUserFinder);
             }
           });
         }
@@ -1194,6 +1195,29 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       } else{
         // if build type is not specified, search by scanning (performance impact)
         locator.markUnused(NUMBER, BUILD_TYPE);
+      }
+    }
+
+    if (TeamCityProperties.getBooleanOrTrue("rest.request.builds.prefilterByTag")) { //just in case, make it switchable
+      Locator stateLocator = getStateLocator(new Locator(locator)); //using locator copy so that no dimensions are marked as used
+      if (isStateIncluded(stateLocator, STATE_FINISHED)) {//no sense in going further here if no finished builds are requested
+        final List<String> tagLocators = locator.lookupDimensionValue(TAG); //not marking as used to enforce filter processing
+        Stream<BuildPromotion> finishedBuilds = TagFinder.getPrefilteredFinishedBuildPromotions(tagLocators, myServiceLocator);
+        if (finishedBuilds != null) {
+          // all queued - to be filtered by the filter
+          Stream<BuildPromotion> queuedBuilds =
+            isStateIncluded(stateLocator, STATE_QUEUED) ? myBuildQueue.getItems().stream().map(sQueuedBuild -> sQueuedBuild.getBuildPromotion()) : null;
+
+          // all running - to be filtered by the filter
+          Stream<BuildPromotion> runningBuilds =
+            isStateIncluded(stateLocator, STATE_RUNNING) ? myBuildsManager.getRunningBuilds().stream().map(sQueuedBuild -> sQueuedBuild.getBuildPromotion()) : null;
+
+          return processor -> {
+            if (queuedBuilds != null) queuedBuilds.forEach(buildPromotion -> processor.processItem(buildPromotion));
+            if (runningBuilds != null) runningBuilds.forEach(buildPromotion -> processor.processItem(buildPromotion));
+            finishedBuilds.forEach(buildPromotion -> processor.processItem(buildPromotion));
+          };
+        }
       }
     }
 

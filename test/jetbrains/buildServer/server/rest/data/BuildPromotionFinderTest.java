@@ -1693,6 +1693,49 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
+  public void testCaseInTags() {
+    final SProject project = createProject("prj", "project");
+    final BuildTypeEx buildConf1 = (BuildTypeEx)project.createBuildType("buildConf1", "buildConf1");
+
+    final BuildPromotion build10 = build().in(buildConf1).finish().getBuildPromotion();
+    final BuildPromotion build20 = build().in(buildConf1).tag("aaa").finish().getBuildPromotion();
+    final BuildPromotion build30 = build().in(buildConf1).tag("aAa").finish().getBuildPromotion();
+    final BuildPromotion build40 = build().in(buildConf1).tag("some").finish().getBuildPromotion();
+    build40.setPrivateTags(Collections.singletonList("aaa"), getOrCreateUser("user1"));
+
+    check(null, build40, build30, build20, build10);
+    //this is case sensitive
+    check("tag:aaa", build20);
+    check("tag:aAa", build30);
+    check("tag:AAA");
+
+    //this is case-insensitive
+    check("tag:(name:aaa)", build30, build20);
+    check("tag:(name:aAa)", build30, build20);
+    check("tag:(name:AAA)", build30, build20);
+    
+    check("tag:(condition:(value:aaa,matchType:(equals)))", build20);
+    check("tag:(condition:(value:aaa,matchType:(equals),ignoreCase:false))", build20);
+    check("tag:(condition:(value:aaa,matchType:(equals),ignoreCase:true))", build30, build20);
+
+
+    check("tag:(private:false,condition:(value:aaa,matchType:(equals),ignoreCase:false))", build20);
+    check("tag:(private:true,owner:(user1),condition:(value:aaa,matchType:(equals),ignoreCase:false))", build40);
+
+    check("tag:(private:any,condition:(value:aaa,matchType:(equals),ignoreCase:false))", build40, build20);
+    check("tag:(private:any,owner:(user1),condition:(value:aaa,matchType:(equals),ignoreCase:false))", build40, build20);
+
+    getOrCreateUser("user2");
+    check("tag:(private:any,owner:(user2),condition:(value:aaa,matchType:(equals),ignoreCase:false))", build20);
+
+    //is effective, does not scan all the builds
+    assertEquals(Long.valueOf(1), getFinder().getItems("tag:aaa").myActuallyProcessedCount);
+    assertEquals(Long.valueOf(1), getFinder().getItems("tag:(condition:(value:aaa,matchType:(equals),ignoreCase:false))").myActuallyProcessedCount);
+    assertEquals(Long.valueOf(1), getFinder().getItems("tag:(private:false,condition:(value:aaa,matchType:(equals),ignoreCase:false))").myActuallyProcessedCount);
+    assertEquals(Long.valueOf(1), getFinder().getItems("tag:(private:true,owner:(user1),condition:(value:aaa,matchType:(equals),ignoreCase:false))").myActuallyProcessedCount);
+  }
+
+  @Test
   public void testUnusedLocatorDimensionLogging() {
     final SProject project = createProject("prj", "project");
     final BuildTypeEx buildConf1 = (BuildTypeEx)project.createBuildType("buildConf1", "buildConf1");

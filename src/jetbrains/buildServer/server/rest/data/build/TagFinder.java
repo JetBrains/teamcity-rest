@@ -19,11 +19,18 @@ package jetbrains.buildServer.server.rest.data.build;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Stream;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.serverSide.BuildPromotion;
+import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.TagData;
+import jetbrains.buildServer.tags.TagsManager;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -37,15 +44,23 @@ public class TagFinder extends AbstractFinder<TagData> {
   protected static final String CONDITION = "condition";
 
   @NotNull private final UserFinder myUserFinder;
-  @NotNull private final BuildPromotion myBuildPromotion;
+  private final BuildPromotion myBuildPromotion;
 
   public TagFinder(final @NotNull UserFinder userFinder, final @NotNull BuildPromotion buildPromotion) {
+    this(userFinder, buildPromotion, true);
+  }
+
+  private TagFinder(final @NotNull UserFinder userFinder, @Nullable final BuildPromotion buildPromotion, @SuppressWarnings("unused") boolean internalConstructor) {
     super(NAME, PRIVATE, OWNER);
     setHiddenDimensions(Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, CONDITION, //experimental
                         DIMENSION_LOOKUP_LIMIT
     );
     myUserFinder = userFinder;
     myBuildPromotion = buildPromotion;
+  }
+
+  public static boolean isIncluded(@NotNull final BuildPromotion item, @Nullable final String singleTag, @NotNull final UserFinder userFinder) {
+    return new TagFinder(userFinder, item).getItems(singleTag, getDefaultLocator()).myEntries.size() > 0;
   }
 
   @NotNull
@@ -57,6 +72,7 @@ public class TagFinder extends AbstractFinder<TagData> {
     return result.getStringRepresentation();
   }
 
+  @NotNull
   public static Locator getDefaultLocator(){
     Locator defaultLocator = Locator.createEmptyLocator();
     defaultLocator.setDimension(TagFinder.PRIVATE, "false");
@@ -66,6 +82,8 @@ public class TagFinder extends AbstractFinder<TagData> {
   @NotNull
   @Override
   public ItemHolder<TagData> getPrefilteredItems(@NotNull final Locator locator) {
+    if (myBuildPromotion == null) throw new OperationException("Attempt to use the tags locator without setting build");
+
     final ArrayList<TagData> result = new ArrayList<TagData>(myBuildPromotion.getTagDatas());
     Collections.sort(result, new Comparator<TagData>() {
       public int compare(final TagData o1, final TagData o2) {
@@ -111,7 +129,7 @@ public class TagFinder extends AbstractFinder<TagData> {
     if (nameDimension != null) {
       result.add(new FilterConditionChecker<TagData>() {
         public boolean isIncluded(@NotNull final TagData item) {
-          return nameDimension.equalsIgnoreCase(item.getLabel());
+          return nameDimension.equalsIgnoreCase(item.getLabel()); //conditions are supported via "condition" dimension
         }
       });
     }
@@ -151,5 +169,51 @@ public class TagFinder extends AbstractFinder<TagData> {
     }
 
     return result;
+  }
+
+  /**
+   * Gets superset of builds, which can be matched by the tagLocator tag locator. More builds can be returned, so additional filtering is necessary
+   * @return null if cannot construct the set effectively
+   */
+  @Nullable
+  public static Stream<BuildPromotion> getPrefilteredFinishedBuildPromotions(@NotNull final List<String> tagLocators, @NotNull final ServiceLocator serviceLocator) {
+    if (tagLocators.size() != 1) return null; //so far supporting only single tag filter
+
+    String tagLocator = tagLocators.get(0);
+
+    TagFinder tagFinder = new TagFinder(serviceLocator.getSingletonService(UserFinder.class), null, true);
+    Locator locator = tagFinder.createLocator(tagLocator, getDefaultLocator());
+
+    if (locator.getSingleDimensionValue(NAME) != null) return null; //no effective API to filter by tag name in the case-insensitive way as it is supported by the main filter
+
+    String tagName = locator.getSingleValue();
+
+    final String condition = locator.getSingleDimensionValue(CONDITION);
+    if (condition != null) {
+      final ValueCondition valueCondition = ParameterCondition.createValueCondition(condition);
+      tagName = valueCondition.getConstantValueIfSimpleEqualsCondition();
+    }
+    if (tagName == null) return null; //no case sensitive tag name is set
+
+
+    final Boolean privateDimension = locator.isSingleValue() ? Boolean.FALSE : locator.getSingleDimensionValueAsBoolean(PRIVATE); //this is set to false by locator defaults
+
+    final String ownerLocator = locator.getSingleDimensionValue(OWNER);
+    if (ownerLocator != null && privateDimension != null && privateDimension) {
+      final SUser user = tagFinder.myUserFinder.getItem(ownerLocator);
+      Stream<BuildPromotion> finishedBuilds = serviceLocator.getSingletonService(TagsManager.class).findAll(tagName, user).stream().map(build -> ((SBuild)build).getBuildPromotion());
+      finishedBuilds = finishedBuilds.sorted(BuildPromotionFinder.BUILD_PROMOTIONS_COMPARATOR); //workaround for TW-53934
+      return finishedBuilds;
+    }
+
+    if (ownerLocator == null && privateDimension != null && !privateDimension) {
+      Stream<BuildPromotion> finishedBuilds = serviceLocator.getSingletonService(TagsManager.class).findAll(tagName).stream().map(build -> ((SBuild)build).getBuildPromotion());
+      finishedBuilds = finishedBuilds.sorted(BuildPromotionFinder.BUILD_PROMOTIONS_COMPARATOR); //workaround for TW-53934
+      return finishedBuilds;
+    }
+
+    //in the future, can optimize private:any as well, by combining (with sorting) two collections of builds
+
+    return null;
   }
 }
