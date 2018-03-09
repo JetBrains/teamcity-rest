@@ -406,7 +406,7 @@ public class BuildQueueRequest {
   @Path("/order")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Builds setBuildQueueOrder(Builds builds, @PathParam("fields") String fields) {
+  public Builds setBuildQueueOrder(Builds builds, @QueryParam("fields") String fields) {
     if (builds.builds == null){
       throw new BadRequestException("No new builds order specified. Should post a collection of builds, each with id or locator");
     }
@@ -429,5 +429,69 @@ public class BuildQueueRequest {
     //see getBuilds()
     return Builds.createFromBuildPromotions(myBuildPromotionFinder.getItems(getBuildPromotionLocatorDefaults().getStringRepresentation()).myEntries,
                                             null, new Fields(fields), myBeanContext);
+  }
+
+  /**
+   * Experimental ability to get a build at specific queue position
+   */
+  @GET
+  @Path("/order/{queuePosition}")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public Build setBuildQueuePosition(@PathParam("queuePosition") String queuePosition, @QueryParam("fields") String fields) {
+    int queuePositionNumber;
+    queuePositionNumber = getQueuePositionNumber(queuePosition);
+    if (queuePositionNumber < 1) {
+      throw new BadRequestException("Unsupported value of queuePosition \"" + queuePosition + "\": should be greater than 0");
+    }
+    int actualPosition;
+    if (queuePositionNumber == Integer.MAX_VALUE) {
+      final BuildQueue buildQueue = myServiceLocator.getSingletonService(BuildQueue.class);
+      actualPosition = buildQueue.getNumberOfItems() - 1;
+    } else {
+      actualPosition = queuePositionNumber - 1;
+    }
+    Locator locator = getBuildPromotionLocatorDefaults().setDimension(PagerData.START, String.valueOf(actualPosition));
+    return new Build(myBuildPromotionFinder.getItem(locator.getStringRepresentation()), new Fields(fields), myBeanContext);
+  }
+
+  private int getQueuePositionNumber(final @PathParam("queuePosition") String queuePosition) {
+    try {
+      if ("first".equals(queuePosition)) return 1;
+      if ("last".equals(queuePosition)) return Integer.MAX_VALUE;
+      return Integer.parseInt(queuePosition);
+    } catch (NumberFormatException e) {
+      throw new BadRequestException("Error parsing queuePosition \"" + queuePosition + "\": should be a number, \"first\" or \"last\"");
+    }
+  }
+
+  /**
+   * Experimental ability to move to top
+   */
+  @PUT
+  @Path("/order/{queuePosition}")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public Build setBuildQueuePosition(Build build, @PathParam("queuePosition") String queuePosition, @QueryParam("fields") String fields) {
+    BuildPromotion buildToMove = build.getFromPosted(myBuildPromotionFinder, Collections.emptyMap());
+    SQueuedBuild queuedBuild = buildToMove.getQueuedBuild();
+    if (queuedBuild == null) {
+      throw new BadRequestException("Cannot move build which is not queued");
+    }
+
+    int queuePositionNumber;
+    queuePositionNumber = getQueuePositionNumber(queuePosition);
+    if (queuePositionNumber == 1) {
+      final BuildQueue buildQueue = myServiceLocator.getSingletonService(BuildQueue.class);
+      buildQueue.moveTop(queuedBuild.getItemId());
+    } else if (queuePositionNumber == Integer.MAX_VALUE) {
+      final BuildQueue buildQueue = myServiceLocator.getSingletonService(BuildQueue.class);
+      buildQueue.moveBottom(queuedBuild.getItemId());
+    } else {
+      throw new BadRequestException("Unsupported value of queuePosition \"" + queuePosition + "\": only \"1\", \"first\" and \"last\" are supported");
+    }
+
+
+    return new Build(queuedBuild.getBuildPromotion(), new Fields(fields), myBeanContext);
   }
 }
