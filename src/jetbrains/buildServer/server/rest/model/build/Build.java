@@ -91,9 +91,10 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "build")
 /*Comments inside propOrder: q = queued, r = running, f = finished*/
 @XmlType(name = "build",
-         propOrder = {"id"/*rf*/, "promotionId"/*q*/, "buildTypeId", "buildTypeInternalId", "number"/*rf*/, "status"/*rf*/, "state", "running"/*r*/, "composite"/*qrf*/,
+         propOrder = {"id", "promotionId", "buildTypeId", "buildTypeInternalId", "number"/*rf*/, "status"/*rf*/, "state", "running"/*r*/, "composite",
            "failedToStart"/*f*/,
            "personal", "percentageComplete"/*r*/, "branchName", "defaultBranch", "unspecifiedBranch", "history", "pinned"/*rf*/, "href", "webUrl",
+           "queueOrder"/*q*/ /*experimental*/,
            "links",
            "statusText"/*rf*/,
            "buildType", "comment", "tags", "pinInfo"/*f*/, "personalBuildUser",
@@ -1064,6 +1065,16 @@ public class Build {
         return waitReason.getDescription();
       }
     });
+  }
+
+  /**
+   * Experimental
+   * Can be "0" is the build is being started already
+   */
+  @XmlAttribute
+  public String getQueueOrder() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("queueOrder", false, false),
+                                          () -> myQueuedBuild == null ? null : String.valueOf(myQueuedBuild.getOrderNumber()));
   }
 
   /**
