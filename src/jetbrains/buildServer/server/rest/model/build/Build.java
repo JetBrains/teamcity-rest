@@ -1069,13 +1069,13 @@ public class Build {
 
   /**
    * Experimental
-   * Can be "0" is the build is being started already
-   * The number can be inconsistent between several builds (e.g. several builds can have the same position in the queue) as it represent the momentary position which change over time
+   * Can be "0" if the build is being started already
+   * Note that the number can be inconsistent between several builds (e.g. several builds can have the same position in the queue) as it represent the momentary position which change even within the single request's time
    */
   @XmlAttribute
-  public String getQueuePosition() {
+  public Integer getQueuePosition() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("queuePosition", false, false),
-                                          () -> myQueuedBuild == null ? null : String.valueOf(myQueuedBuild.getOrderNumber()));
+                                          () -> myQueuedBuild == null ? null : myQueuedBuild.getOrderNumber());
   }
 
   /**
