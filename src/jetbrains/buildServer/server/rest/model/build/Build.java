@@ -190,6 +190,10 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded(PROMOTION_ID, false, false), myBuildPromotion.getId());
   }
 
+  /**
+   * The current state of the build: one of "queued", "running", "finished"
+   * Can aso be "deleted" for just deleted builds
+   */
   @XmlAttribute
   public String getState() {
     if (!myFields.isIncluded("state", true, true)){
@@ -248,6 +252,11 @@ public class Build {
     });
   }
 
+  /**
+   * Build status, present only for running or finished builds.
+   * One of "SUCCESS" or "FAILURE"
+   * Can be "UNKNOWN" for a canceled build
+   */
   @XmlAttribute
   public String getStatus() {
     //todo: consider getting details from full statistics is that is required for the node as otherwise the text and test counts will be not in sync
