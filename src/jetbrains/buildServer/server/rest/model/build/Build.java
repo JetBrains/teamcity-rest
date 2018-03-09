@@ -94,7 +94,7 @@ import org.jetbrains.annotations.Nullable;
          propOrder = {"id", "promotionId", "buildTypeId", "buildTypeInternalId", "number"/*rf*/, "status"/*rf*/, "state", "running"/*r*/, "composite",
            "failedToStart"/*f*/,
            "personal", "percentageComplete"/*r*/, "branchName", "defaultBranch", "unspecifiedBranch", "history", "pinned"/*rf*/, "href", "webUrl",
-           "queueOrder"/*q*/ /*experimental*/,
+           "queuePosition"/*q*/ /*experimental*/,
            "links",
            "statusText"/*rf*/,
            "buildType", "comment", "tags", "pinInfo"/*f*/, "personalBuildUser",
@@ -1070,10 +1070,11 @@ public class Build {
   /**
    * Experimental
    * Can be "0" is the build is being started already
+   * The number can be inconsistent between several builds (e.g. several builds can have the same position in the queue) as it represent the momentary position which change over time
    */
   @XmlAttribute
-  public String getQueueOrder() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("queueOrder", false, false),
+  public String getQueuePosition() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("queuePosition", false, false),
                                           () -> myQueuedBuild == null ? null : String.valueOf(myQueuedBuild.getOrderNumber()));
   }
 
