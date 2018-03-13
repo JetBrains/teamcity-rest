@@ -424,12 +424,9 @@ public class UserFinder extends DelegatingFinder<SUser> {
   private class UserFinderBuilder extends TypedFinderBuilder<SUser> {
     UserFinderBuilder() {
       singleDimension(dimension -> {
-        // no dimensions found, assume it's username
-        SUser user = myUserModel.findUserAccount(null, dimension);
-        if (user == null) {
-          if (!"current".equals(dimension)) {
-            throw new NotFoundException("No user can be found by username '" + dimension + "'.");
-          }
+        //"current" is a reserved value for single dimension - current user.
+        // before 2018.1 the precedence was different: if there was a user with username "current" it was served. However, the behavior was poorly predictable that way.
+        if ("current".equals(dimension)) {
           // support for predefined "current" keyword to get current user
           final SUser currentUser = getCurrentUser();
           if (currentUser == null) {
@@ -437,6 +434,11 @@ public class UserFinder extends DelegatingFinder<SUser> {
           } else {
             return Collections.singletonList(currentUser);
           }
+        }
+        // no dimensions found and it's not reserved current" -> assume it's username
+        SUser user = myUserModel.findUserAccount(null, dimension);
+        if (user == null) {
+          throw new NotFoundException("No user can be found by username '" + dimension + "'.");
         }
         return Collections.singletonList(user);
       });

@@ -184,9 +184,7 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
     final SUser user2 = createUser("user1");
 
     {
-      SUser result = myUserFinder.getItem("current");
-      assertNotNull(result);
-      assertEquals(user1.getId(), result.getId());
+      checkExceptionOnItemSearch(NotFoundException.class, "current");
     }
 
     SecurityContextImpl securityContext = myFixture.getSecurityContext();
@@ -204,16 +202,14 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
       public void run() throws Throwable {
         SUser result = myUserFinder.getItem("current");
         assertNotNull(result);
-        assertEquals(user1.getId(), result.getId());
+        assertEquals(user2.getId(), result.getId());
       }
     });
 
     securityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
-        SUser result = myUserFinder.getItem("current");
-        assertNotNull(result);
-        assertEquals(user1.getId(), result.getId());
+        checkExceptionOnItemSearch(NotFoundException.class, "current");
       }
     });
   }
