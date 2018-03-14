@@ -55,6 +55,7 @@ import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.impl.*;
 import jetbrains.buildServer.serverSide.impl.timeEstimation.CachingBuildEstimator;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.vcs.RepositoryStateData;
@@ -148,6 +149,60 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     final SUser triggeringUser = getOrCreateUser("user");
 
     build.triggerBuild(triggeringUser, myFixture, new HashMap<Long, Long>());
+  }
+
+  @Test
+  public void testBuildTriggeringTriggeredBy() throws Throwable {
+    final Build build = new Build();
+    final BuildType buildType = new BuildType();
+    buildType.setId(myBuildType.getExternalId());
+    build.setBuildType(buildType);
+    final SUser triggeringUser = getOrCreateUser("userName");
+
+    {
+      final SQueuedBuild queuedBuild = build.triggerBuild(triggeringUser, myFixture, new HashMap<Long, Long>());
+      TriggeredBy triggeredBy = queuedBuild.getTriggeredBy();
+      assertContains(triggeredBy.getParameters(),
+                     CollectionsUtil.asMap("userId", String.valueOf(triggeringUser.getId()), "type", "user", "origin", "rest"));
+      myServer.getQueue().removeAllFromQueue();
+    }
+
+    myFixture.getSecurityContext().runAsSystem(() -> {
+      final SQueuedBuild queuedBuild = build.triggerBuild(null, myFixture, new HashMap<Long, Long>());
+      TriggeredBy triggeredBy = queuedBuild.getTriggeredBy();
+      assertContains(triggeredBy.getParameters(),
+                     CollectionsUtil.asMap("type", "request", "origin", "rest"));
+      assertNull(triggeredBy.getParameters().get("userId"));
+      myServer.getQueue().removeAllFromQueue();
+    });
+
+    {
+      jetbrains.buildServer.server.rest.model.build.TriggeredBy submittedTriggeredBy = new jetbrains.buildServer.server.rest.model.build.TriggeredBy();
+      build.setTriggered(submittedTriggeredBy);
+      submittedTriggeredBy.type = "idePlugin";
+      submittedTriggeredBy.details = "IntelliJ IDEA";
+
+      final SQueuedBuild queuedBuild = build.triggerBuild(triggeringUser, myFixture, new HashMap<Long, Long>());
+      TriggeredBy triggeredBy = queuedBuild.getTriggeredBy();
+      assertContains(triggeredBy.getParameters(),
+                     CollectionsUtil.asMap("userId", String.valueOf(triggeringUser.getId()), "type", "xmlRpc", "IDEPlugin", "IntelliJ IDEA", "origin", "rest"));
+      myServer.getQueue().removeAllFromQueue();
+    }
+
+    {
+      jetbrains.buildServer.server.rest.model.build.TriggeredBy submittedTriggeredBy = new jetbrains.buildServer.server.rest.model.build.TriggeredBy();
+      build.setTriggered(submittedTriggeredBy);
+      submittedTriggeredBy.type = "build";
+      submittedTriggeredBy.build = new Build();
+      SFinishedBuild aFinishedBuild = build().in(myBuildType).finish();
+      submittedTriggeredBy.build.setId(aFinishedBuild.getBuildId());
+
+      final SQueuedBuild queuedBuild = build.triggerBuild(triggeringUser, myFixture, new HashMap<Long, Long>());
+      TriggeredBy triggeredBy = queuedBuild.getTriggeredBy();
+      assertContains(triggeredBy.getParameters(),
+                     CollectionsUtil.asMap("userId", String.valueOf(triggeringUser.getId()), "type", "user", "buildId", String.valueOf(aFinishedBuild.getBuildId()), "origin", "rest"));
+      myServer.getQueue().removeAllFromQueue();
+    }
   }
 
   @Test

@@ -16,11 +16,14 @@
 
 package jetbrains.buildServer.server.rest.model.build;
 
+import java.util.Collections;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.BuildFinder;
+import jetbrains.buildServer.server.rest.data.BuildPromotionFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
@@ -43,6 +46,8 @@ import org.jetbrains.annotations.NotNull;
 @XmlType(propOrder = {"type", "details", "date", "rawValue",
   "user", "build", "buildType", "properties"})
 public class TriggeredBy {
+  protected static final String TYPE_IDE_PLUGIN_REST = "idePlugin";
+  protected static final String CORE_TRIGGERED_BY_TYPE_XML_RPC = "xmlRpc";
   @XmlAttribute
   public String date;
 
@@ -103,6 +108,7 @@ public class TriggeredBy {
   }
 
   private void setType(final jetbrains.buildServer.serverSide.TriggeredBy triggeredBy, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    //see also jetbrains.buildServer.serverSide.impl.ServerTriggeredByProcessor.render()
     final String rawTriggeredBy = triggeredBy.getRawTriggeredBy();
     if (rawTriggeredBy != null && !rawTriggeredBy.startsWith(TriggeredByBuilder.PARAMETERS_PREFIX)) {
       type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "unknown");
@@ -161,9 +167,9 @@ public class TriggeredBy {
 
     String idePlugin = triggeredByParams.get(TriggeredByBuilder.IDE_PLUGIN_PARAM_NAME);
     if (idePlugin != null) {
-      if (typeInParams == null || "xmlRpc".equals(typeInParams)) {
+      if (typeInParams == null || CORE_TRIGGERED_BY_TYPE_XML_RPC.equals(typeInParams)) {
         //compatibility with "type" value prior to 2017.1
-        type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "idePlugin");
+        type = ValueWithDefault.decideDefault(fields.isIncluded("type"), TYPE_IDE_PLUGIN_REST);
       }
       details = ValueWithDefault.decideDefault(fields.isIncluded("details"), idePlugin);
       return;
@@ -190,5 +196,25 @@ public class TriggeredBy {
       type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "unknown");
       details = ValueWithDefault.decideDefault(fields.isIncluded("details"), rawTriggeredBy);
     }
+  }
+
+  @NotNull
+  TriggeredByBuilder getFromPosted(@NotNull final String defaultType, @NotNull final ServiceLocator serviceLocator) {
+    TriggeredByBuilder result = new TriggeredByBuilder();
+    //only supporting a subset of options as supporting all will be easy to abuse
+    if (TYPE_IDE_PLUGIN_REST.equals(type) && details != null) {
+      result.addParameter(TriggeredByBuilder.IDE_PLUGIN_PARAM_NAME, details);
+      result.addParameter(TriggeredByBuilder.TYPE_PARAM_NAME, CORE_TRIGGERED_BY_TYPE_XML_RPC); //setting the same type as the core so that it is parsed later as triggered by IDE
+    } else {
+      result.addParameter(TriggeredByBuilder.TYPE_PARAM_NAME, defaultType);
+      if (build != null) {
+        try {
+          BuildPromotion buildFromPosted = build.getFromPosted(serviceLocator.getSingletonService(BuildPromotionFinder.class), Collections.emptyMap());
+          result.addParameter(TriggeredByBuilder.BUILD_ID_PARAM_NAME, String.valueOf(buildFromPosted.getId()));
+        } catch (RuntimeException ignore) {
+        }
+      }
+    }
+    return result;
   }
 }

@@ -125,7 +125,7 @@ public class Build {
 
   @NotNull final protected Fields myFields;
   @NotNull final private BeanContext myBeanContext;
-  @NotNull private ServiceLocator myServiceLocator;
+  @NotNull private final ServiceLocator myServiceLocator;
 
   @SuppressWarnings("ConstantConditions")
   public Build() {
@@ -1272,6 +1272,7 @@ public class Build {
   private Builds submittedBuildArtifactDependencies;
   private Tags submittedTags;
   private Entries submittedAttributes;
+  private TriggeredBy submittedTriggeredBy;
 
   /**
    * Used only when posting for triggering a build
@@ -1334,8 +1335,13 @@ public class Build {
   public void setAttributes(final Entries submittedAttributes) {
     this.submittedAttributes = submittedAttributes;
   }
+
   public void setTags(final Tags tags) {
     this.submittedTags = tags;
+  }
+
+  public void setTriggered(final TriggeredBy triggeredBy) {
+    submittedTriggeredBy = triggeredBy;
   }
 
   private BuildPromotion getBuildToTrigger(@Nullable final SUser user, @NotNull final ServiceLocator serviceLocator, @NotNull final Map<Long, Long> buildPromotionIdReplacements) {
@@ -1586,7 +1592,7 @@ public class Build {
   public SQueuedBuild triggerBuild(@Nullable final SUser user, @NotNull final ServiceLocator serviceLocator, @NotNull final Map<Long, Long> buildPromotionIdReplacements) {
     BuildPromotion buildToTrigger = getBuildToTrigger(user, serviceLocator, buildPromotionIdReplacements);
     SQueuedBuild queuedBuild = triggerBuild((BuildPromotionEx)buildToTrigger, user,
-                                            submittedAgent == null ? null : submittedAgent.getAgentRestrictor(serviceLocator)); //TeamCity API issue: cast
+                                            submittedAgent == null ? null : submittedAgent.getAgentRestrictor(serviceLocator), serviceLocator); //TeamCity API issue: cast
     if (queuedBuild == null) {
       throw new InvalidStateException("Failed to add build for build type with id '" + buildToTrigger.getBuildTypeExternalId() + "' into the queue for unknown reason.");
     }
@@ -1597,10 +1603,11 @@ public class Build {
   }
 
   @Nullable
-  private SQueuedBuild triggerBuild(@NotNull final BuildPromotionEx buildToTrigger, @Nullable final SUser user, @Nullable final SAgentRestrictor agentRestrictor) {
+  private SQueuedBuild triggerBuild(@NotNull final BuildPromotionEx buildToTrigger, @Nullable final SUser user, @Nullable final SAgentRestrictor agentRestrictor,
+                                    @NotNull final ServiceLocator serviceLocator) {
     final BuildTypeEx bt = buildToTrigger.getBuildType();
     if (bt == null) return null;
-    final String triggeredBy = getTriggeredBy(user);
+    final String triggeredBy = getTriggeredBy(user, serviceLocator);
 
     if (agentRestrictor != null) {
       return bt.addToQueue(agentRestrictor, buildToTrigger, triggeredBy);
@@ -1609,14 +1616,21 @@ public class Build {
     return bt.addToQueue(buildToTrigger, triggeredBy);
   }
 
-  private String getTriggeredBy(final @Nullable SUser user) {
+  @NotNull
+  private String getTriggeredBy(@Nullable final SUser user, @NotNull final ServiceLocator serviceLocator) {
+    if (TeamCityProperties.getBoolean("rest.beans.build.triggeredBy.allowRawValueSubmit")) {
+      if (submittedTriggeredBy != null && submittedTriggeredBy.rawValue != null) return submittedTriggeredBy.rawValue;
+    }
+    String defaultType = user != null ? "user" : "request";
     TriggeredByBuilder result;
-    if (user != null) {
-      result = new TriggeredByBuilder(user);
-      result.addParameter(TriggeredByBuilder.TYPE_PARAM_NAME, "user");
+    if (submittedTriggeredBy != null) {
+      result = submittedTriggeredBy.getFromPosted(defaultType, serviceLocator);
     } else {
       result = new TriggeredByBuilder();
-      result.addParameter(TriggeredByBuilder.TYPE_PARAM_NAME, "request");
+      result.addParameter(TriggeredByBuilder.TYPE_PARAM_NAME, defaultType);
+    }
+    if (user != null) {
+      result.addParameter(TriggeredByBuilder.USER_PARAM_NAME, String.valueOf(user.getId()));
     }
     result.addParameter("origin", "rest");
     return result.toString();
