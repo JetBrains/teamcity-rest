@@ -939,7 +939,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     if (locator.isUnused(AGENT_NAME)) {
       final String agentName = locator.getSingleDimensionValue(AGENT_NAME);
       if (agentName != null) {
-        result.add(item -> agentName.equals(item.getAgentName()));
+        final ValueCondition agentNameCondition = ParameterCondition.createValueCondition(agentName);
+        result.add(item -> agentNameCondition.matches(item.getAgentName()));
       }
     }
 
@@ -1272,7 +1273,15 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     final ArrayList<BuildPromotion> result = new ArrayList<BuildPromotion>();
     @Nullable Set<SBuildType> buildTypes = getBuildTypes(locator);
 
-    String agentName = locator.getSingleDimensionValue(AGENT_NAME);
+    String agentName;
+    String agentNameCondition = locator.lookupSingleDimensionValue(AGENT_NAME);
+    if (agentNameCondition != null) {
+      agentName = ParameterCondition.createValueCondition(agentNameCondition).getConstantValueIfSimpleEqualsCondition();
+      if (agentName != null) locator.markUsed(Collections.singleton(AGENT_NAME));
+    } else {
+      agentName = null;
+    }
+
     Long agentTypeId = locator.getSingleDimensionValueAsLong(AGENT_TYPE_ID);
     Locator stateLocator = getStateLocator(locator);
 
