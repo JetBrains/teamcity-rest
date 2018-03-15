@@ -43,7 +43,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 13.01.12
  */
 @SuppressWarnings("PublicField")
-@XmlType(propOrder = {"type", "details", "date", "rawValue",
+@XmlType(propOrder = {"type", "details", "date", "displayText", "rawValue",
   "user", "build", "buildType", "properties"})
 public class TriggeredBy {
   protected static final String TYPE_IDE_PLUGIN_REST = "idePlugin";
@@ -66,6 +66,13 @@ public class TriggeredBy {
 
   @XmlElement(name = "build")
   public Build build;
+
+  /**
+   * Experimental
+   * The sme text as shown in UI - considering all the registered renderers
+   */
+  @XmlAttribute
+  public String displayText;
 
   /**
    * Internal use only
@@ -93,6 +100,8 @@ public class TriggeredBy {
 
     //TeamCity API issue: would be cool to extract common logic from ServerTriggeredByProcessor.render and provide visitor as a service
     setType(triggeredBy, fields, beanContext);
+
+    displayText = ValueWithDefault.decideDefault(fields.isIncluded("displayText", false, false), () -> triggeredBy.getAsString());
 
     final boolean includeProp = TeamCityProperties.getBoolean("rest.internalMode");
     rawValue = ValueWithDefault.decideDefault(fields.isIncluded("rawValue", includeProp, includeProp), new ValueWithDefault.Value<String>() {
