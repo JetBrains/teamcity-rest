@@ -20,6 +20,8 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import jetbrains.buildServer.MockTimeService;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.log.Loggable;
@@ -1718,6 +1720,13 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     check("tag:(condition:(value:aaa,matchType:(equals),ignoreCase:false))", build20);
     check("tag:(condition:(value:aaa,matchType:(equals),ignoreCase:true))", build30, build20);
 
+    check("tag:(name:aaa,private:true)", build40);
+    check("tag:(name:aaa,private:false)", build30, build20);
+    check("tag:(name:aaa,private:any)", build40, build30, build20);
+    check("tag:(name:aaa,owner:(user1))"); //might be worth switching to private tags search, but this is the current behavior
+    check("tag:(name:aaa,owner:(user1),private:true)", build40);
+    check("tag:(name:aaa,owner:(user1),private:false)"); //might be worth reporting an error
+    check("tag:(name:aaa,owner:(user1),private:any)", build40, build30, build20);
 
     check("tag:(private:false,condition:(value:aaa,matchType:(equals),ignoreCase:false))", build20);
     check("tag:(private:true,owner:(user1),condition:(value:aaa,matchType:(equals),ignoreCase:false))", build40);
@@ -1729,10 +1738,73 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     check("tag:(private:any,owner:(user2),condition:(value:aaa,matchType:(equals),ignoreCase:false))", build20);
 
     //is effective, does not scan all the builds
-    assertEquals(Long.valueOf(1), getFinder().getItems("tag:aaa").myActuallyProcessedCount);
-    assertEquals(Long.valueOf(1), getFinder().getItems("tag:(condition:(value:aaa,matchType:(equals),ignoreCase:false))").myActuallyProcessedCount);
-    assertEquals(Long.valueOf(1), getFinder().getItems("tag:(private:false,condition:(value:aaa,matchType:(equals),ignoreCase:false))").myActuallyProcessedCount);
-    assertEquals(Long.valueOf(1), getFinder().getItems("tag:(private:true,owner:(user1),condition:(value:aaa,matchType:(equals),ignoreCase:false))").myActuallyProcessedCount);
+    checkCounts("tag:aaa", 1, 1);
+    checkCounts("tag:(condition:(value:aaa,matchType:(equals),ignoreCase:false))", 1, 1);
+    checkCounts("tag:(private:false,condition:(value:aaa,matchType:(equals),ignoreCase:false))", 1, 1);
+    checkCounts("tag:(private:true,owner:(user1),condition:(value:aaa,matchType:(equals),ignoreCase:false))", 1, 1);
+  }
+
+  @Test
+  public void testPivateTags() {
+    final SProject project = createProject("prj", "project");
+    final BuildTypeEx buildConf1 = (BuildTypeEx)project.createBuildType("buildConf1", "buildConf1");
+
+    final BuildPromotion build10 = build().in(buildConf1).finish().getBuildPromotion();
+    final BuildPromotion build20 = build().in(buildConf1).tag("aaa").finish().getBuildPromotion();
+    final BuildPromotion build30 = build().in(buildConf1).tag("aAa").finish().getBuildPromotion();
+    final BuildPromotion build40 = build().in(buildConf1).finish().getBuildPromotion();
+    SUser user1 = getOrCreateUser("user1");
+    build40.setPrivateTags(Collections.singletonList("bbb"), user1);
+
+    final BuildPromotion build45 = build().in(buildConf1).finish().getBuildPromotion();
+    build45.setPrivateTags(Collections.singletonList("aAa"), user1);
+
+    final BuildPromotion build50 = build().in(buildConf1).finish().getBuildPromotion();
+    SUser user2 = getOrCreateUser("user2");
+    build50.setPrivateTags(Collections.singletonList("bbb"), user2);
+
+    check(null, build50, build45, build40, build30, build20, build10);
+
+    String userFilter = ",owner:(id:" + user1.getId() + ")";
+
+    check("tag:(name:aaa,private:true)", build45);
+    check("tag:(name:aaa,private:false)", build30, build20);
+    check("tag:(name:aaa,private:any)", build45, build30, build20);
+    check("tag:(name:aaa" + userFilter + ")"); //might be worth switching to private tags search, but this is the current behavior
+    check("tag:(name:aaa" + userFilter + ",private:true)", build45);
+    check("tag:(name:aaa" + userFilter + ",private:false)"); //might be worth reporting an error
+    check("tag:(name:aaa" + userFilter + ",private:any)", build45, build30, build20);
+
+    check("tag:(private:any)", build50, build45, build40, build30, build20);
+    check("tag:(private:any" + userFilter + ")", build45, build40, build30, build20);
+    check("tag:(" + userFilter.substring(1) + ")"); //might be worth switching to private tags search, but this is the current behavior
+    check("tag:(private:true" + userFilter + ")", build45, build40);
+    check("tag:(private:false" + userFilter + ")"); //might be worth reporting an error
+  }
+
+  @Test
+  public void testEffectiveTagsSearch() {
+    final SProject project = createProject("prj", "project");
+    final BuildTypeEx buildConf1 = (BuildTypeEx)project.createBuildType("buildConf1", "buildConf1");
+    final BuildTypeEx buildConf2 = (BuildTypeEx)project.createBuildType("buildConf2", "buildConf2");
+    SUser user = createUser("user1");
+
+    build().in(buildConf2).finish().getBuildPromotion();
+    List<BuildPromotion> builds = IntStream.range(0, 10).mapToObj(i -> build().in(buildConf1).finish().getBuildPromotion()).collect(Collectors.toList());
+    build().in(buildConf2).finish().getBuildPromotion().setTags(Arrays.asList("a"));
+
+    builds.get(3).setTags(Arrays.asList("a", "b"));
+    builds.get(5).setPrivateTags(Arrays.asList("a"), user);
+    builds.get(7).setTags(Arrays.asList("a"));
+
+    checkCounts("tag:a", 3, 3);
+    checkCounts("tag:c", 0, 0);
+    String bt = ",buildType:(id:" + buildConf1.getExternalId() + ")";
+    checkCounts("tag:a" + bt, 2, 2);
+
+    String userFilter = ",owner:(id:" + user.getId() + ")";
+    checkCounts("tag:(condition:(value:a,matchType:(equals),ignoreCase:false),private:true" + userFilter + ")", 1, 1);
+    checkCounts("tag:(condition:(value:a,matchType:(equals),ignoreCase:false),private:true" + userFilter + ")" + bt, 1, 1);
   }
 
   @Test

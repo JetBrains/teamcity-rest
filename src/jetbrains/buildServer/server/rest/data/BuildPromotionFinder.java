@@ -1199,7 +1199,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     }
 
-    if (TeamCityProperties.getBooleanOrTrue("rest.request.builds.prefilterByTag")) { //just in case, make it switchable
+    if (TeamCityProperties.getBoolean("rest.request.builds.prefilterByTag")) { //this is temporary logic, can be dropped
       Locator stateLocator = getStateLocator(new Locator(locator)); //using locator copy so that no dimensions are marked as used
       if (isStateIncluded(stateLocator, STATE_FINISHED)) {//no sense in going further here if no finished builds are requested
         final List<String> tagLocators = locator.lookupDimensionValue(TAG); //not marking as used to enforce filter processing
@@ -1357,6 +1357,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         options.setIncludeCanceled(true); //also includes failed to start builds, TW-32060
       } else {
         options.setIncludeCanceled(false);
+      }
+
+      TagFinder.FilterOptions tagFilterOptions = TagFinder.getFilterOptions(locator.lookupDimensionValue(TAG), myServiceLocator);
+      if (tagFilterOptions != null) {
+        options.setTagName(tagFilterOptions.getTagName(), tagFilterOptions.getTagOwner());
       }
 
       final String branchLocatorValue = locator.lookupSingleDimensionValue(BRANCH); // do not mark dimension as used as not all can be used from it

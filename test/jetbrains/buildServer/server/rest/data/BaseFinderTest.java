@@ -198,6 +198,14 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     };
   }
 
+  public <S> void checkCounts(@Nullable final String locator, int resultsCount, int maxProcessedCounts) {
+    PagedSearchResult<T> result = getFinder().getItems(locator);
+    assertEquals("Wrong number of found items", resultsCount, result.myActualCount);
+    if (result.myActuallyProcessedCount != null && result.myActuallyProcessedCount > maxProcessedCounts) {
+      fail("Wrong number of processed items: " + result.myActuallyProcessedCount + ", while not more than " + maxProcessedCounts + " is expected");
+    }
+  }
+
   public <S> void check(@Nullable final String locator, @NotNull Matcher<S, T> matcher, S... items) {
     check(locator, matcher, getFinder(), items);
   }
