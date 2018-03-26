@@ -81,11 +81,12 @@ public class File {
     if (element == null || !element.isContentAvailable()) {
       return null;
     } else {
-      return ValueWithDefault.decideDefault(myFields.isIncluded("size", false), new ValueWithDefault.Value<Long>() {
+      return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("size", false), new ValueWithDefault.Value<Long>() {
         @Nullable
         public Long get() {
           final long size = element.getSize();
-          return size > 0 ? size : null;
+          if (size < 0 || (size == 0 && !element.isLeaf())) return null;
+          return size;
         }
       });
     }
