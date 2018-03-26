@@ -82,7 +82,8 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
         @Nullable
         @Override
         public ItemFilter<AgentPool> get(@NotNull final DimensionObjects dimensions) {
-          final boolean hasPermission = myServiceLocator.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.VIEW_AGENT_DETAILS, null);
+          final PermissionChecker permissionChecker = myServiceLocator.getSingletonService(PermissionChecker.class);
+          final boolean hasPermission = permissionChecker.hasGlobalPermission(Permission.VIEW_AGENT_DETAILS) || permissionChecker.hasPermissionInAnyProject(Permission.VIEW_AGENT_DETAILS_FOR_PROJECT);
           if (hasPermission) return null;
           return new ItemFilter<AgentPool>() {
             @Override

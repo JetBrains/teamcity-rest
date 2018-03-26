@@ -34,7 +34,9 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
 import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
+import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.impl.agent.DeadAgent;
 import jetbrains.buildServer.serverSide.impl.agent.PollingRemoteAgentConnection;
 import jetbrains.buildServer.users.SUser;
@@ -133,7 +135,7 @@ public class Agent {
     }
 
     //check permission to match UI
-    if (!unknownAgent && canViewAgentDetails(beanContext)) {
+    if (!unknownAgent && AuthUtil.canViewAgentDetails(beanContext.getServiceLocator().getSingletonService(SecurityContext.class).getAuthorityHolder(), agent)) {
       WebLinks webLinks = beanContext.getSingletonService(WebLinks.class);
       webUrl = ValueWithDefault.decideDefault(fields.isIncluded("webUrl", true), () -> webLinks.getAgentUrl(agent, agent.getAgentTypeId()));
       links = ValueWithDefault.decideDefault(fields.isIncluded("links", false, false), new ValueWithDefault.Value<Links>() {
@@ -149,7 +151,7 @@ public class Agent {
           return builder.build(fields.getNestedField("links"));
         }
       });
-      uptodate = unknownAgent ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("uptodate", false), !agent.isOutdated() && !agent.isPluginsOutdated());
+      uptodate = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("uptodate", false), !agent.isOutdated() && !agent.isPluginsOutdated());
       ip = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("ip", false), new ValueWithDefault.Value<String>() {
         @Nullable
         public String get() {
@@ -244,10 +246,6 @@ public class Agent {
     }
   }
 
-  public static boolean canViewAgentDetails(final @NotNull BeanContext beanContext) {
-    return beanContext.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.VIEW_AGENT_DETAILS, null);
-  }
-
   @NotNull
   private static String getAgentProtocol(final @NotNull SBuildAgent agent) {
     final String protocolType = agent.getCommunicationProtocolType();
@@ -273,8 +271,7 @@ public class Agent {
     } else if ("authorized".equals(name)) {
       return String.valueOf(agent.isAuthorized());
     }
-    //check permission to match UI
-    serviceLocator.getSingletonService(PermissionChecker.class).checkGlobalPermission(Permission.VIEW_AGENT_DETAILS);
+
     if ("enabledInfoCommentText".equals(name)) {
       return String.valueOf(agent.getStatusComment().getComment());
     } else if ("authorizedInfoCommentText".equals(name)) {

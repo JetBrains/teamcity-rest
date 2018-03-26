@@ -35,7 +35,6 @@ import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentTypes.AgentType;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
 import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
-import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.buildDistribution.restrictors.SingleAgentRestrictor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -99,8 +98,6 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     return Locator.getStringLocator(POOL, AgentPoolFinder.getLocator(pool), DEFAULT_FILTERING, "false");
   }
 
-
-  //todo: check view agent details permission before returning unauthorized agents, here and in prefiltering
   @Override
   @Nullable
   public SBuildAgent findSingleItem(@NotNull final Locator locator) {
@@ -139,15 +136,6 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   @Override
   public ItemFilter<SBuildAgent> getFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<SBuildAgent> result = new MultiCheckerFilter<SBuildAgent>();
-
-    //filtering unauthorized agents as UI does
-    if (!myServiceLocator.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.VIEW_AGENT_DETAILS, null)) {
-      result.add(new FilterConditionChecker<SBuildAgent>() {
-        public boolean isIncluded(@NotNull final SBuildAgent item) {
-          return item.isAuthorized();
-        }
-      });
-    }
 
     Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (id != null) {
