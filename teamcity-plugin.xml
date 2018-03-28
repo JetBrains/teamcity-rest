@@ -14,7 +14,7 @@
   </info>
   <deployment use-separate-classloader="true"/>
   <parameters>
-    <parameter name="api.path">/app/rest/2017.2,/app/rest,/app/rest/latest,/api</parameter>
-    <parameter name="api.version">2017.2</parameter>
+    <parameter name="api.path">/app/rest/2018.1,/app/rest,/app/rest/latest,/api</parameter>
+    <parameter name="api.version">2018.1</parameter>
   </parameters>
 </teamcity-plugin>
