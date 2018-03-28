@@ -106,7 +106,7 @@ import org.jetbrains.annotations.Nullable;
            "startEstimate"/*q*/, "waitReason"/*q*/,
            "runningBuildInfo"/*r*/, "canceledInfo"/*rf*/,
            "queuedDate", "startDate"/*rf*/, "finishDate"/*f*/,
-           "triggered", "lastChanges", "changes", "revisions", "versionedSettingsRevision", "artifactDependencyChanges",
+           "triggered", "lastChanges", "changes", "revisions", "versionedSettingsRevision", "artifactDependencyChanges" /*experimental*/,
            "agent", "compatibleAgents"/*q*/,
            "testOccurrences"/*rf*/, "problemOccurrences"/*rf*/,
            "artifacts"/*rf*/, "issues"/*rf*/,
