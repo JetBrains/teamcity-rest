@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -31,6 +32,7 @@ import jetbrains.buildServer.artifacts.RevisionRule;
 import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
+import jetbrains.buildServer.server.rest.data.change.BuildChangeData;
 import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -43,6 +45,7 @@ import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.PropEntitiesArtifactDep;
+import jetbrains.buildServer.server.rest.model.change.BuildChanges;
 import jetbrains.buildServer.server.rest.model.change.Changes;
 import jetbrains.buildServer.server.rest.model.change.Revision;
 import jetbrains.buildServer.server.rest.model.change.Revisions;
@@ -67,7 +70,9 @@ import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.buildDistribution.WaitReason;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
+import jetbrains.buildServer.serverSide.impl.DownloadedArtifactsLoggerImpl;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.impl.changeProviders.ArtifactDependencyChangesProvider;
 import jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl;
 import jetbrains.buildServer.serverSide.metadata.BuildMetadataEntry;
 import jetbrains.buildServer.serverSide.metadata.impl.MetadataStorageEx;
@@ -101,7 +106,7 @@ import org.jetbrains.annotations.Nullable;
            "startEstimate"/*q*/, "waitReason"/*q*/,
            "runningBuildInfo"/*r*/, "canceledInfo"/*rf*/,
            "queuedDate", "startDate"/*rf*/, "finishDate"/*f*/,
-           "triggered", "lastChanges", "changes", "revisions", "versionedSettingsRevision",
+           "triggered", "lastChanges", "changes", "revisions", "versionedSettingsRevision", "artifactDependencyChanges",
            "agent", "compatibleAgents"/*q*/,
            "testOccurrences"/*rf*/, "problemOccurrences"/*rf*/,
            "artifacts"/*rf*/, "issues"/*rf*/,
@@ -680,6 +685,15 @@ public class Build {
         return new PropEntitiesArtifactDep(artifactDependencies, null, myFields.getNestedField("custom-artifact-dependencies", Fields.NONE, Fields.LONG), myBeanContext);
       }
     });
+  }
+
+  /**
+   * Experimental support only
+   */
+  @XmlElement(name = "artifactDependencyChanges")
+  public BuildChanges getArtifactDependencyChanges() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("artifactDependencyChanges", false, false),
+                                          () -> Build.getBuildChanges(myBuildPromotion, myFields.getNestedField("artifactDependencyChanges"), myBeanContext));
   }
 
   @XmlElement(name = "revisions")
@@ -1723,4 +1737,52 @@ public class Build {
 
     throw new NotFoundException("Field '" + field + "' is not supported. Supported are: number, status, id, startDate, finishDate, buildTypeId, branchName.");
   }
+
+  @Nullable
+  public static BuildChanges getBuildChanges(@NotNull final BuildPromotion build, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    final Long buildId = build.getAssociatedBuildId();
+    if (buildId != null && buildId <= 0) {  //see BuildPromotionImpl.getDetectedChangesProviders
+      return null;
+    }
+    return new BuildChanges(Build.getArtifactDependencyChanges(build, beanContext.getServiceLocator()), fields, beanContext);
+  }
+
+  @NotNull
+  private static List<BuildChangeData> getArtifactDependencyChanges(@NotNull final BuildPromotion build, @NotNull final ServiceLocator serviceLocator) {
+    //see also jetbrains.buildServer.server.rest.data.ChangeFinder.getBuildChanges
+
+    ArtifactDependencyChangesProvider changesProvider = new ArtifactDependencyChangesProvider(build, ChangeFinder.getBuildChangesPolicy(),
+                                                                                              serviceLocator.getSingletonService(BuildsManager.class),
+                                                                                              serviceLocator.getSingletonService(DownloadedArtifactsLoggerImpl.class));
+
+    List<ChangeDescriptor> detectedChanges = changesProvider.getDetectedChanges();
+    if (detectedChanges.isEmpty()) {
+      return Collections.emptyList();
+    }
+    if (detectedChanges.size() > 1) {
+      throw new OperationException("Unexpected state: more than one (" + detectedChanges.size() + ") artifact changes found");
+    }
+    ChangeDescriptor changeDescriptor = detectedChanges.get(0);
+    if (!ChangeDescriptorConstants.ARTIFACT_DEPENDENCY_CHANGE.equals(changeDescriptor.getType())) {
+      throw new OperationException("Unexpected state: unknown type of artifact dependency change: '" + changeDescriptor.getType() + "'");
+    }
+    try {
+      Object o = changeDescriptor.getAssociatedData().get(ArtifactDependencyChangesProvider.CHANGED_DEPENDENCIES_ATTR);
+      //Actually result is List<ArtifactDependencyChangesProvider.ArtifactsChangeDescriptor>
+      if (o == null) {
+        return Collections.emptyList();
+      } else {
+        //noinspection unchecked
+        return ((List<ChangeDescriptor>)o).stream().map(descr -> {
+          Map<String, Object> associatedData = descr.getAssociatedData();
+          Object prevBuild = associatedData.get(ArtifactDependencyChangesProvider.OLD_BUILD_ATTR);
+          Object nextBuild = associatedData.get(ArtifactDependencyChangesProvider.NEW_BUILD_ATTR);
+          if (prevBuild == null || nextBuild == null) return null;
+          return new BuildChangeData(((SBuild)prevBuild).getBuildPromotion(), ((SBuild)nextBuild).getBuildPromotion());}).filter(Objects::nonNull).collect(Collectors.toList());
+      }
+    } catch (Exception e) {
+      throw new OperationException("Unexpected state while getting artifact dependency details: " + e.toString(), e);
+    }
+  }
+
 }

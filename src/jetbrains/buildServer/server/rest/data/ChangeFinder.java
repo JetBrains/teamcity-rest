@@ -660,7 +660,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   }
 
   @NotNull
-  private static SelectPrevBuildPolicy getBuildChangesPolicy() {
+  public static SelectPrevBuildPolicy getBuildChangesPolicy() {
     return SelectPrevBuildPolicy.SINCE_LAST_BUILD;
   }
 

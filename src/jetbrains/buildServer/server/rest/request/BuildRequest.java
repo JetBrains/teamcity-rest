@@ -53,6 +53,7 @@ import jetbrains.buildServer.server.rest.model.build.BuildCancelRequest;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
+import jetbrains.buildServer.server.rest.model.change.BuildChanges;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
@@ -612,6 +613,17 @@ public class BuildRequest {
     myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
     return build.getArtifactsDirectory().getAbsolutePath();
+  }
+
+  /**
+   * Experimental support only
+   */
+  @GET
+  @Path("/{buildLocator}/artifactDependencyChanges")
+  @Produces({"application/xml", "application/json"})
+  public BuildChanges getArtifactDependencyChanges(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
+    BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
+    return Build.getBuildChanges(build, new Fields(fields), myBeanContext);
   }
 
   @POST
