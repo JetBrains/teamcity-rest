@@ -196,14 +196,14 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   private void initJerseyWebComponentAsync() {
-    new NamedDaemonThreadFactory("REST API initializer").newThread(() -> {
-      initJerseyWebComponent();
+    new NamedDaemonThreadFactory("REST API initializer for " + getPluginIdentifyingText()).newThread(() -> {
+      initJerseyWebComponent("via background initial initialization");
     }).start();
   }
 
-  private void initJerseyWebComponent() {
+  private void initJerseyWebComponent(@NotNull String contextDetails) {
     if (!myWebComponentInitialized.get()) {
-      NamedThreadFactory.executeWithNewThreadName("Initializing Jersey for " + getPluginIdentifyingText(), () -> {
+      NamedThreadFactory.executeWithNewThreadName("Initializing Jersey for " + getPluginIdentifyingText() + " " + contextDetails, () -> {
         synchronized (myWebComponentInitialized) {
           if (myWebComponentInitialized.get()) return;
 
@@ -228,7 +228,7 @@ public class APIController extends BaseController implements ServletContextAware
 
             myWebComponentInitialized.set(true);
           } catch (Throwable e) {
-            LOG.error("Error initializing REST API: " + e.toString() + ExceptionMapperUtil.addKnownExceptionsData(e, ""), e);
+            LOG.error("Error initializing REST API " + contextDetails + ": " + e.toString() + ExceptionMapperUtil.addKnownExceptionsData(e, ""), e);
             ExceptionUtil.rethrowAsRuntimeException(e);
           }
         }
@@ -408,7 +408,7 @@ public class APIController extends BaseController implements ServletContextAware
     }
 
     try {
-      initJerseyWebComponent();
+      initJerseyWebComponent("during request " + WebUtil.getRequestDump(request));
     } catch (Throwable throwable) {
       reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, "Error initializing REST API", Level.ERROR, request);
       return null;
