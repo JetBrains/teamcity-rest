@@ -143,7 +143,7 @@ public class Investigation {
                                                             serviceLocator.getSingletonService(UserFinder.class).getCurrentUser(),
                                                             new Date(),
                                                             assignment == null || assignment.getTextFromPosted() == null ? "" : assignment.getTextFromPosted(),
-                                                            resolution.getFromPostedForInvestigation());
+                                                            resolution.getFromPostedForInvestigation(serviceLocator));
 
     ResponsibilityFacadeEx responsibilityFacade = serviceLocator.getSingletonService(ResponsibilityFacadeEx.class);
 

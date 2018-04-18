@@ -82,7 +82,7 @@ public class Resolution {
   }
 
   @NotNull
-  public ResponsibilityEntry.RemoveMethod getFromPostedForInvestigation() {
+  public ResponsibilityEntry.RemoveMethod getFromPostedForInvestigation(@NotNull final ServiceLocator serviceLocator) { //parameter here heps to workaround https://youtrack.jetbrains.com/issue/TW-54657
     if (type == null) {
       throw new BadRequestException("Invalid 'resolution' entity: 'type' should be specified");
     }
@@ -90,7 +90,7 @@ public class Resolution {
       case MANUALLY: return ResponsibilityEntry.RemoveMethod.MANUALLY;
       case WHEN_FIXED: return ResponsibilityEntry.RemoveMethod.WHEN_FIXED;
     }
-    throw new BadRequestException("Invalid 'resolution' entity: unknown 'type' value '" + type + "', supported are: " + MANUALLY + ", " + WHEN_FIXED);
+    throw new BadRequestException("Invalid 'resolution' entity for investigation: unknown 'type' value '" + type + "', supported are: " + MANUALLY + ", " + WHEN_FIXED);
   }
 
   @NotNull
@@ -120,7 +120,7 @@ public class Resolution {
           return null;
         }
         if (time == null) {
-          throw new BadRequestException("Invalid 'resolution' entity: no 'time' is present for '" + TIME + "' type");
+          throw new BadRequestException("Invalid 'resolution' entity for mute: no 'time' is present for '" + TIME + "' type");
         }
         return TimeWithPrecision.parse(time, TimeCondition.getTimeService(serviceLocator)).getTime();
       }
