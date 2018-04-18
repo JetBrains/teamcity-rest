@@ -67,8 +67,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
                               final @NotNull BuildHistoryEx buildHistory,
                               final @NotNull CurrentProblemsManager currentProblemsManager) {
     super(DIMENSION_ID, TEST, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED);
-    setHiddenDimensions(EXPAND_INVOCATIONS);
-    setHiddenDimensions(INVOCATIONS);
+    setHiddenDimensions(EXPAND_INVOCATIONS, INVOCATIONS);
     myTestFinder = testFinder;
     myBuildFinder = buildFinder;
     myBuildTypeFinder = buildTypeFinder;
