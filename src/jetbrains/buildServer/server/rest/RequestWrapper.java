@@ -23,6 +23,7 @@ import java.util.Enumeration;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import jetbrains.buildServer.server.rest.request.Constants;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 
 /**
  * @author Yegor.Yarko
@@ -35,7 +36,7 @@ public class RequestWrapper extends HttpServletRequestWrapper {
   public RequestWrapper(HttpServletRequest request, RequestPathTransformInfo requestPathTransformInfo) {
     super(request);
     myRequestPathTransformInfo = requestPathTransformInfo;
-    if (LOG.isDebugEnabled()) LOG.debug("Establishing request mapping: '" + request.getRequestURI() + "' -> '" + getRequestURI() + "'");
+    if (TeamCityProperties.getBoolean("rest.log.debug.requestWrapper") && LOG.isDebugEnabled()) LOG.debug("Establishing request mapping: '" + request.getRequestURI() + "' -> '" + getRequestURI() + "'");
   }
 
   @Override
