@@ -403,7 +403,7 @@ public class APIController extends BaseController implements ServletContextAware
     }
 
     final Stopwatch requestStart = new Stopwatch().start();
-    if (LOG.isDebugEnabled()) {
+    if (TeamCityProperties.getBoolean("rest.log.debug.requestStart") && LOG.isDebugEnabled()) {
       LOG.debug("REST API request received: " + WebUtil.getRequestDump(request) + ", " + getPluginIdentifyingText());
     }
 
@@ -491,7 +491,7 @@ public class APIController extends BaseController implements ServletContextAware
     } finally{
       if (LOG.isDebugEnabled()) {
         LOG.debug("REST API request processing finished in " + TimePrinter.createMillisecondsFormatter().formatTime(requestStart.elapsedMillis()) +
-                  (errorEncountered ? " with errors, original " : ", ") + "status code: " + getStatus(response) + ", " + getPluginIdentifyingText());
+                  (errorEncountered ? " with errors, original " : ", ") + "status code: " + getStatus(response) + ", request: " + WebUtil.getRequestDump(request));
       }
     }
     return null;
