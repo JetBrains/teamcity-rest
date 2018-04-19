@@ -56,6 +56,7 @@ import jetbrains.buildServer.serverSide.SecurityContextEx;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.web.CorsOrigins;
+import jetbrains.buildServer.web.impl.RestApiFacade;
 import jetbrains.buildServer.web.jsp.RestApiInternalRequestTag;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
@@ -403,8 +404,10 @@ public class APIController extends BaseController implements ServletContextAware
     }
 
     final Stopwatch requestStart = new Stopwatch().start();
-    if (TeamCityProperties.getBoolean("rest.log.debug.requestStart") && LOG.isDebugEnabled()) {
-      LOG.debug("REST API request received: " + WebUtil.getRequestDump(request) + ", " + getPluginIdentifyingText());
+    boolean shouldLogToDebug = shouldLogToDebug(request);
+    boolean internalRequest = RestApiFacade.isInternal(request);
+    if (shouldLogToDebug && TeamCityProperties.getBoolean("rest.log.debug.requestStart") && LOG.isDebugEnabled()) {
+      LOG.debug("REST API" + (internalRequest ? " internal" : "") + " request received: " + WebUtil.getRequestDump(request));
     }
 
     try {
@@ -456,7 +459,8 @@ public class APIController extends BaseController implements ServletContextAware
         }
       }
 
-      NamedThreadFactory.executeWithNewThreadNameFuncThrow("Processing REST request", () -> {
+      String activityName = "Processing REST request" + (internalRequest ? " " + WebUtil.getRequestDump(request) : "");
+      NamedThreadFactory.executeWithNewThreadNameFuncThrow(activityName, () -> {
         // workaround for http://jetbrains.net/tracker/issue2/TW-7656
         doUnderContextClassLoader(getClass().getClassLoader(), new FuncThrow<Void, Throwable>() {
           public Void apply() throws Throwable {
@@ -467,7 +471,7 @@ public class APIController extends BaseController implements ServletContextAware
                 new RequestWrapper(patchRequest(request, "Accept", "overrideAccept"), myRequestPathTransformInfo);
 
               if (runAsSystemActual) {
-                LOG.debug("Executing request with system security level");
+                if (shouldLogToDebug) LOG.debug("Executing request with system security level");
                 mySecurityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
                   public void run() throws Throwable {
                     myWebComponent.doFilter(actualRequest, response, null);
@@ -489,12 +493,17 @@ public class APIController extends BaseController implements ServletContextAware
       reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, Level.WARN, request);
       //todo: process exception mappers here to use correct error presentation in the log
     } finally{
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("REST API request processing finished in " + TimePrinter.createMillisecondsFormatter().formatTime(requestStart.elapsedMillis()) +
+      if (shouldLogToDebug && LOG.isDebugEnabled()) {
+        LOG.debug("REST API" + (internalRequest ? " internal" : "") + " request processing finished in " +
+                  TimePrinter.createMillisecondsFormatter().formatTime(requestStart.elapsedMillis()) +
                   (errorEncountered ? " with errors, original " : ", ") + "status code: " + getStatus(response) + ", request: " + WebUtil.getRequestDump(request));
       }
     }
     return null;
+  }
+
+  private boolean shouldLogToDebug(@NotNull final HttpServletRequest request) {
+    return !RestApiFacade.isInternal(request) || TeamCityProperties.getBoolean("rest.log.debug.internalRequests");
   }
 
   private static boolean processRequestAuthentication(@NotNull final HttpServletRequest request,
