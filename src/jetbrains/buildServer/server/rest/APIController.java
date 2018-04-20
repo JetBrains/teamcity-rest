@@ -471,7 +471,7 @@ public class APIController extends BaseController implements ServletContextAware
                 new RequestWrapper(patchRequest(request, "Accept", "overrideAccept"), myRequestPathTransformInfo);
 
               if (runAsSystemActual) {
-                if (shouldLogToDebug) LOG.debug("Executing request with system security level");
+                if (shouldLogToDebug && LOG.isDebugEnabled()) LOG.debug("Executing request with system security level");
                 mySecurityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
                   public void run() throws Throwable {
                     myWebComponent.doFilter(actualRequest, response, null);
