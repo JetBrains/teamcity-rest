@@ -58,10 +58,10 @@ public class PermissionAssignmentFinderTest extends BaseFinderTest<PermissionAss
     String projectId = myProject1.getProjectId();
     myUser1.addRole(RoleScope.projectScope(projectId), roleProject);
 
-    check(null, pa(Permission.CHANGE_OWN_PROFILE), pa(Permission.RUN_BUILD, projectId), pa(Permission.VIEW_PROJECT, projectId), pa(Permission.VIEW_PROJECT, getRootProject().getProjectId()), pa(Permission.RUN_BUILD, myProject11.getProjectId()), pa(Permission.VIEW_PROJECT, myProject11.getProjectId()));
-    check("global:any", pa(Permission.CHANGE_OWN_PROFILE), pa(Permission.RUN_BUILD, projectId), pa(Permission.VIEW_PROJECT, projectId), pa(Permission.VIEW_PROJECT, getRootProject().getProjectId()), pa(Permission.RUN_BUILD, myProject11.getProjectId()), pa(Permission.VIEW_PROJECT, myProject11.getProjectId()));
+    check(null, pa(Permission.CHANGE_OWN_PROFILE), pa(Permission.VIEW_PROJECT, getRootProject().getProjectId()), pa(Permission.RUN_BUILD, projectId), pa(Permission.VIEW_PROJECT, projectId), pa(Permission.RUN_BUILD, myProject11.getProjectId()), pa(Permission.VIEW_PROJECT, myProject11.getProjectId()));
+    check("global:any", pa(Permission.CHANGE_OWN_PROFILE), pa(Permission.VIEW_PROJECT, getRootProject().getProjectId()), pa(Permission.RUN_BUILD, projectId), pa(Permission.VIEW_PROJECT, projectId), pa(Permission.RUN_BUILD, myProject11.getProjectId()), pa(Permission.VIEW_PROJECT, myProject11.getProjectId()));
     check("global:true", pa(Permission.CHANGE_OWN_PROFILE));
-    check("global:false", pa(Permission.RUN_BUILD, projectId), pa(Permission.VIEW_PROJECT, projectId), pa(Permission.VIEW_PROJECT, getRootProject().getProjectId()), pa(Permission.RUN_BUILD, myProject11.getProjectId()), pa(Permission.VIEW_PROJECT, myProject11.getProjectId()));
+    check("global:false", pa(Permission.VIEW_PROJECT, getRootProject().getProjectId()), pa(Permission.RUN_BUILD, projectId), pa(Permission.VIEW_PROJECT, projectId), pa(Permission.RUN_BUILD, myProject11.getProjectId()), pa(Permission.VIEW_PROJECT, myProject11.getProjectId()));
     check("project:(id:" + myProject1.getExternalId() + ")", pa(Permission.RUN_BUILD, projectId), pa(Permission.VIEW_PROJECT, projectId));
     check("project:(id:" + getRootProject().getExternalId() + ")", pa(Permission.VIEW_PROJECT, getRootProject().getProjectId()));
     check("permission:" + "RUN_BUILD", pa(Permission.RUN_BUILD, projectId), pa(Permission.RUN_BUILD, myProject11.getProjectId()));
