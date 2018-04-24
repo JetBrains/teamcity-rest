@@ -62,4 +62,10 @@ public class DelegatingFinder<ITEM> implements Finder<ITEM> {
   public ItemFilter<ITEM> getFilter(@NotNull final String locatorText) {
     return myDelegate.getFilter(locatorText);
   }
+
+  @NotNull
+  @Override
+  public String getName() {
+    return myDelegate.getName();
+  }
 }

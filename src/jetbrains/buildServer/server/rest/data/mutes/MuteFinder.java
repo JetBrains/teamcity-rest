@@ -88,6 +88,7 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
   private class MuteFinderBuilder extends TypedFinderBuilder<MuteInfo> {
 
     MuteFinderBuilder() {
+      name("MuteFinder");
       singleDimension(dimension -> {
         // no dimensions found, assume it's id
         return Collections.singletonList(findMuteById(getLong(dimension).intValue()));

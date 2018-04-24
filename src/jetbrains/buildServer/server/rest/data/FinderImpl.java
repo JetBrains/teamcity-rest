@@ -54,6 +54,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   protected static final String CONTEXT_ITEM_DIMENSION_NAME = "$contextItem";
 
   public static final Long NO_COUNT = -1L;
+  @Nullable private String myName;
 
   //todo: add set-filtering (filter by collection of items in prefiltering and in filter), e.g. see handling of ProjectFinder.DIMENSION_PROJECT
   private FinderDataBinding<ITEM> myDataBinding;
@@ -71,6 +72,16 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     myDataBinding = dataBinding;
   }
 
+  public void setName(@NotNull String finderName) {
+    myName = finderName;
+  }
+
+  @NotNull
+  @Override
+  public String getName() {
+    return myName != null ? myName : getClass().getSimpleName();
+  }
+
   @NotNull
   @Override
   public String getCanonicalLocator(@NotNull final ITEM item) {
@@ -80,7 +91,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   @Override
   @NotNull
   public ITEM getItem(@Nullable final String locatorText) {
-    return NamedThreadFactory.executeWithNewThreadNameFuncThrow("Using " + getClass().getSimpleName() + " to get single item for locator \"" + locatorText + "\"",
+    return NamedThreadFactory.executeWithNewThreadNameFuncThrow("Using " + getName() + " to get single item for locator \"" + locatorText + "\"",
                                                          () -> getItem(locatorText, null));
   }
 
@@ -91,7 +102,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   @Override
   @NotNull
   public PagedSearchResult<ITEM> getItems(@Nullable final String locatorText) {
-    return NamedThreadFactory.executeWithNewThreadNameFuncThrow("Using " + getClass().getSimpleName() + " to get items for locator \"" + locatorText + "\"",
+    return NamedThreadFactory.executeWithNewThreadNameFuncThrow("Using " + getName() + " to get items for locator \"" + locatorText + "\"",
                                                                 () -> getItemsByLocator(getLocatorOrNull(locatorText), true));
   }
 
@@ -344,8 +355,8 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     if (totalItemsProcessed >= TeamCityProperties.getLong("rest.finder.processedItemsLogLimit", 1)) {
       final String lookupLimitMessage =
         filter.isLookupLimitReached() ? " (lookupLimit of " + filter.getLookupLimit() + " reached). Last processed item: " + LogUtil.describe(filter.getLastProcessedItem()) : "";
-      LOG.debug("While processing locator '" + locator + "' by finder " + getClass().getName() + ", " + result.size() + " items were matched by the filter from " + totalItemsProcessed + " processed in total" +
-                lookupLimitMessage + ", took " + processingTimeMs + " ms"); //todo make AbstractFilter loggable and add logging here instead of getClass().getName()
+      LOG.debug("While processing locator '" + locator + "' by finder " + getName() + ", " + result.size() + " items were matched by the filter from " +
+                totalItemsProcessed + " processed in total" + lookupLimitMessage + ", took " + processingTimeMs + " ms");
     }
     if (totalItemsProcessed > TeamCityProperties.getLong("rest.finder.processedItemsWarnLimit", 10000) ||
         processingTimeMs > TeamCityProperties.getLong("rest.finder.timeWarnLimit", 10000)) {

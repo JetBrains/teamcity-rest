@@ -423,6 +423,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
 
   private class UserFinderBuilder extends TypedFinderBuilder<SUser> {
     UserFinderBuilder() {
+      name("UserFinder");
       singleDimension(dimension -> {
         //"current" is a reserved value for single dimension - current user.
         // before 2018.1 the precedence was different: if there was a user with username "current" it was served. However, the behavior was poorly predictable that way.

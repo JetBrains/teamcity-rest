@@ -69,6 +69,7 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
 
   private class AgentPoolFinderBuilder extends TypedFinderBuilder<AgentPool> {
     AgentPoolFinderBuilder() {
+      name("AgentPoolFinder");
       dimensionLong(Dimension.single()).description("agent pool id").toItems(dimension -> Collections.singletonList(getAgentPoolById(dimension)));
       dimensionLong(ID).description("agent pool id").toItems(dimension -> Collections.singletonList(getAgentPoolById(dimension))).
         valueForDefaultFilter(agentPool -> (long)agentPool.getAgentPoolId());

@@ -40,6 +40,7 @@ public class PermissionAssignmentFinder extends DelegatingFinder<PermissionAssig
 
   public PermissionAssignmentFinder(@NotNull final AuthorityHolder authorityHolder, @NotNull final ServiceLocator serviceLocator) {
     TypedFinderBuilder<PermissionAssignmentData> builder = new TypedFinderBuilder<PermissionAssignmentData>();
+    builder.name("PermissionAssignmentFinder");
 
     builder.dimensionBoolean(GLOBAL).description("return only globally assigned permissions").withDefault("any").
       valueForDefaultFilter(permissionAssignment -> permissionAssignment.getInternalProjectId() == null);

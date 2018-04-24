@@ -135,6 +135,7 @@ public class PropEntityProjectFeature extends PropEntity {
 
     public ProjectFeatureFinder(@NotNull final SProject project) {
       TypedFinderBuilder<SProjectFeatureDescriptor> builder = new TypedFinderBuilder<SProjectFeatureDescriptor>();
+      builder.name("ProjectFeatureFinder");
 
 //      description("Project features of project with id '" + project.getExternalId() + "'");
       builder.singleDimension(dimension -> {

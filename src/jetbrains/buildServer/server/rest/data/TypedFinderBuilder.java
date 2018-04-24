@@ -54,6 +54,7 @@ public class TypedFinderBuilder<ITEM> {
   private ItemsFromDimension<ITEM, String> mySingleDimensionHandler;
   private LocatorProvider<ITEM> myLocatorProvider;
   private ContainerSetProvider<ITEM> myContainerSetProvider;
+  private String myFinderName;
 
   public interface TypedFinderDimension<ITEM, TYPE> {
     @NotNull
@@ -441,6 +442,10 @@ public class TypedFinderBuilder<ITEM> {
   //  return this;
   //}
 
+  public void name(@NotNull String finderName) {
+    myFinderName = finderName;
+  }
+
   public <TYPE> TypedFinderDimension<ITEM, TYPE> dimension(@NotNull final Dimension<TYPE> dimension,
                                                            @NotNull final Type<TYPE> typeMapper) { //typeMapper: dimensionValue->typed object
     if (myDimensions.containsKey(dimension.name)) throw new OperationException("Dimension with name '" + dimension.name + "' was already added");
@@ -491,7 +496,13 @@ public class TypedFinderBuilder<ITEM> {
   @NotNull
   public Finder<ITEM> build() {
 //    if (myLocatorProvider == null) throw new OperationException("Should set locator provider via a call to locatorProvider()");
-    return new FinderImpl<ITEM>(new TypedFinderDataBindingImpl());
+    FinderImpl<ITEM> result = new FinderImpl<>(new TypedFinderDataBindingImpl());
+    if (myFinderName != null) {
+      result.setName(myFinderName);
+    } else {
+      result.setName(getClass().getName());
+    }
+    return result;
   }
 
   //============================= helper methods =============================

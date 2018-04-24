@@ -49,4 +49,7 @@ public interface Finder<ITEM> {
    */
   @NotNull
   ItemFilter<ITEM> getFilter(@NotNull String locatorText);
+
+  @NotNull
+  default String getName(){ return getClass().getSimpleName();}
 }
