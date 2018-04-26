@@ -27,7 +27,6 @@ import jetbrains.buildServer.serverSide.auth.Role;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.users.SUser;
-import org.assertj.core.api.BDDAssertions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
@@ -179,7 +178,7 @@ public class PermissionAssignmentFinderTest extends BaseFinderTest<PermissionAss
   private static class UnorderedMatchStrategy implements CollectionsMatchStrategy<PermissionAssignmentData, PermissionAssignmentData> {
     @Override
     public void matchCollection(@NotNull final PermissionAssignmentData[] items, @NotNull final List<PermissionAssignmentData> result) {
-      BDDAssertions.then(items).containsAll(result);
+      assertContains(result, items);
     }
 
     @Override
@@ -187,7 +186,7 @@ public class PermissionAssignmentFinderTest extends BaseFinderTest<PermissionAss
       if (items.length == 0) {
         assertExceptionThrown(singleResultSupplier::get, NotFoundException.class);
       } else {
-        BDDAssertions.then(items).contains(singleResultSupplier.get());
+        assertContains(Arrays.asList(items), singleResultSupplier.get());
       }
     }
   }
