@@ -20,6 +20,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SRunningBuild;
 import org.jetbrains.annotations.NotNull;
@@ -29,7 +30,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 13.09.2010
  */
-@XmlType(propOrder = {"percentageComplete", "elapsedSeconds", "estimatedTotalSeconds", "leftSeconds", "currentStageText", "outdated", "probablyHanging"})
+@XmlType(propOrder = {"percentageComplete", "elapsedSeconds", "estimatedTotalSeconds", "leftSeconds", "currentStageText", "outdated", "probablyHanging", "lastActivityTime"})
 @XmlRootElement(name = "progress-info")
 public class RunningBuildInfo {
   @NotNull
@@ -88,6 +89,14 @@ public class RunningBuildInfo {
   @XmlAttribute
   public String getCurrentStageText() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("currentStageText", true), myBuild.getCurrentPath());
+  }
+
+  /**
+   * Experimental
+   */
+  @XmlAttribute
+  public String getLastActivityTime() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("lastActivityTime", false, false), Util.formatTime(myBuild.getLastBuildActivityTimestamp()));
   }
 
   @Nullable
