@@ -16,9 +16,11 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import com.intellij.openapi.util.Pair;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Supplier;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.log.Loggable;
@@ -216,6 +218,11 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
 
   public <S, R> void check(@Nullable final String locator, @NotNull Matcher<S, R> matcher,
                            @NotNull DescriptionProvider <R> loggerActual, @NotNull DescriptionProvider <S> loggerExpected, @NotNull final Finder<R> finder, S... items) {
+    check(locator, loggerActual, loggerExpected, finder, getDefaultMatchStrategy(locator, matcher, items), items);
+  }
+
+  public <S, R> void check(@Nullable final String locator, @NotNull DescriptionProvider<R> loggerActual, @NotNull DescriptionProvider<S> loggerExpected,
+                           @NotNull final Finder<R> finder, @NotNull final CollectionsMatchStrategy<S, R> strategy, S... items) {
     final List<R> result = finder.getItems(locator).myEntries;
     final String expected = getDescription(Arrays.asList(items), loggerExpected);
     final String actual = getDescription(result, loggerActual);
@@ -223,32 +230,11 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
                  "Expected:\n" + expected + "\n\n" +
                  "Actual:\n" + actual, items.length, result.size());
 
-    for (int i = 0; i < items.length; i++) {
-      if (!matcher.matches(items[i], result.get(i))) {
-        fail("Wrong item found for locator \"" + locator + "\" at position " + (i + 1) + "/" + items.length + "\n" +
-             "Expected:\n" + expected + "\n" +
-             "\nActual:\n" + actual);
-      }
-    }
+    strategy.matchCollection(items, result);
 
     //check single item retrieve
     if (locator != null) {
-      if (items.length == 0) {
-        try {
-          R singleResult = finder.getItem(locator);
-          fail("No items should be found by locator \"" + locator + "\", but found: " + loggerActual.describe(singleResult));
-        } catch (NotFoundException e) {
-          //exception is expected
-        }
-      } else {
-        R singleResult = finder.getItem(locator);
-        final S item = items[0];
-        if (!matcher.matches(item, singleResult)) {
-          fail("While searching for single item with locator \"" + locator + "\"\n" +
-               "Expected: " + loggerExpected.describe(item) + "\n" +
-               "Actual: " + loggerActual.describe(singleResult));
-        }
-      }
+      strategy.matchSingle(items, () -> finder.getItem(locator));
     }
   }
 
@@ -264,6 +250,31 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
 
   public static interface DescriptionProvider<S> {
     String describe(@NotNull S s);
+  }
+
+  @NotNull
+  protected <S, R> OrderedMatcherStrategy<S, R> getDefaultMatchStrategy(@Nullable final String locator,
+                                                                        @NotNull final Matcher<S, R> equalsMatcher,
+                                                                        @NotNull final S[] items) {
+    return new OrderedMatcherStrategy<S, R>(equalsMatcher, new DescriptionProvider<Pair<List<R>, Integer>>() {
+      @Override
+      public String describe(@NotNull final Pair<List<R>, Integer> p) {
+        return "Wrong item found for locator \"" + locator + "\" at position " + (p.getSecond() + 1) + "/" + items.length + "\n" +
+               "Expected:\n" + Arrays.toString(items) + "\n" +
+               "\nActual:\n" + p.first;
+      }
+    }, new DescriptionProvider<Pair<S, R>>() {
+      @Override
+      public String describe(@NotNull final Pair<S, R> p) {
+        if (p.first == null) {
+          return "No items should be found by locator \"" + locator + "\", but found: " + ((DescriptionProvider<R>)BaseFinderTest::getDescription).describe(p.second);
+        } else {
+          return "While searching for single item with locator \"" + locator + "\"\n" +
+                 "Expected: " + ((DescriptionProvider<S>)BaseFinderTest::getDescription).describe(p.first) + "\n" +
+                 "Actual: " + ((DescriptionProvider<R>)BaseFinderTest::getDescription).describe(p.second);
+        }
+      }
+    });
   }
 
   protected static <U> String getDescription(final U singleResult) {
@@ -330,5 +341,52 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
       }
     }
     return result1.toString();
+  }
+
+  public interface CollectionsMatchStrategy<S, R> {
+    public void matchCollection(@NotNull final S[] items, @NotNull final List<R> result);
+
+    public void matchSingle(final S[] items, final Supplier<R> singleResultSupplier);
+  }
+
+  public static class OrderedMatcherStrategy<S, R> implements CollectionsMatchStrategy<S, R> {
+    @NotNull private final Matcher<S, R> myMatcher;
+    @NotNull private final DescriptionProvider<Pair<List<R>, Integer>> myCollectionMatchDescriptionProvider;
+    @NotNull private final DescriptionProvider<Pair<S, R>> mySingleMatchDescriptionProvider;
+
+    public OrderedMatcherStrategy(@NotNull final Matcher<S, R> matcher,
+                                  @NotNull final DescriptionProvider<Pair<List<R>, Integer>> collectionMatchDescriptionProvider,
+                                  @NotNull final DescriptionProvider<Pair<S, R>> singleMatchDescriptionProvider) {
+      myMatcher = matcher;
+      myCollectionMatchDescriptionProvider = collectionMatchDescriptionProvider;
+      mySingleMatchDescriptionProvider = singleMatchDescriptionProvider;
+    }
+
+    @Override
+    public void matchCollection(@NotNull final S[] items, @NotNull final List<R> result) {
+      for (int i = 0; i < items.length; i++) {
+        if (!myMatcher.matches(items[i], result.get(i))) {
+          fail(myCollectionMatchDescriptionProvider.describe(Pair.create(result, i)));
+        }
+      }
+    }
+
+    @Override
+    public void matchSingle(final S[] items, final Supplier<R> singleResultSupplier) {
+      if (items.length == 0) {
+        try {
+          R r = singleResultSupplier.get(); // should fail with NotFoundException
+          fail(mySingleMatchDescriptionProvider.describe(Pair.create(null, r)));
+        } catch (NotFoundException e) {
+          //exception is expected
+        }
+      } else {
+        R r = singleResultSupplier.get();
+        final S item = items[0];
+        if (!myMatcher.matches(item, r)) {
+          fail(mySingleMatchDescriptionProvider.describe(Pair.create(item, r)));
+        }
+      }
+    }
   }
 }
