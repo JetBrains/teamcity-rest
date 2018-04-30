@@ -623,7 +623,7 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded("running-info", false), () -> {
       SRunningBuild runningBuild = getRunningBuild(myBuildPromotion, myServiceLocator);
       if (runningBuild == null) return null;
-      return new RunningBuildInfo(runningBuild, myFields.getNestedField("running-info"));
+      return new RunningBuildInfo(runningBuild, myFields.getNestedField("running-info"), myBeanContext);
     });
   }
 

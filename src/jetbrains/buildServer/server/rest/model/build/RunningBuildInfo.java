@@ -17,11 +17,14 @@
 package jetbrains.buildServer.server.rest.model.build;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SRunningBuild;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -30,19 +33,22 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 13.09.2010
  */
-@XmlType(propOrder = {"percentageComplete", "elapsedSeconds", "estimatedTotalSeconds", "leftSeconds", "currentStageText", "outdated", "probablyHanging", "lastActivityTime"})
+@XmlType(propOrder = {"percentageComplete", "elapsedSeconds", "estimatedTotalSeconds", "leftSeconds", "currentStageText", "outdated", "probablyHanging", "lastActivityTime",
+                      "outdatedReasonBuild"})
 @XmlRootElement(name = "progress-info")
 public class RunningBuildInfo {
   @NotNull
   private SRunningBuild myBuild;
   @NotNull private Fields myFields;
+  @NotNull private BeanContext myBeanContext;
 
   public RunningBuildInfo() {
   }
 
-  public RunningBuildInfo(@NotNull final SRunningBuild build, @NotNull final Fields fields) {
+  public RunningBuildInfo(@NotNull final SRunningBuild build, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     myBuild = build;
     myFields = fields;
+    myBeanContext = beanContext;
   }
 
   @XmlAttribute(name = "percentageComplete")
@@ -97,6 +103,20 @@ public class RunningBuildInfo {
   @XmlAttribute
   public String getLastActivityTime() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("lastActivityTime", false, false), Util.formatTime(myBuild.getLastBuildActivityTimestamp()));
+  }
+
+  /**
+   * Experimental
+   */
+  @XmlElement
+  public Build getOutdatedReasonBuild() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("outdatedReasonBuild", false, false),
+                                          () -> {
+                                            SFinishedBuild recentlyFinishedBuild = myBuild.getRecentlyFinishedBuild();
+                                            return recentlyFinishedBuild == null
+                                                   ? null
+                                                   : new Build(recentlyFinishedBuild.getBuildPromotion(), myFields.getNestedField("outdatedReasonBuild"), myBeanContext);
+                                          });
   }
 
   @Nullable
