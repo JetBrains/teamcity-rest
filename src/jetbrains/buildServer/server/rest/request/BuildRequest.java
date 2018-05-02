@@ -623,7 +623,7 @@ public class BuildRequest {
   @Produces({"application/xml", "application/json"})
   public BuildChanges getArtifactDependencyChanges(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
-    return Build.getBuildChanges(build, new Fields(fields), myBeanContext);
+    return Build.getArtifactDependencyChangesNode(build, new Fields(fields), myBeanContext);
   }
 
   @POST

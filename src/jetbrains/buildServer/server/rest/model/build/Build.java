@@ -693,7 +693,7 @@ public class Build {
   @XmlElement(name = "artifactDependencyChanges")
   public BuildChanges getArtifactDependencyChanges() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("artifactDependencyChanges", false, false),
-                                          () -> Build.getBuildChanges(myBuildPromotion, myFields.getNestedField("artifactDependencyChanges"), myBeanContext));
+                                          () -> Build.getArtifactDependencyChangesNode(myBuildPromotion, myFields.getNestedField("artifactDependencyChanges"), myBeanContext));
   }
 
   @XmlElement(name = "revisions")
@@ -1739,7 +1739,7 @@ public class Build {
   }
 
   @Nullable
-  public static BuildChanges getBuildChanges(@NotNull final BuildPromotion build, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+  public static BuildChanges getArtifactDependencyChangesNode(@NotNull final BuildPromotion build, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     final Long buildId = build.getAssociatedBuildId();
     if (buildId != null && buildId <= 0) {  //see BuildPromotionImpl.getDetectedChangesProviders
       return null;
