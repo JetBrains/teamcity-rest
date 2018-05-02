@@ -1773,12 +1773,16 @@ public class Build {
         return Collections.emptyList();
       } else {
         //noinspection unchecked
-        return ((List<ChangeDescriptor>)o).stream().map(descr -> {
-          Map<String, Object> associatedData = descr.getAssociatedData();
-          Object prevBuild = associatedData.get(ArtifactDependencyChangesProvider.OLD_BUILD_ATTR);
-          Object nextBuild = associatedData.get(ArtifactDependencyChangesProvider.NEW_BUILD_ATTR);
-          if (prevBuild == null || nextBuild == null) return null;
-          return new BuildChangeData(((SBuild)prevBuild).getBuildPromotion(), ((SBuild)nextBuild).getBuildPromotion());}).filter(Objects::nonNull).collect(Collectors.toList());
+        return ((List<ChangeDescriptor>)o).stream()
+                                          .map(descr -> {
+                                            Map<String, Object> associatedData = descr.getAssociatedData();
+                                            SBuild prevBuild = (SBuild)associatedData.get(ArtifactDependencyChangesProvider.OLD_BUILD_ATTR);
+                                            SBuild nextBuild = (SBuild)associatedData.get(ArtifactDependencyChangesProvider.NEW_BUILD_ATTR);
+                                            if (prevBuild == null && nextBuild == null) return null;
+                                            return new BuildChangeData(Util.resolveNull(prevBuild, (b) -> b.getBuildPromotion()),
+                                                                       Util.resolveNull(nextBuild, (b) -> b.getBuildPromotion()));
+                                          })
+                                          .filter(Objects::nonNull).collect(Collectors.toList());
       }
     } catch (Exception e) {
       throw new OperationException("Unexpected state while getting artifact dependency details: " + e.toString(), e);

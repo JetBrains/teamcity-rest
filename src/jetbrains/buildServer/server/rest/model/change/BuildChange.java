@@ -26,6 +26,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.data.change.BuildChangeData;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -44,7 +45,7 @@ public class BuildChange {
   }
 
   public BuildChange(BuildChangeData buildChange, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
-    nextBuild = ValueWithDefault.decideDefault(fields.isIncluded("nextBuild"), new Build(buildChange.getNextBuild(), fields.getNestedField("nextBuild"), beanContext));
-    prevBuild = ValueWithDefault.decideDefault(fields.isIncluded("prevBuild"), () -> new Build(buildChange.getPreviousBuild(), fields.getNestedField("prevBuild"), beanContext));
+    nextBuild = ValueWithDefault.decideDefault(fields.isIncluded("nextBuild"), () -> Util.resolveNull(buildChange.getNextBuild(), (b) -> new Build(b, fields.getNestedField("nextBuild"), beanContext)));
+    prevBuild = ValueWithDefault.decideDefault(fields.isIncluded("prevBuild"), () -> Util.resolveNull(buildChange.getPreviousBuild(), (b) -> new Build(b, fields.getNestedField("prevBuild"), beanContext)));
   }
 }

@@ -17,27 +17,27 @@
 package jetbrains.buildServer.server.rest.data.change;
 
 import jetbrains.buildServer.serverSide.BuildPromotion;
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
  * Date: 27/03/2018
  */
 public class BuildChangeData {
-  @NotNull BuildPromotion myPreviousBuild;
-  @NotNull BuildPromotion myNextBuild;
+  @Nullable BuildPromotion myPreviousBuild;
+  @Nullable BuildPromotion myNextBuild;
 
-  public BuildChangeData(@NotNull final BuildPromotion previousBuild, @NotNull final BuildPromotion nextBuild) {
+  public BuildChangeData(@Nullable final BuildPromotion previousBuild, @Nullable final BuildPromotion nextBuild) {
     myPreviousBuild = previousBuild;
     myNextBuild = nextBuild;
   }
 
-  @NotNull
+  @Nullable
   public BuildPromotion getPreviousBuild() {
     return myPreviousBuild;
   }
 
-  @NotNull
+  @Nullable
   public BuildPromotion getNextBuild() {
     return myNextBuild;
   }
