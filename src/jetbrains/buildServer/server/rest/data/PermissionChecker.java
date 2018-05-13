@@ -18,13 +18,9 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.util.text.StringUtil;
 import java.util.Arrays;
-import jetbrains.buildServer.controllers.interceptors.auth.impl.BuildAuthorityHolder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
-import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.BuildTypeSettings;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
-import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
