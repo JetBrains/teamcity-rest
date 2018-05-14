@@ -53,13 +53,14 @@ import org.jetbrains.annotations.Nullable;
   "locator"/*only when triggering*/})
 public class User {
   @Nullable
-  private SUser myUser;
+  public final SUser myUser;
   @NotNull
   private final Long myUserId;
   private Fields myFields;
   private BeanContext myContext;
 
   public User() {
+    myUser = null;
     myUserId = 0L;
   }
 
@@ -75,6 +76,10 @@ public class User {
     myUserId = myUser.getId();
     myFields = fields;
     myContext = context;
+  }
+
+  private void checkCanViewUserDetails() {
+    myContext.getSingletonService(UserFinder.class).checkViewUserPermission(myUser); //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
   }
 
   @XmlAttribute
@@ -94,15 +99,13 @@ public class User {
 
   @XmlAttribute
   public String getLastLogin() {
-    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("lastLogin", false), new ValueWithDefault.Value<String>() {
-      public String get() {
-        myContext.getSingletonService(UserFinder.class).checkViewUserPermission(myUser);
-        Date lastLoginTimestamp = myUser.getLastLoginTimestamp();
-        if (lastLoginTimestamp != null) {
-          return Util.formatTime(lastLoginTimestamp);
-        }
-        return null;
+    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("lastLogin", false), () -> {
+      checkCanViewUserDetails();
+      Date lastLoginTimestamp = myUser.getLastLoginTimestamp();
+      if (lastLoginTimestamp != null) {
+        return Util.formatTime(lastLoginTimestamp);
       }
+      return null;
     });
   }
 
@@ -122,32 +125,22 @@ public class User {
 
   @XmlAttribute
   public Boolean getHasPassword() {
-    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("hasPassword", false, false), new ValueWithDefault.Value<Boolean>() {
-      @Nullable
-      @Override
-      public Boolean get() {
-        return ((UserImpl)myUser).hasPassword();
-      }
-    });
+    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("hasPassword", false, false), () -> ((UserImpl)myUser).hasPassword());
   }
 
   @XmlElement(name = "roles")
   public RoleAssignments getRoles() {
-    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("roles", false), new ValueWithDefault.Value<RoleAssignments>() {
-      public RoleAssignments get() {
-        myContext.getSingletonService(UserFinder.class).checkViewUserPermission(myUser); //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
-        return new RoleAssignments(myUser.getRoles(), myUser, myContext);
-      }
+    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("roles", false), () -> {
+      checkCanViewUserDetails();
+      return new RoleAssignments(myUser.getRoles(), myUser, myContext);
     });
   }
 
   @XmlElement(name = "groups")
   public Groups getGroups() {
-    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("groups", false), new ValueWithDefault.Value<Groups>() {
-      public Groups get() {
-        myContext.getSingletonService(UserFinder.class).checkViewUserPermission(myUser); //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
-        return new Groups(myUser.getUserGroups(), myFields.getNestedField("groups", Fields.NONE, Fields.LONG), myContext);
-      }
+    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("groups", false), () -> {
+      checkCanViewUserDetails();
+      return new Groups(myUser.getUserGroups(), myFields.getNestedField("groups", Fields.NONE, Fields.LONG), myContext);
     });
   }
 
@@ -158,11 +151,8 @@ public class User {
 
   @XmlElement(name = "properties")
   public Properties getProperties() {
-    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
-      public Properties get() {
-        return new Properties(getProperties(myUser), UserRequest.getPropertiesHref(myUser),myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myContext);
-      }
-    });
+    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("properties", false),
+           () -> new Properties(getProperties(myUser), UserRequest.getPropertiesHref(myUser), myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myContext));
   }
 
   public static Map<String, String> getProperties(final PropertyHolder holder) {
