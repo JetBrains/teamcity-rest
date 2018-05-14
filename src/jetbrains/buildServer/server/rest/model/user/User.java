@@ -25,7 +25,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.UserFinder;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -34,6 +36,9 @@ import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.server.rest.request.UserRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.impl.auth.ServerAuthUtil;
 import jetbrains.buildServer.users.PropertyHolder;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
@@ -77,6 +82,20 @@ public class User {
     myContext = context;
   }
 
+  private void checkCanViewUserDetails() {
+    myContext.getSingletonService(UserFinder.class).checkViewUserPermission(myUser); //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
+    if (TeamCityProperties.getBoolean("rest.beans.user.checkPermissions.limitViewUserProfileToListableUsersOnly")) { // related to TW-51644
+      // see AdminEditUserController for related code
+      if (myUser != null) {
+        if (ServerAuthUtil.canViewUser(myContext.getSingletonService(PermissionChecker.class).getCurrent(), myUser)) {
+          return;
+        }
+        throw new AuthorizationFailedException("No permission to view full detail of user with id \"" + myUser.getId() + "\"");
+      }
+      myContext.getSingletonService(PermissionChecker.class).checkGlobalPermissionAnyOf(new Permission[]{Permission.VIEW_ALL_USERS, Permission.CHANGE_USER});
+    }
+  }
+
   @XmlAttribute
   public Long getId() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("id"), myUserId);
@@ -96,7 +115,7 @@ public class User {
   public String getLastLogin() {
     return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("lastLogin", false), new ValueWithDefault.Value<String>() {
       public String get() {
-        myContext.getSingletonService(UserFinder.class).checkViewUserPermission(myUser);
+        checkCanViewUserDetails();
         Date lastLoginTimestamp = myUser.getLastLoginTimestamp();
         if (lastLoginTimestamp != null) {
           return Util.formatTime(lastLoginTimestamp);
@@ -115,6 +134,7 @@ public class User {
   public String getEmail() {
     return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("email", false), new ValueWithDefault.Value<String>() {
       public String get() {
+        checkCanViewUserDetails();
         return StringUtil.isEmpty(myUser.getEmail()) ? null : myUser.getEmail();
       }
     });
@@ -126,6 +146,7 @@ public class User {
       @Nullable
       @Override
       public Boolean get() {
+        checkCanViewUserDetails();
         return ((UserImpl)myUser).hasPassword();
       }
     });
@@ -135,7 +156,7 @@ public class User {
   public RoleAssignments getRoles() {
     return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("roles", false), new ValueWithDefault.Value<RoleAssignments>() {
       public RoleAssignments get() {
-        myContext.getSingletonService(UserFinder.class).checkViewUserPermission(myUser); //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
+        checkCanViewUserDetails();
         return new RoleAssignments(myUser.getRoles(), myUser, myContext);
       }
     });
@@ -145,7 +166,7 @@ public class User {
   public Groups getGroups() {
     return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("groups", false), new ValueWithDefault.Value<Groups>() {
       public Groups get() {
-        myContext.getSingletonService(UserFinder.class).checkViewUserPermission(myUser); //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
+        checkCanViewUserDetails();
         return new Groups(myUser.getUserGroups(), myFields.getNestedField("groups", Fields.NONE, Fields.LONG), myContext);
       }
     });
@@ -160,6 +181,7 @@ public class User {
   public Properties getProperties() {
     return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
+        checkCanViewUserDetails();
         return new Properties(getProperties(myUser), UserRequest.getPropertiesHref(myUser),myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myContext);
       }
     });
