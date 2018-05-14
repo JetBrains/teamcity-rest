@@ -23,11 +23,18 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.group.Groups;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.serverSide.impl.auth.ServerAuthUtil;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
@@ -42,13 +49,42 @@ import org.jetbrains.annotations.Nullable;
 public class User {
   private SUser myUser;
   private ApiUrlBuilder myApiUrlBuilder;
+  private DataProvider myDataProvider;
 
   public User() {
   }
 
-  public User(jetbrains.buildServer.users.SUser user, @NotNull final ApiUrlBuilder apiUrlBuilder) {
+  public User(jetbrains.buildServer.users.SUser user, @NotNull final ApiUrlBuilder apiUrlBuilder, @NotNull final DataProvider dataProvider) {
     this.myUser = user;
     myApiUrlBuilder = apiUrlBuilder;
+    myDataProvider = dataProvider;
+  }
+
+  private static boolean isCanViewUserDetails(@Nullable final SUser user, @NotNull final DataProvider dataProvider) {
+    try {
+      SUser currentUserUser = dataProvider.getCurrentUser();
+      if (currentUserUser != null && user != null && currentUserUser.getId() == user.getId()) {
+        return true;
+      }
+      final AuthorityHolder currentUser = dataProvider.getServer().getSingletonService(SecurityContext.class).getAuthorityHolder();
+
+      if (!currentUser.isPermissionGrantedGlobally(Permission.VIEW_USER_PROFILE) &&
+          !currentUser.isPermissionGrantedGlobally(Permission.CHANGE_USER)){
+        return false;
+      }
+
+      if (TeamCityProperties.getBoolean("rest.beans.user.checkPermissions.limitViewUserProfileToListableUsersOnly")) { // related to TW-51644
+        // see AdminEditUserController for related code
+        if (user != null) {
+          return ServerAuthUtil.canViewUser(currentUser, user);
+        }
+        return currentUser.isPermissionGrantedGlobally(Permission.VIEW_ALL_USERS) ||
+               currentUser.isPermissionGrantedGlobally(Permission.CHANGE_USER);
+      }
+    } catch (RuntimeException e) {
+      return false;
+    }
+    return true;
   }
 
   @XmlAttribute
@@ -68,6 +104,9 @@ public class User {
 
   @XmlAttribute
   public String getLastLogin() {
+    if (!isCanViewUserDetails(myUser, myDataProvider)) {
+      return null;
+    }
     Date lastLoginTimestamp = myUser.getLastLoginTimestamp();
     if (lastLoginTimestamp != null) {
       return Util.formatTime(lastLoginTimestamp);
@@ -77,16 +116,25 @@ public class User {
 
   @XmlAttribute
   public String getEmail() {
+    if (!isCanViewUserDetails(myUser, myDataProvider)) {
+      return null;
+    }
     return myUser.getEmail();
   }
 
   @XmlElement(name = "roles")
-  public RoleAssignments getRoleAssignments() {
+  public RoleAssignments getRoles() {
+    if (!isCanViewUserDetails(myUser, myDataProvider)) {
+      return null;
+    }
     return new RoleAssignments(myUser.getRoles(), myUser, myApiUrlBuilder);
   }
 
   @XmlElement(name = "groups")
   public Groups getGroups() {
+    if (!isCanViewUserDetails(myUser, myDataProvider)) {
+      return null;
+    }
     return new Groups(myUser.getUserGroups(), myApiUrlBuilder);
   }
 
@@ -97,6 +145,9 @@ public class User {
 
   @XmlElement(name = "properties")
   public Properties getProperties() {
+    if (!isCanViewUserDetails(myUser, myDataProvider)) {
+      return null;
+    }
     return new Properties(getUserProperties(myUser));
   }
 
@@ -108,7 +159,7 @@ public class User {
     return convertedProperties;
   }
 
-  public static String getFieldValue(@NotNull final SUser user, @Nullable final String name) {
+  public static String getFieldValue(@NotNull final SUser user, @Nullable final String name, @NotNull final DataProvider dataProvider) {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Field name cannot be empty");
     }
@@ -119,6 +170,9 @@ public class User {
     } else if ("username".equals(name)) {
       return user.getUsername();
     } else if ("email".equals(name)) {
+      if (!isCanViewUserDetails(user, dataProvider)) {
+        throw new AuthorizationFailedException("No permission to view full detail of user with id \"" + user.getId() + "\"");
+      }
       return user.getEmail();
     }
     throw new BadRequestException("Unknown field '" + name + "'. Supported fields are: id, name, username, email");

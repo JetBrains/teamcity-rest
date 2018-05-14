@@ -121,14 +121,14 @@ public class UserRequest {
   public User createUser(User userData) {
     final SUser user = myDataUpdater.createUser(userData.getSubmittedUsername());
     myDataUpdater.modify(user, userData);
-    return new User(user, myApiUrlBuilder);
+    return new User(user, myApiUrlBuilder, myDataProvider);
   }
 
   @GET
   @Path("/{userLocator}")
   @Produces({"application/xml", "application/json"})
   public User serveUser(@PathParam("userLocator") String userLocator) {
-    return new User(myDataProvider.getUser(userLocator), myApiUrlBuilder);
+    return new User(myDataProvider.getUser(userLocator), myApiUrlBuilder, myDataProvider);
   }
 
   @PUT
@@ -143,7 +143,7 @@ public class UserRequest {
   @Path("/{userLocator}/{field}")
   @Produces("text/plain")
   public String serveUserField(@PathParam("userLocator") String userLocator, @PathParam("field") String fieldName) {
-    return User.getFieldValue(myDataProvider.getUser(userLocator), fieldName);
+    return User.getFieldValue(myDataProvider.getUser(userLocator), fieldName, myDataProvider);
   }
 
   @PUT
