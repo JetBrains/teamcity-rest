@@ -25,7 +25,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.UserFinder;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -34,6 +36,9 @@ import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.server.rest.request.UserRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.impl.auth.ServerAuthUtil;
 import jetbrains.buildServer.users.PropertyHolder;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
@@ -58,10 +63,12 @@ public class User {
   private final Long myUserId;
   private Fields myFields;
   private BeanContext myContext;
+  private boolean myCanViewDetails;
 
   public User() {
     myUser = null;
     myUserId = 0L;
+    myCanViewDetails = false;
   }
 
   public User(long userId, @NotNull final Fields fields, @NotNull final BeanContext context) {
@@ -69,6 +76,7 @@ public class User {
     myUser = context.getSingletonService(UserModel.class).findUserById(userId);
     myFields = fields;
     myContext = context;
+    initCanViewDetails();
   }
 
   public User(@NotNull jetbrains.buildServer.users.User user, @NotNull final Fields fields, @NotNull final BeanContext context) {
@@ -76,10 +84,37 @@ public class User {
     myUserId = myUser.getId();
     myFields = fields;
     myContext = context;
+    initCanViewDetails();
+  }
+
+
+  private void initCanViewDetails() {
+    try {
+      checkCanViewUserDetails(myUser, myContext);
+      myCanViewDetails = true;
+    } catch (AuthorizationFailedException e) {
+      myCanViewDetails = false;
+    }
+  }
+
+  private static void checkCanViewUserDetails(@Nullable final SUser user, @NotNull final BeanContext context) {
+    context.getSingletonService(UserFinder.class).checkViewUserPermission(user);   //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
+    if (TeamCityProperties.getBoolean("rest.beans.user.checkPermissions.limitViewUserProfileToListableUsersOnly")) { // related to TW-51644
+      // see AdminEditUserController for related code
+      if (user != null) {
+        if (ServerAuthUtil.canViewUser(context.getSingletonService(PermissionChecker.class).getCurrent(), user)) {
+          return;
+        }
+        throw new AuthorizationFailedException("No permission to view full detail of user with id \"" + user.getId() + "\"");
+      }
+      context.getSingletonService(PermissionChecker.class).checkGlobalPermissionAnyOf(new Permission[]{Permission.VIEW_ALL_USERS, Permission.CHANGE_USER});
+    }
   }
 
   private void checkCanViewUserDetails() {
-    myContext.getSingletonService(UserFinder.class).checkViewUserPermission(myUser); //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
+    if (!myCanViewDetails) {
+      throw new AuthorizationFailedException("No permission to view full detail of user with id \"" + myUserId + "\"");
+    }
   }
 
   @XmlAttribute
@@ -116,16 +151,18 @@ public class User {
 
   @XmlAttribute
   public String getEmail() {
-    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("email", false), new ValueWithDefault.Value<String>() {
-      public String get() {
-        return StringUtil.isEmpty(myUser.getEmail()) ? null : myUser.getEmail();
-      }
+    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("email", false), () -> {
+      checkCanViewUserDetails();
+      return StringUtil.isEmpty(myUser.getEmail()) ? null : myUser.getEmail();
     });
   }
 
   @XmlAttribute
   public Boolean getHasPassword() {
-    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("hasPassword", false, false), () -> ((UserImpl)myUser).hasPassword());
+    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("hasPassword", false, false), () -> {
+      checkCanViewUserDetails();
+      return ((UserImpl)myUser).hasPassword();
+    });
   }
 
   @XmlElement(name = "roles")
@@ -151,8 +188,10 @@ public class User {
 
   @XmlElement(name = "properties")
   public Properties getProperties() {
-    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("properties", false),
-           () -> new Properties(getProperties(myUser), UserRequest.getPropertiesHref(myUser), myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myContext));
+    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("properties", false), () -> {
+      checkCanViewUserDetails();
+      return new Properties(getProperties(myUser), UserRequest.getPropertiesHref(myUser),myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myContext);
+    });
   }
 
   public static Map<String, String> getProperties(final PropertyHolder holder) {
