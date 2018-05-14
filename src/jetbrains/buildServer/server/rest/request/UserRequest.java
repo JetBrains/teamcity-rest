@@ -111,7 +111,7 @@ public class UserRequest {
   @Path("/{userLocator}/{field}")
   @Produces("text/plain")
   public String serveUserField(@PathParam("userLocator") String userLocator, @PathParam("field") String fieldName) {
-    return User.getFieldValue(myUserFinder.getItem(userLocator, true), fieldName);
+    return User.getFieldValue(myUserFinder.getItem(userLocator, true), fieldName, myBeanContext.getServiceLocator());
   }
 
   @PUT
@@ -120,7 +120,7 @@ public class UserRequest {
   @Produces("text/plain")
   public String setUserField(@PathParam("userLocator") String userLocator, @PathParam("field") String fieldName, String value) {
     final SUser user = myUserFinder.getItem(userLocator, true);
-    return User.setFieldValue(user, fieldName, value);
+    return User.setFieldValue(user, fieldName, value, myBeanContext.getServiceLocator());
   }
 
   @DELETE

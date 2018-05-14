@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
@@ -90,14 +91,14 @@ public class User {
 
   private void initCanViewDetails() {
     try {
-      checkCanViewUserDetails(myUser, myContext);
+      checkCanViewUserDetails(myUser, myContext.getServiceLocator());
       myCanViewDetails = true;
     } catch (AuthorizationFailedException e) {
       myCanViewDetails = false;
     }
   }
 
-  private static void checkCanViewUserDetails(@Nullable final SUser user, @NotNull final BeanContext context) {
+  private static void checkCanViewUserDetails(@Nullable final SUser user, @NotNull final ServiceLocator context) {
     context.getSingletonService(UserFinder.class).checkViewUserPermission(user);   //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
     if (TeamCityProperties.getBoolean("rest.beans.user.checkPermissions.limitViewUserProfileToListableUsersOnly")) { // related to TW-51644
       // see AdminEditUserController for related code
@@ -202,7 +203,7 @@ public class User {
     return convertedProperties;
   }
 
-  public static String getFieldValue(@NotNull final SUser user, @Nullable final String name) {
+  public static String getFieldValue(@NotNull final SUser user, @Nullable final String name, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Field name cannot be empty");
     }
@@ -213,25 +214,26 @@ public class User {
     } else if ("username".equals(name)) {
       return user.getUsername();
     } else if ("email".equals(name)) {
+      checkCanViewUserDetails(user, serviceLocator);
       return user.getEmail();
     }
     throw new BadRequestException("Unknown field '" + name + "'. Supported fields are: id, name, username, email");
   }
 
   @Nullable
-  public static String setFieldValue(@NotNull final SUser user, @Nullable final String name, @NotNull final String value) {
+  public static String setFieldValue(@NotNull final SUser user, @Nullable final String name, @NotNull final String value, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Field name cannot be empty");
     }
     if ("username".equals(name)) {
       DataUpdater.updateUserCoreFields(user, value, null, null, null);
-      return getFieldValue(user, name);
+      return getFieldValue(user, name, serviceLocator);
     } else if ("name".equals(name)) {
       DataUpdater.updateUserCoreFields(user, null, value, null, null);
-      return getFieldValue(user, name);
+      return getFieldValue(user, name, serviceLocator);
     } else if ("email".equals(name)) {
       DataUpdater.updateUserCoreFields(user, null, null, value, null);
-      return getFieldValue(user, name);
+      return getFieldValue(user, name, serviceLocator);
     } else if ("password".equals(name)) {
       DataUpdater.updateUserCoreFields(user, null, null, null, value);
       return null; //do not report password back
