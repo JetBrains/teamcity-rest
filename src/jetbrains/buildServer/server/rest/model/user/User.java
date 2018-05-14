@@ -23,9 +23,12 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
 import jetbrains.buildServer.server.rest.data.UserFinder;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -33,6 +36,11 @@ import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.serverSide.impl.auth.ServerAuthUtil;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
@@ -60,6 +68,25 @@ public class User {
     myContext = context;
   }
 
+  private static void checkCanViewUserDetails(@Nullable final SUser user, @NotNull final ServiceLocator context) {
+    context.getSingletonService(UserFinder.class).checkViewUserPermission(user);   //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
+    if (TeamCityProperties.getBoolean("rest.beans.user.checkPermissions.limitViewUserProfileToListableUsersOnly")) { // related to TW-51644
+      // see AdminEditUserController for related code
+      if (user != null) {
+        if (ServerAuthUtil.canViewUser(context.getSingletonService(SecurityContext.class).getAuthorityHolder(), user)) {
+          return;
+        }
+        throw new AuthorizationFailedException("No permission to view full detail of user with id \"" + user.getId() + "\"");
+      }
+      final AuthorityHolder currentUser = context.getSingletonService(SecurityContext.class).getAuthorityHolder();
+      if (currentUser.isPermissionGrantedGlobally(Permission.VIEW_ALL_USERS) ||
+          currentUser.isPermissionGrantedGlobally(Permission.CHANGE_USER)) {
+        return;
+      }
+      throw new AuthorizationFailedException("No permission to view full detail of user with id \"" + user.getId() + "\"");
+    }
+  }
+
   @XmlAttribute
   public Long getId() {
     return  ValueWithDefault.decideDefault(myFields.isIncluded("id"), myUser.getId());
@@ -79,7 +106,7 @@ public class User {
   public String getLastLogin() {
     return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("lastLogin", false), new ValueWithDefault.Value<String>() {
       public String get() {
-        myContext.getSingletonService(UserFinder.class).checkViewUserPermission(myUser);
+        checkCanViewUserDetails(myUser, myContext.getServiceLocator());
         Date lastLoginTimestamp = myUser.getLastLoginTimestamp();
         if (lastLoginTimestamp != null) {
           return Util.formatTime(lastLoginTimestamp);
@@ -98,6 +125,7 @@ public class User {
   public String getEmail() {
     return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("email", false), new ValueWithDefault.Value<String>() {
       public String get() {
+        checkCanViewUserDetails(myUser, myContext.getServiceLocator());
         return StringUtil.isEmpty(myUser.getEmail()) ? null : myUser.getEmail();
       }
     });
@@ -107,7 +135,7 @@ public class User {
   public RoleAssignments getRoles() {
     return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("roles", false), new ValueWithDefault.Value<RoleAssignments>() {
       public RoleAssignments get() {
-        myContext.getSingletonService(UserFinder.class).checkViewUserPermission(myUser); //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
+        checkCanViewUserDetails(myUser, myContext.getServiceLocator());
         return new RoleAssignments(myUser.getRoles(), myUser, myContext);
       }
     });
@@ -117,7 +145,7 @@ public class User {
   public Groups getGroups() {
     return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("groups", false), new ValueWithDefault.Value<Groups>() {
       public Groups get() {
-        myContext.getSingletonService(UserFinder.class).checkViewUserPermission(myUser); //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
+        checkCanViewUserDetails(myUser, myContext.getServiceLocator());
         return new Groups(myUser.getUserGroups(), myFields.getNestedField("groups", Fields.NONE, Fields.LONG), myContext);
       }
     });
@@ -132,6 +160,7 @@ public class User {
   public Properties getProperties() {
     return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
+        checkCanViewUserDetails(myUser, myContext.getServiceLocator());
         return new Properties(getUserProperties(myUser));
       }
     });
@@ -145,7 +174,7 @@ public class User {
     return convertedProperties;
   }
 
-  public static String getFieldValue(@NotNull final SUser user, @Nullable final String name) {
+  public static String getFieldValue(@NotNull final SUser user, @Nullable final String name, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Field name cannot be empty");
     }
@@ -156,25 +185,26 @@ public class User {
     } else if ("username".equals(name)) {
       return user.getUsername();
     } else if ("email".equals(name)) {
+      checkCanViewUserDetails(user, serviceLocator);
       return user.getEmail();
     }
     throw new BadRequestException("Unknown field '" + name + "'. Supported fields are: id, name, username, email");
   }
 
   @Nullable
-  public static String setFieldValue(@NotNull final SUser user, @Nullable final String name, @NotNull final String value) {
+  public static String setFieldValue(@NotNull final SUser user, @Nullable final String name, @NotNull final String value, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Field name cannot be empty");
     }
     if ("username".equals(name)) {
       DataUpdater.updateUserCoreFields(user, value, null, null, null);
-      return getFieldValue(user, name);
+      return getFieldValue(user, name, serviceLocator);
     } else if ("name".equals(name)) {
       DataUpdater.updateUserCoreFields(user, null, value, null, null);
-      return getFieldValue(user, name);
+      return getFieldValue(user, name, serviceLocator);
     } else if ("email".equals(name)) {
       DataUpdater.updateUserCoreFields(user, null, null, value, null);
-      return getFieldValue(user, name);
+      return getFieldValue(user, name, serviceLocator);
     } else if ("password".equals(name)) {
       DataUpdater.updateUserCoreFields(user, null, null, null, value);
       return null; //do not report password back
