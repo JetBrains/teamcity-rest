@@ -104,7 +104,7 @@ public class UserRequest {
     if (TeamCityProperties.getBooleanOrTrue(REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
       myUserFinder.checkViewUserPermission(userLocator);
     }
-    return User.getFieldValue(myUserFinder.getUser(userLocator), fieldName);
+    return User.getFieldValue(myUserFinder.getUser(userLocator), fieldName, myDataProvider.getServer());
   }
 
   @PUT
@@ -113,7 +113,7 @@ public class UserRequest {
   @Produces("text/plain")
   public String setUserField(@PathParam("userLocator") String userLocator, @PathParam("field") String fieldName, String value) {
     final SUser user = myUserFinder.getUser(userLocator);
-    return User.setFieldValue(user, fieldName, value);
+    return User.setFieldValue(user, fieldName, value, myDataProvider.getServer());
   }
 
   @GET

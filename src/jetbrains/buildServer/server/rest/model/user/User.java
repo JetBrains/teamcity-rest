@@ -23,13 +23,21 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
+import jetbrains.buildServer.server.rest.data.UserFinder;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.serverSide.impl.auth.ServerAuthUtil;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
@@ -55,6 +63,24 @@ public class User {
     myContext = context;
   }
 
+  private static boolean isCanViewUserDetails(@Nullable final SUser user, @NotNull final ServiceLocator context) {
+    try {
+      context.getSingletonService(UserFinder.class).checkViewUserPermission(user == null ? "" : "id:" + user.getId());   //until http://youtrack.jetbrains.net/issue/TW-20071 is fixed
+      if (TeamCityProperties.getBoolean("rest.beans.user.checkPermissions.limitViewUserProfileToListableUsersOnly")) { // related to TW-51644
+        // see AdminEditUserController for related code
+        final AuthorityHolder currentUser = context.getSingletonService(SecurityContext.class).getAuthorityHolder();
+        if (user != null) {
+          return ServerAuthUtil.canViewUser(currentUser, user);
+        }
+        return currentUser.isPermissionGrantedGlobally(Permission.VIEW_ALL_USERS) ||
+               currentUser.isPermissionGrantedGlobally(Permission.CHANGE_USER);
+      }
+    } catch (RuntimeException e) {
+      return false;
+    }
+    return true;
+  }
+
   @XmlAttribute
   public Long getId() {
     return myUser.getId();
@@ -72,6 +98,9 @@ public class User {
 
   @XmlAttribute
   public String getLastLogin() {
+    if (!isCanViewUserDetails(myUser, myContext.getSingletonService(ServiceLocator.class))) {
+      return null;
+    }
     Date lastLoginTimestamp = myUser.getLastLoginTimestamp();
     if (lastLoginTimestamp != null) {
       return Util.formatTime(lastLoginTimestamp);
@@ -86,16 +115,25 @@ public class User {
 
   @XmlAttribute
   public String getEmail() {
+    if (!isCanViewUserDetails(myUser, myContext.getSingletonService(ServiceLocator.class))) {
+      return null;
+    }
     return myUser.getEmail();
   }
 
   @XmlElement(name = "roles")
   public RoleAssignments getRoles() {
+    if (!isCanViewUserDetails(myUser, myContext.getSingletonService(ServiceLocator.class))) {
+      return null;
+    }
     return new RoleAssignments(myUser.getRoles(), myUser, myContext);
   }
 
   @XmlElement(name = "groups")
   public Groups getGroups() {
+    if (!isCanViewUserDetails(myUser, myContext.getSingletonService(ServiceLocator.class))) {
+      return null;
+    }
     return new Groups(myUser.getUserGroups(), myContext.getContextService(ApiUrlBuilder.class));
   }
 
@@ -106,6 +144,9 @@ public class User {
 
   @XmlElement(name = "properties")
   public Properties getProperties() {
+    if (!isCanViewUserDetails(myUser, myContext.getSingletonService(ServiceLocator.class))) {
+      return null;
+    }
     return new Properties(getUserProperties(myUser));
   }
 
@@ -117,7 +158,7 @@ public class User {
     return convertedProperties;
   }
 
-  public static String getFieldValue(@NotNull final SUser user, @Nullable final String name) {
+  public static String getFieldValue(@NotNull final SUser user, @Nullable final String name, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Field name cannot be empty");
     }
@@ -128,25 +169,28 @@ public class User {
     } else if ("username".equals(name)) {
       return user.getUsername();
     } else if ("email".equals(name)) {
+      if (!isCanViewUserDetails(user, serviceLocator)) {
+        throw new AuthorizationFailedException("No permission to view full detail of user with id \"" + user.getId() + "\"");
+      }
       return user.getEmail();
     }
     throw new BadRequestException("Unknown field '" + name + "'. Supported fields are: id, name, username, email");
   }
 
   @Nullable
-  public static String setFieldValue(@NotNull final SUser user, @Nullable final String name, @NotNull final String value) {
+  public static String setFieldValue(@NotNull final SUser user, @Nullable final String name, @NotNull final String value, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Field name cannot be empty");
     }
     if ("username".equals(name)) {
       DataUpdater.updateUserCoreFields(user, value, null, null, null);
-      return getFieldValue(user, name);
+      return getFieldValue(user, name, serviceLocator);
     } else if ("name".equals(name)) {
       DataUpdater.updateUserCoreFields(user, null, value, null, null);
-      return getFieldValue(user, name);
+      return getFieldValue(user, name, serviceLocator);
     } else if ("email".equals(name)) {
       DataUpdater.updateUserCoreFields(user, null, null, value, null);
-      return getFieldValue(user, name);
+      return getFieldValue(user, name, serviceLocator);
     } else if ("password".equals(name)) {
       DataUpdater.updateUserCoreFields(user, null, null, null, value);
       return null; //do not report password back
