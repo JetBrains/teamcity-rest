@@ -36,6 +36,7 @@ import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.agent.ServerProvidedProperties;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
 import jetbrains.buildServer.controllers.HttpDownloadProcessor;
+import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.parameters.ProcessingResult;
 import jetbrains.buildServer.parameters.ReferencesResolverUtil;
@@ -65,6 +66,7 @@ import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.LoginConfiguration;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.tags.TagsManager;
 import jetbrains.buildServer.users.SUser;
@@ -385,6 +387,33 @@ public class BuildRequest {
     return new IssueUsages(build,  new Fields(fields), myBeanContext);
   }
 
+  @PUT
+  @Path("/{buildLocator}/number")
+  @Consumes("text/plain")
+  @Produces("text/plain")
+  public String setBuildNumber(@PathParam("buildLocator") String buildLocator, String value) {
+    SRunningBuild runningBuild = Build.getRunningBuild(myBuildFinder.getBuildPromotion(null, buildLocator), myBeanContext.getServiceLocator());
+    if (runningBuild == null) {
+      throw new BadRequestException("Cannot set number for a build which is not running");
+    }
+    runningBuild.setBuildNumber(value);
+    Loggers.ACTIVITIES.info("Build number is changed via REST request by user " + myPermissionChecker.getCurrentUserDescription() + ". Build: " + LogUtil.describe(runningBuild));
+    return runningBuild.getBuildNumber();
+  }
+
+  @PUT
+  @Path("/{buildLocator}/statusText")
+  @Consumes("text/plain")
+  @Produces("text/plain")
+  public String setBuildStatusText(@PathParam("buildLocator") String buildLocator, String value) {
+    RunningBuildEx runningBuild = (RunningBuildEx)Build.getRunningBuild(myBuildFinder.getBuildPromotion(null, buildLocator), myBeanContext.getServiceLocator());
+    if (runningBuild == null) {
+      throw new BadRequestException("Cannot set status text for a build which is not running");
+    }
+    runningBuild.setCustomStatusText(value);
+    Loggers.ACTIVITIES.info("Build status text is changed via REST request by user " + myPermissionChecker.getCurrentUserDescription() + ". Build: " + LogUtil.describe(runningBuild));
+    return runningBuild.getBuildStatus().getText();
+  }
 
   @GET
   @Path("/{buildLocator}/{field}")
