@@ -396,7 +396,11 @@ public class BuildRequest {
     if (runningBuild == null) {
       throw new BadRequestException("Cannot set number for a build which is not running");
     }
-    runningBuild.setBuildNumber(value);
+    try {
+      runningBuild.setBuildNumber(value);
+    } catch (UnsupportedOperationException e) {
+      throw new BadRequestException("Cannot set build number for the build: " + e.getMessage());
+    }
     Loggers.ACTIVITIES.info("Build number is changed via REST request by user " + myPermissionChecker.getCurrentUserDescription() + ". Build: " + LogUtil.describe(runningBuild));
     return runningBuild.getBuildNumber();
   }
