@@ -1654,9 +1654,7 @@ public class Build {
   public static String getFieldValue(@NotNull final BuildPromotion buildPromotion, @Nullable final String field, @NotNull final BeanContext beanContext) {
     final Build build = new Build(buildPromotion, Fields.ALL, beanContext);
 
-    if ("number".equals(field)) {
-      return build.getNumber();
-    } else if ("status".equals(field)) {
+    if ("status".equals(field)) {
       return build.getStatus();
     } else if ("id".equals(field)) {
       return String.valueOf(build.getId());

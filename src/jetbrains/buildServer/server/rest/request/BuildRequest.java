@@ -387,6 +387,20 @@ public class BuildRequest {
     return new IssueUsages(build,  new Fields(fields), myBeanContext);
   }
 
+  @Nullable
+  private SBuild getBuild(@NotNull final BuildPromotion promotion) {
+    SQueuedBuild queuedBuild = promotion.getQueuedBuild();
+    return queuedBuild != null ? null : promotion.getAssociatedBuild();
+  }
+
+  @GET
+  @Path("/{buildLocator}/number")
+  @Produces("text/plain")
+  public String getBuildNumber(@PathParam("buildLocator") String buildLocator) {
+    SBuild build = getBuild(myBuildFinder.getBuildPromotion(null, buildLocator));
+    return build == null ? null : build.getBuildNumber();
+  }
+
   @PUT
   @Path("/{buildLocator}/number")
   @Consumes("text/plain")
@@ -405,6 +419,14 @@ public class BuildRequest {
     return runningBuild.getBuildNumber();
   }
 
+  @GET
+  @Path("/{buildLocator}/statusText")
+  @Produces("text/plain")
+  public String getBuildStatusText(@PathParam("buildLocator") String buildLocator) {
+    SBuild build = getBuild(myBuildFinder.getBuildPromotion(null, buildLocator));
+    return build == null ? null : build.getStatusDescriptor().getText();
+  }
+
   @PUT
   @Path("/{buildLocator}/statusText")
   @Consumes("text/plain")
@@ -416,15 +438,13 @@ public class BuildRequest {
     }
     runningBuild.setCustomStatusText(value);
     Loggers.ACTIVITIES.info("Build status text is changed via REST request by user " + myPermissionChecker.getCurrentUserDescription() + ". Build: " + LogUtil.describe(runningBuild));
-    return runningBuild.getBuildStatus().getText();
+    return runningBuild.getStatusDescriptor().getText();
   }
 
   @GET
   @Path("/{buildLocator}/{field}")
   @Produces("text/plain")
-  public String serveBuildFieldByBuildOnly(@PathParam("buildLocator") String buildLocator,
-                                           @PathParam("field") String field) {
-
+  public String serveBuildFieldByBuildOnly(@PathParam("buildLocator") String buildLocator, @PathParam("field") String field) {
     return Build.getFieldValue(myBuildFinder.getBuildPromotion(null, buildLocator), field, myBeanContext);
   }
 
