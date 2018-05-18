@@ -109,7 +109,7 @@ public class Builds implements DefaultValueAware {
   public static Builds createFromBuildPromotions(@Nullable final List<BuildPromotion> buildObjects,
                                                  @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     return new Builds(
-      new ItemsProviders.LocatorAwareItemsRetriever<BuildPromotion>(Util.resolveNull(buildObjects, b -> ItemsProviders.ItemsProvider.items((locator) -> b)), () -> pagerData),
+      new ItemsProviders.LocatorAwareItemsRetriever<BuildPromotion>(Util.resolveNull(buildObjects, b -> ItemsProviders.ItemsProvider.items(b)), () -> pagerData),
       fields, beanContext);
   }
 }

@@ -68,6 +68,22 @@ public interface ItemsProviders {
         }
       };
     }
+
+    @NotNull
+    public static <S> ItemsProvider<S> items(@NotNull List<S> items) {
+      return new ItemsProvider<S>() {
+        @NotNull
+        @Override
+        public List<S> getItems(@Nullable final String locator) {
+          return items;
+        }
+
+        @Override
+        public Integer getCheapCount(@Nullable final String locator) {
+          return items.size();
+        }
+      };
+    }
   }
 
 
