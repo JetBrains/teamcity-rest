@@ -1654,7 +1654,9 @@ public class Build {
   public static String getFieldValue(@NotNull final BuildPromotion buildPromotion, @Nullable final String field, @NotNull final BeanContext beanContext) {
     final Build build = new Build(buildPromotion, Fields.ALL, beanContext);
 
-    if ("status".equals(field)) {
+    if ("number".equals(field)) { //supporting number here in addition to BuildRequest as this method is used from other requests classes as well
+      return build.getNumber();
+    } else if ("status".equals(field)) {
       return build.getStatus();
     } else if ("id".equals(field)) {
       return String.valueOf(build.getId());
