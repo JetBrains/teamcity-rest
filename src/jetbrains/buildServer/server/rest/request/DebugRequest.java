@@ -16,6 +16,8 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import com.google.common.base.Charsets;
+import com.google.common.hash.Hashing;
 import io.swagger.annotations.Api;
 import java.io.File;
 import java.io.IOException;
@@ -41,6 +43,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.controllers.login.RememberMe;
 import jetbrains.buildServer.diagnostic.ThreadDumpDataProvider;
 import jetbrains.buildServer.diagnostic.web.ThreadDumpsController;
+import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.responsibility.ResponsibilityManager;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
@@ -669,6 +672,7 @@ public class DebugRequest {
       throw new BadRequestException("Only \"true\" is supported as the posted value");
     }
     Thread thread = getThread(threadLocator);
+    Loggers.SERVER.warn("Thread is interrupted via REST request by user " + myPermissionChecker.getCurrentUserDescription() + ". Thread name: " + LogUtil.quote(thread.getName()));
     thread.interrupt();
     return String.valueOf(thread.isInterrupted());
   }
@@ -706,7 +710,11 @@ public class DebugRequest {
   @Produces({"text/plain"})
   public String getUnscrambled(@QueryParam("value") String value) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
-    return EncryptUtil.unscramble(value);
+    try {
+      return EncryptUtil.unscramble(value);
+    } catch (IllegalArgumentException e) {
+     throw new BadRequestException(e.getMessage());
+    }
   }
 
   /**
@@ -722,6 +730,12 @@ public class DebugRequest {
     }
     if ("md5".equalsIgnoreCase(method)){
       return EncryptUtil.md5(value);
+    }
+    if ("sha1".equalsIgnoreCase(method)){
+      return Hashing.sha1().hashString(value, Charsets.UTF_8 ).toString();
+    }
+    if ("sha256".equalsIgnoreCase(method)){
+      return Hashing.sha256().hashString(value, Charsets.UTF_8 ).toString();
     }
     if ("hash".equalsIgnoreCase(method)){
       return String.valueOf(Hash.calc(value));
@@ -739,7 +753,7 @@ public class DebugRequest {
     if ("base64url".equalsIgnoreCase(method) || "encodeBase64Url".equalsIgnoreCase(method)){
       return new String(Base64.getUrlEncoder().encode(value.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
     }
-    throw new BadRequestException("Unknown method '" + method + "'. Supported are: " + "md5"+ ", " + "encodeBase64Url" + ", " + "decodeBase64" + ", " + "hash" + ".");
+    throw new BadRequestException("Unknown method '" + method + "'. Supported are: " + "md5"+ ", " + "encodeBase64Url" + ", " + "decodeBase64" + ", " + "sha1" + ", " + "hash" + ".");
   }
 
   /**
