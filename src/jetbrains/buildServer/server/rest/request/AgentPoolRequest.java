@@ -142,7 +142,7 @@ public class AgentPoolRequest {
       projectIds.add(project.getProjectId());
     }
     try {
-      agentPoolManager.dissociateProjectsFromPool(agentPoolId, agentPoolManager.getPoolProjects(agentPoolId));
+      agentPoolManager.dissociateProjectsFromPool(agentPoolId, new HashSet<String>(agentPool.getProjectIds()));
       agentPoolManager.associateProjectsWithPool(agentPoolId, projectIds);
     } catch (NoSuchAgentPoolException e) {
       throw new IllegalStateException("Agent pool with id \'" + agentPoolId + "' is not found.");
