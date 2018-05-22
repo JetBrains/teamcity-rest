@@ -31,7 +31,6 @@ import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.Compatibility;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
-import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentTypes.AgentType;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
 import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
@@ -356,34 +355,34 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
 
   private boolean isCompatibleWithAny(@NotNull final SBuildAgent agent, @NotNull final List<SBuildType> buildTypes) {
     for (final SBuildType buildType : buildTypes) {
-      if (canActuallyRun(agent, buildType, myServiceLocator)) return true;
+      if (canActuallyRun(agent, buildType)) return true;
     }
     return false;
   }
 
   private boolean isCompatibleWithAll(@NotNull final SBuildAgent agent, @NotNull final List<SBuildType> buildTypes) {
     for (final SBuildType buildType : buildTypes) {
-      if (!canActuallyRun(agent, buildType, myServiceLocator)) return false;
+      if (!canActuallyRun(agent, buildType)) return false;
     }
     return true;
   }
 
   private boolean isCompatibleWithAnyBuild(final @NotNull SBuildAgent agent, final List<BuildPromotion> buildPromotions) {
     for (BuildPromotion buildPromotion : buildPromotions) {
-      if (canActuallyRun(agent, buildPromotion, myServiceLocator)) return true;
+      if (canActuallyRun(agent, buildPromotion)) return true;
     }
     return false;
   }
 
   private boolean isCompatibleWithAllBuild(final @NotNull SBuildAgent agent, final List<BuildPromotion> buildPromotions) {
     for (BuildPromotion buildPromotion : buildPromotions) {
-      if (!canActuallyRun(agent, buildPromotion, myServiceLocator)) return false;
+      if (!canActuallyRun(agent, buildPromotion)) return false;
     }
     return true;
   }
 
-  public static boolean canActuallyRun(@NotNull final SBuildAgent agent, @NotNull final SBuildType buildType, @NotNull final ServiceLocator serviceLocator) {
-    return getCompatibilityData(agent, buildType, serviceLocator).isCompatible();
+  public static boolean canActuallyRun(@NotNull final SBuildAgent agent, @NotNull final SBuildType buildType) {
+    return getCompatibilityData(agent, buildType).isCompatible();
   }
 
   @NotNull
@@ -393,7 +392,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     ArrayList<Compatibility.AgentCompatibilityData> result = new ArrayList<>();
     List<SBuildType> buildTypesToProcess = buildTypes != null ? buildTypes : serviceLocator.getSingletonService(ProjectManager.class).getAllBuildTypes();
     for (final SBuildType buildType : buildTypesToProcess) {
-      Compatibility.AgentCompatibilityData compatibilityData = getCompatibilityData(agent, buildType, serviceLocator);
+      Compatibility.AgentCompatibilityData compatibilityData = getCompatibilityData(agent, buildType);
       if (!compatibilityData.isCompatible()) {
         result.add(compatibilityData);
       }
@@ -401,13 +400,12 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     return result;
   }
 
-  private static Compatibility.AgentCompatibilityData getCompatibilityData(final @NotNull SBuildAgent agent, final @NotNull SBuildType buildType,
-                                                                           final @NotNull ServiceLocator serviceLocator) {
+  private static Compatibility.AgentCompatibilityData getCompatibilityData(final @NotNull SBuildAgent agent, final @NotNull SBuildType buildType) {
     if (!getAgentType(agent).getPolicy().isBuildTypeAllowed(buildType.getBuildTypeId())) {
       return new Compatibility.BasicAgentCompatibilityData(agent, buildType, false, "Restricted by agent policy");
     }
-    //TeamCity API issue: AgentPoolManager.getProjectPools is much less effective then AgentPoolManager.getPoolProjects
-    if (!serviceLocator.getSingletonService(AgentPoolManager.class).getPoolProjects(agent.getAgentPoolId()).contains(buildType.getProjectId())) {
+
+    if (!agent.getAgentPool().containsProjectId(buildType.getProjectId())) {
       return new Compatibility.BasicAgentCompatibilityData(agent, buildType, false, "Agent belongs to the pool not associated with the project");
     }
     //if (!agent.isEnabled()) //considered compatible
@@ -427,11 +425,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     return new Compatibility.ActualAgentCompatibilityData(compatibility, agent);
   }
 
-  public boolean canActuallyRun(@NotNull final SBuildAgent agent, @NotNull final BuildPromotion build) {
-    return canActuallyRun(agent, build, myServiceLocator);
-  }
-
-  public static boolean canActuallyRun(@NotNull final SBuildAgent agent, @NotNull final BuildPromotion build, final @NotNull ServiceLocator serviceLocator) {
+  public static boolean canActuallyRun(@NotNull final SBuildAgent agent, @NotNull final BuildPromotion build) {
     //consider passing checkEnabled flag from outside (from agent locator), so that one can find disabled agents compatible with a build
     if (!agent.isRegistered() || !agent.isAuthorized()) return false; //is this separate check necessary?
     if (build.getCanRunOnAgents(Collections.singletonList(agent)).isEmpty()) {
@@ -444,7 +438,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     }
 
     SBuildType buildType = build.getBuildType();
-    if (buildType != null && !getCompatibilityData(agent, buildType, serviceLocator).isCompatible()) {
+    if (buildType != null && !getCompatibilityData(agent, buildType).isCompatible()) {
       return false;  //todo: optimize, as this calculates compatibility second time
     }
     return true;
@@ -474,7 +468,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
         if (buildType != null) {
           final List<BuildAgentEx> agents = serviceLocator.getSingletonService(BuildAgentManagerEx.class).getAllAgents();
           result.addAll(
-            agents.stream().filter(a -> a.isAuthorized() && a.isRegistered() && getCompatibilityData(a, buildType, serviceLocator).isCompatible()).collect(Collectors.toList()));
+            agents.stream().filter(a -> a.isAuthorized() && a.isRegistered() && getCompatibilityData(a, buildType).isCompatible()).collect(Collectors.toList()));
         }
       }
     }
