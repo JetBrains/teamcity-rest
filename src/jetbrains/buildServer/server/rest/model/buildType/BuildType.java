@@ -48,6 +48,7 @@ import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
@@ -250,16 +251,16 @@ public class BuildType {
           } else if (myBuildType.isTemplate()) {
             builder.add(Link.WEB_EDIT_TYPE, webLinks.getEditTemplatePageUrl(myExternalId), relativeWebLinks.getEditTemplatePageUrl(myExternalId));
           }
-        //} else { //this code is incorrect so far, as it is not possible to view build type settings in admin UI so far
-        //  PermissionChecker permissionChecker = myBeanContext.getSingletonService(PermissionChecker.class);
-        //  if (permissionChecker.hasPermissionInAnyProject(Permission.EDIT_PROJECT) && //this grants access to administration area
-        //      permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, myBuildType.getProject().getProjectId())) {
-        //    if (myBuildType.isBuildType()) {
-        //      builder.add(Link.WEB_VIEW_SETTINGS_TYPE, webLinks.getEditConfigurationPageUrl(myExternalId), relativeWebLinks.getEditConfigurationPageUrl(myExternalId));
-        //    } else if (myBuildType.isTemplate()) {
-        //      builder.add(Link.WEB_VIEW_SETTINGS_TYPE, webLinks.getEditTemplatePageUrl(myExternalId), relativeWebLinks.getEditTemplatePageUrl(myExternalId));
-        //    }
-        //  }
+        } else {
+          PermissionChecker permissionChecker = myBeanContext.getSingletonService(PermissionChecker.class);
+          if (AuthUtil.adminSpaceAvailable(permissionChecker.getCurrent()) &&
+              permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, myBuildType.getProject().getProjectId())) {
+            if (myBuildType.isBuildType()) {
+              builder.add(Link.WEB_VIEW_SETTINGS_TYPE, webLinks.getEditConfigurationPageUrl(myExternalId), relativeWebLinks.getEditConfigurationPageUrl(myExternalId));
+            } else if (myBuildType.isTemplate()) {
+              builder.add(Link.WEB_VIEW_SETTINGS_TYPE, webLinks.getEditTemplatePageUrl(myExternalId), relativeWebLinks.getEditTemplatePageUrl(myExternalId));
+            }
+          }
         }
         return builder.build(myFields.getNestedField("links"));
       }

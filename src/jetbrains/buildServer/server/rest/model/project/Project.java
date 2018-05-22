@@ -42,6 +42,7 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.util.StringUtil;
@@ -263,7 +264,7 @@ public class Project {
         final PermissionChecker permissionChecker = beanContext.getSingletonService(PermissionChecker.class);
         if (permissionChecker.isPermissionGranted(Permission.EDIT_PROJECT, project.getProjectId())) {
           builder.add(Link.WEB_EDIT_TYPE, webLinks.getEditProjectPageUrl(project.getExternalId()), relativeWebLinks.getEditProjectPageUrl(project.getExternalId()));
-        } else if (permissionChecker.hasPermissionInAnyProject(Permission.EDIT_PROJECT) && //this grants access to administration area
+        } else if (AuthUtil.adminSpaceAvailable(permissionChecker.getCurrent()) &&
                    permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, project.getProjectId())) {
           builder.add(Link.WEB_VIEW_SETTINGS_TYPE, webLinks.getEditProjectPageUrl(project.getExternalId()), relativeWebLinks.getEditProjectPageUrl(project.getExternalId()));
         }
