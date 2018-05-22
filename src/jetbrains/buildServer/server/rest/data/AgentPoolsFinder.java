@@ -77,7 +77,7 @@ public class AgentPoolsFinder {
    */
   @NotNull
   public List<SProject> getPoolProjects(@NotNull final AgentPool agentPool) {
-    final Set<String> projectIds = myServiceLocator.getSingletonService(AgentPoolManager.class).getPoolProjects(agentPool.getAgentPoolId());
+    final Collection<String> projectIds = agentPool.getProjectIds();
     final ProjectManager projectManager = myServiceLocator.getSingletonService(ProjectManager.class);
     final List<SProject> result = new ArrayList<SProject>(projectIds.size());
     for (String projectId : projectIds) {
