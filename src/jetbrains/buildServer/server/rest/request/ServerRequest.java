@@ -25,10 +25,12 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
+import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -54,6 +56,7 @@ import jetbrains.buildServer.serverSide.maintenance.MaintenanceProcessAlreadyRun
 import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.browser.Element;
+import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -289,6 +292,12 @@ public class ServerRequest {
         String result = super.preprocess(path);
         result = StringUtil.replace(result, "%timestamp%", new SimpleDateFormat("yyyy-MM-dd_HHmm").format(new Date()));
         return result;
+      }
+
+      @Override
+      public boolean fileContentServed(@Nullable final String path, @NotNull final HttpServletRequest request) {
+        Loggers.AUTH.info("Served file \"" + path + "\" from server's \"" + areaId + "\" for request " + WebUtil.getRequestDump(request));
+        return super.fileContentServed(path, request);
       }
     }, urlPrefix, myBeanContext, false);
   }
