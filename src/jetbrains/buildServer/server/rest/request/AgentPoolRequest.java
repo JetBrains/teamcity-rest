@@ -16,8 +16,8 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import com.intellij.util.containers.HashSet;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import javax.ws.rs.*;
@@ -143,7 +143,7 @@ public class AgentPoolRequest {
       projectIds.add(project.getProjectId());
     }
     try {
-      agentPoolManager.dissociateProjectsFromPool(agentPoolId, agentPoolManager.getPoolProjects(agentPoolId));
+      agentPoolManager.dissociateProjectsFromPool(agentPoolId, new HashSet<String>(agentPool.getProjectIds()));
       agentPoolManager.associateProjectsWithPool(agentPoolId, projectIds);
     } catch (NoSuchAgentPoolException e) {
       throw new IllegalStateException("Agent pool with id \'" + agentPoolId + "' is not found.");
@@ -184,7 +184,7 @@ public class AgentPoolRequest {
     final AgentPoolManager agentPoolManager = myServiceLocator.getSingletonService(AgentPoolManager.class);
     final int agentPoolId = agentPool.getAgentPoolId();
     try {
-      agentPoolManager.dissociateProjectsFromPool(agentPoolId, agentPoolManager.getPoolProjects(agentPoolId));
+      agentPoolManager.dissociateProjectsFromPool(agentPoolId, new HashSet<String>(agentPool.getProjectIds()));
     } catch (NoSuchAgentPoolException e) {
       throw new IllegalStateException("Agent pool with id \'" + agentPoolId + "' is not found.");
     }
