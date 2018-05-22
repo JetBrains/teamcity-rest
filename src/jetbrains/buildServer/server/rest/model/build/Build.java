@@ -30,6 +30,8 @@ import jetbrains.buildServer.AgentRestrictorType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.artifacts.RevisionRule;
 import jetbrains.buildServer.artifacts.RevisionRules;
+import jetbrains.buildServer.controllers.changes.ChangesBean;
+import jetbrains.buildServer.controllers.changes.ChangesPopupUtil;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.change.BuildChangeData;
@@ -84,6 +86,7 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.vcs.SVcsModification;
+import jetbrains.buildServer.vcs.SelectPrevBuildPolicy;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
 import org.apache.commons.codec.binary.Hex;
 import org.jetbrains.annotations.NotNull;
@@ -99,7 +102,7 @@ import org.jetbrains.annotations.Nullable;
          propOrder = {"id", "promotionId", "buildTypeId", "buildTypeInternalId", "number"/*rf*/, "status"/*rf*/, "state", "running"/*r*/, "composite",
            "failedToStart"/*f*/,
            "personal", "percentageComplete"/*r*/, "branchName", "defaultBranch", "unspecifiedBranch", "history", "pinned"/*rf*/, "href", "webUrl",
-           "queuePosition"/*q*/ /*experimental*/,
+           "queuePosition"/*q*/ /*experimental*/, "limitedChangesCount" /*experimental*/,
            "links",
            "statusText"/*rf*/,
            "buildType", "comment", "tags", "pinInfo"/*f*/, "personalBuildUser",
@@ -692,8 +695,32 @@ public class Build {
    */
   @XmlElement(name = "artifactDependencyChanges")
   public BuildChanges getArtifactDependencyChanges() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("artifactDependencyChanges", false, false),
+    boolean isCached = false;
+    if (myBuild != null) {
+      isCached = myBeanContext.getSingletonService(DownloadedArtifactsLoggerImpl.class).hasComputedSourceBuilds(myBuild.getBuildId());
+    }
+
+    return ValueWithDefault.decideDefault(myFields.isIncluded("artifactDependencyChanges", isCached, false, false),
                                           () -> Build.getArtifactDependencyChangesNode(myBuildPromotion, myFields.getNestedField("artifactDependencyChanges"), myBeanContext));
+  }
+
+  /**
+   * Experimental support only
+   * This is meant to replicate the UI logic of calculating number of changes in a build. Returns the number of changes limited by the maximum number as calculated in UI.
+   * Returns the limit+1 if there are more changes then the limit configured
+   */
+  @XmlAttribute(name = "limitedChangesCount")
+  public Integer getLimitedChangesCount() {
+    boolean isCached = ((BuildPromotionEx)myBuildPromotion).hasComputedChanges(SelectPrevBuildPolicy.SINCE_LAST_BUILD,
+                                                                               new LimitingVcsModificationProcessor(ChangesPopupUtil.getBuildChangesPopupLimit())); //see ChangesBean.lazyChanges
+
+    return ValueWithDefault.decideDefault(myFields.isIncluded("limitedChangesCount", isCached,false, false),
+                                          () -> {
+                                            ChangesBean changesBean = ChangesBean.createForChangesLink(myBuildPromotion, null);
+                                            int result = changesBean.getTotal();
+                                            if (changesBean.isChangesLimitExceeded()) result++;
+                                            return result;
+                                          });
   }
 
   @XmlElement(name = "revisions")
