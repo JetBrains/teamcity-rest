@@ -124,7 +124,7 @@ public class AgentPoolsFinder {
 
   public Collection<AgentPool> getPoolsForProject(final SProject project) {
     final AgentPoolManager poolManager = myServiceLocator.getSingletonService(AgentPoolManager.class);
-    final Set<Integer> projectPoolsIds = poolManager.getProjectPools(project.getProjectId());
+    final Set<Integer> projectPoolsIds = poolManager.getAgentPoolsWithProject(project.getProjectId());
     final ArrayList<AgentPool> result = new ArrayList<AgentPool>(projectPoolsIds.size());
     for (Integer poolId : projectPoolsIds) {
       result.add(getAgentPoolById(poolId));
