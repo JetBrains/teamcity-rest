@@ -61,7 +61,7 @@ public class TagFinder extends AbstractFinder<TagData> {
   }
 
   public static boolean isIncluded(@NotNull final BuildPromotion item, @Nullable final String singleTag, @NotNull final UserFinder userFinder) {
-    return new TagFinder(userFinder, item).getItems(singleTag != null ? Locator.getBase64EscapedSingleValueIfNeeded(singleTag) : singleTag, getDefaultLocator()).myEntries.size() > 0;
+    return new TagFinder(userFinder, item).getItems(singleTag, getDefaultLocator()).myEntries.size() > 0;
   }
 
   @NotNull

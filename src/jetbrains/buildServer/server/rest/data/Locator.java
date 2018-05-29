@@ -208,41 +208,10 @@ public class Locator {
     }
   }
 
-  @NotNull
-  public static String getBase64EscapedSingleValueIfNeeded(@NotNull String text) {
-    if (!TeamCityProperties.getBooleanOrTrue("rest.locator.allowBase64")) return text;
-    if (!isEscapingRequired(text)) return text;
-    if (text.startsWith(BASE64_ESCAPE_FAKE_DIMENSION + DIMENSION_NAME_VALUE_DELIMITER)) {
-      // already has base64 escaping
-      return text;
-    }
-
-    byte[] encoded;
-    try {
-      encoded = Base64.getUrlEncoder().encode(text.getBytes(StandardCharsets.UTF_8));
-    } catch(IllegalArgumentException first){
-      try {
-        encoded = Base64.getEncoder().encode(text.getBytes(StandardCharsets.UTF_8));
-      } catch(IllegalArgumentException second){
-        throw new LocatorProcessException("Cannot encode text in Base64: '" + text + "'", first);
-      }
-    }
-
-    try {
-      return BASE64_ESCAPE_FAKE_DIMENSION + DIMENSION_NAME_VALUE_DELIMITER + new String(encoded, StandardCharsets.UTF_8);
-    } catch (Exception e) {
-      throw new LocatorProcessException("Error converting encoded '" + text + "' value bytes to UTF-8 string", e);
-    }
-  }
-
   private final static String UNSAFE_CHARACTERS = DIMENSION_COMPLEX_VALUE_END_DELIMITER +
                                                   DIMENSION_COMPLEX_VALUE_START_DELIMITER +
                                                   DIMENSION_NAME_VALUE_DELIMITER +
                                                   DIMENSIONS_DELIMITER + "$";
-
-  private static boolean isEscapingRequired(@NotNull String text) {
-    return StringUtil.containsAnyChar(text, UNSAFE_CHARACTERS);
-  }
 
   private boolean hasDimensions(final @NotNull String locatorText) {
     if (locatorText.contains(DIMENSION_NAME_VALUE_DELIMITER)) {

@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -1805,6 +1806,17 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     String userFilter = ",owner:(id:" + user.getId() + ")";
     checkCounts("tag:(condition:(value:a,matchType:(equals),ignoreCase:false),private:true" + userFilter + ")", 1, 1);
     checkCounts("tag:(condition:(value:a,matchType:(equals),ignoreCase:false),private:true" + userFilter + ")" + bt, 1, 1);
+  }
+
+  @Test
+  public void testTagWithSpecialCharacters() throws UnsupportedEncodingException {
+    final SProject project = createProject("prj", "project");
+    final BuildTypeEx buildConf1 = (BuildTypeEx)project.createBuildType("buildConf1", "buildConf1");
+
+    final BuildPromotion build10 = build().in(buildConf1).finish().getBuildPromotion();
+    final BuildPromotion build20 = build().in(buildConf1).tag("text(aaa)").finish().getBuildPromotion();
+
+    check("tag:(name:$base64:" + Base64.getEncoder().encodeToString("text(aaa)".getBytes("UTF-8")) + ")", build20);
   }
 
   @Test
