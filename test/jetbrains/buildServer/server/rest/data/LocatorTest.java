@@ -276,6 +276,14 @@ public class LocatorTest {
     checkException("$base64:aLJBNlkjblk+/===", LocatorProcessException.class);
   }
 
+  @Test
+  public void testEncodeInBase64() {
+    assertEquals("$base64:YWFh", Locator.getBase64EscapedSingleValueIfNeeded("$base64:YWFh"));
+    assertEquals("some_text", Locator.getBase64EscapedSingleValueIfNeeded("some_text"));
+    assertEquals("$base64:c29tZV8odGV4dCk=", Locator.getBase64EscapedSingleValueIfNeeded("some_(text)"));
+    assertEquals("$base64:JGFueQ==", Locator.getBase64EscapedSingleValueIfNeeded("$any"));
+  }
+
   @SuppressWarnings("ConstantConditions")
   @Test
   public void testBooleanDimensions() {
