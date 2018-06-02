@@ -179,67 +179,17 @@ public class LocatorTest {
   }
 
   @Test
-  public void testEscaped1() {
-    final Locator locator = new Locator("(abc)");
-    assertEquals(true, locator.isSingleValue());
-    assertEquals("abc", locator.getSingleValue());
-    assertEquals(0, locator.getDimensionsCount());
-  }
+  public void testEscaped() {
+    check("(abc)", true, "abc");
+    check("(a:b)", true, "a:b");
+    check("(a:b,d(x:y))", true, "a:b,d(x:y)");
+    check("(a:b,)d(x:y)", true, "a:b,)d(x:y");
+    check("a:(bb)", false, null, "a", "bb");
+    check("a:((bb))", false, null, "a", "(bb)");
 
-  @Test
-  public void testEscaped2() {
-    final Locator locator = new Locator("(a:b)");
-    assertEquals(true, locator.isSingleValue());
-    assertEquals("a:b", locator.getSingleValue());
-    assertEquals(0, locator.getDimensionsCount());
-  }
-
-  @Test
-  public void testEscaped3() {
-    final Locator locator = new Locator("(a:b,d(x:y))");
-    assertEquals(true, locator.isSingleValue());
-    assertEquals("a:b,d(x:y)", locator.getSingleValue());
-    assertEquals(0, locator.getDimensionsCount());
-    assertEquals(Collections.emptyList(), locator.getDimensionValue("a"));
-  }
-
-  @Test
-  public void testEscaped4() {
-    final Locator locator = new Locator("(a:b,)d(x:y)");
-    assertEquals(true, locator.isSingleValue());
-    assertEquals("a:b,)d(x:y", locator.getSingleValue());
-    assertEquals(0, locator.getDimensionsCount());
-  }
-
-  @Test
-  public void testEscaped5() {
-    final Locator locator = new Locator("a:(bb)");
-    assertEquals(false, locator.isSingleValue());
-    assertEquals(1, locator.getDimensionsCount());
-    assertEquals("bb", locator.getSingleDimensionValue("a"));
-  }
-
-  @Test
-  public void testEscaped6() {
-    final Locator locator = new Locator("a:((bb))");
-    assertEquals(false, locator.isSingleValue());
-    assertEquals(1, locator.getDimensionsCount());
-    assertEquals("(bb)", locator.getSingleDimensionValue("a"));
-  }
-
-  @Test(expectedExceptions = LocatorProcessException.class)
-  public void testEscaped7() {
-      new Locator("a:(a(b)");
-  }
-
-  @Test(expectedExceptions = LocatorProcessException.class)
-  public void testEscaped8() {
-      new Locator("a:(a)b)");
-  }
-
-  @Test(expectedExceptions = LocatorProcessException.class)
-  public void testEscaped9() {
-      new Locator("(a)b");
+    checkException("a:(a(b)", LocatorProcessException.class);
+    checkException("a:(a)b)", LocatorProcessException.class);
+    checkException("(a)b", LocatorProcessException.class);
   }
 
   @Test
