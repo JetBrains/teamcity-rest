@@ -190,6 +190,19 @@ public class LocatorTest {
     checkException("a:(a(b)", LocatorProcessException.class);
     checkException("a:(a)b)", LocatorProcessException.class);
     checkException("(a)b", LocatorProcessException.class);
+    checkException("(a:b", LocatorProcessException.class);
+  }
+
+  @Test
+  public void testParentheses() {
+    check("branch:(name(1))", false, null, "branch", "name(1)");
+    check("branch:((name(1)))", false, null, "branch", "(name(1))");
+
+    check("branch:name(1)", false, null, "branch", "name(1)");
+    check("branch:value:name(1)", false, null, "branch", "value:name(1)");
+
+    check("branch:(name:(value:(name(1))))", false, null, "branch", "name:(value:(name(1)))");
+    check("name:(value:(name(1)))", false, null, "name", "value:(name(1))");
   }
 
   @Test
@@ -199,6 +212,8 @@ public class LocatorTest {
     check("$base64:YWFh", true, "aaa");
     check("$base64:(YWFh)", true, "aaa");
     check("($base64:YWFh)", true, "$base64:YWFh");
+    check("$base64:YTooYjpjKQ==", true, "a:(b:c)");
+    check("$base64:KGE6Yik=", true, "(a:b)");
     check("a:($base64:YWFh)", false, null, "a", "aaa");
     check("a:($base64:KQ==)", false, null, "a", ")");
     check("$base64:0KTQq9Cy0JAtQVNkRg==", true, "\u0424\u042B\u0432\u0410-ASdF");

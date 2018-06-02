@@ -1174,6 +1174,25 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
+  public void testBranchDimensionWithSymbols() {
+    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
+
+    final BuildPromotion build10 = build().in(buildConf1).withBranch("b").finish().getBuildPromotion();
+    final BuildPromotion build20 = build().in(buildConf1).withBranch("b(1)").finish().getBuildPromotion();
+    final BuildPromotion build30 = build().in(buildConf1).withBranch("b/c").finish().getBuildPromotion();
+
+    checkBuilds("defaultFilter:false", build30, build20, build10);
+
+    //related issue: TW-51368
+    checkExceptionOnBuildsSearch(BadRequestException.class, "branch:(b(1))");  //this is not right, but documenting current behavior
+    checkBuilds("branch:((b(1)))", build20); //this is not right, but documenting current behavior
+    checkBuilds("branch:(name:(value:(b(1))))", build20);
+
+    checkBuilds("branch:(name:(value:$base64:YigxKQ==))" /* b(1) */, build20);
+    checkBuilds("branch:($base64:JGJhc2U2NDpZaWd4S1E9PQ==)" /* $base64:YigxKQ== */, build20); //this is not right, but documenting current behavior
+  }
+
+  @Test
   public void testBranchDimensionWithSeveralRoots() {
     final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
 
