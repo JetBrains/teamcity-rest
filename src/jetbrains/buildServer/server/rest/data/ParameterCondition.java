@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import com.intellij.openapi.diagnostic.Logger;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,6 +28,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.serverSide.InheritableUserParametersHolder;
 import jetbrains.buildServer.serverSide.Parameter;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
@@ -39,6 +41,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 17.01.12
  */
 public class ParameterCondition {
+  private static Logger LOG = Logger.getInstance(ParameterCondition.class.getName());
 
   public static final String NAME = "name";
   public static final String VALUE = "value";
@@ -100,7 +103,7 @@ public class ParameterCondition {
         throw new BadRequestException("Unsupported value '" + type + "' for '" + TYPE + "'. Supported are: " + getAllRequirementTypes());
       }
     } else{
-      requirement = value != null ? RequirementType.CONTAINS : RequirementType.EXISTS;
+      requirement = value != null ? getDefaultMatchCondition(locator) : RequirementType.EXISTS;
     }
 
     ValueCondition nameCondition;
@@ -130,6 +133,19 @@ public class ParameterCondition {
     return new ParameterCondition(nameCondition, new ValueCondition(requirement, value, ignoreCase), nameCheckShouldMatchAll, inherited);
   }
 
+  @NotNull
+  private static RequirementType getDefaultMatchCondition(@Nullable final Locator locator) {
+    String defaultMatchType = TeamCityProperties.getPropertyOrNull("rest.parameterCondition.defaultMatchType");
+    if (defaultMatchType == null) return RequirementType.EQUALS;
+    if (defaultMatchType.contains("log")) {
+      LOG.info("Got request with property condition and without matchType specified. Locator: \"" + locator + "\". Thread name: \"" + Thread.currentThread().getName() + "\"");
+    }
+    if (defaultMatchType.contains("contains")) {
+      return RequirementType.CONTAINS;
+    }
+    return RequirementType.EQUALS;
+  }
+
   @Nullable
   @Contract("!null -> !null; null -> null")
   public static ValueCondition createValueCondition(@Nullable final String propertyConditionLocator) {
@@ -155,7 +171,7 @@ public class ParameterCondition {
       if (locator.isSingleValue()) {
         requirement = RequirementType.EQUALS;
       } else {
-        requirement = RequirementType.CONTAINS; //todo: make it equals by default?
+        requirement = getDefaultMatchCondition(locator);
       }
     }
 

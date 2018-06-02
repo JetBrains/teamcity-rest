@@ -1059,7 +1059,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("property:(value:randomValue#mPWh1dEHNVHVPhE17nwzYJng)", getBuildPromotions(finishedBuild30, finishedBuild20));
 
     //"contains" by default
-    checkBuilds("property:(value:0)", getBuildPromotions(finishedBuild50, finishedBuild40, finishedBuild35, finishedBuild30, finishedBuild20, finishedBuild10, finishedBuild05));
+    checkBuilds("property:(value:0,matchType:contains)", getBuildPromotions(finishedBuild50, finishedBuild40, finishedBuild35, finishedBuild30, finishedBuild20, finishedBuild10, finishedBuild05));
 
     //finds all as entire build params map is used for the search and build has a parameter with build conf id
     checkBuilds("property:(value:" + buildConf1.getExternalId() + ")",

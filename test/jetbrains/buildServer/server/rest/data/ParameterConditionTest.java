@@ -66,10 +66,14 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exten
     matchesFalse("value:aaa");
     matchesTrue("value:aaa", "x", "aaa");
     matchesTrue("value:aaa", "", "aaa");
-    matchesTrue("value:aaa", "x", "aaaa"); //contains by default
-    matchesTrue("value:aaa", "x", "baaa");
-    matchesTrue("value:aaa", "x", "aaac");
-    matchesTrue("value:aaa", "x", "baaac");
+    matchesFalse("value:aaa", "x", "aaaa");
+    matchesTrue("value:aaa,matchType:contains", "x", "aaaa");
+    matchesFalse("value:aaa", "x", "baaa");
+    matchesTrue("value:aaa,matchType:contains", "x", "baaa");
+    matchesFalse("value:aaa", "x", "aaac");
+    matchesTrue("value:aaa,matchType:contains", "x", "aaac");
+    matchesFalse("value:aaa", "x", "baaac");
+    matchesTrue("value:aaa,matchType:contains", "x", "baaac");
     matchesFalse("value:aaa", "x", "AAA");
     matchesFalse("value:aaa", "x", "aa");
   }
@@ -78,7 +82,8 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exten
   public void testNameValue() {
     matchesFalse("name:xxx,value:aaa");
     matchesTrue("name:xxx,value:aaa", "xxx", "aaa");
-    matchesTrue("name:xxx,value:aaa", "xxx", "baaac");
+    matchesFalse("name:xxx,value:aaa", "xxx", "baaac");
+    matchesTrue("name:xxx,value:aaa,matchType:contains", "xxx", "baaac");
     matchesFalse("name:xxx,value:aaa", "xxx", "AAA");
     matchesFalse("name:xxx,value:aaa", "xxxx", "AAA");
     matchesFalse("name:xxx,value:aaa", "xxxx", "");
@@ -197,7 +202,8 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exten
     exception(BadRequestException.class, "name:(matchType:contains),value:aaa,matchType:equals,matchScope:all");
 
     matchesFalse("value:aaa,matchScope:all", "xxx", "aaa", "xxxy", "bbb");
-    matchesTrue("value:aaa,matchScope:all", "xxx", "aaa", "xxxy", "bbaaab");
+    matchesFalse("value:aaa,matchScope:all", "xxx", "aaa", "xxxy", "bbaaab");
+    matchesTrue("value:aaa,matchScope:all,matchType:contains", "xxx", "aaa", "xxxy", "bbaaab");
   }
 
   @Test
@@ -252,7 +258,8 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exten
 
     matchesSingleFalse("value:aaa", null);
     matchesSingleTrue("value:aaa", "aaa");
-    matchesSingleTrue("value:aaa", "xxaaayy"); //contains by default ???
+    matchesSingleFalse("value:aaa", "xxaaayy");
+    matchesSingleTrue("value:aaa,matchType:contains", "xxaaayy");
     matchesSingleFalse("value:aaa", "AAA");
     matchesSingleFalse("value:aaa", "aa");
 
