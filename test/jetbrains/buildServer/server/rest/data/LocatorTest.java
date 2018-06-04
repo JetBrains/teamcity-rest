@@ -16,9 +16,12 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
+import jetbrains.buildServer.TestInternalProperties;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -32,6 +35,10 @@ import static org.junit.Assert.*;
  *         Date: 14.08.2010
  */
 public class LocatorTest {
+
+  static {
+    TestInternalProperties.init();
+  }
 
   @Test
   public void testSingleValue() {
@@ -180,11 +187,21 @@ public class LocatorTest {
 
   @Test
   public void testEscaped() {
+    check("abc", true, "abc");
     check("(abc)", true, "abc");
     check("(a:b)", true, "a:b");
+    checkException("a:b,(c:d)", LocatorProcessException.class);
+    check("a:b,c:(d)", false, null, "a", "b", "c", "d");
     check("(a:b,d(x:y))", true, "a:b,d(x:y)");
     check("(a:b,)d(x:y)", true, "a:b,)d(x:y");
     check("a:(bb)", false, null, "a", "bb");
+    check("a:(b:c)", false, null, "a", "b:c");
+    check("a:(a:b,d(x:y))", false, null, "a", "a:b,d(x:y)");
+    checkException("a:(a:b,)d(x:y)", LocatorProcessException.class);
+    check("a:(x((y))z)", false, null, "a", "x((y))z");
+    checkException("a:(x(y))z)", LocatorProcessException.class);
+    checkException("a:(x((y)z)", LocatorProcessException.class);
+
     check("a:((bb))", false, null, "a", "(bb)");
 
     checkException("a:(a(b)", LocatorProcessException.class);
@@ -194,9 +211,12 @@ public class LocatorTest {
   }
 
   @Test
-  public void testParentheses() {
+  public void testEscapedNested() {
+    check("branch:(name)", false, null, "branch", "name");
     check("branch:(name(1))", false, null, "branch", "name(1)");
     check("branch:((name(1)))", false, null, "branch", "(name(1))");
+    checkException("branch:(name(1)", LocatorProcessException.class);
+    checkException("branch:(name1))", LocatorProcessException.class);
 
     check("branch:name(1)", false, null, "branch", "name(1)");
     check("branch:value:name(1)", false, null, "branch", "value:name(1)");
@@ -546,6 +566,26 @@ public class LocatorTest {
     locator.setDimension("c", "y");
     locator.setDimension("a", "x");
     assertEquals("c:y,a:x", locator.getStringRepresentation());
+
+    assertEquals("a", new Locator("a").getStringRepresentation());
+    assertEquals("a", new Locator("(a)").getStringRepresentation());
+    assertEquals("((a))", new Locator("((a))").getStringRepresentation());
+    assertEquals("(a:b)", new Locator("(a:b)").getStringRepresentation());
+    assertEquals("(a,b)", new Locator("(a,b)").getStringRepresentation());
+
+    assertEquals("a:y", Locator.getStringLocator("a", "y"));
+    assertEquals("a:((y))", Locator.getStringLocator("a", "(y)")); //if the value is not wrapped into the additional parentheses, it will unwrap on parsing and produce locator with another value
+    assertEquals("a:((x)y(z))", Locator.getStringLocator("a", "(x)y(z)"));
+    assertEquals("a:(((y)))", Locator.getStringLocator("a", "((y))"));
+    assertEquals("u:v,a:((y))", Locator.getStringLocator("u", "v", "a", "(y)"));
+    assertEquals("a:($base64:" +base64("y)")+ ")", Locator.getStringLocator("a", "y)"));
+    assertEquals("a:($base64:" + base64("(y") + ")", Locator.getStringLocator("a", "(y"));
+    assertEquals("a:($base64:" + base64("((y)") + ")", Locator.getStringLocator("a", "((y)"));
+    assertEquals("a:($base64:" + base64("a:(b))") + ")", Locator.getStringLocator("a", "a:(b))"));
+  }
+
+  String base64(String text) {
+    return new String(Base64.getEncoder().encode(text.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
   }
 
   @Test(expectedExceptions = LocatorProcessException.class)

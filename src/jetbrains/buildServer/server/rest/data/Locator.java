@@ -984,7 +984,7 @@ public class Locator {
 
   public String getStringRepresentation() { //todo: what is returned for empty locator???    and replace "actualLocator.isEmpty() ? null : actualLocator.getStringRepresentation()"
     if (mySingleValue != null) {
-      return mySingleValue;
+      return getValueForRendering(mySingleValue);
     }
     if (!modified) {
       return myRawValue;
@@ -1001,11 +1001,32 @@ public class Locator {
     return result;
   }
 
-  private String getValueForRendering(final String value) {
-    if (value.contains(DIMENSIONS_DELIMITER) || value.contains(DIMENSION_NAME_VALUE_DELIMITER)) {
+  public static String getValueForRendering(@NotNull final String value) {
+    if (getEndNestingLevel(value)  != 0) {
+      return DIMENSION_COMPLEX_VALUE_START_DELIMITER
+             + BASE64_ESCAPE_FAKE_DIMENSION + DIMENSION_NAME_VALUE_DELIMITER + new String(Base64.getUrlEncoder().encode(value.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8)
+             + DIMENSION_COMPLEX_VALUE_END_DELIMITER;
+    }
+    if (value.contains(DIMENSIONS_DELIMITER) || value.contains(DIMENSION_NAME_VALUE_DELIMITER) ||
+        (value.startsWith(DIMENSION_COMPLEX_VALUE_START_DELIMITER) && value.endsWith(DIMENSION_COMPLEX_VALUE_END_DELIMITER))) {
       return DIMENSION_COMPLEX_VALUE_START_DELIMITER + value + DIMENSION_COMPLEX_VALUE_END_DELIMITER;
     }
     return value;
+  }
+
+  private static int getEndNestingLevel(@NotNull final String value) {
+    int parenthesesLevel = 0;
+    for (int index = 0; index < value.length(); index++) {
+      switch (value.charAt(index)) {
+        case '(':
+          parenthesesLevel++;
+          break; //DIMENSION_COMPLEX_VALUE_START_DELIMITER
+        case ')':
+          parenthesesLevel--;
+          break; //DIMENSION_COMPLEX_VALUE_END_DELIMITER
+      }
+    }
+    return parenthesesLevel;
   }
 
   @Override
