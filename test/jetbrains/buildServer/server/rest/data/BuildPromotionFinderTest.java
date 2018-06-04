@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -1190,6 +1191,18 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 
     checkBuilds("branch:(name:(value:$base64:YigxKQ==))" /* b(1) */, build20);
     checkBuilds("branch:($base64:JGJhc2U2NDpZaWd4S1E9PQ==)" /* $base64:YigxKQ== */, build20); //this is not right, but documenting current behavior
+  }
+
+  String base64(String text) {
+    return new String(Base64.getEncoder().encode(text.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
+  }
+
+  @Test
+  public void testBranchLocator() {
+    BuildTypeEx buildType = createProject("p1").createBuildType("bt10", "bt10");
+    assertEquals("buildType:(id:bt10),branch:(name:brnch),a:b", BuildPromotionFinder.getLocator(buildType, new BranchImpl("brnch", "brnch"), "a:b"));
+    assertEquals("buildType:(id:bt10),branch:(name:(value:(brnch(1)))),a:b", BuildPromotionFinder.getLocator(buildType, new BranchImpl("brnch(1)", "brnch(1)"), "a:b"));
+    assertEquals("buildType:(id:bt10),branch:(name:(value:($base64:" + base64("brnch(") + "))),a:b", BuildPromotionFinder.getLocator(buildType, new BranchImpl("brnch(", "brnch("), "a:b"));
   }
 
   @Test

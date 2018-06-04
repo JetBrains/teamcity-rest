@@ -60,9 +60,7 @@ public class BranchFinder extends AbstractFinder<BranchData> {
   @NotNull
   public static String getLocator(@NotNull final Branch branch) {
     if (branch.isDefaultBranch()) return getDefaultBranchLocator();
-    return Locator.getStringLocator(NAME, branch.getName());
-    // this is a better approach, but it should correspond to the code in getBranchFilterDetails
-    // return Locator.getStringLocator(NAME, ParameterCondition.getLocatorExactValueMatch(branch.getName()));
+     return Locator.getStringLocator(NAME, ParameterCondition.getLocatorExactValueMatch(branch.getName())); //see also getBranchFilterDetails
   }
 
   public static String getDefaultBranchLocator() {
