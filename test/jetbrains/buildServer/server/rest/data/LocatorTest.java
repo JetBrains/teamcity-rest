@@ -577,11 +577,14 @@ public class LocatorTest {
     assertEquals("a:((y))", Locator.getStringLocator("a", "(y)")); //if the value is not wrapped into the additional parentheses, it will unwrap on parsing and produce locator with another value
     assertEquals("a:((x)y(z))", Locator.getStringLocator("a", "(x)y(z)"));
     assertEquals("a:(((y)))", Locator.getStringLocator("a", "((y))"));
+    assertEquals("a:(x,,y)", Locator.getStringLocator("a", "x,,y"));
+    assertEquals("a:(x(y))", Locator.getStringLocator("a", "x(y)"));
     assertEquals("u:v,a:((y))", Locator.getStringLocator("u", "v", "a", "(y)"));
     assertEquals("a:($base64:" +base64("y)")+ ")", Locator.getStringLocator("a", "y)"));
     assertEquals("a:($base64:" + base64("(y") + ")", Locator.getStringLocator("a", "(y"));
     assertEquals("a:($base64:" + base64("((y)") + ")", Locator.getStringLocator("a", "((y)"));
     assertEquals("a:($base64:" + base64("a:(b))") + ")", Locator.getStringLocator("a", "a:(b))"));
+    assertEquals("a:($base64:" + base64("x)y(z") + ")", Locator.getStringLocator("a", "x)y(z"));
   }
 
   String base64(String text) {

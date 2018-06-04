@@ -1002,31 +1002,56 @@ public class Locator {
   }
 
   public static String getValueForRendering(@NotNull final String value) {
-    if (getEndNestingLevel(value)  != 0) {
+    LevelData nestingData = getNestingData(value);
+    if (nestingData.getCurrentLevel() != 0 || nestingData.getMinLevel() < 0) {
       return DIMENSION_COMPLEX_VALUE_START_DELIMITER
              + BASE64_ESCAPE_FAKE_DIMENSION + DIMENSION_NAME_VALUE_DELIMITER + new String(Base64.getUrlEncoder().encode(value.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8)
              + DIMENSION_COMPLEX_VALUE_END_DELIMITER;
     }
-    if (value.contains(DIMENSIONS_DELIMITER) || value.contains(DIMENSION_NAME_VALUE_DELIMITER) ||
-        (value.startsWith(DIMENSION_COMPLEX_VALUE_START_DELIMITER) && value.endsWith(DIMENSION_COMPLEX_VALUE_END_DELIMITER))) {
+    if (nestingData.getMaxLevel() > 0 || value.contains(DIMENSIONS_DELIMITER) || value.contains(DIMENSION_NAME_VALUE_DELIMITER)) {
+      // this also covers case of (value.startsWith(DIMENSION_COMPLEX_VALUE_START_DELIMITER) && value.endsWith(DIMENSION_COMPLEX_VALUE_END_DELIMITER))
       return DIMENSION_COMPLEX_VALUE_START_DELIMITER + value + DIMENSION_COMPLEX_VALUE_END_DELIMITER;
     }
     return value;
   }
 
-  private static int getEndNestingLevel(@NotNull final String value) {
-    int parenthesesLevel = 0;
+  private static LevelData getNestingData(@NotNull final String value) {
+    LevelData data = new LevelData();
     for (int index = 0; index < value.length(); index++) {
-      switch (value.charAt(index)) {
-        case '(':
-          parenthesesLevel++;
-          break; //DIMENSION_COMPLEX_VALUE_START_DELIMITER
-        case ')':
-          parenthesesLevel--;
-          break; //DIMENSION_COMPLEX_VALUE_END_DELIMITER
+      data.process(value.charAt(index));
+    }
+    return data;
+  }
+
+  private static class LevelData {
+    private int myMaxLevel = 0;
+    private int myMinLevel = 0;
+    private int myCurrentLevel = 0;
+
+    void process(char ch) {
+      switch (ch) {
+        case '(':  //DIMENSION_COMPLEX_VALUE_START_DELIMITER
+          myCurrentLevel++;
+          if (myMaxLevel < myCurrentLevel) myMaxLevel = myCurrentLevel;
+          break;
+        case ')':  //DIMENSION_COMPLEX_VALUE_END_DELIMITER
+          myCurrentLevel--;
+          if (myMinLevel > myCurrentLevel) myMinLevel = myCurrentLevel;
+          break;
       }
     }
-    return parenthesesLevel;
+
+    public int getMaxLevel() {
+      return myMaxLevel;
+    }
+
+    public int getMinLevel() {
+      return myMinLevel;
+    }
+
+    public int getCurrentLevel() {
+      return myCurrentLevel;
+    }
   }
 
   @Override
