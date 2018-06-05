@@ -880,6 +880,43 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     assertEquals("/app/rest/version/builds/id:1/artifacts/content/file.txt", build.getArtifacts().files.get(1).getContent().href);
   }
 
+  @SuppressWarnings("ResultOfMethodCallIgnored")
+  @Test
+  @TestFor(issues = "TW-27205")
+  public void testBuildArtifactsHrefWithSpecialSymbols() throws IOException {
+    SFinishedBuild finishedBuild = build().in(myBuildType).finish();
+    final File artifactsDir = finishedBuild.getArtifactsDirectory();
+    artifactsDir.mkdirs();
+    String specialCharacters = "~!@#$%^&()_+=-`][{}'; .,û%61";
+    String specialCharacters_escaped = "%7E%21%40%23%24%25%5E%26%28%29_%2B%3D-%60%5D%5B%7B%7D%27%3B%20.%2C%D1%8B%2561";
+
+    File dir = new File(artifactsDir, specialCharacters);
+    dir.mkdirs();
+    File file = new File(dir, specialCharacters);
+    file.createNewFile();
+
+    final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
+      public String transform(final String path) {
+        return StringUtil.replace(path, "/app/rest/", "/app/rest/version/");
+      }
+    });
+
+    final Build build = new Build(finishedBuild, new Fields("href,artifacts($locator(recursive:true),href,file(name,fullName,href,children($long,$locator(pattern(+:**,+:%))),content))"), new BeanContext(new BeanFactory(null), myFixture, apiUrlBuilder));
+
+    assertEquals("/app/rest/version/builds/id:1", build.getHref());
+    //noinspection ConstantConditions
+    jetbrains.buildServer.server.rest.model.files.File artifact1 = build.getArtifacts().files.get(0);
+    assertEquals(specialCharacters, artifact1.name);
+    assertEquals("/app/rest/version/builds/id:1/artifacts/metadata/" + specialCharacters_escaped, artifact1.href);
+    assertEquals("/app/rest/version/builds/id:1/artifacts/children/" + specialCharacters_escaped + "?locator=pattern(%2B:**,%2B:%25)", artifact1.getChildren().href);
+    //noinspection ConstantConditions
+    jetbrains.buildServer.server.rest.model.files.File artifact2 = build.getArtifacts().files.get(1);
+    assertEquals(specialCharacters, artifact2.name);
+    assertEquals(specialCharacters + "/" + specialCharacters, artifact2.fullName);
+    assertEquals("/app/rest/version/builds/id:1/artifacts/metadata/" + specialCharacters_escaped + "/" + specialCharacters_escaped, artifact2.href);
+    assertEquals("/app/rest/version/builds/id:1/artifacts/content/" + specialCharacters_escaped + "/" + specialCharacters_escaped, artifact2.getContent().href);
+  }
+
   @Test
   public void testBuildArtifactsCheapOperation() throws IOException {
     SFinishedBuild finishedBuild10 = build().in(myBuildType).finish();

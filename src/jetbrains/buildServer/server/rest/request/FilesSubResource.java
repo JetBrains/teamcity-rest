@@ -263,7 +263,8 @@ public class FilesSubResource {
   }
 
   static String getETag(final @NotNull Element element, @NotNull final String uniqueElementBrowserId) {
-    return EncryptUtil.md5(fileApiUrlBuilder(null, uniqueElementBrowserId).getContentHref(element) + "_" + element.getSize() + "_" + getLastModified(element));
+    String fullNamePart = Util.concatenatePath(uniqueElementBrowserId, CONTENT, element.getFullName()); //this should not change between the releases to make the client caching work
+    return EncryptUtil.md5(fullNamePart + "_" + element.getSize() + "_" + getLastModified(element));
   }
 
   private static long getLastModified(final @NotNull Element element) {
@@ -329,17 +330,17 @@ public class FilesSubResource {
     return new FileApiUrlBuilder() {
       @NotNull
       public String getMetadataHref(@Nullable Element e) {
-        return Util.concatenatePath(urlPathPrefix, METADATA, e == null ? "" : e.getFullName());
+        return Util.concatenatePath(urlPathPrefix, METADATA, e == null ? "" : encodeFullFileName(e.getFullName()));
       }
-
       @NotNull
       public String getChildrenHref(@Nullable Element e) {
-        return Util.concatenatePath(urlPathPrefix, CHILDREN, e == null ? "" : e.getFullName()) + (locator == null ? "" : "?" + "locator" + "=" + locator);
+        return Util.concatenatePath(urlPathPrefix, CHILDREN, e == null ? "" : encodeFullFileName(e.getFullName())) + (locator == null ? "" : "?" + "locator" + "=" +
+                                                                                                                                             Util.encodeUrlParamValue(locator));
       }
 
       @NotNull
       public String getContentHref(@Nullable Element e) {
-        return Util.concatenatePath(urlPathPrefix, CONTENT, e == null ? "" : e.getFullName());
+        return Util.concatenatePath(urlPathPrefix, CONTENT, e == null ? "" : encodeFullFileName(e.getFullName()));
       }
 
       @NotNull
@@ -347,6 +348,11 @@ public class FilesSubResource {
         return urlPathPrefix;
       }
     };
+  }
+
+  @NotNull
+  private static String encodeFullFileName(final String fullName) {
+    return StringUtil.replace(WebUtil.encode(fullName), "%2F", "/"); //slashes are actual path separators here and should not be escaped
   }
 
   public static Response.ResponseBuilder getContent(@NotNull final Element element, @NotNull final HttpServletRequest request) {
