@@ -887,8 +887,8 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     SFinishedBuild finishedBuild = build().in(myBuildType).finish();
     final File artifactsDir = finishedBuild.getArtifactsDirectory();
     artifactsDir.mkdirs();
-    String specialCharacters = "~!@#$%^&()_+=-`][{}'; .,û%61";
-    String specialCharacters_escaped = "%7E%21%40%23%24%25%5E%26%28%29_%2B%3D-%60%5D%5B%7B%7D%27%3B%20.%2C%D1%8B%2561";
+    String specialCharacters = "~!@#$%^&()_+=-`][{}'; .,%61";
+    String specialCharacters_escaped = "%7E%21%40%23%24%25%5E%26%28%29_%2B%3D-%60%5D%5B%7B%7D%27%3B%20.%2C%2561";
 
     File dir = new File(artifactsDir, specialCharacters);
     dir.mkdirs();
