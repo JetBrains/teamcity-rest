@@ -112,7 +112,7 @@ public class PagerData {
         nextHref = getModifiedBuilder(uriBuilder, (start != null ? start : 0) + currentPageRealCount, (count != null ? count : 0), locatorText, locatorQueryParameterName);
       }
       final String newLocator = Locator.setDimension(nextHref.getCurrentLocatorText(), AbstractFinder.DIMENSION_LOOKUP_LIMIT, getNextLookUpLimit(pagedResult.myLookupLimit));
-      nextHref = new UriModification(nextHref.getBuilder().replaceQueryParam(locatorQueryParameterName, newLocator), newLocator);
+      nextHref = new UriModification(nextHref.getBuilder().replaceQueryParam(locatorQueryParameterName, Util.encodeUrlParamValue(newLocator)), newLocator);
     }
     myNextHref = nextHref == null ? null : getRelativePath(nextHref.getBuilder().build(), contextPath);
     myPrevHref = prevHref == null ? null : getRelativePath(prevHref.build(), contextPath);
@@ -144,7 +144,7 @@ public class PagerData {
     newBuilder.replaceQueryParam(START, null).replaceQueryParam(COUNT, null);
     final String locatorWithStart = Locator.setDimension(locatorText, START, start);
     String newLocator = count == null ? locatorWithStart : Locator.setDimension(locatorWithStart, COUNT, count);
-    return new UriModification(newBuilder.replaceQueryParam(locatorQueryParameterName, newLocator), newLocator);
+    return new UriModification(newBuilder.replaceQueryParam(locatorQueryParameterName, Util.encodeUrlParamValue(newLocator)), newLocator);
   }
 
   class UriModification {

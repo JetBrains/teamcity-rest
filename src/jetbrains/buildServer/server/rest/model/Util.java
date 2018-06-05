@@ -20,7 +20,10 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.function.Function;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.web.util.WebUtil;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,7 +37,7 @@ public class Util {
     if (time == null) {
       return null;
     }
-    return (new SimpleDateFormat(Constants.TIME_FORMAT, Locale.ENGLISH)).format(time);
+    return (new SimpleDateFormat(TeamCityProperties.getProperty("rest.defaultDateFormat", Constants.TIME_FORMAT), Locale.ENGLISH)).format(time);
   }
 
   public static String concatenatePath(final String... pathParts) {
@@ -53,7 +56,21 @@ public class Util {
   }
 
   @Nullable
+  @Contract("null, _ -> null; !null, _ -> !null")
   public static <T, R> R resolveNull(@Nullable T t, @NotNull Function<T, R> f) { //todo: do we already have this?
     return t == null ? null : f.apply(t);
+  }
+
+  @Nullable
+  public static String encodeUrlParamValue(@Nullable final String value) {
+    if (value == null) return null;
+    String result = WebUtil.encode(value);
+    //make it more readable by not encoding common characters which regularly work in the clients and on the server
+    result = result.replace("%24", "$")
+                   .replace("%28", "(")
+                   .replace("%29", ")")
+                   .replace("%3A", ":")
+                   .replace("%2C", ",");
+    return result;
   }
 }

@@ -92,6 +92,17 @@ public class PagerDataTest extends BaseServerTestCase {
     check("/smth", "count:2,a:b", new PagedSearchResult<String>(items, null, 2, null, 10L, true, null), "/smth?locator=count:2,a:b", "/smth?locator=count:2,a:b,start:2,lookupLimit:20", null);
   }
 
+  @Test
+  public void testSpecialSymbols() throws URISyntaxException {
+    List<String> items = new ArrayList<String>();
+    PagedSearchResult<String> pagedResult = new PagedSearchResult<>(items, 5L, 3, null, 10L, true, null);
+    UriBuilder uriBuilder = UriBuilder.fromUri(new URI("http://some.url:8111/teamcity/smth?locator=start:5,count:3,a:%25"));
+    final PagerData pagerData = new PagerData(uriBuilder, "/teamcity", pagedResult, "start:5,count:3,a:(eight-[{~!@#$%^&*_+`=\\|'\";:/?,<.>]})", "locator");
+
+    assertEquals("href is different", "/smth?locator=start:5,count:3,a:%25", pagerData.getHref());
+    assertEquals("nextHref is different", (Object)"/smth?locator=start:5,count:3,a:(eight-%5B%7B%7E%21%40%23$%25%5E%26*_%2B%60%3D%5C%7C%27%22%3B:%2F%3F,%3C.%3E%5D%7D),lookupLimit:20", pagerData.getNextHref());
+    assertEquals("prevHref is different", (Object)"/smth?locator=start:2,count:3,a:(eight-%5B%7B%7E%21%40%23$%25%5E%26*_%2B%60%3D%5C%7C%27%22%3B:%2F%3F,%3C.%3E%5D%7D)", pagerData.getPrevHref());
+  }
 
   private void check(@NotNull final String currentHrefPath, @Nullable final String currentLocator, @NotNull final PagedSearchResult<String> pagedResult,
                      @Nullable final String href, @Nullable final Object nextHref, @Nullable final Object prevHref) throws URISyntaxException {
