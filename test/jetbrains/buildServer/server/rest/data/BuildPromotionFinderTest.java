@@ -1174,23 +1174,104 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     assertEquals(0, ((MultiCheckerFilter)myBranchFinder.getFilter(new Locator("default:any"))).getSubFiltersCount());
   }
 
-  @Test
+  @SuppressWarnings("UnnecessaryLocalVariable")
+  @Test //related issue: TW-51368
   public void testBranchDimensionWithSymbols() {
     final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
 
     final BuildPromotion build10 = build().in(buildConf1).withBranch("b").finish().getBuildPromotion();
     final BuildPromotion build20 = build().in(buildConf1).withBranch("b(1)").finish().getBuildPromotion();
-    final BuildPromotion build30 = build().in(buildConf1).withBranch("b/c").finish().getBuildPromotion();
+    final BuildPromotion build25 = build().in(buildConf1).withBranch("(b(1))").finish().getBuildPromotion();
+    final BuildPromotion build27 = build().in(buildConf1).withBranch("b(1)c").finish().getBuildPromotion();
+    final BuildPromotion build30 = build().in(buildConf1).withBranch("b(1").finish().getBuildPromotion();
 
-    checkBuilds("defaultFilter:false", build30, build20, build10);
+    checkBuilds("defaultFilter:false", build30, build27, build25, build20, build10);
 
-    //related issue: TW-51368
-    checkExceptionOnBuildsSearch(BadRequestException.class, "branch:(b(1))");  //this is not right, but documenting current behavior
-    checkBuilds("branch:((b(1)))", build20); //this is not right, but documenting current behavior
-    checkBuilds("branch:(name:(value:(b(1))))", build20);
+    String altLocatorPart = "buildType:(id:" + buildConf1.getExternalId() + "),";
+    {
+      String branchName = "b";
+      BuildPromotion build = build10;
+      checkBuilds(BuildPromotionFinder.getLocator(buildConf1, new BranchImpl(branchName, branchName), null), build);
 
-    checkBuilds("branch:(name:(value:$base64:YigxKQ==))" /* b(1) */, build20);
-    checkBuilds("branch:($base64:JGJhc2U2NDpZaWd4S1E9PQ==)" /* $base64:YigxKQ== */, build20); //this is not right, but documenting current behavior
+      checkBuilds("branch:(" + branchName + ")", build);
+      checkBuilds("branch:((" + branchName + "))", build); //this is strange, but this is how it works currently due to nested locator support
+      checkBuilds("branch:(name:(" + branchName + "))", build);
+      checkBuilds("branch:(name:$base64:" + base64(branchName) + ")", build);
+      checkBuilds("branch:(name:$base64:" + base64("value:(" + branchName + ")") + ")", build); //this should actually search for build with branch name "value:(b)", but documenting current behavior
+      checkBuilds("branch:(name:(value:(" + branchName + ")))", build);
+      checkBuilds("branch:(name:(value:$base64:" + base64(branchName) + "))", build);
+      checkBuilds("branch:($base64:" + base64("name:(" + branchName + ")") + ")", build); //not quite right (no nested base64 unescaping should occur), but documenting current behavior
+      checkBuilds("branch:($base64:" + base64("name:$base64:" + base64(branchName) + "") + ")", build); //documenting current behavior
+
+      //when buildType is present in the locator, the processing logic might differ
+      checkBuilds(altLocatorPart + "branch:(name:(value:(" + branchName + ")),policy:ALL_BRANCHES)", build);
+    }
+
+    {
+      String branchName = "b(1)";
+      BuildPromotion build = build20;
+      checkBuilds(BuildPromotionFinder.getLocator(buildConf1, new BranchImpl(branchName, branchName), null), build);
+
+      checkExceptionOnBuildsSearch(BadRequestException.class, "branch:(" + branchName + ")");
+      checkBuilds("branch:((" + branchName + "))", build); //documenting current behavior
+      checkExceptionOnBuildsSearch(BadRequestException.class, "branch:(name:(" + branchName + "))"); //documenting current behavior
+      checkExceptionOnBuildsSearch(BadRequestException.class, "branch:(name:$base64:" + base64(branchName) + ")"); //documenting current behavior
+      checkBuilds("branch:(name:(value:(" + branchName + ")))", build);
+      checkBuilds("branch:(name:(value:$base64:" + base64(branchName) + "))", build);
+      checkExceptionOnBuildsSearch(BadRequestException.class, "branch:($base64:" + base64("name:(" + branchName + ")") + ")"); //documenting current behavior
+      checkBuilds("branch:($base64:" + base64("name:($base64:" + base64("value:($base64:" + base64(branchName) + ")") + ")") + ")", build); //documenting current behavior
+
+      checkBuilds(altLocatorPart + "branch:(name:(value:(" + branchName + ")),policy:ALL_BRANCHES)", build);
+    }
+
+    {
+      String branchName = "(b(1))";
+      BuildPromotion build = build25;
+      checkBuilds(BuildPromotionFinder.getLocator(buildConf1, new BranchImpl(branchName, branchName), null), build);
+
+      checkBuilds("branch:(" + branchName + ")", build20); //documenting current behavior
+      checkBuilds("branch:((" + branchName + "))", build); //documenting current behavior
+      checkBuilds("branch:(name:(" + branchName + "))", build20); //documenting current behavior
+      checkBuilds("branch:(name:((" + branchName + ")))", build); //documenting current behavior
+      checkBuilds("branch:(name:$base64:" + base64(branchName) + ")", build20); //documenting current behavior
+      checkBuilds("branch:(name:$base64:" + base64("(" + branchName + ")") + ")", build);
+      checkBuilds("branch:(name:(value:(" + branchName + ")))", build);
+      checkBuilds("branch:(name:(value:$base64:" + base64(branchName) + "))", build);
+      checkBuilds("branch:($base64:" + base64("name:((" + branchName + "))") + ")", build); //documenting current behavior
+
+      checkBuilds(altLocatorPart + "branch:(name:(value:(" + branchName + ")),policy:ALL_BRANCHES)", build);
+    }
+
+    {
+      String branchName = "b(1)c";
+      BuildPromotion build = build27;
+      checkBuilds(BuildPromotionFinder.getLocator(buildConf1, new BranchImpl(branchName, branchName), null), build);
+
+      checkExceptionOnBuildsSearch(LocatorProcessException.class, "branch:(" + branchName + ")");
+      checkBuilds("branch:((" + branchName + "))", build); //documenting current behavior
+      checkExceptionOnBuildsSearch(BadRequestException.class, "branch:(name:(" + branchName + "))"); //documenting current behavior
+      checkBuilds("branch:(name:$base64:" + base64("(" + branchName + ")") + ")", build); //documenting current behavior
+      checkBuilds("branch:(name:(value:(" + branchName + ")))", build);
+      checkBuilds("branch:(name:(value:$base64:" + base64(branchName) + "))", build);
+
+      checkBuilds(altLocatorPart + "branch:(name:(value:(" + branchName + ")),policy:ALL_BRANCHES)", build);
+    }
+
+    {
+      String branchName = "b(1";
+      BuildPromotion build = build30;
+      checkBuilds(BuildPromotionFinder.getLocator(buildConf1, new BranchImpl(branchName, branchName), null), build);
+
+      checkExceptionOnBuildsSearch(LocatorProcessException.class, "branch:(" + branchName + ")");
+      checkExceptionOnBuildsSearch(LocatorProcessException.class, "branch:((" + branchName + "))");
+      checkExceptionOnBuildsSearch(LocatorProcessException.class, "branch:(name:(" + branchName + "))");
+      checkBuilds("branch:(name:$base64:" + base64(branchName) + ")", build);
+      checkExceptionOnBuildsSearch(LocatorProcessException.class, "branch:(name:(value:(" + branchName + ")))");
+      checkBuilds("branch:(name:(value:$base64:" + base64(branchName) + "))", build);
+      checkExceptionOnBuildsSearch(LocatorProcessException.class,"branch:($base64:" + base64("name:(" + branchName + ")") + ")");
+
+      checkBuilds(altLocatorPart + "branch:(name:(value:($base64:" + base64(branchName) + ")),policy:ALL_BRANCHES)", build);
+    }
   }
 
   String base64(String text) {
