@@ -226,7 +226,11 @@ public class Agent {
   }
 
   static String getAgentOsType(@NotNull final SBuildAgent agent) {
-    OSKind os = OSKind.guessByName(agent.getOperatingSystemName());
+    String osName = agent.getOperatingSystemName();
+    if ("N/A".equalsIgnoreCase(osName) || "<unknown>".equalsIgnoreCase(osName) || "".equals(osName)) {
+      osName = ((BuildAgentEx)agent).getAgentType().getOperatingSystemName();
+    }
+    OSKind os = OSKind.guessByName(osName);
     if (os == null) return null;
     switch (os) {
       case WINDOWS:
