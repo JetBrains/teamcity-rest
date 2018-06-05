@@ -130,7 +130,7 @@ public class BuildRequest {
   public static String getBuildsHref(@NotNull final BranchData branch, @Nullable final String buildsLocator) {
     SBuildType buildType = branch.getBuildType();
     if (buildType == null) return null;
-    return API_BUILDS_URL + "?locator=" + BuildPromotionFinder.getLocator(buildType, branch, buildsLocator);
+    return API_BUILDS_URL + "?locator=" + Util.encodeUrlParamValue(BuildPromotionFinder.getLocator(buildType, branch, buildsLocator));
   }
 
   public static String getBuildLocator(@NotNull final SBuild build) {
