@@ -1001,6 +1001,7 @@ public class Locator {
     return result;
   }
 
+  @NotNull
   public static String getValueForRendering(@NotNull final String value) {
     LevelData nestingData = getNestingData(value);
     if (nestingData.getCurrentLevel() != 0 || nestingData.getMinLevel() < 0) {
