@@ -68,12 +68,15 @@ import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
 import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
+import jetbrains.buildServer.serverSide.audit.ActionType;
+import jetbrains.buildServer.serverSide.audit.AuditLogAction;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.buildDistribution.WaitReason;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.serverSide.impl.DownloadedArtifactsLoggerImpl;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.impl.audit.filters.ActionTypesFilter;
 import jetbrains.buildServer.serverSide.impl.changeProviders.ArtifactDependencyChangesProvider;
 import jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl;
 import jetbrains.buildServer.serverSide.metadata.BuildMetadataEntry;
@@ -118,7 +121,8 @@ import org.jetbrains.annotations.Nullable;
            "settingsHash", "currentSettingsHash", "modificationId", "chainModificationId", "replacementIds",
            "related", /*experimental*/
            "triggeringOptions"/*only when triggering*/,
-           "usedByOtherBuilds" /*experimental*/
+           "usedByOtherBuilds" /*experimental*/,
+           "statusChangeComment" /*experimental, temporary*/
 })
 public class Build {
   private static final Logger LOG = Logger.getInstance(Build.class.getName());
@@ -441,6 +445,20 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded("comment", false), () -> {
       jetbrains.buildServer.serverSide.comments.Comment comment = myBuildPromotion.getBuildComment();
       return comment == null ? null : new Comment(comment, myFields.getNestedField("comment", Fields.NONE, Fields.LONG), myBeanContext);
+    });
+  }
+
+  /**
+   * This is a temporary workaround, will be removed in the future versions
+   */
+  @XmlElement
+  public Comment getStatusChangeComment() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("statusChangeComment", false, false), () -> {
+      //can improve the code by requesting only 1 item
+      final List<AuditLogAction> logActions = ((BuildPromotionEx)myBuildPromotion).getAuditLogActions(new ActionTypesFilter(ActionType.BUILD_MARKED_AS_FAILED, ActionType.BUILD_MARKED_AS_SUCCESSFUL));
+      if (logActions.isEmpty()) return null;
+      AuditLogAction action = logActions.get(0); //the most recent action
+      return new Comment(action.getComment(), myFields.getNestedField("statusChangeComment", Fields.NONE, Fields.LONG), myBeanContext);
     });
   }
 
