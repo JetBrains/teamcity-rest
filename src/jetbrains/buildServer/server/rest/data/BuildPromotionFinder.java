@@ -554,6 +554,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       final Matcher<ParametersProvider> parameterCondition = ParameterCondition.create(properties);
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
+          if (!Build.canViewRuntimeData(myPermissionChecker, item)) return false;
           //does not correspond to Build.getProperties() which includes less parameters
           return parameterCondition.matches(((BuildPromotionEx)item).getParametersProvider()); //TeamCity open API issue
         }
@@ -607,6 +608,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         }
         result.add(new FilterConditionChecker<BuildPromotion>() {
           public boolean isIncluded(@NotNull final BuildPromotion item) {
+            if (!Build.canViewRuntimeData(myPermissionChecker, item)) return false;
             return buildIds.contains(item.getAssociatedBuildId());
           }
         });
@@ -1158,7 +1160,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
           while (metadataEntries.hasNext()) {
             BuildMetadataEntry metadataEntry = metadataEntries.next();
             SBuild build = myBuildsManager.findBuildInstanceById(metadataEntry.getBuildId());
-            if (build != null) {
+            if (build != null && Build.canViewRuntimeData(myPermissionChecker, build.getBuildPromotion())) {
               processor.processItem(build.getBuildPromotion());
             }
           }

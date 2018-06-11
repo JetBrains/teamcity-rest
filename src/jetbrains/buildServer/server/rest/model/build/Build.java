@@ -72,6 +72,7 @@ import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.audit.ActionType;
 import jetbrains.buildServer.serverSide.audit.AuditLogAction;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
+import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.buildDistribution.WaitReason;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
@@ -493,8 +494,9 @@ public class Build {
 
   @XmlElement
   public Properties getProperties() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
+        checkCanViewRuntimeData();
         return new Properties(Properties.createEntity(myBuildPromotion.getParameters(), myBuildPromotion.getCustomParameters()), null,
                               null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myBeanContext);
       }
@@ -509,14 +511,9 @@ public class Build {
     if (myBuild == null) {
       return null;
     }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("resultingProperties", false, false), new ValueWithDefault.Value<Properties>() {
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("resultingProperties", false, false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
-        try {
-          //noinspection ConstantConditions
-          myBeanContext.getServiceLocator().findSingletonService(PermissionChecker.class).checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, myBuildPromotion);
-        } catch (Exception e) {
-          return null;
-        }
+        checkCanViewRuntimeData();
         return new Properties(myBuild.getParametersProvider().getAll(), null, myFields.getNestedField("resultingProperties", Fields.NONE, Fields.LONG), myBeanContext);
       }
     });
@@ -524,8 +521,9 @@ public class Build {
 
   @XmlElement
   public Entries getAttributes() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("attributes", false), new ValueWithDefault.Value<Entries>() {
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("attributes", false), new ValueWithDefault.Value<Entries>() {
       public Entries get() {
+        checkCanViewRuntimeData();
         final LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
         Fields nestedFields = myFields.getNestedField("attributes", Fields.LONG, Fields.LONG);
         String locator = ParameterCondition.getNameAndNotEmptyValueLocator(BuildAttributes.CLEAN_SOURCES);
@@ -569,8 +567,9 @@ public class Build {
     if (myBuild == null) {
       return null;
     } else {
-      return ValueWithDefault.decideDefault(myFields.isIncluded("metadata", false, false), new ValueWithDefault.Value<NamedDatas>() {
+      return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("metadata", false, false), new ValueWithDefault.Value<NamedDatas>() {
         public NamedDatas get() {
+          checkCanViewRuntimeData();
           HashMap<String, Map<String, String>> result = new HashMap<>();
           MetadataStorageEx metadataStorage = myServiceLocator.getSingletonService(MetadataStorageEx.class);
           for (String providerId : metadataStorage.getProviderIds()) {
@@ -1154,9 +1153,10 @@ public class Build {
    */
   @XmlElement
   public String getSettingsHash() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("settingsHash", false, false), new ValueWithDefault.Value<String>() {
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("settingsHash", false, false), new ValueWithDefault.Value<String>() {
       @Nullable
       public String get() {
+        checkCanViewRuntimeData();
         return new String(Hex.encodeHex(((BuildPromotionEx)myBuildPromotion).getSettingsDigest(false)));
       }
     });
@@ -1167,9 +1167,10 @@ public class Build {
    */
   @XmlElement
   public String getCurrentSettingsHash() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("currentSettingsHash", false, false), new ValueWithDefault.Value<String>() {
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("currentSettingsHash", false, false), new ValueWithDefault.Value<String>() {
       @Nullable
       public String get() {
+        checkCanViewRuntimeData();
         return new String(Hex.encodeHex(((BuildPromotionEx)myBuildPromotion).getBuildSettings().getDigest()));
       }
     });
@@ -1180,9 +1181,10 @@ public class Build {
    */
   @XmlElement
   public String getModificationId() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("modificationId", false, false), new ValueWithDefault.Value<String>() {
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("modificationId", false, false), new ValueWithDefault.Value<String>() {
       @Nullable
       public String get() {
+        checkCanViewRuntimeData();
         return String.valueOf(myBuildPromotion.getLastModificationId());
       }
     });
@@ -1193,9 +1195,10 @@ public class Build {
    */
   @XmlElement
   public String getChainModificationId() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("chainModificationId", false, false), new ValueWithDefault.Value<String>() {
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("chainModificationId", false, false), new ValueWithDefault.Value<String>() {
       @Nullable
       public String get() {
+        checkCanViewRuntimeData();
         return String.valueOf(((BuildPromotionEx)myBuildPromotion).getChainModificationId());
       }
     });
@@ -1221,6 +1224,24 @@ public class Build {
         }));
       }
     });
+  }
+
+  private boolean myCanViewRuntimeDataChecked = false;
+  private void checkCanViewRuntimeData() {
+    if (!myCanViewRuntimeDataChecked) {
+      //noinspection ConstantConditions
+      myBeanContext.getServiceLocator().findSingletonService(PermissionChecker.class).checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, myBuildPromotion);
+      myCanViewRuntimeDataChecked = true;
+    }
+  }
+
+  public static boolean canViewRuntimeData(@NotNull PermissionChecker permissionChecker, @NotNull BuildPromotion buildPromotion){
+      final SBuildType buildType = buildPromotion.getBuildType();
+      final AuthorityHolder authorityHolder = permissionChecker.getCurrent();
+      if (buildType == null){
+        return authorityHolder.isPermissionGrantedGlobally(Permission.VIEW_BUILD_RUNTIME_DATA);
+      }
+      return authorityHolder.isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_BUILD_RUNTIME_DATA);
   }
 
   /**
