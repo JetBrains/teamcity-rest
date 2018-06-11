@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -729,10 +730,9 @@ public class Build {
    */
   @XmlAttribute(name = "limitedChangesCount")
   public Integer getLimitedChangesCount() {
-    boolean isCached = ((BuildPromotionEx)myBuildPromotion).hasComputedChanges(SelectPrevBuildPolicy.SINCE_LAST_BUILD,
-                                                                               new LimitingVcsModificationProcessor(ChangesPopupUtil.getBuildChangesPopupLimit())); //see ChangesBean.lazyChanges
-
-    return ValueWithDefault.decideDefault(myFields.isIncluded("limitedChangesCount", isCached,false, false),
+    Supplier<Boolean> isCached = () -> ((BuildPromotionEx)myBuildPromotion).hasComputedChanges(SelectPrevBuildPolicy.SINCE_LAST_BUILD,
+                                                 new LimitingVcsModificationProcessor(ChangesPopupUtil.getBuildChangesPopupLimit())); //see ChangesBean.lazyChanges;
+    return ValueWithDefault.decideDefault(myFields.isIncludedFull("limitedChangesCount", isCached, false, false),
                                           () -> {
                                             ChangesBean changesBean = ChangesBean.createForChangesLink(myBuildPromotion, null);
                                             int result = changesBean.getTotal();

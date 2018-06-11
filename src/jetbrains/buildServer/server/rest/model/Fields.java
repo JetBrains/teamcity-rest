@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.model;
 import com.intellij.openapi.util.text.StringUtil;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -143,7 +144,13 @@ public class Fields {
 
   @Nullable
   @Contract("_, _, !null, !null -> !null")
-  public Boolean isIncluded(@NotNull final String fieldName,  @Nullable final Boolean isCashed, @Nullable final Boolean defaultForShort, @Nullable final Boolean defaultForLong) {
+  public Boolean isIncluded(@NotNull final String fieldName, @Nullable final Boolean isCashed, @Nullable final Boolean defaultForShort, @Nullable final Boolean defaultForLong) {
+    return isIncludedFull(fieldName, () -> isCashed, defaultForShort, defaultForLong);
+  }
+
+  @Nullable
+  @Contract("_, _, !null, !null -> !null")
+  public Boolean isIncludedFull(@NotNull final String fieldName, @Nullable final Supplier<Boolean> isCashed, @Nullable final Boolean defaultForShort, @Nullable final Boolean defaultForLong) {
     final String fieldSpec = getCustomDimension(fieldName);
     if (fieldSpec != null) {
       if (NONE_FIELDS_PATTERN.equals(fieldSpec)) {
@@ -153,7 +160,7 @@ public class Fields {
         if (isCashed == null && TeamCityProperties.getBoolean("rest.beans.fields.optional.errorIfUsedForNotSupportedField")) {
           throw new  BadRequestException("Special fields pattern \"" + OPTIONAL_FIELDS_PATTERN + "\" is not supported for field \"" + fieldName + "\"");
         }
-        return isCashed != null && isCashed;
+        return isCashed != null && isCashed.get();
       }
       return true;
     }
