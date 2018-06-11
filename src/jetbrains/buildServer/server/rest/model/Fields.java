@@ -160,7 +160,11 @@ public class Fields {
         if (isCashed == null && TeamCityProperties.getBoolean("rest.beans.fields.optional.errorIfUsedForNotSupportedField")) {
           throw new  BadRequestException("Special fields pattern \"" + OPTIONAL_FIELDS_PATTERN + "\" is not supported for field \"" + fieldName + "\"");
         }
-        return isCashed != null && isCashed.get();
+        if (isCashed == null) {
+          return false;
+        }
+        Boolean result = isCashed.get();
+        return result != null && result;
       }
       return true;
     }
