@@ -105,7 +105,7 @@ import org.jetbrains.annotations.Nullable;
          propOrder = {"id", "promotionId", "buildTypeId", "buildTypeInternalId", "number"/*rf*/, "status"/*rf*/, "state", "running"/*r*/, "composite",
            "failedToStart"/*f*/,
            "personal", "percentageComplete"/*r*/, "branchName", "defaultBranch", "unspecifiedBranch", "history", "pinned"/*rf*/, "href", "webUrl",
-           "queuePosition"/*q*/ /*experimental*/, "limitedChangesCount" /*experimental*/,
+           "queuePosition"/*q*/, "limitedChangesCount", "artifactsDirectory" /*experimental*/,
            "links",
            "statusText"/*rf*/,
            "buildType", "comment", "tags", "pinInfo"/*f*/, "personalBuildUser",
@@ -739,6 +739,18 @@ public class Build {
                                             if (changesBean.isChangesLimitExceeded()) result++;
                                             return result;
                                           });
+  }
+
+  /**
+   * Experimental support only
+   */
+  @XmlAttribute(name = "artifactsDirectory")
+  public String getArtifactsDirectory() {
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("artifactsDirectory", false, false),
+                            () -> {
+                              myBeanContext.getServiceLocator().findSingletonService(PermissionChecker.class).checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+                              return myBuildPromotion.getArtifactsDirectory().getAbsolutePath();
+                            });
   }
 
   @XmlElement(name = "revisions")
