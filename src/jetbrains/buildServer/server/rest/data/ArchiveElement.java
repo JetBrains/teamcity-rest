@@ -24,7 +24,6 @@ import java.io.OutputStream;
 import java.util.List;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.StreamingOutput;
-import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.browser.Browser;
 import jetbrains.buildServer.util.browser.BrowserException;
@@ -97,7 +96,7 @@ public class ArchiveElement implements Element {
                 resultOutput.putArchiveEntry(entry);
                 resultOutput.closeArchiveEntry();
               } catch (IOException e) {
-                throw new InvalidStateException("Error processing directory '" + artifact.getFullName() + "': " + e.toString(), e);
+                LOG.warnAndDebugDetails("Error packing directory, ignoring. Directory: '" + artifact.getFullName() + "'", e);
               }
             }
 
@@ -110,21 +109,23 @@ public class ArchiveElement implements Element {
                 final Long lastModified = artifact.getLastModified();
                 if (lastModified != null) entry.setTime(lastModified); //might need to add more, see com.intellij.util.io.ZipUtil.addFileToZip()
                 resultOutput.putArchiveEntry(entry);
-                FileUtil.copyStreams(stream, resultOutput);
-                resultOutput.closeArchiveEntry();
+                try {
+                  FileUtil.copyStreams(stream, resultOutput);
+                } finally {
+                  resultOutput.closeArchiveEntry();
+                }
               } finally {
                 FileUtil.close(stream);
               }
             } catch (IOException e) {
-              throw new InvalidStateException("Error processing artifact '" + artifact.getFullName() + "': " + e.toString(), e);
+              LOG.warnAndDebugDetails("Error packing artifact, ignoring. File: '" + artifact.getFullName() + "'", e);
             }
           }
         } finally {
           try {
             resultOutput.close();
           } catch (Exception e) {
-            LOG.info("Error closing archived stream: " + e.toString());
-            LOG.debug("Error closing archived stream: " + e.toString(), e);
+            LOG.warnAndDebugDetails("Error closing archived stream", e);
           }
         }
       }
