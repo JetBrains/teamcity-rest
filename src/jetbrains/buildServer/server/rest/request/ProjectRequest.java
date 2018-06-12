@@ -674,7 +674,7 @@ public class ProjectRequest {
   @Produces({"text/plain"})
   @Consumes({"text/plain"})
   public String getSecureValue(@PathParam("projectLocator") String projectLocator, @PathParam("token") String token) {
-    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS); //checking global admin for now
+    myPermissionChecker.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS); //checking global admin for now
     SProject project = myProjectFinder.getItem(projectLocator);
     return getSecureValueByToken(project, token);
   }
@@ -825,7 +825,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/settingsFile")
   @Produces({"text/plain"})
   public String getSettingsFile(@PathParam("projectLocator") String projectLocator) {
-    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myPermissionChecker.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     final SProject project = myProjectFinder.getItem(projectLocator);
     return project.getConfigurationFile().getAbsolutePath();
   }
@@ -837,7 +837,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/latest")
   public Project reloadSettingsFile (@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
-    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myPermissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     final SProject project = myProjectFinder.getItem(projectLocator);
     final String projectConfigFile = project.getConfigurationFile().getAbsolutePath();
     final List<File> emptyList = Collections.<File>emptyList();

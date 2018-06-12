@@ -194,10 +194,10 @@ public class Server {
     } else if ("internalId".equals(field)) {
       return serviceLocator.getSingletonService(ServerSettings.class).getServerUUID();
     } else if ("superUserToken".equals(field)) {
-      serviceLocator.getSingletonService(DataProvider.class).checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+      serviceLocator.getSingletonService(DataProvider.class).checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
       return serviceLocator.getSingletonService(DataProvider.class).getBean(StartupContext.class).getMaintenanceAuthenticationToken();
     } else if ("dataDirectoryPath".equals(field)) { //experimental
-      serviceLocator.getSingletonService(DataProvider.class).checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+      serviceLocator.getSingletonService(DataProvider.class).checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
       return serviceLocator.getSingletonService(DataProvider.class).getBean(ServerPaths.class).getDataDirectory().getAbsolutePath();
     } else if ("role".equals(field)) {
       return serviceLocator.getSingletonService(TeamCityNodes.class).getOnlineNodes().get(0).getMode().name().toLowerCase();

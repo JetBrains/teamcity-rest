@@ -106,7 +106,7 @@ public class ServerRequest {
   @Path("/plugins")
   @Produces({"application/xml", "application/json"})
   public PluginInfos servePlugins(@QueryParam("fields") String fields) {
-    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myDataProvider.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     return new PluginInfos(myDataProvider.getPlugins(), new Fields(fields), myBeanContext);
   }
 
@@ -142,7 +142,7 @@ public class ServerRequest {
           FileSecurityUtil.checkInsideDirectory(FileUtil.resolvePath(backupDir, fileName), backupDir);
         } catch (Exception e) {
           //the message contains absolute paths
-          if (myPermissionChecker.hasGlobalPermission(Permission.CHANGE_SERVER_SETTINGS)) {
+          if (myPermissionChecker.hasGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION)) {
             throw e;
           }
           throw new BadRequestException("Target file name (" + fileName + ") should be relative path.", null);
@@ -193,7 +193,7 @@ public class ServerRequest {
   @Path(LICENSING_DATA)
   @Produces({"application/xml", "application/json"})
   public LicensingData getLicensingData(@QueryParam("fields") String fields) {
-    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myDataProvider.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     return new LicensingData(myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager(), new Fields(fields), myBeanContext);
   }
 
@@ -201,7 +201,7 @@ public class ServerRequest {
   @Path(LICENSING_KEYS)
   @Produces({"application/xml", "application/json"})
   public LicenseKeyEntities getLicenseKeys(@QueryParam("fields") String fields) {
-    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myDataProvider.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     LicenseList licenseList = myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager().getLicenseList();
     return new LicenseKeyEntities(licenseList.getAllLicenses(), licenseList.getActiveLicenses(), ServerRequest.getLicenseKeysListHref(), new Fields(fields), myBeanContext);
   }
@@ -241,7 +241,7 @@ public class ServerRequest {
   @Path(LICENSING_KEYS + "/{licenseKey}")
   @Produces({"application/xml", "application/json"})
   public LicenseKeyEntity getLicenseKey(@PathParam("licenseKey") final String licenseKey, @QueryParam("fields") String fields) {
-    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myDataProvider.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     LicenseKeysManager licenseKeysManager = myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager();
     LicenseKey key = getLicenseKey(licenseKey, licenseKeysManager);
     return new LicenseKeyEntity(key, licenseKeysManager.getLicenseList().getActiveLicenses().contains(key), new Fields(fields));
@@ -328,6 +328,6 @@ public class ServerRequest {
 
   @NotNull
   private Permission getAreaPermission(final @PathParam("areaId") String areaId) {
-    return "logs".equals(areaId) ? Permission.MANAGE_SERVER_INSTALLATION : Permission.CHANGE_SERVER_SETTINGS;
+    return "logs".equals(areaId) ? Permission.MANAGE_SERVER_INSTALLATION : Permission.VIEW_SERVER_SETTINGS;
   }
 }

@@ -282,7 +282,7 @@ public class VcsRootRequest {
   @Path("/{vcsRootLocator}/settingsFile")
   @Produces({"text/plain"})
   public String getSettingsFile(@PathParam("vcsRootLocator") String vcsRootLocator) {
-    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myPermissionChecker.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     @NotNull final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
     return vcsRoot.getConfigurationFile().getAbsolutePath();
   }

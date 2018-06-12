@@ -1479,7 +1479,7 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/settingsFile")
   @Produces({"text/plain"})
   public String getSettingsFile(@PathParam("btLocator") String buildTypeLocator) {
-    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myPermissionChecker.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, false);
     return buildType.getIdentity().getConfigurationFile().getAbsolutePath();
   }

@@ -663,7 +663,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/artifactsDirectory")
   @Produces({"text/plain"})
   public String getArtifactsDirectory(@PathParam("buildLocator") String buildLocator) {
-    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myPermissionChecker.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
     return build.getArtifactsDirectory().getAbsolutePath();
   }

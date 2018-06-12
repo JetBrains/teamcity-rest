@@ -747,7 +747,7 @@ public class Build {
   public String getArtifactsDirectory() {
     return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("artifactsDirectory", false, false),
                             () -> {
-                              myBeanContext.getServiceLocator().findSingletonService(PermissionChecker.class).checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+                              myBeanContext.getServiceLocator().findSingletonService(PermissionChecker.class).checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
                               return myBuildPromotion.getArtifactsDirectory().getAbsolutePath();
                             });
   }

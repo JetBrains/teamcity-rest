@@ -107,7 +107,7 @@ public class DebugRequest {
    @Path("/database/tables")
    @Produces({"text/plain; charset=UTF-8"})
    public String listDBTables() {
-    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myDataProvider.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     final Set<String> tableNames = myDataProvider.getBean(DBFunctionsProvider.class).withDB(new DBAction<Set<String>>() {
       public Set<String> run(final DBFunctions dbf) throws DBException {
         return dbf.retrieveSchemaTableNames(true, false, false);
@@ -128,7 +128,7 @@ public class DebugRequest {
                                @QueryParam("fieldDelimiter") @DefaultValue(", ") String fieldDelimiter,
                                @QueryParam("dataRetrieveQuery") String dataRetrieveQuery,
                                @QueryParam("count") @DefaultValue("1000") int maxRows) {
-    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myDataProvider.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     checkQuery(query);
     final boolean treatAsDataRetrieveQuery = dataRetrieveQuery != null ? Boolean.valueOf(dataRetrieveQuery) : isDataRetrieveQuery(query);
     DumpResultSetProcessor processor;
@@ -203,7 +203,7 @@ public class DebugRequest {
   @Produces({"text/plain"})
   public String getRequestDetails(@PathParam("extra") final String extra, @Context HttpServletRequest request) {
     if (!TeamCityProperties.getBoolean("rest.debug.currentRequest.details.allowUnauthorized")) {
-      myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+      myDataProvider.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     }
 
     StringBuilder result = new StringBuilder();
@@ -336,7 +336,7 @@ public class DebugRequest {
   @Produces({"application/xml", "application/json"})
   public Sessions getSessions(@Context HttpServletRequest request, @QueryParam("manager") final Long managerNum,
                               @QueryParam("fields") final String fields, @Context @NotNull final BeanContext beanContext) {
-    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myDataProvider.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     try {
       MBeanServer serverBean = ManagementFactory.getPlatformMBeanServer();
       Set<ObjectName> managerBeans = serverBean.queryNames(new ObjectName("Catalina:type=Manager,*"), null);
@@ -366,7 +366,7 @@ public class DebugRequest {
   @Path("/jvm/systemProperties")
   @Produces({"application/xml", "application/json"})
   public Properties getSystemProperties(@Context HttpServletRequest request, @QueryParam("fields") final String fields) {
-    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myDataProvider.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     final Set<Map.Entry<Object, Object>> entries = System.getProperties().entrySet();
     final HashMap<String, String> result = new HashMap<String, String>(entries.size());
     for (Map.Entry<Object, Object> entry : entries) {
@@ -382,7 +382,7 @@ public class DebugRequest {
   @Path("/jvm/environmentVariables")
   @Produces({"application/xml", "application/json"})
   public Properties getEnvironmentVariables(@Context HttpServletRequest request, @QueryParam("fields") final String fields) {
-    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myDataProvider.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     return new Properties(System.getenv(), null, new Fields(fields), myBeanContext);
   }
 
@@ -401,7 +401,7 @@ public class DebugRequest {
     }
 
     if (format != null) {
-      myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+      myDataProvider.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
       if (StringUtil.isEmpty(format)) {
         format = jetbrains.buildServer.server.rest.model.Constants.TIME_FORMAT;
       }
@@ -427,7 +427,7 @@ public class DebugRequest {
   @Produces({"text/plain"})
   public String emptyTask(@QueryParam("time") String totalTime, @QueryParam("load") Integer loadPercentage,
                           @QueryParam("memory") Integer memoryToAllocateBytes, @QueryParam("memoryChunks") @DefaultValue("1") Integer memoryChunksCount) {
-    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myDataProvider.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     long totalTimeMs = 0;
     if (totalTime != null) {
       try {
@@ -573,7 +573,7 @@ public class DebugRequest {
   @Path("/memory/dumps")
   @Produces({"text/plain"})
   public String saveMemoryDump(@QueryParam("archived") Boolean archived, @Context HttpServletRequest request) {
-    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myDataProvider.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     final File logsPath = myServiceLocator.getSingletonService(ServerPaths.class).getLogsPath();
     try {
       final File memoryDumpFile;
@@ -597,7 +597,7 @@ public class DebugRequest {
   @Produces({"text/plain"})
   public String getThreadDump(@QueryParam("lockedMonitors") String lockedMonitors, @QueryParam("lockedSynchronizers") String lockedSynchronizers,
                               @QueryParam("detectLocks") String detectLocks) {
-    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myDataProvider.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     final Date startTime = Dates.now();
     ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
     ThreadInfo[] infos = threadMXBean.dumpAllThreads(Boolean.getBoolean(lockedMonitors), Boolean.getBoolean(lockedSynchronizers));
@@ -656,7 +656,7 @@ public class DebugRequest {
   @Path("/threads/{threadLocator}/interrupted")
   @Produces({"text/plain"})
   public String getThreadInterrupted(@PathParam("threadLocator") String threadLocator) {
-    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myDataProvider.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     return String.valueOf(getThread(threadLocator).isInterrupted());
   }
 
@@ -665,9 +665,10 @@ public class DebugRequest {
    */
   @PUT
   @Path("/threads/{threadLocator}/interrupted")
+  @Consumes({"text/plain"})
   @Produces({"text/plain"})
   public String interruptThread(@PathParam("threadLocator") String threadLocator, String interrupted) {
-    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myDataProvider.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     if (!Boolean.valueOf(interrupted)) {
       throw new BadRequestException("Only \"true\" is supported as the posted value");
     }
@@ -698,7 +699,7 @@ public class DebugRequest {
   @Path("/values/password/scrambled")
   @Produces({"text/plain"})
   public String getScrambled(@QueryParam("value") String value) {
-    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myDataProvider.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     return EncryptUtil.scramble(value);
   }
 
@@ -709,7 +710,7 @@ public class DebugRequest {
   @Path("/values/password/unscrambled")
   @Produces({"text/plain"})
   public String getUnscrambled(@QueryParam("value") String value) {
-    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myDataProvider.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     try {
       return EncryptUtil.unscramble(value);
     } catch (IllegalArgumentException e) {
@@ -724,7 +725,7 @@ public class DebugRequest {
   @Path("/values/transform/{method}")
   @Produces({"text/plain"})
   public String getHashed(@PathParam("method") String method, @QueryParam("value") String value) {
-    myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myDataProvider.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     if (value == null) {
       throw new BadRequestException("Mandatory parameter 'value' is missing");
     }
@@ -764,7 +765,7 @@ public class DebugRequest {
   @Path("/investigations")
   @Produces({"application/xml", "application/json"})
   public Investigations getRawInvestigations(@QueryParam("fields") final String fields) {
-    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myPermissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     List<InvestigationWrapper> investigations =
       myServiceLocator.getSingletonService(ResponsibilityManager.class).getAllEntries(null).stream().map(r -> new InvestigationWrapper(r)).collect(Collectors.toList());
     return new Investigations(investigations, null, new Fields(fields), myBeanContext);
@@ -774,7 +775,7 @@ public class DebugRequest {
   @Path("/dns/lookup/{host}")
   @Produces({"application/xml", "application/json"})
   public Items getIpAddress(@PathParam("host") String host) {
-    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myPermissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     try {
       return new Items(Stream.of(InetAddress.getAllByName(host)).filter(Objects::nonNull).map(inetAddress -> inetAddress.getHostAddress()).collect(Collectors.toList()));
     } catch (UnknownHostException e) {
@@ -786,7 +787,7 @@ public class DebugRequest {
   @Path("/caches/builds/stats")
   @Produces({"application/xml", "application/json"})
   public Properties getCachedBuildsStat(@QueryParam("fields") final String fields) {
-    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myPermissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     Map<String, String> cacheStat = myServiceLocator.getSingletonService(DBBuildHistory.class).getCacheStat();
     return new Properties(Properties.createEntity(cacheStat, null), false, null, null, new Fields(fields), myBeanContext);
   }
@@ -795,7 +796,7 @@ public class DebugRequest {
   @Path("/caches/buildPromotions/stats")
   @Produces({"application/xml", "application/json"})
   public Properties getCachedBuildPromotionsStats(@QueryParam("fields") final String fields) {
-    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myPermissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     int size = myServiceLocator.getSingletonService(BuildPromotionManagerImpl.class).getSize();
     return new Properties(Properties.createEntity(CollectionsUtil.asMap("idsSize", String.valueOf(size)), null), false, null, null, new Fields(fields), myBeanContext);
   }
@@ -804,7 +805,7 @@ public class DebugRequest {
   @Path("/caches/buildPromotions/content")
   @Produces({"application/xml", "application/json"})
   public Builds getCachedBuildPromotions(@QueryParam("buildTypeLocator") final String buildTypeLocator, @QueryParam("fields") final String fields) {
-    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myPermissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     ItemsProviders.LocatorAwareItemsRetriever<BuildPromotion> itemsRetriever = new ItemsProviders.LocatorAwareItemsRetriever<>(new ItemsProviders.ItemsProvider<BuildPromotion>() {
       @NotNull
       @Override
@@ -827,7 +828,7 @@ public class DebugRequest {
   @Path("/diagnostics/threadPerfStat/stats")
   @Produces({"application/xml", "application/json"})
   public Properties getDiagnosticsPerfStats(@QueryParam("fields") final String fields) {
-    myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
+    myPermissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     long timeMs = TimeUnit.MILLISECONDS.convert(NamedThreadUtil.PerfStat.getTotalRetrievalTime(), TimeUnit.NANOSECONDS);
     Map<String, String> props = new LinkedHashMap<>();
     props.put("invocationCount", String.valueOf(NamedThreadUtil.PerfStat.getTotalCount()));
