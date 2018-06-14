@@ -33,6 +33,8 @@ import jetbrains.buildServer.artifacts.RevisionRule;
 import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.controllers.changes.ChangesBean;
 import jetbrains.buildServer.controllers.changes.ChangesPopupUtil;
+import jetbrains.buildServer.parameters.ParametersProvider;
+import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.change.BuildChangeData;
@@ -77,6 +79,7 @@ import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.buildDistribution.WaitReason;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.serverSide.impl.DownloadedArtifactsLoggerImpl;
+import jetbrains.buildServer.serverSide.impl.FinishedBuildEx;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.audit.filters.ActionTypesFilter;
 import jetbrains.buildServer.serverSide.impl.changeProviders.ArtifactDependencyChangesProvider;
@@ -508,15 +511,27 @@ public class Build {
    */
   @XmlElement
   public Properties getResultingProperties() {
-    if (myBuild == null) {
-      return null;
-    }
     return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("resultingProperties", false, false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
         checkCanViewRuntimeData();
-        return new Properties(myBuild.getParametersProvider().getAll(), null, myFields.getNestedField("resultingProperties", Fields.NONE, Fields.LONG), myBeanContext);
+        return new Properties(getBuildResultingParameters(myBuildPromotion).getAll(), null, myFields.getNestedField("resultingProperties", Fields.NONE, Fields.LONG), myBeanContext);
       }
     });
+  }
+
+  public static ParametersProvider getBuildResultingParameters(@NotNull BuildPromotion buildPromotion) {
+    SBuild build = buildPromotion.getAssociatedBuild();
+    if (build != null && build.isFinished()) {
+      try {
+        Map<String, String> parameters = ((FinishedBuildEx)build).getBuildFinishParameters();
+        if (parameters != null) {
+          return new MapParametersProviderImpl(parameters);
+        }
+      } catch (ClassCastException ignore) {
+      }
+    }
+    //falling back to recalculated parameters
+    return ((BuildPromotionEx)buildPromotion).getParametersProvider();
   }
 
   @XmlElement

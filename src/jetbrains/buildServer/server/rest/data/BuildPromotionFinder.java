@@ -556,7 +556,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
           if (!Build.canViewRuntimeData(myPermissionChecker, item)) return false;
           //does not correspond to Build.getProperties() which includes less parameters
-          return parameterCondition.matches(((BuildPromotionEx)item).getParametersProvider()); //TeamCity open API issue
+          return parameterCondition.matches(Build.getBuildResultingParameters(item)); //TeamCity open API issue
         }
       });
     }

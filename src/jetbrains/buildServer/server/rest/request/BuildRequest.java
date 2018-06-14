@@ -66,6 +66,7 @@ import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.LoginConfiguration;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
+import jetbrains.buildServer.serverSide.impl.BaseBuild;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.tags.TagsManager;
@@ -262,29 +263,39 @@ public class BuildRequest {
   }
 
   @GET
-  @Path("/{buildLocator}/resulting-properties/")
+  @Path("/{buildLocator}/resulting-properties")
   @Produces({"application/xml", "application/json"})
   public Properties serveBuildActualParameters(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
-    SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    myPermissionChecker.checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getBuildPromotion());
-    return new Properties(build.getParametersProvider().getAll(), null, new Fields(fields), myBeanContext);
-    /* alternative
-    try {
-      return new Properties(((FinishedBuildEx)build).getBuildFinishParameters());
-    } catch (ClassCastException e) {
-      return null;
-    }
-    */
+    BuildPromotion build = myBuildPromotionFinder.getItem(buildLocator);
+    myPermissionChecker.checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build);
+    return new Properties(Build.getBuildResultingParameters(build).getAll(), null, new Fields(fields), myBeanContext);
   }
 
   @GET
   @Path("/{buildLocator}/resulting-properties/{propertyName}")
   @Produces({"text/plain"})
   public String getParameter(@PathParam("buildLocator") String buildLocator, @PathParam("propertyName") String propertyName) {
-    SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    myPermissionChecker.checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getBuildPromotion());
-    return BuildTypeUtil.getParameter(propertyName, build.getParametersProvider(), true, true, myBeanContext.getServiceLocator());
+    BuildPromotion build = myBuildPromotionFinder.getItem(buildLocator);
+    myPermissionChecker.checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build);
+    return BuildTypeUtil.getParameter(propertyName, Build.getBuildResultingParameters(build), true, true, myBeanContext.getServiceLocator());
   }
+
+  /**
+   * experimental
+   * This forces the properties reload from disk, not deletion
+   */
+  @DELETE
+  @Path("/{buildLocator}/caches/finishProperties")
+  @Produces({"application/xml", "application/json"})
+  public void resetBuildFinishParameters(@PathParam("buildLocator") String buildLocator) {
+    SBuild build = myBuildFinder.getBuild(null, buildLocator);
+    myPermissionChecker.checkPermission(Permission.EDIT_PROJECT, build.getBuildPromotion());
+    try {
+      ((BaseBuild)build).resetBuildFinalParameters();
+    } catch (ClassCastException ignore) {
+    }
+  }
+
 
   /**
    * Experimental only
