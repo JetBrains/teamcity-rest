@@ -434,7 +434,7 @@ public class ProjectRequest {
                                                @PathParam("btLocator") String buildTypeLocator,
                                                @PathParam("field") String fieldName) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(myProjectFinder.getItem(projectLocator), buildTypeLocator, false);
-    return buildType.getFieldValue(fieldName);
+    return buildType.getFieldValue(fieldName, myBeanContext);
   }
 
   //todo: separate methods to serve running builds

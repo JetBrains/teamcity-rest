@@ -199,7 +199,7 @@ public class BuildTypeRequest {
   @Produces("text/plain")
   public String serveBuildTypeField(@PathParam("btLocator") String buildTypeLocator, @PathParam("field") String fieldName) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, false);
-    return buildType.getFieldValue(fieldName);
+    return buildType.getFieldValue(fieldName, myBeanContext);
   }
 
   @PUT
@@ -209,7 +209,7 @@ public class BuildTypeRequest {
   public String setBuildTypeField(@PathParam("btLocator") String buildTypeLocator, @PathParam("field") String fieldName, String newValue) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, false); //todo: support multiple locator here to pause many in one request
     buildType.setFieldValueAndPersist(fieldName, newValue, myServiceLocator);
-    return buildType.getFieldValue(fieldName);
+    return buildType.getFieldValue(fieldName, myBeanContext);
   }
 
   @GET

@@ -21,11 +21,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.log.Loggable;
+import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.vcs.VcsRootInstanceEntry;
@@ -65,6 +69,7 @@ public class BuildTypeOrTemplate implements Loggable {
     return this;
   }
 
+  @Nullable
   public Boolean isInherited() {
     return myInherited;
   }
@@ -197,6 +202,18 @@ public class BuildTypeOrTemplate implements Loggable {
         throw new BadRequestException("Id cannot be empty");
       }
       return;
+    } else if ("uuid".equals(field)) {
+      serviceLocator.getSingletonService(PermissionChecker.class).checkPermission(Permission.EDIT_PROJECT, get());
+      if (value == null) {
+        throw new BadRequestException("UUID cannot be empty");
+      }
+      BuildTypeOrTemplate existingByUuid = serviceLocator.getSingletonService(BuildTypeFinder.class).findBuildTypeOrTemplateByUuid(value, null);
+      if (existingByUuid != null) {
+        throw new BadRequestException("Build type with UUID '" + value + "' already exists");
+      }
+      serviceLocator.getSingletonService(BuildTypeIdentifiersManager.class).modifyConfigId(((BuildTypeIdentityEx)myBuildTypeIdentity).getEntityId(), value, null);
+      myBuildTypeIdentity.persist();
+      return;
     } else if ("name".equals(field)) {
       if (value != null){
         setName(value);
@@ -224,12 +241,15 @@ public class BuildTypeOrTemplate implements Loggable {
   }
 
   @Nullable
-  public String getFieldValue(final String field) {
+  public String getFieldValue(final String field, @NotNull final BeanContext beanContext) {
     // Fields should not require additional permissions apart from VIEW_PROJECT
     if ("id".equals(field)) {
       return getId();
     } else if ("internalId".equals(field)) {
       return getInternalId();
+    } else if ("uuid".equals(field)) {
+      beanContext.getSingletonService(PermissionChecker.class).checkPermission(Permission.EDIT_PROJECT, get());
+      return ((BuildTypeIdentityEx)myBuildTypeIdentity).getEntityId().getConfigId();
     } else if ("description".equals(field)) {
       return getDescription();
     } else if ("name".equals(field)) {

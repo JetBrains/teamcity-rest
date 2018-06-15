@@ -779,7 +779,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   }
 
   @Nullable
-  private BuildTypeOrTemplate findBuildTypeOrTemplateByInternalId(@NotNull final String internalId, @Nullable final Boolean isTemplate) {
+  public BuildTypeOrTemplate findBuildTypeOrTemplateByInternalId(@NotNull final String internalId, @Nullable final Boolean isTemplate) {
     if (isTemplate == null || !isTemplate) {
       SBuildType buildType = myProjectManager.findBuildTypeById(internalId);
       if (buildType != null) {
@@ -796,7 +796,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   }
 
   @Nullable
-  private BuildTypeOrTemplate findBuildTypeOrTemplateByUuid(@NotNull final String uuid, @Nullable final Boolean isTemplate) {
+  public BuildTypeOrTemplate findBuildTypeOrTemplateByUuid(@NotNull final String uuid, @Nullable final Boolean isTemplate) {
     if (isTemplate == null || !isTemplate) {
       SBuildType buildType = myProjectManager.findBuildTypeByConfigId(uuid);
       if (buildType != null) {
