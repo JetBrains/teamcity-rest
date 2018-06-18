@@ -456,8 +456,8 @@ public class DebugRequest {
             i++;//just load CPU
           }
           Thread.sleep(1000 - loadMsInSecond);
-        } else{
-          Thread.sleep(totalTimeMs);
+        } else {
+          Thread.sleep(totalTimeMs - (System.currentTimeMillis() - startTime));
         }
       }
       StringBuilder resultMessage = new StringBuilder();
