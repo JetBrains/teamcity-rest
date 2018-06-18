@@ -31,6 +31,7 @@ import jetbrains.buildServer.serverSide.userChanges.UserChangesFacade;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
+import jetbrains.buildServer.util.ItemProcessor;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.graph.BFSVisitorAdapter;
 import jetbrains.buildServer.util.graph.DAG;
@@ -536,8 +537,12 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       return getItemHolder(graphFinder.getItems(graphLocator).myEntries);
     }
 
-    //todo: highly inefficient!
-    return getItemHolder(myVcsModificationHistory.getAllModifications());
+    return new ItemHolder<SVcsModification>() {
+      @Override
+      public void process(@NotNull final ItemProcessor<SVcsModification> processor) {
+        ((VcsModificationHistoryEx)myVcsModificationHistory).processModifications(item -> processor.processItem(item));
+      }
+    };
   }
 
   @Nullable

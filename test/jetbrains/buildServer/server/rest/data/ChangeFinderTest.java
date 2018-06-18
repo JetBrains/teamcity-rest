@@ -188,6 +188,35 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     check(fileChanges10.files.get(7), "copied", null, true, "root/e", "e");
   }
 
+  @Test
+  public void testLimitedProcessing() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
+    assert root1 != null;
+
+    SVcsModification m20 = myFixture.addModification(modification().in(root1).by("user1").version("20").parentVersions("10"));
+    SVcsModification m30 = myFixture.addModification(modification().in(root1).version("30").parentVersions("20"));
+    SVcsModification m40 = myFixture.addModification(modification().in(root1).version("40").parentVersions("10"));
+    SVcsModification m50 = myFixture.addModification(modification().in(root1).by("user1").version("50").parentVersions("40"));
+    SVcsModification m60 = myFixture.addModification(modification().in(root1).version("60").parentVersions("15"));
+    SVcsModification m70 = myFixture.addModification(modification().in(root1).version("70").parentVersions("10"));
+
+    buildConf.forceCheckingForChanges();
+    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+
+    check(null, m70, m60, m50, m40, m30, m20);
+    checkCounts("count:3", 3, 4);
+    checkCounts("lookupLimit:3", 3, 4);
+    checkCounts("username:user1", 2, 6);
+    checkCounts("buildType:(id:" + buildConf2.getExternalId() + ")", 0, 0);
+    checkCounts("version:50", 1, 6);
+  }
+
   private void check(final FileChange fileChangeToCheck, final String type, final String typeComment, final Boolean isDirectory, final String filePath, final String relativePath) {
     assertEquals(type, fileChangeToCheck.changeType);
     assertEquals(typeComment, fileChangeToCheck.changeTypeComment);
