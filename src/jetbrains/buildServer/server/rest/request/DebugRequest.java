@@ -221,6 +221,7 @@ public class DebugRequest {
     result.append("Path and query: ").append(WebUtil.getRequestUrl(request)).append("\n");
     if (!StringUtil.isEmpty(extra)) result.append("Extra path: ").append(extra).append("\n");
     result.append("Session id: ").append(request.getSession().getId()).append("\n");
+    result.append("Request object instance hash: ").append(Integer.toHexString(request.hashCode())).append("\n");
     result.append("Current TeamCity user: ").append(myServiceLocator.getSingletonService(PermissionChecker.class).getCurrentUserDescription()).append("\n");
     result.append("\n");
     result.append("Headers:\n");
@@ -426,7 +427,8 @@ public class DebugRequest {
   @Path("/emptyTask")
   @Produces({"text/plain"})
   public String emptyTask(@QueryParam("time") String totalTime, @QueryParam("load") Integer loadPercentage,
-                          @QueryParam("memory") Integer memoryToAllocateBytes, @QueryParam("memoryChunks") @DefaultValue("1") Integer memoryChunksCount) {
+                          @QueryParam("memory") Integer memoryToAllocateBytes, @QueryParam("memoryChunks") @DefaultValue("1") Integer memoryChunksCount,
+                          @Context HttpServletRequest request) {
     myDataProvider.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     long totalTimeMs = 0;
     if (totalTime != null) {
@@ -470,6 +472,9 @@ public class DebugRequest {
         if (memoryChunksCount > 1) {
           resultMessage.append(" in ").append(memoryChunksCount).append(" chunks");
         }
+      }
+      if (TeamCityProperties.getBoolean("rest.debug.emptyTask.includeRequestHash")) {
+        resultMessage.append(String.format(" %8s", Integer.toHexString(request.hashCode())));
       }
       return resultMessage.toString();
     } catch (InterruptedException e) {

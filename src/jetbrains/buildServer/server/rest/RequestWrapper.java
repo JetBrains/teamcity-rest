@@ -76,4 +76,13 @@ public class RequestWrapper extends HttpServletRequestWrapper {
     }
     return super.getHeader(name);
   }
+
+  /**
+   * Delegating to the original instance to allow for tracking of unique request instance id
+   * We do not override equals here as in theory these objects can be different with the same wrapped request: this still confirms to hashCode/equals contract
+   */
+  @Override
+  public int hashCode() {
+    return getRequest().hashCode();
+  }
 }
